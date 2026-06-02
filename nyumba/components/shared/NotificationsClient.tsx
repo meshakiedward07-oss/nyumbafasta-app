@@ -1,0 +1,187 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import type { Notification } from '@/lib/types/database'
+import BottomNav from '@/components/shared/BottomNav'
+import ReviewForm from '@/components/listings/ReviewForm'
+
+const TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
+  listing_approved:        { icon: '✅', color: 'bg-primary-50 border-primary-100' },
+  listing_rejected:        { icon: '❌', color: 'bg-red-50 border-red-100' },
+  listing_expired:         { icon: '❌', color: 'bg-red-50 border-red-100' },
+  listing_expiring_14days: { icon: '⏰', color: 'bg-yellow-50 border-yellow-100' },
+  listing_expiring_7days:  { icon: '🚨', color: 'bg-orange-50 border-orange-100' },
+  listing_expiring_today:  { icon: '🔴', color: 'bg-red-50 border-red-100' },
+  new_lead:                { icon: '📞', color: 'bg-blue-50 border-blue-100' },
+  subscription_active:     { icon: '⭐', color: 'bg-amber-50 border-amber-100' },
+  review_request:          { icon: '⭐', color: 'bg-amber-50 border-amber-100' },
+  review_reminder:         { icon: '🔔', color: 'bg-orange-50 border-orange-100' },
+  new_review:              { icon: '⭐', color: 'bg-amber-50 border-amber-100' },
+  review_reply:            { icon: '💬', color: 'bg-primary-50 border-primary-100' },
+  boost_activated:         { icon: '🚀', color: 'bg-yellow-50 border-yellow-100' },
+  listing_taken:           { icon: '🏠', color: 'bg-gray-50 border-gray-100' },
+  default:                 { icon: '🔔', color: 'bg-gray-50 border-gray-100' },
+}
+
+function groupByDate(notifications: Notification[]) {
+  const groups: Record<string, Notification[]> = {}
+  const today     = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  notifications.forEach(n => {
+    const d = new Date(n.created_at)
+    let label: string
+    if (d.toDateString() === today.toDateString())     label = 'Leo'
+    else if (d.toDateString() === yesterday.toDateString()) label = 'Jana'
+    else label = d.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long' })
+    if (!groups[label]) groups[label] = []
+    groups[label].push(n)
+  })
+  return groups
+}
+
+type ReviewNotifData = {
+  unlock_id: string
+  listing_id?: string
+  dalali_id?: string
+}
+
+type Props = {
+  notifications: Notification[]
+  role: string
+}
+
+export default function NotificationsClient({ notifications, role }: Props) {
+  const router = useRouter()
+  const [activeReview, setActiveReview] = useState<ReviewNotifData & { notifId: string } | null>(null)
+  const [reviewed, setReviewed] = useState<Set<string>>(new Set())
+
+  // Mark all as read on mount
+  useEffect(() => {
+    if (notifications.some(n => !n.is_read)) {
+      fetch('/api/v1/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+        .catch(() => {})
+    }
+  }, [notifications])
+
+  const groups = groupByDate(notifications)
+  const isReviewType = (type: string) => type === 'review_request' || type === 'review_reminder'
+
+  function handleNotifTap(n: Notification) {
+    if (isReviewType(n.type) && !reviewed.has(n.id)) {
+      const d = n.data as ReviewNotifData | null
+      if (d?.unlock_id) {
+        setActiveReview({ ...d, notifId: n.id })
+      }
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-24 animate-fadeIn">
+
+      {/* Header */}
+      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
+        <button onClick={() => router.back()}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 active:scale-90 transition-transform">
+          ←
+        </button>
+        <h1 className="text-base font-bold text-gray-900 flex-1">Arifa</h1>
+        {notifications.some(n => !n.is_read) && (
+          <span className="text-xs bg-red-100 text-red-600 font-semibold px-2 py-0.5 rounded-full">
+            {notifications.filter(n => !n.is_read).length} mpya
+          </span>
+        )}
+      </div>
+
+      {notifications.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center px-6">
+          <span className="text-5xl mb-4">🔔</span>
+          <p className="text-gray-600 font-medium mb-1">Hakuna arifa bado</p>
+          <p className="text-gray-400 text-sm">Arifa zitaonekana hapa wakati zinatokea</p>
+        </div>
+      ) : (
+        <div className="px-4 pt-4 space-y-6">
+          {Object.entries(groups).map(([label, items]) => (
+            <div key={label}>
+              <p className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide" suppressHydrationWarning>{label}</p>
+              <div className="space-y-2">
+                {items.map(n => {
+                  const cfg = TYPE_CONFIG[n.type] ?? TYPE_CONFIG.default
+                  const isReview = isReviewType(n.type)
+                  const alreadyReviewed = reviewed.has(n.id)
+                  return (
+                    <div
+                      key={n.id}
+                      onClick={() => handleNotifTap(n)}
+                      className={`rounded-2xl border p-4 flex gap-3 transition-all
+                        ${cfg.color}
+                        ${!n.is_read && !alreadyReviewed ? 'shadow-sm' : 'opacity-70'}
+                        ${isReview && !alreadyReviewed ? 'cursor-pointer active:scale-[0.98]' : ''}
+                      `}
+                    >
+                      <span className="text-2xl flex-shrink-0 mt-0.5">{cfg.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 leading-snug mb-0.5">{n.title}</p>
+                        <p className="text-xs text-gray-600 leading-relaxed">{n.body}</p>
+                        {isReview && !alreadyReviewed && (
+                          <span className="inline-block mt-2 text-xs bg-amber-400 text-white font-semibold px-3 py-1 rounded-full">
+                            Toa Maoni →
+                          </span>
+                        )}
+                        {alreadyReviewed && (
+                          <span className="inline-block mt-2 text-xs text-primary-600 font-medium">
+                            ✅ Maoni yametolewa
+                          </span>
+                        )}
+                        {(n.type === 'listing_expired' || n.type === 'listing_expiring_7days' || n.type === 'listing_expiring_today') && n.ref_id && (
+                          <div className="mt-2">
+                            <button
+                              onClick={() => router.push(`/dashboard/listings?renew=${n.ref_id}`)}
+                              className="text-xs bg-[#1D9E75] text-white px-3 py-1.5 rounded-lg font-medium"
+                            >
+                              🔄 Huisha Sasa →
+                            </button>
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1.5" suppressHydrationWarning>
+                          {new Date(n.created_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      {!n.is_read && !alreadyReviewed && (
+                        <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-1" />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {role === 'dalali' ? null : <BottomNav role={role} />}
+
+      {/* Review modal — inafunguka kwa click ya review_request notification */}
+      {activeReview && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setActiveReview(null)}>
+          <div className="bg-gray-50 w-full rounded-t-3xl max-h-[85vh] overflow-y-auto"
+               onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mt-4 mb-2" />
+            <div className="px-4 pb-10">
+              <ReviewForm
+                unlockId={activeReview.unlock_id}
+                dalaliName="dalali"
+                onSubmitted={() => {
+                  setReviewed(prev => new Set(prev).add(activeReview.notifId))
+                  setActiveReview(null)
+                }}
+                onDismiss={() => setActiveReview(null)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

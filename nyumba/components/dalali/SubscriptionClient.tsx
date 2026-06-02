@@ -1,0 +1,687 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import type { HistoryItem } from '@/app/(dalali)/dashboard/subscription/page'
+import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
+import CardDetailsForm from '@/components/payments/CardDetailsForm'
+import type { CardDetails } from '@/components/payments/CardDetailsForm'
+import {
+  SUBSCRIPTION_PLANS,
+  PLAN_BADGES,
+  getPlan,
+  type PlanType,
+} from '@/lib/config/subscription-plans'
+
+type PaymentProvider = 'mpesa' | 'mixyyas' | 'airtel' | 'halopesa' | 'mastercard' | 'visa'
+
+const PAYMENT_PROVIDERS = PAYMENT_METHODS
+
+const PLAN_ORDER: Record<string, number> = { free: 0, basic: 1, premium: 2, enterprise: 3 }
+
+function getLoyaltyDiscount(months: number): number {
+  if (months >= 12) return 20
+  if (months >= 6)  return 15
+  if (months >= 3)  return 10
+  return 0
+}
+
+function applyDiscount(price: number, pct: number): number {
+  return Math.round(price * (1 - pct / 100))
+}
+
+function fmt(n: number) { return n.toLocaleString() }
+
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function daysUntil(dateStr: string): number {
+  return Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86_400_000)
+}
+
+type Props = {
+  currentPlan: string | null
+  currentStatus: string | null
+  expiresAt: string | null
+  gracePeriodUntil: string | null
+  completedMonths: number
+  history: HistoryItem[]
+}
+
+export default function SubscriptionClient({
+  currentPlan, currentStatus, expiresAt, gracePeriodUntil, completedMonths, history,
+}: Props) {
+  const router = useRouter()
+
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>(
+    (currentPlan as PlanType) ?? 'basic'
+  )
+  const [step, setStep]             = useState<'overview' | 'new_plan' | 'provider' | 'card_details' | 'phone' | 'waiting' | 'success'>('overview')
+  const [provider, setProvider]     = useState<PaymentProvider>('mpesa')
+  const [phone, setPhone]           = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState('')
+  const [renewLoading, setRenewLoading] = useState(false)
+  const [renewed, setRenewed]       = useState(false)
+  const [mounted, setMounted]       = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  const discount    = getLoyaltyDiscount(completedMonths)
+  const daysLeft    = mounted && expiresAt ? daysUntil(expiresAt) : null
+  const graceDays   = mounted && gracePeriodUntil ? daysUntil(gracePeriodUntil) : null
+  const isActive    = currentStatus === 'active'
+  const isGrace     = currentStatus === 'grace_period'
+  const hasAnySub   = isActive || isGrace
+  const isFree      = currentPlan === 'free'
+  const currentPlanData = getPlan(currentPlan)
+  const renewPrice  = currentPlan && !isFree
+    ? applyDiscount(currentPlanData.price, discount)
+    : 0
+
+  // One-tap renewal
+  async function handleRenew(plan?: PlanType) {
+    setRenewLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/v1/payments/subscription/renew', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: plan ?? currentPlan }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa')
+      setRenewed(true)
+      setTimeout(() => router.refresh(), 1500)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
+    } finally {
+      setRenewLoading(false)
+    }
+  }
+
+  // New subscription payment (mobile)
+  async function handlePay(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/v1/payments/subscription/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan, msisdn: phone, provider }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa')
+      if (data.mock) { setStep('success'); return }
+      setStep('waiting')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // For cards → card_details step. For mobile → phone step.
+  function handleSelectorPay(method: PaymentProvider) {
+    setProvider(method)
+    if (method === 'visa' || method === 'mastercard') {
+      setStep('card_details')
+      return
+    }
+    setStep('phone')
+  }
+
+  async function handleCardSubmit(cardDetails: CardDetails) {
+    void cardDetails
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/v1/payments/subscription/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan, provider, payment_type: 'card' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa')
+      if (data.mock) { setStep('success'); return }
+      if (data.payment_url) { window.location.href = data.payment_url; return }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
+      setStep('card_details')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Plan badge for overview card
+  const badge = PLAN_BADGES[currentPlan ?? 'free'] ?? PLAN_BADGES['free']
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-24">
+
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3 px-4 py-3">
+        <button onClick={() => step === 'overview' ? router.back() : setStep('overview')}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600">
+          ←
+        </button>
+        <h1 className="text-sm font-bold text-gray-900">💳 Subscription</h1>
+      </div>
+
+      {/* ── SUCCESS ── */}
+      {(step === 'success' || renewed) && (
+        <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+          <div className="text-5xl mb-4 animate-bounce">🎉</div>
+          <p className="text-lg font-bold text-gray-900 mb-2">Subscription Imewashwa!</p>
+          <p className="text-sm text-gray-500">Listings zako zinaendelea kuonekana kwa wateja.</p>
+        </div>
+      )}
+
+      {/* ── PROVIDER SELECTION ── */}
+      {step === 'provider' && !renewed && (
+        <div className="px-4 pt-4 pb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <button onClick={() => setStep('new_plan')} className="text-gray-400 text-lg">←</button>
+            <p className="text-sm font-bold text-gray-900">Chagua Njia ya Kulipa</p>
+          </div>
+
+          {/* Plan summary */}
+          {(() => {
+            const plan = getPlan(selectedPlan)
+            const price = discount > 0 ? applyDiscount(plan.price, discount) : plan.price
+            return (
+              <div className="rounded-2xl p-3 mb-4 flex justify-between items-center"
+                style={{ backgroundColor: plan.bgColor }}>
+                <div>
+                  <p className="text-xs text-gray-500">Plan uliyochagua</p>
+                  <p className="text-sm font-bold text-gray-900">{plan.emoji} {plan.name}</p>
+                </div>
+                <p className="font-bold text-sm" style={{ color: plan.color }}>
+                  Tsh {fmt(price)}/mwezi
+                </p>
+              </div>
+            )
+          })()}
+
+          {error && <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">{error}</div>}
+
+          <PaymentMethodSelector
+            selected={provider}
+            onSelect={v => setProvider(v)}
+            amount={(() => {
+              const p = getPlan(selectedPlan)
+              return discount > 0 ? applyDiscount(p.price, discount) : p.price
+            })()}
+            onPay={handleSelectorPay}
+          />
+        </div>
+      )}
+
+      {/* ── CARD DETAILS ── */}
+      {step === 'card_details' && !renewed && (
+        <div className="px-4 pt-4 pb-4">
+          {error && (
+            <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
+              {error}
+            </div>
+          )}
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-gray-600 font-medium">Inashughulikia malipo...</p>
+            </div>
+          ) : (
+            <CardDetailsForm
+              cardType={provider as 'visa' | 'mastercard'}
+              amount={(() => {
+                const p = getPlan(selectedPlan)
+                return discount > 0 ? applyDiscount(p.price, discount) : p.price
+              })()}
+              onBack={() => setStep('provider')}
+              onSubmit={handleCardSubmit}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ── PHONE ENTRY ── */}
+      {step === 'phone' && !renewed && (
+        <div className="px-4 pt-5">
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <button onClick={() => setStep('provider')} className="text-gray-400 text-base">←</button>
+              {(() => {
+                const p = PAYMENT_PROVIDERS.find(p => p.id === provider)
+                return p ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-7 flex items-center">{p.icon}</span>
+                    <span className="text-sm font-bold text-gray-900">Lipa kwa {p.name}</span>
+                  </div>
+                ) : <span className="text-sm font-bold text-gray-900">Lipa kwa Mobile Money</span>
+              })()}
+            </div>
+            {(() => {
+              const p = getPlan(selectedPlan)
+              const price = discount > 0 ? applyDiscount(p.price, discount) : p.price
+              return (
+                <p className="text-xs text-gray-400 mb-4">
+                  Plan: {p.name} — Tsh {fmt(price)}
+                  {discount > 0 && <span className="text-green-600 ml-1">(-{discount}%)</span>}
+                </p>
+              )
+            })()}
+            <form onSubmit={handlePay} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                  Nambari ya simu
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
+                    🇹🇿 +255
+                  </div>
+                  <input type="tel" inputMode="numeric" required placeholder="7XX XXX XXX"
+                    value={phone} onChange={e => setPhone(e.target.value)}
+                    className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                  />
+                </div>
+              </div>
+              {error && <p className="text-xs text-red-500">{error}</p>}
+              <button type="submit" disabled={loading || !phone}
+                className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
+                {loading ? 'Inaanzisha...' : '📱 Lipa Sasa'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── NEW PLAN SELECTION — Cards za plans zote 4 ── */}
+      {step === 'new_plan' && !renewed && (
+        <div className="px-4 pt-5 space-y-4">
+          {error && <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
+
+          {discount > 0 && (
+            <div className="bg-primary-50 border border-primary-100 rounded-2xl p-3 flex items-center gap-3">
+              <span className="text-2xl">🎉</span>
+              <div>
+                <p className="text-sm font-semibold text-primary-800">Umekuwa nasi miezi {completedMonths}!</p>
+                <p className="text-xs text-primary-600">Unapata punguzo la {discount}% ya uaminifu</p>
+              </div>
+            </div>
+          )}
+
+          <p className="text-sm font-bold text-gray-800">Chagua Plan Yako</p>
+
+          {SUBSCRIPTION_PLANS.map(plan => {
+            const isCurrent = currentPlan === plan.id
+            const isPaid    = plan.price > 0
+            const isSelected = selectedPlan === plan.id
+            const price = discount > 0 && isPaid
+              ? applyDiscount(plan.price, discount)
+              : plan.price
+
+            return (
+              <div
+                key={plan.id}
+                onClick={() => isPaid ? setSelectedPlan(plan.id) : undefined}
+                className={`rounded-2xl border-2 overflow-hidden transition-all ${
+                  isPaid ? 'cursor-pointer active:scale-[0.99]' : 'cursor-default'
+                } ${isSelected && isPaid ? 'ring-2 ring-offset-1' : ''}`}
+                style={{
+                  borderColor: plan.borderColor,
+                  outlineColor: plan.color,
+                  backgroundColor: 'white',
+                }}
+              >
+                {/* "Inayopendwa zaidi" badge kwa Premium */}
+                {plan.id === 'premium' && (
+                  <div className="text-center py-1.5 text-white text-xs font-bold"
+                    style={{ backgroundColor: plan.color }}>
+                    ⭐ INAPENDELEWA ZAIDI
+                  </div>
+                )}
+
+                <div className="p-4">
+                  {/* Plan header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                        style={{ backgroundColor: plan.bgColor }}>
+                        {plan.emoji}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-gray-900">{plan.name}</p>
+                          {isCurrent && (
+                            <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
+                              style={{ backgroundColor: plan.color }}>
+                              Plan Yako
+                            </span>
+                          )}
+                          {isSelected && !isCurrent && isPaid && (
+                            <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium bg-primary-500">
+                              Imechaguliwa ✓
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-400 text-xs">{plan.description}</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      {plan.price === 0 ? (
+                        <p className="font-bold text-lg text-gray-600">Bure</p>
+                      ) : (
+                        <>
+                          <p className="font-bold text-lg" style={{ color: plan.color }}>
+                            Tsh {fmt(price)}
+                          </p>
+                          {discount > 0 && (
+                            <p className="text-xs text-gray-400 line-through">Tsh {fmt(plan.price)}</p>
+                          )}
+                          <p className="text-gray-400 text-xs">/mwezi</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Key stats grid */}
+                  <div className="grid grid-cols-3 gap-2 p-3 rounded-xl mb-3"
+                    style={{ backgroundColor: plan.bgColor }}>
+                    <div className="text-center">
+                      <p className="font-bold text-lg" style={{ color: plan.color }}>
+                        {plan.listings}
+                      </p>
+                      <p className="text-xs text-gray-500">Listings</p>
+                    </div>
+                    <div className="text-center border-x border-gray-200">
+                      <p className="font-bold text-lg" style={{ color: plan.color }}>
+                        {plan.photos}
+                      </p>
+                      <p className="text-xs text-gray-500">Picha</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-lg" style={{ color: plan.color }}>
+                        {plan.limits.videos ? '✓' : '✗'}
+                      </p>
+                      <p className="text-xs text-gray-500">Video</p>
+                    </div>
+                  </div>
+
+                  {/* Features list */}
+                  <div className="space-y-1.5 mb-3">
+                    {plan.features.map((feature, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className={`text-sm flex-shrink-0 ${feature.included ? 'text-green-500' : 'text-gray-300'}`}>
+                          {feature.included ? '✓' : '✗'}
+                        </span>
+                        <span className={`text-xs ${
+                          feature.included
+                            ? feature.highlight ? 'font-semibold text-gray-800' : 'text-gray-600'
+                            : 'text-gray-300 line-through'
+                        }`}>
+                          {feature.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Action area */}
+                  {isCurrent ? (
+                    <div className="w-full py-3 rounded-xl text-center text-sm font-semibold"
+                      style={{ backgroundColor: plan.bgColor, color: plan.color }}>
+                      ✓ Plan Yako ya Sasa
+                    </div>
+                  ) : plan.price === 0 ? (
+                    <div className="w-full py-3 rounded-xl text-center text-sm text-gray-400 bg-gray-50">
+                      Plan ya Msingi — Daima Bure
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => setSelectedPlan(plan.id)}
+                      className={`w-full py-3 rounded-xl text-center text-sm font-semibold transition-all ${
+                        isSelected
+                          ? 'text-white'
+                          : 'text-white opacity-70'
+                      }`}
+                      style={{ backgroundColor: plan.color }}
+                    >
+                      {isSelected
+                        ? `✓ ${(PLAN_ORDER[currentPlan ?? 'free'] ?? 0) < PLAN_ORDER[plan.id] ? 'Upgrade' : 'Downgrade'} kwenda ${plan.name}`
+                        : `Chagua ${plan.name}`
+                      }
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Note ya ulinganisho */}
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-700">
+            <p className="font-semibold mb-1">💡 Unajua?</p>
+            <p className="text-xs">
+              Madalali wa Premium wanapata leads mara 3 zaidi kuliko Free tier. Jaribu Basic kwanza — Tsh 10,000/mwezi tu.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setStep('provider')}
+            disabled={!selectedPlan || selectedPlan === currentPlan || selectedPlan === 'free'}
+            className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all"
+          >
+            {selectedPlan && selectedPlan !== 'free' ? `Endelea na ${getPlan(selectedPlan).name} →` : 'Chagua plan kwanza'}
+          </button>
+        </div>
+      )}
+
+      {/* ── OVERVIEW ── */}
+      {step === 'overview' && !renewed && (
+        <div className="px-4 pt-5 space-y-4">
+
+          {error && <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
+
+          {/* ── Grace period banner ── */}
+          {isGrace && (
+            <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-4">
+              <p className="font-bold text-yellow-800 mb-1">⚠️ Subscription Imekwisha!</p>
+              <p className="text-sm text-yellow-700 mb-1">
+                Grace period: siku {Math.max(0, graceDays ?? 0)} zimebaki
+              </p>
+              <p className="text-xs text-yellow-600 mb-4">
+                Listings zako bado zinaonekana, lakini zitasimama grace period ikiisha.
+              </p>
+              <button onClick={() => handleRenew()} disabled={renewLoading}
+                className="w-full bg-yellow-500 text-white py-3.5 rounded-2xl text-sm font-bold disabled:opacity-60 active:scale-[0.97] transition-all">
+                {renewLoading ? 'Inafanya upya...' : `🔄 Huisha Sasa — Tsh ${fmt(renewPrice)}`}
+              </button>
+              {discount > 0 && <p className="text-xs text-yellow-600 text-center mt-1">Punguzo {discount}% ya uaminifu limetumika</p>}
+            </div>
+          )}
+
+          {/* ── Active subscription card ── */}
+          {isActive && !isFree && daysLeft !== null && (
+            <div className="rounded-2xl p-4 border"
+              style={{
+                backgroundColor: currentPlanData.bgColor,
+                borderColor: currentPlanData.borderColor,
+              }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{currentPlanData.emoji}</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-gray-900">{currentPlanData.name}</p>
+                      <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
+                        style={{ backgroundColor: currentPlanData.color }}>
+                        Active ✅
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`text-lg font-bold ${daysLeft <= 7 ? 'text-red-600' : daysLeft <= 14 ? 'text-amber-600' : 'text-gray-900'}`}>
+                    {daysLeft}
+                  </p>
+                  <p className="text-xs text-gray-400">siku zimebaki</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mb-3" suppressHydrationWarning>
+                Inaisha: {expiresAt ? fmtDate(expiresAt) : '—'}
+              </p>
+
+              {daysLeft <= 7 && (
+                <div className="bg-red-50 border border-red-100 rounded-xl p-2 mb-3 text-xs text-red-600">
+                  ⚠️ Subscription yako inaisha hivi karibuni! Fanya upya usipoteze wateja.
+                </div>
+              )}
+
+              <button onClick={() => handleRenew()} disabled={renewLoading}
+                className="w-full py-3 rounded-2xl text-sm font-semibold disabled:opacity-60 active:scale-[0.97] transition-all text-white"
+                style={{ backgroundColor: currentPlanData.color }}>
+                {renewLoading ? 'Inafanya upya...' : `🔄 Huisha Mapema — Tsh ${fmt(renewPrice)}`}
+              </button>
+              {discount > 0 && <p className="text-xs text-gray-500 text-center mt-1">🎉 Punguzo {discount}% ya uaminifu limetumika</p>}
+            </div>
+          )}
+
+          {/* ── Free plan card ── */}
+          {isActive && isFree && (
+            <div className="rounded-2xl p-4 border-2 border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-2xl">🏠</span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-gray-700">Free Plan</p>
+                    <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">Daima Bure</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Listings 2 · Picha 2 · Bila video</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">
+                Upgrade ili kupata listings zaidi, video, boost, na analytics.
+              </p>
+            </div>
+          )}
+
+          {/* Loyalty discount info */}
+          {discount > 0 && (
+            <div className="bg-primary-50 border border-primary-100 rounded-2xl p-3 flex items-center gap-3">
+              <span className="text-2xl">🎉</span>
+              <div>
+                <p className="text-sm font-semibold text-primary-800">Asante kwa uaminifu wako!</p>
+                <p className="text-xs text-primary-600">Miezi {completedMonths} nasi — unapata punguzo la {discount}%</p>
+              </div>
+            </div>
+          )}
+
+          {/* Plan badge summary */}
+          <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm"
+              style={{ backgroundColor: badge.bg, color: badge.color }}>
+              {badge.label.charAt(0)}
+            </div>
+            <div className="flex-1">
+              <p className="text-xs text-gray-500">Plan ya Sasa</p>
+              <p className="font-semibold text-sm" style={{ color: badge.color }}>{badge.label}</p>
+            </div>
+            <button onClick={() => setStep('new_plan')}
+              className="text-xs font-semibold px-3 py-1.5 rounded-full text-white"
+              style={{ backgroundColor: badge.color }}>
+              Badilisha
+            </button>
+          </div>
+
+          {/* Action buttons */}
+          <div className="space-y-2">
+            {/* Upgrade shortcuts */}
+            {(!currentPlan || isFree) && (
+              <button onClick={() => { setSelectedPlan('basic'); setStep('new_plan') }}
+                className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-primary-50 border border-primary-100 active:scale-[0.97] transition-all">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">🚀</span>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-gray-900">Upgrade kwenda Basic</p>
+                    <p className="text-xs text-gray-500">Tsh 10,000/mwezi — listings 5</p>
+                  </div>
+                </div>
+                <span className="text-primary-500 font-bold">→</span>
+              </button>
+            )}
+
+            {hasAnySub && !isFree && currentPlan !== 'enterprise' && (
+              <button onClick={() => { setSelectedPlan('enterprise'); setStep('new_plan') }}
+                className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-purple-50 border border-purple-100 active:scale-[0.97] transition-all">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">⬆️</span>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-gray-900">Upgrade kwenda Enterprise</p>
+                    <p className="text-xs text-gray-500">Tsh {fmt(applyDiscount(50_000, discount))}/mwezi — listings 50{discount > 0 ? ` (-${discount}%)` : ''}</p>
+                  </div>
+                </div>
+                <span className="text-purple-500 font-bold">→</span>
+              </button>
+            )}
+
+            {hasAnySub && !isFree && currentPlan !== 'premium' && PLAN_ORDER[currentPlan ?? 'free'] < PLAN_ORDER['premium'] && (
+              <button onClick={() => { setSelectedPlan('premium'); setStep('new_plan') }}
+                className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-amber-50 border border-amber-100 active:scale-[0.97] transition-all">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">⬆️</span>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-gray-900">Upgrade kwenda Premium</p>
+                    <p className="text-xs text-gray-500">Tsh {fmt(applyDiscount(25_000, discount))}/mwezi{discount > 0 ? ` (-${discount}%)` : ''}</p>
+                  </div>
+                </div>
+                <span className="text-amber-500 font-bold">→</span>
+              </button>
+            )}
+
+            <button onClick={() => setStep('new_plan')}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-gray-100 text-gray-600 text-sm font-medium active:scale-[0.97] transition-all">
+              📋 Angalia Plans Zote
+            </button>
+          </div>
+
+          {/* Payment history */}
+          {history.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-50">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Historia ya Malipo</p>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {history.map(h => {
+                  const hPlan = getPlan(h.plan)
+                  return (
+                    <div key={h.id} className="px-4 py-3 flex items-center gap-3">
+                      <span className="text-lg">{hPlan.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-900">{hPlan.name}</p>
+                        <p className="text-xs text-gray-400" suppressHydrationWarning>
+                          {h.starts_at ? fmtDate(h.starts_at) : '—'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-semibold text-gray-800">
+                          {h.amount_paid ? `Tsh ${fmt(h.amount_paid)}` : h.plan === 'free' ? 'Bure' : '—'}
+                        </p>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          h.status === 'active' ? 'bg-primary-50 text-primary-600' :
+                          h.status === 'grace_period' ? 'bg-yellow-50 text-yellow-700' :
+                          'bg-gray-100 text-gray-400'
+                        }`}>
+                          {h.status === 'active' ? 'Active' : h.status === 'grace_period' ? 'Grace' : 'Imeisha'}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

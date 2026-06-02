@@ -1,0 +1,23 @@
+{
+  "name": "NyumbaFasta",
+  "short_name": "NyumbaFasta",
+  "description": "Pata nyumba yako haraka Tanzania kwa uhakika",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1D9E75",
+  "theme_color": "#1D9E75",
+  "icons": [
+    {
+      "src": "/transparent_logo_nyumbafasta.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/transparent_logo_nyumbafasta.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
