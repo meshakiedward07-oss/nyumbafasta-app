@@ -1,12 +1,15 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { type NextRequest } from 'next/server'
 
-// Admin client — server-side only, uses service role key
-const admin = createSupabaseClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
+export const dynamic = 'force-dynamic'
+
+function getAdmin() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 function verify(req: NextRequest): boolean {
   // Vercel sends Authorization: Bearer <CRON_SECRET>
@@ -32,6 +35,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function runDailyTasks() {
+  const admin = getAdmin()
   const results: string[] = []
   const errors: string[]  = []
   const now = new Date().toISOString()

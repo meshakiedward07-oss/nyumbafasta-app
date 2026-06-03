@@ -1,11 +1,15 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { type NextRequest } from 'next/server'
 
-const admin = createSupabaseClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
+export const dynamic = 'force-dynamic'
+
+function getAdmin() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 function verify(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET
@@ -22,6 +26,7 @@ export async function GET(req: NextRequest) {
 }
 
 async function runHourlyTasks() {
+  const admin = getAdmin()
   const results: string[] = []
   const errors: string[]  = []
   const now = new Date()
