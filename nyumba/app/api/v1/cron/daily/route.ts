@@ -338,6 +338,26 @@ async function runDailyTasks() {
     errors.push(`❌ Listing expiry reminders: ${String(e)}`)
   }
 
+  // ── 9. Timeout stale pending payments (older than 10 min) ──
+  try {
+    const tenMinAgo = new Date(Date.now() - 10 * 60_000).toISOString()
+    const { data: timedOutUnlocks } = await admin
+      .from('contact_unlocks')
+      .update({ status: 'failed' })
+      .eq('status', 'pending')
+      .lt('created_at', tenMinAgo)
+      .select('id')
+    const { data: timedOutSubs } = await admin
+      .from('subscriptions')
+      .update({ status: 'expired' })
+      .eq('status', 'pending')
+      .lt('created_at', tenMinAgo)
+      .select('id')
+    results.push(`✅ Timed-out unlocks: ${timedOutUnlocks?.length ?? 0}, subs: ${timedOutSubs?.length ?? 0}`)
+  } catch (e) {
+    errors.push(`❌ Payment cleanup: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,
