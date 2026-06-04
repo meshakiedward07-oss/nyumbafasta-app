@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
 
-import { runScraper, ScrapeSource } from '../../lib/scraper'
+import { runScraper, ScrapeSource } from '../../lib/scraper/index'
 import { TANZANIA_REGIONS } from '../../lib/agent/regions'
 
 async function main() {
