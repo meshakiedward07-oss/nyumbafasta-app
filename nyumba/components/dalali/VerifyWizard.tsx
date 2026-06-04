@@ -168,7 +168,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
     )
   }
 
-  if (currentStatus === 'verified') {
+  if (currentStatus === 'approved' || currentStatus === 'verified') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center max-w-sm w-full">

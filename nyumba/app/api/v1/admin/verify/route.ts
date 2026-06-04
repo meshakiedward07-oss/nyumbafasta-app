@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'approve') {
       await admin.from('dalali_profiles').update({
-        verification_status: 'verified',
+        verification_status: 'approved',
         is_premium_verified: true,
         verification_approved_at: new Date().toISOString(),
         verification_rejected_reason: null,
