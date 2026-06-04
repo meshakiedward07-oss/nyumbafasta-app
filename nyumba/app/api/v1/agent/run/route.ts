@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -11,8 +10,6 @@ import {
 } from '@/lib/agent/runners'
 import { LeadSource } from '@/lib/agent/types'
 import { TANZANIA_REGIONS } from '@/lib/agent/regions'
-
-const VALID_REGIONS = TANZANIA_REGIONS
 
 const VALID_SOURCES: LeadSource[] = [
   'google_maps', 'google_business',
@@ -44,9 +41,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { region, sources } = body
 
-    if (!region || !VALID_REGIONS.includes(region)) {
+    if (!region || !TANZANIA_REGIONS.includes(region)) {
       return NextResponse.json(
-        { error: `Region si sahihi. Chagua: ${VALID_REGIONS.join(', ')}` },
+        { error: `Region si sahihi. Chagua: ${TANZANIA_REGIONS.join(', ')}` },
         { status: 400 }
       )
     }
@@ -68,64 +65,41 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (!process.env.APIFY_TOKEN) {
-      return NextResponse.json(
-        { error: 'APIFY_TOKEN haipo kwenye Vercel environment variables' },
-        { status: 500 }
-      )
-    }
-
-    // Webhook URL — Apify itaita hii baada ya run kukamilika
-    const webhookUrl = process.env.NEXT_PUBLIC_APP_URL
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/agent/webhook`
-      : undefined
-
     const runs = []
 
     for (const source of sources) {
-      let result
-
       try {
+        let result
+
         switch (source) {
           case 'google_maps':
-            result = await runGoogleMapsRunner(region, webhookUrl)
+            result = await runGoogleMapsRunner(region)
             break
           case 'google_business':
-            result = await runGoogleBusinessRunner(region, webhookUrl)
+            result = await runGoogleBusinessRunner(region)
             break
           case 'facebook_groups':
-            result = await runFacebookGroupsRunner(webhookUrl)
+            result = await runFacebookGroupsRunner()
             break
           case 'facebook_pages':
-            result = await runFacebookPagesRunner(region, webhookUrl)
+            result = await runFacebookPagesRunner(region)
             break
           case 'instagram':
-            result = await runInstagramRunner(region, webhookUrl)
+            result = await runInstagramRunner(region)
             break
           case 'tiktok':
-            result = await runTiktokRunner(region, webhookUrl)
+            result = await runTiktokRunner(region)
             break
           default:
             continue
         }
 
-        if (result.status === 'FAILED') {
-          console.error(`❌ ${source} FAILED:`, result.error)
-        } else {
-          console.log(`✅ ${source} started — runId: ${result.runId}, webhook: ${webhookUrl ?? 'none'}`)
-        }
-
         runs.push(result)
 
-      } catch (err: any) {
-        console.error(`❌ ${source} threw:`, err.message)
-        runs.push({
-          runId: '',
-          source,
-          status: 'FAILED',
-          error: err.message,
-          region
-        })
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`❌ ${source} threw:`, msg)
+        runs.push({ runId: '', source, status: 'FAILED', error: msg, region })
       }
     }
 
@@ -139,12 +113,12 @@ export async function POST(req: NextRequest) {
       started: started.length,
       failed: failed.length,
       errors: failed.map(r => ({ source: r.source, error: r.error })),
-      webhookUrl: webhookUrl ?? null,
-      message: `${started.length}/${runs.length} sources zimeanzishwa kwenye ${region}`
+      message: `${started.length}/${runs.length} sources zimekamilika kwenye ${region}`
     })
 
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
     console.error('Agent run error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

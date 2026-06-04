@@ -350,12 +350,10 @@ async function runDailyTasks() {
 
     let regionsToRun: string[] = PRIORITY_REGIONS
 
-    // Jumatatu (1) + Alhamisi (4) — ongeza secondary
     if (dayOfWeek === 1 || dayOfWeek === 4) {
       regionsToRun = [...PRIORITY_REGIONS, ...SECONDARY_REGIONS]
     }
 
-    // Jumamosi (6) — mikoa yote Tanzania
     if (dayOfWeek === 6) {
       regionsToRun = [
         ...PRIORITY_REGIONS,
@@ -367,14 +365,11 @@ async function runDailyTasks() {
     console.log(`🤖 Running agent kwa mikoa: ${regionsToRun.length}`)
 
     for (const region of regionsToRun) {
-      const gm = await runGoogleMapsRunner(region)
-      if (gm.runId && gm.status !== 'FAILED') {
-        await registerAgentWebhook(gm.runId, 'google_maps', region)
-      }
+      await runGoogleMapsRunner(region)
       await new Promise(r => setTimeout(r, 2000))
     }
 
-    results.push(`✅ Lead Agent: mikoa ${regionsToRun.length} imeanzishwa`)
+    results.push(`✅ Lead Agent: mikoa ${regionsToRun.length} imekamilika`)
   } catch (e) {
     errors.push(`❌ Lead Agent: ${String(e)}`)
   }
@@ -407,30 +402,3 @@ async function runDailyTasks() {
   })
 }
 
-async function registerAgentWebhook(
-  runId: string,
-  source: string,
-  region: string
-) {
-  const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/agent/webhook`
-  await fetch(
-    `https://api.apify.com/v2/acts/runs/${runId}/webhooks`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.APIFY_TOKEN}`
-      },
-      body: JSON.stringify({
-        eventTypes: ['ACTOR.RUN.SUCCEEDED'],
-        requestUrl: webhookUrl,
-        payloadTemplate: JSON.stringify({
-          runId: '{{runId}}',
-          source,
-          region,
-          secret: process.env.WEBHOOK_SECRET
-        })
-      })
-    }
-  )
-}
