@@ -68,46 +68,75 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (!process.env.APIFY_TOKEN) {
+      return NextResponse.json(
+        { error: 'APIFY_TOKEN haipo kwenye Vercel environment variables' },
+        { status: 500 }
+      )
+    }
+
     const runs = []
 
     for (const source of sources) {
       let result
 
-      switch (source) {
-        case 'google_maps':
-          result = await runGoogleMapsRunner(region)
-          break
-        case 'google_business':
-          result = await runGoogleBusinessRunner(region)
-          break
-        case 'facebook_groups':
-          result = await runFacebookGroupsRunner()
-          break
-        case 'facebook_pages':
-          result = await runFacebookPagesRunner(region)
-          break
-        case 'instagram':
-          result = await runInstagramRunner(region)
-          break
-        case 'tiktok':
-          result = await runTiktokRunner(region)
-          break
-        default:
-          continue
-      }
+      try {
+        switch (source) {
+          case 'google_maps':
+            result = await runGoogleMapsRunner(region)
+            break
+          case 'google_business':
+            result = await runGoogleBusinessRunner(region)
+            break
+          case 'facebook_groups':
+            result = await runFacebookGroupsRunner()
+            break
+          case 'facebook_pages':
+            result = await runFacebookPagesRunner(region)
+            break
+          case 'instagram':
+            result = await runInstagramRunner(region)
+            break
+          case 'tiktok':
+            result = await runTiktokRunner(region)
+            break
+          default:
+            continue
+        }
 
-      runs.push(result)
+        if (result.status === 'FAILED') {
+          console.error(`❌ ${source} FAILED:`, result.error)
+        }
 
-      if (result.runId && result.status !== 'FAILED') {
-        await registerWebhook(result.runId, source, region)
+        runs.push(result)
+
+        if (result.runId && result.status !== 'FAILED') {
+          await registerWebhook(result.runId, source, region)
+        }
+
+      } catch (err: any) {
+        console.error(`❌ ${source} threw:`, err.message)
+        runs.push({
+          runId: '',
+          source,
+          status: 'FAILED',
+          error: err.message,
+          region
+        })
       }
     }
+
+    const failed = runs.filter(r => r.status === 'FAILED')
+    const started = runs.filter(r => r.status !== 'FAILED')
 
     return NextResponse.json({
       success: true,
       region,
       runs,
-      message: `Agent imeanzishwa kwa ${runs.length} sources kwenye ${region}`
+      started: started.length,
+      failed: failed.length,
+      errors: failed.map(r => ({ source: r.source, error: r.error })),
+      message: `${started.length}/${runs.length} sources zimeanzishwa kwenye ${region}`
     })
 
   } catch (err: any) {

@@ -2,14 +2,16 @@
 import { ApifyClient } from 'apify-client'
 import { RunnerResult } from '../types'
 
-const client = new ApifyClient({
-  token: process.env.APIFY_TOKEN
-})
-
 export async function runGoogleBusinessRunner(
   region: string
 ): Promise<RunnerResult> {
   try {
+    if (!process.env.APIFY_TOKEN) {
+      throw new Error('APIFY_TOKEN haipo kwenye environment variables')
+    }
+
+    const client = new ApifyClient({ token: process.env.APIFY_TOKEN })
+
     const run = await client.actor('apify/google-search-scraper').start({
       queries: [
         `site:business.google.com real estate ${region} Tanzania`,
@@ -20,12 +22,11 @@ export async function runGoogleBusinessRunner(
       resultsPerPage: 10
     })
 
-    return {
-      runId: run.id,
-      source: 'google_business',
-      status: run.status
-    }
+    console.log(`✅ Google Business run started: ${run.id} (${region})`)
+    return { runId: run.id, source: 'google_business', status: run.status }
+
   } catch (err: any) {
+    console.error('❌ Google Business runner error:', err.message)
     return {
       runId: '',
       source: 'google_business',
