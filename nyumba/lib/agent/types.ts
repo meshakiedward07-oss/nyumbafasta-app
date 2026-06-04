@@ -61,6 +61,7 @@ export type RunnerResult = {
   runId: string
   source: LeadSource
   status: string
+  region?: string
   error?: string
 }
 

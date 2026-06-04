@@ -3,7 +3,8 @@ import { ApifyClient } from 'apify-client'
 import { RunnerResult } from '../types'
 
 export async function runGoogleBusinessRunner(
-  region: string
+  region: string,
+  webhookUrl?: string
 ): Promise<RunnerResult> {
   try {
     if (!process.env.APIFY_TOKEN) {
@@ -12,7 +13,7 @@ export async function runGoogleBusinessRunner(
 
     const client = new ApifyClient({ token: process.env.APIFY_TOKEN })
 
-    const run = await client.actor('apify/google-search-scraper').start({
+    const input = {
       queries: [
         `site:business.google.com real estate ${region} Tanzania`,
         `"real estate" "${region}" Tanzania phone`,
@@ -20,18 +21,29 @@ export async function runGoogleBusinessRunner(
       ],
       maxPagesPerQuery: 3,
       resultsPerPage: 10
-    })
+    }
+
+    const options: any = {}
+    if (webhookUrl) {
+      options.webhooks = [{
+        eventTypes: ['ACTOR.RUN.SUCCEEDED'],
+        requestUrl: webhookUrl,
+        payloadTemplate: JSON.stringify({
+          runId: '{{runId}}',
+          source: 'google_business',
+          region,
+          secret: process.env.WEBHOOK_SECRET
+        })
+      }]
+    }
+
+    const run = await client.actor('apify/google-search-scraper').start(input, options)
 
     console.log(`✅ Google Business run started: ${run.id} (${region})`)
-    return { runId: run.id, source: 'google_business', status: run.status }
+    return { runId: run.id, source: 'google_business', status: run.status, region }
 
   } catch (err: any) {
     console.error('❌ Google Business runner error:', err.message)
-    return {
-      runId: '',
-      source: 'google_business',
-      status: 'FAILED',
-      error: err.message
-    }
+    return { runId: '', source: 'google_business', status: 'FAILED', error: err.message, region }
   }
 }

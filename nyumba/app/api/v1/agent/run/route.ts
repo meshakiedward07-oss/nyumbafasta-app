@@ -75,6 +75,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Webhook URL — Apify itaita hii baada ya run kukamilika
+    const webhookUrl = process.env.NEXT_PUBLIC_APP_URL
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/agent/webhook`
+      : undefined
+
     const runs = []
 
     for (const source of sources) {
@@ -83,22 +88,22 @@ export async function POST(req: NextRequest) {
       try {
         switch (source) {
           case 'google_maps':
-            result = await runGoogleMapsRunner(region)
+            result = await runGoogleMapsRunner(region, webhookUrl)
             break
           case 'google_business':
-            result = await runGoogleBusinessRunner(region)
+            result = await runGoogleBusinessRunner(region, webhookUrl)
             break
           case 'facebook_groups':
-            result = await runFacebookGroupsRunner()
+            result = await runFacebookGroupsRunner(webhookUrl)
             break
           case 'facebook_pages':
-            result = await runFacebookPagesRunner(region)
+            result = await runFacebookPagesRunner(region, webhookUrl)
             break
           case 'instagram':
-            result = await runInstagramRunner(region)
+            result = await runInstagramRunner(region, webhookUrl)
             break
           case 'tiktok':
-            result = await runTiktokRunner(region)
+            result = await runTiktokRunner(region, webhookUrl)
             break
           default:
             continue
@@ -106,13 +111,11 @@ export async function POST(req: NextRequest) {
 
         if (result.status === 'FAILED') {
           console.error(`❌ ${source} FAILED:`, result.error)
+        } else {
+          console.log(`✅ ${source} started — runId: ${result.runId}, webhook: ${webhookUrl ?? 'none'}`)
         }
 
         runs.push(result)
-
-        if (result.runId && result.status !== 'FAILED') {
-          await registerWebhook(result.runId, source, region)
-        }
 
       } catch (err: any) {
         console.error(`❌ ${source} threw:`, err.message)
@@ -126,7 +129,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const failed = runs.filter(r => r.status === 'FAILED')
+    const failed  = runs.filter(r => r.status === 'FAILED')
     const started = runs.filter(r => r.status !== 'FAILED')
 
     return NextResponse.json({
@@ -136,44 +139,12 @@ export async function POST(req: NextRequest) {
       started: started.length,
       failed: failed.length,
       errors: failed.map(r => ({ source: r.source, error: r.error })),
+      webhookUrl: webhookUrl ?? null,
       message: `${started.length}/${runs.length} sources zimeanzishwa kwenye ${region}`
     })
 
   } catch (err: any) {
     console.error('Agent run error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
-  }
-}
-
-async function registerWebhook(
-  runId: string,
-  source: string,
-  region: string
-) {
-  try {
-    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/agent/webhook`
-
-    await fetch(
-      `https://api.apify.com/v2/acts/runs/${runId}/webhooks`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.APIFY_TOKEN}`
-        },
-        body: JSON.stringify({
-          eventTypes: ['ACTOR.RUN.SUCCEEDED'],
-          requestUrl: webhookUrl,
-          payloadTemplate: JSON.stringify({
-            runId: '{{runId}}',
-            source,
-            region,
-            secret: process.env.WEBHOOK_SECRET
-          })
-        })
-      }
-    )
-  } catch (err) {
-    console.error('Webhook register error:', err)
   }
 }
