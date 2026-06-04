@@ -9,10 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
     "@types/leaflet": "^1.9.21",
     "@types/web-push": "^3.6.4",
+    "apify-client": "^2.23.3",
     "leaflet": "^1.9.4",
     "next": "^14.2.35",
     "react": "^18",
