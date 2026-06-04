@@ -61,10 +61,17 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect kwenda home kama tayari ameingia
+  // Redirect kwenda role-appropriate page kama tayari ameingia
   if (user && AUTH_ROUTES.some(r => path.startsWith(r))) {
+    const { data: me } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    url.pathname = me?.role === 'admin' ? '/admin'
+      : me?.role === 'dalali' ? '/dashboard'
+      : '/'
     return NextResponse.redirect(url)
   }
 

@@ -1,13 +1,12 @@
 'use client'
 import { useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import ResendEmailButton from '@/components/auth/ResendEmailButton'
 
 function LoginForm() {
   const supabase = createClient()
-  const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo  = searchParams.get('redirect') || ''
   const isSuspended = searchParams.get('suspended') === '1'
@@ -50,8 +49,7 @@ function LoginForm() {
       : data?.role === 'dalali' ? '/dashboard'
       : '/'
 
-    router.push(dest)
-    router.refresh()
+    window.location.href = dest
   }
 
   // ── Email + Password ──────────────────────────────────
