@@ -40,7 +40,7 @@ function buildMessage(listing: ShareListing): string {
     .slice(0, 5)
     .map(a => amenityEmoji[a] || a)
     .join(' | ')
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nyumbafasta.co.tz'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nyumbafasta.co'
   const url = `${origin}/listings/${listing.id}`
 
   const lines = [

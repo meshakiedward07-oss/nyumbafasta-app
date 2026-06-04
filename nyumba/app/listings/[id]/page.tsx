@@ -189,7 +189,7 @@ export default async function ListingDetailPage({
   ])
 
   // ── JSON-LD Structured Data ───────────────────────────
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co.tz'
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'RealEstateListing',
