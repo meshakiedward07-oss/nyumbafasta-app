@@ -8,15 +8,14 @@ import {
   runInstagramRunner,
   runTiktokRunner,
 } from '@/lib/agent/runners'
+import {
+  PRIORITY_REGIONS,
+  SECONDARY_REGIONS,
+  TERTIARY_REGIONS,
+} from '@/lib/agent/regions'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
-
-const REGIONS = [
-  'Dar es Salaam', 'Arusha', 'Mwanza',
-  'Dodoma', 'Zanzibar', 'Mbeya',
-  'Tanga', 'Morogoro', 'Kilimanjaro',
-]
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
@@ -27,21 +26,38 @@ export async function GET(req: NextRequest) {
   const results: string[] = []
   const errors: string[] = []
 
-  for (const region of REGIONS) {
+  // Jumatatu=1 → priority, Jumanne=2 → secondary, nyingine → tertiary
+  const dayOfWeek = new Date().getDay()
+  let weeklyRegions: string[]
+
+  if (dayOfWeek === 1) {
+    weeklyRegions = PRIORITY_REGIONS
+  } else if (dayOfWeek === 2) {
+    weeklyRegions = SECONDARY_REGIONS
+  } else {
+    weeklyRegions = TERTIARY_REGIONS
+  }
+
+  for (const region of weeklyRegions) {
     try {
       const runners = [
-        { fn: runGoogleMapsRunner,      source: 'google_maps'     },
-        { fn: runGoogleBusinessRunner,  source: 'google_business'  },
-        { fn: runFacebookGroupsRunner,  source: 'facebook_groups'  },
-        { fn: runFacebookPagesRunner,   source: 'facebook_pages'   },
-        { fn: runInstagramRunner,       source: 'instagram'        },
-        { fn: runTiktokRunner,          source: 'tiktok'           },
+        runGoogleMapsRunner(region),
+        runGoogleBusinessRunner(region),
+        runFacebookGroupsRunner(),
+        runFacebookPagesRunner(region),
+        runInstagramRunner(region),
+        runTiktokRunner(region),
       ]
 
-      for (const { fn, source } of runners) {
-        const result = await fn(region)
-        if (result.runId) {
-          await registerAgentWebhook(result.runId, source, region)
+      const settled = await Promise.allSettled(runners)
+
+      for (const result of settled) {
+        if (result.status === 'fulfilled' && result.value.runId) {
+          await registerAgentWebhook(
+            result.value.runId,
+            result.value.source,
+            region
+          )
         }
       }
 
@@ -55,6 +71,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     success: true,
     timestamp: new Date().toISOString(),
+    regions_count: weeklyRegions.length,
     results,
     errors,
   })

@@ -10,12 +10,9 @@ import {
   runTiktokRunner
 } from '@/lib/agent/runners'
 import { LeadSource } from '@/lib/agent/types'
+import { TANZANIA_REGIONS } from '@/lib/agent/regions'
 
-const VALID_REGIONS = [
-  'Dar es Salaam', 'Arusha', 'Mwanza',
-  'Dodoma', 'Zanzibar', 'Mbeya',
-  'Tanga', 'Morogoro', 'Kilimanjaro'
-]
+const VALID_REGIONS = TANZANIA_REGIONS
 
 const VALID_SOURCES: LeadSource[] = [
   'google_maps', 'google_business',

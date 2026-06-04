@@ -1,6 +1,7 @@
 'use client'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react'
+import { TANZANIA_REGIONS } from '@/lib/agent/regions'
 
 type Lead = {
   id: string
@@ -22,11 +23,7 @@ type Lead = {
   created_at: string
 }
 
-const REGIONS = [
-  'Dar es Salaam', 'Arusha', 'Mwanza',
-  'Dodoma', 'Zanzibar', 'Mbeya',
-  'Tanga', 'Morogoro', 'Kilimanjaro'
-]
+const REGIONS = TANZANIA_REGIONS
 
 const SOURCES = [
   { id: 'google_maps',      label: 'Google Maps',      emoji: '🗺️' },
@@ -57,8 +54,14 @@ export default function LeadsClient() {
   const [filterStatus, setFilterStatus] = useState('')
   const [search, setSearch] = useState('')
 
-  const [stats, setStats] = useState({
-    total: 0, new_today: 0, contacted: 0, converted: 0
+  const [stats, setStats] = useState<{
+    total: number
+    new_today: number
+    contacted: number
+    converted: number
+    by_region: { region: string; count: number }[]
+  }>({
+    total: 0, new_today: 0, contacted: 0, converted: 0, by_region: []
   })
 
   const [showRunModal, setShowRunModal] = useState(false)
@@ -244,6 +247,45 @@ export default function LeadsClient() {
           </div>
         ))}
       </div>
+
+      {/* Regional Stats */}
+      {stats.by_region && stats.by_region.length > 0 && (
+        <div className="px-4 mb-3">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            📊 Leads kwa Mkoa
+          </p>
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            {stats.by_region.slice(0, 10).map((item, i) => (
+              <div
+                key={item.region}
+                className="flex items-center justify-between px-4 py-2.5
+                  border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50"
+                onClick={() => { setFilterRegion(item.region); setPage(1) }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400 w-5">{i + 1}</span>
+                  <span className="text-sm font-medium text-gray-700">{item.region}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className="bg-[#1D9E75] h-1.5 rounded-full"
+                      style={{
+                        width: `${Math.min(100,
+                          (item.count / (stats.by_region[0]?.count || 1)) * 100
+                        )}%`
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-gray-600 w-8 text-right">
+                    {item.count}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="px-4 space-y-2 mb-3">

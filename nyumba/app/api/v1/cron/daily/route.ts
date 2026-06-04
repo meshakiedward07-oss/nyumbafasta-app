@@ -1,6 +1,11 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { type NextRequest } from 'next/server'
 import { runGoogleMapsRunner } from '@/lib/agent/runners'
+import {
+  PRIORITY_REGIONS,
+  SECONDARY_REGIONS,
+  TERTIARY_REGIONS,
+} from '@/lib/agent/regions'
 
 export const dynamic = 'force-dynamic'
 
@@ -341,17 +346,35 @@ async function runDailyTasks() {
 
   // ── 9. Lead Agent — Daily Scraping ────────────────────
   try {
-    const dailyRegions = ['Dar es Salaam', 'Arusha', 'Mwanza']
+    const dayOfWeek = new Date().getDay()
 
-    for (const region of dailyRegions) {
-      const gmResult = await runGoogleMapsRunner(region)
-      if (gmResult.runId && gmResult.status !== 'FAILED') {
-        await registerAgentWebhook(gmResult.runId, 'google_maps', region)
+    let regionsToRun: string[] = PRIORITY_REGIONS
+
+    // Jumatatu (1) + Alhamisi (4) — ongeza secondary
+    if (dayOfWeek === 1 || dayOfWeek === 4) {
+      regionsToRun = [...PRIORITY_REGIONS, ...SECONDARY_REGIONS]
+    }
+
+    // Jumamosi (6) — mikoa yote Tanzania
+    if (dayOfWeek === 6) {
+      regionsToRun = [
+        ...PRIORITY_REGIONS,
+        ...SECONDARY_REGIONS,
+        ...TERTIARY_REGIONS,
+      ]
+    }
+
+    console.log(`🤖 Running agent kwa mikoa: ${regionsToRun.length}`)
+
+    for (const region of regionsToRun) {
+      const gm = await runGoogleMapsRunner(region)
+      if (gm.runId && gm.status !== 'FAILED') {
+        await registerAgentWebhook(gm.runId, 'google_maps', region)
       }
       await new Promise(r => setTimeout(r, 2000))
     }
 
-    results.push('✅ Lead Agent daily scraping imeanzishwa')
+    results.push(`✅ Lead Agent: mikoa ${regionsToRun.length} imeanzishwa`)
   } catch (e) {
     errors.push(`❌ Lead Agent: ${String(e)}`)
   }
