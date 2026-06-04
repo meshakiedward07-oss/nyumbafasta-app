@@ -3,7 +3,6 @@ import { useState } from 'react'
 import PaymentMethodSelector from '@/components/payments/PaymentMethodSelector'
 import CardDetailsForm from '@/components/payments/CardDetailsForm'
 import type { PaymentMethod } from '@/components/payments/PaymentMethodSelector'
-import type { CardDetails } from '@/components/payments/CardDetailsForm'
 
 type BoostStep = 'select_package' | 'select_payment' | 'card_details' | 'processing' | 'success'
 
@@ -56,7 +55,7 @@ export default function BoostModal({
   }
 
   // ── Step 3 (card) → processing ───────────────────────────────────────────────
-  function handleCardSubmit(_cardDetails: CardDetails) {
+  function handleCardSubmit() {
     processBoostPayment()
   }
 
