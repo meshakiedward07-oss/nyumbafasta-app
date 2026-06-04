@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { type NextRequest } from 'next/server'
+import { runGoogleMapsRunner } from '@/lib/agent/runners'
 
 export const dynamic = 'force-dynamic'
 
@@ -338,7 +339,24 @@ async function runDailyTasks() {
     errors.push(`❌ Listing expiry reminders: ${String(e)}`)
   }
 
-  // ── 9. Timeout stale pending payments (older than 10 min) ──
+  // ── 9. Lead Agent — Daily Scraping ────────────────────
+  try {
+    const dailyRegions = ['Dar es Salaam', 'Arusha', 'Mwanza']
+
+    for (const region of dailyRegions) {
+      const gmResult = await runGoogleMapsRunner(region)
+      if (gmResult.runId && gmResult.status !== 'FAILED') {
+        await registerAgentWebhook(gmResult.runId, 'google_maps', region)
+      }
+      await new Promise(r => setTimeout(r, 2000))
+    }
+
+    results.push('✅ Lead Agent daily scraping imeanzishwa')
+  } catch (e) {
+    errors.push(`❌ Lead Agent: ${String(e)}`)
+  }
+
+  // ── 10. Timeout stale pending payments (older than 10 min) ──
   try {
     const tenMinAgo = new Date(Date.now() - 10 * 60_000).toISOString()
     const { data: timedOutUnlocks } = await admin
@@ -364,4 +382,32 @@ async function runDailyTasks() {
     results,
     errors,
   })
+}
+
+async function registerAgentWebhook(
+  runId: string,
+  source: string,
+  region: string
+) {
+  const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/agent/webhook`
+  await fetch(
+    `https://api.apify.com/v2/acts/runs/${runId}/webhooks`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.APIFY_TOKEN}`
+      },
+      body: JSON.stringify({
+        eventTypes: ['ACTOR.RUN.SUCCEEDED'],
+        requestUrl: webhookUrl,
+        payloadTemplate: JSON.stringify({
+          runId: '{{runId}}',
+          source,
+          region,
+          secret: process.env.WEBHOOK_SECRET
+        })
+      })
+    }
+  )
 }

@@ -75,6 +75,9 @@ export default function LeadsClient() {
     region: 'Dar es Salaam', notes: ''
   })
 
+  const [lastRun, setLastRun] = useState<string | null>(null)
+  const [leadsToday, setLeadsToday] = useState(0)
+
   const fetchLeads = useCallback(async () => {
     setLoading(true)
     try {
@@ -110,6 +113,16 @@ export default function LeadsClient() {
     fetchLeads()
     fetchStats()
   }, [fetchLeads, fetchStats])
+
+  useEffect(() => {
+    fetch('/api/v1/agent/last-run')
+      .then(r => r.json())
+      .then(data => {
+        setLastRun(data.last_run)
+        setLeadsToday(data.leads_today)
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleRunAgent() {
     if (runSources.length === 0) { alert('Chagua angalau source moja'); return }
@@ -193,6 +206,11 @@ export default function LeadsClient() {
           <div>
             <h1 className="text-white font-bold text-lg">🤖 Leads za Madalali</h1>
             <p className="text-green-100 text-xs">Jumla: {total} leads</p>
+            {lastRun && (
+              <p className="text-green-100 text-xs">
+                🕐 Mwisho: {timeAgo(lastRun)} · Leo: +{leadsToday}
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
             <button
