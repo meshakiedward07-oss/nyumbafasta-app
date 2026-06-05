@@ -1,4 +1,4 @@
-import { createBrowser, createDesktopContext, autoScroll, sleep } from '../utils/browser'
+import { createBrowser, createFacebookContext, hasFacebookSession, autoScroll, sleep } from '../utils/browser'
 import { processItems, RawItem } from '../core/processor'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { ALL_GROUPS } from '../config/facebookGroups'
@@ -21,12 +21,43 @@ export async function runFacebookGroups(
   console.log(`📋 Groups: ${groupsToScrape.length}`)
   console.log('='.repeat(40))
 
+  if (!hasFacebookSession()) {
+    console.log('⚠️ Facebook cookies hazipatikani')
+    console.log('   Weka fb-cookies.json kwenye lib/scraper/config/')
+    return { total: 0, saved: 0, duplicates: 0, low_score: 0, errors: 0, analyzed: 0, leads: [] }
+  }
+
   const browser = await createBrowser()
   const rawItems: RawItem[] = []
 
   try {
-    const context = await createDesktopContext(browser)
+    const context = await createFacebookContext(browser)
     const page = await context.newPage()
+
+    console.log('🔍 Checking Facebook session...')
+    await page.goto('https://www.facebook.com', {
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
+    })
+    await sleep(3000)
+
+    const isLoggedIn = await page.evaluate(() => {
+      const html = document.body.innerHTML
+      return (
+        html.includes('home') ||
+        html.includes('feed') ||
+        !html.includes('login') ||
+        document.querySelector('[role="banner"]') !== null
+      )
+    })
+
+    if (!isLoggedIn) {
+      console.log('❌ Cookies zimekwisha — pata cookies mpya')
+      await browser.close()
+      return { total: 0, saved: 0, duplicates: 0, low_score: 0, errors: 0, analyzed: 0, leads: [] }
+    }
+
+    console.log('✅ Facebook session inafanya kazi!')
 
     for (let i = 0; i < groupsToScrape.length; i++) {
       const groupUrl = groupsToScrape[i]

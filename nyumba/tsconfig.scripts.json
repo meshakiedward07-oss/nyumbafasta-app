@@ -1,18 +1,18 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
+    "target": "ES2017",
     "module": "commonjs",
-    "moduleResolution": "node",
-    "baseUrl": ".",
-    "outDir": ".ts-out",
-    "noEmit": false,
+    "lib": ["ES2017", "DOM"],
+    "strict": false,
     "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "resolveJsonModule": true
   },
-  "include": [
-    "scripts/**/*.ts",
-    "lib/**/*.ts"
-  ]
+  "include": ["scripts/**/*", "lib/**/*"],
+  "exclude": ["node_modules", ".next"]
 }

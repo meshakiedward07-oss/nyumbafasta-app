@@ -34,3 +34,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Facebook session files (sensitive — usifanye commit)
+lib/scraper/config/fb-cookies.json
+lib/scraper/config/fb-state.json
+lib/scraper/config/fb-session.json
