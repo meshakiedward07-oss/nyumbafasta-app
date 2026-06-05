@@ -70,61 +70,83 @@ export async function runFacebookGroups(
         const pageTitle = await page.title()
         console.log(`   Title: ${pageTitle}`)
 
-        const isPrivate = await page.evaluate(() => {
-          const text = document.body.innerText
-          return (
-            text.includes('Private group') ||
-            text.includes('Kundi la siri') ||
-            text.includes('Join group') ||
-            text.includes('Log in')
-          )
-        })
+        const isLoginPage = await page.evaluate(() =>
+          !!document.querySelector('input[name="email"]') ||
+          document.title.toLowerCase().includes('log in')
+        )
 
-        if (isPrivate) {
-          console.log(`   ⚠️ Private/login required — skipping`)
+        if (isLoginPage) {
+          console.log(`   ⚠️ Login page — cookies zimekwisha`)
           continue
         }
 
-        await autoScroll(page, 8, 1500)
+        // Scroll na expand "See more" pamoja — Facebook inaonyesha buttons mpya kila scroll
+        const expandSeeMore = async () => {
+          const btns = await page.$$('[role="button"]:has-text("See more"), [role="button"]:has-text("Zaidi"), [role="button"]:has-text("Soma zaidi")')
+          for (const btn of btns.slice(0, 10)) {
+            await btn.click({ timeout: 800 }).catch(() => {})
+            await sleep(200)
+          }
+        }
+
+        for (let scroll = 0; scroll < 8; scroll++) {
+          await page.evaluate(() => window.scrollBy(0, window.innerHeight * 1.2))
+          await sleep(1500)
+          if (scroll % 2 === 0) await expandSeeMore()
+        }
+        await expandSeeMore() // mwisho
 
         const posts: GroupPost[] = await page.evaluate(() => {
           const items: GroupPost[] = []
-          const selectors = [
-            '[role="article"]',
-            '[data-pagelet*="FeedUnit"]',
-            'div[class*="userContent"]',
-            'div[data-ad-preview="message"]',
-          ]
+          const seen = new Set<string>()
 
-          let postElements: NodeListOf<Element> | null = null
-          for (const sel of selectors) {
-            const els = document.querySelectorAll(sel)
-            if (els.length > 0) { postElements = els; break }
-          }
-          if (!postElements) return items
+          // div[dir="auto"] — ndio selector inayofanya kazi Facebook 2024
+          const textEls = document.querySelectorAll('div[dir="auto"]')
 
-          postElements.forEach(post => {
-            const text = (post as HTMLElement).innerText || ''
-            if (text.length < 30) return
+          textEls.forEach(el => {
+            const text = (el as HTMLElement).textContent?.trim() || ''
+            // Skip fupi, duplicates, na "Facebook" alt text
+            if (text.length < 40) return
+            if (seen.has(text.slice(0, 60))) return
+            if (text.split('\n').every((l: string) => l === 'Facebook')) return
 
-            const links = Array.from(post.querySelectorAll('a[href*="facebook.com"]'))
-              .map(a => (a as HTMLAnchorElement).href)
-              .filter(h => !h.includes('/groups/') && !h.includes('/hashtag/'))
+            seen.add(text.slice(0, 60))
 
-            const images = Array.from(post.querySelectorAll('img[src*="fbcdn"]'))
-              .map(img => (img as HTMLImageElement).src)
-              .slice(0, 3)
+            // Pata post container (parent article au feed item)
+            let container: Element | null = el
+            for (let i = 0; i < 8; i++) {
+              container = container?.parentElement || null
+              if (!container) break
+              if (container.getAttribute('role') === 'article' ||
+                  container.hasAttribute('aria-posinset')) break
+            }
+
+            const links = container
+              ? Array.from(container.querySelectorAll('a[href*="facebook.com"]'))
+                  .map(a => (a as HTMLAnchorElement).href)
+                  .filter(h => !h.includes('/groups/') && !h.includes('/hashtag/'))
+              : []
+
+            const images = container
+              ? Array.from(container.querySelectorAll('img[src*="fbcdn"]'))
+                  .map(img => (img as HTMLImageElement).src)
+                  .slice(0, 3)
+              : []
+
+            const timestamp = container
+              ? (container.querySelector('abbr') as HTMLElement | null)
+                  ?.getAttribute('title') || ''
+              : ''
 
             items.push({
               text: text.slice(0, 2000),
               links: links.slice(0, 5),
               images,
-              timestamp: (post.querySelector('abbr') as HTMLElement | null)
-                ?.getAttribute('title') || '',
+              timestamp,
             })
           })
 
-          return items.slice(0, 50)
+          return items.slice(0, 60)
         })
 
         console.log(`   ✅ Posts: ${posts.length}`)
