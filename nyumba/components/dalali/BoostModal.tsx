@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
-import PaymentMethodSelector from '@/components/payments/PaymentMethodSelector'
+import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
 import CardDetailsForm from '@/components/payments/CardDetailsForm'
 import type { PaymentMethod } from '@/components/payments/PaymentMethodSelector'
 
-type BoostStep = 'select_package' | 'select_payment' | 'card_details' | 'processing' | 'success'
+type BoostStep = 'select_package' | 'select_payment' | 'mobile_phone' | 'card_details' | 'processing' | 'success'
 
 type WeekOption = { weeks: 1 | 2 | 4; price: number; label: string; discount: string | null }
 
@@ -31,7 +31,23 @@ export default function BoostModal({
   const [boostStep,      setBoostStep]      = useState<BoostStep>('select_package')
   const [selectedWeeks,  setSelectedWeeks]  = useState<1 | 2 | 4>(1)
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
+  const [phoneNumber,    setPhoneNumber]    = useState('')
+  const [phoneError,     setPhoneError]     = useState('')
   const [error,          setError]          = useState('')
+
+  const providerInfo = PAYMENT_METHODS.find(m => m.id === selectedMethod)
+
+  function validatePhone(phone: string): boolean {
+    const cleaned = phone.replace(/\D/g, '')
+    return /^(255|0)[67]\d{8}$/.test(cleaned) || /^[67]\d{8}$/.test(cleaned)
+  }
+
+  function formatPhone(phone: string): string {
+    const cleaned = phone.replace(/\D/g, '')
+    if (cleaned.startsWith('255')) return '+' + cleaned
+    if (cleaned.startsWith('0')) return '+255' + cleaned.slice(1)
+    return '+255' + cleaned
+  }
 
   const boostedUntilDate = boostedUntil ? new Date(boostedUntil) : null
   const isStillBoosted   = boostedUntilDate && boostedUntilDate > new Date()
@@ -50,8 +66,20 @@ export default function BoostModal({
     if (method === 'visa' || method === 'mastercard') {
       setBoostStep('card_details')
     } else {
-      processBoostPayment()
+      setPhoneNumber('')
+      setPhoneError('')
+      setBoostStep('mobile_phone')
     }
+  }
+
+  // ── Step mobile_phone → processing ──────────────────────────────────────────
+  function handlePhoneSubmit() {
+    if (!validatePhone(phoneNumber)) {
+      setPhoneError('Nambari si sahihi — ingiza nambari ya Tanzania (mfano: 0754 XXX XXX)')
+      return
+    }
+    setPhoneError('')
+    processBoostPayment()
   }
 
   // ── Step 3 (card) → processing ───────────────────────────────────────────────
@@ -70,7 +98,11 @@ export default function BoostModal({
       const res  = await fetch(`/api/v1/listings/${listingId}/boost`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ weeks: selectedWeeks }),
+        body:    JSON.stringify({
+          weeks: selectedWeeks,
+          payment_method: selectedMethod,
+          payment_phone: phoneNumber ? formatPhone(phoneNumber) : undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Imeshindwa kuboost')
@@ -221,7 +253,92 @@ export default function BoostModal({
           </div>
         )}
 
-        {/* ── STEP 3: Taarifa za Kadi ── */}
+        {/* ── STEP 3: Nambari ya Simu (Mobile Money) ── */}
+        {boostStep === 'mobile_phone' && (
+          <div>
+            <button
+              onClick={() => setBoostStep('select_payment')}
+              className="flex items-center gap-1 text-sm text-gray-500 mb-4 active:opacity-70"
+            >
+              ← Rudi
+            </button>
+
+            <div className="flex items-center gap-2 mb-4">
+              {providerInfo && <span className="text-lg">{providerInfo.icon}</span>}
+              <div>
+                <h3 className="font-bold text-base text-gray-900">📱 Nambari ya Simu</h3>
+                <p className="text-xs text-gray-400">
+                  {providerInfo?.name ?? 'Mobile Money'} · Tsh {fmt(amount)}
+                </p>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-100 text-red-600 text-xs px-3 py-2 rounded-xl mb-3">
+                {error}
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label className="text-xs text-gray-500 mb-1.5 block">
+                Nambari ya {providerInfo?.name ?? 'simu yako'}
+              </label>
+              <div className="flex gap-2">
+                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3
+                  text-sm text-gray-500 flex-shrink-0">
+                  🇹🇿 +255
+                </div>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder={providerInfo?.hint?.split(' ')[0] ?? '7XXXXXXXX'}
+                  value={phoneNumber}
+                  onChange={e => {
+                    setPhoneNumber(e.target.value.replace(/\D/g, ''))
+                    setPhoneError('')
+                  }}
+                  maxLength={10}
+                  className={`flex-1 border-2 rounded-xl px-4 py-3 text-base font-mono
+                    focus:outline-none focus:ring-2 ${
+                      phoneError
+                        ? 'border-red-300 focus:ring-red-200'
+                        : 'border-gray-200 focus:ring-yellow-300'
+                    }`}
+                />
+              </div>
+              {phoneError && <p className="text-red-500 text-xs mt-1">❌ {phoneError}</p>}
+              {providerInfo?.hint && !phoneError && (
+                <p className="text-xs text-gray-400 mt-1">Mfano: {providerInfo.hint}</p>
+              )}
+            </div>
+
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4">
+              <p className="text-blue-700 text-xs">
+                ℹ️ Utapata ombi la PIN kwenye simu yako — ingiza PIN kukamilisha malipo ya{' '}
+                <span className="font-semibold">Tsh {fmt(amount)}</span>
+              </p>
+            </div>
+
+            <button
+              onClick={handlePhoneSubmit}
+              disabled={phoneNumber.length < 9}
+              className="w-full py-4 rounded-2xl font-bold text-white text-sm
+                disabled:opacity-50 active:scale-[0.97] transition-all"
+              style={{
+                backgroundColor: phoneNumber.length >= 9
+                  ? (providerInfo?.color ?? '#1D9E75')
+                  : '#9CA3AF'
+              }}
+            >
+              Endelea → Ingiza PIN Kwenye Simu
+            </button>
+            <button onClick={onClose} className="w-full py-3 text-sm text-gray-400 mt-2">
+              Ghairi
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP 4: Taarifa za Kadi ── */}
         {boostStep === 'card_details' && (
           <CardDetailsForm
             cardType={selectedMethod as 'visa' | 'mastercard'}
@@ -231,7 +348,7 @@ export default function BoostModal({
           />
         )}
 
-        {/* ── STEP 4: Inashughulikia ── */}
+        {/* ── STEP 5: Inashughulikia ── */}
         {boostStep === 'processing' && (
           <div className="text-center py-14">
             <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full
@@ -241,7 +358,7 @@ export default function BoostModal({
           </div>
         )}
 
-        {/* ── STEP 5: Imefanikiwa ── */}
+        {/* ── STEP 6: Imefanikiwa ── */}
         {boostStep === 'success' && (
           <div className="text-center py-8">
             <div className="text-6xl mb-4 animate-bounce">🚀</div>
