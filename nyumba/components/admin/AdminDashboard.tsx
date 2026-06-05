@@ -343,6 +343,13 @@ export default function AdminDashboard({
           >
             <span>👥</span><span>FB Groups</span>
           </Link>
+          <Link
+            href="/admin/instagram-profiles"
+            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+          >
+            <span>📸</span><span>IG Profiles</span>
+          </Link>
         </div>
       </div>
 
