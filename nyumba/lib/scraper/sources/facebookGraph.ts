@@ -1,107 +1,34 @@
+import axios from 'axios'
+import * as cheerio from 'cheerio'
 import { processItems, RawItem } from '../core/processor'
 
-// Known Tanzania real-estate Facebook pages (used when pages_search scope is absent)
-const KNOWN_TZ_RE_PAGES = [
-  'tanzaniarealestate',
-  'nyumbaZanzibar',
-  'daressalaamproperties',
-  'tanzaniaproperties',
-  'nyumbaTanzania',
-  'ArushaPropety',
-  'MwanzaRealEstate',
+// Swahili-focused queries — different from googlePlaces.ts which uses English ones
+const SWAHILI_QUERIES = [
+  'mdalali nyumba {region}',
+  'dalali nyumba {region} Tanzania',
+  'nyumba za kupanga {region}',
+  'makazi {region} Tanzania',
+  'ghorofa za kupanga {region}',
+  'ofisi ya mdalali {region}',
 ]
 
 export async function runFacebookGraph(
   region: string
 ): Promise<ReturnType<typeof processItems>> {
   const token = process.env.FACEBOOK_ACCESS_TOKEN
-  if (!token) {
-    console.log('⚠️  FACEBOOK_ACCESS_TOKEN haipo — skipping facebook_graph')
-    return { total: 0, saved: 0, duplicates: 0, low_score: 0, errors: 0, analyzed: 0, leads: [] }
-  }
+  const googleKey = process.env.GOOGLE_PLACES_API_KEY
 
-  console.log(`\n📘 Facebook Graph API: ${region}`)
-
-  const queries = [
-    `mdalali nyumba ${region} Tanzania`,
-    `real estate agent ${region} Tanzania`,
-    `nyumba inapangishwa ${region}`,
-    `property agency ${region} Tanzania`,
-    `house for rent ${region} Tanzania`,
-  ]
-
+  console.log(`\n📘 Facebook + Website Scraper: ${region}`)
   const rawItems: RawItem[] = []
   const seenIds = new Set<string>()
 
-  // --- Strategy 1: pages_search (requires pages_search scope) ---
-  let searchWorked = false
-  for (const query of queries) {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/search` +
-          `?q=${encodeURIComponent(query)}` +
-          `&type=page` +
-          `&fields=id,name,about,phone,website,fan_count,location,category` +
-          `&limit=25` +
-          `&access_token=${token}`
-      )
-      const data = await res.json()
-
-      if (data.error) {
-        // code 10 = permission denied; anything else is unexpected
-        if (data.error.code !== 10) {
-          console.error('FB search error:', data.error.message)
-        }
-        break
-      }
-
-      if (data.data?.length) searchWorked = true
-
-      for (const page of data.data ?? []) {
-        if (seenIds.has(page.id)) continue
-        seenIds.add(page.id)
-        rawItems.push(buildItem(page, query, region))
-      }
-
-      await delay(500)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error(`FB query error: ${query}`, msg)
-    }
-  }
-
-  if (!searchWorked) {
-    console.log(
-      '⚠️  pages_search scope haipo — inaomba pages_search kwenye Facebook App.\n' +
-        '   Inatumia strategy mbadala (known page IDs)...'
-    )
-
-    // --- Strategy 2: fetch known Tanzania RE pages directly ---
-    for (const slug of KNOWN_TZ_RE_PAGES) {
-      try {
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/${slug}` +
-            `?fields=id,name,about,phone,website,fan_count,location,category` +
-            `&access_token=${token}`
-        )
-        const page = await res.json()
-
-        if (page.error || !page.id) continue
-        if (seenIds.has(page.id)) continue
-        seenIds.add(page.id)
-
-        rawItems.push(buildItem(page, `known:${slug}`, region))
-        await delay(300)
-      } catch {
-        // page slug may not exist — ignore silently
-      }
-    }
-
-    // --- Strategy 3: /me/accounts (pages user manages) ---
+  // --- Strategy 1: /me/accounts — pages user manages + their posts ---
+  if (token) {
+    console.log('🔍 Strategy 1: Graph API /me/accounts...')
     try {
       const res = await fetch(
         `https://graph.facebook.com/v18.0/me/accounts` +
-          `?fields=id,name,about,phone,website,fan_count,category` +
+          `?fields=id,name,about,phone,website,fan_count,category,posts{message,created_time}` +
           `&access_token=${token}`
       )
       const data = await res.json()
@@ -109,46 +36,173 @@ export async function runFacebookGraph(
       for (const page of data.data ?? []) {
         if (seenIds.has(page.id)) continue
         seenIds.add(page.id)
-        rawItems.push(buildItem(page, 'me/accounts', region))
+
+        const postsText =
+          (page.posts?.data as Array<{ message?: string }> | undefined)
+            ?.map(p => p.message || '')
+            .join('\n')
+            .slice(0, 1500) || ''
+
+        const text = [
+          page.name,
+          page.about,
+          page.category,
+          page.phone ? `Phone: ${page.phone}` : '',
+          page.website ? `Website: ${page.website}` : '',
+          page.fan_count ? `Followers: ${page.fan_count}` : '',
+          postsText,
+          `Region: ${region}`,
+        ]
+          .filter(Boolean)
+          .join('\n')
+
+        rawItems.push({
+          text,
+          name: page.name,
+          url: `https://facebook.com/${page.id}`,
+          extra: {
+            platform: 'facebook',
+            pageId: page.id,
+            phone: page.phone,
+            website: page.website,
+            fans: page.fan_count,
+          },
+        })
+        console.log(`  ✅ ${page.name} (${page.fan_count ?? 0} fans)`)
       }
-    } catch {
-      // ignore
+    } catch (err: unknown) {
+      console.error('me/accounts error:', err instanceof Error ? err.message : err)
     }
   }
 
-  console.log(`📊 Facebook Graph found: ${rawItems.length} pages`)
+  // --- Strategy 2: Google Places (Swahili queries) → enriched via website scraping ---
+  if (googleKey) {
+    console.log('🔍 Strategy 2: Google Places (Swahili queries) + website scraping...')
+
+    for (const template of SWAHILI_QUERIES) {
+      const query = template.replace('{region}', region)
+      try {
+        const res = await fetch(
+          `https://maps.googleapis.com/maps/api/place/textsearch/json` +
+            `?query=${encodeURIComponent(query)}` +
+            `&key=${googleKey}`
+        )
+        const data = await res.json()
+
+        for (const place of (data.results ?? []).slice(0, 8)) {
+          if (seenIds.has(place.place_id)) continue
+          seenIds.add(place.place_id)
+
+          try {
+            const detRes = await fetch(
+              `https://maps.googleapis.com/maps/api/place/details/json` +
+                `?place_id=${place.place_id}` +
+                `&fields=name,formatted_phone_number,website,formatted_address` +
+                `&key=${googleKey}`
+            )
+            const det = (await detRes.json()).result ?? {}
+
+            // Scrape their website for Facebook/WhatsApp/extra phones
+            let fbUrl = ''
+            let waUrl = ''
+            let scrapedPhones: string[] = []
+
+            if (det.website && !det.website.includes('facebook.com')) {
+              const scraped = await scrapeWebsite(det.website)
+              fbUrl = scraped.fbUrl
+              waUrl = scraped.waUrl
+              scrapedPhones = scraped.phones
+            } else if (det.website?.includes('facebook.com')) {
+              fbUrl = det.website
+            }
+
+            const allPhones = [
+              det.formatted_phone_number,
+              ...scrapedPhones,
+            ].filter(Boolean).join(', ')
+
+            const text = [
+              det.name || place.name,
+              det.formatted_address || place.formatted_address,
+              allPhones ? `Phone: ${allPhones}` : '',
+              det.website ? `Website: ${det.website}` : '',
+              fbUrl ? `Facebook: ${fbUrl}` : '',
+              waUrl ? `WhatsApp: ${waUrl}` : '',
+              `Search: ${query}`,
+              `Region: ${region}`,
+            ]
+              .filter(Boolean)
+              .join('\n')
+
+            rawItems.push({
+              text,
+              name: det.name || place.name,
+              url: fbUrl || det.website || undefined,
+              extra: {
+                platform: 'facebook_via_google',
+                phone: det.formatted_phone_number || scrapedPhones[0],
+                website: det.website,
+                facebook_url: fbUrl || undefined,
+                whatsapp: waUrl || undefined,
+              },
+            })
+
+            await delay(300)
+          } catch {
+            // individual place error — skip
+          }
+        }
+
+        await delay(500)
+      } catch (err: unknown) {
+        console.error(`Query error: ${query}`, err instanceof Error ? err.message : err)
+      }
+    }
+  }
+
+  console.log(`📊 Facebook+Web found: ${rawItems.length} items`)
   return await processItems(rawItems, 'facebook_pages', region)
 }
 
-function buildItem(page: Record<string, unknown>, query: string, region: string): RawItem {
-  const location = page.location as Record<string, string> | undefined
-  const text = [
-    page.name,
-    page.about,
-    page.category,
-    page.phone ? `Phone: ${page.phone}` : '',
-    page.website ? `Website: ${page.website}` : '',
-    page.fan_count ? `Followers: ${page.fan_count}` : '',
-    location?.city ? `Location: ${location.city}` : '',
-    `Search: ${query}`,
-    `Region: ${region}`,
-  ]
-    .filter(Boolean)
-    .join('\n')
+async function scrapeWebsite(url: string): Promise<{
+  fbUrl: string
+  waUrl: string
+  phones: string[]
+}> {
+  try {
+    const res = await axios.get(url, {
+      timeout: 8000,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36',
+      },
+      maxRedirects: 3,
+    })
 
-  return {
-    text,
-    name: String(page.name ?? ''),
-    url: `https://facebook.com/${page.id}`,
-    extra: {
-      platform: 'facebook_graph',
-      pageId: page.id,
-      phone: page.phone,
-      website: page.website,
-      fans: page.fan_count,
-      category: page.category,
-      location: page.location,
-    },
+    const $ = cheerio.load(res.data as string)
+    const bodyText = $('body').text()
+    const html = res.data as string
+
+    // Extract Facebook URL
+    const fbMatch =
+      html.match(/https?:\/\/(?:www\.)?facebook\.com\/[a-zA-Z0-9._%+\-/]+/)?.[0] || ''
+
+    // Extract WhatsApp URL or number
+    const waMatch =
+      html.match(/https?:\/\/(?:wa\.me|api\.whatsapp\.com)\/[^\s"'<>]+/)?.[0] ||
+      html.match(/whatsapp[^\d]*(\+?255\d{9}|\+?0\d{9})/i)?.[1] || ''
+
+    // Extract Tanzanian phone numbers (+255 or 0xxx)
+    const phoneRegex = /(?:\+255|0)(?:6[1-9]|7[1-9])\d{7}/g
+    const phones = [...new Set(bodyText.match(phoneRegex) ?? [])]
+
+    return {
+      fbUrl: fbMatch,
+      waUrl: waMatch,
+      phones: phones.slice(0, 3),
+    }
+  } catch {
+    return { fbUrl: '', waUrl: '', phones: [] }
   }
 }
 
