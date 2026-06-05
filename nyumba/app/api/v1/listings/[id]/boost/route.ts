@@ -31,7 +31,8 @@ export async function POST(
       return NextResponse.json({ error: 'Listing lazima iwe active' }, { status: 400 })
     }
 
-    const { weeks } = await req.json()
+    const body = await req.json()
+    const { weeks, payment_method, payment_phone } = body
     if (!PRICES[weeks]) {
       return NextResponse.json({ error: 'Wiki si sahihi (1, 2, au 4)' }, { status: 400 })
     }
@@ -47,18 +48,20 @@ export async function POST(
     const boostedUntilISO = boostedUntil.toISOString()
     const now = new Date().toISOString()
 
-    // Record payment (mock: completed immediately)
-    await admin.from('boost_payments').insert({
+    // Record payment
+    const insertData: Record<string, unknown> = {
       listing_id: params.id,
       dalali_id: user.id,
       amount,
       weeks,
       status: 'completed',
-      payment_method: 'mock',
+      payment_method: payment_method || 'mock',
       payment_ref: `BOOST-${user.id.slice(0, 8)}-${Date.now()}`,
       boosted_from: now,
       boosted_until: boostedUntilISO,
-    })
+    }
+    if (payment_phone) insertData.payment_phone = payment_phone
+    await admin.from('boost_payments').insert(insertData)
 
     // Update listing
     await admin.from('listings').update({
