@@ -2,6 +2,18 @@ import { chromium, Browser, BrowserContext, Page } from 'playwright'
 import * as fs from 'fs'
 import * as path from 'path'
 
+type RawCookie = {
+  name: string
+  value?: string
+  domain?: string
+  path?: string
+  secure?: boolean
+  httpOnly?: boolean
+  sameSite?: string
+  expirationDate?: number
+  expires?: number
+}
+
 export async function createBrowser(): Promise<Browser> {
   return await chromium.launch({
     headless: true,
@@ -62,26 +74,28 @@ export async function createFacebookContext(
     if (!fs.existsSync(cookiePath)) continue
     try {
       const raw = JSON.parse(fs.readFileSync(cookiePath, 'utf-8'))
-      let cookies: any[] = []
+      let cookies: RawCookie[] = []
       if (Array.isArray(raw)) {
-        cookies = raw
+        cookies = raw as RawCookie[]
       } else if (raw.cookies) {
-        cookies = raw.cookies
+        cookies = raw.cookies as RawCookie[]
       }
       if (cookies.length === 0) continue
 
-      const fixedCookies = cookies.map((c: any) => ({
+      const fixedCookies = cookies.map((c: RawCookie) => ({
         name: c.name,
         value: c.value || '',
         domain: c.domain || '.facebook.com',
         path: c.path || '/',
         secure: c.secure !== undefined ? c.secure : true,
         httpOnly: c.httpOnly || false,
-        sameSite: (['Strict', 'Lax', 'None'].includes(
-          c.sameSite?.charAt(0).toUpperCase() + c.sameSite?.slice(1).toLowerCase()
-        )
-          ? c.sameSite.charAt(0).toUpperCase() + c.sameSite.slice(1).toLowerCase()
-          : 'Lax') as 'Lax' | 'Strict' | 'None',
+        sameSite: ((): 'Lax' | 'Strict' | 'None' => {
+          if (!c.sameSite) return 'Lax'
+          const norm = c.sameSite.charAt(0).toUpperCase() + c.sameSite.slice(1).toLowerCase()
+          return (['Strict', 'Lax', 'None'] as const).includes(norm as 'Strict' | 'Lax' | 'None')
+            ? norm as 'Lax' | 'Strict' | 'None'
+            : 'Lax'
+        })(),
         expires: c.expirationDate || c.expires || -1,
       }))
 
@@ -90,13 +104,101 @@ export async function createFacebookContext(
         `🍪 Facebook cookies loaded: ${fixedCookies.length} from ${path.basename(cookiePath)}`
       )
       break
-    } catch (err: any) {
-      console.error('Cookie load error:', err.message)
+    } catch (err: unknown) {
+      console.error('Cookie load error:', err instanceof Error ? err.message : String(err))
     }
   }
 
   await blockResources(context)
   return context
+}
+
+export async function createInstagramContext(
+  browser: Browser
+): Promise<BrowserContext> {
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    locale: 'sw-TZ'
+  })
+
+  const cookiePath = path.join(
+    process.cwd(),
+    'lib/scraper/config/ig-cookies.json'
+  )
+
+  if (fs.existsSync(cookiePath)) {
+    const raw = JSON.parse(fs.readFileSync(cookiePath, 'utf-8'))
+    const cookies: RawCookie[] = Array.isArray(raw) ? raw as RawCookie[] : (raw.cookies as RawCookie[]) || []
+    const fixed = cookies.map((c: RawCookie) => ({
+      name: c.name,
+      value: c.value || '',
+      domain: c.domain || '.instagram.com',
+      path: c.path || '/',
+      secure: c.secure !== undefined ? c.secure : true,
+      httpOnly: c.httpOnly || false,
+      sameSite: 'Lax' as const,
+      expires: c.expirationDate || c.expires || -1
+    }))
+    await context.addCookies(fixed)
+    console.log(`🍪 Instagram cookies: ${fixed.length}`)
+  } else {
+    console.log('⚠️ ig-cookies.json haipo')
+  }
+
+  await blockResources(context)
+  return context
+}
+
+export async function createTikTokContext(
+  browser: Browser
+): Promise<BrowserContext> {
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    viewport: { width: 1280, height: 800 },
+    locale: 'sw-TZ'
+  })
+
+  const cookiePath = path.join(
+    process.cwd(),
+    'lib/scraper/config/tt-cookies.json'
+  )
+
+  if (fs.existsSync(cookiePath)) {
+    const raw = JSON.parse(fs.readFileSync(cookiePath, 'utf-8'))
+    const cookies: RawCookie[] = Array.isArray(raw) ? raw as RawCookie[] : (raw.cookies as RawCookie[]) || []
+    const fixed = cookies.map((c: RawCookie) => ({
+      name: c.name,
+      value: c.value || '',
+      domain: c.domain || '.tiktok.com',
+      path: c.path || '/',
+      secure: c.secure !== undefined ? c.secure : true,
+      httpOnly: c.httpOnly || false,
+      sameSite: 'Lax' as const,
+      expires: c.expirationDate || c.expires || -1
+    }))
+    await context.addCookies(fixed)
+    console.log(`🍪 TikTok cookies: ${fixed.length}`)
+  } else {
+    console.log('⚠️ tt-cookies.json haipo')
+  }
+
+  await blockResources(context)
+  return context
+}
+
+export function hasInstagramSession(): boolean {
+  return fs.existsSync(
+    path.join(process.cwd(), 'lib/scraper/config/ig-cookies.json')
+  )
+}
+
+export function hasTikTokSession(): boolean {
+  return fs.existsSync(
+    path.join(process.cwd(), 'lib/scraper/config/tt-cookies.json')
+  )
 }
 
 export async function createMobileContext(

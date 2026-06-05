@@ -1,4 +1,4 @@
-import { createBrowser, createFacebookContext, hasFacebookSession, autoScroll, sleep } from '../utils/browser'
+import { createBrowser, createFacebookContext, hasFacebookSession, sleep } from '../utils/browser'
 import { processItems, RawItem } from '../core/processor'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { ALL_GROUPS } from '../config/facebookGroups'
