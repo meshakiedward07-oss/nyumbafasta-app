@@ -1,6 +1,7 @@
 import { runGooglePlaces } from './sources/googlePlaces'
 import { runFacebook } from './sources/facebook'
 import { runFacebookGraph } from './sources/facebookGraph'
+import { runFacebookGroups, runFacebookGroupsFromDB } from './sources/facebookGroups'
 import { runInstagram } from './sources/instagram'
 import { runTikTok } from './sources/tiktok'
 import { TANZANIA_REGIONS } from '@/lib/agent/regions'
@@ -9,9 +10,12 @@ export type ScrapeSource =
   | 'google'
   | 'facebook'
   | 'facebook_graph'
+  | 'facebook_groups'
   | 'instagram'
   | 'tiktok'
   | 'all'
+
+export { runFacebookGroups, runFacebookGroupsFromDB }
 
 export async function runScraper(
   region: string,
@@ -36,6 +40,10 @@ export async function runScraper(
 
   if (sources.includes('facebook_graph')) {
     results.facebook_graph = await runFacebookGraph(region)
+  }
+
+  if (sources.includes('facebook_groups')) {
+    results.facebook_groups = await runFacebookGroupsFromDB(region)
   }
 
   if (runAll || sources.includes('instagram')) {
