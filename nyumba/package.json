@@ -11,6 +11,7 @@
     "scrape:dar": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' all",
     "scrape:google": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' google",
     "scrape:facebook": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' facebook",
+    "scrape:facebook-graph": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' facebook_graph",
     "scrape:instagram": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' instagram",
     "scrape:tiktok": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' tiktok",
     "scheduler": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/scheduler.ts"
