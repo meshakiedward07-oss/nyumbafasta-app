@@ -17,6 +17,7 @@ export const PAYMENT_METHODS = [
     bgColor: '#FFF5F5',
     type:    'mobile' as const,
     hint:    '074/075/076 XXX XXXX',
+    /* eslint-disable-next-line @next/next/no-img-element */
     icon:    <img src="/payment_icons/mpesa.png"      alt="M-Pesa"       className="h-9 w-auto object-contain" />,
   },
   {
@@ -27,6 +28,7 @@ export const PAYMENT_METHODS = [
     bgColor: '#F0F4FF',
     type:    'mobile' as const,
     hint:    '065/071 XXX XXXX',
+    /* eslint-disable-next-line @next/next/no-img-element */
     icon:    <img src="/payment_icons/mixx.png"       alt="Mixx by YAS"  className="h-9 w-auto object-contain" />,
   },
   {
@@ -37,6 +39,7 @@ export const PAYMENT_METHODS = [
     bgColor: '#FFF5F5',
     type:    'mobile' as const,
     hint:    '078 XXX XXXX',
+    /* eslint-disable-next-line @next/next/no-img-element */
     icon:    <img src="/payment_icons/airtel.png"     alt="Airtel Money" className="h-9 w-auto object-contain" />,
   },
   {
@@ -47,6 +50,7 @@ export const PAYMENT_METHODS = [
     bgColor: '#FFF5F0',
     type:    'mobile' as const,
     hint:    '062 XXX XXXX',
+    /* eslint-disable-next-line @next/next/no-img-element */
     icon:    <img src="/payment_icons/halopesa.png"   alt="HaloPesa"     className="h-9 w-auto object-contain" />,
   },
   {
@@ -57,6 +61,7 @@ export const PAYMENT_METHODS = [
     bgColor: '#F0F4FF',
     type:    'card' as const,
     hint:    '',
+    /* eslint-disable-next-line @next/next/no-img-element */
     icon:    <img src="/payment_icons/visa.png"       alt="Visa"         className="h-7 w-auto object-contain" />,
   },
   {
@@ -67,6 +72,7 @@ export const PAYMENT_METHODS = [
     bgColor: '#FFF5F5',
     type:    'card' as const,
     hint:    '',
+    /* eslint-disable-next-line @next/next/no-img-element */
     icon:    <img src="/payment_icons/mastercard.png" alt="Mastercard"   className="h-9 w-auto object-contain" />,
   },
 ]

@@ -114,7 +114,7 @@ export default function AddListingWizard() {
 
   const PLAN_LIMITS: Record<string, number> = { basic: 5, premium: 20, enterprise: 50 }
 
-  useEffect(() => { loadLimit() }, [])
+  useEffect(() => { loadLimit() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadLimit(): Promise<LimitInfo | null> {
     try {

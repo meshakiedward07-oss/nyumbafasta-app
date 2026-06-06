@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 
-const admin = createAdminClient()
-
 export async function POST(req: NextRequest) {
+  const admin = createAdminClient()
   // Verify cron secret
   const secret = req.headers.get('x-cron-secret')
   if (secret !== process.env.CRON_SECRET) {
@@ -44,10 +43,10 @@ export async function POST(req: NextRequest) {
         // Log a communication entry for the followup reminder
         await admin.from('lead_communications').insert({
           lead_id: lead.id,
+          user_id: schedule.created_by || null,
           type: 'note',
           direction: 'outbound',
           content: `[Auto-followup] ${schedule.followup_type}: ${schedule.message || 'Followup ya mfumo'}`,
-          created_by: schedule.created_by || null,
         })
 
         // Notify the assigned dalali
