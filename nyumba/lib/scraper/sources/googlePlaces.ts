@@ -87,7 +87,7 @@ async function textSearch(
     url += `&pagetoken=${encodeURIComponent(pageToken)}`
   }
 
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(12000) })
   return await res.json() as SearchResponse
 }
 
@@ -113,7 +113,7 @@ async function placeDetails(
     `&fields=${fields}` +
     `&key=${apiKey}`
 
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
   return await res.json() as DetailsResponse
 }
 

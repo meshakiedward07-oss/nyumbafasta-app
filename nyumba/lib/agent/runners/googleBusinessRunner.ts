@@ -1,11 +1,10 @@
 import { RunnerResult } from '../types'
-import { runGooglePlaces } from '@/lib/scraper/sources/googlePlaces'
+import { runFacebookGraph } from '@/lib/scraper/sources/facebookGraph'
 
-export async function runGoogleBusinessRunner(
-  region: string
-): Promise<RunnerResult> {
+// Google Business uses Swahili queries + website enrichment (different from Google Maps English queries)
+export async function runGoogleBusinessRunner(region: string): Promise<RunnerResult> {
   try {
-    const stats = await runGooglePlaces(region)
+    const stats = await runFacebookGraph(region, 'google_business')
     const runId = `google_business_${region}_${Date.now()}`
     console.log(`✅ Google Business done: saved=${stats.saved} (${region})`)
     return { runId, source: 'google_business', status: 'SUCCEEDED', region }

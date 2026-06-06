@@ -1,6 +1,7 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
 import { processItems, RawItem } from '../core/processor'
+import { LeadSource } from '@/lib/agent/types'
 
 // Swahili-focused queries — different from googlePlaces.ts which uses English ones
 const SWAHILI_QUERIES = [
@@ -13,7 +14,8 @@ const SWAHILI_QUERIES = [
 ]
 
 export async function runFacebookGraph(
-  region: string
+  region: string,
+  source: LeadSource = 'facebook_pages'
 ): Promise<ReturnType<typeof processItems>> {
   const token = process.env.FACEBOOK_ACCESS_TOKEN
   const googleKey = process.env.GOOGLE_PLACES_API_KEY
@@ -29,7 +31,8 @@ export async function runFacebookGraph(
       const res = await fetch(
         `https://graph.facebook.com/v18.0/me/accounts` +
           `?fields=id,name,about,phone,website,fan_count,category,posts{message,created_time}` +
-          `&access_token=${token}`
+          `&access_token=${token}`,
+        { signal: AbortSignal.timeout(12000) }
       )
       const data = await res.json()
 
@@ -85,7 +88,8 @@ export async function runFacebookGraph(
         const res = await fetch(
           `https://maps.googleapis.com/maps/api/place/textsearch/json` +
             `?query=${encodeURIComponent(query)}` +
-            `&key=${googleKey}`
+            `&key=${googleKey}`,
+          { signal: AbortSignal.timeout(12000) }
         )
         const data = await res.json()
 
@@ -98,7 +102,8 @@ export async function runFacebookGraph(
               `https://maps.googleapis.com/maps/api/place/details/json` +
                 `?place_id=${place.place_id}` +
                 `&fields=name,formatted_phone_number,website,formatted_address` +
-                `&key=${googleKey}`
+                `&key=${googleKey}`,
+              { signal: AbortSignal.timeout(10000) }
             )
             const det = (await detRes.json()).result ?? {}
 
@@ -160,8 +165,8 @@ export async function runFacebookGraph(
     }
   }
 
-  console.log(`📊 Facebook+Web found: ${rawItems.length} items`)
-  return await processItems(rawItems, 'facebook_pages', region)
+  console.log(`📊 Facebook+Web found: ${rawItems.length} items (source: ${source})`)
+  return await processItems(rawItems, source, region)
 }
 
 async function scrapeWebsite(url: string): Promise<{

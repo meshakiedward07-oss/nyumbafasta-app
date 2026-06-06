@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
       const settled = await Promise.allSettled([
         runGoogleMapsRunner(region),
         runGoogleBusinessRunner(region),
-        runFacebookGroupsRunner(),
+        runFacebookGroupsRunner(region),
         runFacebookPagesRunner(region),
         runInstagramRunner(region),
         runTiktokRunner(region),

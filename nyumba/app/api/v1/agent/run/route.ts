@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
             result = await runGoogleBusinessRunner(region)
             break
           case 'facebook_groups':
-            result = await runFacebookGroupsRunner()
+            result = await runFacebookGroupsRunner(region)
             break
           case 'facebook_pages':
             result = await runFacebookPagesRunner(region)
