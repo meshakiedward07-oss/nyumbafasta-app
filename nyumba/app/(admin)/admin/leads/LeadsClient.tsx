@@ -446,7 +446,19 @@ export default function LeadsClient() {
                 className="text-gray-400 text-xl">✕</button>
             </div>
 
-            {!runResult ? (
+            {running ? (
+              <div className="py-10 text-center">
+                <div className="w-12 h-12 border-4 border-[#1D9E75] border-t-transparent
+                  rounded-full animate-spin mx-auto mb-4" />
+                <p className="font-semibold text-gray-700">Inatafuta madalali...</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Inaweza kuchukua dakika 5–15. Tafadhali subiri.
+                </p>
+                <p className="text-xs text-gray-300 mt-2">
+                  📍 {runRegion} · Sources: {runSources.length}
+                </p>
+              </div>
+            ) : !runResult ? (
               <>
                 <div className="mb-4">
                   <label className="text-sm font-medium text-gray-700 block mb-2">📍 Chagua Mkoa</label>
@@ -502,45 +514,78 @@ export default function LeadsClient() {
                   disabled={running || runSources.length === 0}
                   className="w-full bg-[#1D9E75] text-white py-4 rounded-2xl font-bold text-base disabled:opacity-50"
                 >
-                  {running ? '⏳ Inaanzisha...' : `🚀 Anza Kutafuta — ${runRegion}`}
+                  {`🚀 Anza Kutafuta — ${runRegion}`}
                 </button>
               </>
             ) : (
               <div>
                 {runResult.error ? (
-                  <div className="bg-red-50 rounded-xl p-4 text-red-700">
-                    ❌ Kosa: {runResult.error}
+                  <div className="space-y-3">
+                    <div className="bg-red-50 rounded-xl p-4 text-red-700">
+                      <p className="font-bold mb-1">❌ Kosa Limetokea</p>
+                      <p className="text-sm">{runResult.error}</p>
+                    </div>
+                    <button
+                      onClick={() => setRunResult(null)}
+                      className="w-full border border-gray-200 text-gray-600 py-3 rounded-xl text-sm font-semibold"
+                    >
+                      ← Rudi
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-3">
+                    {/* Summary */}
                     <div className="bg-green-50 rounded-xl p-4">
-                      <p className="font-bold text-green-700 mb-2">✅ Agent Imeanzishwa!</p>
-                      <p className="text-green-600 text-sm">Inatafuta madalali kwenye {runResult.region}...</p>
+                      <p className="font-bold text-green-700 mb-1">✅ Imekamilika!</p>
+                      <p className="text-green-600 text-sm">
+                        Leads mpya: <span className="font-bold text-green-800">
+                          {(runResult.runs ?? []).reduce((sum: number, r: any) => sum + (r.saved ?? 0), 0)}
+                        </span> · Mkoa: {runResult.region}
+                      </p>
                     </div>
+                    {/* Per-source results */}
                     <div className="space-y-2">
-                      {runResult.runs?.map((run: any, i: number) => (
+                      {(runResult.runs ?? []).map((run: any, i: number) => (
                         <div key={i} className="bg-white border border-gray-100 rounded-xl p-3
                           flex items-center justify-between">
                           <span className="text-sm font-medium">
                             {getSourceEmoji(run.source)} {run.source}
                           </span>
-                          <span className={`text-xs px-2 py-1 rounded-full
-                            ${run.status === 'FAILED'
-                              ? 'bg-red-100 text-red-600'
-                              : 'bg-green-100 text-green-600'}`}>
-                            {run.status === 'FAILED' ? '❌ Failed' : '✅ Running'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {run.status !== 'FAILED' && (
+                              <span className="text-xs font-bold text-gray-600">
+                                +{run.saved ?? 0} leads
+                              </span>
+                            )}
+                            <span className={`text-xs px-2 py-1 rounded-full
+                              ${run.status === 'FAILED'
+                                ? 'bg-red-100 text-red-600'
+                                : 'bg-green-100 text-green-600'}`}>
+                              {run.status === 'FAILED' ? '❌ Imeshindwa' : '✅ Imefanikiwa'}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
-                    <p className="text-gray-400 text-xs text-center">
-                      Leads zitaonekana hapa baada ya dakika 5-15. Refresh page kuona matokeo.
-                    </p>
+                    {runResult.errors?.length > 0 && (
+                      <div className="bg-yellow-50 rounded-xl p-3">
+                        {runResult.errors.map((e: any, i: number) => (
+                          <p key={i} className="text-xs text-yellow-700">
+                            ⚠️ {e.source}: {e.error}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                     <button
-                      onClick={() => { setShowRunModal(false); setRunResult(null); fetchLeads(); fetchStats() }}
+                      onClick={() => {
+                        setShowRunModal(false)
+                        setRunResult(null)
+                        fetchLeads()
+                        fetchStats()
+                      }}
                       className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-semibold"
                     >
-                      Sawa, Nisubiri Matokeo
+                      Ona Leads Mpya →
                     </button>
                   </div>
                 )}

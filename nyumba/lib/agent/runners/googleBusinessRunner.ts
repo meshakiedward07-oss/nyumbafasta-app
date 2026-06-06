@@ -7,7 +7,7 @@ export async function runGoogleBusinessRunner(region: string): Promise<RunnerRes
     const stats = await runFacebookGraph(region, 'google_business')
     const runId = `google_business_${region}_${Date.now()}`
     console.log(`✅ Google Business done: saved=${stats.saved} (${region})`)
-    return { runId, source: 'google_business', status: 'SUCCEEDED', region }
+    return { runId, source: 'google_business', status: 'SUCCEEDED', region, saved: stats.saved }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('❌ Google Business runner error:', msg)

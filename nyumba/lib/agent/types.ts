@@ -63,6 +63,7 @@ export type RunnerResult = {
   status: string
   region?: string
   error?: string
+  saved?: number
 }
 
 export type SaveResult = {
