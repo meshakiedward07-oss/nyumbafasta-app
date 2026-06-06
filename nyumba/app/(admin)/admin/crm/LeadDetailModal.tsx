@@ -39,6 +39,24 @@ type Task = {
   is_completed: boolean
 }
 
+type CallLog = {
+  id: string
+  outcome: string
+  duration_seconds: number
+  notes?: string
+  next_action?: string
+  called_at: string
+}
+
+type AIRec = {
+  recommendation: string
+  action: string
+  priority: number
+  reasoning: string
+  best_time: string
+  message_hint: string
+}
+
 export default function LeadDetailModal({
   lead,
   onClose,
@@ -51,9 +69,19 @@ export default function LeadDetailModal({
   stages: Stage[]
 }) {
   const supabase = createClient()
-  const [tab, setTab] = useState<'info' | 'history' | 'tasks' | 'matches'>('info')
+  const [tab, setTab] = useState<'info' | 'history' | 'tasks' | 'matches' | 'calls'>('info')
   const [communications, setCommunications] = useState<Communication[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [calls, setCalls] = useState<CallLog[]>([])
+  const [showCallForm, setShowCallForm] = useState(false)
+  const [callForm, setCallForm] = useState({
+    duration_seconds: 0,
+    outcome: 'answered',
+    notes: '',
+    next_action: 'followup',
+  })
+  const [aiRec, setAiRec] = useState<AIRec | null>(null)
+  const [loadingAI, setLoadingAI] = useState(false)
   const [newNote, setNewNote] = useState('')
   const [newTask, setNewTask] = useState({
     title: '',
@@ -66,6 +94,7 @@ export default function LeadDetailModal({
   useEffect(() => {
     fetchCommunications()
     fetchTasks()
+    fetchCalls()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id])
 
@@ -85,6 +114,59 @@ export default function LeadDetailModal({
       .eq('lead_id', lead.id)
       .order('due_date', { ascending: true })
     setTasks(data || [])
+  }
+
+  async function fetchCalls() {
+    const { data } = await supabase
+      .from('call_logs')
+      .select('*')
+      .eq('lead_id', lead.id)
+      .order('called_at', { ascending: false })
+    setCalls((data as CallLog[]) || [])
+  }
+
+  async function saveCallLog() {
+    setLoading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase.from('call_logs').insert({
+        lead_id: lead.id,
+        dalali_id: user?.id,
+        ...callForm,
+      })
+      await supabase.from('lead_communications').insert({
+        lead_id: lead.id,
+        user_id: user?.id,
+        type: 'call',
+        content: `Simu: ${callForm.outcome} — ${callForm.notes || ''}`,
+      })
+      await supabase
+        .from('agent_leads')
+        .update({ last_contacted_at: new Date().toISOString() })
+        .eq('id', lead.id)
+      setShowCallForm(false)
+      setCallForm({ duration_seconds: 0, outcome: 'answered', notes: '', next_action: 'followup' })
+      fetchCalls()
+      fetchCommunications()
+      onUpdate()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function getAIRecommendation() {
+    setLoadingAI(true)
+    try {
+      const res = await fetch('/api/v1/crm/ai-recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_id: lead.id }),
+      })
+      const data = await res.json() as AIRec
+      setAiRec(data)
+    } finally {
+      setLoadingAI(false)
+    }
   }
 
   async function addNote() {
@@ -247,11 +329,12 @@ export default function LeadDetailModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-100 px-4">
+        <div className="flex border-b border-gray-100 px-4 overflow-x-auto">
           {([
             { id: 'info', label: 'ℹ️ Info' },
             { id: 'history', label: '📋 Historia' },
             { id: 'tasks', label: '✅ Tasks' },
+            { id: 'calls', label: '📞 Simu' },
             { id: 'matches', label: '🏠 Nyumba' },
           ] as const).map(t => (
             <button
@@ -317,6 +400,46 @@ export default function LeadDetailModal({
                   <p className="text-sm text-purple-600">{lead.ai_notes}</p>
                 </div>
               )}
+
+              {/* AI Recommendation */}
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-semibold text-sm text-purple-800">🤖 AI Recommendation</p>
+                  <button onClick={getAIRecommendation} disabled={loadingAI}
+                    className="bg-purple-500 text-white text-xs px-3 py-1.5 rounded-lg disabled:opacity-50">
+                    {loadingAI ? '⏳ ...' : '✨ Analyze'}
+                  </button>
+                </div>
+                {aiRec ? (
+                  <div className="space-y-2">
+                    <div className="bg-white rounded-xl p-3">
+                      <p className="font-semibold text-sm text-gray-800">{aiRec.recommendation}</p>
+                      <p className="text-xs text-gray-500 mt-1">{aiRec.reasoning}</p>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">
+                        🎯 {aiRec.action}
+                      </span>
+                      <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
+                        ⏰ {aiRec.best_time}
+                      </span>
+                      <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
+                        Priority: {aiRec.priority}/10
+                      </span>
+                    </div>
+                    {aiRec.message_hint && (
+                      <div className="bg-yellow-50 rounded-xl p-3">
+                        <p className="text-xs font-medium text-yellow-800 mb-1">💬 Message ya kutumia:</p>
+                        <p className="text-xs text-yellow-700">{aiRec.message_hint}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-purple-600 text-sm">
+                    Bonyeza &quot;Analyze&quot; kupata shauri la AI kuhusu lead hii
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -456,6 +579,98 @@ export default function LeadDetailModal({
                   <p className="text-gray-400 text-sm">Hakuna tasks — ongeza ya kwanza!</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* CALLS TAB */}
+          {tab === 'calls' && (
+            <div className="space-y-3">
+              <button onClick={() => setShowCallForm(!showCallForm)}
+                className="w-full bg-blue-500 text-white py-3 rounded-xl font-semibold text-sm">
+                📞 Rekodi Simu Mpya
+              </button>
+
+              {showCallForm && (
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Matokeo ya Simu</label>
+                    <select value={callForm.outcome}
+                      onChange={e => setCallForm(f => ({ ...f, outcome: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+                      <option value="answered">✅ Alijibu</option>
+                      <option value="no_answer">📵 Hakujibu</option>
+                      <option value="busy">🔴 Busy</option>
+                      <option value="wrong_number">❌ Nambari Mbaya</option>
+                      <option value="callback">📞 Atapigia Baadaye</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Muda (dakika)</label>
+                    <input type="number" placeholder="0"
+                      value={callForm.duration_seconds ? callForm.duration_seconds / 60 : ''}
+                      onChange={e => setCallForm(f => ({ ...f, duration_seconds: (parseInt(e.target.value) || 0) * 60 }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Notes</label>
+                    <textarea placeholder="Mazungumzo yalikuwa kuhusu..."
+                      value={callForm.notes}
+                      onChange={e => setCallForm(f => ({ ...f, notes: e.target.value }))}
+                      rows={3}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none resize-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Hatua Inayofuata</label>
+                    <select value={callForm.next_action}
+                      onChange={e => setCallForm(f => ({ ...f, next_action: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+                      <option value="followup">📞 Follow-up</option>
+                      <option value="send_photos">📸 Tuma Picha</option>
+                      <option value="schedule_viewing">🏠 Panga Viewing</option>
+                      <option value="close_deal">✅ Funga Deal</option>
+                      <option value="nurture">💬 Endelea Kuzungumza</option>
+                    </select>
+                  </div>
+                  <button onClick={saveCallLog} disabled={loading}
+                    className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50">
+                    {loading ? 'Inahifadhi...' : '💾 Hifadhi Log'}
+                  </button>
+                </div>
+              )}
+
+              {/* Calls history */}
+              <div className="space-y-2">
+                {calls.length === 0 ? (
+                  <p className="text-center text-gray-400 text-sm py-6">
+                    Hakuna simu zilizorekodiwa bado
+                  </p>
+                ) : calls.map(call => (
+                  <div key={call.id} className="bg-white border border-gray-100 rounded-xl p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        call.outcome === 'answered' ? 'bg-green-100 text-green-700' :
+                        call.outcome === 'no_answer' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {call.outcome === 'answered' ? '✅ Alijibu' :
+                         call.outcome === 'no_answer' ? '📵 Hakujibu' :
+                         call.outcome === 'busy' ? '🔴 Busy' :
+                         call.outcome}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {call.duration_seconds > 0
+                          ? `${Math.floor(call.duration_seconds / 60)}:${String(call.duration_seconds % 60).padStart(2, '0')} · `
+                          : ''}
+                        {new Date(call.called_at).toLocaleDateString('sw-TZ')}
+                      </span>
+                    </div>
+                    {call.notes && <p className="text-sm text-gray-600">{call.notes}</p>}
+                    {call.next_action && (
+                      <p className="text-xs text-blue-500 mt-1">→ {call.next_action}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

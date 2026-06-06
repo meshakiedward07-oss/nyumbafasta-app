@@ -362,6 +362,19 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           )
         })()}
 
+        {/* ── CRM Banner ── */}
+        <Link
+          href="/dashboard/crm"
+          className="flex items-center gap-3 p-4 bg-gradient-to-r from-[#1D9E75] to-green-600 rounded-2xl text-white"
+        >
+          <span className="text-3xl flex-shrink-0">🎯</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold">Leads Zangu</p>
+            <p className="text-green-100 text-xs">Simamia leads na deals zako</p>
+          </div>
+          <span className="flex-shrink-0 text-green-100">→</span>
+        </Link>
+
         {/* ── Quick actions ── */}
         <div className="grid grid-cols-3 gap-3">
           <Link
