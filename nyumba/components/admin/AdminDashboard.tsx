@@ -337,6 +337,34 @@ export default function AdminDashboard({
             <span>🎯</span><span>CRM</span>
           </Link>
           <Link
+            href="/admin/crm/analytics"
+            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+          >
+            <span>📊</span><span>Analytics</span>
+          </Link>
+          <Link
+            href="/admin/crm/assign"
+            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+          >
+            <span>👥</span><span>Assign</span>
+          </Link>
+          <Link
+            href="/admin/crm/reports"
+            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+          >
+            <span>📋</span><span>Reports</span>
+          </Link>
+          <Link
+            href="/admin/crm/commission"
+            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+          >
+            <span>💼</span><span>Commission</span>
+          </Link>
+          <Link
             href="/admin/leads"
             className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
               border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"

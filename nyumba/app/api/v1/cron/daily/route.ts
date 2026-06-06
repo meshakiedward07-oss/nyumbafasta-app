@@ -394,6 +394,20 @@ async function runDailyTasks() {
     errors.push(`❌ Payment cleanup: ${String(e)}`)
   }
 
+  // ── 11. CRM Auto-followup ──
+  try {
+    const followupUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/v1/crm/followup`
+    const res = await fetch(followupUrl, {
+      method: 'POST',
+      headers: { 'x-cron-secret': process.env.CRON_SECRET || '' },
+    })
+    const data = await res.json()
+    results.push(`✅ CRM Followups: ${(data.results as string[])?.length ?? 0} processed`)
+    if (data.errors?.length) errors.push(`❌ Followup errors: ${data.errors.join(', ')}`)
+  } catch (e) {
+    errors.push(`❌ CRM Followup: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,
