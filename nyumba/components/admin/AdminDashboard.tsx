@@ -330,6 +330,13 @@ export default function AdminDashboard({
             </button>
           ))}
           <Link
+            href="/admin/crm"
+            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+          >
+            <span>🎯</span><span>CRM</span>
+          </Link>
+          <Link
             href="/admin/leads"
             className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
               border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
