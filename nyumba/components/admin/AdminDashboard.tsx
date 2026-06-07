@@ -295,8 +295,8 @@ export default function AdminDashboard({
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
 
-      {/* ── Header ── */}
-      <div className="bg-primary-800 px-4 pt-10 pb-5">
+      {/* ── Header — hidden on desktop (AdminShell sidebar provides branding) ── */}
+      <div className="bg-primary-800 px-4 pt-10 pb-5 lg:hidden">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-white text-xl font-bold">⚙️ Admin Panel</h1>
@@ -305,6 +305,14 @@ export default function AdminDashboard({
           <button onClick={() => router.push('/')} className="text-green-200 text-xs hover:text-white">
             ← Tovuti
           </button>
+        </div>
+      </div>
+
+      {/* ── Desktop page title ── */}
+      <div className="hidden lg:flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">⚙️ Dashboard</h1>
+          <p className="text-xs text-gray-400 mt-0.5">NyumbaFasta · Usimamizi wa Mfumo</p>
         </div>
       </div>
 
@@ -329,73 +337,76 @@ export default function AdminDashboard({
               <span>{t.icon}</span><span>{t.label}</span>
             </button>
           ))}
-          <Link
-            href="/admin/crm"
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-          >
-            <span>🎯</span><span>CRM</span>
-          </Link>
-          <Link
-            href="/admin/crm/analytics"
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-          >
-            <span>📊</span><span>Analytics</span>
-          </Link>
-          <Link
-            href="/admin/crm/assign"
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-          >
-            <span>👥</span><span>Assign</span>
-          </Link>
-          <Link
-            href="/admin/crm/reports"
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-          >
-            <span>📋</span><span>Reports</span>
-          </Link>
-          <Link
-            href="/admin/crm/commission"
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-          >
-            <span>💼</span><span>Commission</span>
-          </Link>
-          <Link
-            href="/admin/crm/templates"
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-          >
-            <span>💬</span><span>WA Templates</span>
-          </Link>
-          <Link
-            href="/admin/leads"
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-          >
-            <span>🤖</span><span>Leads</span>
-          </Link>
-          <Link
-            href="/admin/facebook-groups"
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-          >
-            <span>👥</span><span>FB Groups</span>
-          </Link>
-          <Link
-            href="/admin/instagram-profiles"
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-              border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-          >
-            <span>📸</span><span>IG Profiles</span>
-          </Link>
+          {/* External links — hidden on desktop (sidebar handles these) */}
+          <div className="contents lg:hidden">
+            <Link
+              href="/admin/crm"
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+            >
+              <span>🎯</span><span>CRM</span>
+            </Link>
+            <Link
+              href="/admin/crm/analytics"
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+            >
+              <span>📊</span><span>Analytics</span>
+            </Link>
+            <Link
+              href="/admin/crm/assign"
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+            >
+              <span>👥</span><span>Assign</span>
+            </Link>
+            <Link
+              href="/admin/crm/reports"
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+            >
+              <span>📋</span><span>Reports</span>
+            </Link>
+            <Link
+              href="/admin/crm/commission"
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+            >
+              <span>💼</span><span>Commission</span>
+            </Link>
+            <Link
+              href="/admin/crm/templates"
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+            >
+              <span>💬</span><span>WA Templates</span>
+            </Link>
+            <Link
+              href="/admin/leads"
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+            >
+              <span>🤖</span><span>Leads</span>
+            </Link>
+            <Link
+              href="/admin/facebook-groups"
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+            >
+              <span>👥</span><span>FB Groups</span>
+            </Link>
+            <Link
+              href="/admin/instagram-profiles"
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
+            >
+              <span>📸</span><span>IG Profiles</span>
+            </Link>
+          </div>
         </div>
       </div>
 
-      <div className="px-4 pt-4 space-y-4">
+      <div className="px-4 lg:px-6 pt-4 space-y-4">
 
         {/* ══════════════════════════════════════════════
             TAB: Overview

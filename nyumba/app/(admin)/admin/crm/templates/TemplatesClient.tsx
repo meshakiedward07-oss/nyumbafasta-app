@@ -60,6 +60,75 @@ export default function TemplatesClient() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+
+      {/* ════════════════════════════════
+          DESKTOP VIEW
+      ════════════════════════════════ */}
+      <div className="hidden lg:block p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">💬 WhatsApp Templates</h1>
+            <p className="text-gray-500 text-sm mt-0.5">{templates.length} templates</p>
+          </div>
+          <button onClick={() => setShowAdd(true)}
+            className="px-4 py-2 bg-[#1D9E75] text-white rounded-xl text-sm font-bold hover:bg-[#178a65]">
+            ➕ Template Mpya
+          </button>
+        </div>
+
+        {templates.length === 0 && (
+          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+            <div className="text-4xl mb-2">💬</div>
+            <p className="text-gray-400">Hakuna templates — ongeza ya kwanza</p>
+          </div>
+        )}
+
+        {Object.entries(grouped).map(([category, temps]) => (
+          <div key={category} className="mb-8">
+            <p className="font-semibold text-gray-700 mb-4">
+              {categoryEmojis[category] || '💬'}{' '}
+              {category.charAt(0).toUpperCase() + category.slice(1)}
+            </p>
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+              {temps.map(t => (
+                <div key={t.id}
+                  className="bg-white rounded-2xl p-5 border border-gray-200 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <p className="font-semibold text-gray-900 text-sm">{t.name}</p>
+                    <div className="flex gap-1 flex-shrink-0 ml-2">
+                      <button onClick={() => copyTemplate(t.id, t.message)}
+                        className={`p-1.5 rounded-lg text-xs transition-all ${
+                          copied === t.id ? 'bg-green-500 text-white' : 'bg-[#25D366] text-white'
+                        }`}>
+                        {copied === t.id ? '✅' : '📋'}
+                      </button>
+                      <button onClick={() => deleteTemplate(t.id)}
+                        className="p-1.5 bg-red-100 text-red-500 rounded-lg text-xs">
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed line-clamp-4">{t.message}</p>
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-400">
+                      Variables:{' '}
+                      <span className="font-mono">{'{jina}'}</span>{' '}
+                      <span className="font-mono">{'{dalali}'}</span>{' '}
+                      <span className="font-mono">{'{mkoa}'}</span>{' '}
+                      <span className="font-mono">{'{tarehe}'}</span>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ════════════════════════════════
+          MOBILE VIEW
+      ════════════════════════════════ */}
+      <div className="lg:hidden">
       <header className="bg-[#1D9E75] px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div>
@@ -121,10 +190,12 @@ export default function TemplatesClient() {
         )}
       </div>
 
-      {/* Add modal */}
+      </div>{/* end mobile lg:hidden */}
+
+      {/* Add modal — shared desktop + mobile */}
       {showAdd && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-          <div className="bg-white w-full rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center lg:justify-center">
+          <div className="bg-white w-full rounded-t-3xl lg:rounded-2xl p-5 max-h-[85vh] overflow-y-auto lg:max-w-md lg:w-full">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg">➕ Template Mpya</h3>
               <button onClick={() => setShowAdd(false)} className="text-gray-400 text-xl">✕</button>

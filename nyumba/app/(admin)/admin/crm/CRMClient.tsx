@@ -96,8 +96,157 @@ export default function CRMClient() {
 
   const stageColorMap = Object.fromEntries(PIPELINE_STAGES.map(s => [s.id, s.color]))
 
+  function getScoreColor(score: number) {
+    if (score >= 80) return 'text-green-600 bg-green-100'
+    if (score >= 50) return 'text-yellow-600 bg-yellow-100'
+    return 'text-gray-500 bg-gray-100'
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+
+      {/* ════════════════════════════════
+          DESKTOP VIEW
+      ════════════════════════════════ */}
+      <div className="hidden lg:block p-6">
+        {/* Desktop header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">🎯 CRM — Lead Pipeline</h1>
+            <p className="text-gray-500 text-sm mt-0.5">
+              Leads {stats.total} · Leo +{stats.today} · 🔥 Hot {stats.hot} · ✅ Closed {stats.closed}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setView('pipeline')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                view === 'pipeline' ? 'bg-[#1D9E75] text-white' : 'bg-white border border-gray-200 text-gray-600'
+              }`}>
+              🎯 Pipeline
+            </button>
+            <button onClick={() => setView('list')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                view === 'list' ? 'bg-[#1D9E75] text-white' : 'bg-white border border-gray-200 text-gray-600'
+              }`}>
+              📋 List
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop pipeline — 7 columns */}
+        {view === 'pipeline' && (
+          <div className="grid grid-cols-7 gap-3">
+            {PIPELINE_STAGES.map(stage => (
+              <div key={stage.id} className="flex flex-col min-h-64">
+                {/* Stage header */}
+                <div className={`${stage.color} rounded-xl px-3 py-2 mb-3 text-center`}>
+                  <p className="text-white font-semibold text-xs">{stage.emoji} {stage.label}</p>
+                  <p className="text-white/80 text-xs">{getLeadsByStage(stage.id).length}</p>
+                </div>
+                {/* Stage leads */}
+                <div className="space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-280px)]">
+                  {loading && <div className="bg-white rounded-xl h-16 animate-pulse" />}
+                  {getLeadsByStage(stage.id).map(lead => (
+                    <div
+                      key={lead.id}
+                      onClick={() => setSelectedLead(lead)}
+                      className="bg-white rounded-xl p-3 border border-gray-100 cursor-pointer
+                        hover:shadow-md transition-all hover:-translate-y-0.5"
+                    >
+                      <p className="font-semibold text-xs text-gray-800 line-clamp-2 mb-1">
+                        {lead.business_name}
+                      </p>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-400 truncate">{lead.region?.slice(0, 12)}</span>
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${getScoreColor(lead.ai_score || 0)}`}>
+                          {lead.ai_score || 0}
+                        </span>
+                      </div>
+                      {lead.phone && (
+                        <p className="text-xs text-gray-400">📞 {lead.phone}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Desktop list view */}
+        {view === 'list' && (
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {['Biashara', 'Simu', 'Mkoa', 'Stage', 'Score', 'Tarehe', 'Hatua'].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {leads.map(lead => (
+                  <tr key={lead.id} onClick={() => setSelectedLead(lead)}
+                    className="hover:bg-gray-50 cursor-pointer">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span>{getScoreEmoji(lead.ai_score || 0)}</span>
+                        <div>
+                          <p className="font-medium text-sm">{lead.business_name}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <a href={`tel:${lead.phone}`} onClick={e => e.stopPropagation()}
+                        className="text-sm text-blue-600 hover:underline">{lead.phone || '—'}</a>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-gray-600">📍 {lead.region || '—'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-1 rounded-full text-white ${
+                        stageColorMap[lead.pipeline_stage || 'new'] || 'bg-gray-400'
+                      }`}>
+                        {PIPELINE_STAGES.find(s => s.id === (lead.pipeline_stage || 'new'))?.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getScoreColor(lead.ai_score || 0)}`}>
+                        {lead.ai_score || 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs text-gray-400">
+                        {new Date(lead.created_at).toLocaleDateString('sw-TZ')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {lead.whatsapp && (
+                        <a href={`https://wa.me/${lead.whatsapp.replace(/[^0-9]/g, '')}`}
+                          target="_blank" rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="bg-[#25D366] text-white text-xs px-2.5 py-1.5 rounded-lg">
+                          💬 WA
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {!loading && leads.length === 0 && (
+                  <tr><td colSpan={7} className="text-center py-16 text-gray-400">Hakuna leads bado</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ════════════════════════════════
+          MOBILE VIEW
+      ════════════════════════════════ */}
+      <div className="lg:hidden">
 
       {/* Header */}
       <header className="bg-[#1D9E75] sticky top-0 z-10 px-4 py-4">
@@ -268,6 +417,8 @@ export default function CRMClient() {
           )}
         </div>
       )}
+
+      </div> {/* end lg:hidden mobile view */}
 
       {/* Lead Detail Modal */}
       {selectedLead && (

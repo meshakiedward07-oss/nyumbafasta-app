@@ -203,6 +203,200 @@ export default function LeadsClient() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
 
+      {/* ════════════════════════════════════════
+          DESKTOP VIEW
+      ════════════════════════════════════════ */}
+      <div className="hidden lg:block p-6">
+
+        {/* Desktop header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">🤖 Leads za Madalali</h1>
+            <p className="text-gray-500 text-sm mt-0.5">
+              Jumla: {total} leads
+              {lastRun && ` · Mwisho: ${timeAgo(lastRun)} · Leo +${leadsToday}`}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 bg-white"
+            >
+              ➕ Ongeza Lead
+            </button>
+            <button
+              onClick={() => setShowRunModal(true)}
+              className="px-4 py-2 bg-[#1D9E75] text-white rounded-xl text-sm font-bold hover:bg-[#178a65]"
+            >
+              🤖 Run Agent
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop stats */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          {[
+            { label: 'Jumla Leads',  value: stats.total,     emoji: '📊', color: 'bg-blue-50 border-blue-200 text-blue-700' },
+            { label: 'Leo',          value: stats.new_today,  emoji: '🆕', color: 'bg-green-50 border-green-200 text-green-700' },
+            { label: 'Walipigiwa',   value: stats.contacted,  emoji: '📞', color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
+            { label: 'Walisajili',   value: stats.converted,  emoji: '✅', color: 'bg-purple-50 border-purple-200 text-purple-700' },
+          ].map((s, i) => (
+            <div key={i} className={`${s.color} border rounded-2xl p-4`}>
+              <div className="text-2xl mb-2">{s.emoji}</div>
+              <p className="text-3xl font-bold">{s.value}</p>
+              <p className="text-sm mt-1 opacity-70">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop filters */}
+        <div className="flex gap-3 mb-4">
+          <input
+            type="text"
+            placeholder="🔍 Tafuta jina au simu..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1) }}
+            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white
+              focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+          />
+          <select value={filterRegion} onChange={e => { setFilterRegion(e.target.value); setPage(1) }}
+            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none min-w-44">
+            <option value="">🗺️ Mikoa Yote</option>
+            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <select value={filterSource} onChange={e => { setFilterSource(e.target.value); setPage(1) }}
+            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none min-w-44">
+            <option value="">📡 Sources Zote</option>
+            {SOURCES.map(s => <option key={s.id} value={s.id}>{s.emoji} {s.label}</option>)}
+          </select>
+          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}
+            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none min-w-36">
+            <option value="">📋 Status Zote</option>
+            {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </div>
+
+        {/* Desktop table */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {['Biashara', 'Simu', 'Mkoa', 'Source', 'Score', 'Status', 'Tarehe', 'Hatua'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 8 }).map((_, j) => (
+                      <td key={j} className="px-4 py-3">
+                        <div className="h-4 bg-gray-100 rounded animate-pulse" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : leads.map(lead => (
+                <tr
+                  key={lead.id}
+                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => setSelectedLead(lead)}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span>{getSourceEmoji(lead.source)}</span>
+                      <div>
+                        <p className="font-medium text-sm text-gray-900">{lead.business_name}</p>
+                        {lead.email && <p className="text-xs text-gray-400">{lead.email}</p>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <a href={`tel:${lead.phone}`} onClick={e => e.stopPropagation()}
+                      className="text-sm text-blue-600 hover:underline">
+                      {lead.phone || '—'}
+                    </a>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm text-gray-600">📍 {lead.region || '—'}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm">{getSourceEmoji(lead.source)} {lead.source?.replace(/_/g, ' ')}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getScoreColor(lead.ai_score)}`}>
+                      {lead.ai_score}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={lead.status}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => { e.stopPropagation(); handleStatusChange(lead.id, e.target.value) }}
+                      className={`text-xs px-2 py-1.5 rounded-lg border-0 font-medium cursor-pointer ${getStatusStyle(lead.status)}`}
+                    >
+                      {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-xs text-gray-400">{timeAgo(lead.created_at)}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {(lead.whatsapp || lead.phone) && (
+                      <a
+                        href={`https://wa.me/${(lead.whatsapp || lead.phone)?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Habari! Mimi ni kutoka NyumbaFasta Tanzania. Tungependa kukuomba ujisajili kwenye platform yetu ya madalali wa nyumba. Je, una dakika kuzungumza?')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="bg-[#25D366] text-white text-xs px-2.5 py-1.5 rounded-lg font-medium hover:bg-green-600"
+                      >
+                        💬 WA
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {leads.length === 0 && !loading && (
+            <div className="text-center py-16">
+              <div className="text-5xl mb-3">🤖</div>
+              <p className="font-semibold text-gray-700">Hakuna leads bado</p>
+              <p className="text-gray-400 text-sm mt-1">Bonyeza &quot;Run Agent&quot; kupata leads mpya</p>
+              <button onClick={() => setShowRunModal(true)}
+                className="mt-4 bg-[#1D9E75] text-white px-6 py-3 rounded-xl text-sm font-semibold">
+                🤖 Run Agent Sasa
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop pagination */}
+        {!loading && total > 50 && (
+          <div className="flex justify-center gap-3 py-4">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm disabled:opacity-50">
+              ← Iliyopita
+            </button>
+            <span className="px-4 py-2 text-sm text-gray-600">
+              Ukurasa {page} / {Math.ceil(total / 50)}
+            </span>
+            <button onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(total / 50)}
+              className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm disabled:opacity-50">
+              Inayofuata →
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ════════════════════════════════════════
+          MOBILE VIEW
+      ════════════════════════════════════════ */}
+      <div className="lg:hidden">
+
       {/* Header */}
       <header className="bg-[#1D9E75] sticky top-0 z-10 px-4 py-4">
         <div className="flex items-center justify-between">
@@ -435,6 +629,8 @@ export default function LeadsClient() {
           </div>
         )}
       </div>
+
+      </div> {/* end lg:hidden mobile view */}
 
       {/* ── Run Agent Modal ── */}
       {showRunModal && (
