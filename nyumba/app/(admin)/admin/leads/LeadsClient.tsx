@@ -725,7 +725,12 @@ export default function LeadsClient() {
                   <div className="space-y-3">
                     <div className="bg-red-50 rounded-xl p-4 text-red-700">
                       <p className="font-bold mb-1">❌ Kosa Limetokea</p>
-                      <p className="text-sm">{runResult.error}</p>
+                      <p className="text-sm">
+                        {typeof runResult.error === 'string'
+                          ? runResult.error
+                          : (runResult.error as any)?.message
+                            ?? JSON.stringify(runResult.error)}
+                      </p>
                     </div>
                     <button
                       onClick={() => setRunResult(null)}
@@ -741,8 +746,8 @@ export default function LeadsClient() {
                       <p className="font-bold text-green-700 mb-1">✅ Imekamilika!</p>
                       <p className="text-green-600 text-sm">
                         Leads mpya: <span className="font-bold text-green-800">
-                          {(runResult.runs ?? []).reduce((sum: number, r: any) => sum + (r.saved ?? 0), 0)}
-                        </span> · Mkoa: {runResult.region}
+                          {(runResult.runs ?? []).reduce((sum: number, r: any) => sum + (Number(r.saved) || 0), 0)}
+                        </span> · Mkoa: {String(runResult.region ?? '')}
                       </p>
                     </div>
                     {/* Per-source results */}
@@ -751,12 +756,12 @@ export default function LeadsClient() {
                         <div key={i} className="bg-white border border-gray-100 rounded-xl p-3
                           flex items-center justify-between">
                           <span className="text-sm font-medium">
-                            {getSourceEmoji(run.source)} {run.source}
+                            {getSourceEmoji(String(run.source ?? ''))} {String(run.source ?? '')}
                           </span>
                           <div className="flex items-center gap-2">
                             {run.status !== 'FAILED' && (
                               <span className="text-xs font-bold text-gray-600">
-                                +{run.saved ?? 0} leads
+                                +{Number(run.saved) || 0} leads
                               </span>
                             )}
                             <span className={`text-xs px-2 py-1 rounded-full
@@ -773,7 +778,11 @@ export default function LeadsClient() {
                       <div className="bg-yellow-50 rounded-xl p-3">
                         {runResult.errors.map((e: any, i: number) => (
                           <p key={i} className="text-xs text-yellow-700">
-                            ⚠️ {e.source}: {e.error}
+                            ⚠️ {String(e.source ?? '')}: {
+                              typeof e.error === 'string'
+                                ? e.error
+                                : (e.error as any)?.message ?? JSON.stringify(e.error)
+                            }
                           </p>
                         ))}
                       </div>

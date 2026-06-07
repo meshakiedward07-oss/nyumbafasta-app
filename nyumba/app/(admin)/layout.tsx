@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import AdminShell from '@/components/admin/AdminShell'
+import ErrorBoundary from '@/components/shared/ErrorBoundary'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -16,5 +17,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   if (profile?.role !== 'admin') redirect('/')
 
-  return <AdminShell>{children}</AdminShell>
+  return (
+    <AdminShell>
+      <ErrorBoundary>
+        {children}
+      </ErrorBoundary>
+    </AdminShell>
+  )
 }
