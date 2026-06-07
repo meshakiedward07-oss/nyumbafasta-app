@@ -137,6 +137,12 @@ export default function LeadsClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ region: runRegion, sources: runSources })
       })
+      const contentType = res.headers.get('content-type') ?? ''
+      if (!contentType.includes('application/json')) {
+        const text = await res.text()
+        setRunResult({ error: `Server error (${res.status}): ${text.slice(0, 300)}` })
+        return
+      }
       const data = await res.json()
       setRunResult(data)
     } catch (err: any) {
