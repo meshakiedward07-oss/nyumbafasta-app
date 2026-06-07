@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { sendWhatsApp } from '@/lib/chat/baileysClient'
 
 export async function POST(req: NextRequest) {
   const admin = createAdminClient()
@@ -65,6 +66,12 @@ export async function POST(req: NextRequest) {
           status: 'completed',
           completed_at: now.toISOString(),
         }).eq('id', schedule.id)
+
+        // Send WhatsApp reminder to assigned dalali if they have a phone
+        if (lead.phone) {
+          const waMsg = `⏰ *Kumbuka Lead!*\n\nLead imekaa siku 3+ bila mawasiliano:\n\n👤 *${lead.business_name || 'Lead yako'}*\n📞 ${lead.phone}\n\nWasiliana nao leo! 💪\n\n🔗 ${process.env.NEXT_PUBLIC_APP_URL ?? ''}/admin/crm`
+          await sendWhatsApp(lead.phone, waMsg)
+        }
 
         results.push(`Followup processed: ${lead.business_name || lead.id}`)
       } catch (err) {
