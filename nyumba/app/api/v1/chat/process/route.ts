@@ -18,11 +18,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, reply, userId, phone: phone || userId, platform })
   } catch (err: unknown) {
-    console.error('Process error:', err)
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('Process error:', msg)
     return NextResponse.json({
       success: false,
       reply: 'Samahani, tatizo la kiufundi. 🙏',
-      error: err instanceof Error ? err.message : String(err),
+      debug_error: msg,
     })
   }
 }

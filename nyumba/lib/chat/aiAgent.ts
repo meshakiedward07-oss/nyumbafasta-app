@@ -799,7 +799,8 @@ export async function handleIncomingMessage(
     await saveMessage(session.id, 'assistant', response)
     return response
   } catch (err) {
-    console.error('Chat handler error:', err)
-    return `Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye. 🙏`
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('Chat handler error:', msg)
+    return `[DEBUG:${msg}]`
   }
 }
