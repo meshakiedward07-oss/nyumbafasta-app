@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export type Platform = 'whatsapp' | 'facebook' | 'instagram'
-export type FlowType = 'client' | 'dalali_register' | 'dalali_listing'
+export type FlowType = 'client' | 'dalali_register' | 'dalali_listing' | 'customer_care'
 
 export interface ChatSession {
   id: string
@@ -733,6 +733,117 @@ Unataka kupost nyumba nyingine? Andika "listing"`
   }
 }
 
+// ── Customer Care flow ─────────────────────────────────────────────────────
+
+export async function handleCustomerCare(
+  session: ChatSession,
+  message: string,
+): Promise<string> {
+  const history = await getHistory(session.id, 8)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+
+  const response = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 600,
+    system: `
+Wewe ni Customer Care AI wa NyumbaFasta Tanzania.
+Unasaidia wateja na madalali kutatua matatizo ya app.
+
+KUHUSU NYUMBAFASTA:
+- Platform ya kupanga/kuuza nyumba Tanzania
+- Website: ${appUrl}
+- WhatsApp Support: +255665831694
+
+MATATIZO UNAYOWEZA KUSAIDIA:
+
+1. AKAUNTI:
+- Jinsi ya kusajili → ${appUrl}/register
+- Nimesahau password → ${appUrl}/forgot-password
+- Kuthibitisha email → angalia inbox/spam
+- Kubadilisha nambari ya simu → dashboard settings
+
+2. MALIPO:
+- M-Pesa, Airtel, HaloPesa, Mixx inakubaliwa
+- Subscription: Free/Basic(10k)/Premium(25k)/Enterprise(50k)
+- Kulipia listing ya ziada → Tsh 2,000
+- Boost listing → Tsh 5,000-16,000
+- Malipo hayakufanya kazi → jaribu tena au badilisha njia
+
+3. LISTINGS:
+- Kupost listing → dashboard → Add Listing
+- Picha hazipandi → reduce size chini ya 5MB
+- Listing haionyeshwi → subiri approve (masaa 24)
+- Kuharisha listing → dashboard → listings → edit
+- Listing imeisha → renew kutoka dashboard
+
+4. KUTAFUTA NYUMBA:
+- Kutafuta → home page → search
+- Filter kwa mkoa/bei/vyumba
+- Kufungua contact ya dalali → lipa Tsh 2,000
+- Link ya listing haifunguki → jaribu browser nyingine
+
+5. DALALI:
+- Kujisajili → ${appUrl}/register → chagua Dalali
+- Verification (NIDA) → dashboard → verify account
+- Kuongeza listings → dashboard → Add Listing
+- Wateja hawanipigi → boost listing yako
+
+6. KIUFUNDI:
+- App haijalodi → refresh au clear cache
+- Picha hazionyeshwi → angalia internet connection
+- Error nyekundu → screenshot na tuma hapa
+
+SHERIA ZA KUJIBU:
+- Jibu kwa Kiswahili fupi na friendly
+- Toa hatua za wazi — 1, 2, 3...
+- Kama tatizo gumu → peleka support: +255665831694
+- Usiseme "sijui" — toa suluhisho mbadala
+- Ikiwa inahitaji screenshot — omba watumie
+- Jibu max mistari 15
+    `,
+    messages: [
+      ...history.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content })),
+      { role: 'user', content: message },
+    ],
+  })
+
+  return response.content[0].type === 'text' ? response.content[0].text : 'Samahani, jaribu tena. 🙏'
+}
+
+export function isCustomerCareQuery(message: string): boolean {
+  const careKeywords = [
+    'password', 'nywila', 'login', 'ingia', 'sajili', 'register', 'akaunti', 'account',
+    'email', 'thibitisha', 'verify',
+    'lipa', 'malipo', 'payment', 'mpesa', 'airtel', 'halopesa', 'subscription',
+    'gharama', 'pesa', 'charge',
+    'picha', 'video', 'imeshindwa', 'error', 'haifanyi', 'tatizo', 'shida', 'problem',
+    'msaada', 'help', 'saidia', 'support',
+    'hailodi', 'haionekani', 'imefutwa',
+    'app', 'website', 'page', 'ukurasa', 'slow', 'polepole', 'crash', 'imezimika',
+    'haifunguki', 'kosa',
+  ]
+  const lower = message.toLowerCase()
+  return careKeywords.some((kw) => lower.includes(kw))
+}
+
+// ── Main menu ──────────────────────────────────────────────────────────────
+
+async function showMainMenu(name: string): Promise<string> {
+  return `Habari *${name}*! 👋
+Karibu *NyumbaFasta Tanzania* 🏠
+
+Ninaweza kukusaidia na nini leo?
+
+1️⃣ 🔍 Tafuta Nyumba/Chumba
+2️⃣ 👨‍💼 Jisajili kama Dalali
+3️⃣ 🏠 Post Listing (Madalali)
+4️⃣ 🎧 Msaada wa Kiufundi
+
+_Jibu namba 1-4 au andika ombi lako moja kwa moja_
+
+🌐 nyumbafasta.co`
+}
+
 // ── Main handler ───────────────────────────────────────────────────────────
 
 export async function handleIncomingMessage(
@@ -747,44 +858,69 @@ export async function handleIncomingMessage(
     const session = await getOrCreateSession(platform, userId, phone, name)
     await saveMessage(session.id, 'user', message, mediaUrls)
 
-    const isReset = ['restart', 'menu', 'msaada', 'help']
-      .some((w) => message.toLowerCase().includes(w))
-    const isGreeting = session.flow_step === 'greeting'
-
+    const lowerMsg = message.toLowerCase().trim()
     let response = ''
 
-    if (isGreeting || isReset) {
-      const intent = await detectIntent(message)
-      const msg = message.toLowerCase()
+    // ── Special commands ───────────────────────────────────────
+    if (['menu', 'msaada', 'help', '0', 'mwanzo'].includes(lowerMsg)) {
+      await updateSession(session.id, { flow_type: 'client', flow_step: 'main_menu', flow_data: {} })
+      response = await showMainMenu(name ?? 'Karibu')
 
-      if (
-        intent.intent === 'register_dalali' ||
-        msg.includes('dalali') || msg.includes('agent') || msg.includes('sajili')
-      ) {
+    } else if (lowerMsg === '1' && session.flow_step === 'main_menu') {
+      await updateSession(session.id, { flow_type: 'client', flow_step: 'ask_location', flow_data: {} })
+      response = await handleClientFlow({ ...session, flow_step: 'ask_location' }, message)
+
+    } else if (lowerMsg === '2' && session.flow_step === 'main_menu') {
+      await updateSession(session.id, { flow_type: 'dalali_register', flow_step: 'register_intro', flow_data: {} })
+      response = await handleDalaliRegisterFlow({ ...session, flow_step: 'register_intro' }, message)
+
+    } else if (lowerMsg === '3' && session.flow_step === 'main_menu') {
+      await updateSession(session.id, { flow_type: 'dalali_listing', flow_step: 'greeting', flow_data: {} })
+      response = await handleDalaliListingFlow(
+        { ...session, flow_type: 'dalali_listing', flow_step: 'greeting' },
+        message,
+      )
+
+    } else if (lowerMsg === '4' && session.flow_step === 'main_menu') {
+      await updateSession(session.id, { flow_type: 'customer_care', flow_step: 'care_active', flow_data: {} })
+      response = `🎧 *Customer Care NyumbaFasta*\n\nHabari! Niko hapa kukusaidia. 😊\n\nNiambie tatizo lako — nitakusaidia haraka iwezekanavyo.\n\n_(Andika "menu" kurudi menyu kuu)_`
+
+    // ── Active customer care session ───────────────────────────
+    } else if (session.flow_type === 'customer_care') {
+      response = await handleCustomerCare(session, message)
+
+    // ── Greeting / first message ───────────────────────────────
+    } else if (session.flow_step === 'greeting') {
+      const intent = await detectIntent(message)
+
+      if (intent.intent === 'register_dalali' ||
+          ['dalali', 'agent', 'sajili', 'register'].some((w) => lowerMsg.includes(w))) {
         await updateSession(session.id, { flow_type: 'dalali_register', flow_step: 'register_intro' })
         response = await handleDalaliRegisterFlow(
-          { ...session, flow_type: 'dalali_register', flow_step: 'register_intro' },
-          message,
+          { ...session, flow_type: 'dalali_register', flow_step: 'register_intro' }, message,
         )
-      } else if (
-        intent.intent === 'post_listing' ||
-        msg.includes('post') || msg.includes('listing') || msg.includes('weka nyumba')
-      ) {
+
+      } else if (intent.intent === 'post_listing' ||
+                 ['post', 'listing', 'weka nyumba', 'tuma nyumba'].some((w) => lowerMsg.includes(w))) {
         await updateSession(session.id, { flow_type: 'dalali_listing', flow_step: 'greeting' })
         response = await handleDalaliListingFlow(
-          { ...session, flow_type: 'dalali_listing', flow_step: 'greeting' },
-          message,
-          mediaUrls,
+          { ...session, flow_type: 'dalali_listing', flow_step: 'greeting' }, message,
         )
+
+      } else if (isCustomerCareQuery(message)) {
+        await updateSession(session.id, { flow_type: 'customer_care', flow_step: 'care_active' })
+        response = await handleCustomerCare({ ...session, flow_type: 'customer_care', flow_step: 'care_active' }, message)
+
+      } else if (intent.intent === 'find_house') {
+        await updateSession(session.id, { flow_type: 'client', flow_step: 'ask_location' })
+        response = await handleClientFlow({ ...session, flow_step: 'ask_location' }, message)
+
       } else {
-        const step = isReset ? 'greeting' : session.flow_step
-        await updateSession(session.id, { flow_type: 'client', flow_step: step })
-        response = await handleClientFlow(
-          { ...session, flow_type: 'client', flow_step: step },
-          message,
-          mediaUrls,
-        )
+        await updateSession(session.id, { flow_step: 'main_menu' })
+        response = await showMainMenu(name ?? 'Karibu')
       }
+
+    // ── Continue current flow ──────────────────────────────────
     } else {
       if (session.flow_type === 'dalali_register') {
         response = await handleDalaliRegisterFlow(session, message)
