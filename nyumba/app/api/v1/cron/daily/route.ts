@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { type NextRequest } from 'next/server'
+import { Resend } from 'resend'
 import { runGoogleMapsRunner } from '@/lib/agent/runners'
 import {
   PRIORITY_REGIONS,
@@ -8,6 +9,15 @@ import {
 } from '@/lib/agent/regions'
 
 export const dynamic = 'force-dynamic'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const FROM = 'NyumbaFasta <noreply@nyumbafasta.co>'
+
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!process.env.RESEND_API_KEY) return
+  const r = new Resend(process.env.RESEND_API_KEY)
+  await r.emails.send({ from: FROM, to, subject, html })
+}
 
 function getAdmin() {
   return createSupabaseClient(
@@ -396,7 +406,7 @@ async function runDailyTasks() {
 
   // ── 11. CRM Auto-followup ──
   try {
-    const followupUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/v1/crm/followup`
+    const followupUrl = `${APP_URL}/api/v1/crm/followup`
     const res = await fetch(followupUrl, {
       method: 'POST',
       headers: { 'x-cron-secret': process.env.CRON_SECRET || '' },
@@ -406,6 +416,104 @@ async function runDailyTasks() {
     if (data.errors?.length) errors.push(`❌ Followup errors: ${data.errors.join(', ')}`)
   } catch (e) {
     errors.push(`❌ CRM Followup: ${String(e)}`)
+  }
+
+  // ── 12. Email: Listing expired today ─────────────────
+  try {
+    const { data: expiredToday } = await admin
+      .from('listings')
+      .select('id, title, dalali_id, users:dalali_id (email, full_name)')
+      .eq('status', 'expired')
+      .gte('expires_at', new Date(Date.now() - 86_400_000).toISOString())
+      .lt('expires_at', now)
+
+    for (const l of expiredToday ?? []) {
+      const user = (l.users as unknown as { email: string; full_name: string } | null)
+      if (!user?.email) continue
+      await sendEmail(
+        user.email,
+        '⏰ Listing Yako Imeisha — Renew Sasa',
+        `<h2>Habari ${user.full_name}!</h2>
+         <p>Listing yako <strong>${l.title}</strong> imeisha leo.</p>
+         <p>Renew sasa ili wateja waendelee kukuona:</p>
+         <a href="${APP_URL}/dashboard/listings"
+           style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
+           Renew Listing →
+         </a>`,
+      )
+    }
+    results.push(`✅ Email listing expired: ${expiredToday?.length ?? 0}`)
+  } catch (e) {
+    errors.push(`❌ Email listing expired: ${String(e)}`)
+  }
+
+  // ── 13. Email: Subscription expiring in 3 days ────────
+  try {
+    const in3days = new Date(Date.now() + 3 * 86_400_000).toISOString()
+    const { data: expiringSubs } = await admin
+      .from('subscriptions')
+      .select('plan, expires_at, users:dalali_id (email, full_name)')
+      .eq('status', 'active')
+      .neq('plan', 'free')
+      .gte('expires_at', now)
+      .lte('expires_at', in3days)
+
+    for (const s of expiringSubs ?? []) {
+      const user = (s.users as unknown as { email: string; full_name: string } | null)
+      if (!user?.email) continue
+      await sendEmail(
+        user.email,
+        `⚠️ Subscription Yako Inaisha Siku 3 — ${String(s.plan).toUpperCase()}`,
+        `<h2>Habari ${user.full_name}!</h2>
+         <p>Subscription yako ya <strong>${String(s.plan).toUpperCase()}</strong> inaisha tarehe
+         <strong>${new Date(s.expires_at as string).toLocaleDateString('sw-TZ')}</strong>.</p>
+         <a href="${APP_URL}/dashboard/subscription"
+           style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
+           Renew Subscription →
+         </a>`,
+      )
+    }
+    results.push(`✅ Email subscription expiry: ${expiringSubs?.length ?? 0}`)
+  } catch (e) {
+    errors.push(`❌ Email subscription expiry: ${String(e)}`)
+  }
+
+  // ── 14. Email: Contact unlock notifications ───────────
+  try {
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString()
+    const { data: unlocks } = await admin
+      .from('contact_unlocks')
+      .select('dalali_id, listings:listing_id (title), clients:client_id (full_name)')
+      .gte('created_at', yesterday)
+      .eq('status', 'completed')
+
+    const grouped: Record<string, { count: number; email: string; name: string }> = {}
+    for (const u of unlocks ?? []) {
+      if (!grouped[u.dalali_id]) {
+        const { data: dalali } = await admin
+          .from('users').select('email, full_name').eq('id', u.dalali_id).single()
+        if (!dalali?.email) continue
+        grouped[u.dalali_id] = { count: 0, email: dalali.email, name: dalali.full_name }
+      }
+      grouped[u.dalali_id].count++
+    }
+
+    for (const { count, email, name } of Object.values(grouped)) {
+      await sendEmail(
+        email,
+        `🎉 Wateja ${count} Walifungua Contact Yako Leo!`,
+        `<h2>Habari ${name}! 🎉</h2>
+         <p>Wateja <strong>${count}</strong> walifungua contact yako leo!</p>
+         <p>Mapato yako leo: <strong>Tsh ${(count * 2000).toLocaleString()}</strong></p>
+         <a href="${APP_URL}/dashboard"
+           style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
+           Angalia Dashboard →
+         </a>`,
+      )
+    }
+    results.push(`✅ Email unlock notify: ${Object.keys(grouped).length} madalali`)
+  } catch (e) {
+    errors.push(`❌ Email unlock notify: ${String(e)}`)
   }
 
   return Response.json({
