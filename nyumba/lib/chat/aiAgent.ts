@@ -101,17 +101,14 @@ export async function detectIntent(message: string): Promise<{
       max_tokens: 100,
       messages: [{
         role: 'user',
-        content: `Chunguza ujumbe huu na tambua nia ya mtumiaji. Jibu kwa JSON tu:
+        content: `
+Chunguza ujumbe huu uamue nia ya mtumiaji.
+Jibu kwa JSON tu — hakuna maelezo mengine.
 
 Ujumbe: "${message}"
 
-Chaguzi:
-- find_house: anatafuta nyumba/chumba/apartment
-- register_dalali: anataka kujisajili kama dalali/mdalali
-- post_listing: dalali anataka kupost nyumba/listing
-- other: kingine chochote
-
-{"intent": "find_house|register_dalali|post_listing|other", "confidence": 0.0-1.0}`,
+{"intent": "find_house|register_dalali|post_listing|other", "confidence": 0.0-1.0}
+      `,
       }],
     })
     const text = response.content[0].type === 'text' ? response.content[0].text : ''
@@ -136,21 +133,24 @@ export async function handleClientFlow(
     case 'ask_location': {
       if (session.flow_step === 'greeting') {
         await updateSession(session.id, { flow_step: 'ask_location' })
-        return `Habari! 👋 Karibu NyumbaFasta Tanzania! 🏠
+        return `Sawa! 🏠 Nikusaidie kupata nyumba inayokufaa!
 
-Ninakusaidia kupata nyumba/chumba kinachokufaa.
-
-📍 Unatafuta mtaa/eneo gani?
+📍 Unatafuta mtaa gani hasa?
 Mfano: Kinondoni, Mbezi Beach, Sinza, Mikocheni...`
       }
+      const affirmations = [
+        `Vizuri! *${message}* ni eneo zuri sana! 😄`,
+        `Sawa! *${message}* — nzuri! 👍`,
+        `Poa! *${message}* — nakujua eneo hilo! 🙌`,
+      ]
+      const affirmation = affirmations[Math.floor(Math.random() * affirmations.length)]
       await updateSession(session.id, {
         flow_step: 'ask_type',
         flow_data: { ...data, location: message },
       })
-      return `Sawa! 📍 *${message}*
+      return `${affirmation}
 
-🏠 Unatafuta aina gani ya nyumba?
-Jibu namba moja:
+🏠 Unatafuta aina gani?
 1️⃣ Chumba kimoja
 2️⃣ Apartment (vyumba 2-3)
 3️⃣ Nyumba nzima
@@ -168,12 +168,12 @@ Jibu namba moja:
         flow_step: 'ask_budget',
         flow_data: { ...data, type },
       })
-      return `✅ *${type.charAt(0).toUpperCase() + type.slice(1)}*
+      return `🏠 *${type.charAt(0).toUpperCase() + type.slice(1)}* — chaguo zuri!
 
-💰 Bei unayoweza kulipa kwa mwezi?
-Mfano: 150,000 au 500k au 1M
+💰 Budget yako kwa mwezi ni shilingi ngapi?
+Mfano: 150k, 500,000, 1M
 
-(Andika namba tu — shilingi za Tanzania)`
+_(Andika namba tu)_`
     }
 
     case 'ask_budget': {
@@ -182,10 +182,9 @@ Mfano: 150,000 au 500k au 1M
         flow_step: 'ask_bedrooms',
         flow_data: { ...data, budget },
       })
-      return `💰 *Budget: Tsh ${budget.toLocaleString()}/mwezi*
+      return `💰 Tsh ${budget.toLocaleString()}/mwezi — sawa kabisa!
 
-🛏️ Unahitaji vyumba vingapi vya kulala?
-
+🛏️ Vyumba vya kulala vingapi?
 1️⃣ Chumba 1
 2️⃣ Vyumba 2
 3️⃣ Vyumba 3
@@ -216,7 +215,7 @@ async function searchAndRespond(
   try {
     let query = supabaseAdmin
       .from('listings')
-      .select('id, title, type, price_monthly, district, region, images, bedrooms')
+      .select('id, title, type, price_monthly, district, region, images, bedrooms, dalali:dalali_id (full_name)')
       .eq('status', 'active')
       .order('is_boosted', { ascending: false })
       .limit(3)
@@ -231,29 +230,30 @@ async function searchAndRespond(
     await updateSession(sessionId, { flow_step: 'showing_results' })
 
     if (!listings || listings.length === 0) {
-      return `😔 Samahani, hatukupata nyumba inayofanana na mahitaji yako sasa hivi.
+      return `Hmm... 🤔 Sasa hivi sijaona nyumba inayofanana kabisa na ulichotaka.
 
-Unataka nifanye nini?
-1️⃣ Badilisha budget (ongeza kidogo)
-2️⃣ Badilisha eneo
-3️⃣ Niache nikuarifiwe kunapotokea mpya
-4️⃣ Zungumza na agent wetu`
+Usikate tamaa! Jaribu hivi:
+1️⃣ Ongeza budget kidogo
+2️⃣ Badilisha eneo lingine
+3️⃣ Niambie — nitakutafutia mwenyewe! 😊`
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
     const medals = ['🥇', '🥈', '🥉']
-    let response = `🎉 Nimepata nyumba *${listings.length}* zinazofanana na mahitaji yako!\n\n`
+    let response = `Nimepata nyumba *${listings.length}* zinazokufaa! 🎉\n\n`
 
     listings.forEach((listing, i) => {
       const l = listing as Record<string, unknown>
+      const dalaliName = (l.dalali as Record<string, unknown> | null)?.full_name
       response += `${medals[i] ?? '🏠'} *${l.title}*\n`
       response += `💰 Tsh ${Number(l.price_monthly).toLocaleString()}/mwezi\n`
       response += `📍 ${l.district}, ${l.region}\n`
       response += `🛏️ Vyumba: ${l.bedrooms ?? 'N/A'}\n`
+      if (dalaliName) response += `👤 Dalali: ${dalaliName}\n`
       response += `🔗 ${appUrl}/listings/${l.id}\n\n`
     })
 
-    response += `👆 Bonyeza link kuona picha kamili na mawasiliano ya dalali.\n\nUna swali lolote? Niulize! 😊`
+    response += `Bonyeza link kuona picha na mawasiliano ya dalali. 😊\n\nUna swali? Niulize tu!`
     return response
   } catch (err) {
     console.error('Search error:', err)
@@ -270,7 +270,20 @@ async function handleFollowUpClient(
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 500,
-    system: `Wewe ni AI assistant wa NyumbaFasta Tanzania. Unasaidia wateja kupata nyumba/vyumba. Jibu kwa Kiswahili fupi na friendly. Ikiwa mteja anaomba kuona zaidi — tuma link: ${appUrl}. Ikiwa anataka kuwasiliana na dalali — waambie wafungue link ya listing. Usiandike mengi — jibu fupi na points.`,
+    system: `Wewe ni Amina, msaidizi wa NyumbaFasta Tanzania.
+Unasaidia wateja kupata nyumba/chumba.
+
+TABIA YAKO:
+- Jibu kwa Kiswahili ya kawaida — kama rafiki, si roboti
+- Fupi na wazi — usiandike sentensi ndefu ndefu
+- Onyesha nia — "Sawa!", "Poa!", "Vizuri!", "Nashinda kukusaidia!"
+- Ikiwa anataka link zaidi → ${appUrl}
+- Ikiwa anataka dalali → mwambie afungue link ya listing
+
+KANUNI:
+- Jibu mistari 3-5 tu
+- Usiseme "Mimi ni AI" au "kama AI"
+- Usitumie lugha ya ofisi`,
     messages: [
       ...history.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content as string })),
       { role: 'user', content: message },
@@ -295,14 +308,15 @@ export async function handleDalaliRegisterFlow(
         flow_type: 'dalali_register',
         flow_step: 'ask_name',
       })
-      return `Karibu! 🎉 Vizuri sana kuwa na mdalali mpya!
+      return `Karibu! 🎉 Tunafurahi sana kukuwa nawe!
 
-NyumbaFasta inakusaidia:
-✅ Kupata wateja wa nyumba haraka
-✅ Kupost listings zako online
-✅ Kupokea malipo ya uhakika
-✅ CRM ya kusimamia wateja wako
+NyumbaFasta itakusaidia:
+✅ Kupata wateja haraka zaidi
+✅ Kupost nyumba zako online
+✅ Malipo ya uhakika
+✅ Dashboard yako mwenyewe
 
+Tuanze haraka! 😊
 📝 Jina lako kamili ni nani?`
     }
 
@@ -331,52 +345,29 @@ Mfano: Dar es Salaam, Arusha, Mwanza...`
     }
 
     case 'ask_region': {
-      await updateSession(session.id, {
-        flow_step: 'ask_experience',
-        flow_data: { ...data, region: message },
-      })
-      return `📍 *${message}*
-
-💼 Una uzoefu wa miaka mingapi kwenye biashara ya nyumba?
-1️⃣ Chini ya mwaka 1
-2️⃣ Miaka 1-3
-3️⃣ Miaka 3-5
-4️⃣ Zaidi ya miaka 5`
-    }
-
-    case 'ask_experience': {
-      const expMap: Record<string, string> = {
-        '1': 'Chini ya mwaka 1', '2': 'Miaka 1-3',
-        '3': 'Miaka 3-5', '4': 'Zaidi ya miaka 5',
-      }
-      const experience = expMap[message.trim()] ?? message
       const fullName = String(data.full_name ?? '')
       const phone = String(data.phone ?? '')
-      const region = String(data.region ?? '')
-
+      const regUrl = `${appUrl}/register?role=dalali&name=${encodeURIComponent(fullName)}&phone=${encodeURIComponent(phone)}&region=${encodeURIComponent(message)}`
       await updateSession(session.id, {
         flow_step: 'confirm_register',
-        flow_data: { ...data, experience },
+        flow_data: { ...data, region: message },
       })
+      return `📍 *${message}* — sawa!
 
-      const regUrl = `${appUrl}/register?role=dalali&name=${encodeURIComponent(fullName)}&phone=${encodeURIComponent(phone)}&region=${encodeURIComponent(region)}`
-
-      return `✅ Asante! Hapa muhtasari wako:
-
+Hapa muhtasari wako:
 👤 Jina: ${fullName}
 📱 Simu: ${phone}
-📍 Mkoa: ${region}
-💼 Uzoefu: ${experience}
+📍 Mkoa: ${message}
 
-Unaweza kujisajili BURE na kupata:
+Unaweza kujisajili BURE kupata:
 ✅ Listings 2 za bure
-✅ Trial ya wiki 2 ya Premium
+✅ Trial wiki 2 ya Premium
 ✅ Dashboard ya dalali
 
-👇 *Bonyeza link hii kusajili:*
+👇 *Bonyeza hapa kusajili:*
 ${regUrl}
 
-❓ Una maswali? Niulize!`
+❓ Una swali? Niulize! 😊`
     }
 
     default:
@@ -746,8 +737,8 @@ export async function handleCustomerCare(
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 600,
     system: `
-Wewe ni Customer Care AI wa NyumbaFasta Tanzania.
-Unasaidia wateja na madalali kutatua matatizo ya app.
+Wewe ni Amina, Customer Care wa NyumbaFasta Tanzania.
+Jibu kwa huruma kwanza — kisha toa suluhisho fupi na wazi.
 
 KUHUSU NYUMBAFASTA:
 - Platform ya kupanga/kuuza nyumba Tanzania
@@ -793,13 +784,13 @@ MATATIZO UNAYOWEZA KUSAIDIA:
 - Picha hazionyeshwi → angalia internet connection
 - Error nyekundu → screenshot na tuma hapa
 
-SHERIA ZA KUJIBU:
-- Jibu kwa Kiswahili fupi na friendly
-- Toa hatua za wazi — 1, 2, 3...
-- Kama tatizo gumu → peleka support: +255665831694
-- Usiseme "sijui" — toa suluhisho mbadala
-- Ikiwa inahitaji screenshot — omba watumie
-- Jibu max mistari 15
+JINSI YA KUJIBU:
+- Anza na empathy: "Pole na hilo!", "Naelewa, hii inaweza kusumbua..."
+- Toa hatua fupi: 1, 2, 3
+- Jibu max mistari 10 — fupi na wazi
+- Kama tatizo gumu → peleka: +255665831694
+- Usiseme "sijui" — toa mbadala daima
+- Onyesha nia — "Tutarekebisha hili!", "Usijali, niko hapa!"
     `,
     messages: [
       ...history.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content })),
@@ -829,19 +820,24 @@ export function isCustomerCareQuery(message: string): boolean {
 // ── Main menu ──────────────────────────────────────────────────────────────
 
 async function showMainMenu(name: string): Promise<string> {
-  return `Habari *${name}*! 👋
-Karibu *NyumbaFasta Tanzania* 🏠
+  const greetings = [
+    `Mambo *${name}*! 😄`,
+    `Habari *${name}*! 👋`,
+    `Salam *${name}*! 🤝`,
+    `Niaje *${name}*! 😊`,
+  ]
+  const greeting = greetings[Math.floor(Math.random() * greetings.length)]
+  return `${greeting}
+Mimi ni *Amina* — msaidizi wa NyumbaFasta 🏠
 
-Ninaweza kukusaidia na nini leo?
+Nikusaidia nini leo?
 
 1️⃣ 🔍 Tafuta Nyumba/Chumba
-2️⃣ 👨‍💼 Jisajili kama Dalali
-3️⃣ 🏠 Post Listing (Madalali)
-4️⃣ 🎧 Msaada wa Kiufundi
+2️⃣ 👨‍💼 Jiunge kama Dalali
+3️⃣ 🏠 Post Nyumba yako
+4️⃣ 🎧 Msaada/Maswali
 
-_Jibu namba 1-4 au andika ombi lako moja kwa moja_
-
-🌐 nyumbafasta.co`
+_Jibu namba 1-4 au niambie tu unachohitaji_ 😊`
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────
@@ -883,7 +879,7 @@ export async function handleIncomingMessage(
 
     } else if (lowerMsg === '4' && session.flow_step === 'main_menu') {
       await updateSession(session.id, { flow_type: 'customer_care', flow_step: 'care_active', flow_data: {} })
-      response = `🎧 *Customer Care NyumbaFasta*\n\nHabari! Niko hapa kukusaidia. 😊\n\nNiambie tatizo lako — nitakusaidia haraka iwezekanavyo.\n\n_(Andika "menu" kurudi menyu kuu)_`
+      response = `🎧 *Amina — NyumbaFasta Support*\n\nHabari! Niko hapa, niambie kinachosumbua. 😊\n\nNitakusaidia haraka iwezekanavyo!\n\n_(Andika "menu" kurudi menyu kuu)_`
 
     // ── Active customer care session ───────────────────────────
     } else if (session.flow_type === 'customer_care') {
