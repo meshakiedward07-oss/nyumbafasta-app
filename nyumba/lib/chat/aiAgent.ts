@@ -97,8 +97,8 @@ export async function detectIntent(message: string): Promise<{
 }> {
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 100,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
       messages: [{
         role: 'user',
         content: `
@@ -268,8 +268,8 @@ async function handleFollowUpClient(
   const history = await getHistory(session.id, 6)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
   const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 500,
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1000,
     system: `Wewe ni Amina, msaidizi wa NyumbaFasta Tanzania.
 Unasaidia wateja kupata nyumba/chumba.
 
@@ -734,8 +734,8 @@ export async function handleCustomerCare(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 
   const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 600,
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1000,
     system: `
 Wewe ni Amina, Customer Care wa NyumbaFasta Tanzania.
 Jibu kwa huruma kwanza — kisha toa suluhisho fupi na wazi.
