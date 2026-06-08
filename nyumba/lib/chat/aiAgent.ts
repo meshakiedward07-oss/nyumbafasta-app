@@ -9,13 +9,12 @@ export type FlowType = 'client' | 'dalali_register' | 'dalali_listing'
 export interface ChatSession {
   id: string
   platform: Platform
-  platform_user_id: string
+  user_id: string
   phone?: string
   name?: string
   flow_type: FlowType
   flow_step: string
   flow_data: Record<string, unknown>
-  is_active: boolean
 }
 
 // ── Session ────────────────────────────────────────────────────────────────
@@ -30,32 +29,32 @@ export async function getOrCreateSession(
     .from('chat_sessions')
     .select('*')
     .eq('platform', platform)
-    .eq('platform_user_id', userId)
+    .eq('user_id', userId)
     .single()
 
   if (existing) {
     await supabaseAdmin
       .from('chat_sessions')
-      .update({ last_message_at: new Date().toISOString() })
+      .update({ updated_at: new Date().toISOString() })
       .eq('id', existing.id)
     return existing as ChatSession
   }
 
-  const { data: newSession } = await supabaseAdmin
+  const { data: newSession, error: insertErr } = await supabaseAdmin
     .from('chat_sessions')
     .insert({
       platform,
-      platform_user_id: userId,
+      user_id: userId,
       phone: phone ?? null,
       name: name ?? null,
       flow_type: 'client',
       flow_step: 'greeting',
       flow_data: {},
-      is_active: true,
     })
     .select()
     .single()
 
+  if (insertErr) throw new Error(`Session insert failed: ${insertErr.message}`)
   return newSession as ChatSession
 }
 
@@ -63,13 +62,13 @@ export async function saveMessage(
   sessionId: string,
   role: 'user' | 'assistant',
   content: string,
-  mediaUrls?: string[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _mediaUrls?: string[],
 ) {
   await supabaseAdmin.from('chat_messages').insert({
     session_id: sessionId,
     role,
     content,
-    media_urls: mediaUrls ?? [],
   })
 }
 
@@ -799,8 +798,7 @@ export async function handleIncomingMessage(
     await saveMessage(session.id, 'assistant', response)
     return response
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('Chat handler error:', msg)
-    return `[DEBUG:${msg}]`
+    console.error('Chat handler error:', err instanceof Error ? err.message : String(err))
+    return `Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye. 🙏`
   }
 }
