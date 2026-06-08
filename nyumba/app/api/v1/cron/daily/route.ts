@@ -478,40 +478,51 @@ async function runDailyTasks() {
     errors.push(`❌ Email subscription expiry: ${String(e)}`)
   }
 
-  // ── 14. Email: Contact unlock notifications ───────────
+  // ── 14. Email: Contact unlock daily summary → ADMIN ONLY ─
   try {
     const yesterday = new Date(Date.now() - 86_400_000).toISOString()
     const { data: unlocks } = await admin
       .from('contact_unlocks')
-      .select('dalali_id, listings:listing_id (title), clients:client_id (full_name)')
+      .select('dalali_id, users:dalali_id (full_name)')
       .gte('created_at', yesterday)
       .eq('status', 'completed')
 
-    const grouped: Record<string, { count: number; email: string; name: string }> = {}
+    const total = unlocks?.length ?? 0
+    const revenue = total * 2000
+
+    // Group per dalali for admin table
+    const byDalali: Record<string, { name: string; count: number }> = {}
     for (const u of unlocks ?? []) {
-      if (!grouped[u.dalali_id]) {
-        const { data: dalali } = await admin
-          .from('users').select('email, full_name').eq('id', u.dalali_id).single()
-        if (!dalali?.email) continue
-        grouped[u.dalali_id] = { count: 0, email: dalali.email, name: dalali.full_name }
-      }
-      grouped[u.dalali_id].count++
+      const name = (u.users as unknown as { full_name: string } | null)?.full_name ?? 'Unknown'
+      if (!byDalali[u.dalali_id]) byDalali[u.dalali_id] = { name, count: 0 }
+      byDalali[u.dalali_id].count++
     }
 
-    for (const { count, email, name } of Object.values(grouped)) {
-      await sendEmail(
-        email,
-        `🎉 Wateja ${count} Walifungua Contact Yako Leo!`,
-        `<h2>Habari ${name}! 🎉</h2>
-         <p>Wateja <strong>${count}</strong> walifungua contact yako leo!</p>
-         <p>Mapato yako leo: <strong>Tsh ${(count * 2000).toLocaleString()}</strong></p>
-         <a href="${APP_URL}/dashboard"
-           style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
-           Angalia Dashboard →
-         </a>`,
-      )
-    }
-    results.push(`✅ Email unlock notify: ${Object.keys(grouped).length} madalali`)
+    const rows = Object.values(byDalali)
+      .sort((a, b) => b.count - a.count)
+      .map(({ name, count }) =>
+        `<tr><td style="padding:10px">${name}</td><td style="padding:10px;text-align:center"><strong>${count}</strong></td><td style="padding:10px;text-align:right">Tsh ${(count * 2000).toLocaleString()}</td></tr>`,
+      ).join('')
+
+    const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co'
+    await sendEmail(
+      adminEmail,
+      `🔓 Unlocks ya Leo — ${total} contacts, Tsh ${revenue.toLocaleString()}`,
+      `<h2>🔓 Contact Unlocks — Leo</h2>
+       <p><strong>Jumla ya unlocks:</strong> ${total}</p>
+       <p><strong>Mapato ya leo:</strong> Tsh ${revenue.toLocaleString()}</p>
+       <table style="width:100%;border-collapse:collapse;margin-top:12px">
+         <tr style="background:#1D9E75;color:white">
+           <td style="padding:10px">Dalali</td>
+           <td style="padding:10px;text-align:center">Unlocks</td>
+           <td style="padding:10px;text-align:right">Mapato</td>
+         </tr>
+         ${rows || '<tr><td colspan="3" style="padding:10px;text-align:center">Hakuna unlocks leo</td></tr>'}
+       </table>
+       <br>
+       <a href="${APP_URL}/admin" style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Fungua Admin Panel →</a>`,
+    )
+    results.push(`✅ Email unlock summary (admin): ${total} unlocks, Tsh ${revenue.toLocaleString()}`)
   } catch (e) {
     errors.push(`❌ Email unlock notify: ${String(e)}`)
   }
