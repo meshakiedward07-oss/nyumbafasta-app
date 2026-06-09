@@ -1,5 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
+import { welcomeEmail } from '@/lib/email/templates'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
       // Get role from users table (trigger already created it on signUp)
       const { data: profile } = await supabase
         .from('users')
-        .select('role')
+        .select('role, full_name, email')
         .eq('id', data.user.id)
         .single()
 
@@ -65,6 +67,18 @@ export async function GET(request: NextRequest) {
           }
         } catch {
           // Silently continue — user can still log in; profile setup retried on next visit
+        }
+      }
+
+      // Send welcome email (fire-and-forget — don't block redirect)
+      if (process.env.RESEND_API_KEY) {
+        const userEmail = profile?.email ?? data.user.email
+        const userName = profile?.full_name ?? (data.user.user_metadata?.full_name as string) ?? 'Mtumiaji'
+        if (userEmail) {
+          const { subject, html } = welcomeEmail(userName, role)
+          new Resend(process.env.RESEND_API_KEY).emails
+            .send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: userEmail, subject, html })
+            .catch(() => { /* ignore — don't block auth flow */ })
         }
       }
 
