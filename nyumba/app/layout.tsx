@@ -21,6 +21,27 @@ const geistMono = localFont({
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 
+// Global Organization schema — describes NyumbaFasta to search engines & AI crawlers
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'NyumbaFasta',
+  url: APP_URL,
+  logo: `${APP_URL}/logo_nyumbafasta.png`,
+  description: 'Platform ya kupata nyumba Tanzania kwa urahisi na haraka',
+  contactPoint: {
+    '@type': 'ContactPoint',
+    telephone: '+255665831694',
+    contactType: 'customer service',
+    availableLanguage: ['Swahili', 'English'],
+  },
+  sameAs: [],
+  areaServed: {
+    '@type': 'Country',
+    name: 'Tanzania',
+  },
+}
+
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
@@ -101,6 +122,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://bnrrkmeqkxwooihhqaxe.supabase.co" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="dns-prefetch" href="https://bnrrkmeqkxwooihhqaxe.supabase.co" />
+        {/* Organization structured data — SEO & AI search */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans bg-gray-50 min-h-screen antialiased`}

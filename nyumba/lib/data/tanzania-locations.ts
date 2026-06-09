@@ -130,6 +130,19 @@ export const TANZANIA_REGIONS: RegionData[] = [
 // Helpers
 export const REGION_NAMES = TANZANIA_REGIONS.map(r => r.name)
 
+// ── SEO slug helpers ──────────────────────────────────────
+// Region name → URL slug, e.g. "Dar es Salaam" → "dar-es-salaam"
+export function regionToSlug(region: string): string {
+  return region.toLowerCase().replace(/\s+/g, '-')
+}
+
+// URL slug → region name, e.g. "dar-es-salaam" → "Dar es Salaam"
+// Returns undefined if the slug doesn't map to a known region.
+export function slugToRegion(slug: string): string | undefined {
+  const normalized = slug.toLowerCase()
+  return TANZANIA_REGIONS.find(r => regionToSlug(r.name) === normalized)?.name
+}
+
 export function getDistricts(regionName: string): string[] {
   return TANZANIA_REGIONS.find(r => r.name === regionName)?.districts ?? []
 }

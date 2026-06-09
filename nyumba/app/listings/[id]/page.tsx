@@ -4,6 +4,8 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import ListingDetail from '@/components/listings/ListingDetail'
+import PropertySchema from '@/components/seo/PropertySchema'
+import { regionToSlug } from '@/lib/data/tanzania-locations'
 import type { Listing, User, DalaliProfile, Review } from '@/lib/types/database'
 
 export type ListingFull = Listing & {
@@ -226,6 +228,17 @@ export default async function ListingDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
+      <PropertySchema
+        id={listing.id}
+        title={listing.title ?? ''}
+        type={listing.type}
+        district={listing.district}
+        region={listing.region}
+        price_monthly={listing.price_monthly}
+        description={listing.description}
+        images={listing.images ?? []}
+        dalaliName={listing.dalali?.full_name ?? undefined}
+      />
       <ListingDetail
         listing={listing}
         hasUnlocked={hasUnlocked}
@@ -236,6 +249,15 @@ export default async function ListingDetailPage({
         reviews={(reviewsRes.data ?? []) as unknown as ReviewWithReviewer[]}
         similarListings={(similarRes.data ?? []) as unknown as ListingFull[]}
       />
+      {/* Internal link to region SEO landing page (AI/SEO discoverability) */}
+      <nav aria-label="Nyumba zaidi" className="px-4 pb-28 text-center">
+        <a
+          href={`/mali/${regionToSlug(listing.region)}`}
+          className="text-sm text-primary-600 font-medium underline"
+        >
+          Angalia nyumba zote {listing.region} →
+        </a>
+      </nav>
     </>
   )
 }

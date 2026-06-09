@@ -127,7 +127,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const videoUrl  = (listing as Listing & { video_url?: string | null }).video_url ?? null
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-28">
+    <article className="min-h-screen bg-gray-50 pb-28">
 
       {/* ── Header ── */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 flex items-center gap-3 px-4 py-3">
@@ -261,17 +261,19 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         </div>
 
         {/* Location */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h3 className="text-sm font-semibold text-gray-700 mb-2">📍 Mahali</h3>
-          <p className="text-gray-600 text-sm">{listing.district}, {listing.region}</p>
-        </div>
+          <address className="text-gray-600 text-sm not-italic">
+            {listing.district}, {listing.region}, Tanzania
+          </address>
+        </section>
 
         {/* Description */}
         {listing.description && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">📄 Maelezo</h3>
             <p className="text-gray-600 text-sm leading-relaxed">{listing.description}</p>
-          </div>
+          </section>
         )}
 
         {/* Amenities */}
@@ -491,6 +493,6 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         />
       )}
 
-    </div>
+    </article>
   )
 }
