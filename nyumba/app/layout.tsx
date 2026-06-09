@@ -102,6 +102,9 @@ export const metadata: Metadata = {
     apple: '/transparent_logo_nyumbafasta.png',
   },
   manifest: '/manifest.json',
+  verification: {
+    google: 'google0bea6c13cf3f6ac6',
+  },
 }
 
 export const viewport: Viewport = {
