@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import ClientProviders from '@/components/shared/ClientProviders'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
 import './globals.css'
 
 const geistSans = localFont({
@@ -137,6 +138,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         {children}
         <ClientProviders />
+        <GoogleAnalytics />
       </body>
     </html>
   )
