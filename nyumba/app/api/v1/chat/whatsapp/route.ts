@@ -38,8 +38,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.log(`📩 ${platform} from ${phone || userId}: ${String(message).slice(0, 80)}`)
-
     const reply = await handleIncomingMessage(
       platform,
       userId,

@@ -11,7 +11,6 @@ export async function runFacebookGroupsRunner(region: string): Promise<RunnerRes
       : await runFacebookGraph(region, 'facebook_groups')
 
     const runId = `facebook_groups_${region}_${Date.now()}`
-    console.log(`✅ Facebook Groups done: saved=${stats.saved} (${region})`)
     return { runId, source: 'facebook_groups', status: 'SUCCEEDED', region, saved: stats.saved }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -24,7 +23,6 @@ export async function runFacebookPagesRunner(region: string): Promise<RunnerResu
   try {
     const stats = await runFacebookGraph(region, 'facebook_pages')
     const runId = `facebook_pages_${region}_${Date.now()}`
-    console.log(`✅ Facebook Pages done: saved=${stats.saved} (${region})`)
     return { runId, source: 'facebook_pages', status: 'SUCCEEDED', region, saved: stats.saved }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)

@@ -142,5 +142,10 @@ export function verifyWebhookSignature(
 ): boolean {
   if (!API_SECRET) return true // dev mode — accept all
   const expected = sign(body, ts)
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(receivedDigest))
+  const expectedBuf = Buffer.from(expected)
+  const receivedBuf = Buffer.from(receivedDigest)
+  // timingSafeEqual throws on length mismatch — guard so a malformed digest
+  // rejects cleanly instead of throwing.
+  if (expectedBuf.length !== receivedBuf.length) return false
+  return crypto.timingSafeEqual(expectedBuf, receivedBuf)
 }

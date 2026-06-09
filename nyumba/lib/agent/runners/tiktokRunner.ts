@@ -7,7 +7,6 @@ export async function runTiktokRunner(
   try {
     const stats = await runTikTok(region)
     const runId = `tiktok_${region}_${Date.now()}`
-    console.log(`✅ TikTok done: saved=${stats.saved} (${region})`)
     return { runId, source: 'tiktok', status: 'SUCCEEDED', region, saved: stats.saved }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)

@@ -372,8 +372,6 @@ async function runDailyTasks() {
       ]
     }
 
-    console.log(`🤖 Running agent kwa mikoa: ${regionsToRun.length}`)
-
     for (const region of regionsToRun) {
       await runGoogleMapsRunner(region)
       await new Promise(r => setTimeout(r, 2000))

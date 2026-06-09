@@ -41,7 +41,6 @@ export async function saveLeadToSupabase(
 
       if (error) throw error
 
-      console.log(`✅ Saved: ${lead.business_name} (${source})`)
       return { saved: true, id: data?.id, isNew: true }
     }
 
@@ -53,7 +52,6 @@ export async function saveLeadToSupabase(
         .single()
 
       if (existing) {
-        console.log(`⏭️ Duplicate phone: ${lead.phone}`)
         return { saved: false, id: existing.id, isNew: false }
       }
     }
@@ -66,7 +64,6 @@ export async function saveLeadToSupabase(
 
     if (error) throw error
 
-    console.log(`✅ New lead: ${lead.business_name}`)
     return { saved: true, id: data?.id, isNew: true }
 
   } catch (err: any) {
