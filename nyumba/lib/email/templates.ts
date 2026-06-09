@@ -11,9 +11,9 @@ function emailBase(content: string, previewText = '') {
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f4f4f5; color:#111827; }
     .wrapper { max-width:600px; margin:40px auto; background:white; border-radius:16px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.07); }
-    .header { background:#000000; padding:28px 40px; text-align:center; }
+    .header { background:#000000; padding:20px 40px; text-align:center; }
     .logo-box { display:inline-block; text-decoration:none; }
-    .logo-img { width:260px; max-width:100%; height:auto; display:block; margin:0 auto; }
+    .logo-img { width:160px; max-width:100%; height:auto; display:block; margin:0 auto; }
     .body { padding:40px; }
     .greeting { font-size:22px; font-weight:700; color:#111827; margin-bottom:12px; }
     .text { font-size:15px; color:#4b5563; line-height:1.7; margin-bottom:16px; }
@@ -31,7 +31,7 @@ function emailBase(content: string, previewText = '') {
   <div class="wrapper">
     <div class="header">
       <a href="${APP_URL}" class="logo-box">
-        <img src="https://nyumbafasta.co/logo_nyumbafasta.png" alt="NyumbaFasta — Haraka &amp; Kwa Uhakika" class="logo-img" />
+        <img src="https://nyumbafasta.co/logo_nyumbafasta.png" alt="NyumbaFasta" class="logo-img" />
       </a>
     </div>
     <div class="body">${content}</div>
