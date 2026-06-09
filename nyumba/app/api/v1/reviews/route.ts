@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
     if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
       return NextResponse.json({ error: 'Rating lazima iwe 1-5' }, { status: 400 })
     }
+    if (comment != null && (typeof comment !== 'string' || comment.length > 500)) {
+      return NextResponse.json({ error: 'Maoni ni marefu sana (max 500)' }, { status: 400 })
+    }
 
     // Verify the unlock belongs to this user and is completed
     const { data: unlock } = await supabase

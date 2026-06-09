@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { validateProfile } from '@/lib/security/validate'
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -9,13 +10,20 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
 
-    const { full_name, whatsapp_number, bio, avatar_url } = await req.json()
+    const body = await req.json().catch(() => null)
+    if (!body) return NextResponse.json({ error: 'Taarifa si sahihi' }, { status: 400 })
+
+    const parsed = validateProfile(body)
+    if (!parsed.ok) {
+      return NextResponse.json({ error: 'Taarifa si sahihi', details: parsed.errors }, { status: 400 })
+    }
+    const { full_name, whatsapp_number, bio, avatar_url } = parsed.data
 
     const admin = createAdminClient()
 
-    // Update users table (name + optional avatar)
+    // Update users table (name + optional avatar) — explicit allowlist
     const userUpdate: Record<string, string> = {}
-    if (full_name?.trim()) userUpdate.full_name = full_name.trim()
+    if (full_name) userUpdate.full_name = full_name
     if (avatar_url !== undefined) userUpdate.avatar_url = avatar_url
     if (Object.keys(userUpdate).length) {
       await admin.from('users').update(userUpdate).eq('id', user.id)
@@ -26,8 +34,8 @@ export async function PATCH(req: NextRequest) {
       .from('dalali_profiles')
       .upsert({
         user_id: user.id,
-        whatsapp_number: whatsapp_number?.trim() ?? '',
-        bio: bio?.trim() ?? null,
+        whatsapp_number: whatsapp_number ?? '',
+        bio: bio ?? null,
       }, { onConflict: 'user_id' })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

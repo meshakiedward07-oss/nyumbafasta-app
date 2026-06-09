@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 
 export async function POST(req: NextRequest) {
   try {
+    // 5 registrations per hour per IP
+    const rl = rateLimit(`register:${getClientIp(req)}`, 5, 60 * 60 * 1000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Maombi mengi sana. Jaribu tena baadaye.' }, { status: 429 })
+    }
+
     const { full_name, role, whatsapp_number } = await req.json()
 
     if (!full_name || !role) {

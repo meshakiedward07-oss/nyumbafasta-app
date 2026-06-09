@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendPushToUser } from '@/lib/notifications/send'
+import { auditLog } from '@/lib/security/auditLog'
+import { getClientIp } from '@/lib/security/rateLimit'
 
 export async function PATCH(
   req: NextRequest,
@@ -41,6 +43,15 @@ export async function PATCH(
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
+
+    await auditLog({
+      action: action === 'approve' ? 'listing_approved' : 'listing_rejected',
+      user_id: user.id,
+      target_id: params.id,
+      target_type: 'listing',
+      ip_address: getClientIp(req),
+      severity: 'info',
+    })
 
     // Notify dalali via notifications table
     const { data: listing } = await admin

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { auditLog } from '@/lib/security/auditLog'
+import { getClientIp } from '@/lib/security/rateLimit'
 
 const DELETION_REASONS = [
   'Situmii tena',
@@ -53,6 +55,16 @@ export async function POST(req: NextRequest) {
     if (rpcError) {
       return NextResponse.json({ error: rpcError.message }, { status: 500 })
     }
+
+    await auditLog({
+      action: 'account_deleted',
+      user_id: user.id,
+      target_id: user.id,
+      target_type: 'user',
+      metadata: { self_initiated: true },
+      ip_address: getClientIp(req),
+      severity: 'warning',
+    })
 
     // Sign out server-side session
     await supabase.auth.signOut()

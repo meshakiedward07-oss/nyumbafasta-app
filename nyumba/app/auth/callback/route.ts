@@ -2,6 +2,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { welcomeEmail } from '@/lib/email/templates'
+import { auditLog } from '@/lib/security/auditLog'
+import { getClientIp } from '@/lib/security/rateLimit'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -13,6 +15,15 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data.user) {
+      // Audit every successful session exchange (covers OAuth, magic link, password reset)
+      await auditLog({
+        action: 'login_success',
+        user_id: data.user.id,
+        target_type: 'user',
+        ip_address: getClientIp(request),
+        severity: 'info',
+      })
+
       // Caller specified a redirect (Google OAuth, password reset) — honour it
       if (redirect && redirect !== '/') {
         return NextResponse.redirect(`${origin}${redirect}`)

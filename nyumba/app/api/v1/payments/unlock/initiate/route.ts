@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { initiateStkPush, initiateCardPayment } from '@/lib/selcom'
 import { sendPushToUser } from '@/lib/notifications/send'
+import { rateLimit } from '@/lib/security/rateLimit'
 
 const UNLOCK_AMOUNT = 2000
 const IS_DEV = !process.env.SELCOM_API_KEY || process.env.SELCOM_API_KEY.startsWith('test_')
@@ -21,6 +22,12 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+    }
+
+    // 10 unlock attempts per 10 minutes per user
+    const rl = rateLimit(`unlock:${user.id}`, 10, 10 * 60 * 1000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Maombi mengi sana. Subiri dakika chache.' }, { status: 429 })
     }
 
     const admin = createAdminClient()

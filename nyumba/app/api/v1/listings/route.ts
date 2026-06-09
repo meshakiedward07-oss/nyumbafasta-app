@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/security/rateLimit'
+import { validateListing } from '@/lib/security/validate'
 
 const PLAN_LIMITS: Record<string, number> = {
   free:       2,
@@ -25,6 +27,12 @@ export async function POST(req: NextRequest) {
 
     if (profile?.role !== 'dalali' && profile?.role !== 'admin') {
       return NextResponse.json({ error: 'Dalali tu wanaweza kuongeza listings' }, { status: 403 })
+    }
+
+    // 20 listings per hour per user
+    const rl = rateLimit(`create-listing:${user.id}`, 20, 60 * 60 * 1000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Umefika kikomo cha kuunda listings.' }, { status: 403 })
     }
 
     const admin = createAdminClient()
@@ -58,39 +66,38 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse and validate body
-    const body = await req.json()
-    const { type, price_monthly, bedrooms, furnished, description, region, district, amenities, images, video_url, latitude, longitude } = body
+    const body = await req.json().catch(() => null)
+    if (!body) return NextResponse.json({ error: 'Taarifa si sahihi' }, { status: 400 })
 
-    if (!type || !price_monthly || !region || !district) {
-      return NextResponse.json({ error: 'Thamani zinazohitajika hazijajazwa' }, { status: 400 })
+    const parsed = validateListing(body)
+    if (!parsed.ok) {
+      return NextResponse.json({ error: 'Taarifa si sahihi', details: parsed.errors }, { status: 400 })
     }
+    const data = parsed.data
 
-    if (!['chumba', 'apartment', 'nyumba', 'studio'].includes(type)) {
-      return NextResponse.json({ error: 'Aina ya listing si sahihi' }, { status: 400 })
-    }
-
+    // Explicit allowlist insert — no spread of raw body (mass-assignment safe)
     const insertPayload: Record<string, unknown> = {
       dalali_id: user.id,
-      type,
-      title: `${type.charAt(0).toUpperCase() + type.slice(1)} – ${district}`,
+      type: data.type,
+      title: `${data.type.charAt(0).toUpperCase() + data.type.slice(1)} – ${data.district}`,
       status: 'pending',
-      price_monthly: Number(price_monthly),
-      furnished: furnished ?? 'empty',
-      description: description ?? null,
-      region,
-      district,
-      amenities: amenities ?? [],
-      images: images ?? [],
-      video_url: video_url ?? null,
+      price_monthly: data.price_monthly,
+      furnished: data.furnished,
+      description: data.description,
+      region: data.region,
+      district: data.district,
+      amenities: data.amenities,
+      images: data.images,
+      video_url: data.video_url,
       street: '',
       directions: '',
       is_boosted: false,
       view_count: 0,
       lead_count: 0,
-      latitude:  typeof latitude  === 'number' ? latitude  : null,
-      longitude: typeof longitude === 'number' ? longitude : null,
+      latitude: data.latitude,
+      longitude: data.longitude,
     }
-    if (bedrooms !== undefined) insertPayload.bedrooms = bedrooms ?? null
+    if (data.bedrooms !== null) insertPayload.bedrooms = data.bedrooms
 
     const { data: listing, error: insertError } = await admin
       .from('listings')

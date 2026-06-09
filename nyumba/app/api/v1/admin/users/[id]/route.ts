@@ -1,5 +1,7 @@
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { NextResponse, NextRequest } from 'next/server'
+import { auditLog } from '@/lib/security/auditLog'
+import { getClientIp } from '@/lib/security/rateLimit'
 
 async function getAdminUser() {
   const supabase = await createClient()
@@ -28,6 +30,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       .eq('id', params.id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    await auditLog({
+      action: action === 'suspend' ? 'user_suspended' : 'user_activated',
+      user_id: admin.id,
+      target_id: params.id,
+      target_type: 'user',
+      ip_address: getClientIp(req),
+      severity: action === 'suspend' ? 'warning' : 'info',
+    })
+
     return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

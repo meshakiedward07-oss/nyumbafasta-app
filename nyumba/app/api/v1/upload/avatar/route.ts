@@ -18,6 +18,11 @@ export async function POST(req: NextRequest) {
     if (file.size > 2 * 1024 * 1024) {
       return NextResponse.json({ error: 'Picha ni kubwa sana (max 2MB)' }, { status: 400 })
     }
+    // MIME allowlist — no SVG/PDF/executables
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json({ error: 'Aina ya faili hairuhusiwi. Tumia JPEG, PNG, WebP au GIF' }, { status: 400 })
+    }
 
     const fd = new FormData()
     fd.append('file', file)
