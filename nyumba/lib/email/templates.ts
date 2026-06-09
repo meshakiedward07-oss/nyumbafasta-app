@@ -11,11 +11,9 @@ function emailBase(content: string, previewText = '') {
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f4f4f5; color:#111827; }
     .wrapper { max-width:600px; margin:40px auto; background:white; border-radius:16px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.07); }
-    .header { background:linear-gradient(135deg,#1D9E75,#157a5a); padding:32px 40px; text-align:center; }
+    .header { background:#000000; padding:28px 40px; text-align:center; }
     .logo-box { display:inline-block; text-decoration:none; }
-    .logo-icon { font-size:40px; line-height:1; }
-    .logo-text { color:white; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin-top:6px; }
-    .logo-sub { color:rgba(255,255,255,0.8); font-size:12px; margin-top:3px; }
+    .logo-img { width:260px; max-width:100%; height:auto; display:block; margin:0 auto; }
     .body { padding:40px; }
     .greeting { font-size:22px; font-weight:700; color:#111827; margin-bottom:12px; }
     .text { font-size:15px; color:#4b5563; line-height:1.7; margin-bottom:16px; }
@@ -33,9 +31,7 @@ function emailBase(content: string, previewText = '') {
   <div class="wrapper">
     <div class="header">
       <a href="${APP_URL}" class="logo-box">
-        <div class="logo-icon">🏠</div>
-        <div class="logo-text">NyumbaFasta</div>
-        <div class="logo-sub">Haraka &amp; Kwa Uhakika</div>
+        <img src="https://nyumbafasta.co/logo_nyumbafasta.png" alt="NyumbaFasta — Haraka &amp; Kwa Uhakika" class="logo-img" />
       </a>
     </div>
     <div class="body">${content}</div>
