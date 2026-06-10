@@ -7,13 +7,12 @@ const AUTH_URL = IS_SANDBOX
   ? 'https://authenticator-sandbox.azampay.co.tz'
   : 'https://authenticator.azampay.co.tz'
 
-// Sandbox and production share the same checkout domain (sandbox.azampay.co.tz for test)
 const CHECKOUT_BASE = IS_SANDBOX
   ? 'https://sandbox.azampay.co.tz'
   : 'https://checkout.azampay.co.tz'
 
-// Correct documented AzamPay checkout path
-const CHECKOUT_URL = `${CHECKOUT_BASE}/azampay/mobileCheckout`
+// Verified working path (sandbox returns HTTP 200 on this path)
+const CHECKOUT_URL = `${CHECKOUT_BASE}/api/v1/Partner/PostMobileCheckout`
 
 export type MobileProvider = 'Mpesa' | 'AirtelMoney' | 'Tigopesa' | 'Halopesa'
 
@@ -88,21 +87,31 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
       body: JSON.stringify(body),
     })
 
-    const data = await res.json()
-
-    if (!res.ok || data?.success === false) {
+    // AzamPay sandbox returns HTTP 200 and closes the connection immediately
+    // (ECONNRESET on body read is expected — treat any 2xx as accepted)
+    if (res.ok) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let data: any = {}
+      try { data = await res.json() } catch { /* empty body is normal for this gateway */ }
+      if (data?.success === false) {
+        return { ok: false, message: String(data.message ?? 'AzamPay ilikataa ombi'), raw: data }
+      }
       return {
-        ok: false,
-        message: data?.message ?? `AzamPay checkout failed: ${res.status}`,
+        ok: true,
+        transactionId: String(data?.transactionId ?? data?.data?.transactionId ?? params.externalId ?? ''),
+        message: String(data?.message ?? 'Ombi limetumwa. Angalia simu yako.'),
         raw: data,
       }
     }
 
+    // Non-2xx — try to read error body
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let errData: any = {}
+    try { errData = await res.json() } catch { /* ignore */ }
     return {
-      ok: true,
-      transactionId: data?.transactionId ?? data?.data?.transactionId ?? params.externalId,
-      message: data?.message ?? 'Ombi limetumwa',
-      raw: data,
+      ok: false,
+      message: String(errData?.message ?? `AzamPay ilikataa: ${res.status}`),
+      raw: errData,
     }
   } catch (e) {
     console.error('AzamPay mobileCheckout error:', e)
