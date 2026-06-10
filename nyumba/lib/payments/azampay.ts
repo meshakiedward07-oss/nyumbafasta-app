@@ -7,9 +7,13 @@ const AUTH_URL = IS_SANDBOX
   ? 'https://authenticator-sandbox.azampay.co.tz'
   : 'https://authenticator.azampay.co.tz'
 
-const CHECKOUT_URL = IS_SANDBOX
+// Sandbox and production share the same checkout domain (sandbox.azampay.co.tz for test)
+const CHECKOUT_BASE = IS_SANDBOX
   ? 'https://sandbox.azampay.co.tz'
   : 'https://checkout.azampay.co.tz'
+
+// Correct documented AzamPay checkout path
+const CHECKOUT_URL = `${CHECKOUT_BASE}/azampay/mobileCheckout`
 
 export type MobileProvider = 'Mpesa' | 'AirtelMoney' | 'Tigopesa' | 'Halopesa'
 
@@ -74,7 +78,7 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
       ...(params.callbackUrl ? { callbackUrl: params.callbackUrl } : {}),
     }
 
-    const res = await fetch(`${CHECKOUT_URL}/azampay/mobileCheckout`, {
+    const res = await fetch(CHECKOUT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
