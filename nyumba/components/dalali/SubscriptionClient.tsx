@@ -225,13 +225,14 @@ export default function SubscriptionClient({
                     🇹🇿 +255
                   </div>
                   <input type="tel" inputMode="numeric" required placeholder="7XX XXX XXX"
-                    value={phone} onChange={e => setPhone(e.target.value)}
+                    value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                    maxLength={10}
                     className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                   />
                 </div>
               </div>
               {error && <p className="text-xs text-red-500">{error}</p>}
-              <button type="submit" disabled={loading || !phone}
+              <button type="submit" disabled={loading || phone.replace(/\D/g,'').length < 9}
                 className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
                 {loading ? 'Inaanzisha...' : '📱 Lipa Sasa'}
               </button>

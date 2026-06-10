@@ -44,6 +44,8 @@ export default function UnlockModal({
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
   const [secondsLeft, setSecondsLeft] = useState(TIMEOUT_SECS)
+  // Track whether user explicitly chose a provider — prevents auto-detect override
+  const userChoseProvider = useRef(false)
 
   const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -129,27 +131,30 @@ export default function UnlockModal({
   }
 
   // ── Called by PaymentMethodSelector confirm button ────────
-  // Mobile money only → go to phone input step
+  // Mobile money only → mark explicit choice, go to phone input step
   function handleSelectorPay(method: PaymentProvider) {
+    userChoseProvider.current = true
     setProvider(method)
     setStep('phone')
   }
 
-  // ── Auto-detect provider from phone prefix as user types ──
-  // The UI shows +255 separately, so input is the local part (e.g. 7XXXXXXXX or
-  // 07XXXXXXXX). Normalize to 255XXXXXXXXX before detecting.
+  // ── Phone input change ────────────────────────────────────
+  // Only auto-detect provider when user hasn't explicitly chosen one.
+  // Requires a full local number (≥9 digits) to avoid premature detection.
   function handlePhoneChange(value: string) {
     const digits = value.replace(/\D/g, '')
     setPhone(digits)
-    if (digits.length >= 3) {
+    if (!userChoseProvider.current && digits.length >= 9) {
       const full = digits.startsWith('0') ? `255${digits.slice(1)}` : `255${digits}`
       setProvider(detectProvider(full))
     }
   }
 
   function handleRetry() {
+    userChoseProvider.current = false
     setStep('select')
     setError('')
+    setPhone('')
     setSecondsLeft(TIMEOUT_SECS)
     stopPolling()
   }
@@ -260,11 +265,14 @@ export default function UnlockModal({
 
               <button
                 type="submit"
-                disabled={loading || phone.length < 9}
+                disabled={loading || phone.replace(/\D/g,'').length < 9}
                 className="w-full text-white py-3.5 min-h-[48px] rounded-2xl text-sm font-semibold
                            disabled:opacity-50 transition-all active:scale-[0.98]"
-                style={{ background: phone.length >= 9 && !loading ? pInfo.btnColor : undefined,
-                         backgroundColor: phone.length < 9 || loading ? '#9CA3AF' : undefined }}
+                style={{
+                  backgroundColor: loading || phone.replace(/\D/g,'').length < 9
+                    ? '#9CA3AF'
+                    : pInfo.btnColor,
+                }}
               >
                 {loading ? 'Inaanzisha...' : `Lipa Tsh ${UNLOCK_AMOUNT.toLocaleString()} na ${pInfo.name}`}
               </button>
