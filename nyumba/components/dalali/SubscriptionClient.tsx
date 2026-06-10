@@ -62,8 +62,7 @@ export default function SubscriptionClient({
   const [renewLoading, setRenewLoading] = useState(false)
   const [renewed, setRenewed]       = useState(false)
   const [mounted, setMounted]       = useState(false)
-  const [secondsLeft, setSecondsLeft]   = useState(120)
-  const [pendingSubId, setPendingSubId] = useState<string | null>(null)
+  const [secondsLeft, setSecondsLeft] = useState(120)
 
   const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -160,7 +159,6 @@ export default function SubscriptionClient({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Imeshindwa')
       if (data.mock) { setStep('success'); return }
-      setPendingSubId(data.subscription_id)
       setStep('waiting')
       startPolling(data.subscription_id)
     } catch (err: unknown) {
