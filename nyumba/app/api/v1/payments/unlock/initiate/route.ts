@@ -5,7 +5,7 @@ import { sendPushToUser } from '@/lib/notifications/send'
 import { rateLimit } from '@/lib/security/rateLimit'
 
 const UNLOCK_AMOUNT = 2000
-const IS_DEV = !process.env.AZAMPAY_CLIENT_ID
+const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
 function toAzamProvider(p: string): MobileProvider {
   const map: Record<string, MobileProvider> = {
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     const payment_ref = generateExternalId('NYU')
 
     // ── Dev / mock mode: complete immediately for ALL providers ──
-    if (IS_DEV) {
+    if (IS_MOCK) {
       const { data: unlock, error: insertError } = await admin
         .from('contact_unlocks')
         .insert({

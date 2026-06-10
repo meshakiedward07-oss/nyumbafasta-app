@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import type { HistoryItem } from '@/app/(dalali)/dashboard/subscription/page'
 import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
 import type { PaymentMethod as PaymentProvider } from '@/components/payments/PaymentMethodSelector'
@@ -61,6 +62,54 @@ export default function SubscriptionClient({
   const [renewLoading, setRenewLoading] = useState(false)
   const [renewed, setRenewed]       = useState(false)
   const [mounted, setMounted]       = useState(false)
+  const [secondsLeft, setSecondsLeft]   = useState(120)
+  const [pendingSubId, setPendingSubId] = useState<string | null>(null)
+
+  const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const supabase = createClient()
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current)  clearInterval(pollRef.current)
+    if (timerRef.current) clearInterval(timerRef.current)
+  }, [])
+
+  const startPolling = useCallback((subId: string) => {
+    pollRef.current = setInterval(async () => {
+      const { data } = await supabase
+        .from('subscriptions')
+        .select('status')
+        .eq('id', subId)
+        .single()
+      if (data?.status === 'active') {
+        stopPolling()
+        setStep('success')
+      } else if (data?.status === 'cancelled' || data?.status === 'failed') {
+        stopPolling()
+        setError('Malipo hayakufanikiwa. Jaribu tena.')
+        setStep('phone')
+      }
+    }, 3000)
+  }, [supabase, stopPolling])
+
+  useEffect(() => {
+    if (step !== 'waiting') return
+    setSecondsLeft(120)
+    timerRef.current = setInterval(() => {
+      setSecondsLeft(s => {
+        if (s <= 1) {
+          stopPolling()
+          setError('Muda umeisha. Jaribu tena.')
+          setStep('phone')
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [step, stopPolling])
+
+  useEffect(() => { return () => stopPolling() }, [stopPolling])
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -111,7 +160,9 @@ export default function SubscriptionClient({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Imeshindwa')
       if (data.mock) { setStep('success'); return }
+      setPendingSubId(data.subscription_id)
       setStep('waiting')
+      startPolling(data.subscription_id)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
     } finally {
@@ -238,6 +289,56 @@ export default function SubscriptionClient({
               </button>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* ── WAITING FOR USSD PUSH ── */}
+      {step === 'waiting' && !renewed && (
+        <div className="px-4 pt-10 text-center">
+          <div className="text-5xl mb-4">📲</div>
+          <h2 className="text-base font-bold text-gray-900 mb-2">Angalia Simu Yako!</h2>
+          <p className="text-sm text-gray-500 mb-1">
+            Ombi la malipo limetumwa kwa{' '}
+            <span className="font-semibold text-gray-800">+255{phone}</span>
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Ingiza PIN yako ya{' '}
+            <span className="font-semibold">
+              {PAYMENT_PROVIDERS.find(p => p.id === provider)?.name ?? provider}
+            </span>{' '}
+            kuthibitisha malipo
+          </p>
+
+          <div className="bg-gray-100 rounded-full h-2 mb-1.5 overflow-hidden mx-6">
+            <div
+              className="h-full bg-primary-500 rounded-full transition-all duration-1000"
+              style={{ width: `${((120 - secondsLeft) / 120) * 100}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-400 mb-6">Inasubiri uthibitisho... ({secondsLeft}s)</p>
+
+          <div className="flex justify-center mb-6">
+            <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-xs text-amber-700 text-left mx-2 mb-6">
+            <p className="font-semibold mb-1">Jinsi ya kuthibitisha:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Angalia SMS au ombi la USSD kwenye simu</li>
+              <li>Ingiza PIN yako ya {PAYMENT_PROVIDERS.find(p => p.id === provider)?.name ?? provider}</li>
+              <li>Thibitisha kiasi kinachohitajika</li>
+            </ol>
+          </div>
+
+          {error && (
+            <p className="text-xs text-red-500 mb-3">{error}</p>
+          )}
+          <button
+            onClick={() => { stopPolling(); setStep('phone') }}
+            className="text-sm text-gray-400 underline py-2"
+          >
+            ← Badilisha njia ya kulipa
+          </button>
         </div>
       )}
 

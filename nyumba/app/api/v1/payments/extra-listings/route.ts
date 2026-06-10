@@ -3,7 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
 
 const PRICE_PER_EXTRA = 2_000
-const IS_DEV = !process.env.AZAMPAY_CLIENT_ID
+const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
 function toAzamProvider(p: string): MobileProvider {
   const map: Record<string, MobileProvider> = {
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Dev mode — activate immediately
-    if (IS_DEV) {
+    if (IS_MOCK) {
       await admin.from('subscriptions').update({
         extra_listings:     (sub.extra_listings ?? 0) + count,
         extra_listings_fee: (sub.extra_listings_fee ?? 0) + amount,

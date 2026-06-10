@@ -4,7 +4,7 @@ import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, typ
 
 const PLAN_PRICES: Record<string, number> = { basic: 10_000, premium: 25_000, enterprise: 50_000 }
 const PLAN_DURATION_DAYS = 30
-const IS_DEV = !process.env.AZAMPAY_CLIENT_ID
+const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
 function toAzamProvider(p: string): MobileProvider {
   const map: Record<string, MobileProvider> = {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + PLAN_DURATION_DAYS)
 
     // ── Dev / mock mode: activate immediately ─────────────
-    if (IS_DEV) {
+    if (IS_MOCK) {
       const { data: subscription, error: insertError } = await admin
         .from('subscriptions')
         .insert({
