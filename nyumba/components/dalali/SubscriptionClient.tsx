@@ -3,16 +3,13 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { HistoryItem } from '@/app/(dalali)/dashboard/subscription/page'
 import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
-import CardDetailsForm from '@/components/payments/CardDetailsForm'
-import type { CardDetails } from '@/components/payments/CardDetailsForm'
+import type { PaymentMethod as PaymentProvider } from '@/components/payments/PaymentMethodSelector'
 import {
   SUBSCRIPTION_PLANS,
   PLAN_BADGES,
   getPlan,
   type PlanType,
 } from '@/lib/config/subscription-plans'
-
-type PaymentProvider = 'mpesa' | 'mixyyas' | 'airtel' | 'halopesa' | 'mastercard' | 'visa'
 
 const PAYMENT_PROVIDERS = PAYMENT_METHODS
 
@@ -56,8 +53,8 @@ export default function SubscriptionClient({
   const [selectedPlan, setSelectedPlan] = useState<PlanType>(
     (currentPlan as PlanType) ?? 'basic'
   )
-  const [step, setStep]             = useState<'overview' | 'new_plan' | 'provider' | 'card_details' | 'phone' | 'waiting' | 'success'>('overview')
-  const [provider, setProvider]     = useState<PaymentProvider>('mpesa')
+  const [step, setStep]             = useState<'overview' | 'new_plan' | 'provider' | 'phone' | 'waiting' | 'success'>('overview')
+  const [provider, setProvider]     = useState<PaymentProvider>('Mpesa')
   const [phone, setPhone]           = useState('')
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState('')
@@ -122,36 +119,10 @@ export default function SubscriptionClient({
     }
   }
 
-  // For cards → card_details step. For mobile → phone step.
+  // Mobile money only → phone step.
   function handleSelectorPay(method: PaymentProvider) {
     setProvider(method)
-    if (method === 'visa' || method === 'mastercard') {
-      setStep('card_details')
-      return
-    }
     setStep('phone')
-  }
-
-  async function handleCardSubmit(cardDetails: CardDetails) {
-    void cardDetails
-    setError('')
-    setLoading(true)
-    try {
-      const res = await fetch('/api/v1/payments/subscription/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: selectedPlan, provider, payment_type: 'card' }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa')
-      if (data.mock) { setStep('success'); return }
-      if (data.payment_url) { window.location.href = data.payment_url; return }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
-      setStep('card_details')
-    } finally {
-      setLoading(false)
-    }
   }
 
   // Plan badge for overview card
@@ -215,33 +186,6 @@ export default function SubscriptionClient({
             })()}
             onPay={handleSelectorPay}
           />
-        </div>
-      )}
-
-      {/* ── CARD DETAILS ── */}
-      {step === 'card_details' && !renewed && (
-        <div className="px-4 pt-4 pb-4">
-          {error && (
-            <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
-              {error}
-            </div>
-          )}
-          {loading ? (
-            <div className="text-center py-16">
-              <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-gray-600 font-medium">Inashughulikia malipo...</p>
-            </div>
-          ) : (
-            <CardDetailsForm
-              cardType={provider as 'visa' | 'mastercard'}
-              amount={(() => {
-                const p = getPlan(selectedPlan)
-                return discount > 0 ? applyDiscount(p.price, discount) : p.price
-              })()}
-              onBack={() => setStep('provider')}
-              onSubmit={handleCardSubmit}
-            />
-          )}
         </div>
       )}
 

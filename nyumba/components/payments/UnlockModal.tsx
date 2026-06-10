@@ -2,8 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
-import CardDetailsForm from '@/components/payments/CardDetailsForm'
-import type { CardDetails } from '@/components/payments/CardDetailsForm'
+import { detectProvider } from '@/lib/payments/azampay'
 import type { PaymentMethod as PaymentProvider } from '@/components/payments/PaymentMethodSelector'
 
 // ── Provider config (keyed for quick lookup) ──────────────
@@ -16,10 +15,10 @@ const PROVIDERS = Object.fromEntries(
     btnColor: m.color,
     type:     m.type,
   }])
-) as Record<PaymentProvider, { name: string; badge: string; hint: string; icon: React.ReactNode; btnColor: string; type: 'mobile' | 'card' }>
+) as Record<PaymentProvider, { name: string; badge: string; hint: string; icon: React.ReactNode; btnColor: string; type: 'mobile' }>
 
 // ── Types ─────────────────────────────────────────────────
-type ModalStep = 'select' | 'card_details' | 'phone' | 'waiting' | 'success' | 'failed'
+type ModalStep = 'select' | 'phone' | 'waiting' | 'success' | 'failed'
 
 type Props = {
   listingId: string
@@ -40,7 +39,7 @@ export default function UnlockModal({
   const supabase = createClient()
 
   const [step, setStep]           = useState<ModalStep>('select')
-  const [provider, setProvider]   = useState<PaymentProvider>('mpesa')
+  const [provider, setProvider]   = useState<PaymentProvider>('Mpesa')
   const [phone, setPhone]         = useState('')
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
@@ -130,40 +129,21 @@ export default function UnlockModal({
   }
 
   // ── Called by PaymentMethodSelector confirm button ────────
-  // For cards: go to card_details step — do NOT pay yet
-  // For mobile: go to phone input step
+  // Mobile money only → go to phone input step
   function handleSelectorPay(method: PaymentProvider) {
     setProvider(method)
-    if (method === 'visa' || method === 'mastercard') {
-      setStep('card_details')   // ← STOP: wait for card form
-      return
-    }
     setStep('phone')
   }
 
-  // ── Called AFTER CardDetailsForm submit ────────────────────
-  async function handleCardSubmit(cardDetails: CardDetails) {
-    void cardDetails
-    setError('')
-    setLoading(true)
-    try {
-      const res = await fetch('/api/v1/payments/unlock/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listing_id: listingId, provider, payment_type: 'card' }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        if (data.already_unlocked) { setStep('success'); onUnlocked(); return }
-        throw new Error(data.error ?? 'Imeshindwa kuanzisha malipo ya kadi')
-      }
-      if (data.mock) { setStep('success'); onUnlocked(); return }
-      if (data.payment_url) { window.location.href = data.payment_url; return }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
-      setStep('card_details')   // return to card form on error
-    } finally {
-      setLoading(false)
+  // ── Auto-detect provider from phone prefix as user types ──
+  // The UI shows +255 separately, so input is the local part (e.g. 7XXXXXXXX or
+  // 07XXXXXXXX). Normalize to 255XXXXXXXXX before detecting.
+  function handlePhoneChange(value: string) {
+    const digits = value.replace(/\D/g, '')
+    setPhone(digits)
+    if (digits.length >= 3) {
+      const full = digits.startsWith('0') ? `255${digits.slice(1)}` : `255${digits}`
+      setProvider(detectProvider(full))
     }
   }
 
@@ -267,7 +247,7 @@ export default function UnlockModal({
                     required
                     placeholder={pInfo.hint.split(' ')[0] + ' XXX XXXX'}
                     value={phone}
-                    onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                    onChange={e => handlePhoneChange(e.target.value)}
                     maxLength={10}
                     className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base
                                focus:outline-none focus:ring-2 focus:ring-primary-300"
@@ -296,31 +276,6 @@ export default function UnlockModal({
             <button onClick={() => setStep('select')} className="w-full py-3 text-sm text-gray-400 text-center">
               ← Badilisha njia ya kulipa
             </button>
-          </div>
-        )}
-
-        {/* ── STEP: Card details form (separate step, explicit) ── */}
-        {step === 'card_details' && (
-          <div className="px-5 pt-2 pb-4">
-            {loading ? (
-              <div className="text-center py-16">
-                <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent
-                                rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-gray-600 font-medium">Inashughulikia malipo...</p>
-              </div>
-            ) : (
-              <CardDetailsForm
-                cardType={provider as 'visa' | 'mastercard'}
-                amount={UNLOCK_AMOUNT}
-                onBack={() => setStep('select')}
-                onSubmit={handleCardSubmit}
-              />
-            )}
-            {error && (
-              <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl mt-4">
-                {error}
-              </div>
-            )}
           </div>
         )}
 

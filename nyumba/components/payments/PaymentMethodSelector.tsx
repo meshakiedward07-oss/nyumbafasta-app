@@ -1,16 +1,13 @@
 'use client'
 
-// PaymentMethodSelector — shows provider grid only.
-// Card form is handled by the PARENT as a separate step.
-// For mobile: shows "Lipa" button → calls onPay(method)
-// For card:   shows "Endelea" button → calls onPay(method) → parent shows CardDetailsForm
+// PaymentMethodSelector — shows AzamPay mobile money provider grid.
+// For mobile: shows "Lipa" button → calls onPay(method) → parent shows phone input
 
-export type PaymentMethod = 'mpesa' | 'mixyyas' | 'airtel' | 'halopesa' | 'mastercard' | 'visa'
-export type { CardDetails } from '@/components/payments/CardDetailsForm'
+export type PaymentMethod = 'Mpesa' | 'AirtelMoney' | 'Tigopesa' | 'Halopesa'
 
 export const PAYMENT_METHODS = [
   {
-    id:      'mpesa'      as PaymentMethod,
+    id:      'Mpesa'       as PaymentMethod,
     name:    'M-Pesa',
     company: 'Vodacom',
     color:   '#E40000',
@@ -21,7 +18,7 @@ export const PAYMENT_METHODS = [
     icon:    <img src="/payment_icons/mpesa.png"      alt="M-Pesa"       className="h-9 w-auto object-contain" />,
   },
   {
-    id:      'mixyyas'    as PaymentMethod,
+    id:      'Tigopesa'    as PaymentMethod,
     name:    'Mixx by YAS',
     company: 'CRDB/YAS',
     color:   '#003087',
@@ -32,7 +29,7 @@ export const PAYMENT_METHODS = [
     icon:    <img src="/payment_icons/mixx.png"       alt="Mixx by YAS"  className="h-9 w-auto object-contain" />,
   },
   {
-    id:      'airtel'     as PaymentMethod,
+    id:      'AirtelMoney' as PaymentMethod,
     name:    'Airtel Money',
     company: 'Airtel',
     color:   '#FF0000',
@@ -43,7 +40,7 @@ export const PAYMENT_METHODS = [
     icon:    <img src="/payment_icons/airtel.png"     alt="Airtel Money" className="h-9 w-auto object-contain" />,
   },
   {
-    id:      'halopesa'   as PaymentMethod,
+    id:      'Halopesa'    as PaymentMethod,
     name:    'HaloPesa',
     company: 'TTCL',
     color:   '#F15A22',
@@ -53,39 +50,15 @@ export const PAYMENT_METHODS = [
     /* eslint-disable-next-line @next/next/no-img-element */
     icon:    <img src="/payment_icons/halopesa.png"   alt="HaloPesa"     className="h-9 w-auto object-contain" />,
   },
-  {
-    id:      'visa'       as PaymentMethod,
-    name:    'Visa',
-    company: 'Visa Card',
-    color:   '#1A1F71',
-    bgColor: '#F0F4FF',
-    type:    'card' as const,
-    hint:    '',
-    /* eslint-disable-next-line @next/next/no-img-element */
-    icon:    <img src="/payment_icons/visa.png"       alt="Visa"         className="h-7 w-auto object-contain" />,
-  },
-  {
-    id:      'mastercard' as PaymentMethod,
-    name:    'Mastercard',
-    company: 'Mastercard',
-    color:   '#EB001B',
-    bgColor: '#FFF5F5',
-    type:    'card' as const,
-    hint:    '',
-    /* eslint-disable-next-line @next/next/no-img-element */
-    icon:    <img src="/payment_icons/mastercard.png" alt="Mastercard"   className="h-9 w-auto object-contain" />,
-  },
 ]
 
 const MOBILE = PAYMENT_METHODS.filter(m => m.type === 'mobile')
-const CARDS  = PAYMENT_METHODS.filter(m => m.type === 'card')
 
 type Props = {
   selected: PaymentMethod | null
   onSelect: (method: PaymentMethod) => void
   amount:   number
-  // Called when user confirms selection.
-  // Parent decides next step: card → show CardDetailsForm, mobile → show phone input
+  // Called when user confirms selection → parent shows phone input
   onPay:    (method: PaymentMethod) => void
 }
 
@@ -129,25 +102,13 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
         </div>
       </div>
 
-      {/* Kadi ya Benki */}
-      <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-          💳 Kadi ya Benki
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          {CARDS.map(m => <ProviderButton key={m.id} m={m} />)}
-        </div>
-      </div>
-
       {/* Action button — shown when any method is selected */}
       {selected && selectedInfo && (
         <div className="pt-1">
           <div className="flex items-center justify-center gap-2 mb-3">
             <div className="h-7 flex items-center">{selectedInfo.icon}</div>
             <span className="text-xs text-gray-500">
-              {selectedInfo.type === 'card'
-                ? <>Utajaza taarifa za <strong>{selectedInfo.name}</strong></>
-                : <>Utalipa kupitia <strong>{selectedInfo.name}</strong></>}
+              Utalipa kupitia <strong>{selectedInfo.name}</strong>
             </span>
           </div>
           <button
@@ -156,9 +117,7 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
                        shadow-md active:scale-[0.97] transition-transform"
             style={{ backgroundColor: selectedInfo.color }}
           >
-            {selectedInfo.type === 'card'
-              ? `💳 Jaza Taarifa za Kadi →`
-              : `Lipa Tsh ${amount.toLocaleString()}`}
+            Lipa Tsh {amount.toLocaleString()}
           </button>
         </div>
       )}

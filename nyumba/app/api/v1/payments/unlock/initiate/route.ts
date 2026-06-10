@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { initiateStkPush, initiateCardPayment } from '@/lib/selcom'
+import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
 import { sendPushToUser } from '@/lib/notifications/send'
 import { rateLimit } from '@/lib/security/rateLimit'
 
 const UNLOCK_AMOUNT = 2000
-const IS_DEV = !process.env.SELCOM_API_KEY || process.env.SELCOM_API_KEY.startsWith('test_')
+const IS_DEV = !process.env.AZAMPAY_CLIENT_ID
+
+function toAzamProvider(p: string): MobileProvider {
+  const map: Record<string, MobileProvider> = {
+    mpesa: 'Mpesa', airtel: 'AirtelMoney', tigopesa: 'Tigopesa', halopesa: 'Halopesa',
+    Mpesa: 'Mpesa', AirtelMoney: 'AirtelMoney', Tigopesa: 'Tigopesa', Halopesa: 'Halopesa',
+  }
+  return map[p] ?? 'Mpesa'
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { listing_id, msisdn, provider = 'mpesa', payment_type = 'mobile' } = await req.json()
+    const { listing_id, msisdn, provider = 'mpesa' } = await req.json()
 
     if (!listing_id) {
       return NextResponse.json({ error: 'listing_id inahitajika' }, { status: 400 })
     }
-    if (payment_type === 'mobile' && !msisdn) {
+    if (!msisdn) {
       return NextResponse.json({ error: 'msisdn inahitajika kwa mobile money' }, { status: 400 })
     }
 
@@ -59,7 +67,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Tayari umefungua listing hii', already_unlocked: true }, { status: 400 })
     }
 
-    const payment_ref = `NYU-${user.id.slice(0, 8)}-${Date.now()}`
+    const payment_ref = generateExternalId('NYU')
 
     // ── Dev / mock mode: complete immediately for ALL providers ──
     if (IS_DEV) {
@@ -125,64 +133,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ unlock_id: unlock.id, mock: true, amount: UNLOCK_AMOUNT })
     }
 
-    // ── Production paths ──────────────────────────────────
+    // ── Production path: AzamPay mobile checkout ──────────
+    const accountNumber = normalizePhone(msisdn)
+    const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
+    const callbackUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/webhook`
 
-    // Normalize msisdn for mobile
-    const normalizedMsisdn = msisdn
-      ? (msisdn.startsWith('+') ? msisdn.slice(1)
-        : msisdn.startsWith('0') ? `255${msisdn.slice(1)}`
-        : msisdn.startsWith('255') ? msisdn : `255${msisdn}`)
-      : ''
-
-    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/webhook`
-
-    // ── Card payment ──────────────────────────────────────
-    if (payment_type === 'card') {
-      const { data: userData } = await admin
-        .from('users')
-        .select('email, full_name')
-        .eq('id', user.id)
-        .single()
-
-      const { data: unlock, error: insertError } = await admin
-        .from('contact_unlocks')
-        .insert({
-          client_id:      user.id,
-          listing_id,
-          dalali_id:      listing.dalali_id,
-          amount_paid:    UNLOCK_AMOUNT,
-          payment_method: provider,
-          payment_ref,
-          status:         'pending',
-        })
-        .select('id')
-        .single()
-
-      if (insertError || !unlock) {
-        return NextResponse.json({ error: 'Imeshindwa kuanzisha malipo' }, { status: 500 })
-      }
-
-      const result = await initiateCardPayment({
-        order_id:    payment_ref,
-        amount:      UNLOCK_AMOUNT,
-        webhook_url: webhookUrl,
-        buyer_email: userData?.email ?? '',
-        buyer_name:  userData?.full_name ?? 'Mteja',
-      })
-
-      if (!result.ok) {
-        await admin.from('contact_unlocks').delete().eq('id', unlock.id)
-        return NextResponse.json({ error: result.error }, { status: 502 })
-      }
-
-      return NextResponse.json({
-        unlock_id:   unlock.id,
-        payment_url: result.payment_url,
-        amount:      UNLOCK_AMOUNT,
-      })
-    }
-
-    // ── Mobile money STK push ─────────────────────────────
     const { data: unlock, error: insertError } = await admin
       .from('contact_unlocks')
       .insert({
@@ -201,17 +156,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Imeshindwa kuanzisha malipo' }, { status: 500 })
     }
 
-    const result = await initiateStkPush({
-      order_id:    payment_ref,
-      msisdn:      normalizedMsisdn,
+    const result = await mobileCheckout({
+      accountNumber,
       amount:      UNLOCK_AMOUNT,
-      webhook_url: webhookUrl,
-      provider,
+      externalId:  payment_ref,
+      provider:    azamProvider,
+      callbackUrl,
     })
 
     if (!result.ok) {
       await admin.from('contact_unlocks').delete().eq('id', unlock.id)
-      return NextResponse.json({ error: result.error }, { status: 502 })
+      return NextResponse.json({ error: result.message }, { status: 502 })
     }
 
     return NextResponse.json({ unlock_id: unlock.id, payment_ref, amount: UNLOCK_AMOUNT })

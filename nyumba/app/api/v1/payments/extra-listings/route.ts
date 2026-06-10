@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { initiateStkPush } from '@/lib/selcom'
+import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
 
 const PRICE_PER_EXTRA = 2_000
-const IS_DEV = !process.env.SELCOM_API_KEY || process.env.SELCOM_API_KEY.startsWith('test_')
+const IS_DEV = !process.env.AZAMPAY_CLIENT_ID
+
+function toAzamProvider(p: string): MobileProvider {
+  const map: Record<string, MobileProvider> = {
+    mpesa: 'Mpesa', airtel: 'AirtelMoney', tigopesa: 'Tigopesa', halopesa: 'Halopesa',
+    Mpesa: 'Mpesa', AirtelMoney: 'AirtelMoney', Tigopesa: 'Tigopesa', Halopesa: 'Halopesa',
+  }
+  return map[p] ?? 'Mpesa'
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,23 +64,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, mock: true, added: count, amount })
     }
 
-    // Production — STK push
-    const payment_ref  = `EXTRA-${user.id.slice(0, 8)}-${Date.now()}`
-    const webhookUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/extra-listings/webhook`
-    const normalizedMs = msisdn.startsWith('+') ? msisdn.slice(1)
-      : msisdn.startsWith('0')   ? `255${msisdn.slice(1)}`
-      : msisdn.startsWith('255') ? msisdn : `255${msisdn}`
+    // Production — AzamPay mobile checkout
+    const payment_ref   = generateExternalId('EXTRA')
+    const callbackUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/extra-listings/webhook`
+    const accountNumber = normalizePhone(msisdn)
+    const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
 
-    const result = await initiateStkPush({
-      order_id:    payment_ref,
-      msisdn:      normalizedMs,
+    const result = await mobileCheckout({
+      accountNumber,
       amount,
-      webhook_url: webhookUrl,
-      provider,
+      externalId:  payment_ref,
+      provider:    azamProvider,
+      callbackUrl,
     })
 
     if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: 502 })
+      return NextResponse.json({ error: result.message }, { status: 502 })
     }
 
     // Store pending payment metadata in subscription for webhook to pick up

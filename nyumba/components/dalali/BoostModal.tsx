@@ -1,10 +1,9 @@
 'use client'
 import { useState } from 'react'
 import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
-import CardDetailsForm from '@/components/payments/CardDetailsForm'
 import type { PaymentMethod } from '@/components/payments/PaymentMethodSelector'
 
-type BoostStep = 'select_package' | 'select_payment' | 'mobile_phone' | 'card_details' | 'processing' | 'success'
+type BoostStep = 'select_package' | 'select_payment' | 'mobile_phone' | 'processing' | 'success'
 
 type WeekOption = { weeks: 1 | 2 | 4; price: number; label: string; discount: string | null }
 
@@ -63,13 +62,9 @@ export default function BoostModal({
   // ── Step 2: PaymentMethodSelector calls this ─────────────────────────────────
   function handleSelectorPay(method: PaymentMethod) {
     setSelectedMethod(method)
-    if (method === 'visa' || method === 'mastercard') {
-      setBoostStep('card_details')
-    } else {
-      setPhoneNumber('')
-      setPhoneError('')
-      setBoostStep('mobile_phone')
-    }
+    setPhoneNumber('')
+    setPhoneError('')
+    setBoostStep('mobile_phone')
   }
 
   // ── Step mobile_phone → processing ──────────────────────────────────────────
@@ -82,17 +77,12 @@ export default function BoostModal({
     processBoostPayment()
   }
 
-  // ── Step 3 (card) → processing ───────────────────────────────────────────────
-  function handleCardSubmit() {
-    processBoostPayment()
-  }
-
   // ── Core processing ──────────────────────────────────────────────────────────
   async function processBoostPayment() {
     setBoostStep('processing')
     setError('')
     try {
-      // Simulated payment delay — replace with real Selcom STK push when ready
+      // Simulated payment delay — replace with real AzamPay mobile checkout when ready
       await new Promise(r => setTimeout(r, 2000))
 
       const res  = await fetch(`/api/v1/listings/${listingId}/boost`, {
@@ -336,16 +326,6 @@ export default function BoostModal({
               Ghairi
             </button>
           </div>
-        )}
-
-        {/* ── STEP 4: Taarifa za Kadi ── */}
-        {boostStep === 'card_details' && (
-          <CardDetailsForm
-            cardType={selectedMethod as 'visa' | 'mastercard'}
-            amount={amount}
-            onBack={() => setBoostStep('select_payment')}
-            onSubmit={handleCardSubmit}
-          />
         )}
 
         {/* ── STEP 5: Inashughulikia ── */}

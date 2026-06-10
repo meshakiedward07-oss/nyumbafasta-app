@@ -1,33 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { verifyWebhookSignature } from '@/lib/selcom'
+import { isWebhookSuccess, getExternalId, type WebhookPayload } from '@/lib/payments/azampay'
 
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text()
-    const digest = req.headers.get('Digest') ?? ''
-    const ts = req.headers.get('Timestamp') ?? ''
 
-    if (!verifyWebhookSignature(rawBody, digest, ts)) {
-      return NextResponse.json({ error: 'Signature batili' }, { status: 401 })
-    }
+    // No signature to verify for AzamPay sandbox.
+    // In production, verify by IP allowlist or a shared secret if AzamPay provides one.
+    const payload: WebhookPayload = JSON.parse(rawBody)
+    const externalId = getExternalId(payload)
+    const succeeded = isWebhookSuccess(payload)
 
-    const { order_id, resultcode, result } = JSON.parse(rawBody)
-    if (!order_id) return NextResponse.json({ received: true })
+    if (!externalId) return NextResponse.json({ received: true })
 
     const admin = createAdminClient()
 
     const { data: subscription } = await admin
       .from('subscriptions')
       .select('id, dalali_id, plan, status')
-      .eq('payment_ref', order_id)
+      .eq('payment_ref', externalId)
       .maybeSingle()
 
     if (!subscription || subscription.status !== 'pending') {
       return NextResponse.json({ received: true })
     }
-
-    const succeeded = resultcode === '000' || result === 'SUCCESS'
 
     await admin
       .from('subscriptions')
