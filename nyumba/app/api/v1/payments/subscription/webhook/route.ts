@@ -6,45 +6,64 @@ export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text()
 
-    // No signature to verify for AzamPay sandbox.
-    // In production, verify by IP allowlist or a shared secret if AzamPay provides one.
+    console.log('[Sub Webhook] Received:', rawBody.slice(0, 500))
+
     const payload: WebhookPayload = JSON.parse(rawBody)
     const externalId = getExternalId(payload)
-    const succeeded = isWebhookSuccess(payload)
+    const succeeded  = isWebhookSuccess(payload)
 
-    if (!externalId) return NextResponse.json({ received: true })
+    console.log('[Sub Webhook] externalId:', externalId, '| status:', payload.transactionstatus, '| succeeded:', succeeded)
+
+    if (!externalId) {
+      console.warn('[Sub Webhook] No externalId in payload — ignoring')
+      return NextResponse.json({ received: true })
+    }
 
     const admin = createAdminClient()
 
+    console.log('[Sub Webhook] Looking for subscription with payment_ref:', externalId)
     const { data: subscription } = await admin
       .from('subscriptions')
       .select('id, dalali_id, plan, status')
       .eq('payment_ref', externalId)
       .maybeSingle()
 
+    console.log('[Sub Webhook] Found subscription:', subscription ? `id=${subscription.id} status=${subscription.status}` : 'NOT FOUND')
+
     if (!subscription || subscription.status !== 'pending') {
       return NextResponse.json({ received: true })
     }
 
+    const newStatus = succeeded ? 'active' : 'cancelled'
+    console.log('[Sub Webhook] Updating subscription status to:', newStatus)
+
     await admin
       .from('subscriptions')
-      .update({ status: succeeded ? 'active' : 'cancelled' })
+      .update({ status: newStatus })
       .eq('id', subscription.id)
+
+    // Update payments audit table (non-blocking)
+    admin.from('payments').update({
+      status:         succeeded ? 'completed' : 'failed',
+      transaction_id: payload.transid,
+    }).eq('external_id', externalId).then(() => {})
 
     if (succeeded) {
       const planName = subscription.plan === 'premium' ? 'Premium ⭐' : 'Basic'
       await admin.from('notifications').insert({
         user_id: subscription.dalali_id,
-        title: '✅ Subscription Imewashwa!',
-        body: `Plan yako ya ${planName} imefanikiwa. Listings zako zinaonekana kwa wateja.`,
-        type: 'subscription_active',
+        title:   '✅ Subscription Imewashwa!',
+        body:    `Plan yako ya ${planName} imefanikiwa. Listings zako zinaonekana kwa wateja.`,
+        type:    'subscription_active',
         is_read: false,
-        data: { plan: subscription.plan },
+        data:    { plan: subscription.plan },
       })
+      console.log('[Sub Webhook] Subscription activated + notification sent:', subscription.id)
     }
 
-    return NextResponse.json({ received: true })
-  } catch {
+    return NextResponse.json({ received: true, success: succeeded })
+  } catch (err) {
+    console.error('[Sub Webhook] Error:', err)
     return NextResponse.json({ received: true })
   }
 }

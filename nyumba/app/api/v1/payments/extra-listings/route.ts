@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, type MobileProvider } from '@/lib/payments/azampay'
 
 const PRICE_PER_EXTRA = 2_000
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
@@ -65,7 +65,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Production — AzamPay mobile checkout
-    const payment_ref   = generateExternalId('EXTRA')
+    // Encode sub_id + count into externalId so webhook can decode without schema changes
+    // Format: EX-{subscription_uuid}-{count} → 7 dash-separated segments
+    const payment_ref   = `EX-${sub.id}-${count}`
     const callbackUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/extra-listings/webhook`
     const accountNumber = normalizePhone(msisdn)
     const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
@@ -82,11 +84,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.message }, { status: 502 })
     }
 
-    // Store pending payment metadata in subscription for webhook to pick up
-    await admin.from('subscriptions').update({
-      extra_listings_fee: (sub.extra_listings_fee ?? 0) + amount,
-    }).eq('id', sub.id)
-
+    // Webhook will update extra_listings + extra_listings_fee on confirmed payment
     return NextResponse.json({ payment_ref, amount, sub_id: sub.id, extra_count: count })
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

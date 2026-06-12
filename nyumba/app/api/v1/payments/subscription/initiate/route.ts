@@ -75,9 +75,13 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Production path: AzamPay mobile checkout ──────────
-    const callbackUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/subscription/webhook`
     const accountNumber = normalizePhone(msisdn)
-    const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
+    if (!accountNumber.startsWith('255') || accountNumber.length !== 12 || !/^\d{12}$/.test(accountNumber)) {
+      return NextResponse.json({ error: 'Namba ya simu si sahihi. Tumia format ya Tanzania (07XXXXXXXX)' }, { status: 400 })
+    }
+
+    const callbackUrl  = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/subscription/webhook`
+    const azamProvider = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
 
     const { data: subscription, error: insertError } = await admin
       .from('subscriptions')
@@ -95,8 +99,17 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertError || !subscription) {
-      return NextResponse.json({ error: 'Imeshindwa kuanzisha subscription' }, { status: 500 })
+      const errDetail = insertError
+        ? { message: insertError.message, code: insertError.code, details: insertError.details, hint: insertError.hint }
+        : { message: 'subscription is null after insert (no error)', code: 'NULL_RESULT' }
+      console.error('[Sub/initiate] Supabase insert FAILED:', JSON.stringify(errDetail))
+      return NextResponse.json({
+        error: insertError?.message ?? 'Imeshindwa kuanzisha subscription',
+        debug: errDetail,
+      }, { status: 500 })
     }
+
+    console.log('[Sub/initiate] Calling mobileCheckout — sub:', subscription.id, 'ref:', payment_ref)
 
     const result = await mobileCheckout({
       accountNumber,
@@ -107,12 +120,37 @@ export async function POST(req: NextRequest) {
     })
 
     if (!result.ok) {
+      console.error('[Sub/initiate] mobileCheckout failed:', result.message)
       await admin.from('subscriptions').delete().eq('id', subscription.id)
       return NextResponse.json({ error: result.message }, { status: 502 })
     }
 
-    return NextResponse.json({ subscription_id: subscription.id, payment_ref, amount })
-  } catch {
-    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+    // Save to payments audit table (non-blocking — if table missing, don't fail)
+    admin.from('payments').insert({
+      external_id:    payment_ref,
+      amount,
+      currency:       'TZS',
+      status:         'pending',
+      type:           'subscription',
+      provider:       azamProvider,
+      customer_phone: accountNumber,
+      dalali_id:      user.id,
+      reference_id:   subscription.id,
+    }).then(({ error }) => {
+      if (error) console.warn('[Sub/initiate] payments table insert failed (non-fatal):', error.message)
+    })
+
+    console.log('[Sub/initiate] Payment initiated ✓ sub:', subscription.id, '→ "Subiri USSD popup kwenye simu yako"')
+    return NextResponse.json({
+      success:         true,
+      subscription_id: subscription.id,
+      payment_ref,
+      amount,
+      message:         'Subiri USSD popup kwenye simu yako',
+    })
+  } catch (err: unknown) {
+    console.error('[Sub/initiate] Unexpected error:', err)
+    const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

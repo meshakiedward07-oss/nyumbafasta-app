@@ -100,6 +100,19 @@ export default function UnlockModal({
   async function handleMobilePay(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    // Validate phone before sending to API
+    const digits = phone.replace(/\D/g, '')
+    if (!digits) {
+      setError('Weka namba yako ya simu ya malipo')
+      return
+    }
+    const normalized = digits.startsWith('0') ? `255${digits.slice(1)}` : `255${digits}`
+    if (!normalized.startsWith('255') || normalized.length !== 12) {
+      setError('Namba ya simu si sahihi. Mfano: 0744 123 456')
+      return
+    }
+
     setLoading(true)
     try {
       const res = await fetch('/api/v1/payments/unlock/initiate', {
@@ -107,7 +120,7 @@ export default function UnlockModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listing_id: listingId,
-          msisdn: phone,
+          msisdn: normalized,   // always send in 255XXXXXXXXX format
           provider,
         }),
       })

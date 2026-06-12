@@ -23,7 +23,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'listing_id inahitajika' }, { status: 400 })
     }
     if (!msisdn) {
-      return NextResponse.json({ error: 'msisdn inahitajika kwa mobile money' }, { status: 400 })
+      return NextResponse.json({ error: 'Weka namba yako ya simu ya malipo' }, { status: 400 })
+    }
+    // Validate normalized format: must be 255XXXXXXXXX (12 digits)
+    const normalized = normalizePhone(msisdn)
+    if (!normalized.startsWith('255') || normalized.length !== 12 || !/^\d{12}$/.test(normalized)) {
+      return NextResponse.json({ error: 'Namba ya simu si sahihi. Tumia format ya Tanzania (07XXXXXXXX)' }, { status: 400 })
     }
 
     const supabase = await createClient()
@@ -134,7 +139,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Production path: AzamPay mobile checkout ──────────
-    const accountNumber = normalizePhone(msisdn)
+    const accountNumber = normalized  // already validated above
     const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
     const callbackUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/webhook`
 

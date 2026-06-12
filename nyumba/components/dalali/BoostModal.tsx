@@ -1,9 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
 import type { PaymentMethod } from '@/components/payments/PaymentMethodSelector'
 
-type BoostStep = 'select_package' | 'select_payment' | 'mobile_phone' | 'processing' | 'success'
+type BoostStep = 'select_package' | 'select_payment' | 'mobile_phone' | 'processing' | 'waiting' | 'success'
 
 type WeekOption = { weeks: 1 | 2 | 4; price: number; label: string; discount: string | null }
 
@@ -27,12 +27,63 @@ function fmt(n: number) { return n.toLocaleString() }
 export default function BoostModal({
   listingId, listingTitle, boostedUntil, onClose, onBoosted,
 }: Props) {
-  const [boostStep,      setBoostStep]      = useState<BoostStep>('select_package')
-  const [selectedWeeks,  setSelectedWeeks]  = useState<1 | 2 | 4>(1)
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
-  const [phoneNumber,    setPhoneNumber]    = useState('')
-  const [phoneError,     setPhoneError]     = useState('')
-  const [error,          setError]          = useState('')
+  const [boostStep,         setBoostStep]         = useState<BoostStep>('select_package')
+  const [selectedWeeks,     setSelectedWeeks]     = useState<1 | 2 | 4>(1)
+  const [selectedMethod,    setSelectedMethod]    = useState<PaymentMethod | null>(null)
+  const [phoneNumber,       setPhoneNumber]       = useState('')
+  const [phoneError,        setPhoneError]        = useState('')
+  const [error,             setError]             = useState('')
+  const [, setPaymentRef]        = useState('')
+  const [finalBoostedUntil, setFinalBoostedUntil] = useState('')
+  const [secondsLeft,       setSecondsLeft]       = useState(120)
+
+  const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current)  clearInterval(pollRef.current)
+    if (timerRef.current) clearInterval(timerRef.current)
+  }, [])
+
+  const startPolling = useCallback((ref: string) => {
+    pollRef.current = setInterval(async () => {
+      try {
+        const res  = await fetch(`/api/v1/payments/boost/status?ref=${encodeURIComponent(ref)}`)
+        const data = await res.json()
+        if (data.status === 'completed') {
+          stopPolling()
+          setFinalBoostedUntil(data.boosted_until ?? '')
+          onBoosted(data.boosted_until ?? '')
+          setBoostStep('success')
+        } else if (data.status === 'failed') {
+          stopPolling()
+          setError('Malipo hayakufanikiwa. Jaribu tena.')
+          setBoostStep('select_payment')
+        }
+      } catch {
+        // network hiccup — keep polling
+      }
+    }, 3000)
+  }, [stopPolling, onBoosted])
+
+  useEffect(() => {
+    if (boostStep !== 'waiting') return
+    setSecondsLeft(120)
+    timerRef.current = setInterval(() => {
+      setSecondsLeft(s => {
+        if (s <= 1) {
+          stopPolling()
+          setError('Muda umeisha. Jaribu tena.')
+          setBoostStep('select_payment')
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [boostStep, stopPolling])
+
+  useEffect(() => { return () => stopPolling() }, [stopPolling])
 
   const providerInfo = PAYMENT_METHODS.find(m => m.id === selectedMethod)
 
@@ -41,11 +92,11 @@ export default function BoostModal({
     return /^(255|0)[67]\d{8}$/.test(cleaned) || /^[67]\d{8}$/.test(cleaned)
   }
 
-  function formatPhone(phone: string): string {
+  function normalizeForApi(phone: string): string {
     const cleaned = phone.replace(/\D/g, '')
-    if (cleaned.startsWith('255')) return '+' + cleaned
-    if (cleaned.startsWith('0')) return '+255' + cleaned.slice(1)
-    return '+255' + cleaned
+    if (cleaned.startsWith('255')) return cleaned
+    if (cleaned.startsWith('0'))   return '255' + cleaned.slice(1)
+    return '255' + cleaned
   }
 
   const boostedUntilDate = boostedUntil ? new Date(boostedUntil) : null
@@ -54,12 +105,10 @@ export default function BoostModal({
   const pkg    = WEEK_OPTIONS.find(o => o.weeks === selectedWeeks)!
   const amount = pkg.price
 
-  // ── Step 1 → 2 ──────────────────────────────────────────────────────────────
   function handlePackageContinue() {
     setBoostStep('select_payment')
   }
 
-  // ── Step 2: PaymentMethodSelector calls this ─────────────────────────────────
   function handleSelectorPay(method: PaymentMethod) {
     setSelectedMethod(method)
     setPhoneNumber('')
@@ -67,7 +116,6 @@ export default function BoostModal({
     setBoostStep('mobile_phone')
   }
 
-  // ── Step mobile_phone → processing ──────────────────────────────────────────
   function handlePhoneSubmit() {
     if (!validatePhone(phoneNumber)) {
       setPhoneError('Nambari si sahihi — ingiza nambari ya Tanzania (mfano: 0754 XXX XXX)')
@@ -77,28 +125,34 @@ export default function BoostModal({
     processBoostPayment()
   }
 
-  // ── Core processing ──────────────────────────────────────────────────────────
   async function processBoostPayment() {
     setBoostStep('processing')
     setError('')
     try {
-      // Simulated payment delay — replace with real AzamPay mobile checkout when ready
-      await new Promise(r => setTimeout(r, 2000))
-
-      const res  = await fetch(`/api/v1/listings/${listingId}/boost`, {
+      const msisdn = normalizeForApi(phoneNumber)
+      const res  = await fetch('/api/v1/payments/boost/initiate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          weeks: selectedWeeks,
-          payment_method: selectedMethod,
-          payment_phone: phoneNumber ? formatPhone(phoneNumber) : undefined,
+          listing_id: listingId,
+          weeks:      selectedWeeks,
+          msisdn,
+          provider:   selectedMethod,
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa kuboost')
+      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa kuwasiliana na AzamPay')
 
-      onBoosted(data.boosted_until)
-      setBoostStep('success')
+      if (data.mock) {
+        setFinalBoostedUntil(data.boosted_until ?? '')
+        onBoosted(data.boosted_until ?? '')
+        setBoostStep('success')
+        return
+      }
+
+      setPaymentRef(data.payment_ref)
+      setBoostStep('waiting')
+      startPolling(data.payment_ref)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
       setBoostStep('select_payment')
@@ -243,7 +297,7 @@ export default function BoostModal({
           </div>
         )}
 
-        {/* ── STEP 3: Nambari ya Simu (Mobile Money) ── */}
+        {/* ── STEP 3: Nambari ya Simu ── */}
         {boostStep === 'mobile_phone' && (
           <div>
             <button
@@ -328,13 +382,41 @@ export default function BoostModal({
           </div>
         )}
 
-        {/* ── STEP 5: Inashughulikia ── */}
+        {/* ── STEP 4: Inawasiliana na AzamPay ── */}
         {boostStep === 'processing' && (
           <div className="text-center py-14">
             <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full
                             animate-spin mx-auto mb-5" />
-            <p className="font-semibold text-lg text-gray-900">Inashughulikia Malipo...</p>
+            <p className="font-semibold text-lg text-gray-900">⏳ Inawasiliana na AzamPay...</p>
             <p className="text-gray-400 text-sm mt-1">Tafadhali subiri</p>
+          </div>
+        )}
+
+        {/* ── STEP 5: Subiri USSD ── */}
+        {boostStep === 'waiting' && (
+          <div className="text-center py-10 px-4">
+            <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full
+                            animate-spin mx-auto mb-5" />
+            <div className="inline-flex items-center gap-1.5 bg-green-50 border border-green-100
+                            text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+              ✅ Subiri USSD popup kwenye simu yako
+            </div>
+            <p className="text-gray-500 text-sm mb-1">
+              Ingiza PIN yako ya {providerInfo?.name ?? 'mobile money'} kukamilisha malipo
+            </p>
+            <p className="text-gray-400 text-xs mb-6">
+              Tsh {fmt(amount)} · Inakagua kiotomatiki...
+            </p>
+            <div className="bg-gray-50 rounded-2xl p-3 mb-4">
+              <p className="text-gray-400 text-xs">
+                Muda uliobaki: <span className="font-semibold text-gray-600">{secondsLeft}s</span>
+              </p>
+            </div>
+            {error && (
+              <div className="bg-red-50 border border-red-100 text-red-600 text-xs px-3 py-2 rounded-xl mt-3">
+                {error}
+              </div>
+            )}
           </div>
         )}
 
@@ -344,11 +426,11 @@ export default function BoostModal({
             <div className="text-6xl mb-4 animate-bounce">🚀</div>
             <h3 className="font-bold text-xl text-gray-900 mb-2">Listing Imeboostwa!</h3>
             <p className="text-gray-500 text-sm mb-1">Listing yako itaonekana juu ya wote</p>
-            <p className="text-gray-400 text-xs mb-6" suppressHydrationWarning>
-              Hadi: {new Date(
-                Date.now() + selectedWeeks * 7 * 24 * 60 * 60 * 1000
-              ).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
+            {finalBoostedUntil && (
+              <p className="text-gray-400 text-xs mb-6" suppressHydrationWarning>
+                Hadi: {new Date(finalBoostedUntil).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            )}
             <button
               onClick={onClose}
               className="w-full bg-yellow-400 text-gray-900 py-3 rounded-2xl font-bold

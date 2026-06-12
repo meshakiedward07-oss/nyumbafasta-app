@@ -149,20 +149,33 @@ export default function SubscriptionClient({
   async function handlePay(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    // Validate phone format before sending
+    const digits = phone.replace(/\D/g, '')
+    if (!digits) {
+      setError('Weka namba yako ya simu ya malipo')
+      return
+    }
+    const normalized = digits.startsWith('0') ? `255${digits.slice(1)}` : `255${digits}`
+    if (!normalized.startsWith('255') || normalized.length !== 12) {
+      setError('Namba ya simu si sahihi. Mfano: 0744 123 456')
+      return
+    }
+
     setLoading(true)
     try {
       const res = await fetch('/api/v1/payments/subscription/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: selectedPlan, msisdn: phone, provider }),
+        body: JSON.stringify({ plan: selectedPlan, msisdn: normalized, provider }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa')
+      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa kuwasiliana na AzamPay')
       if (data.mock) { setStep('success'); return }
       setStep('waiting')
       startPolling(data.subscription_id)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
+      setError(err instanceof Error ? err.message : 'Hitilafu imetokea. Jaribu tena.')
     } finally {
       setLoading(false)
     }
@@ -283,7 +296,7 @@ export default function SubscriptionClient({
               {error && <p className="text-xs text-red-500">{error}</p>}
               <button type="submit" disabled={loading || phone.replace(/\D/g,'').length < 9}
                 className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
-                {loading ? 'Inaanzisha...' : '📱 Lipa Sasa'}
+                {loading ? '⏳ Inawasiliana na AzamPay...' : '📱 Lipa Sasa'}
               </button>
             </form>
           </div>
@@ -294,7 +307,14 @@ export default function SubscriptionClient({
       {step === 'waiting' && !renewed && (
         <div className="px-4 pt-10 text-center">
           <div className="text-5xl mb-4">📲</div>
-          <h2 className="text-base font-bold text-gray-900 mb-2">Angalia Simu Yako!</h2>
+          <h2 className="text-base font-bold text-gray-900 mb-1">Angalia Simu Yako!</h2>
+
+          {/* Success hint */}
+          <div className="inline-flex items-center gap-1.5 bg-primary-50 border border-primary-100 text-primary-700
+                          text-xs font-semibold px-3 py-1.5 rounded-full mb-3">
+            ✅ Subiri USSD popup kwenye simu yako
+          </div>
+
           <p className="text-sm text-gray-500 mb-1">
             Ombi la malipo limetumwa kwa{' '}
             <span className="font-semibold text-gray-800">+255{phone}</span>
@@ -319,7 +339,7 @@ export default function SubscriptionClient({
             <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
           </div>
 
-          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-xs text-amber-700 text-left mx-2 mb-6">
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-xs text-amber-700 text-left mx-2 mb-4">
             <p className="font-semibold mb-1">Jinsi ya kuthibitisha:</p>
             <ol className="list-decimal list-inside space-y-1">
               <li>Angalia SMS au ombi la USSD kwenye simu</li>
@@ -329,10 +349,20 @@ export default function SubscriptionClient({
           </div>
 
           {error && (
-            <p className="text-xs text-red-500 mb-3">{error}</p>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3 mx-2 mb-3">
+              <p className="text-sm font-semibold text-red-700 mb-1">❌ Malipo hayakufanikiwa</p>
+              <p className="text-xs text-red-600">{error}</p>
+              <button
+                onClick={() => { stopPolling(); setError(''); setStep('phone') }}
+                className="mt-2 w-full bg-red-600 text-white py-2.5 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
+              >
+                🔄 Jaribu Tena
+              </button>
+            </div>
           )}
+
           <button
-            onClick={() => { stopPolling(); setStep('phone') }}
+            onClick={() => { stopPolling(); setError(''); setStep('phone') }}
             className="text-sm text-gray-400 underline py-2"
           >
             ← Badilisha njia ya kulipa
