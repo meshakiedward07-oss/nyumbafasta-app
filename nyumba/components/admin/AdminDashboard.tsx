@@ -66,6 +66,7 @@ type Props = {
   stats: Stats
   reports?: ReportItem[]
   regionStats?: [string, number][]
+  initialTab?: Tab
 }
 
 const typeLabel: Record<string, string> = {
@@ -111,11 +112,12 @@ function SubBadge({ subscriptions }: { subscriptions: AdminDalaliDetailed['subsc
 export default function AdminDashboard({
   pendingListings, allListings, users, unlocks, subscriptions,
   pendingVerifications, madalaliDetailed, watejaDetailed, savedListings, stats, reports = [], regionStats = [],
+  initialTab = 'overview',
 }: Props) {
   const router = useRouter()
 
   // ── Main tabs ─────────────────────────────────────────
-  const [tab, setTab]   = useState<Tab>('overview')
+  const [tab, setTab]   = useState<Tab>(initialTab)
   const [listings, setListings] = useState(pendingListings)
   const [listingStatusFilter, setListingStatusFilter] = useState<string>('pending')
   const [loadingId, setLoadingId]   = useState<string | null>(null)
