@@ -54,7 +54,8 @@ export default function SubscriptionClient({
   const [selectedPlan, setSelectedPlan] = useState<PlanType>(
     (currentPlan as PlanType) ?? 'basic'
   )
-  const [step, setStep]             = useState<'overview' | 'new_plan' | 'provider' | 'phone' | 'waiting' | 'success'>('overview')
+  const [step, setStep]             = useState<'overview' | 'new_plan' | 'provider' | 'phone' | 'renew_phone' | 'waiting' | 'success'>('overview')
+  const [renewPlan, setRenewPlan]   = useState<PlanType | null>(null)
   const [provider, setProvider]     = useState<PaymentProvider>('Mpesa')
   const [phone, setPhone]           = useState('')
   const [loading, setLoading]       = useState(false)
@@ -73,7 +74,7 @@ export default function SubscriptionClient({
     if (timerRef.current) clearInterval(timerRef.current)
   }, [])
 
-  const startPolling = useCallback((subId: string) => {
+  const startPolling = useCallback((subId: string, onFail?: () => void) => {
     pollRef.current = setInterval(async () => {
       const { data } = await supabase
         .from('subscriptions')
@@ -86,7 +87,7 @@ export default function SubscriptionClient({
       } else if (data?.status === 'cancelled' || data?.status === 'failed') {
         stopPolling()
         setError('Malipo hayakufanikiwa. Jaribu tena.')
-        setStep('phone')
+        onFail ? onFail() : setStep('phone')
       }
     }, 3000)
   }, [supabase, stopPolling])
@@ -124,20 +125,38 @@ export default function SubscriptionClient({
     ? applyDiscount(currentPlanData.price, discount)
     : 0
 
-  // One-tap renewal
-  async function handleRenew(plan?: PlanType) {
-    setRenewLoading(true)
+  // Open phone-collection step for renewal (replaces old one-tap mock renewal)
+  function handleRenew(plan?: PlanType) {
+    setRenewPlan((plan ?? currentPlan) as PlanType)
+    setPhone('')
     setError('')
+    setStep('renew_phone')
+  }
+
+  // Submit renewal with real AzamPay checkout
+  async function handleRenewSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+
+    const digits = phone.replace(/\D/g, '')
+    if (!digits) { setError('Weka namba yako ya simu ya malipo'); return }
+    const normalized = digits.startsWith('0') ? `255${digits.slice(1)}` : `255${digits}`
+    if (!normalized.startsWith('255') || normalized.length !== 12) {
+      setError('Namba ya simu si sahihi. Mfano: 0744 123 456')
+      return
+    }
+
+    setRenewLoading(true)
     try {
       const res = await fetch('/api/v1/payments/subscription/renew', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: plan ?? currentPlan }),
+        body: JSON.stringify({ plan: renewPlan, msisdn: normalized, provider }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Imeshindwa')
-      setRenewed(true)
-      setTimeout(() => router.refresh(), 1500)
+      setStep('waiting')
+      startPolling(data.subscription_id, () => setStep('renew_phone'))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
     } finally {
@@ -149,6 +168,7 @@ export default function SubscriptionClient({
   async function handlePay(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setRenewPlan(null)
 
     // Validate phone format before sending
     const digits = phone.replace(/\D/g, '')
@@ -303,6 +323,64 @@ export default function SubscriptionClient({
         </div>
       )}
 
+      {/* ── RENEW PHONE ENTRY ── */}
+      {step === 'renew_phone' && !renewed && (
+        <div className="px-4 pt-5">
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <button onClick={() => { setError(''); setStep('overview') }} className="text-gray-400 text-base">←</button>
+              <span className="text-sm font-bold text-gray-900">Huisha Subscription</span>
+            </div>
+            {renewPlan && (() => {
+              const rp = getPlan(renewPlan)
+              const price = discount > 0 ? applyDiscount(rp.price, discount) : rp.price
+              return (
+                <div className="rounded-xl p-3 mb-4 flex justify-between items-center"
+                  style={{ backgroundColor: rp.bgColor }}>
+                  <div>
+                    <p className="text-xs text-gray-500">Plan ya kuhuisha</p>
+                    <p className="text-sm font-bold text-gray-900">{rp.emoji} {rp.name}</p>
+                  </div>
+                  <p className="font-bold text-sm" style={{ color: rp.color }}>
+                    Tsh {fmt(price)}/mwezi{discount > 0 ? ` (-${discount}%)` : ''}
+                  </p>
+                </div>
+              )
+            })()}
+
+            <PaymentMethodSelector
+              selected={provider}
+              onSelect={v => setProvider(v)}
+              amount={renewPlan ? applyDiscount(getPlan(renewPlan).price, discount) : 0}
+              onPay={() => {}}
+            />
+
+            <form onSubmit={handleRenewSubmit} className="space-y-4 mt-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                  Nambari ya simu ya malipo
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
+                    🇹🇿 +255
+                  </div>
+                  <input type="tel" inputMode="numeric" required placeholder="7XX XXX XXX"
+                    value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                    maxLength={10}
+                    className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                  />
+                </div>
+              </div>
+              {error && <p className="text-xs text-red-500">{error}</p>}
+              <button type="submit" disabled={renewLoading || phone.replace(/\D/g,'').length < 9}
+                className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
+                {renewLoading ? '⏳ Inawasiliana na AzamPay...' : '📱 Lipa Sasa'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ── WAITING FOR USSD PUSH ── */}
       {step === 'waiting' && !renewed && (
         <div className="px-4 pt-10 text-center">
@@ -353,7 +431,7 @@ export default function SubscriptionClient({
               <p className="text-sm font-semibold text-red-700 mb-1">❌ Malipo hayakufanikiwa</p>
               <p className="text-xs text-red-600">{error}</p>
               <button
-                onClick={() => { stopPolling(); setError(''); setStep('phone') }}
+                onClick={() => { stopPolling(); setError(''); setStep(renewPlan ? 'renew_phone' : 'phone') }}
                 className="mt-2 w-full bg-red-600 text-white py-2.5 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
               >
                 🔄 Jaribu Tena
@@ -362,7 +440,7 @@ export default function SubscriptionClient({
           )}
 
           <button
-            onClick={() => { stopPolling(); setError(''); setStep('phone') }}
+            onClick={() => { stopPolling(); setError(''); setStep(renewPlan ? 'renew_phone' : 'phone') }}
             className="text-sm text-gray-400 underline py-2"
           >
             ← Badilisha njia ya kulipa

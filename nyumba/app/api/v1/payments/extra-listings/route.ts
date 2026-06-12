@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, buildCallbackUrl, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
 
 const PRICE_PER_EXTRA = 2_000
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
@@ -68,9 +68,27 @@ export async function POST(req: NextRequest) {
     // Encode sub_id + count into externalId so webhook can decode without schema changes
     // Format: EX-{subscription_uuid}-{count} → 7 dash-separated segments
     const payment_ref   = `EX-${sub.id}-${count}`
-    const callbackUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/extra-listings/webhook`
+    const callbackUrl   = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/extra-listings/webhook')
     const accountNumber = normalizePhone(msisdn)
     const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
+
+    // Insert pending payments row BEFORE calling AzamPay so webhook can update it
+    const { data: paymentRow, error: payInsertErr } = await admin
+      .from('payments')
+      .insert({
+        user_id:     user.id,
+        amount,
+        status:      'pending',
+        external_id: payment_ref,
+        description: `Extra listings x${count}`,
+      })
+      .select('id')
+      .single()
+
+    if (payInsertErr || !paymentRow) {
+      console.error('[ExtraListings] payments insert failed:', payInsertErr)
+      return NextResponse.json({ error: 'Imeshindwa kuanzisha malipo' }, { status: 500 })
+    }
 
     const result = await mobileCheckout({
       accountNumber,
@@ -81,6 +99,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!result.ok) {
+      await admin.from('payments').delete().eq('id', paymentRow.id)
       return NextResponse.json({ error: result.message }, { status: 502 })
     }
 
