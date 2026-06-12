@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, buildCallbackUrl, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, buildCallbackUrl, type MobileProvider } from '@/lib/payments/azampay'
 
 const PRICE_PER_EXTRA = 2_000
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'

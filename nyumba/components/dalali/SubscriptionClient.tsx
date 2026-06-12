@@ -61,7 +61,6 @@ export default function SubscriptionClient({
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState('')
   const [renewLoading, setRenewLoading] = useState(false)
-  const [renewed, setRenewed]       = useState(false)
   const [mounted, setMounted]       = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(120)
 
@@ -87,7 +86,7 @@ export default function SubscriptionClient({
       } else if (data?.status === 'cancelled' || data?.status === 'failed') {
         stopPolling()
         setError('Malipo hayakufanikiwa. Jaribu tena.')
-        onFail ? onFail() : setStep('phone')
+        if (onFail) { onFail() } else { setStep('phone') }
       }
     }, 3000)
   }, [supabase, stopPolling])
@@ -223,7 +222,7 @@ export default function SubscriptionClient({
       </div>
 
       {/* ── SUCCESS ── */}
-      {(step === 'success' || renewed) && (
+      {step === 'success' && (
         <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
           <div className="text-5xl mb-4 animate-bounce">🎉</div>
           <p className="text-lg font-bold text-gray-900 mb-2">Subscription Imewashwa!</p>
@@ -232,7 +231,7 @@ export default function SubscriptionClient({
       )}
 
       {/* ── PROVIDER SELECTION ── */}
-      {step === 'provider' && !renewed && (
+      {step === 'provider' && (
         <div className="px-4 pt-4 pb-4">
           <div className="flex items-center gap-2 mb-4">
             <button onClick={() => setStep('new_plan')} className="text-gray-400 text-lg">←</button>
@@ -272,7 +271,7 @@ export default function SubscriptionClient({
       )}
 
       {/* ── PHONE ENTRY ── */}
-      {step === 'phone' && !renewed && (
+      {step === 'phone' && (
         <div className="px-4 pt-5">
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
@@ -324,7 +323,7 @@ export default function SubscriptionClient({
       )}
 
       {/* ── RENEW PHONE ENTRY ── */}
-      {step === 'renew_phone' && !renewed && (
+      {step === 'renew_phone' && (
         <div className="px-4 pt-5">
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
@@ -382,7 +381,7 @@ export default function SubscriptionClient({
       )}
 
       {/* ── WAITING FOR USSD PUSH ── */}
-      {step === 'waiting' && !renewed && (
+      {step === 'waiting' && (
         <div className="px-4 pt-10 text-center">
           <div className="text-5xl mb-4">📲</div>
           <h2 className="text-base font-bold text-gray-900 mb-1">Angalia Simu Yako!</h2>
@@ -449,7 +448,7 @@ export default function SubscriptionClient({
       )}
 
       {/* ── NEW PLAN SELECTION — Cards za plans zote 4 ── */}
-      {step === 'new_plan' && !renewed && (
+      {step === 'new_plan' && (
         <div className="px-4 pt-5 space-y-4">
           {error && <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
 
@@ -629,7 +628,7 @@ export default function SubscriptionClient({
       )}
 
       {/* ── OVERVIEW ── */}
-      {step === 'overview' && !renewed && (
+      {step === 'overview' && (
         <div className="px-4 pt-5 space-y-4">
 
           {error && <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
