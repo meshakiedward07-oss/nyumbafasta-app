@@ -85,11 +85,17 @@ export async function GET(req: NextRequest) {
   }
 
   if (mode === 'subscribe' && token === verifyToken) {
-    console.log('[WA webhook] Webhook verification successful')
+    console.log('[WA webhook] Verification OK')
     return new NextResponse(challenge, { status: 200 })
   }
 
-  console.warn('[WA webhook] Verification failed — wrong token or mode:', { mode, token: token?.slice(0, 8) })
+  // Log full received token so we can diagnose mismatches
+  console.warn('[WA webhook] Verification FAILED', {
+    mode,
+    received_token: token ?? '(empty)',
+    expected_prefix: verifyToken.slice(0, 10) + '…',
+    match: token === verifyToken,
+  })
   return new NextResponse('Forbidden', { status: 403 })
 }
 
