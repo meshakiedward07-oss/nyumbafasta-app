@@ -67,6 +67,36 @@ export async function GET(req: NextRequest) {
     supabaseTest = { ok: false, exception: String(e) }
   }
 
+  // Test actual AzamPay auth from this server
+  let azamAuthTest: Record<string, unknown> = {}
+  try {
+    const isSandbox = (process.env.AZAMPAY_ENVIRONMENT ?? 'sandbox') !== 'production'
+    const authUrl   = isSandbox
+      ? 'https://authenticator-sandbox.azampay.co.tz/AppRegistration/GenerateToken'
+      : 'https://authenticator.azampay.co.tz/AppRegistration/GenerateToken'
+
+    const authBody = { appName: process.env.AZAMPAY_APP_NAME ?? 'NyumbaFasta', clientId, clientSecret }
+    console.log('[Debug] Sending to AzamPay:', authUrl, JSON.stringify({
+      appName: authBody.appName,
+      clientId: clientId ? `${clientId.slice(0,8)}...` : 'MISSING',
+      clientSecret: clientSecret ? `len=${clientSecret.length}` : 'MISSING',
+    }))
+
+    const authRes  = await fetch(authUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(authBody),
+    })
+    const authRaw  = await authRes.text()
+    azamAuthTest = {
+      status:     authRes.status,
+      ok:         authRes.ok,
+      body:       authRaw.slice(0, 400),
+    }
+  } catch (e) {
+    azamAuthTest = { ok: false, exception: String(e) }
+  }
+
   return Response.json({
     env: {
       appName:       process.env.AZAMPAY_APP_NAME      ? 'SET' : 'MISSING',
@@ -79,6 +109,7 @@ export async function GET(req: NextRequest) {
       serviceKey:    process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING',
       mock:          process.env.AZAMPAY_MOCK           ?? 'NOT SET (production mode)',
     },
-    supabase: supabaseTest,
+    supabase:  supabaseTest,
+    azam_auth: azamAuthTest,
   })
 }
