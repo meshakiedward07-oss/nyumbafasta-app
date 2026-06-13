@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -7,25 +7,36 @@ import { createClient } from '@/lib/supabase/client'
 // Real-time pending conversation count badge
 function PendingBadge() {
   const [count, setCount] = useState(0)
-  const supabase = createClient()
+  const mountId = useRef(Math.random().toString(36).slice(2))
 
   useEffect(() => {
+    const supabase = createClient()
+    const channelName = `wa-sessions-badge-${mountId.current}`
+    let cancelled = false
+
     async function load() {
-      const { count: c } = await supabase
-        .from('whatsapp_sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
-      setCount(c ?? 0)
+      try {
+        const { count: c } = await supabase
+          .from('whatsapp_sessions')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending')
+        if (!cancelled) setCount(c ?? 0)
+      } catch {
+        // whatsapp_sessions table may not exist yet — fail silently
+      }
     }
+
     load()
 
     const channel = supabase
-      .channel('wa-sessions-badge')
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_sessions' }, load)
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   if (count === 0) return null
