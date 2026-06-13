@@ -1,6 +1,21 @@
 // AzamPay Tanzania payment gateway integration
 
-const IS_SANDBOX = (process.env.AZAMPAY_ENVIRONMENT ?? 'sandbox') !== 'production'
+// ── Startup config validation — fail loudly if any credential is missing ──────
+const _cfg = {
+  appName:      process.env.AZAMPAY_APP_NAME,
+  clientId:     process.env.AZAMPAY_CLIENT_ID,
+  clientSecret: process.env.AZAMPAY_CLIENT_SECRET,
+  apiKey:       process.env.AZAMPAY_API_KEY,
+  environment:  process.env.AZAMPAY_ENVIRONMENT ?? 'sandbox',
+}
+const _missing = (Object.entries(_cfg) as [string, string | undefined][])
+  .filter(([k, v]) => k !== 'environment' && !v)
+  .map(([k]) => k)
+if (_missing.length > 0) {
+  throw new Error(`[AzamPay] Config missing: ${_missing.join(', ')}`)
+}
+
+const IS_SANDBOX = _cfg.environment !== 'production'
 
 const AUTH_URL = IS_SANDBOX
   ? 'https://authenticator-sandbox.azampay.co.tz'
@@ -25,23 +40,21 @@ async function getAuthToken(): Promise<string> {
     return cachedToken
   }
 
-  console.log('[AzamPay] Starting auth token request...')
+  console.log('[AzamPay] Auth starting. Environment:', _cfg.environment)
+  console.log('[AzamPay] Credentials present:', !!_cfg.clientId, !!_cfg.clientSecret)
 
-  const clientId     = process.env.AZAMPAY_CLIENT_ID
-  const clientSecret = process.env.AZAMPAY_CLIENT_SECRET
-  const appName      = process.env.AZAMPAY_APP_NAME ?? 'NyumbaFasta'
+  const clientId     = _cfg.clientId!
+  const clientSecret = _cfg.clientSecret!
+  const appName      = _cfg.appName ?? 'NyumbaFasta'
 
   console.log('[AzamPay] Auth request body:', {
     appName,
-    clientId:     clientId     ? `${clientId.slice(0, 8)}... (SET)` : 'MISSING',
-    clientSecret: clientSecret ? `len=${clientSecret.length} (SET)` : 'MISSING',
+    clientId:     `${clientId.slice(0, 8)}... (SET)`,
+    clientSecret: `len=${clientSecret.length} (SET)`,
   })
 
-  if (!clientId)     throw new Error('AZAMPAY_CLIENT_ID haipo kwenye mazingira')
-  if (!clientSecret) throw new Error('AZAMPAY_CLIENT_SECRET haipo kwenye mazingira')
-
   const authUrl = `${AUTH_URL}/AppRegistration/GenerateToken`
-  console.log('[AzamPay] Auth URL being called:', authUrl)
+  console.log('[AzamPay] Auth URL:', authUrl)
 
   const res = await fetch(authUrl, {
     method: 'POST',
@@ -119,7 +132,7 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
       headers: {
         'Content-Type': 'application/json',
         Authorization:  `Bearer ${token}`,
-        'X-API-KEY':    process.env.AZAMPAY_API_KEY ?? '',
+        'X-API-KEY':    _cfg.apiKey!,
       },
       body: JSON.stringify(checkoutPayload),
     })
@@ -237,4 +250,19 @@ export function generateExternalId(prefix = 'NYF'): string {
 
 export function formatTZS(amount: number): string {
   return `TZS ${amount.toLocaleString('en-TZ')}`
+}
+
+// Builds a callback URL with an embedded secret so webhooks can be authenticated.
+// Usage: buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/subscription/webhook')
+export function buildCallbackUrl(origin: string, path: string): string {
+  const secret = process.env.WEBHOOK_SECRET
+  if (!secret) throw new Error('WEBHOOK_SECRET haipo kwenye mazingira')
+  return `${process.env.NEXT_PUBLIC_APP_URL ?? origin}${path}?whsec=${encodeURIComponent(secret)}`
+}
+
+// Call this at the top of every webhook handler to reject unauthenticated requests.
+export function verifyWebhookSecret(req: { nextUrl: { searchParams: { get: (k: string) => string | null } } }): boolean {
+  const expected = process.env.WEBHOOK_SECRET
+  const received = req.nextUrl.searchParams.get('whsec')
+  return !!expected && received === expected
 }

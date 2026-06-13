@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { handleWhatsAppMessage } from '@/lib/whatsapp/aminaHandler'
-import { markAsRead, sendMultipartMessage, formatPhoneNumber } from '@/lib/whatsapp/client'
+import { createHmac } from 'crypto'
+import { handleWhatsAppMessage, PENDING_ACKNOWLEDGEMENT } from '@/lib/whatsapp/aminaHandler'
+import { markAsRead, sendMultipartMessage, sendTextMessage, formatPhoneNumber } from '@/lib/whatsapp/client'
+import { getWASession, saveWAMessage } from '@/lib/whatsapp/sessionManager'
+
+function verifyWhatsAppSignature(rawBody: Buffer, sigHeader: string): boolean {
+  const appSecret = process.env.FACEBOOK_APP_SECRET
+  if (!appSecret) return false
+  const [algo, sig] = sigHeader.split('=')
+  if (algo !== 'sha256' || !sig) return false
+  const expected = createHmac('sha256', appSecret).update(rawBody).digest('hex')
+  return expected === sig
+}
+
+// Give the function enough headroom for detectIntent (Claude ~4s) + send (~1s)
+// On Vercel Pro this raises the cap; on Hobby it's still 10s but declares intent.
+export const maxDuration = 60
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -89,7 +104,6 @@ export async function GET(req: NextRequest) {
     return new NextResponse(challenge, { status: 200 })
   }
 
-  // Log full received token so we can diagnose mismatches
   console.warn('[WA webhook] Verification FAILED', {
     mode,
     received_token: token ?? '(empty)',
@@ -102,16 +116,26 @@ export async function GET(req: NextRequest) {
 // ── POST — Incoming messages ───────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // CRITICAL: Always return 200. Meta will retry on any non-200 → infinite loop.
+  // CRITICAL: Always return 200. Meta retries on any non-200 → duplicate messages.
+  const t0 = Date.now()
   try {
-    const payload = await req.json() as WAWebhookPayload
+    const rawBuffer = Buffer.from(await req.arrayBuffer())
 
-    // Ignore non-WhatsApp objects (safety check)
+    // Verify HMAC signature — Meta always sends X-Hub-Signature-256 on real events
+    const sigHeader = req.headers.get('x-hub-signature-256') ?? ''
+    if (!sigHeader || !verifyWhatsAppSignature(rawBuffer, sigHeader)) {
+      console.warn('[WA webhook] Signature verification failed — ignoring request')
+      return NextResponse.json({ status: 'ok' }, { status: 200 })
+    }
+
+    const payload = JSON.parse(rawBuffer.toString()) as WAWebhookPayload
+
     if (payload.object !== 'whatsapp_business_account') {
       return NextResponse.json({ status: 'ignored' }, { status: 200 })
     }
 
     const entries = payload.entry ?? []
+    const jobs: Array<Promise<void>> = []
 
     for (const entry of entries) {
       for (const change of entry.changes) {
@@ -121,49 +145,82 @@ export async function POST(req: NextRequest) {
         if (!messages?.length) continue
 
         for (const message of messages) {
-          // Process fire-and-forget — don't await entire chain before returning 200
-          processMessage(message, contacts ?? []).catch(err => {
-            console.error('[WA webhook] processMessage error:', err)
-          })
+          // Process synchronously so Vercel doesn't kill the task after response.
+          // Meta waits up to 20 s; our chain typically takes 5-8 s.
+          jobs.push(processMessage(message, contacts ?? []))
         }
       }
     }
 
+    if (jobs.length > 0) {
+      // Await all messages; allSettled ensures we never throw even if one fails.
+      const results = await Promise.allSettled(jobs)
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.error(`[WA webhook] processMessage[${i}] failed:`, r.reason)
+        }
+      })
+    }
+
+    console.log(`[WA webhook] POST done in ${Date.now() - t0}ms, jobs=${jobs.length}`)
     return NextResponse.json({ status: 'ok' }, { status: 200 })
 
   } catch (err) {
-    // Log but always return 200 so Meta doesn't retry
     console.error('[WA webhook] POST error:', err)
     return NextResponse.json({ status: 'error' }, { status: 200 })
   }
 }
 
-// ── Message processor (runs async, after 200 is returned) ─────────────────
+// ── Message processor ─────────────────────────────────────────────────────
 
 async function processMessage(message: WAMessage, contacts: WAContact[]): Promise<void> {
+  const t0          = Date.now()
   const from        = formatPhoneNumber(message.from)
   const messageId   = message.id
   const profileName = contacts.find(c => c.wa_id === message.from)?.profile?.name
+  const masked      = from.slice(0, 5) + '****'
 
-  // Acknowledge receipt immediately (shows ticks in WhatsApp)
+  console.log(`[WA] → message from ${masked} type=${message.type} id=${messageId}`)
+
+  // Mark read immediately (shows double-ticks in WhatsApp)
   await markAsRead(messageId)
 
-  // Extract text from the message based on type
   const text = extractText(message)
-
   if (!text) {
-    console.log('[WA webhook] Non-text message type ignored:', message.type, from)
+    console.log(`[WA] Non-text ignored: type=${message.type}`)
     return
   }
 
-  console.log('[WA webhook] Processing message from', from.slice(0, 6) + '****:', text.slice(0, 80))
+  // ── Check handoff status ────────────────────────────────────
+  const waSession = await getWASession(from)
 
+  if (waSession?.status === 'admin') {
+    // Admin has taken over — save inbound message for admin panel, don't call Amina
+    await saveWAMessage(from, 'inbound', 'user', text, messageId)
+    console.log(`[WA] Admin mode — message saved, Amina silent for ${masked}`)
+    return
+  }
+
+  if (waSession?.status === 'pending') {
+    // Waiting for admin — acknowledge user, save message
+    await saveWAMessage(from, 'inbound', 'user', text, messageId)
+    await sendTextMessage(from, PENDING_ACKNOWLEDGEMENT)
+    console.log(`[WA] Pending mode — ack sent to ${masked}`)
+    return
+  }
+
+  // ── Amina handles ('amina' | 'resolved' | no session) ──────
+  console.log(`[WA] text="${text.slice(0, 80)}"`)
+
+  const t1 = Date.now()
   const response = await handleWhatsAppMessage(from, text, messageId, profileName)
+  console.log(`[WA] Amina done (${Date.now() - t1}ms), reply=${response ? response.length + ' chars' : 'empty'}`)
 
-  // Empty response = duplicate message or stop command with no reply needed
   if (!response) return
 
+  const t2 = Date.now()
   await sendMultipartMessage(from, response)
+  console.log(`[WA] sent (${Date.now() - t2}ms), total=${Date.now() - t0}ms for ${masked}`)
 }
 
 // ── Extract text from any message type ───────────────────────────────────

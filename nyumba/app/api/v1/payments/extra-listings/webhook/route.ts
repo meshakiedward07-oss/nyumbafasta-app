@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { isWebhookSuccess, getExternalId, type WebhookPayload } from '@/lib/payments/azampay'
+import { isWebhookSuccess, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
 
 // externalId format: EX-{subscription_uuid}-{count}
 // e.g. EX-be7353b5-5b5b-4a77-9e4e-e76b8bc02cfa-3
@@ -17,6 +17,10 @@ function parseExtraListingsId(externalId: string): { subId: string; count: numbe
 }
 
 export async function POST(req: NextRequest) {
+  if (!verifyWebhookSecret(req)) {
+    console.warn('[ExtraListings Webhook] Unauthorized — missing or wrong whsec')
+    return NextResponse.json({ received: true })
+  }
   try {
     const rawBody = await req.text()
     const payload: WebhookPayload = JSON.parse(rawBody)

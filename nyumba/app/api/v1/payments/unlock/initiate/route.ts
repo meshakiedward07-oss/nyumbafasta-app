@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, buildCallbackUrl, type MobileProvider } from '@/lib/payments/azampay'
 import { sendPushToUser } from '@/lib/notifications/send'
 import { rateLimit } from '@/lib/security/rateLimit'
 
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
     // ── Production path: AzamPay mobile checkout ──────────
     const accountNumber = normalized  // already validated above
     const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
-    const callbackUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/webhook`
+    const callbackUrl   = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/webhook')
 
     const { data: unlock, error: insertError } = await admin
       .from('contact_unlocks')

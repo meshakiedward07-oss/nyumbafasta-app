@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { isWebhookSuccess, getExternalId, type WebhookPayload } from '@/lib/payments/azampay'
+import { isWebhookSuccess, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
 
 export async function POST(req: NextRequest) {
+  if (!verifyWebhookSecret(req)) {
+    console.warn('[Boost Webhook] Unauthorized — missing or wrong whsec')
+    return NextResponse.json({ received: true })
+  }
   try {
     const rawBody = await req.text()
     console.log('[Boost Webhook] Received:', rawBody.slice(0, 500))

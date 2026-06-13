@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import Anthropic from '@anthropic-ai/sdk'
 
+export const maxDuration = 30
+
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'ANTHROPIC_API_KEY haipo' }, { status: 500 })

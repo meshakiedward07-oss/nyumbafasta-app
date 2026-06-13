@@ -1,8 +1,15 @@
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { handleIncomingMessage } from '@/lib/chat/aiAgent'
 import { sanitiseForWhatsApp } from '@/lib/whatsapp/client'
+import {
+  getOrCreateWASession,
+  updateWASession,
+  saveWAMessage,
+  getAminaInstructions,
+  detectEscalation,
+} from '@/lib/whatsapp/sessionManager'
 
-// ── Deduplication ──────────────────────────────────────────────────────────
+// ── Deduplication (uses existing whatsapp_conversations for dedup key) ────────
 
 export async function isMessageProcessed(messageId: string): Promise<boolean> {
   const { data } = await supabaseAdmin
@@ -27,7 +34,7 @@ async function saveConversationEntry(
   })
 }
 
-// ── Special command detection ──────────────────────────────────────────────
+// ── Special command detection ──────────────────────────────────────────────────
 
 type SpecialCommand = 'reset' | 'help' | 'human_agent' | 'stop' | null
 
@@ -39,6 +46,8 @@ function detectSpecialCommand(text: string): SpecialCommand {
   if (['stop', 'unsubscribe', 'acha'].includes(lower)) return 'stop'
   return null
 }
+
+// ── Static responses ───────────────────────────────────────────────────────────
 
 const HELP_MESSAGE = `Habari! Mimi ni *Amina* msaidizi wa NyumbaFasta 🏠
 
@@ -65,14 +74,16 @@ Ninaweza kukusaidia:
 
 Unahitaji nini leo?`
 
-const HUMAN_AGENT_MESSAGE = `Sawa! Nitakuunganisha na timu yetu ya msaada. 🙏
+const ESCALATION_MESSAGE = `Naelewa tatizo lako na ninaomba msamaha kwa usumbufu. 🙏
 
-Wasiliana nasi moja kwa moja:
-📞 WhatsApp: +255665831694
+Ninakuunganisha na msaada wa moja kwa moja sasa hivi.
 
-Tunafanya kazi Jumatatu-Ijumaa, 8:00-18:00.
+Admin wa NyumbaFasta atawasiliana nawe hivi karibuni.
+Wakati wa kujibu: Ndani ya saa 1 (saa za kazi: 8am — 8pm)
 
-Kama ni dharura, tuma ujumbe hapa na tutajibu haraka iwezekanavyo! 😊`
+Asante kwa uvumilivu wako. 🙏`
+
+// Note: HUMAN_AGENT_MESSAGE superseded by ESCALATION_MESSAGE for command='human_agent'
 
 const STOP_MESSAGE = `Umekusimamishwa kwa arifa za NyumbaFasta.
 
@@ -80,7 +91,9 @@ Ukitaka kuendelea kupata msaada, andika ujumbe wowote hapa.
 
 Asante! 🙏`
 
-// ── Clear session for reset ────────────────────────────────────────────────
+const PENDING_ACKNOWLEDGEMENT = `Ujumbe wako umepokewa. Admin atawasiliana nawe hivi karibuni. 🙏`
+
+// ── Session reset ─────────────────────────────────────────────────────────────
 
 async function resetSession(phoneNumber: string): Promise<void> {
   await supabaseAdmin
@@ -90,7 +103,44 @@ async function resetSession(phoneNumber: string): Promise<void> {
     .eq('user_id', phoneNumber)
 }
 
-// ── Main handler ───────────────────────────────────────────────────────────
+// ── Escalate to admin ─────────────────────────────────────────────────────────
+
+async function escalateToAdmin(
+  phone: string,
+  profileName: string | undefined,
+  reason: string,
+): Promise<void> {
+  await updateWASession(phone, {
+    status: 'pending',
+    escalation_reason: reason,
+    escalated_at: new Date().toISOString(),
+  })
+
+  const nameLabel = profileName ? ` (${profileName})` : ''
+  console.log(`[Amina] Escalated ${phone.slice(0, 5)}****${nameLabel} → reason: ${reason}`)
+
+  // System message recorded in the admin panel for context
+  await saveWAMessage(
+    phone,
+    'outbound',
+    'system',
+    `Mazungumzo yameandikishwa kwa msaada wa mtu. Sababu: ${reason}`,
+  )
+
+  // Notify admin via notifications table
+  void Promise.resolve(
+    supabaseAdmin.from('notifications').insert({
+      user_id: '00000000-0000-0000-0000-000000000000',
+      title:   'WhatsApp: Mteja anahitaji msaada wa mtu',
+      body:    `Nambari: ${phone.slice(0, 5)}****${nameLabel}. Sababu: "${reason}"`,
+      type:    'support_request',
+      is_read: false,
+      data:    { phone, reason, escalated_at: new Date().toISOString() },
+    }),
+  )
+}
+
+// ── Main handler (called from webhook for 'amina' status sessions) ────────────
 
 export async function handleWhatsAppMessage(
   from: string,
@@ -98,65 +148,83 @@ export async function handleWhatsAppMessage(
   messageId: string,
   profileName?: string,
 ): Promise<string> {
+  const t0 = Date.now()
 
   // 1. Deduplication — Meta delivers webhooks at least once
   if (await isMessageProcessed(messageId)) {
-    console.log('[Amina] Duplicate message skipped:', messageId)
-    return ''   // empty = caller should not reply again
+    console.log('[Amina] Duplicate skipped:', messageId)
+    return ''
   }
+  console.log(`[Amina] dedup done (${Date.now() - t0}ms)`)
 
-  // 2. Save user message for dedup + audit
-  await saveConversationEntry(from, 'user', messageText, messageId)
+  // 2. Ensure WA session exists and update last_message_at
+  await getOrCreateWASession(from)
+
+  // 3. Save user message to both tables in parallel
+  await Promise.all([
+    saveConversationEntry(from, 'user', messageText, messageId),
+    saveWAMessage(from, 'inbound', 'user', messageText, messageId),
+  ])
+  console.log(`[Amina] user saved (${Date.now() - t0}ms)`)
 
   let response: string
 
-  // 3. Check for special commands first
+  // 4. Special commands take priority
   const command = detectSpecialCommand(messageText)
 
-  switch (command) {
-    case 'reset': {
-      await resetSession(from)
-      response = RESET_MESSAGE
-      break
-    }
-    case 'help': {
-      response = HELP_MESSAGE
-      break
-    }
-    case 'human_agent': {
-      response = HUMAN_AGENT_MESSAGE
-      // Notify admin (fire-and-forget)
-      void Promise.resolve(supabaseAdmin.from('notifications').insert({
-        user_id: '00000000-0000-0000-0000-000000000000',
-        title:   'WhatsApp: Mteja anataka msaada wa mtu',
-        body:    `Nambari: ${from}${profileName ? ` (${profileName})` : ''}. Ujumbe: "${messageText}"`,
-        type:    'support_request',
-        is_read: false,
-        data:    { phone: from, message: messageText },
-      }))
-      break
-    }
-    case 'stop': {
-      response = STOP_MESSAGE
-      break
-    }
-    default: {
-      // 4. Route through Amina's full AI flow
+  if (command === 'reset') {
+    await resetSession(from)
+    response = RESET_MESSAGE
+
+  } else if (command === 'help') {
+    response = HELP_MESSAGE
+
+  } else if (command === 'human_agent') {
+    await escalateToAdmin(from, profileName, 'Mteja aliomba msaada wa mtu moja kwa moja')
+    response = ESCALATION_MESSAGE
+
+  } else if (command === 'stop') {
+    response = STOP_MESSAGE
+
+  } else {
+    // 5. Check for escalation keywords
+    const escalationReason = detectEscalation(messageText)
+    if (escalationReason) {
+      await escalateToAdmin(from, profileName, escalationReason)
+      response = ESCALATION_MESSAGE
+    } else {
+      // 6. Fetch any admin instructions for this conversation
+      const adminInstructions = await getAminaInstructions(from)
+      console.log(`[Amina] instructions fetched (${Date.now() - t0}ms), has=${!!adminInstructions}`)
+
+      // 7. Route through Amina's full AI flow
+      console.log(`[Amina] calling handleIncomingMessage (${Date.now() - t0}ms)`)
       response = await handleIncomingMessage(
         'whatsapp',
-        from,              // userId = phone number
+        from,
         messageText,
-        from,              // phone
-        profileName,       // name (from WhatsApp profile)
+        from,
+        profileName,
+        undefined,
+        adminInstructions || undefined,
       )
+      console.log(`[Amina] AI done (${Date.now() - t0}ms)`)
     }
   }
 
-  // 5. Sanitise markdown for WhatsApp rendering
+  // 8. Sanitise markdown for WhatsApp
   const clean = sanitiseForWhatsApp(response)
 
-  // 6. Save assistant response to audit log
-  await saveConversationEntry(from, 'assistant', clean)
+  // 9. Save assistant response to both tables
+  await Promise.all([
+    saveConversationEntry(from, 'assistant', clean),
+    saveWAMessage(from, 'outbound', 'amina', clean),
+  ])
+  console.log(`[Amina] done total=${Date.now() - t0}ms`)
 
   return clean
 }
+
+// ── Acknowledgement for 'pending' sessions ────────────────────────────────────
+// Called from webhook when session.status === 'pending'
+export { PENDING_ACKNOWLEDGEMENT }

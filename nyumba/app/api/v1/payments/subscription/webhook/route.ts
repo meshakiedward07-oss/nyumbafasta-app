@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { isWebhookSuccess, getExternalId, type WebhookPayload } from '@/lib/payments/azampay'
+import { isWebhookSuccess, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
 
 export async function POST(req: NextRequest) {
+  if (!verifyWebhookSecret(req)) {
+    console.warn('[Sub Webhook] Unauthorized — missing or wrong whsec')
+    return NextResponse.json({ received: true })  // always 200 so AzamPay doesn't retry
+  }
   try {
     const rawBody = await req.text()
 

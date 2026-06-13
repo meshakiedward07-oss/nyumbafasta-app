@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, generateExternalId, buildCallbackUrl, type MobileProvider } from '@/lib/payments/azampay'
 
 const PRICES: Record<number, number> = { 1: 5_000, 2: 9_000, 4: 16_000 }
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertErr?.message ?? 'Imeshindwa kuanzisha malipo' }, { status: 500 })
     }
 
-    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/boost/webhook`
+    const callbackUrl = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/boost/webhook')
 
     console.log('[Boost/initiate] Calling mobileCheckout — boost:', boostPayment.id, 'ref:', payment_ref)
 

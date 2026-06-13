@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, buildCallbackUrl, type MobileProvider } from '@/lib/payments/azampay'
 
 const PLAN_PRICES: Record<string, number> = { basic: 10_000, premium: 25_000, enterprise: 50_000 }
 const PLAN_DURATION_DAYS = 30
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Namba ya simu si sahihi. Tumia format ya Tanzania (07XXXXXXXX)' }, { status: 400 })
     }
 
-    const callbackUrl  = `${process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin}/api/v1/payments/subscription/webhook`
+    const callbackUrl  = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/subscription/webhook')
     const azamProvider = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
 
     const { data: subscription, error: insertError } = await admin

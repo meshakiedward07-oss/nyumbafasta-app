@@ -1,8 +1,40 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+
+// Real-time pending conversation count badge
+function PendingBadge() {
+  const [count, setCount] = useState(0)
+  const supabase = createClient()
+
+  useEffect(() => {
+    async function load() {
+      const { count: c } = await supabase
+        .from('whatsapp_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending')
+      setCount(c ?? 0)
+    }
+    load()
+
+    const channel = supabase
+      .channel('wa-sessions-badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_sessions' }, load)
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  if (count === 0) return null
+  return (
+    <span className="ml-auto min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 flex items-center justify-center">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
 
 const NAV_SECTIONS = [
   {
@@ -10,6 +42,20 @@ const NAV_SECTIONS = [
     items: [
       { href: '/admin',      label: 'Dashboard',    emoji: '📊', exact: true  },
       { href: '/admin/chat', label: 'Chat Monitor', emoji: '💬', exact: false },
+    ],
+  },
+  {
+    title: 'WhatsApp',
+    items: [
+      { href: '/admin/whatsapp',           label: 'Mazungumzo',  emoji: '📱', exact: false, badge: true },
+      { href: '/admin/whatsapp/broadcast', label: 'Broadcast',   emoji: '📢', exact: false },
+    ],
+  },
+  {
+    title: 'Social Media',
+    items: [
+      { href: '/admin/social',            label: 'Dashboard',  emoji: '📊', exact: true  },
+      { href: '/admin/social?tab=postnow',label: 'Chapisha',   emoji: '✍️', exact: false },
     ],
   },
   {
@@ -43,11 +89,11 @@ const NAV_SECTIONS = [
 ]
 
 const BOTTOM_NAV = [
-  { href: '/admin',       emoji: '📊', label: 'Home',     exact: true  },
-  { href: '/admin/leads', emoji: '🤖', label: 'Leads',    exact: false },
-  { href: '/admin/crm',   emoji: '🎯', label: 'CRM',      exact: false },
+  { href: '/admin',            emoji: '📊', label: 'Home',      exact: true  },
+  { href: '/admin/whatsapp',   emoji: '📱', label: 'WhatsApp',  exact: false },
+  { href: '/admin/leads',      emoji: '🤖', label: 'Leads',     exact: false },
+  { href: '/admin/crm',        emoji: '🎯', label: 'CRM',       exact: false },
   { href: '/admin/facebook-groups', emoji: '👥', label: 'Groups', exact: false },
-  { href: '/admin/instagram-profiles', emoji: '📸', label: 'IG', exact: false },
 ]
 
 // ── Sidebar content extracted as standalone component ──────────────────────
@@ -101,6 +147,9 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
                   }`}>
                     <span className="text-base w-5 text-center flex-shrink-0">{item.emoji}</span>
                     <span>{item.label}</span>
+                    {('badge' in item && item.badge) && !isActive(item.href, item.exact) && (
+                      <PendingBadge />
+                    )}
                     {isActive(item.href, item.exact) && (
                       <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
                     )}
