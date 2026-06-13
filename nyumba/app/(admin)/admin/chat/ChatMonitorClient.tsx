@@ -11,6 +11,8 @@ interface ChatMessage {
 }
 
 export default function ChatMonitorClient() {
+  const supabase = createClient()
+
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [selected, setSelected] = useState<ChatSession | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -19,7 +21,6 @@ export default function ChatMonitorClient() {
 
   useEffect(() => {
     fetchSessions()
-    const supabase = createClient()
     let channel: ReturnType<typeof supabase.channel> | null = null
     try {
       channel = supabase
