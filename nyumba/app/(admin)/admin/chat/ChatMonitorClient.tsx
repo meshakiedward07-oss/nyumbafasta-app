@@ -11,7 +11,6 @@ interface ChatMessage {
 }
 
 export default function ChatMonitorClient() {
-  const supabase = createClient()
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [selected, setSelected] = useState<ChatSession | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -20,11 +19,15 @@ export default function ChatMonitorClient() {
 
   useEffect(() => {
     fetchSessions()
-    const channel = supabase
-      .channel('chat_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_sessions' }, () => fetchSessions())
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    const supabase = createClient()
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    try {
+      channel = supabase
+        .channel(`chat-changes-${Math.random().toString(36).slice(2)}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_sessions' }, () => fetchSessions())
+        .subscribe()
+    } catch { /* realtime unavailable — polling is fine */ }
+    return () => { if (channel) supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

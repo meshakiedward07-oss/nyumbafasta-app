@@ -116,8 +116,6 @@ function relativeTime(ts: string): string {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function WhatsAppPanel() {
-  const supabase = createClient()
-
   const [sessions, setSessions] = useState<WASession[]>([])
   const [selected, setSelected] = useState<WASession | null>(null)
   const [messages, setMessages] = useState<WAMessage[]>([])
@@ -181,28 +179,38 @@ export default function WhatsAppPanel() {
   // ── Real-time subscriptions ────────────────────────────────────────────────
 
   useEffect(() => {
-    const sessionChannel = supabase
-      .channel('admin-wa-sessions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_sessions' }, () => {
-        fetchSessions()
-        if (selected) fetchMessages(selected.phone_number)
-      })
-      .subscribe()
+    const supabase = createClient()
+    const suffix   = Math.random().toString(36).slice(2)
 
-    const msgChannel = supabase
-      .channel('admin-wa-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' }, (payload) => {
-        const newMsg = payload.new as WAMessage
-        if (newMsg.phone_number === selected?.phone_number) {
-          setMessages(prev => [...prev, newMsg])
-        }
-        fetchSessions()
-      })
-      .subscribe()
+    let sessionChannel: ReturnType<typeof supabase.channel> | null = null
+    let msgChannel: ReturnType<typeof supabase.channel> | null = null
+
+    try {
+      sessionChannel = supabase
+        .channel(`wa-sessions-${suffix}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_sessions' }, () => {
+          fetchSessions()
+          if (selected) fetchMessages(selected.phone_number)
+        })
+        .subscribe()
+
+      msgChannel = supabase
+        .channel(`wa-messages-${suffix}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' }, (payload) => {
+          const newMsg = payload.new as WAMessage
+          if (newMsg.phone_number === selected?.phone_number) {
+            setMessages(prev => [...prev, newMsg])
+          }
+          fetchSessions()
+        })
+        .subscribe()
+    } catch {
+      // realtime not available or table missing — polling fallback is fine
+    }
 
     return () => {
-      supabase.removeChannel(sessionChannel)
-      supabase.removeChannel(msgChannel)
+      if (sessionChannel) supabase.removeChannel(sessionChannel)
+      if (msgChannel)     supabase.removeChannel(msgChannel)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.phone_number])

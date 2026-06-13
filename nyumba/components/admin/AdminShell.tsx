@@ -1,42 +1,32 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-// Real-time pending conversation count badge
+// Polls every 30s — avoids Supabase realtime channel conflicts across mounts
 function PendingBadge() {
   const [count, setCount] = useState(0)
-  const mountId = useRef(Math.random().toString(36).slice(2))
 
   useEffect(() => {
-    const supabase = createClient()
-    const channelName = `wa-sessions-badge-${mountId.current}`
     let cancelled = false
 
     async function load() {
       try {
+        const supabase = createClient()
         const { count: c } = await supabase
           .from('whatsapp_sessions')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending')
         if (!cancelled) setCount(c ?? 0)
       } catch {
-        // whatsapp_sessions table may not exist yet — fail silently
+        // table may not exist yet — fail silently
       }
     }
 
     load()
-
-    const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_sessions' }, load)
-      .subscribe()
-
-    return () => {
-      cancelled = true
-      supabase.removeChannel(channel)
-    }
+    const timer = setInterval(load, 30_000)
+    return () => { cancelled = true; clearInterval(timer) }
   }, [])
 
   if (count === 0) return null
