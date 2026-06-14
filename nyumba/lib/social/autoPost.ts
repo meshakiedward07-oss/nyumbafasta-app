@@ -7,6 +7,8 @@ import {
   publishIGContainer,
   postToFacebook,
 } from './metaClient'
+import { watermarkImage } from '@/lib/media/watermark'
+import { watermarkVideo } from '@/lib/media/videoWatermark'
 import type { Listing } from '@/lib/types/database'
 
 type Platform = 'instagram' | 'facebook' | 'both'
@@ -47,8 +49,26 @@ export async function postListingToSocialMedia(
   const fullCaption = `${caption}\n\n${hashtags}`
 
   // Choose best media
-  const imageUrl = l.images?.[0] ?? null
-  const videoUrl = l.video_url ?? null
+  const rawImageUrl = l.images?.[0] ?? null
+  const rawVideoUrl = l.video_url ?? null
+
+  // Apply watermarks — mandatory before any post. Fail if watermark cannot be applied.
+  let imageUrl = rawImageUrl
+  let videoUrl = rawVideoUrl
+
+  if (rawImageUrl) {
+    imageUrl = await watermarkImage(rawImageUrl)
+    if (imageUrl === rawImageUrl) {
+      throw new Error('[Watermark] Watermark ya picha haikuweza kutumika — kuchapisha kumesimamishwa')
+    }
+  }
+
+  if (rawVideoUrl) {
+    videoUrl = watermarkVideo(rawVideoUrl)
+    if (videoUrl === rawVideoUrl) {
+      throw new Error('[Watermark] Watermark ya video haikuweza kutumika — kuchapisha kumesimamishwa')
+    }
+  }
 
   // Create DB record
   const mediaType = videoUrl ? 'video' : 'image'

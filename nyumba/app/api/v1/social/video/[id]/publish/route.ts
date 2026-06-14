@@ -7,6 +7,7 @@ import {
   publishIGContainer,
   uploadFacebookVideoUrl,
 } from '@/lib/social/metaClient'
+import { watermarkVideo } from '@/lib/media/videoWatermark'
 
 // Instagram video polling can take 60-120s — requires Vercel Pro (300s limit)
 export const maxDuration = 300
@@ -76,6 +77,15 @@ export async function POST(
     return NextResponse.json({ ok: true, scheduled: true, scheduledAt })
   }
 
+  // Apply watermark — mandatory. Fail loudly rather than post without it.
+  const watermarkedUrl = watermarkVideo(video.video_url)
+  if (watermarkedUrl === video.video_url) {
+    return NextResponse.json(
+      { error: '[Watermark] Watermark ya video haikuweza kutumika — kuchapisha kumesimamishwa' },
+      { status: 500 },
+    )
+  }
+
   // Mark as posting
   await supabaseAdmin
     .from('video_uploads')
@@ -93,7 +103,7 @@ export async function POST(
     } else {
       try {
         console.log('[VideoPublish] Creating IG reel container...')
-        const containerId = await createIGVideoContainer(video.video_url, captionIg, 'REELS')
+        const containerId = await createIGVideoContainer(watermarkedUrl, captionIg, 'REELS')
 
         console.log('[VideoPublish] Polling IG container status...')
         await waitForIGContainer(containerId, 180_000) // 3-minute timeout
@@ -121,7 +131,7 @@ export async function POST(
     } else {
       try {
         console.log('[VideoPublish] Uploading to Facebook...')
-        fbPostId = await uploadFacebookVideoUrl(video.video_url, captionFb, video.title)
+        fbPostId = await uploadFacebookVideoUrl(watermarkedUrl, captionFb, video.title)
         console.log('[VideoPublish] FB video uploaded:', fbPostId)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
