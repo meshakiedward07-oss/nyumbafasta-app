@@ -151,15 +151,16 @@ export async function handleSocialDM(
     if (existing) return
   }
 
-  // Save incoming DM
-  await supabaseAdmin.from('social_dms').insert({
+  // Save incoming DM — capture id for reliable update later
+  const { data: inserted } = await supabaseAdmin.from('social_dms').insert({
     platform,
     sender_id:   data.senderId,
     sender_name: data.senderName ?? null,
     message_id:  data.messageId ?? null,
     message_text: data.messageText,
     reply_sent:  false,
-  })
+  }).select('id').single()
+  const dmId = inserted?.id as string | undefined
 
   // Route through Amina
   let replyText: string
@@ -186,14 +187,18 @@ export async function handleSocialDM(
       await sendFBMessage(data.senderId, replyText)
     }
 
-    await supabaseAdmin
-      .from('social_dms')
-      .update({
-        reply_sent: true,
-        reply_text: replyText,
-        replied_at: new Date().toISOString(),
-      })
-      .eq('message_id', data.messageId ?? '')
+    // Update by DB id (most reliable) or message_id fallback
+    if (dmId) {
+      await supabaseAdmin
+        .from('social_dms')
+        .update({ reply_sent: true, reply_text: replyText, replied_at: new Date().toISOString() })
+        .eq('id', dmId)
+    } else if (data.messageId) {
+      await supabaseAdmin
+        .from('social_dms')
+        .update({ reply_sent: true, reply_text: replyText, replied_at: new Date().toISOString() })
+        .eq('message_id', data.messageId)
+    }
 
     console.log(`[Social] DM replied on ${platform} to ${data.senderId.slice(0, 6)}***`)
   } catch (err) {

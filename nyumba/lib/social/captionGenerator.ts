@@ -72,7 +72,7 @@ function buildHashtags(listing: Listing): string {
   ].join(' ')
 
   const typeTags: Record<string, string> = {
-    chumba:    '#ChumaKwenye #Chumba',
+    chumba:    '#ChumbaKwenye #Chumba',
     apartment: '#Apartment #Fleti',
     nyumba:    '#Nyumba #House',
     studio:    '#Studio #StudioFlat',
@@ -83,4 +83,67 @@ function buildHashtags(listing: Listing): string {
 
 function buildFBHashtags(listing: Listing): string {
   return `#NyumbaFasta #${listing.district.replace(/\s+/g, '')} #NyumbaTanzania`.trim()
+}
+
+// ── Video caption (not listing-based) ─────────────────────────────────────
+
+const VIDEO_TYPE_LABELS: Record<string, string> = {
+  promotion:    'Matangazo ya Biashara',
+  listing_tour: 'Ziara ya Nyumba',
+  announcement: 'Tangazo la Muhimu',
+  testimonial:  'Ushuhuda wa Mteja',
+  other:        'Nyingine',
+}
+
+export async function generateVideoCaption(params: {
+  title:        string
+  videoType:    string
+  description?: string
+}): Promise<{ instagram: string; facebook: string }> {
+  const typeLabel = VIDEO_TYPE_LABELS[params.videoType] ?? params.videoType
+
+  const prompt = `Wewe ni mtaalamu wa social media ya NyumbaFasta — real estate marketplace bora zaidi Tanzania.
+
+Tengeneza captions mbili za kuvutia kwa Kiswahili cha Dar es Salaam kwa video hii:
+
+Kichwa: ${params.title}
+Aina: ${typeLabel}
+${params.description ? `Maelezo: ${params.description}` : ''}
+
+KANUNI:
+
+Instagram (caption + hashtags — zote pamoja):
+- Anza na sentensi moja ya nguvu na emoji
+- Fupi, yenye nguvu, chini ya maneno 120
+- Mwisho: "📍 Tembelea nyumbafasta.co | 📲 WhatsApp kwenye bio"
+- Ongeza hashtags 20-25 mwishoni: #NyumbaFasta #NyumbaTanzania #RealEstateTanzania #DarEsSalaam #NyumbaZaPangwa #NyumbaZaUzaji #Makazi #MajengoTanzania #PropertyTanzania #TanzaniaRealEstate #Nyumba #Apartment #House #DalaliTanzania #NyumbaZuri #MalikiBora
+
+Facebook (caption tu — hashtags 2-3 tu):
+- Ndefu zaidi, ya kibinadamu (maneno 100-180)
+- Zungumza kama rafiki anayeshirikiana habari nzuri
+- Ongeza: "Tembelea nyumbafasta.co au tuma ujumbe"
+- Hashtags 2-3 tu mwishoni
+
+Jibu kwa JSON tu, bila markdown wala maelezo mengine:
+{"instagram":"caption + hashtags hapa","facebook":"caption hapa"}`
+
+  const response = await anthropic.messages.create({
+    model:      'claude-haiku-4-5-20251001',
+    max_tokens: 1200,
+    messages:   [{ role: 'user', content: prompt }],
+  })
+
+  const raw = (response.content[0] as { type: 'text'; text: string }).text.trim()
+  try {
+    const parsed = JSON.parse(raw.replace(/^```json|^```|```$/gm, '').trim()) as {
+      instagram: string
+      facebook:  string
+    }
+    return {
+      instagram: (parsed.instagram ?? '').slice(0, 2200),
+      facebook:  (parsed.facebook  ?? '').slice(0, 5000),
+    }
+  } catch {
+    return { instagram: raw.slice(0, 2200), facebook: raw.slice(0, 5000) }
+  }
 }

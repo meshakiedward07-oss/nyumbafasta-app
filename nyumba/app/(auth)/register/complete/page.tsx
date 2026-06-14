@@ -11,18 +11,21 @@ export default function RegisterCompletePage() {
       try {
         const raw = localStorage.getItem('pending_register')
         if (!raw) {
-          // No pending data — user probably already registered, go home
           router.replace('/')
           return
         }
 
         const { full_name, role, whatsapp_number } = JSON.parse(raw)
+        const agreementRaw = localStorage.getItem('pending_agreement')
+        const agreement = agreementRaw ? JSON.parse(agreementRaw) : null
+
         localStorage.removeItem('pending_register')
+        localStorage.removeItem('pending_agreement')
 
         const res = await fetch('/api/v1/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ full_name, role, whatsapp_number }),
+          body: JSON.stringify({ full_name, role, whatsapp_number, agreement }),
         })
 
         if (!res.ok) {

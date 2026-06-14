@@ -9,6 +9,16 @@ const AUTH_ROUTES = ['/login', '/register']
 const ADMIN_ONLY_ROUTES = ['/admin']
 // Routes za dalali na admin
 const DALALI_ROUTES = ['/dashboard']
+// Routes ambazo hazizuiwi na account_status au agreement check
+const AGREEMENT_EXEMPT = [
+  '/agreement-required',
+  '/account-suspended',
+  '/account-banned',
+  '/auth/',
+  '/api/',
+  '/login',
+  '/register',
+]
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -37,10 +47,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
 
-  const isProtected = PROTECTED_ROUTES.some(r => path.startsWith(r))
-  const needsRoleCheck =
+  const isProtected       = PROTECTED_ROUTES.some(r => path.startsWith(r))
+  const needsRoleCheck    =
     ADMIN_ONLY_ROUTES.some(r => path.startsWith(r)) ||
     DALALI_ROUTES.some(r => path.startsWith(r))
+  const isAgreementExempt = AGREEMENT_EXEMPT.some(r => path.startsWith(r))
 
   // Redirect kwenda login kama hana session
   if (!user && isProtected) {
@@ -79,17 +90,38 @@ export async function middleware(request: NextRequest) {
   if (user && (isProtected || needsRoleCheck)) {
     const { data: userData } = await supabase
       .from('users')
-      .select('role, is_active')
+      .select('role, is_active, account_status, agreement_accepted')
       .eq('id', user.id)
       .single()
 
-    // User aliyesuspended → toa nje
+    // Akaunti iliyozimwa kabisa (is_active = false)
     if (userData?.is_active === false) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       url.searchParams.delete('redirect')
       url.searchParams.set('suspended', '1')
       return NextResponse.redirect(url)
+    }
+
+    // Akaunti iliyosimamishwa (account_status = suspended/banned)
+    if (!isAgreementExempt) {
+      if (userData?.account_status === 'suspended') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/account-suspended'
+        return NextResponse.redirect(url)
+      }
+      if (userData?.account_status === 'banned') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/account-banned'
+        return NextResponse.redirect(url)
+      }
+
+      // Makubaliano hayajasainiwa — admin wanapita bila kizuizi
+      if (userData?.role !== 'admin' && userData?.agreement_accepted === false) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/agreement-required'
+        return NextResponse.redirect(url)
+      }
     }
 
     const role = userData?.role ?? 'client'

@@ -4,9 +4,17 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ResendEmailButton from '@/components/auth/ResendEmailButton'
+import AgreementModal from '@/components/legal/AgreementModal'
 
 type Role = 'client' | 'dalali'
-type Step = 'role' | 'details' | 'check_email'
+type Step = 'role' | 'details' | 'agreement' | 'check_email'
+
+interface AgreementData {
+  version: string
+  full_name_signed: string
+  phone_signed: string
+  checkboxes_checked: Record<string, boolean>
+}
 
 function RegisterForm() {
   const supabase = createClient()
@@ -23,20 +31,34 @@ function RegisterForm() {
   const [whatsapp, setWhatsapp]       = useState('')
   const [showPass, setShowPass]       = useState(false)
   const [registeredEmail, setRegisteredEmail] = useState('')
+  const [signupMethod, setSignupMethod] = useState<'email' | 'google'>('email')
 
-  // ── Email signup ──────────────────────────────────────
-  async function handleEmailSignup(e: React.FormEvent) {
-    e.preventDefault()
+  // Called when user accepts the agreement — handles both email and Google paths
+  async function handleAgreementAccepted(agreementData: AgreementData) {
     setError('')
     setLoading(true)
-    try {
-      // Hifadhi data kwanza — itakamilishwa baada ya confirmation
-      localStorage.setItem('pending_register', JSON.stringify({
-        full_name: fullName,
-        role,
-        whatsapp_number: whatsapp,
-      }))
 
+    localStorage.setItem('pending_register', JSON.stringify({
+      full_name: fullName,
+      role,
+      whatsapp_number: whatsapp,
+    }))
+    localStorage.setItem('pending_agreement', JSON.stringify(agreementData))
+
+    try {
+      if (signupMethod === 'google') {
+        const { error: authError } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback?redirect=/register/complete`,
+          },
+        })
+        if (authError) throw authError
+        // OAuth redirect — loading stays true
+        return
+      }
+
+      // Email signup
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -51,29 +73,23 @@ function RegisterForm() {
       setStep('check_email')
     } catch (err: unknown) {
       localStorage.removeItem('pending_register')
+      localStorage.removeItem('pending_agreement')
       setError(err instanceof Error ? err.message : 'Imeshindwa kusajili. Jaribu tena.')
+      setStep('details')
     } finally {
       setLoading(false)
     }
   }
 
-  // ── Google signup ─────────────────────────────────────
-  async function handleGoogleSignup() {
+  // Step: details → agreement (validate form first)
+  function proceedToAgreement(method: 'email' | 'google' = 'email') {
     setError('')
-    setLoading(true)
-    localStorage.setItem('pending_register', JSON.stringify({ full_name: fullName, role, whatsapp_number: whatsapp }))
-    try {
-      const { error: authError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect=/register/complete`,
-        },
-      })
-      if (authError) throw authError
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Imeshindwa kusajili na Google.')
-      setLoading(false)
+    if (role === 'dalali' && !whatsapp.trim()) {
+      setError('Nambari ya WhatsApp inahitajika kwa madalali.')
+      return
     }
+    setSignupMethod(method)
+    setStep('agreement')
   }
 
   // ── CHECK EMAIL step ──────────────────────────────────
@@ -81,18 +97,12 @@ function RegisterForm() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
         <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-sm">
-
-          {/* Email icon */}
           <div className="w-20 h-20 bg-[#E1F5EE] rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-4xl">📧</span>
           </div>
-
           <h2 className="font-bold text-xl text-gray-800 mb-2">Angalia Barua Pepe Yako!</h2>
-
           <p className="text-gray-500 text-sm mb-1">Tumetuma email ya uthibitisho kwa:</p>
           <p className="font-semibold text-gray-800 mb-5">{registeredEmail}</p>
-
-          {/* Steps */}
           <div className="bg-[#E1F5EE] rounded-xl p-4 mb-5 text-left">
             <p className="text-[#0F6E56] text-sm font-medium mb-3">Hatua za kufuata:</p>
             <div className="space-y-2.5">
@@ -110,13 +120,10 @@ function RegisterForm() {
               ))}
             </div>
           </div>
-
           <ResendEmailButton email={registeredEmail} />
-
           <p className="text-gray-400 text-xs mt-4">
             Angalia spam/junk folder kama email haionekani
           </p>
-
           <button
             onClick={() => router.push('/login')}
             className="mt-4 text-[#1D9E75] text-sm underline"
@@ -124,6 +131,30 @@ function RegisterForm() {
             Rudi Login →
           </button>
         </div>
+      </div>
+    )
+  }
+
+  // ── AGREEMENT step ────────────────────────────────────
+  if (step === 'agreement') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <AgreementModal
+          role={role}
+          prefillName={fullName}
+          prefillPhone={role === 'dalali' ? `+255${whatsapp}` : ''}
+          onAccept={handleAgreementAccepted}
+          onBack={() => { setStep('details'); setError('') }}
+          fullPage
+        />
+        {loading && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 text-center">
+              <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm text-gray-600">Inasajili...</p>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -200,7 +231,6 @@ function RegisterForm() {
         {step === 'details' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
-            {/* Back + title */}
             <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-50">
               <button
                 onClick={() => { setStep('role'); setError('') }}
@@ -220,7 +250,25 @@ function RegisterForm() {
                 </div>
               )}
 
-              <form onSubmit={handleEmailSignup} className="space-y-4">
+              {/* Step indicator */}
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-[10px] flex items-center justify-center font-bold">1</span>
+                  <span className="text-[10px] text-primary-600 font-medium">Maelezo</span>
+                </div>
+                <div className="flex-1 h-px bg-gray-200" />
+                <div className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-400 text-[10px] flex items-center justify-center font-bold">2</span>
+                  <span className="text-[10px] text-gray-400">Makubaliano</span>
+                </div>
+                <div className="flex-1 h-px bg-gray-200" />
+                <div className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-400 text-[10px] flex items-center justify-center font-bold">3</span>
+                  <span className="text-[10px] text-gray-400">Thibitisha</span>
+                </div>
+              </div>
+
+              <form onSubmit={e => { e.preventDefault(); proceedToAgreement('email') }} className="space-y-4">
                 <div>
                   <label className="text-xs text-gray-500 mb-1.5 block">👤 Jina lako kamili</label>
                   <input
@@ -299,13 +347,18 @@ function RegisterForm() {
                   </div>
                 )}
 
+                {/* Agreement notice */}
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
+                  📋 Hatua inayofuata: Utahitaji kusoma na kukubaliana na masharti ya matumizi kabla akaunti haijafunguliwa.
+                </div>
+
                 <button
                   type="submit"
                   disabled={loading}
                   className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-xl text-sm
                              font-semibold disabled:opacity-50 hover:bg-primary-600 transition-colors active:scale-[0.98]"
                 >
-                  {loading ? 'Inasajili...' : 'Unda Akaunti'}
+                  {loading ? 'Inaendelea...' : 'Endelea kwa Makubaliano →'}
                 </button>
 
                 {/* Divider */}
@@ -318,7 +371,10 @@ function RegisterForm() {
                 {/* Google */}
                 <button
                   type="button"
-                  onClick={handleGoogleSignup}
+                  onClick={() => {
+                    if (!fullName.trim()) { setError('Weka jina lako kwanza'); return }
+                    proceedToAgreement('google')
+                  }}
                   disabled={loading || !fullName.trim()}
                   className="w-full flex items-center justify-center gap-3 border
                              border-gray-200 rounded-xl py-3.5 min-h-[48px] text-sm font-medium

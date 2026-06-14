@@ -107,8 +107,8 @@ export async function postListingToSocialMedia(
   // ── Facebook ──────────────────────────────────────────────────────────────
   if (platform === 'facebook' || platform === 'both') {
     try {
-      if (!process.env.FACEBOOK_PAGE_ID || !process.env.FACEBOOK_ACCESS_TOKEN) {
-        throw new Error('FACEBOOK_PAGE_ID au FACEBOOK_ACCESS_TOKEN hazijakonfigurwa')
+      if (!process.env.FACEBOOK_PAGE_ID || (!process.env.FACEBOOK_PAGE_ACCESS_TOKEN && !process.env.FACEBOOK_ACCESS_TOKEN)) {
+        throw new Error('FACEBOOK_PAGE_ID au FACEBOOK_PAGE_ACCESS_TOKEN hazijakonfigurwa')
       }
 
       // Generate slightly different caption for FB (allow longer)

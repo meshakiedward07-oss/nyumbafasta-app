@@ -87,6 +87,12 @@ const NAV_SECTIONS = [
       { href: '/admin/subscriptions', label: 'Subscriptions',emoji: '💳', exact: false },
     ],
   },
+  {
+    title: 'Kisheria',
+    items: [
+      { href: '/admin/legal', label: 'Makubaliano & Malalamiko', emoji: '⚖️', exact: false },
+    ],
+  },
 ]
 
 const BOTTOM_NAV = [
@@ -197,28 +203,20 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <>
-      {/* ── DESKTOP layout (lg+) ── */}
-      <div className="hidden lg:flex h-screen overflow-hidden bg-gray-50">
-        {/* Sidebar */}
-        <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-200 h-screen overflow-y-auto">
-          <SidebarContent
-            pathname={pathname}
-            onLinkClick={() => {}}
-            onLogout={handleLogout}
-          />
-        </aside>
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      {/* ── Desktop sidebar (lg+) ── */}
+      <aside className="hidden lg:flex lg:w-64 flex-shrink-0 flex-col bg-white border-r border-gray-200 h-full overflow-y-auto">
+        <SidebarContent
+          pathname={pathname}
+          onLinkClick={() => {}}
+          onLogout={handleLogout}
+        />
+      </aside>
 
-        {/* Main content area */}
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
-
-      {/* ── MOBILE layout ── */}
-      <div className="lg:hidden">
+      {/* ── Right column: mobile header + content + mobile bottom nav ── */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Mobile top header */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-40 flex items-center justify-between">
+        <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 z-40 flex items-center justify-between flex-shrink-0">
           <Link href="/admin">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-[#1D9E75] rounded-lg flex items-center justify-center">
@@ -240,13 +238,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           </button>
         </header>
 
-        {/* Mobile page content */}
-        <main className="pb-20">
+        {/* Page content — rendered ONCE for both desktop and mobile */}
+        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
           {children}
         </main>
 
         {/* Mobile bottom nav */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 px-1 py-2">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 px-1 py-2">
           <div className="flex justify-around">
             {BOTTOM_NAV.map(item => (
               <Link key={item.href + item.label} href={item.href}>
@@ -260,24 +258,24 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             ))}
           </div>
         </nav>
-
-        {/* Mobile drawer */}
-        {drawerOpen && (
-          <div className="fixed inset-0 z-50">
-            <div
-              className="absolute inset-0 bg-black/50"
-              onClick={() => setDrawerOpen(false)}
-            />
-            <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl overflow-y-auto">
-              <SidebarContent
-                pathname={pathname}
-                onLinkClick={() => setDrawerOpen(false)}
-                onLogout={handleLogout}
-              />
-            </div>
-          </div>
-        )}
       </div>
-    </>
+
+      {/* Mobile drawer */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setDrawerOpen(false)}
+          />
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl overflow-y-auto">
+            <SidebarContent
+              pathname={pathname}
+              onLinkClick={() => setDrawerOpen(false)}
+              onLogout={handleLogout}
+            />
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

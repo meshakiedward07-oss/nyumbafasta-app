@@ -27,7 +27,7 @@ const REGIONS = TANZANIA_REGIONS
 
 const SOURCES = [
   { id: 'google_maps',      label: 'Google Maps',      emoji: '🗺️' },
-  { id: 'google_business',  label: 'Google Business',  emoji: '🏢' },
+  { id: 'google_business',  label: 'Google (Kiswahili)', emoji: '🏢' },
   { id: 'facebook_groups',  label: 'FB Groups',        emoji: '👥' },
   { id: 'facebook_pages',   label: 'FB Pages',         emoji: '📄' },
   { id: 'instagram',        label: 'Instagram',        emoji: '📸' },

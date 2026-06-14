@@ -1,14 +1,29 @@
+import { createHmac } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { handleIncomingMessage, Platform } from '@/lib/chat/aiAgent'
 
 export const dynamic = 'force-dynamic'
 
-const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN ?? 'nyumbafasta-fb-2026'
+const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN ?? process.env.META_WEBHOOK_VERIFY_TOKEN
 const HOUSE_RE = /nyumba|chumba|apartment|inapangishwa|rent|bei|location|mtaa/i
+
+function verifySignature(rawBody: Buffer, sigHeader: string): boolean {
+  const appSecret = process.env.FACEBOOK_APP_SECRET
+  if (!appSecret) return false
+  const [algo, sig] = sigHeader.split('=')
+  if (algo !== 'sha256' || !sig) return false
+  const expected = createHmac('sha256', appSecret).update(rawBody).digest('hex')
+  return expected === sig
+}
 
 // ── Facebook webhook verification ─────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
+  if (!VERIFY_TOKEN) {
+    console.error('[FBWebhook] FB_VERIFY_TOKEN haijawekwa')
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+
   const { searchParams } = new URL(req.url)
   const mode = searchParams.get('hub.mode')
   const token = searchParams.get('hub.verify_token')
@@ -23,79 +38,87 @@ export async function GET(req: NextRequest) {
 // ── Incoming events ────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const rawBuffer = Buffer.from(await req.arrayBuffer())
+  const sigHeader = req.headers.get('x-hub-signature-256') ?? ''
+
+  if (!sigHeader || !verifySignature(rawBuffer, sigHeader)) {
+    console.warn('[FBWebhook] Signature verification failed — ignoring request')
+    return NextResponse.json({ status: 'ok' })
+  }
+
+  let body: Record<string, unknown>
   try {
-    const body = await req.json()
+    body = JSON.parse(rawBuffer.toString())
+  } catch {
+    return NextResponse.json({ status: 'ok' })
+  }
 
-    if (body.object !== 'page' && body.object !== 'instagram') {
-      return NextResponse.json({ status: 'ok' })
-    }
+  if (body.object !== 'page' && body.object !== 'instagram') {
+    return NextResponse.json({ status: 'ok' })
+  }
 
-    const platform: Platform = body.object === 'instagram' ? 'instagram' : 'facebook'
+  // Return 200 IMMEDIATELY — process in background
+  void processEvents(body).catch(err =>
+    console.error('[FBWebhook] Processing error:', err),
+  )
+  return NextResponse.json({ status: 'ok' })
+}
 
-    for (const entry of body.entry ?? []) {
-      // DMs
-      for (const event of entry.messaging ?? []) {
-        if (!event.message) continue
-        const senderId = event.sender?.id as string | undefined
-        const text = (event.message?.text as string) ?? ''
+async function processEvents(body: Record<string, unknown>) {
+  const platform: Platform = body.object === 'instagram' ? 'instagram' : 'facebook'
 
-        const mediaUrls: string[] = []
-        for (const att of event.message?.attachments ?? []) {
-          const url = (att as { payload?: { url?: string } }).payload?.url
-          if (url) mediaUrls.push(url)
-        }
+  for (const entry of (body.entry as Record<string, unknown>[]) ?? []) {
+    // DMs
+    for (const event of (entry.messaging as Record<string, unknown>[]) ?? []) {
+      const message = event.message as Record<string, unknown> | undefined
+      if (!message) continue
+      const senderId = (event.sender as { id?: string })?.id
+      const text = (message.text as string) ?? ''
 
-        if (senderId && text) {
-          const response = await handleIncomingMessage(
-            platform, senderId, text,
-            undefined, undefined,
-            mediaUrls.length > 0 ? mediaUrls : undefined,
-          )
-          await sendFBMessage(senderId, response)
-        }
+      const mediaUrls: string[] = []
+      for (const att of (message.attachments as { payload?: { url?: string } }[]) ?? []) {
+        if (att?.payload?.url) mediaUrls.push(att.payload.url)
       }
 
-      // Page comments
-      for (const change of entry.changes ?? []) {
-        if (change.field !== 'feed') continue
-        const val = change.value as Record<string, unknown>
-        if (val?.item !== 'comment') continue
+      if (senderId && text) {
+        void handleIncomingMessage(
+          platform, senderId, text,
+          undefined, undefined,
+          mediaUrls.length > 0 ? mediaUrls : undefined,
+        ).then(response => sendFBMessage(senderId, response)).catch(err =>
+          console.error('[FBWebhook] DM handler error:', err),
+        )
+      }
+    }
 
-        const commenterId = val.sender_id as string | undefined
-        const commentText = (val.message as string) ?? ''
-        const commentId = val.comment_id as string | undefined
+    // Page comments
+    for (const change of (entry.changes as Record<string, unknown>[]) ?? []) {
+      if (change.field !== 'feed') continue
+      const val = change.value as Record<string, unknown>
+      if (val?.item !== 'comment') continue
 
-        if (!commenterId || !commentText) continue
+      const commenterId = val.sender_id as string | undefined
+      const commentText = (val.message as string) ?? ''
+      const commentId = val.comment_id as string | undefined
 
-        if (HOUSE_RE.test(commentText)) {
-          const response = await handleIncomingMessage('facebook', commenterId, commentText)
+      if (!commenterId || !commentText) continue
 
-          // Short reply on the comment itself
+      if (HOUSE_RE.test(commentText)) {
+        void handleIncomingMessage('facebook', commenterId, commentText).then(async response => {
           if (commentId) {
-            const firstLine = response.split('\n')[0]
-            await sendFBCommentReply(commentId, firstLine)
+            await sendFBCommentReply(commentId, response.split('\n')[0])
           }
-
-          // Full details in DM
-          await sendFBMessage(
-            commenterId,
-            `Habari! Nimekuona unatafuta nyumba 🏠 Ninatuma details kwenye DM yako...`,
-          )
-        }
+          await sendFBMessage(commenterId, `Habari! Nimekuona unatafuta nyumba 🏠 Ninatuma details kwenye DM yako...`)
+        }).catch(err => console.error('[FBWebhook] Comment handler error:', err))
       }
     }
-
-    return NextResponse.json({ status: 'ok' })
-  } catch (err) {
-    console.error('Facebook webhook error:', err)
-    return NextResponse.json({ status: 'ok' })
   }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 async function sendFBMessage(recipientId: string, message: string) {
-  const token = process.env.FACEBOOK_ACCESS_TOKEN
+  const token = process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN
   if (!token) return
 
   await fetch('https://graph.facebook.com/v18.0/me/messages', {
@@ -112,7 +135,7 @@ async function sendFBMessage(recipientId: string, message: string) {
 }
 
 async function sendFBCommentReply(commentId: string, message: string) {
-  const token = process.env.FACEBOOK_ACCESS_TOKEN
+  const token = process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN
   if (!token) return
 
   await fetch(`https://graph.facebook.com/v18.0/${commentId}/comments`, {

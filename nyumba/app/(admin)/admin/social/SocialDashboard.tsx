@@ -1,9 +1,10 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import VideoUploadTab from './VideoUploadTab'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'posts' | 'comments' | 'dms' | 'postnow' | 'schedule'
+type Tab = 'overview' | 'posts' | 'upload' | 'comments' | 'dms' | 'postnow' | 'schedule'
 
 type SocialStats = {
   totalPosts: number; publishedPosts: number
@@ -213,6 +214,7 @@ export default function SocialDashboard() {
   const TABS: { id: Tab; label: string; emoji: string }[] = [
     { id: 'overview', label: 'Muhtasari',  emoji: '📊' },
     { id: 'posts',    label: 'Machapisho', emoji: '📸' },
+    { id: 'upload',   label: 'Pakia Video', emoji: '📹' },
     { id: 'comments', label: 'Maoni',      emoji: '💬' },
     { id: 'dms',      label: 'DMs',        emoji: '📨' },
     { id: 'postnow',  label: 'Chapisha',   emoji: '✍️' },
@@ -282,7 +284,22 @@ export default function SocialDashboard() {
             </div>
           ) : null}
 
-          <div className="mt-6 bg-white rounded-xl border border-gray-200 p-5">
+          <div className="mt-6 flex gap-3">
+            <button
+              onClick={() => setActiveTab('upload')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#1D9E75] text-white text-sm font-medium rounded-xl hover:bg-[#178a65] transition-all"
+            >
+              📹 Pakia Video Mpya
+            </button>
+            <button
+              onClick={() => setActiveTab('postnow')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-all"
+            >
+              ✍️ Chapisha Listing
+            </button>
+          </div>
+
+          <div className="mt-4 bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-800 mb-3">Maarifa ya Mfumo</h3>
             <div className="space-y-2 text-sm text-gray-600">
               <p>📌 <strong>Webhook URL:</strong> <code className="bg-gray-100 px-1 rounded">/api/v1/meta/webhook</code> — weka kwenye Meta Developer Console</p>
@@ -351,6 +368,9 @@ export default function SocialDashboard() {
           </div>
         </div>
       )}
+
+      {/* ── PAKIA VIDEO ── */}
+      {activeTab === 'upload' && <VideoUploadTab />}
 
       {/* ── COMMENTS ── */}
       {activeTab === 'comments' && (

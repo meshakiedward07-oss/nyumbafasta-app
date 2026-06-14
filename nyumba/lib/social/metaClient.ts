@@ -3,7 +3,8 @@ import { createHmac } from 'crypto'
 const GRAPH = 'https://graph.facebook.com/v18.0'
 
 const igToken   = () => process.env.INSTAGRAM_ACCESS_TOKEN ?? ''
-const fbToken   = () => process.env.FACEBOOK_ACCESS_TOKEN  ?? ''
+// Page operations require PAGE token, not System User token
+const fbToken   = () => process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
 const igUserId  = () => process.env.INSTAGRAM_USER_ID      ?? ''
 const fbPageId  = () => process.env.FACEBOOK_PAGE_ID       ?? ''
 
@@ -177,6 +178,28 @@ export async function postToFacebook(
   const data = await res.json() as { id?: string; post_id?: string; error?: { message: string } }
   if (data.error) throw new Error(`FB post: ${data.error.message}`)
   return data.post_id ?? data.id ?? ''
+}
+
+// ── Facebook Video Upload ──────────────────────────────────────────────────
+
+export async function uploadFacebookVideoUrl(
+  videoUrl: string,
+  description: string,
+  title?: string,
+): Promise<string> {
+  const res = await fetch(`${GRAPH}/${fbPageId()}/videos`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      file_url:     videoUrl,
+      description,
+      title:        title ?? 'NyumbaFasta',
+      access_token: fbToken(),
+    }),
+  })
+  const data = await res.json() as { id?: string; error?: { message: string } }
+  if (data.error) throw new Error(`FB video: ${data.error.message}`)
+  return data.id ?? ''
 }
 
 // ── Facebook Interactions ──────────────────────────────────────────────────

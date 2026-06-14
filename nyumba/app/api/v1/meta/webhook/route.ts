@@ -59,14 +59,15 @@ export async function POST(req: NextRequest) {
 
   const objectType = body.object as string
 
-  try {
-    if (objectType === 'instagram') {
-      await handleInstagramEvents(body)
-    } else if (objectType === 'page') {
-      await handleFacebookEvents(body)
-    }
-  } catch (err) {
-    console.error('[MetaWebhook] Handler error:', err)
+  // Return 200 IMMEDIATELY — Meta retries on timeout; process in background
+  if (objectType === 'instagram') {
+    void handleInstagramEvents(body).catch(err =>
+      console.error('[MetaWebhook] IG handler error:', err),
+    )
+  } else if (objectType === 'page') {
+    void handleFacebookEvents(body).catch(err =>
+      console.error('[MetaWebhook] FB handler error:', err),
+    )
   }
 
   return NextResponse.json({ status: 'ok' })
