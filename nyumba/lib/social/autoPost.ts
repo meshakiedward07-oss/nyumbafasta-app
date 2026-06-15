@@ -23,6 +23,7 @@ export type PostResult = {
   error?:          string
   groupsPosted?:   number
   storyPosted?:    boolean
+  carouselPosted?: boolean
 }
 
 // ── Main entry point ────────────────────────────────────────────────────────
@@ -32,8 +33,9 @@ export async function postListingToSocialMedia(
   platform:      Platform = 'both',
   createdBy?:    string,
   options?: {
-    postToGroups?:  boolean   // also post to all active Facebook Groups
-    postToStories?: boolean   // also post as Instagram Story
+    postToGroups?:   boolean  // also post to all active Facebook Groups
+    postToStories?:  boolean  // also post as Instagram Story
+    postToCarousel?: boolean  // also post as Instagram Carousel (requires 2+ images)
   },
 ): Promise<PostResult> {
   // Fetch listing with all fields
@@ -197,16 +199,30 @@ export async function postListingToSocialMedia(
     }
   }
 
+  // ── Instagram Carousel (optional, non-blocking) ───────────────────────────
+  let carouselPosted = false
+  if (options?.postToCarousel && (l.images?.length ?? 0) >= 2) {
+    try {
+      const { postListingCarousel } = await import('./carouselPost')
+      const carouselResult = await postListingCarousel(l)
+      carouselPosted = carouselResult.success
+      console.log(`[AutoPost] Carousel: ${carouselPosted ? '✅' : '❌'}`, carouselResult.error ?? '')
+    } catch (err) {
+      console.error('[AutoPost] Carousel posting error (non-fatal):', err)
+    }
+  }
+
   return {
     postId,
     platform,
     instagramPostId: igPostId ?? undefined,
     facebookPostId:  fbPostId ?? undefined,
     caption,
-    status:       published ? 'published' : 'failed',
-    error:        lastError ?? undefined,
+    status:          published ? 'published' : 'failed',
+    error:           lastError ?? undefined,
     groupsPosted,
     storyPosted,
+    carouselPosted,
   }
 }
 

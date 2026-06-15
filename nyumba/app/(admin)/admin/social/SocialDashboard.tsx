@@ -3,10 +3,11 @@ import { useState, useEffect, useCallback } from 'react'
 import VideoUploadTab from './VideoUploadTab'
 import GroupsTab from './GroupsTab'
 import StoriesTab from './StoriesTab'
+import CarouselTab from './CarouselTab'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'comments' | 'dms' | 'postnow' | 'schedule'
+type Tab = 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'comments' | 'dms' | 'postnow' | 'schedule'
 
 type SocialStats = {
   totalPosts: number; publishedPosts: number
@@ -95,6 +96,7 @@ export default function SocialDashboard() {
   const [listings, setListings]       = useState<Listing[]>([])
   const [selectedListing, setSelectedListing] = useState('')
   const [selectedPlatform, setSelectedPlatform] = useState<'instagram' | 'facebook' | 'both'>('both')
+  const [postMode, setPostMode]       = useState<'single' | 'carousel'>('single')
   const [generatedCaption, setGeneratedCaption] = useState('')
   const [generatedHashtags, setGeneratedHashtags] = useState('')
   const [captionLoading, setCaptionLoading] = useState(false)
@@ -171,6 +173,19 @@ export default function SocialDashboard() {
     if (!selectedListing) { showToast('Chagua listing kwanza'); return }
     setPostLoading(true)
     try {
+      if (postMode === 'carousel') {
+        const res = await fetch('/api/v1/social/carousel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: selectedListing }),
+        })
+        const data = await res.json() as { success?: boolean; slidesCount?: number; error?: string }
+        if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
+        showToast(data.success ? `✅ Carousel imechapishwa! (Slides: ${data.slidesCount})` : 'Imeshindwa kuchapisha')
+        setSelectedListing('')
+        return
+      }
+
       const body: Record<string, unknown> = {
         listingId: selectedListing,
         platform: selectedPlatform,
@@ -219,6 +234,7 @@ export default function SocialDashboard() {
     { id: 'upload',   label: 'Pakia Video', emoji: '📹' },
     { id: 'groups',   label: 'Makundi',     emoji: '👥' },
     { id: 'stories',  label: 'Stories',     emoji: '🔴' },
+    { id: 'carousel', label: 'Carousel',    emoji: '🖼️' },
     { id: 'comments', label: 'Maoni',       emoji: '💬' },
     { id: 'dms',      label: 'DMs',         emoji: '📨' },
     { id: 'postnow',  label: 'Chapisha',    emoji: '✍️' },
@@ -382,6 +398,9 @@ export default function SocialDashboard() {
       {/* ── STORIES (Instagram Stories) ── */}
       {activeTab === 'stories' && <StoriesTab />}
 
+      {/* ── CAROUSEL (Instagram Carousel) ── */}
+      {activeTab === 'carousel' && <CarouselTab />}
+
       {/* ── COMMENTS ── */}
       {activeTab === 'comments' && (
         <div>
@@ -492,7 +511,38 @@ export default function SocialDashboard() {
               )}
             </div>
 
-            {/* Platform */}
+            {/* Post mode */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1.5">Aina ya Post</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPostMode('single')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                    postMode === 'single'
+                      ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  📸 Picha Moja
+                </button>
+                <button
+                  onClick={() => setPostMode('carousel')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                    postMode === 'carousel'
+                      ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  🖼️ Carousel
+                </button>
+              </div>
+              {postMode === 'carousel' && (
+                <p className="text-xs text-gray-500 mt-1">Picha zote zinaonekana — wateja wanaswipe ➡️ (Instagram tu, inahitaji picha 2+)</p>
+              )}
+            </div>
+
+            {/* Platform — only shown for single post mode */}
+            {postMode === 'single' && (
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1.5">Jukwaa</label>
               <div className="flex gap-2">
@@ -511,42 +561,54 @@ export default function SocialDashboard() {
                 ))}
               </div>
             </div>
+            )}
 
-            {/* Caption */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-gray-700">Caption</label>
-                <button
-                  onClick={handleGenerateCaption}
-                  disabled={captionLoading || !selectedListing}
-                  className="text-xs px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
-                >
-                  {captionLoading ? '⏳ Inaandika...' : '✨ Tengeneza kwa AI'}
-                </button>
+            {/* Caption + Schedule — only for single post mode */}
+            {postMode === 'single' && (
+              <>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-sm font-medium text-gray-700">Caption</label>
+                    <button
+                      onClick={handleGenerateCaption}
+                      disabled={captionLoading || !selectedListing}
+                      className="text-xs px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {captionLoading ? '⏳ Inaandika...' : '✨ Tengeneza kwa AI'}
+                    </button>
+                  </div>
+                  <textarea
+                    value={generatedCaption}
+                    onChange={(e) => setGeneratedCaption(e.target.value)}
+                    rows={6}
+                    placeholder="Caption itaonekana hapa baada ya kugeneratea, au andika mwenyewe..."
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75] resize-none"
+                  />
+                  {generatedHashtags && (
+                    <p className="text-xs text-gray-500 mt-1">Hashtags: {generatedHashtags}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1.5">Panga Muda (hiari)</label>
+                  <input
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={(e) => setScheduledAt(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Acha wazi kwa kuchapisha sasa hivi</p>
+                </div>
+              </>
+            )}
+
+            {/* Carousel info box */}
+            {postMode === 'carousel' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+                Caption ya AI itazalishwa kiotomatiki. Watermark itawekwa kwenye kila slide.
+                Mchakato huchukua dakika 1-2 — usifunge dirisha.
               </div>
-              <textarea
-                value={generatedCaption}
-                onChange={(e) => setGeneratedCaption(e.target.value)}
-                rows={6}
-                placeholder="Caption itaonekana hapa baada ya kugeneratea, au andika mwenyewe..."
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75] resize-none"
-              />
-              {generatedHashtags && (
-                <p className="text-xs text-gray-500 mt-1">Hashtags: {generatedHashtags}</p>
-              )}
-            </div>
-
-            {/* Schedule (optional) */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">Panga Muda (hiari)</label>
-              <input
-                type="datetime-local"
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
-              />
-              <p className="text-xs text-gray-400 mt-1">Acha wazi kwa kuchapisha sasa hivi</p>
-            </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
@@ -555,7 +617,11 @@ export default function SocialDashboard() {
                 disabled={postLoading || !selectedListing}
                 className="flex-1 py-3 bg-[#1D9E75] text-white font-semibold rounded-xl hover:bg-[#178a65] disabled:opacity-50 transition-all"
               >
-                {postLoading ? '⏳ Inachapisha...' : scheduledAt ? '📅 Panga' : '🚀 Chapisha Sasa'}
+                {postLoading
+                  ? '⏳ Inachapisha...'
+                  : postMode === 'carousel'
+                  ? '🖼️ Chapisha Carousel'
+                  : scheduledAt ? '📅 Panga' : '🚀 Chapisha Sasa'}
               </button>
               <button
                 onClick={() => { setGeneratedCaption(''); setGeneratedHashtags(''); setSelectedListing(''); setScheduledAt('') }}

@@ -92,6 +92,42 @@ export async function publishIGContainer(containerId: string): Promise<string> {
   return data.id!
 }
 
+// ── Instagram Carousel API ─────────────────────────────────────────────────
+
+export async function createIGCarouselItemContainer(imageUrl: string): Promise<string> {
+  const res = await fetch(`${GRAPH}/${igUserId()}/media`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image_url:          imageUrl,
+      is_carousel_item:   true,
+      access_token:       igToken(),
+    }),
+  })
+  const data = await res.json() as { id?: string; error?: { message: string } }
+  if (data.error) throw new Error(`IG carousel item: ${data.error.message}`)
+  return data.id!
+}
+
+export async function createIGCarouselContainer(
+  childIds: string[],
+  caption:  string,
+): Promise<string> {
+  const res = await fetch(`${GRAPH}/${igUserId()}/media`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      media_type:   'CAROUSEL',
+      children:     childIds.join(','),
+      caption,
+      access_token: igToken(),
+    }),
+  })
+  const data = await res.json() as { id?: string; error?: { message: string } }
+  if (data.error) throw new Error(`IG carousel container: ${data.error.message}`)
+  return data.id!
+}
+
 // ── Instagram Interactions ─────────────────────────────────────────────────
 
 export async function replyToIGComment(commentId: string, message: string): Promise<void> {
