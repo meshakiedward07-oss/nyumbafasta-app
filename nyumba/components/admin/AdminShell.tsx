@@ -41,8 +41,7 @@ const NAV_SECTIONS = [
   {
     title: 'Muhtasari',
     items: [
-      { href: '/admin',      label: 'Dashboard',    emoji: '📊', exact: true  },
-      { href: '/admin/chat', label: 'Chat Monitor', emoji: '💬', exact: false },
+      { href: '/admin', label: 'Dashboard', emoji: '📊', exact: true },
     ],
   },
   {
