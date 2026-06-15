@@ -42,7 +42,6 @@ const NAV_SECTIONS = [
     title: 'Muhtasari',
     items: [
       { href: '/admin', label: 'Dashboard', emoji: '📊', exact: true },
-      // Chat Monitor removed
     ],
   },
   {
