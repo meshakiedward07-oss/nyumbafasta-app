@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 
 // PaymentMethodSelector — shows AzamPay mobile money provider grid.
 // For mobile: shows "Lipa" button → calls onPay(method) → parent shows phone input
@@ -14,8 +15,8 @@ export const PAYMENT_METHODS = [
     bgColor: '#FFF5F5',
     type:    'mobile' as const,
     hint:    '074/075/076 XXX XXXX',
-    /* eslint-disable-next-line @next/next/no-img-element */
-    icon:    <img src="/payment_icons/mpesa.png"      alt="M-Pesa"       className="h-9 w-auto object-contain" />,
+    iconSrc: '/payment_icons/mpesa.png',
+    iconAlt: 'M-Pesa',
   },
   {
     id:      'Tigopesa'    as PaymentMethod,
@@ -25,8 +26,8 @@ export const PAYMENT_METHODS = [
     bgColor: '#F0F4FF',
     type:    'mobile' as const,
     hint:    '065/071 XXX XXXX',
-    /* eslint-disable-next-line @next/next/no-img-element */
-    icon:    <img src="/payment_icons/mixx.png"       alt="Mixx by YAS"  className="h-9 w-auto object-contain" />,
+    iconSrc: '/payment_icons/mixx.png',
+    iconAlt: 'Mixx by YAS',
   },
   {
     id:      'AirtelMoney' as PaymentMethod,
@@ -36,8 +37,8 @@ export const PAYMENT_METHODS = [
     bgColor: '#FFF5F5',
     type:    'mobile' as const,
     hint:    '078 XXX XXXX',
-    /* eslint-disable-next-line @next/next/no-img-element */
-    icon:    <img src="/payment_icons/airtel.png"     alt="Airtel Money" className="h-9 w-auto object-contain" />,
+    iconSrc: '/payment_icons/airtel.png',
+    iconAlt: 'Airtel Money',
   },
   {
     id:      'Halopesa'    as PaymentMethod,
@@ -47,8 +48,8 @@ export const PAYMENT_METHODS = [
     bgColor: '#FFF5F0',
     type:    'mobile' as const,
     hint:    '062 XXX XXXX',
-    /* eslint-disable-next-line @next/next/no-img-element */
-    icon:    <img src="/payment_icons/halopesa.png"   alt="HaloPesa"     className="h-9 w-auto object-contain" />,
+    iconSrc: '/payment_icons/halopesa.png',
+    iconAlt: 'HaloPesa',
   },
 ]
 
@@ -58,8 +59,20 @@ type Props = {
   selected: PaymentMethod | null
   onSelect: (method: PaymentMethod) => void
   amount:   number
-  // Called when user confirms selection → parent shows phone input
   onPay:    (method: PaymentMethod) => void
+}
+
+function PaymentIcon({ iconSrc, iconAlt }: { iconSrc: string; iconAlt: string }) {
+  return (
+    <Image
+      src={iconSrc}
+      alt={iconAlt}
+      width={80}
+      height={36}
+      className="h-9 w-auto object-contain"
+      loading="lazy"
+    />
+  )
 }
 
 export default function PaymentMethodSelector({ selected, onSelect, amount, onPay }: Props) {
@@ -82,7 +95,9 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
                            flex items-center justify-center text-white text-[10px] font-bold"
             style={{ backgroundColor: m.color }}>✓</span>
         )}
-        <div className="h-10 flex items-center justify-center">{m.icon}</div>
+        <div className="h-10 flex items-center justify-center">
+          <PaymentIcon iconSrc={m.iconSrc} iconAlt={m.iconAlt} />
+        </div>
         <p className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{m.name}</p>
         <p className="text-[9px] text-gray-400">{m.company}</p>
       </button>
@@ -106,7 +121,9 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
       {selected && selectedInfo && (
         <div className="pt-1">
           <div className="flex items-center justify-center gap-2 mb-3">
-            <div className="h-7 flex items-center">{selectedInfo.icon}</div>
+            <div className="h-7 flex items-center">
+              <PaymentIcon iconSrc={selectedInfo.iconSrc} iconAlt={selectedInfo.iconAlt} />
+            </div>
             <span className="text-xs text-gray-500">
               Utalipa kupitia <strong>{selectedInfo.name}</strong>
             </span>

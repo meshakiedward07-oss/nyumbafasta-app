@@ -1,26 +1,59 @@
 'use client'
 import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import ListingsSection from '@/components/listings/ListingsSection'
+import type { ListingWithDalali } from '@/lib/types/database'
 
-function HomeContent() {
+// Isolated so useSearchParams doesn't block SSR of the header + listings above it
+function WelcomeModal() {
   const searchParams = useSearchParams()
-  const [welcomeDismissed, setWelcomeDismissed] = useState(false)
-  const showWelcome = searchParams.get('welcome') === 'true' && !welcomeDismissed
+  const [dismissed, setDismissed] = useState(false)
+  const show = searchParams.get('welcome') === 'true' && !dismissed
 
+  if (!show) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
+        <div className="text-5xl mb-3">🎉</div>
+        <h2 className="font-bold text-xl mb-2 text-gray-900">Karibu NyumbaFasta!</h2>
+        <p className="text-gray-500 text-sm mb-5 leading-relaxed">
+          Akaunti yako imethibitishwa vizuri. Uko tayari kutafuta nyumba na vyumba Tanzania!
+        </p>
+        <button
+          onClick={() => setDismissed(true)}
+          className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
+        >
+          Anza Kutumia →
+        </button>
+      </div>
+    </div>
+  )
+}
+
+type Props = {
+  initialListings: ListingWithDalali[]
+  initialTotal: number
+}
+
+export default function HomeClient({ initialListings, initialTotal }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* Sticky header — logo + account button */}
+      {/* Sticky header */}
       <header className="bg-[#1D9E75] sticky top-0 z-20 shadow-sm">
         <div className="flex items-center justify-between px-3 py-2">
-          <div className="h-12 w-[55%] sm:w-[45%]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          {/* Next.js Image with priority — LCP element, preloaded by browser */}
+          <div className="relative h-12 w-[55%] sm:w-[45%]">
+            <Image
               src="/transparent_logo_nyumbafasta.png"
               alt="NyumbaFasta"
-              className="h-full w-full object-contain object-left"
+              fill
+              priority
+              className="object-contain object-left"
+              sizes="(max-width: 640px) 55vw, 45vw"
             />
           </div>
           <Link href="/account">
@@ -31,36 +64,14 @@ function HomeContent() {
         </div>
       </header>
 
-      {/* Main content — search, filters, map/grid toggle, listings, bottom nav */}
-      <ListingsSection />
+      {/* Listings — receives server-fetched initial data for instant first paint */}
+      <ListingsSection initialListings={initialListings} initialTotal={initialTotal} />
 
-      {/* Welcome modal — shown after email verification */}
-      {showWelcome && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
-            <div className="text-5xl mb-3">🎉</div>
-            <h2 className="font-bold text-xl mb-2 text-gray-900">Karibu NyumbaFasta!</h2>
-            <p className="text-gray-500 text-sm mb-5 leading-relaxed">
-              Akaunti yako imethibitishwa vizuri. Uko tayari kutafuta nyumba na vyumba Tanzania!
-            </p>
-            <button
-              onClick={() => setWelcomeDismissed(true)}
-              className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
-            >
-              Anza Kutumia →
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Welcome modal isolated in Suspense so it never blocks the SSR of content above */}
+      <Suspense fallback={null}>
+        <WelcomeModal />
+      </Suspense>
 
     </div>
-  )
-}
-
-export default function HomeClient() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
-      <HomeContent />
-    </Suspense>
   )
 }

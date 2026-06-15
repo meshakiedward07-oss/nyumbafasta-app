@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -46,12 +46,21 @@ type Filters = {
   search: string
 }
 
-export default function ListingsSection() {
+type Props = {
+  initialListings?: ListingWithDalali[]
+  initialTotal?: number
+}
+
+export default function ListingsSection({ initialListings, initialTotal }: Props = {}) {
   const supabase = createClient()
 
-  const [listings, setListings]       = useState<ListingWithDalali[]>([])
-  const [total, setTotal]             = useState(0)
-  const [loading, setLoading]         = useState(true)
+  // Start with server-fetched data if provided — avoids client-side waterfall on first load
+  const hasInitialData = !!(initialListings?.length)
+  const skippedFirstFetch = useRef(hasInitialData)
+
+  const [listings, setListings]       = useState<ListingWithDalali[]>(initialListings ?? [])
+  const [total, setTotal]             = useState(initialTotal ?? 0)
+  const [loading, setLoading]         = useState(!hasInitialData)
   const [page, setPage]               = useState(1)
   const [viewMode, setViewMode]       = useState<'grid' | 'map'>('grid')
   const [showFilters, setShowFilters] = useState(false)
@@ -134,7 +143,12 @@ export default function ListingsSection() {
   }, [filters, page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // When filters change → reset to page 1 and fetch fresh
+  // Skip on first mount if initial data was provided by server (avoids double-fetch)
   useEffect(() => {
+    if (skippedFirstFetch.current) {
+      skippedFirstFetch.current = false
+      return
+    }
     setPage(1)
     fetchListings(true)
   }, [filters]) // eslint-disable-line react-hooks/exhaustive-deps

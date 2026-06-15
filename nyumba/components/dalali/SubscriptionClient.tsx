@@ -280,7 +280,8 @@ export default function SubscriptionClient({
                 const p = PAYMENT_PROVIDERS.find(p => p.id === provider)
                 return p ? (
                   <div className="flex items-center gap-1.5">
-                    <span className="h-7 flex items-center">{p.icon}</span>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.iconSrc} alt={p.iconAlt} className="h-7 w-auto object-contain" />
                     <span className="text-sm font-bold text-gray-900">Lipa kwa {p.name}</span>
                   </div>
                 ) : <span className="text-sm font-bold text-gray-900">Lipa kwa Mobile Money</span>

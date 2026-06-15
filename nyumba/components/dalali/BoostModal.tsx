@@ -308,7 +308,10 @@ export default function BoostModal({
             </button>
 
             <div className="flex items-center gap-2 mb-4">
-              {providerInfo && <span className="text-lg">{providerInfo.icon}</span>}
+              {providerInfo && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={providerInfo.iconSrc} alt={providerInfo.iconAlt} className="h-6 w-auto object-contain" />
+              )}
               <div>
                 <h3 className="font-bold text-base text-gray-900">📱 Nambari ya Simu</h3>
                 <p className="text-xs text-gray-400">

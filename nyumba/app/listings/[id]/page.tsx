@@ -93,54 +93,58 @@ export default async function ListingDetailPage({
 }) {
   const supabase = await createClient()
 
-  // Increment view count
-  await supabase.rpc('increment_view_count', { listing_id: params.id }).maybeSingle()
-
-  // Track in recently_viewed for logged-in users
-  const { data: { user: viewer } } = await supabase.auth.getUser()
-  if (viewer) {
-    await supabase
-      .from('recently_viewed')
-      .upsert(
-        { user_id: viewer.id, listing_id: params.id, viewed_at: new Date().toISOString() },
-        { onConflict: 'user_id,listing_id' }
-      )
-
-    const { data: old } = await supabase
-      .from('recently_viewed')
-      .select('id')
-      .eq('user_id', viewer.id)
-      .order('viewed_at', { ascending: false })
-      .range(20, 100)
-
-    if (old?.length) {
-      await supabase.from('recently_viewed').delete().in('id', old.map(r => r.id))
-    }
-  }
-
-  const { data, error } = await supabase
-    .from('listings')
-    .select(`
-      id, title, type, status, price_monthly,
-      district, region, furnished, amenities,
-      images, description,
-      is_boosted, view_count, lead_count, share_count,
-      created_at, dalali_id,
-      dalali:dalali_id (
-        id, full_name, phone, avatar_url,
-        dalali_profiles (
-          id, whatsapp_number, bio,
-          rating_avg, rating_count, is_premium_verified
+  // Run auth + main listing fetch in parallel — saves ~150ms vs sequential
+  const [{ data: { user } }, { data, error }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from('listings')
+      .select(`
+        id, title, type, status, price_monthly,
+        district, region, furnished, amenities,
+        images, description,
+        is_boosted, view_count, lead_count, share_count,
+        created_at, dalali_id,
+        dalali:dalali_id (
+          id, full_name, phone, avatar_url,
+          dalali_profiles (
+            id, whatsapp_number, bio,
+            rating_avg, rating_count, is_premium_verified
+          )
         )
-      )
-    `)
-    .eq('id', params.id)
-    .single()
+      `)
+      .eq('id', params.id)
+      .single(),
+  ])
 
   if (error || !data) notFound()
 
-  // Check if current user already unlocked this listing
-  const { data: { user } } = await supabase.auth.getUser()
+  // Fire-and-forget side effects — don't block page render
+  // PostgrestBuilder is PromiseLike (not Promise), so wrap in Promise.resolve for .catch()
+  Promise.resolve(
+    supabase.rpc('increment_view_count', { listing_id: params.id }).maybeSingle()
+  ).catch(() => {})
+
+  if (user) {
+    void (async () => {
+      await supabase
+        .from('recently_viewed')
+        .upsert(
+          { user_id: user.id, listing_id: params.id, viewed_at: new Date().toISOString() },
+          { onConflict: 'user_id,listing_id' }
+        )
+      const { data: old } = await supabase
+        .from('recently_viewed')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('viewed_at', { ascending: false })
+        .range(20, 100)
+      if (old?.length) {
+        await supabase.from('recently_viewed').delete().in('id', old.map(r => r.id))
+      }
+    })().catch(() => {})
+  }
+
+  // Check unlock status
   let hasUnlocked = false
   let unlockId: string | null = null
   let unlockCreatedAt: string | null = null
@@ -149,7 +153,7 @@ export default async function ListingDetailPage({
   if (user) {
     const { data: unlock } = await supabase
       .from('contact_unlocks')
-      .select('id, created_at, client_notes')
+      .select('id, created_at')
       .eq('client_id', user.id)
       .eq('listing_id', params.id)
       .eq('status', 'completed')

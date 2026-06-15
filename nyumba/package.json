@@ -23,6 +23,8 @@
     "@supabase/supabase-js": "^2.106.2",
     "@types/leaflet": "^1.9.21",
     "@types/web-push": "^3.6.4",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "axios": "^1.17.0",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",

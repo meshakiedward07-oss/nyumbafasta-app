@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
+import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Analytics } from '@vercel/analytics/react'
 import ClientProviders from '@/components/shared/ClientProviders'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import './globals.css'
@@ -139,6 +141,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <ClientProviders />
         <GoogleAnalytics />
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   )

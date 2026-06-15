@@ -11,11 +11,12 @@ const PROVIDERS = Object.fromEntries(
     name:     m.name,
     badge:    m.company,
     hint:     m.hint,
-    icon:     m.icon,
+    iconSrc:  m.iconSrc,
+    iconAlt:  m.iconAlt,
     btnColor: m.color,
     type:     m.type,
   }])
-) as Record<PaymentProvider, { name: string; badge: string; hint: string; icon: React.ReactNode; btnColor: string; type: 'mobile' }>
+) as Record<PaymentProvider, { name: string; badge: string; hint: string; iconSrc: string; iconAlt: string; btnColor: string; type: 'mobile' }>
 
 // ── Types ─────────────────────────────────────────────────
 type ModalStep = 'select' | 'phone' | 'waiting' | 'success' | 'failed'
@@ -238,7 +239,8 @@ export default function UnlockModal({
             <div className="flex items-center gap-2 mb-4">
               <button onClick={() => setStep('select')} className="text-gray-400 text-lg">←</button>
               <div className="flex items-center gap-2">
-                <span className="text-lg">{pInfo.icon}</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={pInfo.iconSrc} alt={pInfo.iconAlt} className="h-5 w-auto object-contain" />
                 <span className="text-sm font-semibold text-gray-800">{pInfo.name}</span>
                 <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{pInfo.badge}</span>
               </div>

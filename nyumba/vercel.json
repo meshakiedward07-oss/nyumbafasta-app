@@ -8,5 +8,13 @@
       "path": "/api/v1/cron/weekly",
       "schedule": "0 17 * * 6"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/v1/whatsapp/webhook/route.ts": { "maxDuration": 30 },
+    "app/api/v1/meta/webhook/route.ts":     { "maxDuration": 30 },
+    "app/api/v1/payments/webhook/route.ts": { "maxDuration": 30 },
+    "app/api/v1/social/video/[id]/publish/route.ts": { "maxDuration": 300 },
+    "app/api/v1/social/post/route.ts":      { "maxDuration": 60 },
+    "app/api/v1/agent/run/route.ts":        { "maxDuration": 60 }
+  }
 }

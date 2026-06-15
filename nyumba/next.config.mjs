@@ -14,7 +14,11 @@ const nextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
     deviceSizes: [390, 430, 640, 750, 828, 1080, 1200],
     imageSizes: [48, 64, 96, 128, 256],
-    unoptimized: false, // local public/ images served as-is via <img> tags — no Next/Image needed
+  },
+
+  experimental: {
+    // Tree-shake these packages so only used icons/functions are bundled
+    optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],
   },
 
   async headers() {
@@ -61,6 +65,16 @@ const nextConfig = {
       {
         // Long-term cache kwa static assets za Next.js
         source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Long-term cache for public/ images (logos, icons, placeholders)
+        source: '/(.*\\.(?:jpg|jpeg|png|gif|ico|svg|webp|avif|woff2|woff))',
         headers: [
           {
             key: 'Cache-Control',
