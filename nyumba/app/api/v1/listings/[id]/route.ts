@@ -38,6 +38,31 @@ export async function PATCH(
 
       await admin.from('listings').update({ status }).eq('id', params.id)
 
+      // Sync Marketplace availability when listing is taken
+      if (status === 'taken') {
+        void (async () => {
+          try {
+            const { data: ml } = await admin
+              .from('marketplace_listings')
+              .select('retailer_id')
+              .eq('listing_id', params.id)
+              .eq('status', 'active')
+              .maybeSingle()
+            if (ml?.retailer_id) {
+              const { markMarketplaceItemTaken } = await import('@/lib/social/facebookMarketplace')
+              await markMarketplaceItemTaken(ml.retailer_id)
+              await admin
+                .from('marketplace_listings')
+                .update({ status: 'sold', availability: 'OUT_OF_STOCK', updated_at: new Date().toISOString() })
+                .eq('listing_id', params.id)
+              console.log(`[Listing] Marketplace marked OUT_OF_STOCK for listing ${params.id}`)
+            }
+          } catch (err) {
+            console.error('[Listing] Marketplace taken sync failed (non-fatal):', err)
+          }
+        })()
+      }
+
       // Notify saved users when listing is taken
       if (status === 'taken') {
         const { data: saved } = await admin
@@ -105,6 +130,29 @@ export async function DELETE(
 
     // Soft delete — keeps data for records
     await admin.from('listings').update({ status: 'expired' }).eq('id', params.id)
+
+    // Remove from Marketplace (non-fatal)
+    void (async () => {
+      try {
+        const { data: ml } = await admin
+          .from('marketplace_listings')
+          .select('retailer_id')
+          .eq('listing_id', params.id)
+          .eq('status', 'active')
+          .maybeSingle()
+        if (ml?.retailer_id) {
+          const { deleteMarketplaceItem } = await import('@/lib/social/facebookMarketplace')
+          await deleteMarketplaceItem(ml.retailer_id)
+          await admin
+            .from('marketplace_listings')
+            .update({ status: 'deleted', availability: 'OUT_OF_STOCK', updated_at: new Date().toISOString() })
+            .eq('listing_id', params.id)
+          console.log(`[Listing] Marketplace item deleted for listing ${params.id}`)
+        }
+      } catch (err) {
+        console.error('[Listing] Marketplace delete sync failed (non-fatal):', err)
+      }
+    })()
 
     return NextResponse.json({ success: true })
   } catch {

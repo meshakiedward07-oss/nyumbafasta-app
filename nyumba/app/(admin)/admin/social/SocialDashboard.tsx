@@ -6,10 +6,11 @@ import StoriesTab from './StoriesTab'
 import CarouselTab from './CarouselTab'
 import SpamTab from './SpamTab'
 import BestTimeTab from './BestTimeTab'
+import MarketplaceTab from './MarketplaceTab'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule'
+type Tab = 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'marketplace' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule'
 
 type SocialStats = {
   totalPosts: number; publishedPosts: number
@@ -236,8 +237,9 @@ export default function SocialDashboard() {
     { id: 'upload',   label: 'Pakia Video', emoji: '📹' },
     { id: 'groups',   label: 'Makundi',     emoji: '👥' },
     { id: 'stories',  label: 'Stories',     emoji: '🔴' },
-    { id: 'carousel', label: 'Carousel',    emoji: '🖼️' },
-    { id: 'spam',     label: 'Spam',        emoji: '🚫' },
+    { id: 'carousel',     label: 'Carousel',    emoji: '🖼️' },
+    { id: 'marketplace',  label: 'Marketplace', emoji: '🛒' },
+    { id: 'spam',         label: 'Spam',        emoji: '🚫' },
     { id: 'besttime', label: 'Wakati Bora', emoji: '⏰' },
     { id: 'comments', label: 'Maoni',       emoji: '💬' },
     { id: 'dms',      label: 'DMs',         emoji: '📨' },
@@ -404,6 +406,9 @@ export default function SocialDashboard() {
 
       {/* ── CAROUSEL (Instagram Carousel) ── */}
       {activeTab === 'carousel' && <CarouselTab />}
+
+      {/* ── MARKETPLACE ── */}
+      {activeTab === 'marketplace' && <MarketplaceTab />}
 
       {/* ── SPAM ── */}
       {activeTab === 'spam' && <SpamTab />}

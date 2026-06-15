@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyMetaSignature } from '@/lib/social/metaClient'
 import { handleNewComment, handleSocialDM } from '@/lib/social/autoReply'
+import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -129,15 +130,21 @@ async function handleFacebookEvents(body: Record<string, unknown>) {
       const message = event.message as Record<string, unknown> | undefined
       if (!message) continue
 
-      const senderId = (event.sender as { id?: string })?.id
-      const text     = (message.text as string) ?? ''
-      const mid      = (message.mid as string) ?? undefined
+      const senderId  = (event.sender as { id?: string })?.id
+      const text      = (message.text as string) ?? ''
+      const mid       = (message.mid as string) ?? undefined
+      const referral  = event.referral as Record<string, unknown> | undefined
 
-      if (senderId && text) {
-        void handleSocialDM(
-          { senderId, messageId: mid, messageText: text },
-          'facebook',
-        )
+      if (!senderId || !text) continue
+
+      // Detect marketplace inquiry (has referral.source === 'MARKETPLACE')
+      const isMarketplace    = referral?.source === 'MARKETPLACE'
+      const mItemId          = (referral?.product as { id?: string } | undefined)?.id
+
+      if (isMarketplace && mItemId) {
+        void handleMarketplaceInquiry(senderId, text, mid, mItemId)
+      } else {
+        void handleSocialDM({ senderId, messageId: mid, messageText: text }, 'facebook')
       }
     }
 
@@ -165,5 +172,100 @@ async function handleFacebookEvents(body: Record<string, unknown>) {
         'facebook',
       )
     }
+  }
+}
+
+// ── Marketplace Inquiry Handler ────────────────────────────────────────────
+
+async function handleMarketplaceInquiry(
+  senderId:   string,
+  text:       string,
+  messageId:  string | undefined,
+  mItemId:    string,
+) {
+  try {
+    // Resolve listing from marketplace_listings
+    const { data: ml } = await supabaseAdmin
+      .from('marketplace_listings')
+      .select('id, listing_id, title, listings(title, price_monthly, district, region, bedrooms, id)')
+      .eq('marketplace_item_id', mItemId)
+      .maybeSingle()
+
+    const listingId = ml?.listing_id as string | null
+    const listingData = ml?.listings as unknown as Record<string, unknown> | null
+
+    // Save inquiry to DB
+    if (ml?.id) {
+      await supabaseAdmin.from('marketplace_inquiries').insert({
+        marketplace_listing_id: ml.id,
+        listing_id:             listingId,
+        sender_fb_id:           senderId,
+        message:                text,
+      })
+      // Increment inquiry count
+      void Promise.resolve(
+        supabaseAdmin
+          .from('marketplace_listings')
+          .update({ inquiries: ((ml as Record<string, unknown>).inquiries as number ?? 0) + 1 })
+          .eq('id', ml.id)
+      ).catch(() => null)
+    }
+
+    // Build listing context for Amina
+    const price      = listingData?.price_monthly
+      ? Number(listingData.price_monthly).toLocaleString('sw-TZ')
+      : 'N/A'
+    const district   = String(listingData?.district ?? '')
+    const region     = String(listingData?.region ?? '')
+    const bedrooms   = listingData?.bedrooms ?? 'N/A'
+    const listTitle  = String(listingData?.title ?? ml?.title ?? 'nyumba')
+    const lid        = String(listingData?.id ?? listingId ?? '')
+
+    const listingContext = listingData
+      ? `Mtu huyu anawasiliana kupitia Facebook Marketplace.
+Anauliza kuhusu listing hii hasa:
+- Kichwa: ${listTitle}
+- Bei: TZS ${price}/mwezi
+- Mahali: ${district}, ${region}
+- Vyumba: ${bedrooms}
+- Link: nyumbafasta.co/listings/${lid}
+Jibu maswali yake kuhusu listing hii specifically. Mweleze bei, mahali, na jinsi ya kuwasiliana.`
+      : undefined
+
+    // Route through Amina with listing context
+    const { handleIncomingMessage } = await import('@/lib/chat/aiAgent')
+    const { sendFBMessage } = await import('@/lib/social/metaClient')
+
+    const reply = await handleIncomingMessage(
+      'facebook',
+      senderId,
+      text,
+      undefined,
+      undefined,
+      undefined,
+      listingContext,
+    )
+
+    if (reply?.trim()) {
+      await sendFBMessage(senderId, reply)
+
+      // Mark inquiry as replied
+      if (ml?.id) {
+        await supabaseAdmin
+          .from('marketplace_inquiries')
+          .update({ replied: true, reply_text: reply, replied_at: new Date().toISOString() })
+          .eq('marketplace_listing_id', ml.id)
+          .eq('sender_fb_id', senderId)
+          .eq('replied', false)
+          .order('created_at', { ascending: false })
+          .limit(1)
+      }
+    }
+
+    console.log(`[Marketplace] Inquiry handled for item ${mItemId} from sender ${senderId.slice(0, 6)}***`)
+  } catch (err) {
+    console.error('[Marketplace] Inquiry handler failed:', err)
+    // Fall back to regular DM handling
+    void handleSocialDM({ senderId, messageId, messageText: text }, 'facebook')
   }
 }

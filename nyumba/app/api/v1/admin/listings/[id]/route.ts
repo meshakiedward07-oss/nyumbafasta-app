@@ -79,6 +79,26 @@ export async function PATCH(
       await sendPushToUser(listing.dalali_id, notifTitle, notifBody, '/dashboard/listings')
     }
 
+    // Auto-post to Facebook Marketplace on approval (non-fatal)
+    if (action === 'approve' && listing) {
+      void (async () => {
+        try {
+          const { data: fullListing } = await admin
+            .from('listings')
+            .select('*')
+            .eq('id', params.id)
+            .single()
+          if (fullListing) {
+            const { postListingToMarketplace } = await import('@/lib/social/facebookMarketplace')
+            const mResult = await postListingToMarketplace(fullListing)
+            console.log(`[Approval] Marketplace: ${mResult.success ? '✅ ' + mResult.itemId : '❌ ' + mResult.error}`)
+          }
+        } catch (err) {
+          console.error('[Approval] Marketplace post failed (non-fatal):', err)
+        }
+      })()
+    }
+
     return NextResponse.json({ success: true, status: newStatus })
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
