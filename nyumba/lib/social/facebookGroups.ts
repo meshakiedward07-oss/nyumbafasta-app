@@ -63,7 +63,7 @@ export async function postToAllGroups(
   imageUrl?: string,
 ): Promise<GroupPostResult[]> {
   const { data: groups } = await supabaseAdmin
-    .from('facebook_groups')
+    .from('fb_posting_groups')
     .select('*')
     .eq('is_active', true)
     .order('last_posted_at', { ascending: true, nullsFirst: true })
@@ -100,7 +100,7 @@ export async function postToAllGroups(
 
       if (result.success) {
         await supabaseAdmin
-          .from('facebook_groups')
+          .from('fb_posting_groups')
           .update({
             last_posted_at: new Date().toISOString(),
             post_count:     (group.post_count ?? 0) + 1,
@@ -153,7 +153,7 @@ function buildGroupMessage(listing: Listing): string {
 
 export async function getAllGroups() {
   const { data } = await supabaseAdmin
-    .from('facebook_groups')
+    .from('fb_posting_groups')
     .select('*')
     .order('is_active', { ascending: false })
     .order('post_count',  { ascending: false })
@@ -168,7 +168,7 @@ export async function addGroup(params: {
   category?:    string
 }) {
   const { data, error } = await supabaseAdmin
-    .from('facebook_groups')
+    .from('fb_posting_groups')
     .insert({
       group_id:      params.groupId,
       group_name:    params.groupName,
@@ -185,7 +185,7 @@ export async function addGroup(params: {
 
 export async function toggleGroup(id: string, isActive: boolean) {
   const { error } = await supabaseAdmin
-    .from('facebook_groups')
+    .from('fb_posting_groups')
     .update({ is_active: isActive })
     .eq('id', id)
   if (error) throw new Error(error.message)
@@ -193,7 +193,7 @@ export async function toggleGroup(id: string, isActive: boolean) {
 
 export async function deleteGroup(id: string) {
   const { error } = await supabaseAdmin
-    .from('facebook_groups')
+    .from('fb_posting_groups')
     .delete()
     .eq('id', id)
   if (error) throw new Error(error.message)
