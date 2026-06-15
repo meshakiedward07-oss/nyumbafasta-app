@@ -1,10 +1,12 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import VideoUploadTab from './VideoUploadTab'
+import GroupsTab from './GroupsTab'
+import StoriesTab from './StoriesTab'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'posts' | 'upload' | 'comments' | 'dms' | 'postnow' | 'schedule'
+type Tab = 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'comments' | 'dms' | 'postnow' | 'schedule'
 
 type SocialStats = {
   totalPosts: number; publishedPosts: number
@@ -212,13 +214,15 @@ export default function SocialDashboard() {
   }
 
   const TABS: { id: Tab; label: string; emoji: string }[] = [
-    { id: 'overview', label: 'Muhtasari',  emoji: '📊' },
-    { id: 'posts',    label: 'Machapisho', emoji: '📸' },
+    { id: 'overview', label: 'Muhtasari',   emoji: '📊' },
+    { id: 'posts',    label: 'Machapisho',  emoji: '📸' },
     { id: 'upload',   label: 'Pakia Video', emoji: '📹' },
-    { id: 'comments', label: 'Maoni',      emoji: '💬' },
-    { id: 'dms',      label: 'DMs',        emoji: '📨' },
-    { id: 'postnow',  label: 'Chapisha',   emoji: '✍️' },
-    { id: 'schedule', label: 'Ratiba',     emoji: '📅' },
+    { id: 'groups',   label: 'Makundi',     emoji: '👥' },
+    { id: 'stories',  label: 'Stories',     emoji: '🔴' },
+    { id: 'comments', label: 'Maoni',       emoji: '💬' },
+    { id: 'dms',      label: 'DMs',         emoji: '📨' },
+    { id: 'postnow',  label: 'Chapisha',    emoji: '✍️' },
+    { id: 'schedule', label: 'Ratiba',      emoji: '📅' },
   ]
 
   return (
@@ -371,6 +375,12 @@ export default function SocialDashboard() {
 
       {/* ── PAKIA VIDEO ── */}
       {activeTab === 'upload' && <VideoUploadTab />}
+
+      {/* ── MAKUNDI (Facebook Groups) ── */}
+      {activeTab === 'groups' && <GroupsTab />}
+
+      {/* ── STORIES (Instagram Stories) ── */}
+      {activeTab === 'stories' && <StoriesTab />}
 
       {/* ── COMMENTS ── */}
       {activeTab === 'comments' && (

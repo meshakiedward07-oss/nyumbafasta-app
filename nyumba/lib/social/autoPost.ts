@@ -14,21 +14,27 @@ import type { Listing } from '@/lib/types/database'
 type Platform = 'instagram' | 'facebook' | 'both'
 
 export type PostResult = {
-  postId:         string
-  platform:       Platform
-  instagramPostId?: string
-  facebookPostId?:  string
-  caption:        string
-  status:         'published' | 'failed'
-  error?:         string
+  postId:          string
+  platform:        Platform
+  instagramPostId?:  string
+  facebookPostId?:   string
+  caption:         string
+  status:          'published' | 'failed'
+  error?:          string
+  groupsPosted?:   number
+  storyPosted?:    boolean
 }
 
 // ── Main entry point ────────────────────────────────────────────────────────
 
 export async function postListingToSocialMedia(
-  listingId:  string,
-  platform:   Platform = 'both',
-  createdBy?: string,
+  listingId:     string,
+  platform:      Platform = 'both',
+  createdBy?:    string,
+  options?: {
+    postToGroups?:  boolean   // also post to all active Facebook Groups
+    postToStories?: boolean   // also post as Instagram Story
+  },
 ): Promise<PostResult> {
   // Fetch listing with all fields
   const { data: listing, error } = await supabaseAdmin
@@ -157,12 +163,38 @@ export async function postListingToSocialMedia(
     })
     .eq('id', postId)
 
-  // Mark listing as having been promoted (update view count as proxy signal)
+  // Mark listing as having been promoted
   if (published) {
     await supabaseAdmin
       .from('listings')
       .update({ share_count: (l.share_count ?? 0) + 1 })
       .eq('id', listingId)
+  }
+
+  // ── Facebook Groups (optional, non-blocking) ───────────────────────────────
+  let groupsPosted = 0
+  if (options?.postToGroups && imageUrl) {
+    try {
+      const { postToAllGroups } = await import('./facebookGroups')
+      const groupResults = await postToAllGroups(l, imageUrl)
+      groupsPosted = groupResults.filter(r => r.success).length
+      console.log(`[AutoPost] Groups: ${groupsPosted}/${groupResults.length} posted`)
+    } catch (err) {
+      console.error('[AutoPost] Groups posting error (non-fatal):', err)
+    }
+  }
+
+  // ── Instagram Story (optional, non-blocking) ──────────────────────────────
+  let storyPosted = false
+  if (options?.postToStories) {
+    try {
+      const { postListingStory } = await import('./instagramStories')
+      const storyResult = await postListingStory(l)
+      storyPosted = storyResult.success
+      console.log(`[AutoPost] Story: ${storyPosted ? '✅' : '❌'}`, storyResult.error ?? '')
+    } catch (err) {
+      console.error('[AutoPost] Story posting error (non-fatal):', err)
+    }
   }
 
   return {
@@ -171,8 +203,10 @@ export async function postListingToSocialMedia(
     instagramPostId: igPostId ?? undefined,
     facebookPostId:  fbPostId ?? undefined,
     caption,
-    status:  published ? 'published' : 'failed',
-    error:   lastError ?? undefined,
+    status:       published ? 'published' : 'failed',
+    error:        lastError ?? undefined,
+    groupsPosted,
+    storyPosted,
   }
 }
 
