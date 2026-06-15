@@ -4,10 +4,12 @@ import VideoUploadTab from './VideoUploadTab'
 import GroupsTab from './GroupsTab'
 import StoriesTab from './StoriesTab'
 import CarouselTab from './CarouselTab'
+import SpamTab from './SpamTab'
+import BestTimeTab from './BestTimeTab'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'comments' | 'dms' | 'postnow' | 'schedule'
+type Tab = 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule'
 
 type SocialStats = {
   totalPosts: number; publishedPosts: number
@@ -235,6 +237,8 @@ export default function SocialDashboard() {
     { id: 'groups',   label: 'Makundi',     emoji: '👥' },
     { id: 'stories',  label: 'Stories',     emoji: '🔴' },
     { id: 'carousel', label: 'Carousel',    emoji: '🖼️' },
+    { id: 'spam',     label: 'Spam',        emoji: '🚫' },
+    { id: 'besttime', label: 'Wakati Bora', emoji: '⏰' },
     { id: 'comments', label: 'Maoni',       emoji: '💬' },
     { id: 'dms',      label: 'DMs',         emoji: '📨' },
     { id: 'postnow',  label: 'Chapisha',    emoji: '✍️' },
@@ -400,6 +404,12 @@ export default function SocialDashboard() {
 
       {/* ── CAROUSEL (Instagram Carousel) ── */}
       {activeTab === 'carousel' && <CarouselTab />}
+
+      {/* ── SPAM ── */}
+      {activeTab === 'spam' && <SpamTab />}
+
+      {/* ── BEST TIME ── */}
+      {activeTab === 'besttime' && <BestTimeTab />}
 
       {/* ── COMMENTS ── */}
       {activeTab === 'comments' && (

@@ -92,6 +92,45 @@ export async function publishIGContainer(containerId: string): Promise<string> {
   return data.id!
 }
 
+// ── Comment Moderation ─────────────────────────────────────────────────────
+
+export async function deleteIGComment(commentId: string): Promise<boolean> {
+  try {
+    const res  = await fetch(`${GRAPH}/${commentId}?access_token=${igToken()}`, { method: 'DELETE' })
+    const data = await res.json() as { success?: boolean }
+    return data.success === true
+  } catch (err) {
+    console.error('[Meta] deleteIGComment failed:', err)
+    return false
+  }
+}
+
+export async function hideIGComment(commentId: string, hide = true): Promise<boolean> {
+  try {
+    const res  = await fetch(`${GRAPH}/${commentId}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ hide, access_token: igToken() }),
+    })
+    const data = await res.json() as { success?: boolean }
+    return data.success === true
+  } catch (err) {
+    console.error('[Meta] hideIGComment failed:', err)
+    return false
+  }
+}
+
+export async function deleteFBComment(commentId: string): Promise<boolean> {
+  try {
+    const res  = await fetch(`${GRAPH}/${commentId}?access_token=${fbToken()}`, { method: 'DELETE' })
+    const data = await res.json() as { success?: boolean }
+    return data.success === true
+  } catch (err) {
+    console.error('[Meta] deleteFBComment failed:', err)
+    return false
+  }
+}
+
 // ── Instagram Carousel API ─────────────────────────────────────────────────
 
 export async function createIGCarouselItemContainer(imageUrl: string): Promise<string> {

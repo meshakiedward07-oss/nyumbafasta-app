@@ -67,6 +67,26 @@ export async function handleNewComment(
   data: CommentData,
   platform: Platform,
 ): Promise<void> {
+  // ── Spam check FIRST — delete/hide before any reply ─────────────────────
+  const platformPostId = platform === 'instagram' ? data.igPostId : data.fbPostId
+  try {
+    const { processCommentForSpam } = await import('./spamDetector')
+    const spam = await processCommentForSpam({
+      platform,
+      commentId:     data.commentId,
+      postId:        platformPostId ?? '',
+      commenterId:   data.commenterId,
+      commenterName: data.commenterName ?? '',
+      commentText:   data.commentText,
+    })
+    if (spam.wasSpam) {
+      console.log(`[AutoReply] Spam deleted/hidden — skipping reply. Action: ${spam.action}`)
+      return
+    }
+  } catch (err) {
+    console.error('[AutoReply] Spam check error (non-fatal, continuing):', err)
+  }
+
   // Resolve social_post.id from platform post ID
   let postDbId: string | null = null
   if (data.igPostId || data.fbPostId) {
