@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { mobileCheckout, normalizePhone, generateExternalId, buildCallbackUrl, type MobileProvider } from '@/lib/payments/azampay'
+import { rateLimit } from '@/lib/security/rateLimit'
 
 const PRICES: Record<number, number> = { 1: 5_000, 2: 9_000, 4: 16_000 }
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
@@ -19,6 +20,11 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+    }
+
+    const rl = rateLimit(`boost-initiate:${user.id}`, 10, 10 * 60 * 1000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Maombi mengi sana — subiri dakika 10' }, { status: 429 })
     }
 
     const { listing_id, weeks, msisdn, provider = 'mpesa' } = await req.json()

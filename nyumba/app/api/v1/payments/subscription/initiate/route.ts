@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, buildCallbackUrl, type MobileProvider } from '@/lib/payments/azampay'
+import { rateLimit } from '@/lib/security/rateLimit'
 
 const PLAN_PRICES: Record<string, number> = { basic: 10_000, premium: 25_000, enterprise: 50_000 }
 const PLAN_DURATION_DAYS = 30
@@ -20,6 +21,11 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+    }
+
+    const rl = rateLimit(`sub-initiate:${user.id}`, 5, 10 * 60 * 1000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Maombi mengi sana — subiri dakika 10' }, { status: 429 })
     }
 
     const { plan, msisdn, provider = 'mpesa' } = await req.json()

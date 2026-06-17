@@ -169,7 +169,7 @@ export default function WhatsAppPanel() {
     if (!selected) return
     fetchMessages(selected.phone_number)
     fetchInstructions(selected.phone_number)
-  }, [selected?.phone_number, fetchMessages, fetchInstructions])
+  }, [selected, fetchMessages, fetchInstructions])
 
   // Scroll to bottom when messages change
   useEffect(() => {
