@@ -5,10 +5,6 @@
       "schedule": "0 3 * * *"
     },
     {
-      "path": "/api/v1/cron/hourly",
-      "schedule": "0 * * * *"
-    },
-    {
       "path": "/api/v1/cron/weekly",
       "schedule": "0 17 * * 6"
     }
