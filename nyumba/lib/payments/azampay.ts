@@ -1,32 +1,34 @@
 // AzamPay Tanzania payment gateway integration
 
-// ── Startup config validation — fail loudly if any credential is missing ──────
-const _cfg = {
-  appName:      process.env.AZAMPAY_APP_NAME,
-  clientId:     process.env.AZAMPAY_CLIENT_ID,
-  clientSecret: process.env.AZAMPAY_CLIENT_SECRET,
-  apiKey:       process.env.AZAMPAY_API_KEY,
-  environment:  process.env.AZAMPAY_ENVIRONMENT ?? 'sandbox',
-}
-const _missing = (Object.entries(_cfg) as [string, string | undefined][])
-  .filter(([k, v]) => k !== 'environment' && !v)
-  .map(([k]) => k)
-if (_missing.length > 0) {
-  throw new Error(`[AzamPay] Config missing: ${_missing.join(', ')}`)
+// ── Lazy config — evaluated at call time, not module load time ────────────────
+// Module-level throws break Next.js build ("collect page data" step) when vars
+// aren't set in the build environment (only present at runtime).
+interface AzamConfig {
+  appName:      string
+  clientId:     string
+  clientSecret: string
+  apiKey:       string
+  environment:  string
 }
 
-const IS_SANDBOX = _cfg.environment !== 'production'
+function getConfig(): AzamConfig {
+  const appName      = process.env.AZAMPAY_APP_NAME
+  const clientId     = process.env.AZAMPAY_CLIENT_ID
+  const clientSecret = process.env.AZAMPAY_CLIENT_SECRET
+  const apiKey       = process.env.AZAMPAY_API_KEY
+  const environment  = process.env.AZAMPAY_ENVIRONMENT ?? 'sandbox'
 
-const AUTH_URL = IS_SANDBOX
-  ? 'https://authenticator-sandbox.azampay.co.tz'
-  : 'https://authenticator.azampay.co.tz'
+  const missing: string[] = []
+  if (!appName)      missing.push('appName')
+  if (!clientId)     missing.push('clientId')
+  if (!clientSecret) missing.push('clientSecret')
+  if (!apiKey)       missing.push('apiKey')
+  if (missing.length > 0) {
+    throw new Error(`[AzamPay] Config missing: ${missing.join(', ')}`)
+  }
 
-const CHECKOUT_BASE = IS_SANDBOX
-  ? 'https://sandbox.azampay.co.tz'
-  : 'https://checkout.azampay.co.tz'
-
-// Verified working path — sandbox returns HTTP 200, closes connection without body
-const CHECKOUT_URL = `${CHECKOUT_BASE}/api/v1/Partner/PostMobileCheckout`
+  return { appName: appName!, clientId: clientId!, clientSecret: clientSecret!, apiKey: apiKey!, environment }
+}
 
 export type MobileProvider = 'Mpesa' | 'AirtelMoney' | 'Tigopesa' | 'Halopesa'
 
@@ -40,12 +42,18 @@ async function getAuthToken(): Promise<string> {
     return cachedToken
   }
 
-  console.log('[AzamPay] Auth starting. Environment:', _cfg.environment)
-  console.log('[AzamPay] Credentials present:', !!_cfg.clientId, !!_cfg.clientSecret)
+  const cfg = getConfig()
+  const IS_SANDBOX = cfg.environment !== 'production'
+  const AUTH_URL = IS_SANDBOX
+    ? 'https://authenticator-sandbox.azampay.co.tz'
+    : 'https://authenticator.azampay.co.tz'
 
-  const clientId     = _cfg.clientId!
-  const clientSecret = _cfg.clientSecret!
-  const appName      = _cfg.appName ?? 'NyumbaFasta'
+  console.log('[AzamPay] Auth starting. Environment:', cfg.environment)
+  console.log('[AzamPay] Credentials present:', !!cfg.clientId, !!cfg.clientSecret)
+
+  const clientId     = cfg.clientId
+  const clientSecret = cfg.clientSecret
+  const appName      = cfg.appName ?? 'NyumbaFasta'
 
   console.log('[AzamPay] Auth request body:', {
     appName,
@@ -110,6 +118,11 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
   try {
     console.log('[AzamPay] Starting mobileCheckout...')
 
+    const cfg = getConfig()
+    const IS_SANDBOX = cfg.environment !== 'production'
+    const CHECKOUT_BASE = IS_SANDBOX ? 'https://sandbox.azampay.co.tz' : 'https://checkout.azampay.co.tz'
+    const CHECKOUT_URL = `${CHECKOUT_BASE}/api/v1/Partner/PostMobileCheckout`
+
     const token = await getAuthToken()
 
     const checkoutPayload = {
@@ -132,7 +145,7 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
       headers: {
         'Content-Type': 'application/json',
         Authorization:  `Bearer ${token}`,
-        'X-API-KEY':    _cfg.apiKey!,
+        'X-API-KEY':    cfg.apiKey,
       },
       body: JSON.stringify(checkoutPayload),
     })
