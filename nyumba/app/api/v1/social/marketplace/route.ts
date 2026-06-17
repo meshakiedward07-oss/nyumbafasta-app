@@ -16,13 +16,19 @@ async function getAdminUser() {
 
 // GET /api/v1/social/marketplace — stats + recent listings
 export async function GET() {
-  const admin = await getAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const admin = await getAdminUser()
+    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const catalogConfigured = !!process.env.FACEBOOK_CATALOG_ID
-  const stats = await getMarketplaceStats()
+    const catalogConfigured = !!process.env.FACEBOOK_CATALOG_ID
+    const stats = await getMarketplaceStats()
 
-  return NextResponse.json({ ...stats, catalogConfigured })
+    return NextResponse.json({ ...stats, catalogConfigured })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[Marketplace GET] Error:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
 
 // POST /api/v1/social/marketplace — post single listing

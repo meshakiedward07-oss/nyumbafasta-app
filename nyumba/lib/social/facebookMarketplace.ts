@@ -293,23 +293,30 @@ export async function renewExpiringListings(): Promise<void> {
 // ── Get Marketplace Stats ──────────────────────────────────────────────────
 
 export async function getMarketplaceStats() {
-  const { data: rows } = await supabaseAdmin
-    .from('marketplace_listings')
-    .select('status, views, inquiries')
+  try {
+    const { data: rows, error: rowsErr } = await supabaseAdmin
+      .from('marketplace_listings')
+      .select('status, views, inquiries')
 
-  const totalActive  = rows?.filter(r => r.status === 'active').length ?? 0
-  const totalPosted  = rows?.length ?? 0
-  const totalFailed  = rows?.filter(r => r.status === 'failed').length ?? 0
-  const totalViews   = rows?.reduce((s, r) => s + (r.views ?? 0), 0) ?? 0
-  const totalInquiries = rows?.reduce((s, r) => s + (r.inquiries ?? 0), 0) ?? 0
+    if (rowsErr) console.error('[Marketplace] stats query error:', rowsErr.message)
 
-  const { data: recentListings } = await supabaseAdmin
-    .from('marketplace_listings')
-    .select('*, listings(title, district, region, images)')
-    .order('created_at', { ascending: false })
-    .limit(20)
+    const totalActive    = rows?.filter(r => r.status === 'active').length ?? 0
+    const totalPosted    = rows?.length ?? 0
+    const totalFailed    = rows?.filter(r => r.status === 'failed').length ?? 0
+    const totalViews     = rows?.reduce((s, r) => s + (r.views ?? 0), 0) ?? 0
+    const totalInquiries = rows?.reduce((s, r) => s + (r.inquiries ?? 0), 0) ?? 0
 
-  return { totalActive, totalPosted, totalFailed, totalViews, totalInquiries, recentListings: recentListings ?? [] }
+    const { data: recentListings } = await supabaseAdmin
+      .from('marketplace_listings')
+      .select('*, listings(title, district, region, images)')
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    return { totalActive, totalPosted, totalFailed, totalViews, totalInquiries, recentListings: recentListings ?? [] }
+  } catch (err) {
+    console.error('[Marketplace] getMarketplaceStats exception:', err)
+    return { totalActive: 0, totalPosted: 0, totalFailed: 0, totalViews: 0, totalInquiries: 0, recentListings: [] }
+  }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
