@@ -206,34 +206,34 @@ export async function getSpamStats() {
   today.setHours(0, 0, 0, 0)
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-  const [{ count: total }, { count: todayCount }, { count: weekCount }, { data: recent }] =
-    await Promise.all([
-      supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
-      supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString()),
-      supabaseAdmin.from('spam_comments').select('*').order('created_at', { ascending: false }).limit(20),
-    ])
-
-  const byPlatform = { instagram: 0, facebook: 0 }
-  const reasonCounts: Record<string, number> = {}
-  for (const row of recent ?? []) {
-    if (row.platform === 'instagram') byPlatform.instagram++
-    else byPlatform.facebook++
-    const base = (row.spam_reason as string).split(':')[0].trim()
-    reasonCounts[base] = (reasonCounts[base] ?? 0) + 1
-  }
-
-  const topReasons = Object.entries(reasonCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([reason, count]) => ({ reason, count }))
+  const [
+    { count: deletedCount },
+    { count: hiddenCount },
+    { count: flaggedCount },
+    { count: todayCount },
+    { count: weekCount },
+    { data: recent },
+    { data: topSpammerRow },
+    { data: topKeywordRow },
+  ] = await Promise.all([
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'deleted'),
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'hidden'),
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'flagged'),
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString()),
+    supabaseAdmin.from('spam_comments').select('*').order('created_at', { ascending: false }).limit(20),
+    supabaseAdmin.from('spam_accounts').select('account_name, spam_count').order('spam_count', { ascending: false }).limit(1),
+    supabaseAdmin.from('spam_keywords').select('keyword, match_count').order('match_count', { ascending: false }).limit(1),
+  ])
 
   return {
-    totalDeleted: total ?? 0,
-    todayDeleted: todayCount ?? 0,
-    weekDeleted:  weekCount ?? 0,
-    byPlatform,
-    topReasons,
-    recentSpam:   recent ?? [],
+    totalDeleted:  deletedCount  ?? 0,
+    totalHidden:   hiddenCount   ?? 0,
+    totalFlagged:  flaggedCount  ?? 0,
+    spamToday:     todayCount    ?? 0,
+    spamThisWeek:  weekCount     ?? 0,
+    topSpammer:    topSpammerRow?.[0]?.account_name ?? null,
+    topKeyword:    topKeywordRow?.[0]?.keyword      ?? null,
+    recentSpam:    recent ?? [],
   }
 }

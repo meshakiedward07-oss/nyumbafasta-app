@@ -119,6 +119,11 @@ export default function MarketplaceTab() {
     setLoading(true)
     try {
       const res  = await fetch('/api/v1/social/marketplace')
+      if (!res.ok) {
+        const err = await res.json() as { error?: string }
+        showToast(`Hitilafu: ${err.error ?? res.status}`)
+        return
+      }
       const data = await res.json() as MarketplaceStats
       setStats(data)
     } catch {
@@ -148,10 +153,15 @@ export default function MarketplaceTab() {
     setSyncing(true)
     try {
       const res  = await fetch('/api/v1/social/marketplace/sync', { method: 'POST' })
-      const data = await res.json() as { posted?: number; failed?: number; skipped?: number; error?: string }
-      if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-      showToast(`Sync imekamilika! ✅ ${data.posted} | ❌ ${data.failed} | ⏭️ ${data.skipped}`)
+      const data = await res.json() as { posted?: number; failed?: number; skipped?: number; error?: string; message?: string }
+      if (!res.ok || data.error) {
+        showToast(`Hitilafu: ${data.error ?? `HTTP ${res.status}`}`)
+        return
+      }
+      showToast(`Sync imekamilika! ✅ Zimewekwa: ${data.posted ?? 0} | ❌ Zimeshindwa: ${data.failed ?? 0} | ⏭️ Zimerukwa: ${data.skipped ?? 0}`)
       loadStats()
+    } catch (e) {
+      showToast(`Hitilafu ya mtandao: ${String(e)}`)
     } finally {
       setSyncing(false)
     }
