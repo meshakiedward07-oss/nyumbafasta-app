@@ -113,10 +113,6 @@ function catEmoji(c: string) {
   return m[c] || '📦'
 }
 
-function periodDate(period: Period): string {
-  return new Date().toISOString().split('T')[0]
-}
-
 // ── Add Expense Modal ──────────────────────────────────────────────────────
 function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({

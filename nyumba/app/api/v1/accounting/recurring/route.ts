@@ -1,10 +1,7 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import {
-  addRecurringExpense,
-  updateRecurringExpense,
-  deleteRecurringExpense,
-} from '@/lib/accounting/expenseTracker'
+import { addRecurringExpense } from '@/lib/accounting/expenseTracker'
 
 async function requireAdmin() {
   const supabase = await createClient()
