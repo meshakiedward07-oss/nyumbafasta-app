@@ -39,6 +39,11 @@ export async function POST(req: NextRequest) {
     await admin.from('boost_payments').update({ status: newStatus }).eq('id', bp.id)
 
     if (succeeded) {
+      // Auto-record income (non-blocking)
+      import('@/lib/accounting/incomeTracker')
+        .then(m => m.recordIncomeFromBoost(bp.id))
+        .catch(e => console.error('[Accounting] recordIncomeFromBoost failed (non-fatal):', e))
+
       const { data: listing } = await admin
         .from('listings')
         .select('boost_count')

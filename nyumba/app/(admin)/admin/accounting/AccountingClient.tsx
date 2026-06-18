@@ -1,0 +1,781 @@
+'use client'
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+
+// ── Types ──────────────────────────────────────────────────────────────────
+type Period = 'daily' | 'weekly' | 'monthly' | 'yearly'
+
+interface IncomeSummary {
+  total:            number
+  bySource:         Record<string, number>
+  byMethod:         Record<string, number>
+  transactionCount: number
+  platformFees:     number
+  netIncome:        number
+  startDate:        string
+  endDate:          string
+}
+
+interface ExpenseSummary {
+  total:          number
+  byCategory:     Record<string, number>
+  byVendor:       Record<string, number>
+  expenseCount:   number
+  recurringTotal: number
+  oneTimeTotal:   number
+}
+
+interface FinancialSummary {
+  income:       IncomeSummary
+  expenses:     ExpenseSummary
+  profit:       number
+  profitMargin: number
+}
+
+interface ExpenseRecord {
+  id:               string
+  category:         string
+  subcategory?:     string
+  description:      string
+  vendor?:          string
+  amount_tzs:       number
+  amount_usd?:      number
+  expense_date:     string
+  is_recurring:     boolean
+  recurring_period?: string
+  status:           string
+}
+
+interface IncomeRecord {
+  id:               string
+  source:           string
+  description?:     string
+  amount_tzs:       number
+  payment_method?:  string
+  transaction_date: string
+  reference_number?: string
+}
+
+interface RecurringExpense {
+  id:               string
+  category:         string
+  subcategory?:     string
+  description:      string
+  vendor?:          string
+  amount_tzs:       number
+  amount_usd?:      number
+  recurring_period: string
+  next_due_date:    string
+  is_active:        boolean
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function fmtTsh(n: number) {
+  if (n >= 1_000_000) return `Tsh ${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000)     return `Tsh ${(n / 1_000).toFixed(0)}k`
+  return `Tsh ${n}`
+}
+
+function fmtFull(n: number) {
+  return `TZS ${n.toLocaleString('en-TZ', { minimumFractionDigits: 0 })}`
+}
+
+function sourceLabel(s: string) {
+  const m: Record<string, string> = {
+    subscription:   'Subscription',
+    contact_unlock: 'Contact Unlock',
+    boost_listing:  'Boost Listing',
+    extra_listing:  'Extra Listing',
+    other:          'Mengine',
+  }
+  return m[s] || s
+}
+
+function catLabel(c: string) {
+  const m: Record<string, string> = {
+    hosting:   'Hosting',
+    api_costs: 'API Costs',
+    marketing: 'Masoko',
+    legal:     'Kisheria',
+    staff:     'Wafanyakazi',
+    software:  'Programu',
+    banking:   'Benki',
+    other:     'Mengine',
+  }
+  return m[c] || c
+}
+
+function catEmoji(c: string) {
+  const m: Record<string, string> = {
+    hosting: '🖥️', api_costs: '⚡', marketing: '📣',
+    legal: '⚖️', staff: '👤', software: '💻', banking: '🏦', other: '📦',
+  }
+  return m[c] || '📦'
+}
+
+function periodDate(period: Period): string {
+  return new Date().toISOString().split('T')[0]
+}
+
+// ── Add Expense Modal ──────────────────────────────────────────────────────
+function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    category: 'hosting', subcategory: '', description: '', vendor: '',
+    amountTzs: '', amountUsd: '', exchangeRate: '', paymentMethod: 'card',
+    expenseDate: new Date().toISOString().split('T')[0],
+    isRecurring: false, recurringPeriod: 'monthly',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState('')
+
+  async function handleSave() {
+    if (!form.description || !form.amountTzs || !form.expenseDate) {
+      setError('Jaza: Aina, Maelezo, Kiasi, na Tarehe')
+      return
+    }
+    setSaving(true)
+    setError('')
+    try {
+      const res = await fetch('/api/v1/accounting/expenses', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category:        form.category,
+          subcategory:     form.subcategory || undefined,
+          description:     form.description,
+          vendor:          form.vendor || undefined,
+          amountTzs:       parseFloat(form.amountTzs),
+          amountUsd:       form.amountUsd ? parseFloat(form.amountUsd) : undefined,
+          exchangeRate:    form.exchangeRate ? parseFloat(form.exchangeRate) : undefined,
+          paymentMethod:   form.paymentMethod,
+          expenseDate:     form.expenseDate,
+          isRecurring:     form.isRecurring,
+          recurringPeriod: form.isRecurring ? form.recurringPeriod : undefined,
+        }),
+      })
+      const data = await res.json() as { success?: boolean; error?: string }
+      if (!res.ok) { setError(data.error ?? 'Imeshindwa'); return }
+      onSaved()
+      onClose()
+    } catch { setError('Hitilafu ya mtandao') }
+    finally { setSaving(false) }
+  }
+
+  const categories = [
+    'hosting', 'api_costs', 'marketing', 'legal', 'staff', 'software', 'banking', 'other',
+  ]
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={onClose}>
+      <div className="bg-white w-full rounded-t-3xl px-5 pt-4 pb-8 max-h-[90vh] overflow-y-auto shadow-xl"
+           onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
+        <h3 className="text-base font-bold text-gray-900 mb-4">➕ Ongeza Matumizi Mapya</h3>
+
+        {error && (
+          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-3">{error}</div>
+        )}
+
+        {/* Category */}
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Aina</p>
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          {categories.map(c => (
+            <button key={c}
+              onClick={() => setForm(f => ({ ...f, category: c }))}
+              className={`p-2 rounded-xl border-2 text-center text-xs transition-all ${
+                form.category === c ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-100 text-gray-500'
+              }`}
+            >
+              <div>{catEmoji(c)}</div>
+              <div className="mt-0.5 truncate">{catLabel(c)}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Subcategory */}
+        <label className="block mb-3">
+          <span className="text-xs text-gray-500">Maalum (optional)</span>
+          <input value={form.subcategory} onChange={e => setForm(f => ({ ...f, subcategory: e.target.value }))}
+            placeholder="vercel, anthropic, meta_ads..."
+            className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+        </label>
+
+        {/* Description */}
+        <label className="block mb-3">
+          <span className="text-xs text-gray-500">Maelezo *</span>
+          <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            placeholder="Vercel Pro — Juni 2026"
+            className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+        </label>
+
+        {/* Vendor */}
+        <label className="block mb-3">
+          <span className="text-xs text-gray-500">Muuzaji</span>
+          <input value={form.vendor} onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))}
+            placeholder="Vercel, Anthropic, Meta..."
+            className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+        </label>
+
+        {/* Amounts */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <label className="block">
+            <span className="text-xs text-gray-500">Kiasi (TZS) *</span>
+            <input type="number" value={form.amountTzs} onChange={e => setForm(f => ({ ...f, amountTzs: e.target.value }))}
+              placeholder="52000"
+              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-gray-500">Kiasi (USD)</span>
+            <input type="number" value={form.amountUsd} onChange={e => setForm(f => ({ ...f, amountUsd: e.target.value }))}
+              placeholder="20"
+              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+          </label>
+        </div>
+
+        {/* Date + Method */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <label className="block">
+            <span className="text-xs text-gray-500">Tarehe *</span>
+            <input type="date" value={form.expenseDate} onChange={e => setForm(f => ({ ...f, expenseDate: e.target.value }))}
+              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+          </label>
+          <label className="block">
+            <span className="text-xs text-gray-500">Njia ya Malipo</span>
+            <select value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))}
+              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400">
+              <option value="card">Card</option>
+              <option value="bank_transfer">Bank Transfer</option>
+              <option value="mpesa">M-Pesa</option>
+              <option value="cash">Cash</option>
+            </select>
+          </label>
+        </div>
+
+        {/* Recurring toggle */}
+        <button
+          onClick={() => setForm(f => ({ ...f, isRecurring: !f.isRecurring }))}
+          className={`w-full flex items-center justify-between p-3 rounded-xl border-2 mb-4 transition-all ${
+            form.isRecurring ? 'border-primary-300 bg-primary-50' : 'border-gray-100'
+          }`}
+        >
+          <span className="text-sm text-gray-700">🔄 Ni matumizi ya mara kwa mara?</span>
+          <div className={`w-10 h-5 rounded-full transition-colors ${form.isRecurring ? 'bg-primary-500' : 'bg-gray-200'}`}>
+            <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${form.isRecurring ? 'translate-x-5' : ''}`} />
+          </div>
+        </button>
+        {form.isRecurring && (
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {['weekly', 'monthly', 'annual'].map(p => (
+              <button key={p}
+                onClick={() => setForm(f => ({ ...f, recurringPeriod: p }))}
+                className={`py-2 rounded-xl border-2 text-xs font-medium transition-all ${
+                  form.recurringPeriod === p ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-100 text-gray-500'
+                }`}
+              >
+                {p === 'weekly' ? 'Wiki' : p === 'monthly' ? 'Mwezi' : 'Mwaka'}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 py-3 border-2 border-gray-200 rounded-2xl text-sm font-semibold text-gray-600">
+            Ghairi
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 py-3 bg-primary-500 text-white rounded-2xl text-sm font-semibold disabled:opacity-50">
+            {saving ? 'Inahifadhi...' : 'Hifadhi'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────
+export default function AccountingClient() {
+  const [period,    setPeriod]    = useState<Period>('monthly')
+  const [date,      setDate]      = useState(new Date().toISOString().split('T')[0])
+  const [tab,       setTab]       = useState<'overview' | 'mapato' | 'matumizi' | 'recurring'>('overview')
+  const [summary,   setSummary]   = useState<FinancialSummary | null>(null)
+  const [incRecords, setIncRecords] = useState<IncomeRecord[]>([])
+  const [expRecords, setExpRecords] = useState<ExpenseRecord[]>([])
+  const [recurring,  setRecurring]  = useState<RecurringExpense[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [showAddExp, setShowAddExp] = useState(false)
+  const [syncMsg,    setSyncMsg]    = useState('')
+  const [toast,      setToast]      = useState('')
+  const [downloading, setDownloading] = useState<'pdf' | 'excel' | null>(null)
+
+  function showToast(msg: string) {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3500)
+  }
+
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({ period, date })
+      const [sumRes, incRes, expRes, recRes] = await Promise.all([
+        fetch(`/api/v1/accounting/summary?${params}`),
+        fetch(`/api/v1/accounting/income?${params}&limit=30`),
+        fetch(`/api/v1/accounting/expenses?${params}&limit=30`),
+        fetch('/api/v1/accounting/recurring'),
+      ])
+
+      if (sumRes.ok) setSummary(await sumRes.json() as FinancialSummary)
+      if (incRes.ok) {
+        const d = await incRes.json() as { records: IncomeRecord[] }
+        setIncRecords(d.records)
+      }
+      if (expRes.ok) {
+        const d = await expRes.json() as { records: ExpenseRecord[] }
+        setExpRecords(d.records)
+      }
+      if (recRes.ok) {
+        const d = await recRes.json() as { records: RecurringExpense[] }
+        setRecurring(d.records)
+      }
+    } catch { showToast('Imeshindwa kupakia data') }
+    finally { setLoading(false) }
+  }, [period, date])
+
+  useEffect(() => { loadData() }, [loadData])
+
+  async function handleSync() {
+    setSyncMsg('Inasync...')
+    try {
+      const res  = await fetch('/api/v1/accounting/income/sync', { method: 'POST' })
+      const data = await res.json() as { synced?: number; skipped?: number; error?: string }
+      if (!res.ok) { setSyncMsg(''); showToast(data.error ?? 'Imeshindwa'); return }
+      setSyncMsg(`✅ Synced: ${data.synced}, Zilizopo: ${data.skipped}`)
+      await loadData()
+      setTimeout(() => setSyncMsg(''), 4000)
+    } catch { setSyncMsg(''); showToast('Hitilafu ya mtandao') }
+  }
+
+  async function handleDownload(format: 'pdf' | 'excel') {
+    setDownloading(format)
+    try {
+      const params = new URLSearchParams({ format, period, date })
+      const res    = await fetch(`/api/v1/accounting/reports?${params}`)
+      if (!res.ok) {
+        const d = await res.json() as { error?: string }
+        showToast(d.error ?? 'Imeshindwa kupakua')
+        return
+      }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = format === 'pdf' ? 'nyumbafasta_ripoti.pdf' : 'nyumbafasta_hesabu.xlsx'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { showToast('Imeshindwa kupakua ripoti') }
+    finally { setDownloading(null) }
+  }
+
+  async function toggleRecurring(id: string, isActive: boolean) {
+    await fetch(`/api/v1/accounting/recurring/${id}`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ is_active: !isActive }),
+    })
+    setRecurring(r => r.map(e => e.id === id ? { ...e, is_active: !isActive } : e))
+  }
+
+  async function deleteExpenseRecord(id: string) {
+    await fetch(`/api/v1/accounting/expenses/${id}`, { method: 'DELETE' })
+    setExpRecords(r => r.filter(e => e.id !== id))
+    showToast('Matumizi yamefutwa')
+  }
+
+  const income   = summary?.income
+  const expenses = summary?.expenses
+  const profit   = summary?.profit ?? 0
+
+  // Bar chart: top 5 income sources
+  const maxIncSrc = Math.max(...Object.values(income?.bySource ?? {}), 1)
+  // Bar chart: top expense categories
+  const maxExpCat = Math.max(...Object.values(expenses?.byCategory ?? {}), 1)
+
+  const recurringTotal = recurring.filter(r => r.is_active).reduce((s, r) => s + Number(r.amount_tzs), 0)
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* ── Toast ── */}
+      {toast && (
+        <div className="fixed top-4 left-4 right-4 z-50 bg-gray-900 text-white text-sm px-4 py-3 rounded-2xl shadow-xl text-center">
+          {toast}
+        </div>
+      )}
+
+      {/* ── Header ── */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+        <Link href="/admin" className="p-2 rounded-full hover:bg-gray-100">
+          <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </Link>
+        <div className="flex-1">
+          <h1 className="text-base font-bold text-gray-900">💰 Hesabu za NyumbaFasta</h1>
+          <p className="text-xs text-gray-400">Mapato, Matumizi, Faida</p>
+        </div>
+        <button onClick={() => setShowAddExp(true)}
+          className="flex items-center gap-1 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-semibold">
+          <span>+</span><span>Gharama</span>
+        </button>
+      </div>
+
+      {/* ── Period selector ── */}
+      <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none">
+        {(['daily', 'weekly', 'monthly', 'yearly'] as Period[]).map(p => (
+          <button key={p} onClick={() => setPeriod(p)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              period === p ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            {p === 'daily' ? '📅 Leo' : p === 'weekly' ? '📅 Wiki' : p === 'monthly' ? '📅 Mwezi' : '📅 Mwaka'}
+          </button>
+        ))}
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          className="flex-shrink-0 ml-auto text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-primary-400" />
+      </div>
+
+      {/* ── Download + Sync bar ── */}
+      <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2">
+        <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-medium disabled:opacity-50">
+          {downloading === 'pdf' ? '⏳' : '⬇️'} PDF
+        </button>
+        <button onClick={() => handleDownload('excel')} disabled={!!downloading}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-xl text-xs font-medium disabled:opacity-50">
+          {downloading === 'excel' ? '⏳' : '⬇️'} Excel
+        </button>
+        <button onClick={handleSync}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium">
+          🔄 Sync Mapato
+        </button>
+        {syncMsg && <span className="text-xs text-gray-500 ml-1">{syncMsg}</span>}
+      </div>
+
+      {/* ── Tab nav ── */}
+      <div className="bg-white border-b border-gray-100 flex overflow-x-auto scrollbar-none">
+        {([
+          { key: 'overview',  label: 'Muhtasari', icon: '📊' },
+          { key: 'mapato',    label: 'Mapato',    icon: '📈' },
+          { key: 'matumizi',  label: 'Matumizi',  icon: '📉' },
+          { key: 'recurring', label: 'Mara kwa Mara', icon: '🔄' },
+        ] as { key: typeof tab; label: string; icon: string }[]).map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
+              tab === t.key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400'
+            }`}
+          >
+            <span>{t.icon}</span><span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="px-4 py-4 space-y-4">
+
+        {/* ── Loading ── */}
+        {loading && (
+          <div className="flex flex-col items-center py-12 gap-3">
+            <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-gray-400">Inapakia takwimu...</p>
+          </div>
+        )}
+
+        {!loading && (
+          <>
+            {/* ══ TAB: OVERVIEW ══════════════════════════════════════════ */}
+            {tab === 'overview' && (
+              <>
+                {/* KPI cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                    <p className="text-xs text-gray-400 mb-1">Mapato</p>
+                    <p className="text-base font-bold text-green-600">{fmtTsh(income?.total ?? 0)}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{income?.transactionCount ?? 0} malipo</p>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                    <p className="text-xs text-gray-400 mb-1">Matumizi</p>
+                    <p className="text-base font-bold text-red-500">{fmtTsh(expenses?.total ?? 0)}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{expenses?.expenseCount ?? 0} malipo</p>
+                  </div>
+                  <div className={`rounded-2xl border p-3 shadow-sm text-center ${profit >= 0 ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                    <p className="text-xs text-gray-400 mb-1">{profit >= 0 ? 'Faida' : 'Hasara'}</p>
+                    <p className={`text-base font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{summary?.profitMargin ?? 0}%</p>
+                  </div>
+                </div>
+
+                {/* Platform fees note */}
+                <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 flex items-center gap-2">
+                  <span className="text-sm">💳</span>
+                  <p className="text-xs text-amber-700">
+                    Ada ya AzamPay (1%): <strong>{fmtFull(income?.platformFees ?? 0)}</strong>
+                    &nbsp;·&nbsp; Mapato halisi: <strong>{fmtFull(income?.netIncome ?? 0)}</strong>
+                  </p>
+                </div>
+
+                {/* Income by source bar chart */}
+                {Object.keys(income?.bySource ?? {}).length > 0 && (
+                  <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-800 mb-3">📈 Mapato kwa Chanzo</h3>
+                    <div className="space-y-2.5">
+                      {Object.entries(income?.bySource ?? {})
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([src, amt]) => {
+                          const pct = Math.round((amt / maxIncSrc) * 100)
+                          const sharePct = income?.total ? ((amt / income.total) * 100).toFixed(1) : '0'
+                          return (
+                            <div key={src}>
+                              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>{sourceLabel(src)}</span>
+                                <span>{fmtFull(amt)} ({sharePct}%)</span>
+                              </div>
+                              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-green-400 rounded-full transition-all"
+                                  style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Expenses by category */}
+                {Object.keys(expenses?.byCategory ?? {}).length > 0 && (
+                  <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-800 mb-3">📉 Matumizi kwa Aina</h3>
+                    <div className="space-y-2.5">
+                      {Object.entries(expenses?.byCategory ?? {})
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([cat, amt]) => {
+                          const pct = Math.round((amt / maxExpCat) * 100)
+                          const sharePct = expenses?.total ? ((amt / expenses.total) * 100).toFixed(1) : '0'
+                          return (
+                            <div key={cat}>
+                              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>{catEmoji(cat)} {catLabel(cat)}</span>
+                                <span>{fmtFull(amt)} ({sharePct}%)</span>
+                              </div>
+                              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-red-400 rounded-full transition-all"
+                                  style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment methods */}
+                {Object.keys(income?.byMethod ?? {}).length > 0 && (
+                  <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-800 mb-3">💳 Njia za Malipo</h3>
+                    <div className="space-y-2">
+                      {Object.entries(income?.byMethod ?? {})
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([method, amt]) => (
+                          <div key={method} className="flex justify-between text-sm">
+                            <span className="text-gray-600">{method.toUpperCase()}</span>
+                            <span className="font-semibold text-gray-800">{fmtFull(amt)}</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {income?.total === 0 && expenses?.total === 0 && (
+                  <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-sm">
+                    <p className="text-2xl mb-2">💰</p>
+                    <p className="text-sm font-medium text-gray-600">Hakuna data kipindi hiki</p>
+                    <p className="text-xs text-gray-400 mt-1">Sync mapato au ongeza matumizi</p>
+                    <button onClick={handleSync}
+                      className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-xl text-xs font-semibold">
+                      🔄 Sync Mapato Sasa
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ══ TAB: MAPATO ════════════════════════════════════════════ */}
+            {tab === 'mapato' && (
+              <>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-800">Mapato ya Hivi Karibuni</h3>
+                    <span className="text-xs text-gray-400">{incRecords.length} rekodi</span>
+                  </div>
+                  {incRecords.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-sm text-gray-400">Hakuna mapato — fanya sync kwanza</p>
+                      <button onClick={handleSync} className="mt-3 text-xs text-primary-500 font-semibold">
+                        🔄 Sync sasa
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {incRecords.map(r => (
+                        <div key={r.id} className="px-4 py-3 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-sm flex-shrink-0">
+                            {r.source === 'subscription' ? '📦' : r.source === 'contact_unlock' ? '🔓' : '🚀'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-800 truncate">
+                              {r.description || sourceLabel(r.source)}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {r.transaction_date} · {r.payment_method?.toUpperCase() ?? '—'}
+                            </p>
+                          </div>
+                          <p className="text-sm font-semibold text-green-600 flex-shrink-0">
+                            +{fmtFull(Number(r.amount_tzs))}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ══ TAB: MATUMIZI ══════════════════════════════════════════ */}
+            {tab === 'matumizi' && (
+              <>
+                <button onClick={() => setShowAddExp(true)}
+                  className="w-full py-3 bg-primary-500 text-white rounded-2xl text-sm font-semibold">
+                  ➕ Ongeza Matumizi Mapya
+                </button>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-800">Matumizi ya Hivi Karibuni</h3>
+                    <span className="text-xs text-gray-400">{expRecords.length} rekodi</span>
+                  </div>
+                  {expRecords.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-gray-400">
+                      Hakuna matumizi kipindi hiki
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {expRecords.map(r => (
+                        <div key={r.id} className="px-4 py-3 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-sm flex-shrink-0">
+                            {catEmoji(r.category)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-800 truncate">{r.description}</p>
+                            <p className="text-xs text-gray-400">
+                              {r.expense_date} · {catLabel(r.category)}
+                              {r.vendor ? ` · ${r.vendor}` : ''}
+                              {r.is_recurring ? ' 🔄' : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <p className="text-sm font-semibold text-red-500">
+                              -{fmtFull(Number(r.amount_tzs))}
+                            </p>
+                            <button onClick={() => deleteExpenseRecord(r.id)}
+                              className="text-gray-300 hover:text-red-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ══ TAB: RECURRING ═════════════════════════════════════════ */}
+            {tab === 'recurring' && (
+              <>
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                  <p className="text-xs text-gray-400 mb-1">Jumla ya Mara kwa Mara / Mwezi</p>
+                  <p className="text-xl font-bold text-gray-900">{fmtFull(recurringTotal)}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {recurring.filter(r => r.is_active).length} kati ya {recurring.length} ziko active
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  {recurring.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-gray-400">
+                      Hakuna matumizi ya mara kwa mara
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {recurring.map(r => (
+                        <div key={r.id} className="px-4 py-3 flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${
+                            r.is_active ? 'bg-green-50' : 'bg-gray-100'
+                          }`}>
+                            {catEmoji(r.category)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-medium truncate ${r.is_active ? 'text-gray-800' : 'text-gray-400'}`}>
+                              {r.description}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {fmtFull(Number(r.amount_tzs))}
+                              {r.amount_usd ? ` ($${r.amount_usd})` : ''}
+                              {' · '}
+                              {r.recurring_period === 'monthly' ? 'Kila mwezi' :
+                               r.recurring_period === 'annual'  ? 'Kila mwaka'  : 'Kila wiki'}
+                            </p>
+                            <p className="text-[10px] text-gray-300 mt-0.5">
+                              Inayofuata: {r.next_due_date}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => toggleRecurring(r.id, r.is_active)}
+                            className={`flex-shrink-0 px-2 py-1 rounded-lg text-xs font-medium transition-all ${
+                              r.is_active
+                                ? 'bg-green-50 text-green-600 hover:bg-red-50 hover:text-red-500'
+                                : 'bg-gray-100 text-gray-400 hover:bg-green-50 hover:text-green-600'
+                            }`}
+                          >
+                            {r.is_active ? 'Washa ✅' : 'Zimwa ⏸️'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                  <p className="text-xs text-amber-700">
+                    ℹ️ Gharama za mara kwa mara zinaongezwa moja kwa moja siku ya malipo.
+                    Hakikisha kiasi ni sahihi kabla ya kuwasha.
+                  </p>
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ── Add Expense Modal ── */}
+      {showAddExp && (
+        <AddExpenseModal
+          onClose={() => setShowAddExp(false)}
+          onSaved={loadData}
+        />
+      )}
+    </div>
+  )
+}

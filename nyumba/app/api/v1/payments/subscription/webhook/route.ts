@@ -53,6 +53,11 @@ export async function POST(req: NextRequest) {
     }).eq('external_id', externalId).then(() => {})
 
     if (succeeded) {
+      // Auto-record income (non-blocking)
+      import('@/lib/accounting/incomeTracker')
+        .then(m => m.recordIncomeFromSubscription(subscription.id))
+        .catch(e => console.error('[Accounting] recordIncomeFromSubscription failed (non-fatal):', e))
+
       const planName = subscription.plan === 'premium' ? 'Premium ⭐' : 'Basic'
       await admin.from('notifications').insert({
         user_id: subscription.dalali_id,

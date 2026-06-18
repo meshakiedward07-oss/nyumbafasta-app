@@ -50,6 +50,11 @@ export async function POST(req: NextRequest) {
     }).eq('external_id', externalId).then(() => {})
 
     if (succeeded) {
+      // Auto-record income (non-blocking — accounting failure must not affect unlock flow)
+      import('@/lib/accounting/incomeTracker')
+        .then(m => m.recordIncomeFromUnlock(unlock.id))
+        .catch(e => console.error('[Accounting] recordIncomeFromUnlock failed (non-fatal):', e))
+
       await admin.rpc('increment_lead_count', { listing_id: unlock.listing_id }).maybeSingle()
 
       const { data: listing } = await admin
