@@ -87,6 +87,12 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    title: 'Fedha',
+    items: [
+      { href: '/admin/accounting', label: 'Hesabu', emoji: '💰', exact: false },
+    ],
+  },
+  {
     title: 'Kisheria',
     items: [
       { href: '/admin/legal', label: 'Makubaliano & Malalamiko', emoji: '⚖️', exact: false },
@@ -99,7 +105,7 @@ const BOTTOM_NAV = [
   { href: '/admin/whatsapp',   emoji: '📱', label: 'WhatsApp',  exact: false },
   { href: '/admin/leads',      emoji: '🤖', label: 'Leads',     exact: false },
   { href: '/admin/crm',        emoji: '🎯', label: 'CRM',       exact: false },
-  { href: '/admin/facebook-groups', emoji: '👥', label: 'Groups', exact: false },
+  { href: '/admin/accounting', emoji: '💰', label: 'Hesabu',    exact: false },
 ]
 
 // ── Sidebar content extracted as standalone component ──────────────────────

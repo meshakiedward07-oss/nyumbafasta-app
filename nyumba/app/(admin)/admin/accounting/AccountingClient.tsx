@@ -299,6 +299,7 @@ export default function AccountingClient() {
   const [expRecords, setExpRecords] = useState<ExpenseRecord[]>([])
   const [recurring,  setRecurring]  = useState<RecurringExpense[]>([])
   const [loading,    setLoading]    = useState(true)
+  const [dbMissing,  setDbMissing]  = useState(false)
   const [showAddExp, setShowAddExp] = useState(false)
   const [syncMsg,    setSyncMsg]    = useState('')
   const [toast,      setToast]      = useState('')
@@ -311,6 +312,7 @@ export default function AccountingClient() {
 
   const loadData = useCallback(async () => {
     setLoading(true)
+    setDbMissing(false)
     try {
       const params = new URLSearchParams({ period, date })
       const [sumRes, incRes, expRes, recRes] = await Promise.all([
@@ -320,7 +322,14 @@ export default function AccountingClient() {
         fetch('/api/v1/accounting/recurring'),
       ])
 
-      if (sumRes.ok) setSummary(await sumRes.json() as FinancialSummary)
+      if (sumRes.ok) {
+        setSummary(await sumRes.json() as FinancialSummary)
+      } else {
+        const errData = await sumRes.json().catch(() => ({})) as { error?: string }
+        if (sumRes.status === 500 && errData.error?.includes('does not exist')) {
+          setDbMissing(true)
+        }
+      }
       if (incRes.ok) {
         const d = await incRes.json() as { records: IncomeRecord[] }
         setIncRecords(d.records)
@@ -397,6 +406,158 @@ export default function AccountingClient() {
   const maxExpCat = Math.max(...Object.values(expenses?.byCategory ?? {}), 1)
 
   const recurringTotal = recurring.filter(r => r.is_active).reduce((s, r) => s + Number(r.amount_tzs), 0)
+
+  if (dbMissing) {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+          <Link href="/admin" className="p-2 rounded-full hover:bg-gray-100">
+            <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </Link>
+          <h1 className="text-base font-bold text-gray-900">💰 Hesabu za NyumbaFasta</h1>
+        </div>
+        <div className="p-4 space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <p className="font-bold text-amber-800 mb-1">⚠️ Database haijaundwa bado</p>
+            <p className="text-sm text-amber-700 mb-3">
+              Jedwali la hesabu halijafanyiwa migration katika Supabase. Fanya hatua hizi:
+            </p>
+            <ol className="text-sm text-amber-800 space-y-2 list-decimal list-inside">
+              <li>Nenda <strong>Supabase Dashboard → SQL Editor</strong></li>
+              <li>Copy SQL ifuatayo na paste, kisha Run</li>
+              <li>Rudi ukurasa huu, bonyeza <strong>🔄 Sync Mapato</strong></li>
+            </ol>
+          </div>
+          <div className="bg-gray-900 rounded-2xl p-4 overflow-x-auto">
+            <p className="text-xs text-gray-400 mb-2 font-mono">-- Paste hii katika Supabase SQL Editor:</p>
+            <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap leading-relaxed">{`-- Run this in Supabase SQL Editor
+-- nyumba.co/admin → Supabase → SQL Editor
+
+CREATE TABLE IF NOT EXISTS income_records (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  source TEXT NOT NULL,
+  source_ref_id UUID NOT NULL,
+  payment_id UUID,
+  dalali_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  listing_id UUID REFERENCES listings(id) ON DELETE SET NULL,
+  amount_tzs DECIMAL(15,2) NOT NULL,
+  platform_fee_tzs DECIMAL(15,2) DEFAULT 0,
+  net_amount_tzs DECIMAL(15,2) NOT NULL,
+  description TEXT,
+  reference_number TEXT,
+  payment_method TEXT,
+  transaction_date DATE NOT NULL,
+  month INTEGER, year INTEGER, week INTEGER,
+  status TEXT DEFAULT 'confirmed',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(source, source_ref_id)
+);
+
+CREATE TABLE IF NOT EXISTS expense_records (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  category TEXT NOT NULL,
+  subcategory TEXT,
+  amount_tzs DECIMAL(15,2) NOT NULL,
+  amount_usd DECIMAL(10,2),
+  exchange_rate DECIMAL(10,2),
+  description TEXT NOT NULL,
+  vendor TEXT, receipt_url TEXT,
+  reference_number TEXT, payment_method TEXT,
+  expense_date DATE NOT NULL,
+  month INTEGER, year INTEGER, week INTEGER,
+  is_recurring BOOLEAN DEFAULT false,
+  recurring_period TEXT,
+  status TEXT DEFAULT 'paid',
+  added_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS financial_summaries (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  period TEXT NOT NULL, period_date DATE NOT NULL,
+  total_income_tzs DECIMAL(15,2) DEFAULT 0,
+  subscription_income DECIMAL(15,2) DEFAULT 0,
+  contact_unlock_income DECIMAL(15,2) DEFAULT 0,
+  boost_listing_income DECIMAL(15,2) DEFAULT 0,
+  extra_listing_income DECIMAL(15,2) DEFAULT 0,
+  other_income DECIMAL(15,2) DEFAULT 0,
+  total_expenses_tzs DECIMAL(15,2) DEFAULT 0,
+  hosting_expenses DECIMAL(15,2) DEFAULT 0,
+  api_expenses DECIMAL(15,2) DEFAULT 0,
+  marketing_expenses DECIMAL(15,2) DEFAULT 0,
+  legal_expenses DECIMAL(15,2) DEFAULT 0,
+  staff_expenses DECIMAL(15,2) DEFAULT 0,
+  other_expenses DECIMAL(15,2) DEFAULT 0,
+  gross_profit_tzs DECIMAL(15,2) DEFAULT 0,
+  net_profit_tzs DECIMAL(15,2) DEFAULT 0,
+  profit_margin DECIMAL(5,2) DEFAULT 0,
+  azampay_fees_tzs DECIMAL(15,2) DEFAULT 0,
+  total_transactions INTEGER DEFAULT 0,
+  new_subscriptions INTEGER DEFAULT 0,
+  renewed_subscriptions INTEGER DEFAULT 0,
+  contact_unlocks_count INTEGER DEFAULT 0,
+  active_dalali_count INTEGER DEFAULT 0,
+  income_growth_percent DECIMAL(5,2),
+  expense_growth_percent DECIMAL(5,2),
+  generated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(period, period_date)
+);
+
+CREATE TABLE IF NOT EXISTS recurring_expenses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  category TEXT NOT NULL, subcategory TEXT,
+  description TEXT NOT NULL, vendor TEXT,
+  amount_tzs DECIMAL(15,2) NOT NULL DEFAULT 0,
+  amount_usd DECIMAL(10,2), payment_method TEXT,
+  recurring_period TEXT DEFAULT 'monthly',
+  next_due_date DATE NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  added_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ir_source ON income_records(source);
+CREATE INDEX IF NOT EXISTS idx_ir_date ON income_records(transaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_ir_month_year ON income_records(year, month);
+CREATE INDEX IF NOT EXISTS idx_er_category ON expense_records(category);
+CREATE INDEX IF NOT EXISTS idx_er_date ON expense_records(expense_date DESC);
+CREATE INDEX IF NOT EXISTS idx_er_month_year ON expense_records(year, month);
+
+ALTER TABLE income_records DISABLE ROW LEVEL SECURITY;
+ALTER TABLE expense_records DISABLE ROW LEVEL SECURITY;
+ALTER TABLE financial_summaries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE recurring_expenses DISABLE ROW LEVEL SECURITY;
+
+INSERT INTO recurring_expenses
+  (category, subcategory, description, vendor,
+   amount_tzs, amount_usd, recurring_period, next_due_date)
+VALUES
+  ('hosting','vercel','Vercel Pro Hosting','Vercel',52000,20,'monthly',
+    DATE_TRUNC('month',NOW()+INTERVAL '1 month')::DATE),
+  ('hosting','supabase','Supabase Database','Supabase',26000,10,'monthly',
+    DATE_TRUNC('month',NOW()+INTERVAL '1 month')::DATE),
+  ('api_costs','anthropic','Anthropic Claude API','Anthropic',52000,20,'monthly',
+    DATE_TRUNC('month',NOW()+INTERVAL '1 month')::DATE),
+  ('api_costs','whatsapp_api','WhatsApp Business API','Meta',0,0,'monthly',
+    DATE_TRUNC('month',NOW()+INTERVAL '1 month')::DATE),
+  ('software','resend','Resend Email Service','Resend',0,0,'monthly',
+    DATE_TRUNC('month',NOW()+INTERVAL '1 month')::DATE)
+ON CONFLICT DO NOTHING;`}</pre>
+          </div>
+          <button
+            onClick={loadData}
+            className="w-full py-3 bg-primary-500 text-white rounded-2xl font-semibold text-sm"
+          >
+            🔄 Jaribu Tena (Baada ya Kurun SQL)
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
