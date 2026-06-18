@@ -22,7 +22,7 @@ export type SortOrder = 'recent' | 'highest' | 'helpful'
 
 // ── Helpers ──────────────────────────────────────────────
 const TYPE_LABELS: Record<string, string> = {
-  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio',
+  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
 }
 
 function fmtPrice(amount: number): string {

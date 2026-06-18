@@ -3,7 +3,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
-type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio'
+type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio' | 'duka'
 type Furnished = 'furnished' | 'semi' | 'empty'
 
 type ListingData = {
@@ -25,6 +25,7 @@ const LISTING_TYPES = [
   { value: 'apartment' as ListingType, label: 'Apartment', icon: '🏢' },
   { value: 'nyumba' as ListingType,    label: 'Nyumba',    icon: '🏠' },
   { value: 'studio' as ListingType,    label: 'Studio',    icon: '🛋' },
+  { value: 'duka' as ListingType,      label: 'Duka',      icon: '🏪' },
 ]
 
 const REGIONS = [

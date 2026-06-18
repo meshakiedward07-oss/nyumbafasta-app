@@ -8,6 +8,7 @@ const TYPE_LABELS: Record<string, string> = {
   apartment: 'Apartment',
   nyumba: 'Nyumba',
   studio: 'Studio',
+  duka: 'Duka',
 }
 
 export interface PropertySchemaProps {

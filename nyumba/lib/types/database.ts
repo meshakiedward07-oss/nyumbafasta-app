@@ -1,6 +1,6 @@
 export type UserRole = 'client' | 'dalali' | 'admin'
 export type ListingStatus = 'pending' | 'active' | 'taken' | 'expired' | 'rejected'
-export type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio'
+export type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio' | 'duka'
 export type FurnishedStatus = 'furnished' | 'semi' | 'empty'
 export type SubscriptionPlan = 'basic' | 'premium' | 'enterprise'
 
@@ -20,6 +20,12 @@ export type Listing = {
   description: string | null
   bedrooms: number | null
   deposit_months: number | null
+  shop_size_sqm: number | null
+  floor_level: number | null
+  has_parking: boolean | null
+  has_electricity: boolean | null
+  has_water: boolean | null
+  commercial_use: string | null
   street: string
   is_boosted: boolean
   boosted_until: string | null

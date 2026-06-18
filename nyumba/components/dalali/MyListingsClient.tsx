@@ -17,7 +17,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 }
 
 const TYPE: Record<string, string> = {
-  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio',
+  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
 }
 
 function fmt(n: number) {

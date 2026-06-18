@@ -155,13 +155,14 @@ Mfano: Kinondoni, Mbezi Beach, Sinza, Mikocheni...`
 2️⃣ Apartment (vyumba 2-3)
 3️⃣ Nyumba nzima
 4️⃣ Villa/Jumba
-5️⃣ Ofisi/Biashara`
+5️⃣ Ofisi/Biashara
+6️⃣ Duka/Biashara`
     }
 
     case 'ask_type': {
       const types: Record<string, string> = {
         '1': 'chumba', '2': 'apartment',
-        '3': 'nyumba', '4': 'villa', '5': 'ofisi',
+        '3': 'nyumba', '4': 'villa', '5': 'ofisi', '6': 'duka',
       }
       const type = types[message.trim()] ?? message.toLowerCase()
       await updateSession(session.id, {

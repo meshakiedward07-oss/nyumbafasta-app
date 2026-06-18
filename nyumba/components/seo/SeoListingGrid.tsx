@@ -6,6 +6,7 @@ const TYPE_LABELS: Record<string, string> = {
   apartment: 'Apartment',
   nyumba: 'Nyumba',
   studio: 'Studio',
+  duka: 'Duka',
 }
 
 function formatPrice(amount: number): string {

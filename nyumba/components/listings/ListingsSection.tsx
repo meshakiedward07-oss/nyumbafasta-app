@@ -21,6 +21,7 @@ const TYPES = [
   { value: 'apartment', label: 'Apartment' },
   { value: 'nyumba', label: 'Nyumba' },
   { value: 'studio', label: 'Studio' },
+  { value: 'duka', label: '🏪 Duka' },
 ]
 
 const LIMIT = 10

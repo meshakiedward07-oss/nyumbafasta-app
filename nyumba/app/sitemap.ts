@@ -5,7 +5,7 @@ import { TANZANIA_REGIONS, PRIORITY_REGIONS } from '@/lib/data/tanzania-location
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 
 // Property types that have dedicated region+type SEO pages
-const SEO_TYPES = ['chumba', 'apartment', 'nyumba', 'studio']
+const SEO_TYPES = ['chumba', 'apartment', 'nyumba', 'studio', 'duka']
 
 // Region name → URL slug, e.g. "Dar es Salaam" → "dar-es-salaam"
 function regionSlug(region: string): string {

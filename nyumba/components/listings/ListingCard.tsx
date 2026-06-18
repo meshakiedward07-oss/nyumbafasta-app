@@ -32,6 +32,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
     apartment: 'Apartment',
     nyumba: 'Nyumba',
     studio: 'Studio',
+    duka: 'Duka',
   }
 
   return (

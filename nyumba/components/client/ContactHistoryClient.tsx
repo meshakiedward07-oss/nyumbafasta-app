@@ -11,7 +11,7 @@ type Props = {
 }
 
 const typeLabel: Record<string, string> = {
-  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio',
+  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
 }
 
 function timeAgo(dateStr: string): string {

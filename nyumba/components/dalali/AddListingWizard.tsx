@@ -17,7 +17,7 @@ const LocationPickerMap = dynamic(
 )
 
 // ── Types ────────────────────────────────────────────────
-type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio'
+type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio' | 'duka'
 type Furnished = 'furnished' | 'semi' | 'empty'
 
 type FormData = {
@@ -33,6 +33,9 @@ type FormData = {
   video_url: string | null
   latitude: number | null
   longitude: number | null
+  shop_size_sqm: string
+  floor_level: string
+  commercial_use: string
 }
 
 // ── Constants ────────────────────────────────────────────
@@ -41,6 +44,7 @@ const LISTING_TYPES: { value: ListingType; label: string; icon: string }[] = [
   { value: 'apartment', label: 'Apartment', icon: '🏢' },
   { value: 'nyumba',    label: 'Nyumba',    icon: '🏠' },
   { value: 'studio',    label: 'Studio',    icon: '🛋' },
+  { value: 'duka',      label: 'Duka',      icon: '🏪' },
 ]
 
 const AMENITIES: { value: string; label: string; icon: string }[] = [
@@ -180,6 +184,9 @@ export default function AddListingWizard() {
     video_url: null,
     latitude: null,
     longitude: null,
+    shop_size_sqm: '',
+    floor_level: '',
+    commercial_use: '',
   })
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
@@ -288,7 +295,10 @@ export default function AddListingWizard() {
         body: JSON.stringify({
           ...form,
           price_monthly: parseInt(form.price_monthly),
-          bedrooms: form.bedrooms ? parseInt(form.bedrooms) : null,
+          bedrooms: form.type !== 'duka' && form.bedrooms ? parseInt(form.bedrooms) : null,
+          shop_size_sqm: form.type === 'duka' && form.shop_size_sqm ? parseInt(form.shop_size_sqm) : null,
+          floor_level: form.type === 'duka' && form.floor_level ? parseInt(form.floor_level) : null,
+          commercial_use: form.type === 'duka' && form.commercial_use ? form.commercial_use : null,
         }),
       })
       const data = await res.json()
@@ -347,7 +357,7 @@ export default function AddListingWizard() {
             {/* Type selector */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                Aina ya Nyumba
+                Aina ya Mali
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {LISTING_TYPES.map(t => (
@@ -391,40 +401,94 @@ export default function AddListingWizard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                    Vyumba vya Kulala
-                  </label>
-                  <select
-                    value={form.bedrooms}
-                    onChange={e => set('bedrooms', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
-                               focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
-                  >
-                    <option value="">Si lazima</option>
-                    {[1,2,3,4,5,6].map(n => (
-                      <option key={n} value={n}>Vyumba {n}</option>
-                    ))}
-                  </select>
-                </div>
+              {form.type !== 'duka' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                      Vyumba vya Kulala
+                    </label>
+                    <select
+                      value={form.bedrooms}
+                      onChange={e => set('bedrooms', e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
+                                 focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                    >
+                      <option value="">Si lazima</option>
+                      {[1,2,3,4,5,6].map(n => (
+                        <option key={n} value={n}>Vyumba {n}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                    Hali ya Samani
-                  </label>
-                  <select
-                    value={form.furnished}
-                    onChange={e => set('furnished', e.target.value as Furnished)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
-                               focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
-                  >
-                    <option value="empty">Empty</option>
-                    <option value="semi">Semi-furnished</option>
-                    <option value="furnished">Furnished</option>
-                  </select>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                      Hali ya Samani
+                    </label>
+                    <select
+                      value={form.furnished}
+                      onChange={e => set('furnished', e.target.value as Furnished)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
+                                 focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                    >
+                      <option value="empty">Empty</option>
+                      <option value="semi">Semi-furnished</option>
+                      <option value="furnished">Furnished</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {form.type === 'duka' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                        Ukubwa (m²)
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        placeholder="e.g. 40"
+                        value={form.shop_size_sqm}
+                        onChange={e => set('shop_size_sqm', e.target.value)}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
+                                   focus:outline-none focus:ring-2 focus:ring-primary-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                        Ghorofa
+                      </label>
+                      <select
+                        value={form.floor_level}
+                        onChange={e => set('floor_level', e.target.value)}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
+                                   focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                      >
+                        <option value="">Chagua</option>
+                        <option value="0">Chini (Ground)</option>
+                        {[1,2,3,4,5].map(n => (
+                          <option key={n} value={n}>Ghorofa {n}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                      Matumizi ya Biashara
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Duka la rejareja, Ofisi, Ghala..."
+                      value={form.commercial_use}
+                      onChange={e => set('commercial_use', e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
+                                 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -434,7 +498,7 @@ export default function AddListingWizard() {
               </label>
               <textarea
                 rows={4}
-                placeholder="Elezea nyumba yako — eneo, jirani, masharti maalum..."
+                placeholder={form.type === 'duka' ? 'Elezea duka lako — eneo, jirani, masharti maalum...' : 'Elezea nyumba yako — eneo, jirani, masharti maalum...'}
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
@@ -684,12 +748,17 @@ export default function AddListingWizard() {
               <div className="space-y-2 text-sm">
                 <Row label="Aina" value={LISTING_TYPES.find(t => t.value === form.type)?.label ?? form.type} />
                 <Row label="Bei" value={`Tsh ${parseInt(form.price_monthly || '0').toLocaleString()} / mwezi`} />
-                {form.bedrooms && <Row label="Vyumba" value={`Vyumba ${form.bedrooms}`} />}
-                <Row label="Samani" value={
-                  form.furnished === 'furnished' ? 'Furnished'
-                  : form.furnished === 'semi' ? 'Semi-furnished'
-                  : 'Empty'
-                } />
+                {form.type !== 'duka' && form.bedrooms && <Row label="Vyumba" value={`Vyumba ${form.bedrooms}`} />}
+                {form.type !== 'duka' && (
+                  <Row label="Samani" value={
+                    form.furnished === 'furnished' ? 'Furnished'
+                    : form.furnished === 'semi' ? 'Semi-furnished'
+                    : 'Empty'
+                  } />
+                )}
+                {form.type === 'duka' && form.shop_size_sqm && <Row label="Ukubwa" value={`${form.shop_size_sqm} m²`} />}
+                {form.type === 'duka' && form.floor_level !== '' && <Row label="Ghorofa" value={form.floor_level === '0' ? 'Chini' : `Ghorofa ${form.floor_level}`} />}
+                {form.type === 'duka' && form.commercial_use && <Row label="Matumizi" value={form.commercial_use} />}
                 <Row label="Mahali" value={`${form.district}, ${form.region}`} />
                 {form.amenities.length > 0 && (
                   <Row label="Huduma" value={`${form.amenities.length} zilizochaguliwa`} />

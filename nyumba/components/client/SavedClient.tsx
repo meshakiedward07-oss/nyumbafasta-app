@@ -9,7 +9,7 @@ import BottomNav from '@/components/shared/BottomNav'
 type SavedItem = { savedId: string; listing: ListingWithDalali }
 
 const typeLabel: Record<string, string> = {
-  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio',
+  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
 }
 
 function formatPrice(n: number) {

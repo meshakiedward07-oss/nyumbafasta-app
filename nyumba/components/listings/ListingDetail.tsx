@@ -37,6 +37,7 @@ const typeLabel: Record<string, string> = {
   apartment: 'Apartment',
   nyumba: 'Nyumba',
   studio: 'Studio',
+  duka: 'Duka',
 }
 
 const furnishedLabel: Record<string, string> = {
@@ -247,14 +248,29 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
               🏠 {typeLabel[listing.type] || listing.type}
             </span>
-            {listing.bedrooms && (
+            {listing.type !== 'duka' && listing.bedrooms && (
               <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
                 🛏 Vyumba {listing.bedrooms}
               </span>
             )}
-            {listing.furnished && (
+            {listing.type !== 'duka' && listing.furnished && (
               <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full border border-amber-100">
                 {furnishedLabel[listing.furnished] || listing.furnished}
+              </span>
+            )}
+            {listing.type === 'duka' && (listing as typeof listing & { shop_size_sqm?: number | null }).shop_size_sqm && (
+              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                📐 {(listing as typeof listing & { shop_size_sqm?: number | null }).shop_size_sqm} m²
+              </span>
+            )}
+            {listing.type === 'duka' && (listing as typeof listing & { floor_level?: number | null }).floor_level != null && (
+              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                🏢 {(listing as typeof listing & { floor_level?: number | null }).floor_level === 0 ? 'Chini' : `Ghorofa ${(listing as typeof listing & { floor_level?: number | null }).floor_level}`}
+              </span>
+            )}
+            {listing.type === 'duka' && (listing as typeof listing & { commercial_use?: string | null }).commercial_use && (
+              <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">
+                🏪 {(listing as typeof listing & { commercial_use?: string | null }).commercial_use}
               </span>
             )}
           </div>

@@ -11,7 +11,7 @@ const furnishedLabel: Record<string, string> = {
   furnished: 'Furnished', semi: 'Semi-furnished', empty: 'Empty',
 }
 const typeLabel: Record<string, string> = {
-  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio',
+  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
 }
 
 export type ShareListing = {

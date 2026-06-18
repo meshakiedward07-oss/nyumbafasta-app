@@ -75,11 +75,15 @@ export async function POST(req: NextRequest) {
     }
     const data = parsed.data
 
+    const typeLabels: Record<string, string> = {
+      chumba: 'Chumba', apartment: 'Apartment',
+      nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
+    }
     // Explicit allowlist insert — no spread of raw body (mass-assignment safe)
     const insertPayload: Record<string, unknown> = {
       dalali_id: user.id,
       type: data.type,
-      title: `${data.type.charAt(0).toUpperCase() + data.type.slice(1)} – ${data.district}`,
+      title: `${typeLabels[data.type] ?? data.type} – ${data.district}`,
       status: 'pending',
       price_monthly: data.price_monthly,
       furnished: data.furnished,
@@ -98,6 +102,9 @@ export async function POST(req: NextRequest) {
       longitude: data.longitude,
     }
     if (data.bedrooms !== null) insertPayload.bedrooms = data.bedrooms
+    if (data.shop_size_sqm !== null) insertPayload.shop_size_sqm = data.shop_size_sqm
+    if (data.floor_level !== null) insertPayload.floor_level = data.floor_level
+    if (data.commercial_use !== null) insertPayload.commercial_use = data.commercial_use
 
     const { data: listing, error: insertError } = await admin
       .from('listings')

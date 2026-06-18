@@ -10,7 +10,7 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
-const LISTING_TYPES = ['chumba', 'apartment', 'nyumba', 'studio'] as const
+const LISTING_TYPES = ['chumba', 'apartment', 'nyumba', 'studio', 'duka'] as const
 const FURNISHED_VALUES = ['empty', 'semi', 'full'] as const
 
 export interface ListingInput {
@@ -26,6 +26,10 @@ export interface ListingInput {
   video_url: string | null
   latitude: number | null
   longitude: number | null
+  // Shop-specific (optional)
+  shop_size_sqm: number | null
+  floor_level: number | null
+  commercial_use: string | null
 }
 
 export function validateListing(body: unknown): ValidationResult<ListingInput> {
@@ -111,6 +115,21 @@ export function validateListing(body: unknown): ValidationResult<ListingInput> {
   const latitude = typeof body.latitude === 'number' ? body.latitude : null
   const longitude = typeof body.longitude === 'number' ? body.longitude : null
 
+  // Shop fields — optional, validated loosely
+  let shop_size_sqm: number | null = null
+  if (body.shop_size_sqm != null) {
+    const s = Number(body.shop_size_sqm)
+    if (Number.isFinite(s) && s >= 0 && s <= 50000) shop_size_sqm = s
+  }
+  let floor_level: number | null = null
+  if (body.floor_level != null) {
+    const fl = Number(body.floor_level)
+    if (Number.isInteger(fl) && fl >= 0 && fl <= 100) floor_level = fl
+  }
+  const commercial_use = typeof body.commercial_use === 'string' && body.commercial_use.length <= 50
+    ? body.commercial_use.trim() || null
+    : null
+
   if (errors.length) return { ok: false, errors }
 
   return {
@@ -128,6 +147,9 @@ export function validateListing(body: unknown): ValidationResult<ListingInput> {
       video_url,
       latitude,
       longitude,
+      shop_size_sqm,
+      floor_level,
+      commercial_use,
     },
   }
 }

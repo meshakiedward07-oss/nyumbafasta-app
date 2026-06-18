@@ -11,7 +11,7 @@ import SeoListingGrid, { type SeoListing } from '@/components/seo/SeoListingGrid
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 
-const VALID_TYPES = ['chumba', 'apartment', 'nyumba', 'studio'] as const
+const VALID_TYPES = ['chumba', 'apartment', 'nyumba', 'studio', 'duka'] as const
 type ValidType = (typeof VALID_TYPES)[number]
 
 // Plural Swahili labels used in titles/headings
@@ -20,6 +20,7 @@ const TYPE_PLURAL: Record<ValidType, string> = {
   apartment: 'Apartments',
   nyumba: 'Nyumba',
   studio: 'Studio',
+  duka: 'Maduka',
 }
 
 function isValidType(t: string): t is ValidType {

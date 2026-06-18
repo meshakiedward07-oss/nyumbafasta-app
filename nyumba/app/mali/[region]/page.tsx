@@ -17,6 +17,7 @@ const TYPE_LINKS = [
   { type: 'apartment', label: 'Apartments' },
   { type: 'nyumba', label: 'Nyumba' },
   { type: 'studio', label: 'Studio' },
+  { type: 'duka', label: 'Maduka' },
 ]
 
 // Pre-render all 31 region pages at build time

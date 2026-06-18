@@ -355,6 +355,7 @@ function mapPropertyType(type: string): string {
     apartment: 'APARTMENT',
     nyumba:    'HOUSE',
     studio:    'APARTMENT',
+    duka:      'APARTMENT',
   }
   return map[type] ?? 'APARTMENT'
 }
