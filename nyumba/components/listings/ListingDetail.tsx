@@ -11,6 +11,7 @@ import Avatar from '@/components/shared/Avatar'
 import UnlockModal from '@/components/payments/UnlockModal'
 import ReviewList from '@/components/listings/ReviewList'
 import ReportDalaliModal from '@/components/listings/ReportDalaliModal'
+import NeighborhoodInfo from '@/components/listings/NeighborhoodInfo'
 
 const SimilarListings = dynamic(
   () => import('@/components/listings/SimilarListings'),
@@ -307,6 +308,11 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               ))}
             </div>
           </div>
+        )}
+
+        {/* Neighborhood info — only shown when listing has coordinates */}
+        {!!(listing.latitude && listing.longitude) && (
+          <NeighborhoodInfo listingId={listing.id} />
         )}
 
         {/* Contact history badge */}

@@ -101,8 +101,9 @@ export default async function ListingDetailPage({
       .select(`
         id, title, type, status, price_monthly,
         district, region, furnished, amenities,
-        images, description,
+        images, video_url, description, bedrooms,
         is_boosted, view_count, lead_count, share_count,
+        latitude, longitude,
         created_at, dalali_id,
         dalali:dalali_id (
           id, full_name, phone, avatar_url,
