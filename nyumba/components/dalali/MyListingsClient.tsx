@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import DalaliBottomNav from '@/components/shared/DalaliBottomNav'
 import ShareButton from '@/components/shared/ShareButton'
 import BoostModal from '@/components/dalali/BoostModal'
+import QuickEditModal from '@/components/dalali/QuickEditModal'
+import ListingAnalyticsCard from '@/components/dalali/ListingAnalyticsCard'
 import type { Listing } from '@/lib/types/database'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -189,6 +191,8 @@ export default function MyListingsClient({ listings: initial }: { listings: List
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [loading, setLoading] = useState<string | null>(null)
   const [boostListing, setBoostListing] = useState<Listing | null>(null)
+  const [editListing, setEditListing] = useState<Listing | null>(null)
+  const [expandedAnalytics, setExpandedAnalytics] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('all')
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -285,6 +289,33 @@ export default function MyListingsClient({ listings: initial }: { listings: List
       </div>
 
       <div className="px-4 pt-4 space-y-3">
+        {/* Performance summary */}
+        {listings.filter(l => l.status === 'active').length > 0 && (() => {
+          const active = listings.filter(l => l.status === 'active')
+          const best = active.reduce((a, b) => (b.view_count ?? 0) > (a.view_count ?? 0) ? b : a)
+          const worst = active.reduce((a, b) => (b.view_count ?? 0) < (a.view_count ?? 0) ? b : a)
+          return (
+            <div className="bg-white rounded-2xl border border-gray-100 p-3 flex gap-2">
+              <div className="flex-1 bg-primary-50 rounded-xl p-2.5 text-center">
+                <p className="text-[10px] text-gray-400 mb-0.5">🔥 Inafanya vizuri</p>
+                <p className="text-xs font-semibold text-gray-800 truncate">
+                  {TYPE[best.type] || best.type} — {best.district}
+                </p>
+                <p className="text-[10px] text-primary-600">{best.view_count ?? 0} maoni</p>
+              </div>
+              {worst.id !== best.id && (
+                <div className="flex-1 bg-amber-50 rounded-xl p-2.5 text-center">
+                  <p className="text-[10px] text-gray-400 mb-0.5">💡 Inahitaji nguvu</p>
+                  <p className="text-xs font-semibold text-gray-800 truncate">
+                    {TYPE[worst.type] || worst.type} — {worst.district}
+                  </p>
+                  <p className="text-[10px] text-amber-600">{worst.view_count ?? 0} maoni</p>
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
         {displayed.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
             {tab === 'expired' ? (
@@ -476,13 +507,29 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                       className="flex-1 justify-center rounded-none bg-transparent hover:bg-green-50 py-2.5 px-0"
                     />
                     <div className="w-px bg-gray-50" />
-                    <Link
-                      href={`/listings/${listing.id}/edit`}
-                      className="flex-1 py-2.5 text-center text-xs font-medium text-gray-600 active:bg-gray-50 transition-colors"
+                    <button
+                      onClick={() => setExpandedAnalytics(expandedAnalytics === listing.id ? null : listing.id)}
+                      className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
+                        expandedAnalytics === listing.id
+                          ? 'text-primary-600 bg-primary-50'
+                          : 'text-gray-500 active:bg-gray-50'
+                      }`}
                     >
-                      ✏️ Hariri
-                    </Link>
+                      📊 Takwimu
+                    </button>
+                    <div className="w-px bg-gray-50" />
+                    <button
+                      onClick={() => setEditListing(listing)}
+                      className="flex-1 py-2.5 text-xs font-semibold text-primary-700 active:bg-primary-50 transition-colors"
+                    >
+                      ⚡ Update
+                    </button>
                   </div>
+                )}
+
+                {/* Analytics expand */}
+                {expandedAnalytics === listing.id && (
+                  <ListingAnalyticsCard listingId={listing.id} />
                 )}
 
                 {/* Expired — full-width renew CTA */}
@@ -572,6 +619,17 @@ export default function MyListingsClient({ listings: initial }: { listings: List
       )}
 
       <DalaliBottomNav />
+
+      {editListing && (
+        <QuickEditModal
+          listing={editListing}
+          onClose={() => setEditListing(null)}
+          onSaved={(updated) => {
+            setListings(prev => prev.map(l => l.id === editListing.id ? { ...l, ...updated } : l))
+            setEditListing(null)
+          }}
+        />
+      )}
 
       {boostListing && (
         <BoostModal
