@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
+import { requireAdminAuth } from '@/lib/security/adminAuth'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { runId: string } }
+  { params }: { params: { runId: string } },
 ) {
+  const auth = await requireAdminAuth()
+  if (!auth.ok) return auth.response
+
   try {
     const { runId } = params
 
@@ -20,16 +26,15 @@ export async function GET(
 
     return NextResponse.json({
       runId,
-      status: 'SUCCEEDED',
+      status:     'SUCCEEDED',
       source,
       region,
-      startedAt: timestamp ? new Date(parseInt(timestamp)).toISOString() : null,
+      startedAt:  timestamp ? new Date(parseInt(timestamp)).toISOString() : null,
       finishedAt: new Date().toISOString(),
-      leadsInDb: count ?? 0
+      leadsInDb:  count ?? 0,
     })
-
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
+    const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

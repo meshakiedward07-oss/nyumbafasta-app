@@ -1,8 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
+import { requireAdminAuth } from '@/lib/security/adminAuth'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAdminAuth()
+  if (!auth.ok) return auth.response
+
   try {
     const { searchParams } = new URL(req.url)
     const region = searchParams.get('region') || ''
@@ -36,17 +41,20 @@ export async function GET(req: NextRequest) {
       leads: data || [],
       total: count || 0,
       page,
-      pages: Math.ceil((count || 0) / limit)
+      pages: Math.ceil((count || 0) / limit),
     })
-
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
 
 export async function PATCH(req: NextRequest) {
+  const auth = await requireAdminAuth()
+  if (!auth.ok) return auth.response
+
   try {
-    const body = await req.json()
+    const body = await req.json() as { id: string; status: string; notes?: string }
     const { id, status, notes } = body
 
     const { data, error } = await supabaseAdmin
@@ -59,8 +67,8 @@ export async function PATCH(req: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ success: true, lead: data })
-
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

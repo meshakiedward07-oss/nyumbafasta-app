@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import Anthropic from '@anthropic-ai/sdk'
+import { requireAdminAuth } from '@/lib/security/adminAuth'
 
+export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAdminAuth()
+  if (!auth.ok) return auth.response
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'ANTHROPIC_API_KEY haipo' }, { status: 500 })
   }

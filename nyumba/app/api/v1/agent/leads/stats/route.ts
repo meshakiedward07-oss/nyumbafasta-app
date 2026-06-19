@@ -1,8 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
+import { requireAdminAuth } from '@/lib/security/adminAuth'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
+  const auth = await requireAdminAuth()
+  if (!auth.ok) return auth.response
+
   try {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -32,7 +37,8 @@ export async function GET() {
       converted: converted.count || 0,
       by_region,
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
