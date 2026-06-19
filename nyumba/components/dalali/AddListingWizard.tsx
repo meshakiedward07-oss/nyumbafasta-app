@@ -1,10 +1,10 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { TANZANIA_REGIONS, getDistricts } from '@/lib/data/tanzania-locations'
 import { createClient } from '@/lib/supabase/client'
+import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
 
 const LocationPickerMap = dynamic(
   () => import('@/components/dalali/LocationPickerMap'),
@@ -62,20 +62,6 @@ const AMENITIES: { value: string; label: string; icon: string }[] = [
   { value: 'bustani',    label: 'Bustani',     icon: '🌿' },
 ]
 
-// ── Image upload helper — unsigned preset direct to Cloudinary ──
-async function uploadToCloudinary(file: File): Promise<string> {
-  const fd = new FormData()
-  fd.append('file', file)
-  fd.append('upload_preset', 'nyumba_listings')  // unsigned preset
-  fd.append('folder', 'nyumba/listings')
-  const res = await fetch('https://api.cloudinary.com/v1_1/daw8jlbbd/image/upload', {
-    method: 'POST',
-    body: fd,
-  })
-  const data = await res.json()
-  if (!data.secure_url) throw new Error(data.error?.message ?? 'Upload ilishindwa')
-  return data.secure_url as string
-}
 
 // ── Step progress bar ────────────────────────────────────
 function StepBar({ current, total }: { current: number; total: number }) {
@@ -96,15 +82,13 @@ function StepBar({ current, total }: { current: number; total: number }) {
 // ── Main wizard ──────────────────────────────────────────
 export default function AddListingWizard() {
   const router = useRouter()
-  const fileInputRef  = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
 
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
-  const [uploadingImgs, setUploadingImgs] = useState(false)
+  const [photosUploading, setPhotosUploading] = useState(false)
   const [uploadingVid, setUploadingVid]   = useState(false)
   const [error, setError] = useState('')
-  const [imgPreviews, setImgPreviews]     = useState<string[]>([])
   const [videoPreview, setVideoPreview]   = useState<string | null>(null)
 
   // ── Listing limit ─────────────────────────────────────────
@@ -198,34 +182,6 @@ export default function AddListingWizard() {
       ? form.amenities.filter(a => a !== value)
       : [...form.amenities, value]
     )
-  }
-
-  // ── Image picker ─────────────────────────────────────
-  async function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).slice(0, 6 - form.images.length)
-    if (!files.length) return
-
-    setUploadingImgs(true)
-    setError('')
-    try {
-      // Show local previews immediately
-      const localUrls = files.map(f => URL.createObjectURL(f))
-      setImgPreviews(prev => [...prev, ...localUrls])
-
-      // Upload to Cloudinary (or get blob URLs in dev)
-      const uploaded = await Promise.all(files.map(uploadToCloudinary))
-      set('images', [...form.images, ...uploaded])
-    } catch {
-      setError('Baadhi ya picha hazikupakiwa. Jaribu tena.')
-    } finally {
-      setUploadingImgs(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
-  function removeImage(index: number) {
-    set('images', form.images.filter((_, i) => i !== index))
-    setImgPreviews(prev => prev.filter((_, i) => i !== index))
   }
 
   // ── Video upload ──────────────────────────────────────
@@ -623,71 +579,18 @@ export default function AddListingWizard() {
         ══════════════════════════════════════════════ */}
         {step === 3 && (
           <>
-            {/* Image upload */}
+            {/* Bulk photo upload */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <div className="flex justify-between items-center mb-3">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Picha ({form.images.length}/6)
-                </label>
-                {form.images.length < 6 && (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImgs}
-                    className="text-xs text-primary-600 font-medium bg-primary-50 px-3 py-1.5 rounded-full disabled:opacity-50"
-                  >
-                    {uploadingImgs ? 'Inapakia...' : '+ Ongeza Picha'}
-                  </button>
-                )}
-              </div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handleImagePick}
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                Picha za Nyumba
+              </label>
+              <BulkPhotoUpload
+                onChange={(urls, uploading) => {
+                  set('images', urls)
+                  setPhotosUploading(uploading)
+                }}
+                maxPhotos={15}
               />
-
-              {imgPreviews.length === 0 ? (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-32 border-2 border-dashed border-gray-200 rounded-xl
-                             flex flex-col items-center justify-center gap-2 text-gray-400"
-                >
-                  <span className="text-3xl">📷</span>
-                  <span className="text-xs">Bonyeza kupakia picha</span>
-                  <span className="text-xs text-gray-300">PNG, JPG hadi 6 picha</span>
-                </button>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {imgPreviews.map((src, i) => (
-                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
-                      <Image fill src={src} alt="" className="object-cover" sizes="33vw" unoptimized />
-                      {i === 0 && (
-                        <div className="absolute top-1 left-1 bg-primary-500 text-white text-xs px-1.5 py-0.5 rounded-md">
-                          Kuu
-                        </div>
-                      )}
-                      <button
-                        onClick={() => removeImage(i)}
-                        className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                  {form.images.length < 6 && (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square rounded-xl border-2 border-dashed border-gray-200
-                                 flex items-center justify-center text-2xl text-gray-300"
-                    >
-                      +
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* ── Video upload ── */}
@@ -802,7 +705,7 @@ export default function AddListingWizard() {
         ) : (
           <button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || photosUploading}
             className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold
                        disabled:opacity-50 active:scale-95 transition-all"
           >
@@ -810,6 +713,11 @@ export default function AddListingWizard() {
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Inatuma...
+              </span>
+            ) : photosUploading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Subiri picha zikamilike...
               </span>
             ) : '✅ Wasilisha Listing'}
           </button>

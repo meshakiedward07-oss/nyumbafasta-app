@@ -1,7 +1,7 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
 
 type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio' | 'duka'
 type Furnished = 'furnished' | 'semi' | 'empty'
@@ -48,19 +48,6 @@ const AMENITIES = [
   { value: 'bustani', label: 'Bustani', icon: '🌿' },
 ]
 
-const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? ''
-const CLOUDINARY_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? ''
-
-async function uploadImage(file: File): Promise<string> {
-  if (!CLOUDINARY_CLOUD || !CLOUDINARY_PRESET) return URL.createObjectURL(file)
-  const fd = new FormData()
-  fd.append('file', file)
-  fd.append('upload_preset', CLOUDINARY_PRESET)
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: fd })
-  const data = await res.json()
-  if (!data.secure_url) throw new Error('Upload ilishindwa')
-  return data.secure_url as string
-}
 
 function StepBar({ current, total }: { current: number; total: number }) {
   return (
@@ -76,11 +63,10 @@ function StepBar({ current, total }: { current: number; total: number }) {
 
 export default function EditListingClient({ listing }: { listing: ListingData }) {
   const router = useRouter()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
-  const [uploadingImgs, setUploadingImgs] = useState(false)
+  const [photosUploading, setPhotosUploading] = useState(false)
   const [error, setError] = useState('')
 
   const [type, setType] = useState<ListingType>(listing.type)
@@ -92,33 +78,9 @@ export default function EditListingClient({ listing }: { listing: ListingData })
   const [district, setDistrict] = useState(listing.district)
   const [amenities, setAmenities] = useState<string[]>(listing.amenities ?? [])
   const [images, setImages] = useState<string[]>(listing.images ?? [])
-  const [imgPreviews, setImgPreviews] = useState<string[]>(listing.images ?? [])
 
   function toggleAmenity(v: string) {
     setAmenities(prev => prev.includes(v) ? prev.filter(a => a !== v) : [...prev, v])
-  }
-
-  async function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).slice(0, 6 - images.length)
-    if (!files.length) return
-    setUploadingImgs(true)
-    setError('')
-    try {
-      const localUrls = files.map(f => URL.createObjectURL(f))
-      setImgPreviews(prev => [...prev, ...localUrls])
-      const uploaded = await Promise.all(files.map(uploadImage))
-      setImages(prev => [...prev, ...uploaded])
-    } catch {
-      setError('Baadhi ya picha hazikupakiwa. Jaribu tena.')
-    } finally {
-      setUploadingImgs(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
-  function removeImage(i: number) {
-    setImages(prev => prev.filter((_, idx) => idx !== i))
-    setImgPreviews(prev => prev.filter((_, idx) => idx !== i))
   }
 
   async function handleSubmit() {
@@ -281,38 +243,17 @@ export default function EditListingClient({ listing }: { listing: ListingData })
         {step === 3 && (
           <>
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <div className="flex justify-between items-center mb-3">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Picha ({images.length}/6)</label>
-                {images.length < 6 && (
-                  <button onClick={() => fileInputRef.current?.click()} disabled={uploadingImgs}
-                    className="text-xs text-primary-600 font-medium bg-primary-50 px-3 py-1.5 rounded-full disabled:opacity-50">
-                    {uploadingImgs ? 'Inapakia...' : '+ Ongeza Picha'}
-                  </button>
-                )}
-              </div>
-              <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImagePick} />
-              {imgPreviews.length === 0 ? (
-                <button onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-28 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400">
-                  <span className="text-3xl">📷</span>
-                  <span className="text-xs">Bonyeza kupakia picha</span>
-                </button>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {imgPreviews.map((src, i) => (
-                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
-                      <Image fill src={src} alt="" className="object-cover" sizes="33vw" unoptimized />
-                      {i === 0 && <div className="absolute top-1 left-1 bg-primary-500 text-white text-xs px-1.5 py-0.5 rounded-md">Kuu</div>}
-                      <button onClick={() => removeImage(i)}
-                        className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">✕</button>
-                    </div>
-                  ))}
-                  {images.length < 6 && (
-                    <button onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-2xl text-gray-300">+</button>
-                  )}
-                </div>
-              )}
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                Picha za Nyumba
+              </label>
+              <BulkPhotoUpload
+                existingImages={listing.images ?? []}
+                onChange={(urls, uploading) => {
+                  setImages(urls)
+                  setPhotosUploading(uploading)
+                }}
+                maxPhotos={15}
+              />
             </div>
 
             {/* Summary */}
@@ -347,12 +288,17 @@ export default function EditListingClient({ listing }: { listing: ListingData })
             Endelea → {stepTitles[step + 1]}
           </button>
         ) : (
-          <button onClick={handleSubmit} disabled={submitting}
+          <button onClick={handleSubmit} disabled={submitting || photosUploading}
             className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-50 active:scale-95 transition-all">
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Inahifadhi...
+              </span>
+            ) : photosUploading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Subiri picha zikamilike...
               </span>
             ) : '💾 Hifadhi Mabadiliko'}
           </button>
