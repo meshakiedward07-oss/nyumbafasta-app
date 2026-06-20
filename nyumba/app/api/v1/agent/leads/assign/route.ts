@@ -27,10 +27,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Lead haikupatikana' }, { status: 404 })
     }
 
-    // Fetch staff member — must be role='staff' or 'admin'
+    // Fetch staff member — must be role='staff' or 'admin' and active
     const { data: staff, error: staffErr } = await supabaseAdmin
       .from('users')
-      .select('id, full_name, phone, role')
+      .select('id, full_name, phone, role, staff_active')
       .eq('id', staffId)
       .in('role', ['staff', 'admin'])
       .single()
@@ -39,6 +39,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Mfanyakazi hakupatikana au si staff/admin' },
         { status: 404 },
+      )
+    }
+
+    if (staff.role === 'staff' && (staff as { staff_active?: boolean }).staff_active === false) {
+      return NextResponse.json(
+        { error: 'Haiwezekani kupewa lead mfanyakazi aliyezimwa' },
+        { status: 400 },
       )
     }
 

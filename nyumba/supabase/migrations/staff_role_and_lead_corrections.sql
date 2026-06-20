@@ -6,11 +6,8 @@
 -- They must be assigned to internal STAFF (role='staff'), never to
 -- existing dalali. This migration enforces that at the DB level.
 
--- ── 1. Add 'staff' to users.role ───────────────────────────────────────────
-ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
-ALTER TABLE users
-  ADD CONSTRAINT users_role_check
-  CHECK (role IN ('client', 'dalali', 'admin', 'staff'));
+-- ── 1. Add 'staff' to users.role (enum type, not CHECK constraint) ─────────
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'staff';
 
 -- ── 2. Staff columns on users ──────────────────────────────────────────────
 ALTER TABLE users

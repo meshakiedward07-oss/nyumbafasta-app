@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { TANZANIA_REGIONS } from '@/lib/agent/regions'
+import { hasPermission, logStaffActivity } from '@/lib/staff/checkPermission'
 
 export const dynamic    = 'force-dynamic'
 export const maxDuration = 300
@@ -27,9 +28,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { data: userData } = await supabase
-      .from('users').select('role').eq('id', user.id).single()
-    if (userData?.role !== 'admin') {
-      return NextResponse.json({ error: 'Admin tu anaweza run agent' }, { status: 403 })
+      .from('users').select('role, staff_active').eq('id', user.id).single()
+    const role = userData?.role ?? ''
+    if (role !== 'admin') {
+      if (role !== 'staff') {
+        return NextResponse.json({ error: 'Admin tu anaweza run agent' }, { status: 403 })
+      }
+      if (userData?.staff_active === false) {
+        return NextResponse.json({ error: 'Akaunti ya staff imezimwa' }, { status: 403 })
+      }
+      const allowed = await hasPermission(user.id, 'lead_scraper')
+      if (!allowed) {
+        return NextResponse.json({ error: 'Huna ruhusa ya kuendesha scraper' }, { status: 403 })
+      }
     }
 
     let body: { region?: string; sources?: string[] } = {}
@@ -126,6 +137,13 @@ export async function POST(req: NextRequest) {
 
     const failed  = runs.filter(r => r.status === 'FAILED')
     const started = runs.filter(r => r.status !== 'FAILED')
+
+    logStaffActivity({
+      staffId:      user.id,
+      actionType:   'scraper_run',
+      resourceType: 'agent_leads',
+      description:  `Aliendesha scraper: ${region} | sources: ${sources.join(', ')} | ${started.length}/${runs.length} zilifaulu`,
+    }).catch(() => {})
 
     return NextResponse.json({
       success: true,

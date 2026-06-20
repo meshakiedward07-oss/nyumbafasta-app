@@ -51,7 +51,7 @@ export async function requireStaffAuth(): Promise<AuthResult> {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('role')
+    .select('role, staff_active')
     .eq('id', user.id)
     .single()
 
@@ -59,6 +59,13 @@ export async function requireStaffAuth(): Promise<AuthResult> {
     return {
       ok: false,
       response: NextResponse.json({ error: 'Ruhusa ya staff inahitajika' }, { status: 403 }),
+    }
+  }
+
+  if (profile?.role === 'staff' && profile?.staff_active === false) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Akaunti ya staff imezimwa' }, { status: 403 }),
     }
   }
 

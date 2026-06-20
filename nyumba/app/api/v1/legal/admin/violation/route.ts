@@ -16,11 +16,12 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Admin or staff with legal_violations permission
-    const { data: me } = await supabase.from('users').select('role').eq('id', user.id).single()
+    const { data: me } = await supabase.from('users').select('role, staff_active').eq('id', user.id).single()
     if (!['admin', 'staff'].includes(me?.role ?? '')) {
       return NextResponse.json({ error: 'Ruhusa imekataliwa' }, { status: 403 })
     }
     if (me?.role === 'staff') {
+      if (me?.staff_active === false) return NextResponse.json({ error: 'Akaunti ya staff imezimwa' }, { status: 403 })
       const allowed = await hasPermission(user.id, 'legal_violations')
       if (!allowed) return NextResponse.json({ error: 'Huna ruhusa ya legal violations' }, { status: 403 })
     }

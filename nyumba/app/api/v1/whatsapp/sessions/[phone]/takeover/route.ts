@@ -7,10 +7,10 @@ async function getAuthorisedUser() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-  const { data } = await supabase.from('users').select('role, full_name').eq('id', user.id).single()
+  const { data } = await supabase.from('users').select('role, staff_active, full_name').eq('id', user.id).single()
   if (!['admin', 'staff'].includes(data?.role ?? '')) return null
-  // Staff need whatsapp_support permission
   if (data?.role === 'staff') {
+    if (data?.staff_active === false) return null
     const allowed = await hasPermission(user.id, 'whatsapp_support')
     if (!allowed) return null
   }

@@ -81,6 +81,16 @@ export default function StaffLeadsClient({
       direction: 'outbound',
       content: `Hatua imebadilishwa hadi: ${STAGES.find(s => s.id === stage)?.label ?? stage}`,
     })
+    fetch('/api/v1/staff/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        actionType:   'lead_stage_updated',
+        resourceType: 'agent_leads',
+        resourceId:   leadId,
+        description:  `Hatua → ${STAGES.find(s => s.id === stage)?.label ?? stage}`,
+      }),
+    }).catch(() => {})
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, pipeline_stage: stage } : l))
     if (stage === 'registered') {
       // Update stats

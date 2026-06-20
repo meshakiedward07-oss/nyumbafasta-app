@@ -32,13 +32,21 @@ function LoginForm() {
   async function redirectByRole(userId: string) {
     const { data } = await supabase
       .from('users')
-      .select('role, is_active, must_change_password')
+      .select('role, is_active, staff_active, must_change_password')
       .eq('id', userId)
       .single()
 
     if (data?.is_active === false) {
       await supabase.auth.signOut()
       setError('Akaunti yako imesimamishwa. Wasiliana na support: wa.me/255615261147')
+      setLoading(false)
+      return
+    }
+
+    // Staff deactivated by admin
+    if (data?.role === 'staff' && data?.staff_active === false) {
+      await supabase.auth.signOut()
+      setError('Akaunti yako ya staff imezimwa. Wasiliana na admin wako.')
       setLoading(false)
       return
     }

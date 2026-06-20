@@ -91,12 +91,21 @@ export async function middleware(request: NextRequest) {
   if (user && (isProtected || needsRoleCheck)) {
     const { data: userData } = await supabase
       .from('users')
-      .select('role, is_active, account_status, agreement_accepted')
+      .select('role, is_active, staff_active, account_status, agreement_accepted')
       .eq('id', user.id)
       .single()
 
     // Akaunti iliyozimwa kabisa (is_active = false)
     if (userData?.is_active === false) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.delete('redirect')
+      url.searchParams.set('suspended', '1')
+      return NextResponse.redirect(url)
+    }
+
+    // Staff iliyozimwa na admin (staff_active = false)
+    if (userData?.role === 'staff' && userData?.staff_active === false) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       url.searchParams.delete('redirect')
