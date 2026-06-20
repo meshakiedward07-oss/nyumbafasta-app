@@ -32,7 +32,7 @@ function LoginForm() {
   async function redirectByRole(userId: string) {
     const { data } = await supabase
       .from('users')
-      .select('role, is_active')
+      .select('role, is_active, must_change_password')
       .eq('id', userId)
       .single()
 
@@ -43,9 +43,16 @@ function LoginForm() {
       return
     }
 
+    // Staff forced to change password on first login
+    if (data?.role === 'staff' && data?.must_change_password) {
+      window.location.href = '/account/change-password'
+      return
+    }
+
     const dest = redirectTo
       ? redirectTo
       : data?.role === 'admin'  ? '/admin'
+      : data?.role === 'staff'  ? '/admin/staff-leads'
       : data?.role === 'dalali' ? '/dashboard'
       : '/'
 

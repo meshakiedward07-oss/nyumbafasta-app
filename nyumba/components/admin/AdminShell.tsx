@@ -80,6 +80,8 @@ const NAV_SECTIONS = [
   {
     title: 'Usimamizi',
     items: [
+      { href: '/admin/staff',         label: 'Wafanyakazi',  emoji: '👨‍💼', exact: false },
+      { href: '/admin/staff-leads',   label: 'Staff Leads',  emoji: '🎯', exact: false },
       { href: '/admin/users',         label: 'Watumiaji',    emoji: '👥', exact: false },
       { href: '/admin/listings',      label: 'Listings',     emoji: '🏠', exact: false },
       { href: '/admin/verifications', label: 'Verification', emoji: '✅', exact: false },
