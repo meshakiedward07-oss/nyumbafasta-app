@@ -114,7 +114,7 @@ export default function AssignClient() {
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
               <p className="text-amber-800 font-medium text-sm">⚠️ Hakuna wafanyakazi (role=staff)</p>
               <p className="text-amber-600 text-xs mt-1">
-                Unda akaunti za wafanyakazi wako kwanza. Nenda Admin → Users, badilisha role kuwa "staff".
+                Unda akaunti za wafanyakazi wako kwanza. Nenda Admin → Users, badilisha role kuwa &quot;staff&quot;.
               </p>
             </div>
           ) : (

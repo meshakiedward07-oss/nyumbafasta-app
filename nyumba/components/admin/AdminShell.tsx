@@ -289,9 +289,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.from('users').select('role').then(({ data }) => {
-      // getCurrentUser first
-    })
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
       supabase.from('users').select('role').eq('id', user.id).single()

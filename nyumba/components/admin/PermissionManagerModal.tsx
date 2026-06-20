@@ -27,7 +27,7 @@ export default function PermissionManagerModal({ staff, onClose, onSaved }: Prop
   function toggle(key: PermissionKey) {
     setGranted(prev => {
       const next = new Set(prev)
-      next.has(key) ? next.delete(key) : next.add(key)
+      if (next.has(key)) { next.delete(key) } else { next.add(key) }
       return next
     })
   }
