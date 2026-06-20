@@ -21,6 +21,34 @@ export async function notifyNewLead(
   return sendTextMessage(to, message)
 }
 
+// Notify internal staff of a new dalali prospect assigned to them
+export async function notifyStaffNewProspect(
+  staffPhone: string,
+  prospectName: string,
+  region: string | null,
+  source: string,
+): Promise<boolean> {
+  const to = formatPhoneNumber(staffPhone)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const sourceLabel: Record<string, string> = {
+    google_maps: 'Google Maps', google_business: 'Google Business',
+    facebook_pages: 'Facebook Pages', facebook_groups: 'Facebook Groups',
+    instagram: 'Instagram', tiktok: 'TikTok', manual: 'Manual',
+    whatsapp_amina: 'WhatsApp (Amina)', instagram_amina: 'Instagram DM',
+    facebook_amina: 'Facebook DM',
+  }
+  const message =
+    `🆕 *Dalali Mtarajiwa Mpya* — NyumbaFasta\n\n` +
+    `Umepewa prospect mpya wa kuwasiliana naye:\n\n` +
+    `👤 Jina: *${prospectName}*\n` +
+    `📍 Mkoa: ${region ?? 'Haijulikani'}\n` +
+    `📡 Chanzo: ${sourceLabel[source] ?? source}\n\n` +
+    `Kazi yako: Wasiliana naye, mkaribishe kujiunga NyumbaFasta kama dalali.\n` +
+    `Mweleze faida (CRM, leads, branding) na jinsi ya kusajili.\n\n` +
+    `🔗 Angalia CRM: ${appUrl}/admin/crm`
+  return sendTextMessage(to, message)
+}
+
 export async function notifySubscriptionExpiring(
   dalaliPhone: string,
   daysLeft: number,

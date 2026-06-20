@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
-import { notifyNewLead } from '@/lib/whatsapp/notifications'
+import { notifyStaffNewProspect } from '@/lib/whatsapp/notifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,16 +10,16 @@ export async function POST(req: NextRequest) {
   if (!auth.ok) return auth.response
 
   try {
-    const { leadId, dalaliId } = await req.json() as { leadId: string; dalaliId: string }
+    const { leadId, staffId } = await req.json() as { leadId: string; staffId: string }
 
-    if (!leadId || !dalaliId) {
-      return NextResponse.json({ error: 'leadId na dalaliId vinahitajika' }, { status: 400 })
+    if (!leadId || !staffId) {
+      return NextResponse.json({ error: 'leadId na staffId vinahitajika' }, { status: 400 })
     }
 
     // Fetch lead
     const { data: lead, error: leadErr } = await supabaseAdmin
       .from('agent_leads')
-      .select('id, business_name, phone, region, pipeline_stage, assigned_to')
+      .select('id, business_name, phone, region, source, pipeline_stage, assigned_to')
       .eq('id', leadId)
       .single()
 
@@ -27,24 +27,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Lead haikupatikana' }, { status: 404 })
     }
 
-    // Fetch dalali profile (need phone for WhatsApp notification)
-    const { data: dalali, error: dalaliErr } = await supabaseAdmin
+    // Fetch staff member — must be role='staff' or 'admin'
+    const { data: staff, error: staffErr } = await supabaseAdmin
       .from('users')
-      .select('id, full_name, phone, dalali_profiles(whatsapp_number)')
-      .eq('id', dalaliId)
+      .select('id, full_name, phone, role')
+      .eq('id', staffId)
+      .in('role', ['staff', 'admin'])
       .single()
 
-    if (dalaliErr || !dalali) {
-      return NextResponse.json({ error: 'Dalali hakupatikana' }, { status: 404 })
+    if (staffErr || !staff) {
+      return NextResponse.json(
+        { error: 'Mfanyakazi hakupatikana au si staff/admin' },
+        { status: 404 },
+      )
     }
 
     const now = new Date().toISOString()
 
-    // Update the lead
+    // Assign lead to staff member
     const { error: updateErr } = await supabaseAdmin
       .from('agent_leads')
       .update({
-        assigned_to: dalaliId,
+        assigned_to: staffId,
         assigned_at: now,
         pipeline_stage: 'contacted',
         last_contacted_at: now,
@@ -54,43 +58,41 @@ export async function POST(req: NextRequest) {
 
     if (updateErr) throw updateErr
 
-    // Log assignment in lead_communications
+    // Log assignment
     await supabaseAdmin.from('lead_communications').insert({
       lead_id: leadId,
       type: 'note',
       direction: 'internal',
-      content: `Lead imepewa ${dalali.full_name || 'dalali'} na admin`,
+      content: `Lead imepewa ${staff.full_name ?? 'mfanyakazi'} na admin`,
     })
 
     // In-app notification
     await supabaseAdmin.from('notifications').insert({
-      user_id: dalaliId,
+      user_id: staffId,
       type: 'lead_assigned',
-      title: '🎯 Lead Mpya Umepewa!',
-      body: `Lead mpya: ${lead.business_name || 'Lead'}${lead.region ? ` (${lead.region})` : ''} — angalia CRM yako`,
+      title: '🎯 Prospect Mpya wa Dalali!',
+      body: `Prospect mpya: ${lead.business_name ?? 'Dalali Mtarajiwa'}${lead.region ? ` (${lead.region})` : ''} — wasiliana nao haraka`,
       is_read: false,
     })
 
-    // WhatsApp notification — use dalali's whatsapp_number or phone
-    const dalaliProfile = (dalali.dalali_profiles as { whatsapp_number?: string } | null)
-    const waPhone = dalaliProfile?.whatsapp_number || (dalali as { phone?: string }).phone
-
+    // WhatsApp notification to staff
+    const staffPhone = (staff as { phone?: string }).phone
     let whatsappSent = false
-    if (waPhone) {
-      const leadDetails =
-        `${lead.business_name || 'Lead mpya'}` +
-        `${lead.region ? ` — Mkoa: ${lead.region}` : ''}` +
-        `${lead.phone ? `\n📞 Simu: ${lead.phone}` : ''}`
-
-      whatsappSent = await notifyNewLead(waPhone, lead.business_name || 'Lead', leadDetails)
+    if (staffPhone) {
+      whatsappSent = await notifyStaffNewProspect(
+        staffPhone,
+        lead.business_name ?? 'Dalali Mtarajiwa',
+        lead.region ?? null,
+        lead.source ?? 'manual',
+      )
     }
 
     return NextResponse.json({
       success: true,
-      assigned_to: dalaliId,
-      dalali_name: dalali.full_name,
+      assigned_to: staffId,
+      staff_name: staff.full_name,
       whatsapp_sent: whatsappSent,
-      whatsapp_phone: waPhone ? waPhone.slice(0, 7) + '****' : null,
+      whatsapp_phone: staffPhone ? staffPhone.slice(0, 7) + '****' : null,
     })
 
   } catch (err: unknown) {

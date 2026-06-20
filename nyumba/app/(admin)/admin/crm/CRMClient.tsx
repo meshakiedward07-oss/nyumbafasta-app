@@ -3,14 +3,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import LeadDetailModal from './LeadDetailModal'
 
+// Onboarding pipeline for prospective dalali (agents to recruit)
 const PIPELINE_STAGES = [
-  { id: 'new',               label: 'Mpya',       color: 'bg-blue-500',   emoji: '🆕' },
-  { id: 'contacted',         label: 'Amepigiwa',  color: 'bg-yellow-500', emoji: '📞' },
-  { id: 'interested',        label: 'Anapenda',   color: 'bg-orange-500', emoji: '❤️' },
-  { id: 'viewing_scheduled', label: 'Viewing',    color: 'bg-purple-500', emoji: '🏠' },
-  { id: 'negotiation',       label: 'Mazungumzo', color: 'bg-indigo-500', emoji: '🤝' },
-  { id: 'closed',            label: 'Imefungwa',  color: 'bg-green-500',  emoji: '✅' },
-  { id: 'lost',              label: 'Imepotea',   color: 'bg-red-500',    emoji: '❌' },
+  { id: 'new',        label: 'Mpya',       color: 'bg-blue-500',   emoji: '🆕' },
+  { id: 'contacted',  label: 'Amepigiwa',  color: 'bg-yellow-500', emoji: '📞' },
+  { id: 'interested', label: 'Anapenda',   color: 'bg-orange-500', emoji: '❤️' },
+  { id: 'documents',  label: 'Nyaraka',    color: 'bg-purple-500', emoji: '📄' },
+  { id: 'registered', label: 'Amesajili',  color: 'bg-green-500',  emoji: '✅' },
+  { id: 'lost',       label: 'Amekataa',   color: 'bg-red-500',    emoji: '❌' },
 ]
 
 type Lead = {
@@ -78,7 +78,7 @@ export default function CRMClient() {
 
   async function moveLeadToStage(leadId: string, stage: string) {
     const now = new Date().toISOString()
-    const contactStages = ['contacted', 'interested', 'viewing_scheduled', 'negotiation', 'closed']
+    const contactStages = ['contacted', 'interested', 'documents', 'registered']
     const updates: Record<string, string> = { pipeline_stage: stage }
     if (contactStages.includes(stage)) updates.last_contacted_at = now
 
@@ -405,7 +405,7 @@ export default function CRMClient() {
                 <div className="flex gap-2 items-center">
                   {lead.whatsapp && (
                     <a
-                      href={`https://wa.me/${lead.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Habari! Ninawasiliana nawe kuhusu nyumba.')}`}
+                      href={`https://wa.me/${lead.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Habari! Ninawasiliana nawe kutoka NyumbaFasta Tanzania. Tungependa kukukaribisha kujiunga nasi kama dalali wa mali. Je, una dakika kuzungumza?')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()}

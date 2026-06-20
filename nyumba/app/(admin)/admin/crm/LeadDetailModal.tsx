@@ -303,10 +303,10 @@ export default function LeadDetailModal({
               </a>
             )}
             <button
-              onClick={() => addCommunication('viewing')}
+              onClick={() => addCommunication('meeting')}
               className="flex-shrink-0 bg-purple-500 text-white text-xs px-3 py-2 rounded-xl font-medium"
             >
-              🏠 Panga Viewing
+              🤝 Panga Mazungumzo
             </button>
           </div>
 
@@ -357,6 +357,9 @@ export default function LeadDetailModal({
           {tab === 'info' && (
             <div className="space-y-3">
               <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Dalali Mtarajiwa
+                </p>
                 {[
                   { label: '📞 Simu', value: lead.phone },
                   { label: '💬 WhatsApp', value: lead.whatsapp },
@@ -370,28 +373,6 @@ export default function LeadDetailModal({
                     <span className="text-sm font-medium">{item.value}</span>
                   </div>
                 ))}
-              </div>
-
-              <div className="bg-blue-50 rounded-xl p-4">
-                <p className="font-semibold text-sm text-blue-800 mb-3">🏠 Mahitaji ya Mteja</p>
-                <div className="space-y-2">
-                  {[
-                    { label: 'Eneo', value: lead.preferred_location || 'Haijawekwa' },
-                    {
-                      label: 'Bajeti',
-                      value: lead.budget_min && lead.budget_max
-                        ? `Tsh ${lead.budget_min.toLocaleString()} - ${lead.budget_max.toLocaleString()}`
-                        : 'Haijawekwa',
-                    },
-                    { label: 'Aina', value: lead.property_type || 'Haijawekwa' },
-                    { label: 'Vyumba', value: lead.bedrooms?.toString() || 'Haijawekwa' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex justify-between">
-                      <span className="text-sm text-blue-600">{item.label}</span>
-                      <span className="text-sm font-medium">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               {lead.ai_notes && (
@@ -625,9 +606,9 @@ export default function LeadDetailModal({
                       onChange={e => setCallForm(f => ({ ...f, next_action: e.target.value }))}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
                       <option value="followup">📞 Follow-up</option>
-                      <option value="send_photos">📸 Tuma Picha</option>
-                      <option value="schedule_viewing">🏠 Panga Viewing</option>
-                      <option value="close_deal">✅ Funga Deal</option>
+                      <option value="send_info">📋 Tuma Maelezo ya NyumbaFasta</option>
+                      <option value="schedule_meeting">🤝 Panga Mazungumzo</option>
+                      <option value="registered">✅ Amejiunga NyumbaFasta</option>
                       <option value="nurture">💬 Endelea Kuzungumza</option>
                     </select>
                   </div>
