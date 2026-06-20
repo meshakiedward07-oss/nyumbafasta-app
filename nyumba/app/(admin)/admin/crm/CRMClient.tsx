@@ -77,10 +77,24 @@ export default function CRMClient() {
   }, [fetchLeads, fetchStats])
 
   async function moveLeadToStage(leadId: string, stage: string) {
+    const now = new Date().toISOString()
+    const contactStages = ['contacted', 'interested', 'viewing_scheduled', 'negotiation', 'closed']
+    const updates: Record<string, string> = { pipeline_stage: stage }
+    if (contactStages.includes(stage)) updates.last_contacted_at = now
+
     await supabase
       .from('agent_leads')
-      .update({ pipeline_stage: stage })
+      .update(updates)
       .eq('id', leadId)
+
+    // Log stage change as internal communication
+    await supabase.from('lead_communications').insert({
+      lead_id: leadId,
+      type: 'note',
+      direction: 'internal',
+      content: `Stage imebadilishwa hadi: ${stage}`,
+    })
+
     fetchLeads()
   }
 

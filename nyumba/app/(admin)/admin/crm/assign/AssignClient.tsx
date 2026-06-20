@@ -13,7 +13,7 @@ type Lead = {
 type Dalali = {
   id: string
   full_name?: string
-  dalali_profiles?: { rating_avg?: number } | null
+  dalali_profiles?: { rating_avg?: number; is_premium_verified?: boolean } | null
 }
 
 export default function AssignClient() {
@@ -46,19 +46,15 @@ export default function AssignClient() {
   async function assignLead(leadId: string, dalaliId: string) {
     setAssigning(leadId)
     try {
-      await supabase.from('agent_leads').update({
-        assigned_to: dalaliId,
-        assigned_at: new Date().toISOString(),
-        pipeline_stage: 'contacted',
-      }).eq('id', leadId)
-
-      await supabase.from('notifications').insert({
-        user_id: dalaliId,
-        type: 'lead_assigned',
-        title: '🎯 Lead Mpya Umepewa!',
-        body: 'Admin amekupa lead mpya — angalia CRM yako',
-        is_read: false,
+      const res = await fetch('/api/v1/agent/leads/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId, dalaliId }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        console.error('Assign failed:', err.error)
+      }
       fetchData()
     } finally {
       setAssigning(null)
@@ -68,8 +64,17 @@ export default function AssignClient() {
   async function autoAssign() {
     if (unassignedLeads.length === 0 || madalali.length === 0) return
     setLoading(true)
+    // Sort madalali by premium first, then by rating desc
+    const sorted = [...madalali].sort((a, b) => {
+      const aP = (a.dalali_profiles as { is_premium_verified?: boolean } | null)?.is_premium_verified ? 1 : 0
+      const bP = (b.dalali_profiles as { is_premium_verified?: boolean } | null)?.is_premium_verified ? 1 : 0
+      if (bP !== aP) return bP - aP
+      const aR = (a.dalali_profiles as { rating_avg?: number } | null)?.rating_avg ?? 0
+      const bR = (b.dalali_profiles as { rating_avg?: number } | null)?.rating_avg ?? 0
+      return bR - aR
+    })
     for (let i = 0; i < unassignedLeads.length; i++) {
-      const dalali = madalali[i % madalali.length]
+      const dalali = sorted[i % sorted.length]
       await assignLead(unassignedLeads[i].id, dalali.id)
       await new Promise(r => setTimeout(r, 150))
     }

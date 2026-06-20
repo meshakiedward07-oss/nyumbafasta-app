@@ -78,6 +78,22 @@ export default function DalaliCRMClient() {
     fetchMyTasks()
   }, [fetchMyLeads, fetchMyTasks])
 
+  async function updateStage(leadId: string, stage: string) {
+    const now = new Date().toISOString()
+    const contactStages = ['contacted', 'interested', 'viewing_scheduled', 'negotiation', 'closed']
+    const updates: Record<string, string> = { pipeline_stage: stage }
+    if (contactStages.includes(stage)) updates.last_contacted_at = now
+
+    await supabase.from('agent_leads').update(updates).eq('id', leadId)
+    await supabase.from('lead_communications').insert({
+      lead_id: leadId,
+      type: 'note',
+      direction: 'outbound',
+      content: `Stage imebadilishwa hadi: ${stage}`,
+    })
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, pipeline_stage: stage } : l))
+  }
+
   function getScoreEmoji(score: number) {
     if (score >= 80) return '🔥'
     if (score >= 50) return '🌡️'
@@ -189,7 +205,7 @@ export default function DalaliCRMClient() {
                   {stage.emoji} {stage.label}
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-2">
                 {(lead.whatsapp || lead.phone) && (
                   <a
                     href={`https://wa.me/${(lead.whatsapp || lead.phone)?.replace(/[^0-9]/g, '')}`}
@@ -209,6 +225,16 @@ export default function DalaliCRMClient() {
                   </a>
                 )}
               </div>
+              {/* Stage update */}
+              <select
+                value={lead.pipeline_stage || 'new'}
+                onChange={e => updateStage(lead.id, e.target.value)}
+                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-700"
+              >
+                {STAGES.map(s => (
+                  <option key={s.id} value={s.id}>{s.emoji} {s.label}</option>
+                ))}
+              </select>
             </div>
           )
         })}
