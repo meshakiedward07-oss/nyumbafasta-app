@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendTextMessage, formatPhoneNumber } from '@/lib/whatsapp/client'
 import { Resend } from 'resend'
+import { hasPermission, logStaffActivity } from '@/lib/staff/checkPermission'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP_NUMBER ?? '255615261147'
@@ -14,10 +15,14 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
 
-    // Admin only
+    // Admin or staff with legal_violations permission
     const { data: me } = await supabase.from('users').select('role').eq('id', user.id).single()
-    if (me?.role !== 'admin') {
+    if (!['admin', 'staff'].includes(me?.role ?? '')) {
       return NextResponse.json({ error: 'Ruhusa imekataliwa' }, { status: 403 })
+    }
+    if (me?.role === 'staff') {
+      const allowed = await hasPermission(user.id, 'legal_violations')
+      if (!allowed) return NextResponse.json({ error: 'Huna ruhusa ya legal violations' }, { status: 403 })
     }
 
     const { violation_id, status, action_taken, admin_notes, reported_user_id } = await req.json()
@@ -107,6 +112,15 @@ export async function PATCH(req: NextRequest) {
         }).catch(() => {})
       }
     }
+
+    // Log staff activity
+    logStaffActivity({
+      staffId:      user.id,
+      actionType:   'violation_resolved',
+      resourceType: 'agreement_violations',
+      resourceId:   violation_id,
+      description:  `Status → ${status}${action_taken ? `, hatua: ${action_taken}` : ''}`,
+    }).catch(() => {})
 
     return NextResponse.json({ success: true })
   } catch {

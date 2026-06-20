@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { sendTextMessage } from '@/lib/whatsapp/client'
+import { STAFF_ROLE_TEMPLATES } from '@/lib/staff/permissions'
+import type { RoleTemplate } from '@/lib/staff/permissions'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 // ─── GET — list all staff with performance stats ──────────────────────────────
 export async function GET() {
@@ -44,14 +47,14 @@ export async function POST(req: NextRequest) {
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
-  let body: { name?: string; phone?: string; email?: string; staffTitle?: string; maxLeadsCapacity?: number }
+  let body: { name?: string; phone?: string; email?: string; staffTitle?: string; maxLeadsCapacity?: number; roleTemplate?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { name, phone, email, staffTitle, maxLeadsCapacity } = body
+  const { name, phone, email, staffTitle, maxLeadsCapacity, roleTemplate } = body
 
   if (!name || !phone || !email) {
     return NextResponse.json(
@@ -124,6 +127,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Imeshindwa kuunda profile' }, { status: 500 })
   }
 
+  // Apply initial permissions from role template (non-blocking)
+  if (roleTemplate) {
+    applyRoleTemplate(userId, roleTemplate, admin).catch(err =>
+      console.error('[Staff] Role template apply failed:', err)
+    )
+  }
+
   // Send credentials via WhatsApp (non-blocking — never fails the request)
   sendStaffCredentials(phone, name, email, tempPassword).catch(err =>
     console.error('[Staff] WhatsApp credentials send failed:', err)
@@ -143,6 +153,22 @@ function generateTempPassword(): string {
   let pw = ''
   for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)]
   return pw
+}
+
+async function applyRoleTemplate(
+  userId: string,
+  templateKey: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: SupabaseClient<any>,
+): Promise<void> {
+  const template = STAFF_ROLE_TEMPLATES[templateKey as RoleTemplate]
+  if (!template) return
+
+  await admin.from('staff_permissions').delete().eq('staff_id', userId)
+  await admin.from('staff_permissions').insert(
+    template.permissions.map(key => ({ staff_id: userId, permission_key: key }))
+  )
+  await admin.from('users').update({ role_template: templateKey }).eq('id', userId)
 }
 
 async function sendStaffCredentials(

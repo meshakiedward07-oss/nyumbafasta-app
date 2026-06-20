@@ -3,20 +3,25 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { getSpamStats, processCommentForSpam } from '@/lib/social/spamDetector'
 import { hideIGComment } from '@/lib/social/metaClient'
+import { hasPermission, logStaffActivity } from '@/lib/staff/checkPermission'
 
-async function getAdminUser() {
+async function getAuthorisedUser() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
+  if (!['admin', 'staff'].includes(data?.role ?? '')) return null
+  if (data?.role === 'staff') {
+    const allowed = await hasPermission(user.id, 'spam_moderation')
+    if (!allowed) return null
+  }
+  return { ...user, role: data?.role as string }
 }
 
 // GET /api/v1/social/spam — spam stats + recent
 export async function GET() {
-  const admin = await getAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const actor = await getAuthorisedUser()
+  if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const stats = await getSpamStats()
   return NextResponse.json(stats)
@@ -24,8 +29,8 @@ export async function GET() {
 
 // POST /api/v1/social/spam — manually mark a comment as spam and delete it
 export async function POST(req: NextRequest) {
-  const admin = await getAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const actor = await getAuthorisedUser()
+  if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { commentId, platform, commentText, commenterId, postId } = await req.json() as {
     commentId:   string
@@ -48,14 +53,21 @@ export async function POST(req: NextRequest) {
     commentText:   commentText ?? '',
   })
 
+  logStaffActivity({
+    staffId:      actor.id,
+    actionType:   'comment_moderated',
+    resourceType: 'spam_comments',
+    resourceId:   commentId,
+    description:  `Alithibitisha spam kwenye ${platform}: "${commentText?.slice(0, 60)}"`,
+  }).catch(() => {})
+
   return NextResponse.json({ ok: true, ...result })
 }
 
-// PATCH /api/v1/social/spam/[id] — restore a falsely flagged comment (unhide)
-// DELETE logic is handled here with query param restore=true
+// PATCH /api/v1/social/spam — restore a falsely flagged comment (unhide)
 export async function PATCH(req: NextRequest) {
-  const admin = await getAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const actor = await getAuthorisedUser()
+  if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { spamId, commentId, platform } = await req.json() as {
     spamId:    string
@@ -71,6 +83,14 @@ export async function PATCH(req: NextRequest) {
     .from('spam_comments')
     .update({ action_taken: 'ignored' })
     .eq('id', spamId)
+
+  logStaffActivity({
+    staffId:      actor.id,
+    actionType:   'comment_moderated',
+    resourceType: 'spam_comments',
+    resourceId:   spamId,
+    description:  `Alirudisha comment iliyoflagiwa kwa makosa (${platform})`,
+  }).catch(() => {})
 
   return NextResponse.json({ ok: true, restored: true })
 }

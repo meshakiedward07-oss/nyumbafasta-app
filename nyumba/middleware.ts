@@ -80,7 +80,8 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
     const url = request.nextUrl.clone()
-    url.pathname = me?.role === 'admin' ? '/admin'
+    url.pathname = me?.role === 'admin'  ? '/admin'
+      : me?.role === 'staff'  ? '/admin/staff-leads'
       : me?.role === 'dalali' ? '/dashboard'
       : '/'
     return NextResponse.redirect(url)
@@ -126,14 +127,14 @@ export async function middleware(request: NextRequest) {
 
     const role = userData?.role ?? 'client'
 
-    // /admin/* → admin peke yake
-    if (ADMIN_ONLY_ROUTES.some(r => path.startsWith(r)) && role !== 'admin') {
+    // /admin/* → admin au staff tu (staff wanaingia, lakini pages zinazidi kuangalia permissions)
+    if (ADMIN_ONLY_ROUTES.some(r => path.startsWith(r)) && role !== 'admin' && role !== 'staff') {
       const url = request.nextUrl.clone()
       url.pathname = '/'
       return NextResponse.redirect(url)
     }
 
-    // /dashboard/* → dalali na admin tu
+    // /dashboard/* → dalali na admin tu (staff wanaenda /admin/*, si /dashboard/*)
     if (DALALI_ROUTES.some(r => path.startsWith(r)) && role !== 'admin' && role !== 'dalali') {
       const url = request.nextUrl.clone()
       url.pathname = '/'
