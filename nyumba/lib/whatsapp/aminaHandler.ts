@@ -8,6 +8,8 @@ import {
   getAminaInstructions,
   detectEscalation,
 } from '@/lib/whatsapp/sessionManager'
+import { detectDalaliIntent } from '@/lib/leads/dalaliDetection'
+import { captureDalaliLead } from '@/lib/leads/captureFromWhatsApp'
 
 // ── Deduplication (uses existing whatsapp_conversations for dedup key) ────────
 
@@ -196,6 +198,21 @@ export async function handleWhatsAppMessage(
       // 6. Fetch any admin instructions for this conversation
       const adminInstructions = await getAminaInstructions(from)
       console.log(`[Amina] instructions fetched (${Date.now() - t0}ms), has=${!!adminInstructions}`)
+
+      // 6b. Dalali lead detection — runs before Amina replies, capture is fire-and-forget
+      detectDalaliIntent(messageText, []).then(signal => {
+        if (signal.isDalaliProspect && signal.confidence >= 60) {
+          console.log(`[Amina] Dalali signal detected: ${signal.signal} (${signal.confidence}%)`)
+          captureDalaliLead({
+            phoneNumber: from,
+            name: profileName,
+            conversationSummary: messageText,
+            signal: signal.signal,
+            confidence: signal.confidence,
+            source: 'whatsapp_amina',
+          }).catch(err => console.error('[Amina] Lead capture failed:', err))
+        }
+      }).catch(() => { /* non-fatal */ })
 
       // 7. Route through Amina's full AI flow
       console.log(`[Amina] calling handleIncomingMessage (${Date.now() - t0}ms)`)

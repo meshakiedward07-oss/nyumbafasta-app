@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { handleIncomingMessage } from '@/lib/chat/aiAgent'
 import { replyToIGComment, replyToFBComment, sendIGDM, sendFBMessage } from './metaClient'
+import { detectDalaliIntent } from '@/lib/leads/dalaliDetection'
+import { captureDalaliLead } from '@/lib/leads/captureFromWhatsApp'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -181,6 +183,21 @@ export async function handleSocialDM(
     reply_sent:  false,
   }).select('id').single()
   const dmId = inserted?.id as string | undefined
+
+  // Dalali lead detection — fire-and-forget, does not affect reply
+  detectDalaliIntent(data.messageText, []).then(signal => {
+    if (signal.isDalaliProspect && signal.confidence >= 60) {
+      console.log(`[Social] Dalali signal on ${platform}: ${signal.signal} (${signal.confidence}%)`)
+      captureDalaliLead({
+        socialId: data.senderId,
+        name: data.senderName,
+        conversationSummary: data.messageText,
+        signal: `${platform}: ${signal.signal}`,
+        confidence: signal.confidence,
+        source: platform === 'instagram' ? 'instagram_amina' : 'facebook_amina',
+      }).catch(err => console.error('[Social] Lead capture failed:', err))
+    }
+  }).catch(() => { /* non-fatal */ })
 
   // Route through Amina
   let replyText: string

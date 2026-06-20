@@ -8,6 +8,9 @@ export type LeadSource =
   | 'instagram'
   | 'tiktok'
   | 'manual'
+  | 'whatsapp_amina'
+  | 'instagram_amina'
+  | 'facebook_amina'
 
 export type LeadStatus =
   | 'new'
