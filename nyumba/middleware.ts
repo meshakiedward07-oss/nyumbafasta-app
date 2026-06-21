@@ -91,7 +91,7 @@ export async function middleware(request: NextRequest) {
   if (user && (isProtected || needsRoleCheck)) {
     const { data: userData } = await supabase
       .from('users')
-      .select('role, is_active, staff_active, account_status, agreement_accepted')
+      .select('role, is_active, staff_active, must_change_password, account_status, agreement_accepted')
       .eq('id', user.id)
       .single()
 
@@ -110,6 +110,18 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/login'
       url.searchParams.delete('redirect')
       url.searchParams.set('suspended', '1')
+      return NextResponse.redirect(url)
+    }
+
+    // Staff yenye must_change_password — lazima ibadilishe password kwanza
+    if (
+      userData?.role === 'staff' &&
+      userData?.must_change_password &&
+      !path.startsWith('/account/change-password') &&
+      !path.startsWith('/api/')
+    ) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/account/change-password'
       return NextResponse.redirect(url)
     }
 
