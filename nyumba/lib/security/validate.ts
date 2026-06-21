@@ -30,6 +30,10 @@ export interface ListingInput {
   shop_size_sqm: number | null
   floor_level: number | null
   commercial_use: string | null
+  // Occupancy/capacity
+  listing_unit_type: 'single' | 'multi'
+  total_capacity: number
+  auto_deactivate_on_full: boolean
 }
 
 export function validateListing(body: unknown): ValidationResult<ListingInput> {
@@ -115,6 +119,22 @@ export function validateListing(body: unknown): ValidationResult<ListingInput> {
   const latitude = typeof body.latitude === 'number' ? body.latitude : null
   const longitude = typeof body.longitude === 'number' ? body.longitude : null
 
+  // Unit type
+  const listing_unit_type = body.listing_unit_type === 'multi' ? 'multi' : 'single'
+
+  // Total capacity
+  let total_capacity = 1
+  if (listing_unit_type === 'multi' && body.total_capacity != null) {
+    const cap = Number(body.total_capacity)
+    if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
+      errors.push('Idadi ya vyumba si sahihi (1-500)')
+    } else {
+      total_capacity = cap
+    }
+  }
+
+  const auto_deactivate_on_full = body.auto_deactivate_on_full === false ? false : true
+
   // Shop fields — optional, validated loosely
   let shop_size_sqm: number | null = null
   if (body.shop_size_sqm != null) {
@@ -150,6 +170,9 @@ export function validateListing(body: unknown): ValidationResult<ListingInput> {
       shop_size_sqm,
       floor_level,
       commercial_use,
+      listing_unit_type,
+      total_capacity,
+      auto_deactivate_on_full,
     },
   }
 }

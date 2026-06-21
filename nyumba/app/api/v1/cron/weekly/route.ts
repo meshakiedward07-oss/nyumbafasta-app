@@ -1,6 +1,7 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { checkStaleListings } from '@/lib/listings/staleListingCheck'
 import {
   runGoogleMapsRunner,
   runGoogleBusinessRunner,
@@ -146,6 +147,14 @@ export async function GET(req: NextRequest) {
     results.push(`✅ Dalali inactive alerts: ${uniqueDalali.size}`)
   } catch (e) {
     errors.push(`❌ Dalali alerts: ${String(e)}`)
+  }
+
+  // ── Stale occupancy reminders ─────────────────────────
+  try {
+    const { checked } = await checkStaleListings()
+    results.push(`✅ Stale listing reminders: ${checked}`)
+  } catch (e) {
+    errors.push(`❌ Stale listings: ${String(e)}`)
   }
 
   return NextResponse.json({

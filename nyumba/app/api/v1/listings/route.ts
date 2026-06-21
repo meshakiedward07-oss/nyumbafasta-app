@@ -100,6 +100,10 @@ export async function POST(req: NextRequest) {
       lead_count: 0,
       latitude: data.latitude,
       longitude: data.longitude,
+      listing_unit_type: data.listing_unit_type,
+      total_capacity: data.total_capacity,
+      current_occupancy: 0,
+      auto_deactivate_on_full: data.auto_deactivate_on_full,
     }
     if (data.bedrooms !== null) insertPayload.bedrooms = data.bedrooms
     if (data.shop_size_sqm !== null) insertPayload.shop_size_sqm = data.shop_size_sqm

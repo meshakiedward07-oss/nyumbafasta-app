@@ -36,6 +36,9 @@ type FormData = {
   shop_size_sqm: string
   floor_level: string
   commercial_use: string
+  listing_unit_type: 'single' | 'multi'
+  total_capacity: string
+  auto_deactivate_on_full: boolean
 }
 
 // ── Constants ────────────────────────────────────────────
@@ -171,6 +174,9 @@ export default function AddListingWizard() {
     shop_size_sqm: '',
     floor_level: '',
     commercial_use: '',
+    listing_unit_type: 'single',
+    total_capacity: '',
+    auto_deactivate_on_full: true,
   })
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
@@ -255,6 +261,9 @@ export default function AddListingWizard() {
           shop_size_sqm: form.type === 'duka' && form.shop_size_sqm ? parseInt(form.shop_size_sqm) : null,
           floor_level: form.type === 'duka' && form.floor_level ? parseInt(form.floor_level) : null,
           commercial_use: form.type === 'duka' && form.commercial_use ? form.commercial_use : null,
+          listing_unit_type: form.listing_unit_type,
+          total_capacity: form.listing_unit_type === 'single' ? 1 : parseInt(form.total_capacity) || 1,
+          auto_deactivate_on_full: form.auto_deactivate_on_full,
         }),
       })
       const data = await res.json()
@@ -442,6 +451,79 @@ export default function AddListingWizard() {
                       className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                                  focus:outline-none focus:ring-2 focus:ring-primary-300"
                     />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Unit type & capacity */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                Aina ya Upatikanaji
+              </label>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  onClick={() => set('listing_unit_type', 'single')}
+                  className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                    form.listing_unit_type === 'single'
+                      ? 'border-primary-500 bg-primary-50'
+                      : 'border-gray-100 bg-gray-50'
+                  }`}
+                >
+                  <span className="text-xl">🏠</span>
+                  <span className={`text-sm font-medium ${form.listing_unit_type === 'single' ? 'text-primary-700' : 'text-gray-700'}`}>
+                    Moja tu
+                  </span>
+                  {form.listing_unit_type === 'single' && <span className="ml-auto text-primary-500 text-sm">✓</span>}
+                </button>
+                <button
+                  onClick={() => set('listing_unit_type', 'multi')}
+                  className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                    form.listing_unit_type === 'multi'
+                      ? 'border-primary-500 bg-primary-50'
+                      : 'border-gray-100 bg-gray-50'
+                  }`}
+                >
+                  <span className="text-xl">🏢</span>
+                  <span className={`text-sm font-medium ${form.listing_unit_type === 'multi' ? 'text-primary-700' : 'text-gray-700'}`}>
+                    Vyumba vingi
+                  </span>
+                  {form.listing_unit_type === 'multi' && <span className="ml-auto text-primary-500 text-sm">✓</span>}
+                </button>
+              </div>
+
+              {form.listing_unit_type === 'multi' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                      Idadi ya Vyumba / Nafasi
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      max="500"
+                      placeholder="e.g. 10"
+                      value={form.total_capacity}
+                      onChange={e => set('total_capacity', e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
+                                 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => set('auto_deactivate_on_full', !form.auto_deactivate_on_full)}
+                      className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
+                        form.auto_deactivate_on_full ? 'bg-primary-500' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span className={`block w-4 h-4 rounded-full bg-white shadow-sm transition-transform mx-1 ${
+                        form.auto_deactivate_on_full ? 'translate-x-4' : 'translate-x-0'
+                      }`} />
+                    </button>
+                    <span className="text-xs text-gray-600">
+                      Funga listing automatically inapojaa
+                    </span>
                   </div>
                 </div>
               )}

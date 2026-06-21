@@ -29,7 +29,10 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
   const [uploading, setUploading] = useState(false)
   const [error,    setError]    = useState('')
   const [imgErrors, setImgErrors] = useState<Set<number>>(new Set())
+  const [occupancy, setOccupancy] = useState(listing.current_occupancy ?? 0)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const isMulti = listing.listing_unit_type === 'multi'
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []).slice(0, 10 - images.length)
@@ -69,7 +72,19 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Imeshindwa kuhifadhi')
-      onSaved({ price_monthly: priceNum, images })
+
+      // Update occupancy if multi-unit and value changed
+      if (isMulti && occupancy !== (listing.current_occupancy ?? 0)) {
+        const occRes = await fetch(`/api/v1/listings/${listing.id}/occupancy`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ occupancy }),
+        })
+        const occData = await occRes.json()
+        if (!occRes.ok) throw new Error(occData.error ?? 'Imeshindwa kusasisha idadi')
+      }
+
+      onSaved({ price_monthly: priceNum, images, current_occupancy: occupancy })
       onClose()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
@@ -132,6 +147,38 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
               />
             </div>
           </div>
+
+          {/* Occupancy — multi-unit only */}
+          {isMulti && (
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                Wapangaji wa Sasa ({listing.total_capacity} nafasi)
+              </label>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setOccupancy(o => Math.max(0, o - 1))}
+                  className="w-10 h-10 rounded-full bg-gray-100 text-gray-700 font-bold text-xl flex items-center justify-center active:scale-95"
+                >
+                  −
+                </button>
+                <div className="flex-1 text-center">
+                  <span className="text-2xl font-bold text-gray-900">{occupancy}</span>
+                  <span className="text-gray-400 text-sm"> / {listing.total_capacity}</span>
+                </div>
+                <button
+                  onClick={() => setOccupancy(o => Math.min(listing.total_capacity, o + 1))}
+                  className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 font-bold text-xl flex items-center justify-center active:scale-95"
+                >
+                  +
+                </button>
+              </div>
+              {occupancy >= listing.total_capacity && (
+                <p className="text-xs text-amber-600 mt-1.5 text-center">
+                  Imejaa — listing itafungwa automatically
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Photos */}
           <div>

@@ -135,6 +135,22 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
             )}
           </div>
 
+          {/* Occupancy badges */}
+          {listing.listing_unit_type === 'multi' && listing.status === 'active' && (
+            <div className="mb-2">
+              <span className="bg-primary-50 text-primary-700 text-xs px-2 py-0.5 rounded-full border border-primary-100">
+                🏢 Nafasi {(listing.total_capacity ?? 1) - (listing.current_occupancy ?? 0)} zilizobaki
+              </span>
+            </div>
+          )}
+          {listing.listing_unit_type === 'multi' && listing.status === 'taken' && listing.auto_deactivated_at && (
+            <div className="mb-2">
+              <span className="bg-red-50 text-red-600 text-xs px-2 py-0.5 rounded-full border border-red-100">
+                Imejaa
+              </span>
+            </div>
+          )}
+
           {/* Dalali info */}
           <div className="flex items-center justify-between pt-2 border-t border-gray-50">
             <div className="flex items-center gap-1.5">

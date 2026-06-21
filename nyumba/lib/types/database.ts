@@ -42,6 +42,12 @@ export type Listing = {
   expiry_reminded_at: string | null
   approved_at: string | null
   created_at: string
+  listing_unit_type: 'single' | 'multi'
+  total_capacity: number
+  current_occupancy: number
+  auto_deactivate_on_full: boolean
+  occupancy_last_updated: string | null
+  auto_deactivated_at: string | null
 }
 
 export type User = {
