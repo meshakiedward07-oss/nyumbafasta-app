@@ -1,10 +1,11 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { TANZANIA_REGIONS, getDistricts } from '@/lib/data/tanzania-locations'
 import { createClient } from '@/lib/supabase/client'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
+import { VideoUpload } from '@/components/listings/VideoUpload'
 
 const LocationPickerMap = dynamic(
   () => import('@/components/dalali/LocationPickerMap'),
@@ -85,14 +86,11 @@ function StepBar({ current, total }: { current: number; total: number }) {
 // ── Main wizard ──────────────────────────────────────────
 export default function AddListingWizard() {
   const router = useRouter()
-  const videoInputRef = useRef<HTMLInputElement>(null)
 
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [photosUploading, setPhotosUploading] = useState(false)
-  const [uploadingVid, setUploadingVid]   = useState(false)
   const [error, setError] = useState('')
-  const [videoPreview, setVideoPreview]   = useState<string | null>(null)
 
   // ── Listing limit ─────────────────────────────────────────
   type LimitInfo = { limit: number; current: number; canAdd: boolean; remaining: number; plan: string | null }
@@ -188,54 +186,6 @@ export default function AddListingWizard() {
       ? form.amenities.filter(a => a !== value)
       : [...form.amenities, value]
     )
-  }
-
-  // ── Video upload ──────────────────────────────────────
-  async function handleVideoPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 50 * 1024 * 1024) {
-      setError('Video kubwa sana — max 50MB')
-      return
-    }
-    // Check duration client-side
-    const url = URL.createObjectURL(file)
-    const vid = document.createElement('video')
-    vid.preload = 'metadata'
-    vid.src = url
-    await new Promise(r => { vid.onloadedmetadata = r })
-    if (vid.duration > 30) {
-      URL.revokeObjectURL(url)
-      setError('Video lazima iwe sekunde 30 au chini')
-      return
-    }
-
-    setUploadingVid(true)
-    setError('')
-    try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('upload_preset', 'nyumba_listings')
-      const res = await fetch('https://api.cloudinary.com/v1_1/daw8jlbbd/video/upload', {
-        method: 'POST', body: fd,
-      })
-      const data = await res.json()
-      if (!data.secure_url) throw new Error(data.error?.message ?? 'Upload ilishindwa')
-      set('video_url', data.secure_url)
-      setVideoPreview(url)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Video upload ilishindwa')
-      URL.revokeObjectURL(url)
-    } finally {
-      setUploadingVid(false)
-      if (videoInputRef.current) videoInputRef.current.value = ''
-    }
-  }
-
-  function removeVideo() {
-    set('video_url', null)
-    if (videoPreview) URL.revokeObjectURL(videoPreview)
-    setVideoPreview(null)
   }
 
   // ── Submit ────────────────────────────────────────────
@@ -677,54 +627,14 @@ export default function AddListingWizard() {
 
             {/* ── Video upload ── */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <div className="flex justify-between items-center mb-3">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  🎥 Video ya Nyumba (hiari)
-                </label>
-                {form.video_url && (
-                  <button onClick={removeVideo} className="text-xs text-red-500 font-medium">✕ Ondoa</button>
-                )}
-              </div>
-
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/mp4,video/quicktime,video/avi,video/*"
-                className="hidden"
-                onChange={handleVideoPick}
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                🎥 Video ya Nyumba (hiari)
+              </label>
+              <VideoUpload
+                existingVideoUrl={form.video_url}
+                onUploadComplete={(url) => set('video_url', url)}
+                onRemove={() => set('video_url', null)}
               />
-
-              {videoPreview ? (
-                <video
-                  src={videoPreview}
-                  controls
-                  playsInline
-                  className="w-full rounded-xl bg-black"
-                  style={{ maxHeight: 200 }}
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => videoInputRef.current?.click()}
-                  disabled={uploadingVid}
-                  className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl
-                             flex flex-col items-center justify-center gap-1.5
-                             text-gray-400 disabled:opacity-50 active:scale-95 transition-all"
-                >
-                  {uploadingVid ? (
-                    <>
-                      <span className="w-6 h-6 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-xs">Inapakia video...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-2xl">🎥</span>
-                      <span className="text-xs font-medium">Bonyeza kupakia video</span>
-                      <span className="text-xs text-gray-300">MP4, MOV — max 30s, 50MB</span>
-                    </>
-                  )}
-                </button>
-              )}
             </div>
 
             {/* Preview summary */}
