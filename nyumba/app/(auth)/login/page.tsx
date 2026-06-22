@@ -96,10 +96,13 @@ function LoginForm() {
     setError('')
     setLoading(true)
     try {
+      const callbackUrl = new URL('/auth/callback', window.location.origin)
+      if (redirectTo) callbackUrl.searchParams.set('redirect', redirectTo)
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect=${redirectTo}`,
+          redirectTo: callbackUrl.toString(),
+          queryParams: { access_type: 'offline' },
         },
       })
       if (error) throw error

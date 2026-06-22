@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       // Get role from users table (trigger already created it on signUp)
       const { data: profile } = await supabase
         .from('users')
-        .select('role, full_name, email')
+        .select('role, full_name, email, must_change_password')
         .eq('id', data.user.id)
         .single()
 
@@ -94,6 +94,12 @@ export async function GET(request: NextRequest) {
       }
 
       if (role === 'admin')  return NextResponse.redirect(`${origin}/admin`)
+      if (role === 'staff') {
+        if (profile?.must_change_password) {
+          return NextResponse.redirect(`${origin}/account/change-password`)
+        }
+        return NextResponse.redirect(`${origin}/admin/staff-leads`)
+      }
       if (role === 'dalali') return NextResponse.redirect(`${origin}/dashboard?welcome=true`)
       return NextResponse.redirect(`${origin}/?welcome=true`)
     }
