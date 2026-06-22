@@ -44,10 +44,13 @@ type Props = {
   gracePeriodUntil: string | null
   completedMonths: number
   history: HistoryItem[]
+  isTrial?: boolean | null
+  trialEndsAt?: string | null
 }
 
 export default function SubscriptionClient({
   currentPlan, currentStatus, expiresAt, gracePeriodUntil, completedMonths, history,
+  isTrial, trialEndsAt,
 }: Props) {
   const router = useRouter()
 
@@ -112,13 +115,15 @@ export default function SubscriptionClient({
 
   useEffect(() => { setMounted(true) }, [])
 
-  const discount    = getLoyaltyDiscount(completedMonths)
-  const daysLeft    = mounted && expiresAt ? daysUntil(expiresAt) : null
-  const graceDays   = mounted && gracePeriodUntil ? daysUntil(gracePeriodUntil) : null
-  const isActive    = currentStatus === 'active'
-  const isGrace     = currentStatus === 'grace_period'
-  const hasAnySub   = isActive || isGrace
-  const isFree      = currentPlan === 'free'
+  const discount      = getLoyaltyDiscount(completedMonths)
+  const daysLeft      = mounted && expiresAt ? daysUntil(expiresAt) : null
+  const graceDays     = mounted && gracePeriodUntil ? daysUntil(gracePeriodUntil) : null
+  const trialDaysLeft = mounted && trialEndsAt ? daysUntil(trialEndsAt) : null
+  const isActive      = currentStatus === 'active'
+  const isGrace       = currentStatus === 'grace_period'
+  const hasAnySub     = isActive || isGrace
+  const isFree        = currentPlan === 'free'
+  const isOnTrial     = !!(isTrial && isActive)
   const currentPlanData = getPlan(currentPlan)
   const renewPrice  = currentPlan && !isFree
     ? applyDiscount(currentPlanData.price, discount)
@@ -652,8 +657,58 @@ export default function SubscriptionClient({
             </div>
           )}
 
-          {/* ── Active subscription card ── */}
-          {isActive && !isFree && daysLeft !== null && (
+          {/* ── Trial subscription card ── */}
+          {isOnTrial && trialEndsAt && (
+            <div className="rounded-2xl p-4 border-2 border-green-300 bg-green-50">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🎉</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-green-900">Trial ya Bure</p>
+                      <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-medium">
+                        Active ✅
+                      </span>
+                    </div>
+                    <p className="text-xs text-green-700">Basic plan — listings 5 · Bila malipo</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`text-lg font-bold ${
+                    (trialDaysLeft ?? 0) <= 3 ? 'text-red-600'
+                    : (trialDaysLeft ?? 0) <= 7 ? 'text-amber-600'
+                    : 'text-green-700'
+                  }`}>
+                    {Math.max(0, trialDaysLeft ?? 0)}
+                  </p>
+                  <p className="text-xs text-green-600">siku zimebaki</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-green-700 mb-1" suppressHydrationWarning>
+                Trial inaisha: {fmtDate(trialEndsAt)}
+              </p>
+              <p className="text-xs text-green-600 mb-4">
+                Baada ya trial utabaki kwenye Free Plan (listings 2) bila kukatizwa.
+              </p>
+
+              {(trialDaysLeft ?? 0) <= 7 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-2 mb-3 text-xs text-amber-700">
+                  ⚠️ Trial yako inaisha hivi karibuni! Upgrade sasa ili usipoteze listings zako.
+                </div>
+              )}
+
+              <button
+                onClick={() => { setSelectedPlan('basic'); setStep('new_plan') }}
+                className="w-full py-3 rounded-2xl text-sm font-semibold active:scale-[0.97] transition-all text-white bg-green-600"
+              >
+                🚀 Upgrade Sasa — Tangu Tsh 10,000/mwezi
+              </button>
+            </div>
+          )}
+
+          {/* ── Active subscription card (paid, non-trial) ── */}
+          {isActive && !isFree && !isOnTrial && daysLeft !== null && (
             <div className="rounded-2xl p-4 border"
               style={{
                 backgroundColor: currentPlanData.bgColor,

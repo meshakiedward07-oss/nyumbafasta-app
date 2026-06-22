@@ -8,12 +8,12 @@ export default async function DashboardSubscriptionPage() {
   if (!user) redirect('/login?redirect=/dashboard/subscription')
 
   const [subscriptionRes, historyRes] = await Promise.all([
-    // Subscription ya sasa (active au grace_period)
+    // Subscription ya sasa (active, grace_period, au trial_expired)
     supabase
       .from('subscriptions')
-      .select('id, plan, status, expires_at, grace_period_until, starts_at, amount_paid')
+      .select('id, plan, status, expires_at, grace_period_until, starts_at, amount_paid, is_trial, trial_ends_at')
       .eq('dalali_id', user.id)
-      .in('status', ['active', 'grace_period'])
+      .in('status', ['active', 'grace_period', 'trial_expired'])
       .order('expires_at', { ascending: false })
       .maybeSingle(),
 
@@ -41,6 +41,8 @@ export default async function DashboardSubscriptionPage() {
       gracePeriodUntil={sub?.grace_period_until ?? null}
       completedMonths={completedMonths}
       history={history as HistoryItem[]}
+      isTrial={sub?.is_trial ?? false}
+      trialEndsAt={sub?.trial_ends_at ?? null}
     />
   )
 }

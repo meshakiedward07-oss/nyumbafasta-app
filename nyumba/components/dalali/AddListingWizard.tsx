@@ -101,7 +101,7 @@ export default function AddListingWizard() {
   const [payingExtra, setPayingExtra] = useState(false)
   const [extraDone, setExtraDone]     = useState(false)
 
-  const PLAN_LIMITS: Record<string, number> = { basic: 5, premium: 20, enterprise: 50 }
+  const PLAN_LIMITS: Record<string, number> = { free: 2, basic: 5, premium: 20, enterprise: 50 }
 
   useEffect(() => { loadLimit() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -123,7 +123,7 @@ export default function AddListingWizard() {
           .in('status', ['active', 'pending']),
       ])
 
-      const baseLim = PLAN_LIMITS[sub?.plan ?? ''] ?? 0
+      const baseLim = PLAN_LIMITS[sub?.plan ?? 'free'] ?? 2
       const extra   = (sub as { extra_listings?: number } | null)?.extra_listings ?? 0
       const total   = baseLim + extra
       const current = count ?? 0
