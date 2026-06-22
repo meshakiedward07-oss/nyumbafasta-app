@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useRef } from 'react'
-import 'leaflet/dist/leaflet.css'
 import type { Map as LeafletMap } from 'leaflet'
 import type { ListingWithDalali } from '@/lib/types/database'
 
@@ -55,23 +54,19 @@ export default function MapView({ listings }: Props) {
         const lng = listing.longitude as number
         const price = fmtPrice(listing.price_monthly)
 
-        // Custom price badge icon
+        // Simple pin marker
         const icon = L.divIcon({
           className: '',
           html: `<div style="
+            width:16px;height:16px;
             background:#1D9E75;
-            color:#fff;
-            padding:4px 9px;
-            border-radius:12px;
-            font-size:11px;
-            font-weight:700;
-            white-space:nowrap;
-            box-shadow:0 2px 6px rgba(0,0,0,0.25);
-            border:2px solid #fff;
+            border:3px solid #fff;
+            border-radius:50%;
+            box-shadow:0 2px 6px rgba(0,0,0,0.35);
             cursor:pointer;
-          ">Tsh ${price}</div>`,
-          iconSize: [80, 28],
-          iconAnchor: [40, 28],
+          "></div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
         })
 
         const imgHtml = listing.images?.[0]

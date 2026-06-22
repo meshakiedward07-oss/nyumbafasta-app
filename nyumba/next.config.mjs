@@ -49,7 +49,7 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.supabase.co https://images.unsplash.com",
+              "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.supabase.co https://images.unsplash.com https://*.tile.openstreetmap.org",
               "font-src 'self' https://fonts.gstatic.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.resend.com https://api.cloudinary.com",
               "frame-ancestors 'none'",

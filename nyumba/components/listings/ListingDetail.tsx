@@ -18,6 +18,11 @@ const SimilarListings = dynamic(
   { ssr: false }
 )
 
+const SingleListingMap = dynamic(
+  () => import('@/components/listings/SingleListingMap'),
+  { ssr: false }
+)
+
 const amenityLabel: Record<string, string> = {
   umeme: '⚡ Umeme',
   maji: '💧 Maji',
@@ -280,9 +285,17 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Location */}
         <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h3 className="text-sm font-semibold text-gray-700 mb-2">📍 Mahali</h3>
-          <address className="text-gray-600 text-sm not-italic">
+          <address className="text-gray-600 text-sm not-italic mb-3">
             {listing.district}, {listing.region}, Tanzania
           </address>
+          {!!(listing.latitude && listing.longitude) && (
+            <SingleListingMap
+              latitude={listing.latitude as number}
+              longitude={listing.longitude as number}
+              district={listing.district}
+              region={listing.region}
+            />
+          )}
         </section>
 
         {/* Description */}

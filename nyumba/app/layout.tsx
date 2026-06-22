@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/react'
 import ClientProviders from '@/components/shared/ClientProviders'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import './globals.css'
+import 'leaflet/dist/leaflet.css'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
