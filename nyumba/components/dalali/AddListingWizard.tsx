@@ -2,10 +2,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { TANZANIA_REGIONS, getDistricts } from '@/lib/data/tanzania-locations'
 import { createClient } from '@/lib/supabase/client'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
 import { VideoUpload } from '@/components/listings/VideoUpload'
+import { useDalaliProfile } from '@/lib/hooks/useDalaliProfile'
 
 const LocationPickerMap = dynamic(
   () => import('@/components/dalali/LocationPickerMap'),
@@ -86,6 +88,7 @@ function StepBar({ current, total }: { current: number; total: number }) {
 // ── Main wizard ──────────────────────────────────────────
 export default function AddListingWizard() {
   const router = useRouter()
+  const { profile: dalaliProfile } = useDalaliProfile()
 
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -660,6 +663,36 @@ export default function AddListingWizard() {
                 )}
                 <Row label="Picha" value={`${form.images.length} picha`} />
                 {form.video_url && <Row label="Video" value="✅ Imepakiwa" />}
+              </div>
+
+              {/* WhatsApp ya mawasiliano — read-only */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Mawasiliano ya Wateja
+                </p>
+                <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📱</span>
+                    <div>
+                      <p className="text-xs text-gray-400">WhatsApp</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {dalaliProfile?.whatsappNumber
+                          ? `+${dalaliProfile.whatsappNumber}`
+                          : <span className="text-amber-600">Hujaweka namba</span>
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/dashboard/profile"
+                    className="text-xs text-primary-600 font-medium underline"
+                  >
+                    Badilisha
+                  </Link>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  🔒 Wateja watawasiliana nawe kwa namba hii baada ya kulipa
+                </p>
               </div>
             </div>
 

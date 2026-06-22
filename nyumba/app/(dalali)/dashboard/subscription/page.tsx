@@ -7,7 +7,7 @@ export default async function DashboardSubscriptionPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login?redirect=/dashboard/subscription')
 
-  const [subscriptionRes, historyRes] = await Promise.all([
+  const [subscriptionRes, historyRes, profileRes] = await Promise.all([
     // Subscription ya sasa (active, grace_period, au trial_expired)
     supabase
       .from('subscriptions')
@@ -25,10 +25,18 @@ export default async function DashboardSubscriptionPage() {
       .in('status', ['active', 'grace_period', 'expired'])
       .order('created_at', { ascending: false })
       .limit(12),
+
+    // WhatsApp number for auto-filling payment phone
+    supabase
+      .from('dalali_profiles')
+      .select('whatsapp_number')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ])
 
   const sub     = subscriptionRes.data
   const history = historyRes.data ?? []
+  const whatsappNumber = profileRes.data?.whatsapp_number ?? null
 
   // Count consecutive completed months for loyalty discount
   const completedMonths = history.filter(h => h.status !== 'pending').length
@@ -43,6 +51,7 @@ export default async function DashboardSubscriptionPage() {
       history={history as HistoryItem[]}
       isTrial={sub?.is_trial ?? false}
       trialEndsAt={sub?.trial_ends_at ?? null}
+      defaultPhone={whatsappNumber ?? undefined}
     />
   )
 }

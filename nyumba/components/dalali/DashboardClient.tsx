@@ -109,6 +109,15 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 ✓ Verified Premium
               </span>
             )}
+            {profile?.whatsapp_number ? (
+              <p className="text-green-100/80 text-xs mt-1">
+                📱 +{profile.whatsapp_number}
+              </p>
+            ) : (
+              <a href="/dashboard/profile" className="text-amber-200 text-xs mt-1 inline-block underline">
+                + Weka WhatsApp yako
+              </a>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <NotificationBell className="text-white/80 hover:text-white transition-colors" />

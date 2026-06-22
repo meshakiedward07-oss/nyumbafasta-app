@@ -46,11 +46,12 @@ type Props = {
   history: HistoryItem[]
   isTrial?: boolean | null
   trialEndsAt?: string | null
+  defaultPhone?: string
 }
 
 export default function SubscriptionClient({
   currentPlan, currentStatus, expiresAt, gracePeriodUntil, completedMonths, history,
-  isTrial, trialEndsAt,
+  isTrial, trialEndsAt, defaultPhone,
 }: Props) {
   const router = useRouter()
 
@@ -66,6 +67,17 @@ export default function SubscriptionClient({
   const [renewLoading, setRenewLoading] = useState(false)
   const [mounted, setMounted]       = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(120)
+
+  // Auto-fill phone from dalali's WhatsApp number (stored as 255XXXXXXXXX)
+  // Convert to local format 0XXXXXXXXX for display in M-Pesa input
+  useEffect(() => {
+    if (defaultPhone) {
+      const local = defaultPhone.startsWith('255')
+        ? '0' + defaultPhone.slice(3)
+        : defaultPhone
+      setPhone(local.replace(/\D/g, ''))
+    }
+  }, [defaultPhone])
 
   const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
