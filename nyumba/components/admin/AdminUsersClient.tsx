@@ -1,0 +1,584 @@
+'use client'
+
+import { useState, useEffect, useCallback, useRef } from 'react'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+import { PLAN_BADGES, getPlan } from '@/lib/config/subscription-plans'
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+type RoleFilter = 'all' | 'client' | 'dalali' | 'staff'
+
+type UserRow = {
+  id: string
+  full_name: string
+  email: string | null
+  phone: string | null
+  role: string
+  avatar_url: string | null
+  is_active: boolean | null
+  created_at: string
+  dalali_profiles: {
+    whatsapp_number: string | null
+    verification_status: string | null
+    is_premium_verified: boolean
+    rating_avg: number | null
+  } | null
+  subscriptions: { plan: string; status: string; expires_at: string | null }[]
+}
+
+type Counts = { all: number; client: number; dalali: number; staff: number }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const WA_PATH = 'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z'
+
+function waNum(raw: string) { return raw.replace(/[^0-9]/g, '') }
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 60) return `dakika ${mins} zilizopita`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `saa ${hrs} zilizopita`
+  const days = Math.floor(hrs / 24)
+  if (days < 30) return `siku ${days} zilizopita`
+  return new Date(dateStr).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function RoleBadge({ role }: { role: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    admin:  { label: '🛡️ Admin',    cls: 'bg-red-50 text-red-600'        },
+    dalali: { label: '🏢 Dalali',   cls: 'bg-amber-50 text-amber-700'    },
+    client: { label: '🔍 Mteja',    cls: 'bg-blue-50 text-blue-700'      },
+    staff:  { label: '👨‍💼 Wafanyakazi', cls: 'bg-purple-50 text-purple-700' },
+  }
+  const b = map[role] ?? { label: role, cls: 'bg-gray-100 text-gray-500' }
+  return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${b.cls}`}>{b.label}</span>
+}
+
+function VerifBadge({ status }: { status?: string | null }) {
+  if (status === 'approved') return <span className="text-[10px] bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">✓ Verified</span>
+  if (status === 'pending')  return <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">⏳ Pending</span>
+  return <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-medium">✗ Hakuna</span>
+}
+
+function SubBadge({ subscriptions }: { subscriptions: UserRow['subscriptions'] }) {
+  const active = subscriptions?.find(s => s.status === 'active')
+  if (!active) return <span className="text-[10px] text-gray-400">Hakuna</span>
+  const badge = PLAN_BADGES[active.plan] ?? PLAN_BADGES['free']
+  const plan  = getPlan(active.plan)
+  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium text-white"
+      style={{ backgroundColor: badge.color }}>
+      {plan.emoji} {badge.label}
+    </span>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+export default function AdminUsersClient() {
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
+  const [search, setSearch]         = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
+  const [page, setPage]             = useState(1)
+
+  const [users, setUsers]   = useState<UserRow[]>([])
+  const [counts, setCounts] = useState<Counts>({ all: 0, client: 0, dalali: 0, staff: 0 })
+  const [total, setTotal]   = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]   = useState('')
+
+  // Action state
+  const [actionLoading, setActionLoading]       = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId]   = useState<string | null>(null)
+  const [deleteReason, setDeleteReason]         = useState('')
+  const [deleteNotify, setDeleteNotify]         = useState(true)
+  const [actionError, setActionError]           = useState('')
+  const [newUserBanner, setNewUserBanner]       = useState<string | null>(null)
+
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Debounce search
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current)
+    searchTimeout.current = setTimeout(() => {
+      setDebouncedQ(search)
+      setPage(1)
+    }, 350)
+    return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current) }
+  }, [search])
+
+  // Reset page when filter changes
+  useEffect(() => { setPage(1) }, [roleFilter])
+
+  // Fetch users
+  const fetchUsers = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true)
+    setError('')
+    try {
+      const params = new URLSearchParams({
+        role:     roleFilter,
+        q:        debouncedQ,
+        page:     String(page),
+        per_page: '50',
+      })
+      const res  = await fetch(`/api/v1/admin/users?${params}`)
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Imeshindwa kupakia')
+      const data = await res.json()
+      setUsers(data.users)
+      setCounts(data.counts)
+      setTotal(data.total)
+      setTotalPages(data.total_pages)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Hitilafu imetokea')
+    } finally {
+      setLoading(false)
+    }
+  }, [roleFilter, debouncedQ, page])
+
+  useEffect(() => { fetchUsers() }, [fetchUsers])
+
+  // Realtime subscription — listen for new users and updates
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('admin-users-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'users' },
+        (payload) => {
+          const u = payload.new as UserRow
+          setNewUserBanner(`Mtumiaji mpya: ${u.full_name ?? 'Mpya'} (${u.role})`)
+          setTimeout(() => setNewUserBanner(null), 8_000)
+          // Refresh silently
+          fetchUsers({ silent: true })
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'users' },
+        () => { fetchUsers({ silent: true }) }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [fetchUsers])
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  async function handleSuspendActivate(userId: string, action: 'suspend' | 'activate') {
+    setActionLoading(userId)
+    setActionError('')
+    try {
+      const res = await fetch(`/api/v1/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Imeshindwa')
+      const isActive = action === 'activate'
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_active: isActive } : u))
+    } catch (e: unknown) {
+      setActionError(e instanceof Error ? e.message : 'Hitilafu imetokea')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleDelete(userId: string) {
+    setActionLoading(userId)
+    setConfirmDeleteId(null)
+    setActionError('')
+    try {
+      const res = await fetch(`/api/v1/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: deleteReason || 'Admin deletion', notify: deleteNotify }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Imeshindwa')
+      setUsers(prev => prev.filter(u => u.id !== userId))
+      setCounts(prev => ({
+        ...prev,
+        all: Math.max(0, prev.all - 1),
+      }))
+      setDeleteReason('')
+      setDeleteNotify(true)
+    } catch (e: unknown) {
+      setActionError(e instanceof Error ? e.message : 'Hitilafu imetokea')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  const tabs: { key: RoleFilter; label: string; count: number }[] = [
+    { key: 'all',    label: 'Wote',        count: counts.all    },
+    { key: 'client', label: 'Wateja',      count: counts.client },
+    { key: 'dalali', label: 'Madalali',    count: counts.dalali },
+    { key: 'staff',  label: 'Wafanyakazi', count: counts.staff  },
+  ]
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-24">
+
+      {/* ── Header ── */}
+      <div className="hidden lg:flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">👥 Watumiaji</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Jumla: {counts.all.toLocaleString()} watumiaji</p>
+        </div>
+        <button
+          onClick={() => fetchUsers()}
+          className="text-xs bg-primary-50 text-primary-700 px-3 py-2 rounded-xl font-semibold border border-primary-100"
+        >
+          ↺ Onyesha Upya
+        </button>
+      </div>
+
+      {/* ── Mobile header ── */}
+      <div className="lg:hidden bg-primary-800 px-4 pt-10 pb-5">
+        <h1 className="text-white text-xl font-bold">👥 Watumiaji</h1>
+        <p className="text-green-200 text-xs mt-0.5">Jumla: {counts.all.toLocaleString()} watumiaji</p>
+      </div>
+
+      {/* ── New user banner ── */}
+      {newUserBanner && (
+        <div className="mx-4 mt-3 bg-primary-500 text-white text-sm font-medium px-4 py-3 rounded-2xl flex items-center gap-2 shadow-sm">
+          <span className="text-lg">🔔</span>
+          <span>{newUserBanner}</span>
+          <button onClick={() => setNewUserBanner(null)} className="ml-auto text-green-200 hover:text-white">✕</button>
+        </div>
+      )}
+
+      <div className="px-4 lg:px-6 pt-4 space-y-4">
+
+        {/* ── Role tabs ── */}
+        <div className="flex bg-gray-100 rounded-xl p-1 gap-1 overflow-x-auto scrollbar-none">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setRoleFilter(t.key)}
+              className={`flex-shrink-0 flex-1 min-w-[80px] py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+                roleFilter === t.key ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-400'
+              }`}
+            >
+              {t.label} <span className="text-[10px] opacity-70">({t.count})</span>
+            </button>
+          ))}
+        </div>
+
+        {/* ── Search ── */}
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+          <input
+            type="text"
+            placeholder="Tafuta jina, email, simu..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm
+                       focus:outline-none focus:ring-2 focus:ring-primary-300"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* ── Error ── */}
+        {(error || actionError) && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
+            {error || actionError}
+          </div>
+        )}
+
+        {/* ── Loading ── */}
+        {loading && (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 h-20 animate-pulse" />
+            ))}
+          </div>
+        )}
+
+        {/* ── User list ── */}
+        {!loading && users.length === 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+            <div className="text-4xl mb-2">👥</div>
+            <p className="text-sm text-gray-500">
+              {debouncedQ ? `Hakuna watumiaji wanaolingana na "${debouncedQ}"` : 'Hakuna watumiaji katika kundi hili'}
+            </p>
+          </div>
+        )}
+
+        {!loading && users.length > 0 && (
+          <>
+            {/* Desktop table */}
+            <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Mtumiaji</th>
+                    <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500">Email</th>
+                    <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500">Jukumu</th>
+                    {roleFilter === 'dalali' || roleFilter === 'all' ? (
+                      <>
+                        <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500">Uthibitisho</th>
+                        <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500">Subscription</th>
+                      </>
+                    ) : null}
+                    <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500">Alijiunga</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500">Vitendo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {users.map(u => (
+                    <tr key={u.id} className={`hover:bg-gray-50 transition-colors ${u.is_active === false ? 'opacity-60' : ''}`}>
+                      {/* Name + phone */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                            u.role === 'admin'  ? 'bg-red-100 text-red-700' :
+                            u.role === 'dalali' ? 'bg-amber-100 text-amber-700' :
+                            u.role === 'staff'  ? 'bg-purple-100 text-purple-700' :
+                                                  'bg-blue-100 text-blue-700'
+                          }`}>
+                            {u.full_name?.[0]?.toUpperCase() ?? '?'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-900 truncate max-w-[130px]">{u.full_name}</p>
+                            <p className="text-xs text-gray-400">{u.phone ?? '—'}</p>
+                            {u.is_active === false && (
+                              <span className="text-[10px] text-red-500">Imesimamishwa</span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      {/* Email */}
+                      <td className="px-3 py-3 text-xs text-gray-500 max-w-[160px] truncate">{u.email ?? '—'}</td>
+                      {/* Role */}
+                      <td className="px-3 py-3"><RoleBadge role={u.role} /></td>
+                      {/* Dalali-specific columns */}
+                      {(roleFilter === 'dalali' || roleFilter === 'all') ? (
+                        <>
+                          <td className="px-3 py-3 text-center">
+                            {u.role === 'dalali' ? <VerifBadge status={u.dalali_profiles?.verification_status} /> : <span className="text-xs text-gray-300">—</span>}
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            {u.role === 'dalali' ? <SubBadge subscriptions={u.subscriptions ?? []} /> : <span className="text-xs text-gray-300">—</span>}
+                          </td>
+                        </>
+                      ) : null}
+                      {/* Joined */}
+                      <td className="px-3 py-3 text-xs text-gray-400 whitespace-nowrap" suppressHydrationWarning>{timeAgo(u.created_at)}</td>
+                      {/* Actions */}
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-1 justify-center flex-wrap">
+                          {u.role === 'dalali' && (
+                            <Link href={`/admin/users/${u.id}`}
+                              className="text-[10px] px-2 py-1 rounded-lg bg-primary-50 text-primary-600 font-semibold whitespace-nowrap">
+                              Angalia →
+                            </Link>
+                          )}
+                          {u.role !== 'admin' && (
+                            <>
+                              <button
+                                onClick={() => handleSuspendActivate(u.id, u.is_active === false ? 'activate' : 'suspend')}
+                                disabled={actionLoading === u.id}
+                                className={`text-[10px] px-2 py-1 rounded-lg font-semibold disabled:opacity-40 whitespace-nowrap ${
+                                  u.is_active === false ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-700'
+                                }`}
+                              >
+                                {actionLoading === u.id ? '...' : u.is_active === false ? 'Washa' : 'Simamisha'}
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteId(u.id)}
+                                disabled={actionLoading === u.id}
+                                className="text-[10px] px-2 py-1 rounded-lg bg-red-50 text-red-600 font-semibold disabled:opacity-40"
+                              >
+                                Futa
+                              </button>
+                            </>
+                          )}
+                          {/* WhatsApp quick link for dalali */}
+                          {u.role === 'dalali' && u.dalali_profiles?.whatsapp_number && (
+                            <a
+                              href={`https://wa.me/${waNum(u.dalali_profiles.whatsapp_number)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 bg-[#25D366] text-white text-[10px] px-2 py-1 rounded-lg"
+                            >
+                              <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white flex-shrink-0"><path d={WA_PATH}/></svg>
+                              WA
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-3">
+              {users.map(u => (
+                <div key={u.id} className={`bg-white rounded-2xl border shadow-sm p-4 ${u.is_active === false ? 'border-red-100 opacity-75' : 'border-gray-100'}`}>
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0 ${
+                      u.role === 'admin'  ? 'bg-red-100 text-red-700' :
+                      u.role === 'dalali' ? 'bg-amber-100 text-amber-700' :
+                      u.role === 'staff'  ? 'bg-purple-100 text-purple-700' :
+                                            'bg-blue-100 text-blue-700'
+                    }`}>
+                      {u.full_name?.[0]?.toUpperCase() ?? '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <p className="text-sm font-semibold text-gray-900">{u.full_name}</p>
+                        {u.is_active === false && (
+                          <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-medium">Imesimamishwa</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">{u.email ?? '—'}</p>
+                      <p className="text-xs text-gray-400">{u.phone ?? '—'}</p>
+                      <div className="mt-1 flex items-center gap-2 flex-wrap">
+                        <RoleBadge role={u.role} />
+                        {u.role === 'dalali' && <VerifBadge status={u.dalali_profiles?.verification_status} />}
+                        {u.role === 'dalali' && <SubBadge subscriptions={u.subscriptions ?? []} />}
+                      </div>
+                      {u.role === 'dalali' && u.dalali_profiles?.whatsapp_number && (
+                        <a
+                          href={`https://wa.me/${waNum(u.dalali_profiles.whatsapp_number)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 bg-[#25D366] text-white text-[10px] px-2 py-0.5 rounded-md mt-1"
+                        >
+                          <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white flex-shrink-0"><path d={WA_PATH}/></svg>
+                          {u.dalali_profiles.whatsapp_number}
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-300 flex-shrink-0" suppressHydrationWarning>{timeAgo(u.created_at)}</p>
+                  </div>
+                  {u.role !== 'admin' && (
+                    <div className="flex gap-2 flex-wrap">
+                      {u.role === 'dalali' && (
+                        <Link href={`/admin/users/${u.id}`}
+                          className="flex items-center justify-center px-3 py-2.5 rounded-xl text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-100">
+                          Angalia →
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => handleSuspendActivate(u.id, u.is_active === false ? 'activate' : 'suspend')}
+                        disabled={actionLoading === u.id}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] disabled:opacity-40 ${
+                          u.is_active === false ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                        }`}
+                      >
+                        {actionLoading === u.id ? '...' : u.is_active === false ? '✅ Washa' : '⏸️ Simamisha'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(u.id)}
+                        disabled={actionLoading === u.id}
+                        className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600 disabled:opacity-40 active:scale-[0.97] transition-all"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* ── Pagination ── */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-xs text-gray-400">
+                  Ukurasa {page} / {totalPages} · Watumiaji {total.toLocaleString()}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="text-xs px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50"
+                  >
+                    ← Nyuma
+                  </button>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="text-xs px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50"
+                  >
+                    Mbele →
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ── Delete confirmation modal ── */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setConfirmDeleteId(null)}>
+          <div
+            className="bg-white w-full rounded-t-3xl px-6 pt-4 pb-10 shadow-xl max-h-[80vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
+            <div className="text-3xl text-center mb-2">🚫</div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-4">Futa Akaunti ya Mtumiaji</h3>
+
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Sababu ya kufuta:</p>
+            <div className="space-y-2 mb-4">
+              {[
+                { v: 'Scam — anatoa fake listings', icon: '🚨' },
+                { v: 'Unyanyasaji wa wateja',       icon: '🚨' },
+                { v: 'Taarifa za uongo',            icon: '🚨' },
+                { v: 'Uvunjaji wa masharti',        icon: '🚨' },
+                { v: 'Sababu nyingine',             icon: '📝' },
+              ].map(r => (
+                <button key={r.v} onClick={() => setDeleteReason(r.v)}
+                  className={`w-full flex items-center gap-2 p-3 rounded-xl border-2 text-left text-sm transition-all ${
+                    deleteReason === r.v ? 'border-red-400 bg-red-50 text-red-800' : 'border-gray-100 text-gray-700'
+                  }`}
+                >
+                  <span>{r.icon}</span><span>{r.v}</span>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setDeleteNotify(n => !n)}
+              className={`w-full flex items-center justify-between p-3 rounded-xl border-2 mb-5 transition-all ${
+                deleteNotify ? 'border-primary-300 bg-primary-50' : 'border-gray-100'
+              }`}
+            >
+              <span className="text-sm text-gray-700">Tuma arifa kwa mtumiaji?</span>
+              <div className={`w-10 h-5 rounded-full transition-colors ${deleteNotify ? 'bg-primary-500' : 'bg-gray-200'}`}>
+                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${deleteNotify ? 'translate-x-5' : ''}`} />
+              </div>
+            </button>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setConfirmDeleteId(null); setDeleteReason('') }}
+                className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm"
+              >
+                Ghairi
+              </button>
+              <button
+                onClick={() => handleDelete(confirmDeleteId)}
+                disabled={!deleteReason || !!actionLoading}
+                className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold text-sm disabled:opacity-40"
+              >
+                {actionLoading ? '...' : '🗑️ Futa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
