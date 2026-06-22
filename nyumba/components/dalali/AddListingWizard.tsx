@@ -123,7 +123,7 @@ export default function AddListingWizard() {
           .in('status', ['active', 'pending']),
       ])
 
-      const baseLim = PLAN_LIMITS[sub?.plan ?? 'free'] ?? 2
+      const baseLim = sub ? (PLAN_LIMITS[sub.plan] ?? 0) : 0
       const extra   = (sub as { extra_listings?: number } | null)?.extra_listings ?? 0
       const total   = baseLim + extra
       const current = count ?? 0

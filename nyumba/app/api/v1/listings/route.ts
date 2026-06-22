@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
       .order('expires_at', { ascending: false })
       .maybeSingle()
 
-    // Check listing limit (free plan has 2, paid plans have more)
-    const limit = subscription ? (PLAN_LIMITS[subscription.plan] ?? 2) : 2
+    // 0 when no active subscription (expired free/paid plan must upgrade)
+    const limit = subscription ? (PLAN_LIMITS[subscription.plan] ?? 0) : 0
     const { count } = await admin
       .from('listings')
       .select('id', { count: 'exact', head: true })

@@ -262,9 +262,15 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                           {daysLeft !== null && daysLeft > 0 ? `siku ${daysLeft} zimebaki` : 'Imeisha'}
                         </span>
                       )}
-                      {isFree && <span className="text-xs text-gray-400">Daima Bure</span>}
+                      {isFree && daysLeft !== null && (
+                        <span className={`text-xs font-medium ${
+                          daysLeft <= 7 ? 'text-red-500' : daysLeft <= 14 ? 'text-amber-500' : 'text-gray-400'
+                        }`}>
+                          siku {Math.max(0, daysLeft)} zimebaki
+                        </span>
+                      )}
                     </div>
-                    {!isFree && <p className="text-xs text-gray-500">Inaisha: {subExpiry}</p>}
+                    <p className="text-xs text-gray-500">Inaisha: {subExpiry}</p>
                   </div>
                   <Link href="/dashboard/subscription"
                     className="text-xs font-medium px-3 py-1.5 rounded-full text-white"
@@ -272,6 +278,17 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                     {isFree ? 'Upgrade' : 'Simamia'}
                   </Link>
                 </div>
+                {isFree && daysLeft !== null && daysLeft <= 14 && daysLeft > 0 && (
+                  <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <p className="text-xs text-amber-700 font-semibold mb-2">
+                      {daysLeft <= 3 ? '🚨 Siku chache tu zimebaki!' : '⚠️ Kipindi cha bure kinaisha hivi karibuni!'}
+                    </p>
+                    <Link href="/dashboard/subscription"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-bold">
+                      🚀 Upgrade Sasa — Tsh 10,000/mwezi
+                    </Link>
+                  </div>
+                )}
                 {!isFree && daysLeft !== null && daysLeft <= 7 && daysLeft > 0 && (
                   <div className="mt-3">
                     <Link href="/dashboard/subscription"
@@ -280,7 +297,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                     </Link>
                   </div>
                 )}
-                {isFree && (
+                {isFree && (daysLeft === null || daysLeft > 14) && (
                   <div className="mt-2">
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-xs font-bold"
