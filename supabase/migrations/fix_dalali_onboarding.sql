@@ -3,23 +3,16 @@
 -- Run once in Supabase SQL Editor (Dashboard → SQL Editor)
 --
 -- Fixes:
---   1. Converts any 'trial_expired' subscriptions to free plan (active)
---   2. Gives dalali with NO subscription a free subscription immediately
---   3. Fixes send_trial_reminders to downgrade to free (not suspend listings)
+--   1. Gives dalali with NO subscription a free subscription immediately
+--   2. Fixes send_trial_reminders to downgrade to free (not suspend)
+--
+-- NOTE: 'trial_expired' is NOT in the sub_status enum, so no rows
+-- can have that status. Fix 1 from the prior version is removed.
 -- ══════════════════════════════════════════════════════════════════════
 
--- ── Fix 1: Convert existing trial_expired → free/active ───────────────
-UPDATE subscriptions
-SET
-  status        = 'active',
-  plan          = 'free',
-  is_trial      = FALSE,
-  expires_at    = NULL,
-  trial_ends_at = NULL
-WHERE status = 'trial_expired';
-
--- ── Fix 2: Give free subscription to dalali who have none ─────────────
--- Covers dalali who registered before the trial system was added
+-- ── Fix 1: Give free subscription to dalali who have none ─────────────
+-- Covers dalali who registered before the trial system was added,
+-- or whose start_dalali_trial RPC call failed silently at signup.
 INSERT INTO subscriptions (
   dalali_id, plan, status, is_trial,
   amount_paid, payment_method, payment_ref,
@@ -43,8 +36,9 @@ WHERE NOT EXISTS (
 )
 ON CONFLICT DO NOTHING;
 
--- ── Fix 3: Rewrite send_trial_reminders ───────────────────────────────
--- Changed: expired trials now downgrade to free plan instead of suspending
+-- ── Fix 2: Rewrite send_trial_reminders ───────────────────────────────
+-- Changed: expired trials now downgrade to free plan (no suspension,
+-- no trial_expired enum value needed).
 CREATE OR REPLACE FUNCTION public.send_trial_reminders()
 RETURNS void
 LANGUAGE plpgsql
@@ -108,7 +102,6 @@ BEGIN
     );
 
   -- ── Trial imekwisha: downgrade to free plan (no suspension) ─────────
-  -- Update the trial subscription in-place to become a free subscription
   UPDATE subscriptions
   SET
     status        = 'active',
@@ -120,7 +113,7 @@ BEGIN
     AND status = 'active'
     AND trial_ends_at < NOW();
 
-  -- Notify dalali that trial has ended and they are now on free plan
+  -- Notify dalali that trial ended and they are now on free plan
   INSERT INTO notifications (user_id, type, title, body, is_read, data)
   SELECT
     s.dalali_id,
@@ -133,7 +126,7 @@ BEGIN
   WHERE s.is_trial = FALSE
     AND s.plan = 'free'
     AND s.status = 'active'
-    AND s.trial_started_at IS NOT NULL  -- was a trial at some point
+    AND s.trial_started_at IS NOT NULL
     AND NOT EXISTS (
       SELECT 1 FROM notifications n
       WHERE n.user_id = s.dalali_id AND n.type = 'trial_ended_free_plan'

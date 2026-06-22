@@ -13,7 +13,7 @@ export default async function DashboardSubscriptionPage() {
       .from('subscriptions')
       .select('id, plan, status, expires_at, grace_period_until, starts_at, amount_paid, is_trial, trial_ends_at')
       .eq('dalali_id', user.id)
-      .in('status', ['active', 'grace_period', 'trial_expired'])
+      .in('status', ['active', 'grace_period'])
       .order('expires_at', { ascending: false })
       .maybeSingle(),
 
