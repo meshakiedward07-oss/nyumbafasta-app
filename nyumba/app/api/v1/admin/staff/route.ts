@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       phone,
       staff_title: staffTitle || 'Sales Agent',
       staff_active: true,
-      max_leads_capacity: maxLeadsCapacity ?? 20,
+      max_leads_capacity: maxLeadsCapacity ?? 500,
       must_change_password: true,
     })
     .eq('id', userId)

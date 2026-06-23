@@ -135,7 +135,7 @@ export default function StaffManagementClient() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-gray-50">
+              <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-gray-50">
                 <div className="text-center">
                   <p className="font-bold text-gray-900">{s.activeLeads}</p>
                   <p className="text-[10px] text-gray-400">Active Leads</p>
@@ -144,10 +144,25 @@ export default function StaffManagementClient() {
                   <p className="font-bold text-[#1D9E75]">{s.totalConverted}</p>
                   <p className="text-[10px] text-gray-400">Walisajili</p>
                 </div>
-                <div className="text-center">
-                  <p className="font-bold text-gray-900">{s.max_leads_capacity}</p>
-                  <p className="text-[10px] text-gray-400">Capacity</p>
-                </div>
+              </div>
+              {/* Capacity bar */}
+              <div className="mt-2 pt-2 border-t border-gray-50">
+                {(() => {
+                  const pct = Math.round((s.activeLeads / s.max_leads_capacity) * 100)
+                  const barColor = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-[#1D9E75]'
+                  const textColor = pct >= 90 ? 'text-red-600' : pct >= 70 ? 'text-amber-600' : 'text-[#1D9E75]'
+                  return (
+                    <>
+                      <div className="flex justify-between text-[10px] mb-1">
+                        <span className="text-gray-400">{s.activeLeads} / {s.max_leads_capacity} leads</span>
+                        <span className={`font-medium ${textColor}`}>{pct}%</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-1.5">
+                        <div className={`h-1.5 rounded-full ${barColor}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
 
               {/* Actions */}
@@ -264,7 +279,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
   const [phone,        setPhone]        = useState('255')
   const [email,        setEmail]        = useState('')
   const [title,        setTitle]        = useState('Sales Agent')
-  const [capacity,     setCapacity]     = useState(20)
+  const [capacity,     setCapacity]     = useState(500)
   const [roleTemplate, setRoleTemplate] = useState('')
   const [saving,       setSaving]       = useState(false)
   const [error,        setError]        = useState('')
@@ -357,20 +372,34 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
 
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1">
-              Ukomo wa Leads ({capacity})
+              Ukomo wa Leads
             </label>
             <input
-              type="range"
-              min={5}
-              max={50}
-              step={5}
+              type="number"
+              min={1}
+              max={9999}
+              step={50}
               value={capacity}
               onChange={e => setCapacity(Number(e.target.value))}
-              className="w-full accent-[#1D9E75]"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
             />
-            <div className="flex justify-between text-[10px] text-gray-400">
-              <span>5</span><span>50</span>
+            <div className="flex gap-1.5 mt-1.5">
+              {[100, 250, 500, 1000].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setCapacity(n)}
+                  className={`flex-1 text-xs py-1.5 rounded-lg border transition-all ${
+                    capacity === n
+                      ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                      : 'text-gray-500 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
             </div>
+            <p className="text-[10px] text-gray-400 mt-1">Default: 500 leads kwa kila staff</p>
           </div>
 
           <div>
@@ -571,17 +600,33 @@ function EditStaffModal({
 
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1">
-              Ukomo wa Leads ({capacity})
+              Ukomo wa Leads
             </label>
             <input
-              type="range"
-              min={5}
-              max={50}
-              step={5}
+              type="number"
+              min={1}
+              max={9999}
+              step={50}
               value={capacity}
               onChange={e => setCapacity(Number(e.target.value))}
-              className="w-full accent-[#1D9E75]"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
             />
+            <div className="flex gap-1.5 mt-1.5">
+              {[100, 250, 500, 1000].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setCapacity(n)}
+                  className={`flex-1 text-xs py-1.5 rounded-lg border transition-all ${
+                    capacity === n
+                      ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                      : 'text-gray-500 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex gap-2 pt-1">
