@@ -90,7 +90,7 @@ LEFT JOIN dalali_profiles dp ON dp.user_id = u.id
 LEFT JOIN LATERAL (
   SELECT plan FROM subscriptions
   WHERE dalali_id = u.id
-    AND status IN ('active', 'grace_period', 'trial')
+    AND status::text IN ('active', 'grace_period', 'trial')
   ORDER BY created_at DESC
   LIMIT 1
 ) s ON true
