@@ -49,7 +49,7 @@ CREATE OR REPLACE VIEW dalali_listing_activity AS
 SELECT
   u.id,
   u.full_name                                            AS name,
-  u.email,
+  au.email,
   u.phone,
   u.created_at                                           AS registered_at,
   u.last_listing_at,
@@ -86,6 +86,7 @@ SELECT
   END                                                    AS risk_level
 
 FROM users u
+LEFT JOIN auth.users au ON au.id = u.id
 LEFT JOIN dalali_profiles dp ON dp.user_id = u.id
 LEFT JOIN LATERAL (
   SELECT plan FROM subscriptions
@@ -97,7 +98,7 @@ LEFT JOIN LATERAL (
 LEFT JOIN listings l ON l.dalali_id = u.id
 WHERE u.role = 'dalali'
 GROUP BY
-  u.id, u.full_name, u.email, u.phone, u.created_at,
+  u.id, u.full_name, au.email, u.phone, u.created_at,
   u.last_listing_at, u.listing_warnings_count, u.listing_deadline_days,
   u.account_deletion_scheduled_at, u.is_active,
   dp.whatsapp_number, s.plan;
