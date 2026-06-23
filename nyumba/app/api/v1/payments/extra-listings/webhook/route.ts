@@ -54,6 +54,17 @@ export async function POST(req: NextRequest) {
         })
         .eq('id', subId)
 
+      // Auto-record income (non-blocking)
+      import('@/lib/accounting/incomeTracker')
+        .then(m => m.recordIncomeFromExtraListings({
+          subscriptionId: subId,
+          dalaliId:       sub.dalali_id,
+          count,
+          amount,
+          externalId,
+        }))
+        .catch(e => console.error('[Accounting] recordIncomeFromExtraListings failed (non-fatal):', e))
+
       await admin.from('notifications').insert({
         user_id: sub.dalali_id,
         title:   '✅ Listings za Ziada Zimeongezwa!',

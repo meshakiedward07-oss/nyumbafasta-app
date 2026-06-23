@@ -144,6 +144,41 @@ export async function recordIncomeFromBoost(boostPaymentId: string): Promise<voi
   }
 }
 
+// ── Record income from extra listings purchase ────────────────────────────
+export async function recordIncomeFromExtraListings(params: {
+  subscriptionId: string
+  dalaliId:       string
+  count:          number
+  amount:         number
+  externalId:     string
+}): Promise<void> {
+  const { subscriptionId, dalaliId, count, amount, externalId } = params
+  const fee    = amount * AZAMPAY_FEE_PERCENT
+  const txDate = new Date()
+
+  const { error } = await supabaseAdmin.from('income_records').insert({
+    source:           'extra_listing',
+    source_ref_id:    subscriptionId,
+    dalali_id:        dalaliId,
+    amount_tzs:       amount,
+    platform_fee_tzs: parseFloat(fee.toFixed(2)),
+    net_amount_tzs:   parseFloat((amount - fee).toFixed(2)),
+    description:      `Listings za ziada — ${count} listings (TZS ${amount.toLocaleString()})`,
+    reference_number: externalId,
+    transaction_date: txDate.toISOString().split('T')[0],
+    month:            txDate.getMonth() + 1,
+    year:             txDate.getFullYear(),
+    week:             getWeekNumber(txDate),
+    status:           'confirmed',
+  })
+
+  if (error && error.code !== '23505') {
+    console.error('[Accounting] recordIncomeFromExtraListings error:', error.message)
+  } else {
+    console.log('[Accounting] Income recorded — extra listings sub:', subscriptionId, 'TZS', amount)
+  }
+}
+
 // ── Sync all completed payments to income_records ─────────────────────────
 // Pulls from all 3 source tables and inserts missing records idempotently.
 export async function syncAllPaymentsToIncome(): Promise<{ synced: number; skipped: number }> {

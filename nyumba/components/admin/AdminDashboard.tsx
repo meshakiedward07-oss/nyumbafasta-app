@@ -119,6 +119,7 @@ export default function AdminDashboard({
   // ── Main tabs ─────────────────────────────────────────
   const [tab, setTab]   = useState<Tab>(initialTab)
   const [listings, setListings] = useState(pendingListings)
+  const [allListingsState, setAllListingsState] = useState(allListings)
   const [listingStatusFilter, setListingStatusFilter] = useState<string>('pending')
   const [loadingId, setLoadingId]   = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
@@ -147,9 +148,9 @@ export default function AdminDashboard({
   // ── Derived counts ───────────────────────────────────
   const dalaliListingCounts = useMemo(() => {
     const m: Record<string, number> = {}
-    allListings.forEach(l => { if (l.dalali?.id) m[l.dalali.id] = (m[l.dalali.id] ?? 0) + 1 })
+    allListingsState.forEach(l => { if (l.dalali?.id) m[l.dalali.id] = (m[l.dalali.id] ?? 0) + 1 })
     return m
-  }, [allListings])
+  }, [allListingsState])
 
   const clientUnlockCounts = useMemo(() => {
     const m: Record<string, number> = {}
@@ -193,7 +194,9 @@ export default function AdminDashboard({
         body: JSON.stringify({ action }),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? 'Imeshindwa')
+      const newStatus = action === 'approve' ? 'active' : 'rejected'
       setListings(prev => prev.filter(l => l.id !== id))
+      setAllListingsState(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l))
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : 'Hitilafu imetokea')
     } finally {
@@ -617,12 +620,12 @@ export default function AdminDashboard({
           <>
             <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
               {[
-                { key: 'all',      label: `Zote (${allListings.length})` },
-                { key: 'pending',  label: `Zinasubiri (${allListings.filter(l=>l.status==='pending').length})` },
-                { key: 'active',   label: `Zinapatikana (${allListings.filter(l=>l.status==='active').length})` },
-                { key: 'taken',    label: `Zimepangishwa (${allListings.filter(l=>l.status==='taken').length})` },
-                { key: 'rejected', label: `Zilikataliwa (${allListings.filter(l=>l.status==='rejected').length})` },
-                { key: 'expired',  label: `Zimeisha (${allListings.filter(l=>l.status==='expired').length})` },
+                { key: 'all',      label: `Zote (${allListingsState.length})` },
+                { key: 'pending',  label: `Zinasubiri (${allListingsState.filter(l=>l.status==='pending').length})` },
+                { key: 'active',   label: `Zinapatikana (${allListingsState.filter(l=>l.status==='active').length})` },
+                { key: 'taken',    label: `Zimepangishwa (${allListingsState.filter(l=>l.status==='taken').length})` },
+                { key: 'rejected', label: `Zilikataliwa (${allListingsState.filter(l=>l.status==='rejected').length})` },
+                { key: 'expired',  label: `Zimeisha (${allListingsState.filter(l=>l.status==='expired').length})` },
               ].map(f => (
                 <button key={f.key} onClick={() => setListingStatusFilter(f.key)}
                   className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full transition-colors ${
@@ -636,7 +639,7 @@ export default function AdminDashboard({
             )}
 
             {(() => {
-              const filtered = listingStatusFilter === 'all' ? allListings : allListings.filter(l => l.status === listingStatusFilter)
+              const filtered = listingStatusFilter === 'all' ? allListingsState : allListingsState.filter(l => l.status === listingStatusFilter)
               return filtered.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
                   <div className="text-4xl mb-3">✅</div>
