@@ -38,7 +38,6 @@ let tokenExpiresAt = 0
 
 async function getAuthToken(): Promise<string> {
   if (cachedToken && Date.now() < tokenExpiresAt) {
-    console.log('[AzamPay] Auth token kutoka cache (inaisha:', new Date(tokenExpiresAt).toISOString(), ')')
     return cachedToken
   }
 
@@ -48,21 +47,11 @@ async function getAuthToken(): Promise<string> {
     ? 'https://authenticator-sandbox.azampay.co.tz'
     : 'https://authenticator.azampay.co.tz'
 
-  console.log('[AzamPay] Auth starting. Environment:', cfg.environment)
-  console.log('[AzamPay] Credentials present:', !!cfg.clientId, !!cfg.clientSecret)
-
   const clientId     = cfg.clientId
   const clientSecret = cfg.clientSecret
   const appName      = cfg.appName ?? 'NyumbaFasta'
 
-  console.log('[AzamPay] Auth request body:', {
-    appName,
-    clientId:     `${clientId.slice(0, 8)}... (SET)`,
-    clientSecret: `len=${clientSecret.length} (SET)`,
-  })
-
   const authUrl = `${AUTH_URL}/AppRegistration/GenerateToken`
-  console.log('[AzamPay] Auth URL:', authUrl)
 
   const res = await fetch(authUrl, {
     method: 'POST',
@@ -70,13 +59,10 @@ async function getAuthToken(): Promise<string> {
     body: JSON.stringify({ appName, clientId, clientSecret }),
   })
 
-  console.log('[AzamPay] Auth response status:', res.status, res.statusText)
-
   const rawText = await res.text()
-  console.log('[AzamPay] Auth response body:', rawText.slice(0, 500))
 
   if (!res.ok) {
-    console.error('[AzamPay] Token request FAILED:', res.status, rawText)
+    console.error('[AzamPay] Token request failed:', res.status, rawText.slice(0, 200))
     throw new Error(`AzamPay auth imeshindwa: ${res.status} ${rawText}`)
   }
 
@@ -87,11 +73,9 @@ async function getAuthToken(): Promise<string> {
 
   const token = (data?.data as Record<string, unknown>)?.accessToken as string ?? data?.accessToken as string
   if (!token) {
-    console.error('[AzamPay] Token request FAILED: hakuna accessToken katika jibu:', data)
+    console.error('[AzamPay] Token request failed: hakuna accessToken katika jibu')
     throw new Error('AzamPay: hakuna token katika jibu la auth')
   }
-
-  console.log('[AzamPay] Token received successfully ✓ inaisha:', (data?.data as Record<string, unknown>)?.expire ?? 'unknown')
 
   cachedToken = token
   tokenExpiresAt = Date.now() + 55 * 60 * 1000
@@ -116,8 +100,6 @@ export interface AzamPayResult {
 
 export async function mobileCheckout(params: MobileCheckoutParams): Promise<AzamPayResult> {
   try {
-    console.log('[AzamPay] Starting mobileCheckout...')
-
     const cfg = getConfig()
     const IS_SANDBOX = cfg.environment !== 'production'
     const CHECKOUT_BASE = IS_SANDBOX ? 'https://sandbox.azampay.co.tz' : 'https://checkout.azampay.co.tz'
@@ -134,12 +116,6 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
       ...(params.callbackUrl ? { callbackUrl: params.callbackUrl } : {}),
     }
 
-    console.log('[AzamPay] Checkout payload:', {
-      ...checkoutPayload,
-      accountNumber: params.accountNumber.slice(0, 6) + '...',  // mask last 6 digits
-    })
-    console.log('[AzamPay] Checkout URL:', CHECKOUT_URL)
-
     const res = await fetch(CHECKOUT_URL, {
       method: 'POST',
       headers: {
@@ -149,8 +125,6 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
       },
       body: JSON.stringify(checkoutPayload),
     })
-
-    console.log('[AzamPay] Checkout response status:', res.status, res.statusText)
 
     // Sandbox returns HTTP 200 and immediately closes connection (ECONNRESET on body)
     // Any 2xx = request accepted; body parse failure is normal
@@ -163,14 +137,11 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
         if (rawBody) data = JSON.parse(rawBody)
       } catch { /* empty body or parse error is normal for this gateway */ }
 
-      console.log('[AzamPay] Checkout response body:', rawBody.slice(0, 300) || '(empty — normal for sandbox)')
-
       if (data?.success === false) {
         console.error('[AzamPay] Checkout rejected by gateway:', data)
         return { ok: false, message: String(data.message ?? 'AzamPay ilikataa ombi'), raw: data }
       }
 
-      console.log('[AzamPay] Checkout accepted ✓ externalId:', params.externalId)
       return {
         ok:            true,
         transactionId: String(data?.transactionId ?? data?.data?.transactionId ?? params.externalId),
@@ -186,7 +157,7 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
       rawErr = await res.text()
       if (rawErr) errData = JSON.parse(rawErr)
     } catch { /* ignore */ }
-    console.error('[AzamPay] Checkout FAILED:', res.status, rawErr.slice(0, 300))
+    console.error('[AzamPay] Checkout failed:', res.status, rawErr.slice(0, 200))
     return {
       ok:      false,
       message: String(errData?.message ?? `AzamPay ilikataa: ${res.status}`),

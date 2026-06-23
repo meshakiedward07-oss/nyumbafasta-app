@@ -9,8 +9,6 @@ export async function POST(req: NextRequest) {
   }
   try {
     const rawBody = await req.text()
-    console.log('[Boost Webhook] Received:', rawBody.slice(0, 500))
-
     const payload: WebhookPayload = JSON.parse(rawBody)
     const externalId = getExternalId(payload)
     const succeeded  = isWebhookSuccess(payload)

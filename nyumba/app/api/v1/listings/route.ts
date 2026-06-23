@@ -40,14 +40,17 @@ export async function POST(req: NextRequest) {
     // Check active subscription
     const { data: subscription } = await admin
       .from('subscriptions')
-      .select('plan')
+      .select('plan, extra_listings')
       .eq('dalali_id', user.id)
       .eq('status', 'active')
       .order('expires_at', { ascending: false })
       .maybeSingle()
 
-    // 0 when no active subscription (expired free/paid plan must upgrade)
-    const limit = subscription ? (PLAN_LIMITS[subscription.plan] ?? 0) : 0
+    // 0 when no active subscription; add purchased extra slots on top of plan base
+    const baseLimit  = subscription ? (PLAN_LIMITS[subscription.plan] ?? 0) : 0
+    const extraSlots = subscription?.extra_listings ?? 0
+    const limit      = baseLimit + extraSlots
+
     const { count } = await admin
       .from('listings')
       .select('id', { count: 'exact', head: true })

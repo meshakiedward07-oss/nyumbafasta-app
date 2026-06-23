@@ -3,7 +3,7 @@
 
 -- 1. Add new columns to agent_leads
 ALTER TABLE agent_leads
-  ADD COLUMN IF NOT EXISTS converted_to_profile_id UUID REFERENCES profiles(id),
+  ADD COLUMN IF NOT EXISTS converted_to_profile_id UUID REFERENCES users(id),
   ADD COLUMN IF NOT EXISTS converted_at             TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS first_listing_id         UUID REFERENCES listings(id),
   ADD COLUMN IF NOT EXISTS first_listing_at         TIMESTAMPTZ,
