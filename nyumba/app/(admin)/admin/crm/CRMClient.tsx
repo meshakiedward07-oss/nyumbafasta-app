@@ -1,448 +1,507 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { PIPELINE_STAGES, SOURCE_LABELS, type DalaliLead } from '@/lib/crm/constants'
 import LeadDetailModal from './LeadDetailModal'
 
-// Onboarding pipeline for prospective dalali (agents to recruit)
-const PIPELINE_STAGES = [
-  { id: 'new',        label: 'Mpya',       color: 'bg-blue-500',   emoji: '🆕' },
-  { id: 'contacted',  label: 'Amepigiwa',  color: 'bg-yellow-500', emoji: '📞' },
-  { id: 'interested', label: 'Anapenda',   color: 'bg-orange-500', emoji: '❤️' },
-  { id: 'documents',  label: 'Nyaraka',    color: 'bg-purple-500', emoji: '📄' },
-  { id: 'registered', label: 'Amesajili',  color: 'bg-green-500',  emoji: '✅' },
-  { id: 'lost',       label: 'Amekataa',   color: 'bg-red-500',    emoji: '❌' },
-]
-
-type Lead = {
-  id: string
-  business_name?: string
-  phone?: string
-  whatsapp?: string
-  email?: string
-  region?: string
-  source?: string
-  ai_score?: number
-  ai_notes?: string
-  pipeline_stage?: string
-  preferred_location?: string
-  budget_min?: number
-  budget_max?: number
-  property_type?: string
-  bedrooms?: number
-  created_at: string
+type Stats = {
+  totalActive:       number
+  byStage:           Record<string, number>
+  conversionRate:    number
+  followupsDueToday: number
+  uncontacted:       number
 }
 
-type Stats = { total: number; today: number; closed: number; hot: number }
-
 export default function CRMClient() {
-  const supabase = createClient()
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'pipeline' | 'list'>('pipeline')
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
-  const [stats, setStats] = useState<Stats>({ total: 0, today: 0, closed: 0, hot: 0 })
+  const [view, setView]             = useState<'kanban' | 'list'>('kanban')
+  const [leads, setLeads]           = useState<DalaliLead[]>([])
+  const [stats, setStats]           = useState<Stats | null>(null)
+  const [stage, setStage]           = useState('all')
+  const [search, setSearch]         = useState('')
+  const [loading, setLoading]       = useState(true)
+  const [selectedLead, setSelectedLead] = useState<DalaliLead | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchLeads = useCallback(async () => {
+  const load = useCallback(async (q = search) => {
     setLoading(true)
-    const { data } = await supabase
-      .from('agent_leads')
-      .select('*')
-      .order('created_at', { ascending: false })
-    setLeads((data as Lead[]) || [])
-    setLoading(false)
-  }, [supabase])
-
-  const fetchStats = useCallback(async () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const [total, todayLeads, closed, hot] = await Promise.all([
-      supabase.from('agent_leads').select('id', { count: 'exact', head: true }),
-      supabase.from('agent_leads').select('id', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
-      supabase.from('agent_leads').select('id', { count: 'exact', head: true }).eq('pipeline_stage', 'closed'),
-      supabase.from('agent_leads').select('id', { count: 'exact', head: true }).gte('ai_score', 80),
+    const [leadsRes, statsRes] = await Promise.all([
+      fetch(`/api/v1/crm/leads?stage=${stage}&search=${encodeURIComponent(q)}`).then(r => r.json()),
+      fetch('/api/v1/crm/stats').then(r => r.json()),
     ])
+    setLeads(leadsRes.leads || [])
+    setStats(statsRes)
+    setLoading(false)
+  }, [stage, search])
 
-    setStats({
-      total: total.count || 0,
-      today: todayLeads.count || 0,
-      closed: closed.count || 0,
-      hot: hot.count || 0,
+  useEffect(() => { load() }, [load])
+
+  function handleSearchChange(v: string) {
+    setSearch(v)
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => load(v), 350)
+  }
+
+  async function handleStageMove(leadId: string, newStage: string) {
+    await fetch(`/api/v1/crm/leads/${leadId}/stage`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ stage: newStage }),
     })
-  }, [supabase])
-
-  useEffect(() => {
-    fetchLeads()
-    fetchStats()
-  }, [fetchLeads, fetchStats])
-
-  async function moveLeadToStage(leadId: string, stage: string) {
-    const now = new Date().toISOString()
-    const contactStages = ['contacted', 'interested', 'documents', 'registered']
-    const updates: Record<string, string> = { pipeline_stage: stage }
-    if (contactStages.includes(stage)) updates.last_contacted_at = now
-
-    await supabase
-      .from('agent_leads')
-      .update(updates)
-      .eq('id', leadId)
-
-    // Log stage change as internal communication
-    await supabase.from('lead_communications').insert({
-      lead_id: leadId,
-      type: 'note',
-      direction: 'internal',
-      content: `Stage imebadilishwa hadi: ${stage}`,
-    })
-
-    fetchLeads()
-  }
-
-  function getLeadsByStage(stage: string) {
-    return leads.filter(l => (l.pipeline_stage || 'new') === stage)
-  }
-
-  function getScoreEmoji(score: number) {
-    if (score >= 80) return '🔥'
-    if (score >= 50) return '🌡️'
-    return '❄️'
-  }
-
-  const stageColorMap = Object.fromEntries(PIPELINE_STAGES.map(s => [s.id, s.color]))
-
-  function getScoreColor(score: number) {
-    if (score >= 80) return 'text-green-600 bg-green-100'
-    if (score >= 50) return 'text-yellow-600 bg-yellow-100'
-    return 'text-gray-500 bg-gray-100'
+    load()
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
 
-      {/* ════════════════════════════════
-          DESKTOP VIEW
-      ════════════════════════════════ */}
-      <div className="hidden lg:block p-6">
-        {/* Desktop header */}
-        <div className="flex items-center justify-between mb-6">
+      {/* ── Header ─────────────────────────────────── */}
+      <div className="bg-white border-b px-4 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">🎯 CRM — Lead Pipeline</h1>
-            <p className="text-gray-500 text-sm mt-0.5">
-              Leads {stats.total} · Leo +{stats.today} · 🔥 Hot {stats.hot} · ✅ Closed {stats.closed}
+            <h1 className="text-lg font-bold text-gray-900">
+              🎯 CRM — Madalali Watarajiwa
+            </h1>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Fuatilia madalali kutoka mawasiliano ya kwanza hadi listing yao ya kwanza
             </p>
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => setView('pipeline')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                view === 'pipeline' ? 'bg-[#1D9E75] text-white' : 'bg-white border border-gray-200 text-gray-600'
-              }`}>
-              🎯 Pipeline
-            </button>
-            <button onClick={() => setView('list')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                view === 'list' ? 'bg-[#1D9E75] text-white' : 'bg-white border border-gray-200 text-gray-600'
-              }`}>
-              📋 List
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex bg-gray-100 p-0.5 rounded-lg">
+              <button
+                onClick={() => setView('kanban')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  view === 'kanban' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'
+                }`}
+              >
+                🎯 Kanban
+              </button>
+              <button
+                onClick={() => setView('list')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  view === 'list' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'
+                }`}
+              >
+                📋 Orodha
+              </button>
+            </div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-[#1D9E75] text-white text-xs px-3 py-2 rounded-xl font-medium"
+            >
+              + Lead Mpya
             </button>
           </div>
         </div>
 
-        {/* Desktop pipeline — 7 columns */}
-        {view === 'pipeline' && (
-          <div className="grid grid-cols-7 gap-3">
-            {PIPELINE_STAGES.map(stage => (
-              <div key={stage.id} className="flex flex-col min-h-64">
-                {/* Stage header */}
-                <div className={`${stage.color} rounded-xl px-3 py-2 mb-3 text-center`}>
-                  <p className="text-white font-semibold text-xs">{stage.emoji} {stage.label}</p>
-                  <p className="text-white/80 text-xs">{getLeadsByStage(stage.id).length}</p>
-                </div>
-                {/* Stage leads */}
-                <div className="space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-280px)]">
-                  {loading && <div className="bg-white rounded-xl h-16 animate-pulse" />}
-                  {getLeadsByStage(stage.id).map(lead => (
-                    <div
-                      key={lead.id}
-                      onClick={() => setSelectedLead(lead)}
-                      className="bg-white rounded-xl p-3 border border-gray-100 cursor-pointer
-                        hover:shadow-md transition-all hover:-translate-y-0.5"
-                    >
-                      <p className="font-semibold text-xs text-gray-800 line-clamp-2 mb-1">
-                        {lead.business_name}
-                      </p>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-400 truncate">{lead.region?.slice(0, 12)}</span>
-                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${getScoreColor(lead.ai_score || 0)}`}>
-                          {lead.ai_score || 0}
-                        </span>
-                      </div>
-                      {lead.phone && (
-                        <p className="text-xs text-gray-400">📞 {lead.phone}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+        {/* Stats */}
+        {stats && (
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+              <p className="text-xl font-bold text-gray-800">{stats.totalActive}</p>
+              <p className="text-xs text-gray-400">Leads Hai</p>
+            </div>
+            <div className="bg-amber-50 rounded-xl p-2.5 text-center">
+              <p className="text-xl font-bold text-amber-600">{stats.followupsDueToday}</p>
+              <p className="text-xs text-gray-400">Follow-up Leo</p>
+            </div>
+            <div className="bg-red-50 rounded-xl p-2.5 text-center">
+              <p className="text-xl font-bold text-red-500">{stats.uncontacted}</p>
+              <p className="text-xs text-gray-400">Hawajaguswa</p>
+            </div>
+            <div className="bg-green-50 rounded-xl p-2.5 text-center">
+              <p className="text-xl font-bold text-green-600">{stats.conversionRate}%</p>
+              <p className="text-xs text-gray-400">Conversion</p>
+            </div>
           </div>
         )}
 
-        {/* Desktop list view */}
+        {/* Search */}
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+          <input
+            type="text"
+            value={search}
+            onChange={e => handleSearchChange(e.target.value)}
+            placeholder="Tafuta jina, simu, mkoa..."
+            className="w-full pl-8 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#1D9E75]"
+          />
+        </div>
+
+        {/* Stage filter pills (list view) */}
         {view === 'list' && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {['Biashara', 'Simu', 'Mkoa', 'Stage', 'Score', 'Tarehe', 'Hatua'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {leads.map(lead => (
-                  <tr key={lead.id} onClick={() => setSelectedLead(lead)}
-                    className="hover:bg-gray-50 cursor-pointer">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span>{getScoreEmoji(lead.ai_score || 0)}</span>
-                        <div>
-                          <p className="font-medium text-sm">{lead.business_name}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <a href={`tel:${lead.phone}`} onClick={e => e.stopPropagation()}
-                        className="text-sm text-blue-600 hover:underline">{lead.phone || '—'}</a>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-600">📍 {lead.region || '—'}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-1 rounded-full text-white ${
-                        stageColorMap[lead.pipeline_stage || 'new'] || 'bg-gray-400'
-                      }`}>
-                        {PIPELINE_STAGES.find(s => s.id === (lead.pipeline_stage || 'new'))?.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getScoreColor(lead.ai_score || 0)}`}>
-                        {lead.ai_score || 0}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs text-gray-400">
-                        {new Date(lead.created_at).toLocaleDateString('sw-TZ')}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {lead.whatsapp && (
-                        <a href={`https://wa.me/${lead.whatsapp.replace(/[^0-9]/g, '')}`}
-                          target="_blank" rel="noopener noreferrer"
-                          onClick={e => e.stopPropagation()}
-                          className="bg-[#25D366] text-white text-xs px-2.5 py-1.5 rounded-lg">
-                          💬 WA
-                        </a>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {!loading && leads.length === 0 && (
-                  <tr><td colSpan={7} className="text-center py-16 text-gray-400">Hakuna leads bado</td></tr>
-                )}
-              </tbody>
-            </table>
+          <div className="flex gap-1.5 mt-2 overflow-x-auto pb-0.5">
+            <button
+              onClick={() => setStage('all')}
+              className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+                stage === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              Zote ({stats?.totalActive ?? '—'})
+            </button>
+            {PIPELINE_STAGES.map(s => (
+              <button
+                key={s.key}
+                onClick={() => setStage(s.key)}
+                className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+                  stage === s.key ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {s.emoji} {s.label} ({stats?.byStage?.[s.key] ?? 0})
+              </button>
+            ))}
           </div>
         )}
       </div>
 
-      {/* ════════════════════════════════
-          MOBILE VIEW
-      ════════════════════════════════ */}
-      <div className="lg:hidden">
+      {/* ── Content ────────────────────────────────── */}
+      <div className="flex-1 overflow-auto">
+        {view === 'kanban' ? (
+          <KanbanView
+            leads={leads}
+            loading={loading}
+            stats={stats}
+            onLeadClick={setSelectedLead}
+            onStageMove={handleStageMove}
+          />
+        ) : (
+          <ListView
+            leads={leads}
+            loading={loading}
+            onLeadClick={setSelectedLead}
+          />
+        )}
+      </div>
 
-      {/* Header */}
-      <header className="bg-[#1D9E75] sticky top-0 z-10 px-4 py-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-white font-bold text-lg">🎯 CRM — Lead Pipeline</h1>
-            <p className="text-green-100 text-xs">
-              Leads {stats.total} | Leo +{stats.today} | 🔥 Hot {stats.hot}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setView('pipeline')}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium ${
-                view === 'pipeline' ? 'bg-white text-[#1D9E75]' : 'bg-white/20 text-white'
-              }`}
-            >
-              🎯 Pipeline
-            </button>
-            <button
-              onClick={() => setView('list')}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium ${
-                view === 'list' ? 'bg-white text-[#1D9E75]' : 'bg-white/20 text-white'
-              }`}
-            >
-              📋 List
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { label: 'Jumla',  value: stats.total,  emoji: '📊' },
-            { label: 'Leo',    value: stats.today,  emoji: '🆕' },
-            { label: 'Closed', value: stats.closed, emoji: '✅' },
-            { label: 'Hot',    value: stats.hot,    emoji: '🔥' },
-          ].map((s, i) => (
-            <div key={i} className="bg-white/20 rounded-xl p-2 text-center">
-              <div className="text-lg">{s.emoji}</div>
-              <div className="text-white font-bold text-sm">{s.value}</div>
-              <div className="text-green-100 text-xs">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </header>
-
-      {/* ── PIPELINE VIEW ── */}
-      {view === 'pipeline' && (
-        <div className="overflow-x-auto px-4 py-4">
-          <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
-            {PIPELINE_STAGES.map(stage => (
-              <div key={stage.id} className="w-72 flex-shrink-0">
-                <div className={`${stage.color} rounded-xl px-3 py-2 mb-3 flex items-center justify-between`}>
-                  <span className="text-white font-semibold text-sm">
-                    {stage.emoji} {stage.label}
-                  </span>
-                  <span className="bg-white/30 text-white text-xs px-2 py-0.5 rounded-full">
-                    {getLeadsByStage(stage.id).length}
-                  </span>
-                </div>
-
-                <div className="space-y-2 min-h-20">
-                  {loading && <div className="bg-white rounded-xl h-20 animate-pulse" />}
-                  {getLeadsByStage(stage.id).map(lead => (
-                    <div
-                      key={lead.id}
-                      onClick={() => setSelectedLead(lead)}
-                      className="bg-white rounded-xl p-3 border border-gray-100 cursor-pointer hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm text-gray-800 line-clamp-1">
-                            {lead.business_name}
-                          </p>
-                          {lead.phone && (
-                            <p className="text-xs text-gray-400">📞 {lead.phone}</p>
-                          )}
-                        </div>
-                        <span className="text-lg ml-1">{getScoreEmoji(lead.ai_score || 0)}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-400">
-                          📍 {lead.region || 'Haijulikani'}
-                        </span>
-                        <span className="text-xs font-bold text-gray-600">
-                          {lead.ai_score || 0}pts
-                        </span>
-                      </div>
-
-                      {/* Move buttons — next 2 stages */}
-                      <div className="flex gap-1 mt-2">
-                        {PIPELINE_STAGES
-                          .filter(s => s.id !== stage.id)
-                          .slice(0, 2)
-                          .map(s => (
-                            <button
-                              key={s.id}
-                              onClick={e => { e.stopPropagation(); moveLeadToStage(lead.id, s.id) }}
-                              className={`text-xs px-2 py-0.5 rounded-full text-white ${s.color}`}
-                            >
-                              → {s.label}
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── LIST VIEW ── */}
-      {view === 'list' && (
-        <div className="px-4 py-4 space-y-3">
-          {leads.map(lead => (
-            <div
-              key={lead.id}
-              onClick={() => setSelectedLead(lead)}
-              className="bg-white rounded-2xl p-4 border border-gray-100 cursor-pointer hover:shadow-md"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{getScoreEmoji(lead.ai_score || 0)}</span>
-                    <p className="font-semibold text-gray-900">{lead.business_name}</p>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    📍 {lead.region} · 📞 {lead.phone || 'Haipo'}
-                  </p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full text-white ${
-                  stageColorMap[lead.pipeline_stage || 'new'] || 'bg-gray-400'
-                }`}>
-                  {PIPELINE_STAGES.find(s => s.id === (lead.pipeline_stage || 'new'))?.label}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2 items-center">
-                  {lead.whatsapp && (
-                    <a
-                      href={`https://wa.me/${lead.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Habari! Ninawasiliana nawe kutoka NyumbaFasta Tanzania. Tungependa kukukaribisha kujiunga nasi kama dalali wa mali. Je, una dakika kuzungumza?')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      className="bg-[#25D366] text-white text-xs px-2 py-1 rounded-lg"
-                    >
-                      💬 WA
-                    </a>
-                  )}
-                  <span className="text-xs text-gray-400">Score: {lead.ai_score || 0}/100</span>
-                </div>
-                <span className="text-xs text-gray-400">
-                  {new Date(lead.created_at).toLocaleDateString('sw-TZ')}
-                </span>
-              </div>
-            </div>
-          ))}
-
-          {!loading && leads.length === 0 && (
-            <div className="text-center py-16">
-              <div className="text-5xl mb-3">🎯</div>
-              <p className="text-gray-500 font-medium">Hakuna leads bado</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      </div> {/* end lg:hidden mobile view */}
-
-      {/* Lead Detail Modal */}
+      {/* ── Lead Detail Panel ───────────────────────── */}
       {selectedLead && (
         <LeadDetailModal
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
-          onUpdate={fetchLeads}
-          stages={PIPELINE_STAGES}
+          onUpdate={() => load()}
         />
       )}
+
+      {/* ── Add Lead Modal ──────────────────────────── */}
+      {showAddModal && (
+        <AddLeadModal
+          onClose={() => setShowAddModal(false)}
+          onAdded={() => { setShowAddModal(false); load() }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── Kanban View ────────────────────────────────────────────────────────────────
+function KanbanView({
+  leads, loading, stats, onLeadClick, onStageMove,
+}: {
+  leads:       DalaliLead[]
+  loading:     boolean
+  stats:       Stats | null
+  onLeadClick: (l: DalaliLead) => void
+  onStageMove: (id: string, stage: string) => void
+}) {
+  const activeStages = PIPELINE_STAGES.filter(s => s.key !== 'amepotea')
+
+  return (
+    <div className="flex gap-3 h-full overflow-x-auto px-4 py-4">
+      {activeStages.map(s => {
+        const stageLeads = leads.filter(l => l.pipeline_stage === s.key)
+        return (
+          <div
+            key={s.key}
+            className="flex-shrink-0 w-[270px] flex flex-col"
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => {
+              const leadId = e.dataTransfer.getData('leadId')
+              if (leadId) onStageMove(leadId, s.key)
+            }}
+          >
+            <div className={`flex items-center justify-between px-3 py-2 rounded-xl mb-2 ${s.bgClass}`}>
+              <span className={`text-xs font-semibold ${s.textClass}`}>
+                {s.emoji} {s.label}
+              </span>
+              <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center
+                bg-white bg-opacity-70 ${s.textClass}`}>
+                {stats?.byStage?.[s.key] ?? stageLeads.length}
+              </span>
+            </div>
+
+            <div className="space-y-2 flex-1 overflow-y-auto min-h-[80px] pb-4">
+              {loading
+                ? [0,1].map(i => <div key={i} className="h-20 bg-white animate-pulse rounded-xl border" />)
+                : stageLeads.length === 0
+                  ? (
+                    <div className="text-center py-6 text-gray-300 text-xs border-2 border-dashed rounded-xl">
+                      Hakuna leads
+                    </div>
+                  )
+                  : stageLeads.map(lead => (
+                    <LeadCard
+                      key={lead.id}
+                      lead={lead}
+                      onClick={() => onLeadClick(lead)}
+                      onDragStart={e => e.dataTransfer.setData('leadId', lead.id)}
+                    />
+                  ))
+              }
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Lead Card ──────────────────────────────────────────────────────────────────
+function LeadCard({
+  lead, onClick, onDragStart,
+}: {
+  lead:        DalaliLead
+  onClick:     () => void
+  onDragStart: (e: React.DragEvent) => void
+}) {
+  const isFollowupDue = lead.next_followup_at && new Date(lead.next_followup_at) <= new Date()
+  const neverContacted = !lead.last_contacted_at
+  const daysSince = lead.last_contacted_at
+    ? Math.floor((Date.now() - new Date(lead.last_contacted_at).getTime()) / 86400000)
+    : null
+
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onClick={onClick}
+      className={`bg-white border rounded-xl p-3 cursor-pointer hover:shadow-md transition-all select-none ${
+        isFollowupDue  ? 'border-amber-300'
+        : neverContacted ? 'border-red-200'
+        : 'border-gray-100'
+      }`}
+    >
+      {isFollowupDue && (
+        <p className="text-xs text-amber-600 font-medium mb-1.5">⏰ Follow-up inahitajika</p>
+      )}
+      {neverContacted && (
+        <p className="text-xs text-red-500 mb-1.5">⚠️ Hajaguswa bado</p>
+      )}
+
+      <p className="font-semibold text-sm text-gray-800 line-clamp-1">
+        {lead.business_name || '—'}
+      </p>
+      <p className="text-xs text-gray-500 mt-0.5">{lead.phone || '—'}</p>
+      {lead.region && (
+        <p className="text-xs text-gray-400">📍 {lead.region}</p>
+      )}
+
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+        <span className="text-xs text-gray-400 truncate">
+          {SOURCE_LABELS[lead.source || '']?.split(' ')[0] || lead.source || '—'}
+        </span>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {(lead.contact_attempts ?? 0) > 0 && (
+            <span className="text-xs text-gray-400">
+              📞{lead.contact_attempts}x
+            </span>
+          )}
+          {daysSince !== null && (
+            <span className={`text-xs ${
+              daysSince > 7 ? 'text-red-400'
+              : daysSince > 3 ? 'text-amber-500'
+              : 'text-gray-400'
+            }`}>
+              {daysSince === 0 ? 'Leo' : `${daysSince}d`}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── List View ──────────────────────────────────────────────────────────────────
+function ListView({
+  leads, loading, onLeadClick,
+}: {
+  leads:       DalaliLead[]
+  loading:     boolean
+  onLeadClick: (l: DalaliLead) => void
+}) {
+  return (
+    <div className="px-4 py-4">
+      <div className="bg-white border rounded-xl overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-50 border-b text-xs text-gray-500 font-medium">
+              <th className="text-left px-4 py-3">Dalali Mtarajiwa</th>
+              <th className="text-left px-4 py-3">Stage</th>
+              <th className="text-left px-4 py-3 hidden md:table-cell">Chanzo</th>
+              <th className="text-left px-4 py-3 hidden md:table-cell">Mawasiliano</th>
+              <th className="text-left px-4 py-3 hidden lg:table-cell">Staff</th>
+              <th className="text-left px-4 py-3">Follow-up</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {loading
+              ? Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  <td colSpan={6} className="px-4 py-3">
+                    <div className="h-4 bg-gray-100 animate-pulse rounded" />
+                  </td>
+                </tr>
+              ))
+              : leads.length === 0
+                ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-12 text-gray-400 text-sm">
+                      Hakuna leads — badilisha filter au ongeza lead mpya
+                    </td>
+                  </tr>
+                )
+                : leads.map(lead => {
+                  const s = PIPELINE_STAGES.find(x => x.key === lead.pipeline_stage)
+                  const isOverdue = lead.next_followup_at && new Date(lead.next_followup_at) <= new Date()
+                  return (
+                    <tr
+                      key={lead.id}
+                      onClick={() => onLeadClick(lead)}
+                      className="hover:bg-gray-50 cursor-pointer"
+                    >
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-medium text-gray-800">
+                          {lead.business_name || '—'}
+                        </p>
+                        <p className="text-xs text-gray-400">{lead.phone}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${s?.badgeClass || ''}`}>
+                          {s?.emoji} {s?.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <span className="text-xs text-gray-500">
+                          {SOURCE_LABELS[lead.source || ''] || lead.source || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <span className="text-xs text-gray-500">
+                          {lead.contact_attempts ?? 0}x
+                          {lead.last_contacted_at && (
+                            <span className="ml-1 text-gray-400">
+                              · {new Date(lead.last_contacted_at).toLocaleDateString('sw-TZ')}
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <span className="text-xs text-gray-500">
+                          {(lead.assigned_staff as { full_name?: string } | null)?.full_name || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {lead.next_followup_at ? (
+                          <span className={`text-xs ${isOverdue ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                            {isOverdue ? '⚠️ ' : ''}
+                            {new Date(lead.next_followup_at).toLocaleDateString('sw-TZ')}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-300">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ── Add Lead Modal ─────────────────────────────────────────────────────────────
+function AddLeadModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const [form, setForm] = useState({
+    business_name: '',
+    phone:         '',
+    whatsapp:      '',
+    region:        '',
+    notes:         '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState('')
+
+  async function submit() {
+    if (!form.business_name.trim()) { setError('Jina linahitajika'); return }
+    setSaving(true)
+    const res = await fetch('/api/v1/crm/leads', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(form),
+    })
+    const data = await res.json()
+    setSaving(false)
+    if (!res.ok) { setError(data.error || 'Hitilafu'); return }
+    onAdded()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+      <div className="bg-white w-full max-w-lg rounded-t-2xl p-5 pb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-gray-800">➕ Ongeza Lead Mpya</h2>
+          <button onClick={onClose} className="text-gray-400 text-xl">✕</button>
+        </div>
+
+        {error && (
+          <p className="text-red-500 text-sm mb-3 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
+        )}
+
+        <div className="space-y-3">
+          <input
+            type="text"
+            placeholder="Jina la dalali / biashara *"
+            value={form.business_name}
+            onChange={e => setForm(f => ({ ...f, business_name: e.target.value }))}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1D9E75]"
+          />
+          <input
+            type="tel"
+            placeholder="Nambari ya simu (255...)"
+            value={form.phone}
+            onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1D9E75]"
+          />
+          <input
+            type="tel"
+            placeholder="WhatsApp (kama tofauti na simu)"
+            value={form.whatsapp}
+            onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1D9E75]"
+          />
+          <input
+            type="text"
+            placeholder="Mkoa / Eneo (mfano: Dar es Salaam)"
+            value={form.region}
+            onChange={e => setForm(f => ({ ...f, region: e.target.value }))}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1D9E75]"
+          />
+          <textarea
+            placeholder="Maelezo (hiari)"
+            value={form.notes}
+            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+            rows={2}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1D9E75] resize-none"
+          />
+        </div>
+
+        <button
+          onClick={submit}
+          disabled={saving || !form.business_name.trim()}
+          className="w-full mt-4 bg-[#1D9E75] text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50"
+        >
+          {saving ? 'Inaongeza...' : 'Ongeza Lead'}
+        </button>
+      </div>
     </div>
   )
 }

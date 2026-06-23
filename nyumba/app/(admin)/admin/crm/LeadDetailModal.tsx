@@ -1,346 +1,243 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import PropertyMatches from './PropertyMatches'
+import { PIPELINE_STAGES, SOURCE_LABELS, type DalaliLead } from '@/lib/crm/constants'
 
-type Stage = { id: string; label: string; color: string; emoji: string }
-
-type Lead = {
-  id: string
-  business_name?: string
-  phone?: string
-  whatsapp?: string
-  email?: string
-  region?: string
-  source?: string
-  ai_score?: number
-  ai_notes?: string
-  pipeline_stage?: string
-  preferred_location?: string
-  budget_min?: number
-  budget_max?: number
-  property_type?: string
-  bedrooms?: number
-}
-
-type Communication = {
-  id: string
-  type: string
-  content: string
+type Activity = {
+  id:        string
+  type:      string
+  direction: string
+  content:   string
   created_at: string
+  staff?:    { full_name?: string } | null
 }
 
-type Task = {
-  id: string
-  title: string
-  type: string
-  priority: string
-  due_date: string
-  is_completed: boolean
-}
-
-type CallLog = {
-  id: string
-  outcome: string
-  duration_seconds: number
-  notes?: string
-  next_action?: string
-  called_at: string
-}
-
-type AIRec = {
-  recommendation: string
-  action: string
-  priority: number
-  reasoning: string
-  best_time: string
-  message_hint: string
+const TYPE_EMOJI: Record<string, string> = {
+  call:     '📞',
+  whatsapp: '💬',
+  note:     '📝',
+  sms:      '📱',
+  email:    '✉️',
 }
 
 export default function LeadDetailModal({
   lead,
   onClose,
   onUpdate,
-  stages,
 }: {
-  lead: Lead
-  onClose: () => void
+  lead:     DalaliLead
+  onClose:  () => void
   onUpdate: () => void
-  stages: Stage[]
 }) {
-  const supabase = createClient()
-  const [tab, setTab] = useState<'info' | 'history' | 'tasks' | 'matches' | 'calls'>('info')
-  const [communications, setCommunications] = useState<Communication[]>([])
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [calls, setCalls] = useState<CallLog[]>([])
-  const [showCallForm, setShowCallForm] = useState(false)
-  const [callForm, setCallForm] = useState({
-    duration_seconds: 0,
-    outcome: 'answered',
-    notes: '',
-    next_action: 'followup',
-  })
-  const [aiRec, setAiRec] = useState<AIRec | null>(null)
-  const [loadingAI, setLoadingAI] = useState(false)
-  const [newNote, setNewNote] = useState('')
-  const [newTask, setNewTask] = useState({
-    title: '',
-    type: 'followup',
-    due_date: '',
-    priority: 'medium',
-  })
-  const [loading, setLoading] = useState(false)
+  const [tab, setTab]               = useState<'info' | 'history' | 'followup'>('info')
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [loadingActivities, setLoadingActivities] = useState(true)
+  const [note, setNote]             = useState('')
+  const [followupDate, setFollowupDate] = useState('')
+  const [followupNote, setFollowupNote] = useState('')
+  const [actioning, setActioning]   = useState(false)
 
   useEffect(() => {
-    fetchCommunications()
-    fetchTasks()
-    fetchCalls()
+    fetchActivities()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.id])
 
-  async function fetchCommunications() {
-    const { data } = await supabase
-      .from('lead_communications')
-      .select('*')
-      .eq('lead_id', lead.id)
-      .order('created_at', { ascending: false })
-    setCommunications(data || [])
+  async function fetchActivities() {
+    setLoadingActivities(true)
+    const res = await fetch(`/api/v1/crm/leads/${lead.id}/activities`)
+    const data = await res.json()
+    setActivities(data.activities || [])
+    setLoadingActivities(false)
   }
 
-  async function fetchTasks() {
-    const { data } = await supabase
-      .from('lead_tasks')
-      .select('*')
-      .eq('lead_id', lead.id)
-      .order('due_date', { ascending: true })
-    setTasks(data || [])
-  }
-
-  async function fetchCalls() {
-    const { data } = await supabase
-      .from('call_logs')
-      .select('*')
-      .eq('lead_id', lead.id)
-      .order('called_at', { ascending: false })
-    setCalls((data as CallLog[]) || [])
-  }
-
-  async function saveCallLog() {
-    setLoading(true)
+  async function callApi(url: string, body: unknown) {
+    setActioning(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      await supabase.from('call_logs').insert({
-        lead_id: lead.id,
-        dalali_id: user?.id,
-        ...callForm,
-      })
-      await supabase.from('lead_communications').insert({
-        lead_id: lead.id,
-        user_id: user?.id,
-        type: 'call',
-        content: `Simu: ${callForm.outcome} — ${callForm.notes || ''}`,
-      })
-      await supabase
-        .from('agent_leads')
-        .update({ last_contacted_at: new Date().toISOString() })
-        .eq('id', lead.id)
-      setShowCallForm(false)
-      setCallForm({ duration_seconds: 0, outcome: 'answered', notes: '', next_action: 'followup' })
-      fetchCalls()
-      fetchCommunications()
-      onUpdate()
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function getAIRecommendation() {
-    setLoadingAI(true)
-    try {
-      const res = await fetch('/api/v1/crm/ai-recommend', {
-        method: 'POST',
+      await fetch(url, {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lead_id: lead.id }),
+        body:    JSON.stringify(body),
       })
-      const data = await res.json() as AIRec
-      setAiRec(data)
+      onUpdate()
+      fetchActivities()
     } finally {
-      setLoadingAI(false)
+      setActioning(false)
     }
   }
 
-  async function addNote() {
-    if (!newNote.trim()) return
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('lead_communications').insert({
-      lead_id: lead.id,
-      user_id: user?.id,
-      type: 'note',
-      content: newNote,
-    })
-    setNewNote('')
-    fetchCommunications()
-    setLoading(false)
-  }
-
-  async function addCommunication(type: string) {
-    const { data: { user } } = await supabase.auth.getUser()
-    const content =
-      type === 'call' ? 'Simu imepigwa' :
-      type === 'whatsapp' ? 'WhatsApp imetumwa' :
-      type === 'viewing' ? 'Viewing imepangwa' :
-      'Mawasiliano'
-    await supabase.from('lead_communications').insert({
-      lead_id: lead.id,
-      user_id: user?.id,
-      type,
-      content,
-    })
-    await supabase
-      .from('agent_leads')
-      .update({ last_contacted_at: new Date().toISOString() })
-      .eq('id', lead.id)
-    fetchCommunications()
-    onUpdate()
-  }
-
-  async function addTask() {
-    if (!newTask.title || !newTask.due_date) return
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('lead_tasks').insert({
-      lead_id: lead.id,
-      assigned_to: user?.id,
-      created_by: user?.id,
-      ...newTask,
-    })
-    setNewTask({ title: '', type: 'followup', due_date: '', priority: 'medium' })
-    fetchTasks()
-    setLoading(false)
-  }
-
-  async function completeTask(taskId: string) {
-    await supabase
-      .from('lead_tasks')
-      .update({ is_completed: true, completed_at: new Date().toISOString() })
-      .eq('id', taskId)
-    fetchTasks()
-  }
-
-  async function moveStage(stage: string) {
-    await supabase
-      .from('agent_leads')
-      .update({ pipeline_stage: stage })
-      .eq('id', lead.id)
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('lead_communications').insert({
-      lead_id: lead.id,
-      user_id: user?.id,
-      type: 'note',
-      content: `Pipeline imebadilishwa → ${stages.find(s => s.id === stage)?.label}`,
-    })
-    fetchCommunications()
-    onUpdate()
-  }
-
-  function getCommIcon(type: string) {
-    const icons: Record<string, string> = {
-      call: '📞', whatsapp: '💬', sms: '📱',
-      email: '✉️', note: '📝', viewing: '🏠', meeting: '🤝',
+  async function patchStage(newStage: string) {
+    setActioning(true)
+    try {
+      await fetch(`/api/v1/crm/leads/${lead.id}/stage`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ stage: newStage }),
+      })
+      onUpdate()
+      fetchActivities()
+    } finally {
+      setActioning(false)
     }
-    return icons[type] || '📌'
   }
 
-  function getPriorityColor(priority: string) {
-    const colors: Record<string, string> = {
-      urgent: 'text-red-600 bg-red-50',
-      high: 'text-orange-600 bg-orange-50',
-      medium: 'text-yellow-600 bg-yellow-50',
-      low: 'text-gray-600 bg-gray-50',
-    }
-    return colors[priority] || colors.medium
+  async function submitNote() {
+    if (!note.trim()) return
+    await callApi(`/api/v1/crm/leads/${lead.id}/note`, { note: note.trim() })
+    setNote('')
   }
 
-  const currentStage = lead.pipeline_stage || 'new'
-  const phoneClean = lead.phone?.replace(/[^0-9]/g, '') || ''
-  const waClean = lead.whatsapp?.replace(/[^0-9]/g, '') || ''
+  async function submitFollowup() {
+    if (!followupDate) return
+    await callApi(`/api/v1/crm/leads/${lead.id}/followup`, {
+      followup_at: new Date(followupDate).toISOString(),
+      note:        followupNote || undefined,
+    })
+    setFollowupDate('')
+    setFollowupNote('')
+  }
+
+  const currentStageIdx = PIPELINE_STAGES.findIndex(s => s.key === lead.pipeline_stage)
+  const nextStage       = PIPELINE_STAGES[currentStageIdx + 1]
+  const currentStage    = PIPELINE_STAGES[currentStageIdx]
+  const phoneClean      = (lead.whatsapp || lead.phone || '').replace(/\D/g, '')
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-      <div className="bg-white w-full rounded-t-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex">
+      {/* Backdrop */}
+      <div className="flex-1 bg-black/30" onClick={onClose} />
 
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
+      {/* Panel */}
+      <div className="w-full max-w-md bg-white shadow-2xl flex flex-col overflow-hidden border-l">
+
+        {/* ── Header ─────────────────────────────────── */}
+        <div className="p-4 border-b flex-shrink-0">
+          <div className="flex items-start justify-between mb-3">
             <div>
-              <h3 className="font-bold text-lg">{lead.business_name}</h3>
-              <p className="text-gray-400 text-xs">{lead.phone} · {lead.region}</p>
+              <h2 className="font-bold text-lg text-gray-900 leading-tight">
+                {lead.business_name || '—'}
+              </h2>
+              <p className="text-sm text-gray-500">{lead.phone}</p>
+              {lead.region && (
+                <p className="text-xs text-gray-400 mt-0.5">📍 {lead.region}</p>
+              )}
             </div>
-            <button onClick={onClose} className="text-gray-400 text-xl">✕</button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-3 mt-0.5">
+              <span className="text-xl">✕</span>
+            </button>
           </div>
 
-          {/* Quick actions */}
-          <div className="flex gap-2 mb-3 overflow-x-auto">
-            {lead.whatsapp && (
+          {/* Pipeline progress bar */}
+          <div className="flex gap-0.5 mb-1">
+            {PIPELINE_STAGES.filter(s => s.key !== 'amepotea').map((s, i) => {
+              const isPast   = i < currentStageIdx
+              const isCurrent = i === currentStageIdx
+              return (
+                <div
+                  key={s.key}
+                  title={s.label}
+                  className={`flex-1 h-1.5 rounded-full transition-all ${
+                    isPast    ? 'bg-[#1D9E75]'
+                    : isCurrent ? 'bg-[#1D9E75] opacity-60'
+                    : 'bg-gray-200'
+                  }`}
+                />
+              )
+            })}
+          </div>
+          <p className="text-xs text-center text-gray-500">
+            {currentStage?.emoji} {currentStage?.label}
+          </p>
+        </div>
+
+        {/* ── Quick Actions ────────────────────────── */}
+        <div className="px-4 pt-3 pb-2 border-b flex-shrink-0 space-y-2">
+          {/* Contact buttons */}
+          <div className="flex gap-2">
+            {phoneClean && (
               <a
-                href={`https://wa.me/${waClean}`}
+                href={`https://wa.me/${phoneClean}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => addCommunication('whatsapp')}
-                className="flex-shrink-0 bg-[#25D366] text-white text-xs px-3 py-2 rounded-xl font-medium"
+                onClick={() => callApi(`/api/v1/crm/leads/${lead.id}/activity`, { type: 'whatsapp' })}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-green-50 text-green-700
+                  py-2.5 rounded-xl text-sm font-medium border border-green-200"
               >
                 💬 WhatsApp
               </a>
             )}
             {lead.phone && (
               <a
-                href={`tel:${phoneClean}`}
-                onClick={() => addCommunication('call')}
-                className="flex-shrink-0 bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-medium"
+                href={`tel:+${lead.phone.replace(/\D/g, '')}`}
+                onClick={() => callApi(`/api/v1/crm/leads/${lead.id}/activity`, { type: 'call' })}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-blue-50 text-blue-700
+                  py-2.5 rounded-xl text-sm font-medium border border-blue-200"
               >
                 📞 Piga Simu
               </a>
             )}
-            <button
-              onClick={() => addCommunication('meeting')}
-              className="flex-shrink-0 bg-purple-500 text-white text-xs px-3 py-2 rounded-xl font-medium"
-            >
-              🤝 Panga Mazungumzo
-            </button>
           </div>
 
-          {/* Pipeline stage selector */}
-          <div className="flex gap-1 overflow-x-auto pb-1">
-            {stages.filter(s => s.id !== 'lost').map(stage => (
+          {/* Call result */}
+          <div className="flex gap-1.5">
+            {[
+              { result: 'answered',    label: '✅ Alijibu' },
+              { result: 'no_answer',   label: '🔕 Hakujibu' },
+              { result: 'unreachable', label: '🚫 Hapatikani' },
+            ].map(({ result, label }) => (
               <button
-                key={stage.id}
-                onClick={() => moveStage(stage.id)}
-                className={`flex-shrink-0 text-xs px-2 py-1 rounded-full font-medium transition-all ${
-                  currentStage === stage.id
-                    ? stage.color + ' text-white scale-105'
+                key={result}
+                disabled={actioning}
+                onClick={() => callApi(`/api/v1/crm/leads/${lead.id}/call`, { result })}
+                className="flex-1 text-xs py-1.5 border border-gray-200 rounded-lg
+                  hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Stage progression */}
+          {nextStage && nextStage.key !== 'amepotea' && (
+            <button
+              disabled={actioning}
+              onClick={() => patchStage(nextStage.key)}
+              className="w-full flex items-center justify-center gap-2 bg-[#1D9E75] text-white
+                py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+            >
+              ↗ Hatua Inayofuata: {nextStage.emoji} {nextStage.label}
+            </button>
+          )}
+
+          {/* Stage picker */}
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+            {PIPELINE_STAGES.map(s => (
+              <button
+                key={s.key}
+                disabled={actioning}
+                onClick={() => patchStage(s.key)}
+                className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium
+                  transition-all disabled:opacity-50 ${
+                  lead.pipeline_stage === s.key
+                    ? `${s.bgClass} ${s.textClass} ring-1 ring-current`
                     : 'bg-gray-100 text-gray-500'
                 }`}
               >
-                {stage.emoji} {stage.label}
+                {s.emoji} {s.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-100 px-4 overflow-x-auto">
-          {([
-            { id: 'info', label: 'ℹ️ Info' },
-            { id: 'history', label: '📋 Historia' },
-            { id: 'tasks', label: '✅ Tasks' },
-            { id: 'calls', label: '📞 Simu' },
-            { id: 'matches', label: '🏠 Nyumba' },
-          ] as const).map(t => (
+        {/* ── Tabs ─────────────────────────────────── */}
+        <div className="flex border-b flex-shrink-0">
+          {[
+            { id: 'info',     label: 'ℹ️ Info' },
+            { id: 'history',  label: '📋 Historia' },
+            { id: 'followup', label: '📅 Follow-up' },
+          ].map(t => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-3 py-3 text-xs font-medium border-b-2 transition-colors ${
+              onClick={() => setTab(t.id as typeof tab)}
+              className={`flex-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${
                 tab === t.id
                   ? 'border-[#1D9E75] text-[#1D9E75]'
                   : 'border-transparent text-gray-400'
@@ -351,115 +248,131 @@ export default function LeadDetailModal({
           ))}
         </div>
 
-        <div className="p-4">
+        {/* ── Tab content ──────────────────────────── */}
+        <div className="flex-1 overflow-y-auto p-4">
 
-          {/* INFO TAB */}
+          {/* INFO */}
           {tab === 'info' && (
             <div className="space-y-3">
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Dalali Mtarajiwa
-                </p>
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2.5">
                 {[
-                  { label: '📞 Simu', value: lead.phone },
+                  { label: '📞 Simu',     value: lead.phone },
                   { label: '💬 WhatsApp', value: lead.whatsapp },
-                  { label: '✉️ Email', value: lead.email },
-                  { label: '📍 Mkoa', value: lead.region },
-                  { label: '📡 Source', value: lead.source },
-                  { label: '🤖 Score', value: lead.ai_score != null ? `${lead.ai_score}/100` : null },
-                ].filter(i => i.value).map((item, i) => (
-                  <div key={i} className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">{item.label}</span>
-                    <span className="text-sm font-medium">{item.value}</span>
+                  { label: '📍 Mkoa',     value: lead.region },
+                  { label: '📡 Chanzo',   value: SOURCE_LABELS[lead.source || ''] || lead.source },
+                  {
+                    label: '🔄 Mawasiliano',
+                    value: `${lead.contact_attempts ?? 0} mara${lead.last_contacted_at
+                      ? ` · Mwisho: ${new Date(lead.last_contacted_at).toLocaleDateString('sw-TZ')}`
+                      : ''}`,
+                  },
+                  lead.converted_to_profile_id
+                    ? { label: '✅ Akaunti',   value: 'Amesajili — akaunti imeunganishwa' }
+                    : null,
+                  lead.first_listing_at
+                    ? { label: '🏠 Listing ya 1', value: `${new Date(lead.first_listing_at).toLocaleDateString('sw-TZ')}` }
+                    : null,
+                ].filter(Boolean).map((item, i) => item && (
+                  <div key={i} className="flex items-start justify-between">
+                    <span className="text-xs text-gray-400">{item.label}</span>
+                    <span className="text-xs font-medium text-gray-700 text-right max-w-[60%]">
+                      {item.value}
+                    </span>
                   </div>
                 ))}
               </div>
 
-              {lead.ai_notes && (
-                <div className="bg-purple-50 rounded-xl p-4">
-                  <p className="font-semibold text-sm text-purple-800 mb-2">🤖 AI Analysis</p>
-                  <p className="text-sm text-purple-600">{lead.ai_notes}</p>
+              {lead.notes && (
+                <div className="bg-yellow-50 rounded-xl p-3">
+                  <p className="text-xs font-medium text-yellow-800 mb-1">📝 Maelezo</p>
+                  <p className="text-xs text-yellow-700">{lead.notes}</p>
                 </div>
               )}
 
-              {/* AI Recommendation */}
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="font-semibold text-sm text-purple-800">🤖 AI Recommendation</p>
-                  <button onClick={getAIRecommendation} disabled={loadingAI}
-                    className="bg-purple-500 text-white text-xs px-3 py-1.5 rounded-lg disabled:opacity-50">
-                    {loadingAI ? '⏳ ...' : '✨ Analyze'}
-                  </button>
-                </div>
-                {aiRec ? (
-                  <div className="space-y-2">
-                    <div className="bg-white rounded-xl p-3">
-                      <p className="font-semibold text-sm text-gray-800">{aiRec.recommendation}</p>
-                      <p className="text-xs text-gray-500 mt-1">{aiRec.reasoning}</p>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">
-                        🎯 {aiRec.action}
-                      </span>
-                      <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
-                        ⏰ {aiRec.best_time}
-                      </span>
-                      <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
-                        Priority: {aiRec.priority}/10
-                      </span>
-                    </div>
-                    {aiRec.message_hint && (
-                      <div className="bg-yellow-50 rounded-xl p-3">
-                        <p className="text-xs font-medium text-yellow-800 mb-1">💬 Message ya kutumia:</p>
-                        <p className="text-xs text-yellow-700">{aiRec.message_hint}</p>
-                      </div>
+              {lead.next_followup_at && (
+                <div className={`rounded-xl p-3 ${
+                  new Date(lead.next_followup_at) <= new Date()
+                    ? 'bg-amber-50 border border-amber-200'
+                    : 'bg-blue-50'
+                }`}>
+                  <p className="text-xs font-medium text-blue-800 mb-0.5">📅 Follow-up Iliyopangwa</p>
+                  <p className="text-xs text-blue-600">
+                    {new Date(lead.next_followup_at).toLocaleDateString('sw-TZ', {
+                      weekday: 'long', day: 'numeric', month: 'long',
+                    })}
+                    {new Date(lead.next_followup_at) <= new Date() && (
+                      <span className="ml-1 text-amber-600 font-medium"> — ilikwisha!</span>
                     )}
-                  </div>
-                ) : (
-                  <p className="text-purple-600 text-sm">
-                    Bonyeza &quot;Analyze&quot; kupata shauri la AI kuhusu lead hii
                   </p>
-                )}
-              </div>
+                </div>
+              )}
+
+              {lead.assigned_staff && (
+                <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#1D9E75] flex items-center justify-center
+                    text-white text-xs font-bold flex-shrink-0">
+                    {(lead.assigned_staff as { full_name?: string }).full_name?.[0] || '?'}
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-700">
+                      {(lead.assigned_staff as { full_name?: string }).full_name || '—'}
+                    </p>
+                    <p className="text-xs text-gray-400">Staff aliyegawiwa</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* HISTORY TAB */}
+          {/* HISTORY */}
           {tab === 'history' && (
             <div className="space-y-3">
-              <div className="bg-gray-50 rounded-xl p-3">
-                <textarea
-                  placeholder="Andika note, matokeo ya simu, etc..."
-                  value={newNote}
-                  onChange={e => setNewNote(e.target.value)}
-                  rows={3}
-                  className="w-full bg-transparent text-sm resize-none focus:outline-none"
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  placeholder="Andika kumbuka hapa..."
+                  className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2
+                    focus:outline-none focus:border-[#1D9E75]"
+                  onKeyDown={e => { if (e.key === 'Enter' && note.trim()) submitNote() }}
                 />
                 <button
-                  onClick={addNote}
-                  disabled={!newNote.trim() || loading}
-                  className="w-full bg-[#1D9E75] text-white py-2 rounded-xl text-sm font-medium disabled:opacity-50 mt-2"
+                  onClick={submitNote}
+                  disabled={!note.trim() || actioning}
+                  className="bg-gray-800 text-white px-3 rounded-xl text-sm disabled:opacity-50"
                 >
-                  {loading ? 'Inahifadhi...' : '📝 Hifadhi Note'}
+                  💾
                 </button>
               </div>
 
-              {communications.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-400 text-sm">Hakuna historia bado</p>
+              {loadingActivities ? (
+                <div className="space-y-2">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="h-12 bg-gray-100 animate-pulse rounded-xl" />
+                  ))}
                 </div>
+              ) : activities.length === 0 ? (
+                <p className="text-center text-xs text-gray-400 py-6">
+                  Hakuna historia bado — anza kuwasiliana
+                </p>
               ) : (
                 <div className="space-y-2">
-                  {communications.map(comm => (
-                    <div key={comm.id} className="bg-white border border-gray-100 rounded-xl p-3">
-                      <div className="flex items-start gap-2">
-                        <span className="text-xl">{getCommIcon(comm.type)}</span>
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-700">{comm.content}</p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {new Date(comm.created_at).toLocaleString('sw-TZ')}
-                          </p>
-                        </div>
+                  {activities.map(a => (
+                    <div key={a.id} className="flex gap-2.5">
+                      <span className="text-base mt-0.5 flex-shrink-0">
+                        {TYPE_EMOJI[a.type] || '•'}
+                      </span>
+                      <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2">
+                        <p className="text-xs text-gray-700">{a.content}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {(a.staff as { full_name?: string } | null)?.full_name || 'System'}
+                          {' · '}
+                          {new Date(a.created_at).toLocaleDateString('sw-TZ', {
+                            day: '2-digit', month: 'short',
+                            hour: '2-digit', minute: '2-digit',
+                          })}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -468,196 +381,81 @@ export default function LeadDetailModal({
             </div>
           )}
 
-          {/* TASKS TAB */}
-          {tab === 'tasks' && (
+          {/* FOLLOW-UP */}
+          {tab === 'followup' && (
             <div className="space-y-3">
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="font-semibold text-sm mb-3">➕ Task Mpya</p>
-                <input
-                  type="text"
-                  placeholder="Mfano: Piga simu kesho asubuhi"
-                  value={newTask.title}
-                  onChange={e => setNewTask({ ...newTask, title: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none mb-2"
-                />
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <select
-                    value={newTask.type}
-                    onChange={e => setNewTask({ ...newTask, type: e.target.value })}
-                    className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none"
-                  >
-                    <option value="followup">📞 Follow-up</option>
-                    <option value="call">📱 Piga Simu</option>
-                    <option value="viewing">🏠 Viewing</option>
-                    <option value="send_photos">📸 Tuma Picha</option>
-                    <option value="meeting">🤝 Meeting</option>
-                  </select>
-                  <select
-                    value={newTask.priority}
-                    onChange={e => setNewTask({ ...newTask, priority: e.target.value })}
-                    className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none"
-                  >
-                    <option value="urgent">🔴 Haraka</option>
-                    <option value="high">🟠 Juu</option>
-                    <option value="medium">🟡 Kati</option>
-                    <option value="low">🟢 Chini</option>
-                  </select>
+              <p className="text-sm font-medium text-gray-700">📅 Panga Follow-up Mpya</p>
+
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Tarehe na Wakati</label>
+                  <input
+                    type="datetime-local"
+                    value={followupDate}
+                    onChange={e => setFollowupDate(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm
+                      focus:outline-none focus:border-[#1D9E75]"
+                  />
                 </div>
-                <input
-                  type="datetime-local"
-                  value={newTask.due_date}
-                  onChange={e => setNewTask({ ...newTask, due_date: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none mb-2"
-                />
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Kumbuka (hiari)</label>
+                  <input
+                    type="text"
+                    value={followupNote}
+                    onChange={e => setFollowupNote(e.target.value)}
+                    placeholder="Mfano: Piga simu kuhusu usajili"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm
+                      focus:outline-none focus:border-[#1D9E75]"
+                  />
+                </div>
                 <button
-                  onClick={addTask}
-                  disabled={!newTask.title || !newTask.due_date || loading}
-                  className="w-full bg-[#1D9E75] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+                  onClick={submitFollowup}
+                  disabled={!followupDate || actioning}
+                  className="w-full bg-[#1D9E75] text-white py-3 rounded-xl text-sm font-semibold
+                    disabled:opacity-50"
                 >
-                  ➕ Ongeza Task
+                  {actioning ? 'Inahifadhi...' : '📅 Panga Follow-up'}
                 </button>
               </div>
 
-              {tasks.map(task => (
-                <div
-                  key={task.id}
-                  className={`bg-white border rounded-xl p-3 ${
-                    task.is_completed ? 'border-green-100 opacity-60' : 'border-gray-100'
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
+              {/* Quick presets */}
+              <p className="text-xs font-medium text-gray-500">Haraka:</p>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { label: 'Kesho 9am',    hours: 18 },
+                  { label: 'Siku 3',       hours: 72 },
+                  { label: 'Wiki 1',       hours: 168 },
+                ].map(preset => {
+                  const d = new Date(Date.now() + preset.hours * 3600000)
+                  d.setHours(9, 0, 0, 0)
+                  const isoLocal = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+                    .toISOString()
+                    .slice(0, 16)
+                  return (
                     <button
-                      onClick={() => completeTask(task.id)}
-                      className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${
-                        task.is_completed
-                          ? 'bg-green-500 border-green-500'
-                          : 'border-gray-300'
-                      }`}
+                      key={preset.label}
+                      onClick={() => setFollowupDate(isoLocal)}
+                      className="text-xs bg-white border border-gray-200 rounded-xl px-3 py-1.5
+                        hover:bg-gray-50"
                     >
-                      {task.is_completed && <span className="text-white text-xs">✓</span>}
+                      {preset.label}
                     </button>
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${
-                        task.is_completed ? 'line-through text-gray-400' : 'text-gray-800'
-                      }`}>
-                        {task.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityColor(task.priority)}`}>
-                          {task.priority}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          📅 {new Date(task.due_date).toLocaleDateString('sw-TZ')}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  )
+                })}
+              </div>
 
-              {tasks.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-400 text-sm">Hakuna tasks — ongeza ya kwanza!</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* CALLS TAB */}
-          {tab === 'calls' && (
-            <div className="space-y-3">
-              <button onClick={() => setShowCallForm(!showCallForm)}
-                className="w-full bg-blue-500 text-white py-3 rounded-xl font-semibold text-sm">
-                📞 Rekodi Simu Mpya
-              </button>
-
-              {showCallForm && (
-                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">Matokeo ya Simu</label>
-                    <select value={callForm.outcome}
-                      onChange={e => setCallForm(f => ({ ...f, outcome: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
-                      <option value="answered">✅ Alijibu</option>
-                      <option value="no_answer">📵 Hakujibu</option>
-                      <option value="busy">🔴 Busy</option>
-                      <option value="wrong_number">❌ Nambari Mbaya</option>
-                      <option value="callback">📞 Atapigia Baadaye</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">Muda (dakika)</label>
-                    <input type="number" placeholder="0"
-                      value={callForm.duration_seconds ? callForm.duration_seconds / 60 : ''}
-                      onChange={e => setCallForm(f => ({ ...f, duration_seconds: (parseInt(e.target.value) || 0) * 60 }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">Notes</label>
-                    <textarea placeholder="Mazungumzo yalikuwa kuhusu..."
-                      value={callForm.notes}
-                      onChange={e => setCallForm(f => ({ ...f, notes: e.target.value }))}
-                      rows={3}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none resize-none" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">Hatua Inayofuata</label>
-                    <select value={callForm.next_action}
-                      onChange={e => setCallForm(f => ({ ...f, next_action: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
-                      <option value="followup">📞 Follow-up</option>
-                      <option value="send_info">📋 Tuma Maelezo ya NyumbaFasta</option>
-                      <option value="schedule_meeting">🤝 Panga Mazungumzo</option>
-                      <option value="registered">✅ Amejiunga NyumbaFasta</option>
-                      <option value="nurture">💬 Endelea Kuzungumza</option>
-                    </select>
-                  </div>
-                  <button onClick={saveCallLog} disabled={loading}
-                    className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50">
-                    {loading ? 'Inahifadhi...' : '💾 Hifadhi Log'}
-                  </button>
-                </div>
-              )}
-
-              {/* Calls history */}
-              <div className="space-y-2">
-                {calls.length === 0 ? (
-                  <p className="text-center text-gray-400 text-sm py-6">
-                    Hakuna simu zilizorekodiwa bado
-                  </p>
-                ) : calls.map(call => (
-                  <div key={call.id} className="bg-white border border-gray-100 rounded-xl p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        call.outcome === 'answered' ? 'bg-green-100 text-green-700' :
-                        call.outcome === 'no_answer' ? 'bg-red-100 text-red-700' :
-                        'bg-gray-100 text-gray-600'
-                      }`}>
-                        {call.outcome === 'answered' ? '✅ Alijibu' :
-                         call.outcome === 'no_answer' ? '📵 Hakujibu' :
-                         call.outcome === 'busy' ? '🔴 Busy' :
-                         call.outcome}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {call.duration_seconds > 0
-                          ? `${Math.floor(call.duration_seconds / 60)}:${String(call.duration_seconds % 60).padStart(2, '0')} · `
-                          : ''}
-                        {new Date(call.called_at).toLocaleDateString('sw-TZ')}
-                      </span>
-                    </div>
-                    {call.notes && <p className="text-sm text-gray-600">{call.notes}</p>}
-                    {call.next_action && (
-                      <p className="text-xs text-blue-500 mt-1">→ {call.next_action}</p>
-                    )}
-                  </div>
-                ))}
+              {/* Mark as lost */}
+              <div className="pt-4 border-t">
+                <button
+                  disabled={actioning}
+                  onClick={() => patchStage('amepotea')}
+                  className="w-full text-xs text-gray-400 py-2 hover:text-red-500 transition-colors
+                    disabled:opacity-50"
+                >
+                  Weka kama Amepotea — hawezi kupatikana
+                </button>
               </div>
             </div>
-          )}
-
-          {/* PROPERTY MATCHES TAB */}
-          {tab === 'matches' && (
-            <PropertyMatches lead={lead} supabase={supabase} />
           )}
         </div>
       </div>
