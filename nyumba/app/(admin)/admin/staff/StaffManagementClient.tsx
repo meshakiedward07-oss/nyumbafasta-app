@@ -2,6 +2,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import PermissionManagerModal from '@/components/admin/PermissionManagerModal'
 
+type RoleFilter = 'staff' | 'dalali_activity'
+
+type DalaliRow = {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  whatsapp_number: string | null
+  days_since_registration: number
+  days_before_deletion: number | null
+  total_listings_ever: number
+  listing_warnings_count: number
+  risk_level: 'safe' | 'new' | 'at_risk' | 'critical' | 'overdue'
+  listing_deadline_days: number
+}
+
 type StaffMember = {
   id: string
   full_name: string
@@ -18,6 +34,7 @@ type StaffMember = {
 const TITLES = ['Sales Agent', 'Onboarding Specialist', 'Team Lead', 'Customer Success']
 
 export default function StaffManagementClient() {
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('staff')
   const [staff, setStaff]           = useState<StaffMember[]>([])
   const [loading, setLoading]       = useState(true)
   const [showAdd, setShowAdd]             = useState(false)
@@ -58,20 +75,48 @@ export default function StaffManagementClient() {
   return (
     <div className="p-4 lg:p-6 max-w-4xl mx-auto pb-24">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">👨‍💼 Wafanyakazi</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Timu inayoshughulikia madalali watarajiwa
           </p>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="bg-[#1D9E75] text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2"
-        >
-          ➕ Ongeza
-        </button>
+        {roleFilter === 'staff' && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="bg-[#1D9E75] text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2"
+          >
+            ➕ Ongeza
+          </button>
+        )}
       </div>
+
+      {/* Tab switcher */}
+      <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3">
+        {([
+          { key: 'staff',           label: '👥 Wafanyakazi' },
+          { key: 'dalali_activity', label: '⚠️ Hatari (Madalali)' },
+        ] as { key: RoleFilter; label: string }[]).map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setRoleFilter(tab.key)}
+            className={`text-sm px-4 py-1.5 rounded-full font-medium transition-all ${
+              roleFilter === tab.key
+                ? 'bg-[#1D9E75] text-white'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Dalali activity view */}
+      {roleFilter === 'dalali_activity' && <DalaliActivityView />}
+
+      {/* Staff section — hidden when dalali_activity tab active */}
+      {roleFilter === 'dalali_activity' ? null : <>
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
@@ -206,6 +251,9 @@ export default function StaffManagementClient() {
           ))}
         </div>
       )}
+
+      {/* End staff section */}
+      </>}
 
       {/* Add modal */}
       {showAdd && (
@@ -522,6 +570,208 @@ function ActivityFeedModal({
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Dalali Activity View ─────────────────────────────────────────────────────
+function DalaliActivityView() {
+  const [rows,       setRows]       = useState<DalaliRow[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [riskFilter, setRiskFilter] = useState('all')
+  const [extending,  setExtending]  = useState<DalaliRow | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const qs = riskFilter !== 'all' ? `?risk=${riskFilter}` : ''
+    const res = await fetch(`/api/v1/admin/dalali/activity${qs}`)
+    const data = await res.json()
+    setRows(data.dalali ?? [])
+    setLoading(false)
+  }, [riskFilter])
+
+  useEffect(() => { load() }, [load])
+
+  const riskColor: Record<string, string> = {
+    safe:     'bg-green-100 text-green-700',
+    new:      'bg-blue-100 text-blue-700',
+    at_risk:  'bg-amber-100 text-amber-700',
+    critical: 'bg-orange-100 text-orange-700',
+    overdue:  'bg-red-100 text-red-700',
+  }
+  const riskLabel: Record<string, string> = {
+    safe: 'Salama', new: 'Mpya', at_risk: 'Hatarini', critical: 'Muhimu', overdue: 'Imekwisha',
+  }
+
+  return (
+    <div>
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {(['all', 'at_risk', 'critical', 'overdue'] as const).map(r => (
+          <button
+            key={r}
+            onClick={() => setRiskFilter(r)}
+            className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+              riskFilter === r
+                ? 'bg-gray-800 text-white border-gray-800'
+                : 'text-gray-500 border-gray-200'
+            }`}
+          >
+            {r === 'all' ? 'Wote' : riskLabel[r] ?? r}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+          <div className="text-4xl mb-2">✅</div>
+          <p className="font-semibold text-gray-700">Hakuna madalali wenye hatari</p>
+          <p className="text-sm text-gray-400 mt-1">Madalali wote wamechapisha listings</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {rows.map(row => (
+            <div key={row.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-gray-900 text-sm">{row.name}</p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${riskColor[row.risk_level] ?? 'bg-gray-100 text-gray-500'}`}>
+                      {riskLabel[row.risk_level] ?? row.risk_level}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">{row.phone} · {row.email}</p>
+                  <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                    <span>📅 Siku {row.days_since_registration} tangu usajili</span>
+                    <span>🏠 Listings: {row.total_listings_ever}</span>
+                    {row.days_before_deletion !== null && (
+                      <span className={row.days_before_deletion <= 7 ? 'text-red-600 font-semibold' : row.days_before_deletion <= 14 ? 'text-amber-600' : ''}>
+                        ⏳ Siku {row.days_before_deletion} kabla ya kufutwa
+                      </span>
+                    )}
+                  </div>
+                  {row.listing_warnings_count > 0 && (
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Onyo {row.listing_warnings_count} zimetumwa
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setExtending(row)}
+                  className="flex-shrink-0 bg-[#E1F5EE] text-[#1D9E75] text-xs px-3 py-2 rounded-xl font-medium whitespace-nowrap"
+                >
+                  ➕ Panulia
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {extending && (
+        <ExtendDeadlineModal
+          dalali={extending}
+          onClose={() => setExtending(null)}
+          onSaved={() => { setExtending(null); load() }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── Extend Deadline Modal ────────────────────────────────────────────────────
+function ExtendDeadlineModal({
+  dalali,
+  onClose,
+  onSaved,
+}: {
+  dalali: DalaliRow
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [days,   setDays]   = useState(30)
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+
+    const res = await fetch(`/api/v1/admin/dalali/${dalali.id}/extend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ days, reason }),
+    })
+
+    const data = await res.json()
+    setSaving(false)
+
+    if (!res.ok) { setError(data.error ?? 'Imeshindwa'); return }
+    onSaved()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-5">
+        <h3 className="font-bold text-gray-900 mb-1">➕ Panulia Muda</h3>
+        <p className="text-xs text-gray-500 mb-4">{dalali.name}</p>
+
+        {error && (
+          <div className="bg-red-50 text-red-600 text-xs px-3 py-2 rounded-xl mb-3">{error}</div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Siku za Ziada</label>
+            <div className="flex gap-2 mb-2">
+              {[7, 14, 30, 60].map(d => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDays(d)}
+                  className={`flex-1 text-xs py-2 rounded-xl border ${days === d ? 'bg-[#1D9E75] text-white border-[#1D9E75]' : 'border-gray-200 text-gray-600'}`}
+                >
+                  +{d}
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min={1}
+              max={90}
+              value={days}
+              onChange={e => setDays(Number(e.target.value))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Sababu (si lazima)</label>
+            <input
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="mfano: dalali ana mkakati wa kutoa listing wiki ijayo"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm text-gray-600">
+              Ghairi
+            </button>
+            <button type="submit" disabled={saving} className="flex-1 bg-[#1D9E75] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50">
+              {saving ? 'Inahifadhi...' : 'Panulia'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
