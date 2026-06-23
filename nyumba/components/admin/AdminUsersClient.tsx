@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { PLAN_BADGES, getPlan } from '@/lib/config/subscription-plans'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type RoleFilter = 'all' | 'client' | 'dalali' | 'staff'
+type RoleFilter = 'all' | 'client' | 'dalali' | 'staff' | 'dalali_activity'
 
 type UserRow = {
   id: string
@@ -211,10 +211,11 @@ export default function AdminUsersClient() {
 
   // ── Tabs ──────────────────────────────────────────────────────────────────
   const tabs: { key: RoleFilter; label: string; count: number }[] = [
-    { key: 'all',    label: 'Wote',        count: counts.all    },
-    { key: 'client', label: 'Wateja',      count: counts.client },
-    { key: 'dalali', label: 'Madalali',    count: counts.dalali },
-    { key: 'staff',  label: 'Wafanyakazi', count: counts.staff  },
+    { key: 'all',              label: 'Wote',          count: counts.all    },
+    { key: 'client',           label: 'Wateja',        count: counts.client },
+    { key: 'dalali',           label: 'Madalali',      count: counts.dalali },
+    { key: 'staff',            label: 'Wafanyakazi',   count: counts.staff  },
+    { key: 'dalali_activity',  label: '📊 Shughuli',   count: 0             },
   ]
 
   return (
@@ -287,15 +288,18 @@ export default function AdminUsersClient() {
           )}
         </div>
 
+        {/* ── Dalali Activity View ── */}
+        {roleFilter === 'dalali_activity' && <DalaliActivityView />}
+
         {/* ── Error ── */}
-        {(error || actionError) && (
+        {roleFilter !== 'dalali_activity' && (error || actionError) && (
           <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
             {error || actionError}
           </div>
         )}
 
         {/* ── Loading ── */}
-        {loading && (
+        {roleFilter !== 'dalali_activity' && loading && (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl border border-gray-100 h-20 animate-pulse" />
@@ -304,7 +308,7 @@ export default function AdminUsersClient() {
         )}
 
         {/* ── User list ── */}
-        {!loading && users.length === 0 && (
+        {roleFilter !== 'dalali_activity' && !loading && users.length === 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
             <div className="text-4xl mb-2">👥</div>
             <p className="text-sm text-gray-500">
@@ -313,7 +317,7 @@ export default function AdminUsersClient() {
           </div>
         )}
 
-        {!loading && users.length > 0 && (
+        {roleFilter !== 'dalali_activity' && !loading && users.length > 0 && (
           <>
             {/* Desktop table */}
             <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -579,6 +583,347 @@ export default function AdminUsersClient() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DALALI ACTIVITY VIEW
+// ══════════════════════════════════════════════════════════════════════════════
+
+type DalaliActivity = {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  registered_at: string
+  last_listing_at: string | null
+  listing_warnings_count: number | null
+  listing_deadline_days: number | null
+  account_deletion_scheduled_at: string | null
+  is_active: boolean | null
+  whatsapp_number: string | null
+  subscription_plan: string | null
+  days_since_registration: number
+  days_since_last_listing: number | null
+  total_listings_ever: number
+  active_listings: number
+  days_before_deletion: number | null
+  risk_level: 'safe' | 'new' | 'at_risk' | 'critical' | 'overdue'
+}
+
+type ActivityReport = {
+  dalali: DalaliActivity[]
+  total: number
+  summary: { safe: number; new: number; atRisk: number; critical: number; overdue: number }
+}
+
+function DalaliActivityView() {
+  const [report, setReport]       = useState<ActivityReport | null>(null)
+  const [riskFilter, setRiskFilter] = useState('all')
+  const [daysFilter, setDaysFilter] = useState('')
+  const [loading, setLoading]     = useState(true)
+  const [extendModal, setExtendModal] = useState<DalaliActivity | null>(null)
+
+  const loadReport = async (risk = riskFilter, days = daysFilter) => {
+    setLoading(true)
+    const params = new URLSearchParams({ risk })
+    if (days) params.set('days', days)
+    const res = await fetch(`/api/v1/admin/dalali/activity?${params}`)
+    const data = await res.json()
+    setReport(data)
+    setLoading(false)
+  }
+
+  useEffect(() => { loadReport() }, [riskFilter, daysFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const RISK_CARDS = [
+    { key: 'safe',     label: 'Salama',     desc: 'Ana listings',    color: 'green',  count: report?.summary.safe     ?? 0 },
+    { key: 'new',      label: 'Wapya',      desc: 'Chini ya siku 30', color: 'blue',  count: report?.summary.new      ?? 0 },
+    { key: 'at_risk',  label: 'Hatarini',   desc: 'Siku 30–60',      color: 'amber',  count: report?.summary.atRisk   ?? 0 },
+    { key: 'critical', label: 'Hatari Sana',desc: 'Siku 60–85',      color: 'orange', count: report?.summary.critical ?? 0 },
+    { key: 'overdue',  label: 'Imepita',    desc: 'Siku 85+',        color: 'red',    count: report?.summary.overdue  ?? 0 },
+  ] as const
+
+  const colorMap = {
+    green:  { active: 'border-green-500 bg-green-50',   text: 'text-green-600'  },
+    blue:   { active: 'border-blue-500 bg-blue-50',     text: 'text-blue-600'   },
+    amber:  { active: 'border-amber-500 bg-amber-50',   text: 'text-amber-600'  },
+    orange: { active: 'border-orange-500 bg-orange-50', text: 'text-orange-600' },
+    red:    { active: 'border-red-500 bg-red-50',       text: 'text-red-600'    },
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        {RISK_CARDS.map(card => {
+          const c = colorMap[card.color]
+          const active = riskFilter === card.key
+          return (
+            <button
+              key={card.key}
+              onClick={() => setRiskFilter(active ? 'all' : card.key)}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${
+                active ? c.active : 'border-gray-200 hover:border-gray-300 bg-white'
+              }`}
+            >
+              <p className={`text-2xl font-bold ${c.text}`}>{card.count}</p>
+              <p className="text-xs font-medium text-gray-700">{card.label}</p>
+              <p className="text-[10px] text-gray-400">{card.desc}</p>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <button
+          onClick={() => setRiskFilter('all')}
+          className={`text-sm px-3 py-1.5 rounded-lg border ${
+            riskFilter === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'text-gray-600 border-gray-200'
+          }`}
+        >
+          Wote
+        </button>
+        <div className="flex items-center gap-2 ml-auto">
+          <label className="text-xs text-gray-500">Siku bila listing zaidi ya:</label>
+          <select
+            value={daysFilter}
+            onChange={e => setDaysFilter(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+          >
+            <option value="">Chagua...</option>
+            <option value="7">Siku 7+</option>
+            <option value="14">Siku 14+</option>
+            <option value="30">Siku 30+</option>
+            <option value="60">Siku 60+</option>
+            <option value="80">Siku 80+</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Dalali</th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500">Hali</th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500">Alijisajili</th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500">Listings</th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500">Muda Uliosalia</th>
+                <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500">Maonyo</th>
+                <th className="px-3 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {loading
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i}>
+                      <td colSpan={7} className="px-4 py-3">
+                        <div className="h-5 bg-gray-100 animate-pulse rounded" />
+                      </td>
+                    </tr>
+                  ))
+                : (report?.dalali ?? []).map(d => (
+                    <DalaliActivityRow key={d.id} dalali={d} onExtend={() => setExtendModal(d)} />
+                  ))}
+            </tbody>
+          </table>
+        </div>
+        {!loading && (report?.dalali ?? []).length === 0 && (
+          <div className="py-8 text-center text-gray-400 text-sm">
+            Hakuna madalali wanaolingana na filter
+          </div>
+        )}
+      </div>
+
+      {extendModal && (
+        <ExtendDeadlineModal
+          dalali={extendModal}
+          onClose={() => setExtendModal(null)}
+          onExtended={() => { setExtendModal(null); loadReport() }}
+        />
+      )}
+    </div>
+  )
+}
+
+const RISK_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
+  safe:     { bg: 'bg-green-50',  text: 'text-green-700',  label: '✅ Salama'      },
+  new:      { bg: 'bg-blue-50',   text: 'text-blue-700',   label: '🆕 Mpya'       },
+  at_risk:  { bg: 'bg-amber-50',  text: 'text-amber-700',  label: '⚠️ Hatarini'   },
+  critical: { bg: 'bg-orange-50', text: 'text-orange-700', label: '🔴 Hatari Sana' },
+  overdue:  { bg: 'bg-red-50',    text: 'text-red-700',    label: '🚨 Imepita'    },
+}
+
+function DalaliActivityRow({ dalali, onExtend }: { dalali: DalaliActivity; onExtend: () => void }) {
+  const risk = RISK_CONFIG[dalali.risk_level] ?? RISK_CONFIG.new
+  const waNum = (dalali.whatsapp_number ?? dalali.phone ?? '').replace(/\D/g, '')
+
+  return (
+    <tr className={dalali.risk_level === 'overdue' ? 'bg-red-50/30' : ''}>
+      <td className="px-4 py-3">
+        <p className="text-sm font-medium text-gray-900">{dalali.name}</p>
+        <p className="text-xs text-gray-400">{dalali.phone}</p>
+        <p className="text-xs text-gray-400 truncate max-w-[140px]">{dalali.email}</p>
+      </td>
+      <td className="px-3 py-3">
+        <span className={`text-xs px-2 py-1 rounded-full font-medium ${risk.bg} ${risk.text}`}>
+          {risk.label}
+        </span>
+      </td>
+      <td className="px-3 py-3">
+        <p className="text-xs text-gray-600 whitespace-nowrap">
+          {new Date(dalali.registered_at).toLocaleDateString('sw-TZ')}
+        </p>
+        <p className="text-xs text-gray-400">Siku {dalali.days_since_registration} zilizopita</p>
+      </td>
+      <td className="px-3 py-3">
+        {dalali.total_listings_ever > 0 ? (
+          <div>
+            <p className="text-sm font-medium text-green-600">{dalali.total_listings_ever} listings</p>
+            <p className="text-xs text-gray-400">{dalali.active_listings} hai</p>
+            {dalali.days_since_last_listing !== null && (
+              <p className={`text-xs ${dalali.days_since_last_listing > 30 ? 'text-amber-500' : 'text-gray-400'}`}>
+                Siku {dalali.days_since_last_listing} zilizopita
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm font-medium text-red-500">0 listings</p>
+        )}
+      </td>
+      <td className="px-3 py-3">
+        {dalali.risk_level !== 'safe' && dalali.days_before_deletion !== null ? (
+          <div>
+            <p className={`text-sm font-bold ${
+              dalali.days_before_deletion <= 0  ? 'text-red-700'
+              : dalali.days_before_deletion <= 7  ? 'text-red-600'
+              : dalali.days_before_deletion <= 14 ? 'text-orange-500'
+              : 'text-amber-500'
+            }`}>
+              {dalali.days_before_deletion <= 0 ? 'IMEPITA!' : `Siku ${dalali.days_before_deletion}`}
+            </p>
+            <p className="text-[10px] text-gray-400">kabla ya kufutwa</p>
+          </div>
+        ) : (
+          <span className="text-xs text-gray-300">—</span>
+        )}
+      </td>
+      <td className="px-3 py-3 text-center">
+        <p className="text-sm font-medium">{dalali.listing_warnings_count ?? 0}</p>
+        <p className="text-[10px] text-gray-400">maonyo</p>
+      </td>
+      <td className="px-3 py-3">
+        <div className="flex items-center gap-1.5 justify-end">
+          {dalali.risk_level !== 'safe' && (
+            <button
+              onClick={onExtend}
+              className="text-xs px-2.5 py-1.5 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50"
+            >
+              + Muda
+            </button>
+          )}
+          {waNum && (
+            <a
+              href={`https://wa.me/${waNum}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs px-2.5 py-1.5 border border-green-200 text-green-600 rounded-lg hover:bg-green-50"
+            >
+              WA
+            </a>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+function ExtendDeadlineModal({
+  dalali,
+  onClose,
+  onExtended,
+}: {
+  dalali: DalaliActivity
+  onClose: () => void
+  onExtended: () => void
+}) {
+  const [days, setDays]     = useState(30)
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr]       = useState('')
+
+  async function handleExtend() {
+    setSaving(true)
+    setErr('')
+    const res = await fetch(`/api/v1/admin/dalali/${dalali.id}/extend`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ days, reason }),
+    })
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      setErr(d.error ?? 'Imeshindwa')
+      setSaving(false)
+      return
+    }
+    onExtended()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl" onClick={e => e.stopPropagation()}>
+        <h2 className="font-semibold text-gray-900 mb-0.5">Panua Muda — {dalali.name}</h2>
+        <p className="text-xs text-gray-500 mb-4">Siku za ziada kabla ya akaunti kufutwa</p>
+
+        {err && <p className="text-xs text-red-600 mb-3">{err}</p>}
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">Siku za Ziada</label>
+            <div className="flex gap-2">
+              {[7, 14, 30, 60].map(d => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDays(d)}
+                  className={`flex-1 py-2 text-sm rounded-xl border transition-all ${
+                    days === d ? 'bg-[#1D9E75] text-white border-[#1D9E75]' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  +{d}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">Sababu (optional)</label>
+            <input
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              placeholder="mfano: Ana uhakika wa kuweka listing"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2 mt-5">
+          <button onClick={onClose} className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm text-gray-700">
+            Ghairi
+          </button>
+          <button
+            onClick={handleExtend}
+            disabled={saving}
+            className="flex-1 bg-[#1D9E75] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+          >
+            {saving ? 'Inapanua...' : `Panua Siku ${days}`}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

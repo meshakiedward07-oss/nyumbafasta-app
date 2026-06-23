@@ -8,6 +8,7 @@ import type { Listing } from '@/lib/types/database'
 import DalaliBottomNav from '@/components/shared/DalaliBottomNav'
 import NotificationBell from '@/components/shared/NotificationBell'
 import { PLAN_BADGES, getListingLimit, getPlan } from '@/lib/config/subscription-plans'
+import { ListingDeadlineBanner } from '@/components/dalali/ListingDeadlineBanner'
 
 type DalaliProfile = {
   whatsapp_number: string | null
@@ -151,6 +152,9 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
       </div>
 
       <div className="px-4 pt-4 space-y-4">
+
+        {/* ── Listing deadline warning (0 listings) ── */}
+        {stats.totalListings === 0 && <ListingDeadlineBanner />}
 
         {/* ── Subscription / Trial banner ── */}
         {(() => {

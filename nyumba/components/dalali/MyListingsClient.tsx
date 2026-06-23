@@ -8,6 +8,7 @@ import ShareButton from '@/components/shared/ShareButton'
 import BoostModal from '@/components/dalali/BoostModal'
 import QuickEditModal from '@/components/dalali/QuickEditModal'
 import ListingAnalyticsCard from '@/components/dalali/ListingAnalyticsCard'
+import { ListingDeadlineBanner } from '@/components/dalali/ListingDeadlineBanner'
 import type { Listing } from '@/lib/types/database'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -289,6 +290,9 @@ export default function MyListingsClient({ listings: initial }: { listings: List
       </div>
 
       <div className="px-4 pt-4 space-y-3">
+        {/* Deadline banner — only shown to dalali with 0 listings */}
+        {listings.length === 0 && <ListingDeadlineBanner />}
+
         {/* Performance summary */}
         {listings.filter(l => l.status === 'active').length > 0 && (() => {
           const active = listings.filter(l => l.status === 'active')

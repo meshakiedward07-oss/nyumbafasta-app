@@ -7,6 +7,7 @@ import {
   SECONDARY_REGIONS,
   TERTIARY_REGIONS,
 } from '@/lib/agent/regions'
+import { monitorDalaliAccounts } from '@/lib/dalali/accountMonitor'
 
 export const dynamic = 'force-dynamic'
 
@@ -523,6 +524,18 @@ async function runDailyTasks() {
     results.push(`✅ Email unlock summary (admin): ${total} unlocks, Tsh ${revenue.toLocaleString()}`)
   } catch (e) {
     errors.push(`❌ Email unlock notify: ${String(e)}`)
+  }
+
+  // ── 15. Dalali account monitoring — warnings + 90-day deletion ──
+  try {
+    const { warningsSent, accountsDeleted, errors: monitorErrors } =
+      await monitorDalaliAccounts()
+    results.push(
+      `✅ Dalali monitor: ${warningsSent} maonyo, ${accountsDeleted} akaunti zilizofutwa`,
+    )
+    if (monitorErrors.length) errors.push(`❌ Dalali monitor: ${monitorErrors.join('; ')}`)
+  } catch (e) {
+    errors.push(`❌ Dalali monitor: ${String(e)}`)
   }
 
   return Response.json({
