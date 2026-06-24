@@ -406,20 +406,13 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         </Link>
 
         {/* ── Quick actions ── */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Link
             href="/dashboard/listings/new"
             className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-3 shadow-sm"
           >
             <span className="text-2xl">➕</span>
             <span className="text-xs text-gray-600 font-medium text-center leading-tight">Ongeza Listing</span>
-          </Link>
-          <Link
-            href="/dashboard/subscription"
-            className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-3 shadow-sm"
-          >
-            <span className="text-2xl">⭐</span>
-            <span className="text-xs text-gray-600 font-medium text-center leading-tight">Subscription</span>
           </Link>
           <Link
             href="/dashboard/profile"
