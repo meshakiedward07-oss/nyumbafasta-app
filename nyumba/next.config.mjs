@@ -47,11 +47,14 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://maps.googleapis.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.supabase.co https://images.unsplash.com https://*.tile.openstreetmap.org",
+              "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.supabase.co https://images.unsplash.com https://maps.googleapis.com https://maps.gstatic.com https://*.ggpht.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.resend.com https://api.cloudinary.com",
+              // media-src: REQUIRED for <video src="https://*.supabase.co/..."> playback
+              "media-src 'self' https://*.supabase.co blob:",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.resend.com https://api.cloudinary.com https://maps.googleapis.com https://maps.gstatic.com",
+              "worker-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

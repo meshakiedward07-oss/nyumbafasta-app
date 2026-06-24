@@ -1,6 +1,7 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { compressVideo, canCompress, type CompressResult } from '@/lib/video/compress'
 
 interface Props {
   existingVideoUrl?: string | null
@@ -8,162 +9,302 @@ interface Props {
   onRemove?: () => void
 }
 
-const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi']
-const MAX_BYTES = 50 * 1024 * 1024 // 50 MB
+const ALLOWED_TYPES = [
+  'video/mp4', 'video/quicktime', 'video/webm',
+  'video/x-msvideo', 'video/3gpp', 'video/x-matroska',
+]
+const ALLOWED_EXTS  = ['.mp4', '.mov', '.webm', '.avi', '.3gp', '.mkv']
+const MAX_MB        = 500
+const COMPRESS_ABOVE_MB = 50
+
+type Stage = 'idle' | 'compressing' | 'uploading' | 'done' | 'error'
 
 export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Props) {
-  const [videoUrl, setVideoUrl] = useState(existingVideoUrl ?? '')
-  const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [error, setError] = useState('')
+  const [videoUrl, setVideoUrl]     = useState(existingVideoUrl ?? '')
+  const [stage, setStage]           = useState<Stage>(existingVideoUrl ? 'done' : 'idle')
+  const [progress, setProgress]     = useState(0)
+  const [statusText, setStatusText] = useState('')
+  const [error, setError]           = useState('')
+  const [isDragging, setIsDragging] = useState(false)
+  const [compressInfo, setCompressInfo] = useState<{ from: string; to: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  async function handleFile(file: File) {
+  const handleFile = useCallback(async (file: File) => {
     setError('')
+    setCompressInfo(null)
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Aina haifai. Tumia MP4, MOV, au WebM')
+    // Validate type
+    const validType = ALLOWED_TYPES.includes(file.type)
+    const validExt  = ALLOWED_EXTS.some(e => file.name.toLowerCase().endsWith(e))
+    if (!validType && !validExt) {
+      setError('Aina haifai. Tumia MP4, MOV, WebM, au AVI')
+      setStage('error')
       return
     }
-    if (file.size > MAX_BYTES) {
-      setError('Video ni kubwa mno. Max 50MB')
+
+    // Hard max
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setError(`Video ni kubwa mno. Max ${MAX_MB}MB`)
+      setStage('error')
       return
     }
 
-    setUploading(true)
+    const needsCompression = file.size > COMPRESS_ABOVE_MB * 1024 * 1024
+    let fileToUpload = file
+
+    // ── Compression ────────────────────────────────────────────────────────
+    if (needsCompression) {
+      if (!canCompress()) {
+        setError(
+          `Video ni kubwa mno (${(file.size / 1024 / 1024).toFixed(0)}MB). ` +
+          `Kivinjari chako hakisaidii kupunguza video. Tumia MP4 chini ya ${COMPRESS_ABOVE_MB}MB.`
+        )
+        setStage('error')
+        return
+      }
+
+      setStage('compressing')
+      setProgress(0)
+      setStatusText('Inasoma video...')
+
+      const result: CompressResult = await compressVideo(file, (pct) => {
+        setProgress(pct)
+        setStatusText(
+          pct < 15 ? 'Inasoma video...' :
+          pct < 90 ? `Inapunguza ukubwa... ${pct}%` :
+          'Inakamilisha upunguzaji...'
+        )
+      })
+
+      fileToUpload = result.file
+
+      if (result.wasCompressed) {
+        setCompressInfo({
+          from: `${result.originalMB.toFixed(1)}MB`,
+          to:   `${result.compressedMB.toFixed(1)}MB`,
+        })
+      }
+    }
+
+    // ── Upload ─────────────────────────────────────────────────────────────
+    setStage('uploading')
     setProgress(0)
+    setStatusText('Inaanza kupakia...')
 
     try {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         setError('Ingia kwanza kabla ya kupakia video')
-        setUploading(false)
+        setStage('error')
         return
       }
 
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'mp4'
+      const ext  = fileToUpload.name.split('.').pop()?.toLowerCase() || 'mp4'
       const path = `${session.user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
       const base = process.env.NEXT_PUBLIC_SUPABASE_URL!
-      const uploadUrl = `${base}/storage/v1/object/listing-videos/${path}`
 
-      await new Promise<void>((resolve, reject) => {
+      const publicUrl = await new Promise<string>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
 
         xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100))
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100)
+            setProgress(pct)
+            setStatusText(
+              pct < 30 ? 'Inaanza kupakia...' :
+              pct < 80 ? `Inapakia... ${pct}%` :
+              'Karibu kukamilika...'
+            )
+          }
         })
 
         xhr.addEventListener('load', () => {
           if (xhr.status === 200) {
-            const publicUrl = `${base}/storage/v1/object/public/listing-videos/${path}`
-            setVideoUrl(publicUrl)
-            onUploadComplete(publicUrl)
-            resolve()
+            resolve(`${base}/storage/v1/object/public/listing-videos/${path}`)
           } else {
             try {
               const body = JSON.parse(xhr.responseText)
-              reject(new Error(body.error || `Upload ilishindwa (${xhr.status})`))
+              reject(new Error(body.error || `Imeshindwa (${xhr.status})`))
             } catch {
-              reject(new Error(`Upload ilishindwa (${xhr.status})`))
+              reject(new Error(`Imeshindwa (${xhr.status})`))
             }
           }
         })
 
         xhr.addEventListener('error', () => reject(new Error('Hitilafu ya mtandao')))
+        xhr.addEventListener('timeout', () => reject(new Error('Muda umekwisha — jaribu tena')))
 
-        xhr.open('POST', uploadUrl)
+        xhr.timeout = 600_000 // 10 minutes
+        xhr.open('POST', `${base}/storage/v1/object/listing-videos/${path}`)
         xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`)
-        xhr.setRequestHeader('Content-Type', file.type)
+        xhr.setRequestHeader('Content-Type', fileToUpload.type || 'video/mp4')
         xhr.setRequestHeader('x-upsert', 'false')
-        xhr.send(file)
+        xhr.send(fileToUpload)
       })
+
+      setVideoUrl(publicUrl)
+      setStage('done')
+      setProgress(100)
+      onUploadComplete(publicUrl)
+
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Imeshindwa kupakia video')
-    } finally {
-      setUploading(false)
-      setProgress(0)
+      setStage('error')
     }
+  }, [onUploadComplete])
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (f) handleFile(f)
+    e.target.value = ''
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragging(false)
+    const f = e.dataTransfer.files[0]
+    if (f) handleFile(f)
   }
 
   function handleRemove() {
     setVideoUrl('')
+    setStage('idle')
+    setProgress(0)
+    setError('')
+    setCompressInfo(null)
     if (inputRef.current) inputRef.current.value = ''
     onRemove?.()
   }
 
-  if (videoUrl) {
+  // ── Done: video preview ────────────────────────────────────────────────────
+  if (stage === 'done' && videoUrl) {
     return (
       <div className="space-y-2">
-        <div className="relative rounded-xl overflow-hidden border border-gray-200">
+        <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-black">
           <video
+            key={videoUrl}
             src={videoUrl}
             controls
             playsInline
-            className="w-full bg-black"
-            style={{ maxHeight: 200 }}
+            preload="metadata"
+            className="w-full"
+            style={{ maxHeight: 220 }}
+            onError={() => setError('Video imepakiwa lakini inashindwa kuchezwa — jaribu tena')}
           />
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-7 h-7
-                       flex items-center justify-center text-sm font-bold shadow"
+            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white
+                       rounded-full w-7 h-7 flex items-center justify-center text-sm
+                       font-bold shadow transition-colors"
           >
             ✕
           </button>
         </div>
+
+        {compressInfo && (
+          <p className="text-xs text-gray-400">
+            📦 Imepunguzwa: {compressInfo.from} → {compressInfo.to}
+          </p>
+        )}
         <p className="text-xs text-green-600">✅ Video imepakiwa kwa mafanikio</p>
+
+        {error && (
+          <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">⚠️ {error}</p>
+        )}
       </div>
     )
   }
 
+  // ── Compressing / Uploading: progress ────────────────────────────────────
+  if (stage === 'compressing' || stage === 'uploading') {
+    const isCompressing = stage === 'compressing'
+    return (
+      <div className="border-2 border-dashed border-blue-200 rounded-xl p-6 bg-blue-50 space-y-3">
+        <div className="flex items-center gap-3">
+          <span className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-blue-700 truncate">{statusText}</p>
+            <div className="mt-1.5 w-full bg-blue-100 rounded-full h-1.5">
+              <div
+                className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+          <span className="text-xs text-blue-500 flex-shrink-0">{progress}%</span>
+        </div>
+
+        <div className="flex items-center justify-center gap-6 text-xs">
+          <span className={`flex items-center gap-1 ${
+            isCompressing ? 'text-blue-600 font-medium' : 'text-green-600'
+          }`}>
+            {isCompressing ? '⏳' : '✅'} Punguza
+          </span>
+          <span className="text-gray-300">──</span>
+          <span className={`flex items-center gap-1 ${
+            !isCompressing ? 'text-blue-600 font-medium' : 'text-blue-200'
+          }`}>
+            {!isCompressing ? '⏳' : '○'} Pakia
+          </span>
+        </div>
+
+        <p className="text-xs text-blue-400 text-center">Usifunge ukurasa huu</p>
+      </div>
+    )
+  }
+
+  // ── Idle / Error: drop zone ────────────────────────────────────────────────
   return (
     <div className="space-y-2">
       <input
         ref={inputRef}
         type="file"
-        accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/avi"
+        accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/3gpp,.mp4,.mov,.webm,.avi,.3gp"
         className="hidden"
-        disabled={uploading}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+        onChange={handleInputChange}
       />
 
-      <button
-        type="button"
-        onClick={() => !uploading && inputRef.current?.click()}
-        disabled={uploading}
-        className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl
-                   flex flex-col items-center justify-center gap-1.5
-                   text-gray-400 disabled:opacity-60 active:scale-95 transition-all"
+      <div
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current?.click()}
+        className={`w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer
+                    transition-all space-y-1.5 ${
+          isDragging
+            ? 'border-green-400 bg-green-50 scale-[1.01]'
+            : stage === 'error'
+            ? 'border-red-200 bg-red-50'
+            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+        }`}
       >
-        {uploading ? (
-          <div className="w-full px-6 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-              <span className="text-xs text-primary-600 font-medium">Inapakia... {progress}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5">
-              <div
-                className="bg-primary-500 h-1.5 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-400 text-center">Usifunge ukurasa huu</p>
-          </div>
-        ) : (
-          <>
-            <span className="text-2xl">🎥</span>
-            <span className="text-xs font-medium">Bonyeza kupakia video</span>
-            <span className="text-xs text-gray-300">MP4, MOV, WebM — max 50MB</span>
-          </>
+        <span className="text-3xl block">
+          {isDragging ? '📂' : stage === 'error' ? '⚠️' : '🎥'}
+        </span>
+        <p className={`text-sm font-medium ${
+          isDragging ? 'text-green-700' : stage === 'error' ? 'text-red-600' : 'text-gray-600'
+        }`}>
+          {isDragging ? 'Acha video hapa...' : 'Buruta video hapa au bonyeza kuchagua'}
+        </p>
+        <p className="text-xs text-gray-400">MP4, MOV, WebM, AVI · Max 500MB</p>
+        {canCompress() && (
+          <span className="inline-block text-xs text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+            📦 Video kubwa inapunguzwa otomatiki
+          </span>
         )}
-      </button>
+      </div>
 
       {error && (
-        <p className="text-red-500 text-xs flex items-center gap-1">
-          <span>⚠️</span> {error}
+        <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          ⚠️ {error}
         </p>
       )}
+
+      <p className="text-xs text-gray-400">
+        💡 Video inasaidia wateja kuona nyumba vizuri zaidi
+      </p>
     </div>
   )
 }
