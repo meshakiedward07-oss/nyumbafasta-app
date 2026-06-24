@@ -13,6 +13,11 @@ export type Listing = {
   price_monthly: number
   district: string
   region: string
+  ward: string | null
+  mtaa: string | null
+  location_display: string | null
+  address_full: string | null
+  place_id: string | null
   furnished: FurnishedStatus
   amenities: string[]
   images: string[]

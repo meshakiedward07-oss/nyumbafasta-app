@@ -93,6 +93,8 @@ export async function POST(req: NextRequest) {
       description: data.description,
       region: data.region,
       district: data.district,
+      ward: data.ward,
+      mtaa: data.mtaa,
       amenities: data.amenities,
       images: data.images,
       video_url: data.video_url,

@@ -284,10 +284,35 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
         {/* Location */}
         <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">📍 Mahali</h3>
-          <address className="text-gray-600 text-sm not-italic mb-3">
-            {listing.district}, {listing.region}, Tanzania
-          </address>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 Mahali</h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3">
+            <div>
+              <p className="text-xs text-gray-400">Mkoa</p>
+              <p className="text-sm font-medium text-gray-800">{listing.region}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Wilaya</p>
+              <p className="text-sm font-medium text-gray-800">{listing.district}</p>
+            </div>
+            {listing.ward && (
+              <div>
+                <p className="text-xs text-gray-400">Kata</p>
+                <p className="text-sm font-medium text-gray-800">{listing.ward}</p>
+              </div>
+            )}
+            {listing.mtaa && (
+              <div>
+                <p className="text-xs text-gray-400">Mtaa / Kijiji</p>
+                <p className="text-sm font-medium text-gray-800">{listing.mtaa}</p>
+              </div>
+            )}
+          </div>
+          {listing.address_full && (
+            <div className="pt-2 border-t border-gray-100 mb-3">
+              <p className="text-xs text-gray-400 mb-0.5">Anwani Kamili</p>
+              <p className="text-xs text-gray-600">{listing.address_full}</p>
+            </div>
+          )}
           {!!(listing.latitude && listing.longitude) && (
             <SingleListingMap
               latitude={listing.latitude as number}

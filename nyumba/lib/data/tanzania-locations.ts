@@ -172,3 +172,130 @@ export const REGION_SHORT: Record<string, string> = {
 export function shortName(region: string): string {
   return REGION_SHORT[region] ?? region.split(' ')[0]
 }
+
+// ── Wards (Kata) per district ────────────────────────────────────────────────
+// Key: "Region||District"  Value: sorted ward list
+const WARDS_DATA: Record<string, string[]> = {
+  // ── Dar es Salaam ─────────────────────────────────────────────────────────
+  'Dar es Salaam||Ilala': [
+    'Buguruni', 'Chanika', 'Gerezani', 'Jangwani', 'Kariakoo',
+    'Kipawa', 'Kiwalani', 'Kivukoni', 'Kitunda', 'Mchafukoge',
+    'Msimbazi', 'Mtoni', 'Pugu', 'Sandali', 'Segerea',
+    'Tabata', 'Ukonga', 'Upanga Magharibi', 'Upanga Mashariki',
+    'Vingunguti', 'Zingiziwa',
+  ],
+  'Dar es Salaam||Kinondoni': [
+    'Bunju', 'Goba', 'Hananasifu', 'Kawe', 'Kibamba',
+    'Kigogo', 'Kinondoni', 'Kunduchi', 'Magomeni', 'Makongo',
+    'Makuburi', 'Manzese', 'Mburahati', 'Mbweni', 'Mikocheni',
+    'Msasani', 'Mwananyamala', 'Ndugumbi', 'Tandale',
+  ],
+  'Dar es Salaam||Temeke': [
+    'Azimio', 'Chamazi', "Chang'ombe", 'Kibada', 'Keko',
+    'Kurasini', 'Makangarawe', 'Mbagala', 'Miburani',
+    'Mjimwema', 'Pemba Mnazi', 'Satellite', 'Somangila',
+    'Tandika', 'Temeke', 'Toangoma',
+  ],
+  'Dar es Salaam||Ubungo': [
+    'Goba', 'Kibamba', 'Kimara', 'Kwembe', 'Luguruni',
+    'Mabibo', 'Makongo', 'Mbezi', 'Msigani', 'Palestina',
+    'Shangingi', 'Sinza', 'Ubungo',
+  ],
+  'Dar es Salaam||Kigamboni': [
+    'Kibada', "Ng'ombe", 'Somangila', 'Toangoma', 'Vijibweni',
+  ],
+  // ── Dodoma ────────────────────────────────────────────────────────────────
+  'Dodoma||Dodoma Mjini': [
+    "Chang'ombe", 'Chilonwa', 'Hombolo', 'Imagi', 'Ipagala',
+    'Kikuyu', 'Makole', 'Mlimwa', 'Msalato', 'Muungano',
+    'Miyuji', 'Mbabala', 'Nkuhungu', 'Nzuguni', 'Uhuru', 'Zuzu',
+  ],
+  // ── Arusha ────────────────────────────────────────────────────────────────
+  'Arusha||Arusha Mjini': [
+    'Daraja Mbili', 'Elerai', 'Engira', 'Kaloleni', 'Kati',
+    'Kimandolu', 'Kokar', 'Lemara', 'Levolosi', 'Moshono',
+    'Oloirien', 'Sekei', 'Sokon I', 'Sokon II', 'Themi',
+    'Unga Limited',
+  ],
+  'Arusha||Meru': [
+    'Arusha Chini', 'Ngarenanyuki', 'Nkoaranga', 'Poli',
+    'Samaria', 'Songota', 'Usa River',
+  ],
+  // ── Mwanza ────────────────────────────────────────────────────────────────
+  'Mwanza||Nyamagana': [
+    'Buhongwa', 'Igoma', 'Isamilo', 'Kishimba', 'Mahina',
+    'Mkolani', 'Mirongo', 'Nyamagana',
+  ],
+  'Mwanza||Ilemela': [
+    'Buswelu', 'Igogo', 'Ilemela', 'Kiloleli', 'Luchelele',
+    'Mirongo', 'Mwanza Urban', 'Nyamagana',
+  ],
+  // ── Kilimanjaro ───────────────────────────────────────────────────────────
+  'Kilimanjaro||Moshi Mjini': [
+    'Bondeni', 'Kaloleni', 'Kindi', 'Kirima', 'Mji Mpya',
+    'Mwangaria', 'Rau', 'Uru',
+  ],
+  // ── Tanga ─────────────────────────────────────────────────────────────────
+  'Tanga||Tanga Mjini': [
+    'Chumbageni', 'Duga', 'Kaloleni', 'Matopeni', 'Mzingani',
+    'Ngamiani Kaskazini', 'Ngamiani Kusini', 'Pasua',
+    'Tanga', 'Uledi',
+  ],
+  // ── Mbeya ─────────────────────────────────────────────────────────────────
+  'Mbeya||Mbeya Mjini': [
+    'Forest', 'Iganjo', 'Ijombe', 'Ilomba', 'Iyela',
+    'Mwanjelwa', 'Nsalaga', 'Nzovwe', 'Sisimba', 'Thamani', 'Uyole',
+  ],
+  // ── Morogoro ──────────────────────────────────────────────────────────────
+  'Morogoro||Morogoro Mjini': [
+    'Bonde la Mpunga', 'Chamwino', 'Kihonda', 'Kingolwira',
+    'Mji Mpya', 'Mwembesongo', 'Mwere', 'Mzinga', 'Sabasaba',
+  ],
+  // ── Zanzibar ──────────────────────────────────────────────────────────────
+  'Zanzibar Mjini Magharibi||Mjini': [
+    'Fujoni', 'Kariakoo', 'Kibandamaiti', 'Kwahani', 'Mji Mkongwe',
+    'Mlandege', 'Mpendae', 'Mwanakwerekwe', 'Shaurimoyo',
+  ],
+  'Zanzibar Mjini Magharibi||Magharibi A': [
+    'Bumbwini', 'Chaani', 'Fuoni', 'Kinyasini', 'Mahonda', 'Mkwajuni',
+  ],
+  'Zanzibar Mjini Magharibi||Magharibi B': [
+    'Bambao', 'Chwaka', 'Donge', 'Konde', 'Matemwe',
+  ],
+  // ── Kigoma ────────────────────────────────────────────────────────────────
+  'Kigoma||Kigoma Mjini': [
+    'Gungu', 'Kagera', 'Kigoma Mjini', 'Kibirizi', 'Mwanga', 'Ujiji',
+  ],
+  // ── Shinyanga ─────────────────────────────────────────────────────────────
+  'Shinyanga||Shinyanga Mjini': [
+    'Kambarage', 'Lwamgasa', 'Mhongolo', 'Sabasaba', 'Shinyanga Mjini',
+  ],
+  // ── Tabora ────────────────────────────────────────────────────────────────
+  'Tabora||Tabora Mjini': [
+    'Gongoni', 'Isevya', 'Itobo', 'Kalunde', 'Kawawa', 'Lusungo', 'Malolo',
+  ],
+  // ── Iringa ────────────────────────────────────────────────────────────────
+  'Iringa||Iringa Mjini': [
+    'Gangilonga', 'Mji Mpya', 'Mkwawa', 'Ruaha', 'Tosamaganga',
+  ],
+  // ── Mtwara ────────────────────────────────────────────────────────────────
+  'Mtwara||Mtwara Mjini': [
+    'Chuno', 'Dihimba', 'Funo', 'Likombe', 'Mji Mpya', 'Shangani',
+  ],
+  // ── Lindi ─────────────────────────────────────────────────────────────────
+  'Lindi||Lindi Mjini': [
+    'Lindi Mjini', 'Mchinga', 'Mtanda', 'Rasbura',
+  ],
+  // ── Pwani ─────────────────────────────────────────────────────────────────
+  'Pwani||Kibaha Mjini': [
+    'Kibaha Mji', 'Kibaha Mji Mpya', 'Kwala', 'Soga', 'Tungi',
+  ],
+  // ── Njombe ────────────────────────────────────────────────────────────────
+  'Njombe||Njombe Mjini': [
+    'Igominyi', 'Lupembe', 'Makambako', 'Njombe Mjini', "Wanging'ombe",
+  ],
+}
+
+export function getWards(region: string, district: string): string[] {
+  return WARDS_DATA[`${region}||${district}`] ?? []
+}

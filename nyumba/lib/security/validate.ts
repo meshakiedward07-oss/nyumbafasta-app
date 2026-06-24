@@ -18,6 +18,8 @@ export interface ListingInput {
   price_monthly: number
   region: string
   district: string
+  ward: string | null
+  mtaa: string | null
   description: string | null
   bedrooms: number | null
   furnished: string
@@ -118,6 +120,15 @@ export function validateListing(body: unknown): ValidationResult<ListingInput> {
     }
   }
 
+  const ward =
+    typeof body.ward === 'string' && body.ward.trim().length > 0 && body.ward.length <= 100
+      ? body.ward.trim()
+      : null
+  const mtaa =
+    typeof body.mtaa === 'string' && body.mtaa.trim().length > 0 && body.mtaa.length <= 100
+      ? body.mtaa.trim()
+      : null
+
   const latitude = typeof body.latitude === 'number' ? body.latitude : null
   const longitude = typeof body.longitude === 'number' ? body.longitude : null
 
@@ -170,6 +181,8 @@ export function validateListing(body: unknown): ValidationResult<ListingInput> {
       price_monthly: price,
       region,
       district,
+      ward,
+      mtaa,
       description,
       bedrooms,
       furnished,

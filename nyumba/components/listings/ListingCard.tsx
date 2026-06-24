@@ -108,7 +108,12 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
           {/* Location */}
           <p className="text-gray-500 text-xs mb-2 flex items-center gap-1">
             <span>📍</span>
-            <span>{listing.district}, {listing.region}</span>
+            <span>
+              {(listing as { ward?: string | null }).ward
+                ? `${(listing as { ward?: string | null }).ward}, `
+                : ''
+              }{listing.district}, {listing.region}
+            </span>
           </p>
 
           {/* Badges */}

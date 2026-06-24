@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { TANZANIA_REGIONS, getDistricts } from '@/lib/data/tanzania-locations'
+import { TANZANIA_REGIONS, getDistricts, getWards } from '@/lib/data/tanzania-locations'
 import { createClient } from '@/lib/supabase/client'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
 import { VideoUpload } from '@/components/listings/VideoUpload'
@@ -31,6 +31,8 @@ type FormData = {
   description: string
   region: string
   district: string
+  ward: string
+  mtaa: string
   amenities: string[]
   images: string[]
   video_url: string | null
@@ -169,6 +171,8 @@ export default function AddListingWizard() {
     description: '',
     region: '',
     district: '',
+    ward: '',
+    mtaa: '',
     amenities: [],
     images: [],
     video_url: null,
@@ -517,7 +521,9 @@ export default function AddListingWizard() {
                 value={form.region}
                 onChange={e => {
                   set('region', e.target.value)
-                  set('district', '') // reset district when region changes
+                  set('district', '')
+                  set('ward', '')
+                  set('mtaa', '')
                 }}
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                            focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
@@ -536,7 +542,7 @@ export default function AddListingWizard() {
               {form.region && getDistricts(form.region).length > 0 ? (
                 <select
                   value={form.district}
-                  onChange={e => set('district', e.target.value)}
+                  onChange={e => { set('district', e.target.value); set('ward', ''); set('mtaa', '') }}
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                              focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                 >
@@ -550,13 +556,63 @@ export default function AddListingWizard() {
                   type="text"
                   placeholder={form.region ? 'Andika jina la wilaya' : 'Chagua mkoa kwanza'}
                   value={form.district}
-                  onChange={e => set('district', e.target.value)}
+                  onChange={e => { set('district', e.target.value); set('ward', ''); set('mtaa', '') }}
                   disabled={!form.region}
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                              focus:outline-none focus:ring-2 focus:ring-primary-300
                              disabled:bg-gray-50 disabled:text-gray-400"
                 />
               )}
+            </div>
+
+            {/* Kata (Ward) */}
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                Kata
+              </label>
+              {form.district && getWards(form.region, form.district).length > 0 ? (
+                <select
+                  value={form.ward}
+                  onChange={e => set('ward', e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
+                             focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                >
+                  <option value="">Chagua Kata</option>
+                  {getWards(form.region, form.district).map(w => (
+                    <option key={w} value={w}>{w}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  placeholder={form.district ? 'Andika jina la kata (hiari)' : 'Chagua wilaya kwanza'}
+                  value={form.ward}
+                  onChange={e => set('ward', e.target.value)}
+                  disabled={!form.district}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
+                             focus:outline-none focus:ring-2 focus:ring-primary-300
+                             disabled:bg-gray-50 disabled:text-gray-400"
+                />
+              )}
+            </div>
+
+            {/* Mtaa / Kijiji */}
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                Mtaa / Kijiji
+              </label>
+              <input
+                type="text"
+                placeholder={form.district ? 'mfano: Mtaa wa Uhuru, Kijiji cha Mikorosheni...' : 'Chagua wilaya kwanza'}
+                value={form.mtaa}
+                onChange={e => set('mtaa', e.target.value)}
+                disabled={!form.district}
+                maxLength={100}
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
+                           focus:outline-none focus:ring-2 focus:ring-primary-300
+                           disabled:bg-gray-50 disabled:text-gray-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">Ongeza maelezo ya ziada kama barabara au alama (hiari)</p>
             </div>
 
             {/* Location picker map */}
@@ -668,7 +724,9 @@ export default function AddListingWizard() {
                 {form.type === 'duka' && form.shop_size_sqm && <Row label="Ukubwa" value={`${form.shop_size_sqm} m²`} />}
                 {form.type === 'duka' && form.floor_level !== '' && <Row label="Ghorofa" value={form.floor_level === '0' ? 'Chini' : `Ghorofa ${form.floor_level}`} />}
                 {form.type === 'duka' && form.commercial_use && <Row label="Matumizi" value={form.commercial_use} />}
-                <Row label="Mahali" value={`${form.district}, ${form.region}`} />
+                <Row label="Mkoa / Wilaya" value={`${form.district}, ${form.region}`} />
+                {form.ward && <Row label="Kata" value={form.ward} />}
+                {form.mtaa && <Row label="Mtaa" value={form.mtaa} />}
                 {form.amenities.length > 0 && (
                   <Row label="Huduma" value={`${form.amenities.length} zilizochaguliwa`} />
                 )}
