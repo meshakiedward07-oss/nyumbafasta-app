@@ -9,7 +9,7 @@ export interface CompressResult {
 }
 
 const MAX_WIDTH   = 1280
-const MAX_HEIGHT  = 720
+const MAX_HEIGHT  = 1280
 const CAPTURE_FPS = 24
 
 export function canCompress(): boolean {

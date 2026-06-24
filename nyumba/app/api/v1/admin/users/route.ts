@@ -30,10 +30,11 @@ export async function GET(req: NextRequest) {
     const db = createAdminClient()
 
     // Base query — select with related data
+    // NOTE: email is in auth.users (Supabase Auth), NOT in public.users — fetched separately below
     let query = db
       .from('users')
       .select(`
-        id, full_name, email, phone, role, avatar_url, is_active, created_at,
+        id, full_name, phone, role, avatar_url, is_active, created_at,
         dalali_profiles ( whatsapp_number, verification_status, is_premium_verified, rating_avg ),
         subscriptions ( plan, status, expires_at )
       `, { count: 'exact' })
@@ -60,16 +61,22 @@ export async function GET(req: NextRequest) {
       query = query.eq('is_active', false)
     }
 
-    // Search (name, email, phone)
+    // Search (name, phone — email is in auth.users so not searchable via PostgREST)
     if (q) {
-      query = query.or(
-        `full_name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`
-      )
+      query = query.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`)
     }
 
     const { data, count, error } = await query
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Merge emails from Supabase Auth (stored in auth.users, not public.users)
+    let emailMap: Map<string, string | null> = new Map()
+    try {
+      const { data: { users: authUsers } } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 })
+      emailMap = new Map(authUsers.map(u => [u.id, u.email ?? null]))
+    } catch { /* non-fatal — email shows as null if auth API fails */ }
+    const enriched = (data ?? []).map(u => ({ ...u, email: emailMap.get(u.id) ?? null }))
 
     // Counts per role (for tab badges) — always full counts, no search filter
     const [clientCount, dalaliCount, staffCount] = await Promise.all([
@@ -79,7 +86,7 @@ export async function GET(req: NextRequest) {
     ])
 
     return NextResponse.json({
-      users:       data ?? [],
+      users:       enriched,
       total:       count ?? 0,
       page,
       per_page:    perPage,

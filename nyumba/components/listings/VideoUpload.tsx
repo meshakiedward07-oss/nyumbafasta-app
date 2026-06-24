@@ -2,6 +2,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { compressVideo, canCompress, type CompressResult } from '@/lib/video/compress'
+import { VideoPlayer } from '@/components/listings/VideoPlayer'
 
 interface Props {
   existingVideoUrl?: string | null
@@ -181,21 +182,12 @@ export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Pr
   if (stage === 'done' && videoUrl) {
     return (
       <div className="space-y-2">
-        <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-black">
-          <video
-            key={videoUrl}
-            src={videoUrl}
-            controls
-            playsInline
-            preload="metadata"
-            className="w-full"
-            style={{ maxHeight: 220 }}
-            onError={() => setError('Video imepakiwa lakini inashindwa kuchezwa — jaribu tena')}
-          />
+        <div className="relative">
+          <VideoPlayer src={videoUrl} />
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white
+            className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white
                        rounded-full w-7 h-7 flex items-center justify-center text-sm
                        font-bold shadow transition-colors"
           >

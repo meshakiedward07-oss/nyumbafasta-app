@@ -40,11 +40,12 @@ export default async function DalaliDetailPage({ params }: { params: { id: strin
 
   const admin = createAdminClient()
 
-  const [userRes, listingsRes, leadsRes] = await Promise.all([
+  // email is in auth.users (Supabase Auth), NOT in public.users
+  const [userRes, listingsRes, leadsRes, authRes] = await Promise.all([
     admin
       .from('users')
       .select(`
-        id, full_name, email, phone, avatar_url, is_active, created_at,
+        id, full_name, phone, avatar_url, is_active, created_at,
         dalali_profiles ( whatsapp_number, bio, rating_avg, rating_count, is_premium_verified, verification_status, verification_rejected_reason ),
         subscriptions ( plan, status, expires_at, amount_paid )
       `)
@@ -62,13 +63,16 @@ export default async function DalaliDetailPage({ params }: { params: { id: strin
       .select('id', { count: 'exact', head: true })
       .eq('dalali_id', params.id)
       .eq('status', 'completed'),
+
+    admin.auth.admin.getUserById(params.id).catch(() => ({ data: { user: null }, error: null })),
   ])
 
   if (!userRes.data) notFound()
 
-  const raw = userRes.data as unknown as Omit<DalaliDetail, 'listings_count' | 'leads_count' | 'total_views'>
+  const raw = userRes.data as unknown as Omit<DalaliDetail, 'email' | 'listings_count' | 'leads_count' | 'total_views'>
   const dalali: DalaliDetail = {
     ...raw,
+    email: authRes.data?.user?.email ?? null,
     listings_count: listingsRes.count ?? 0,
     leads_count: leadsRes.count ?? 0,
     total_views: (listingsRes.data ?? []).reduce((sum, l) => sum + ((l as { view_count?: number }).view_count ?? 0), 0),

@@ -12,6 +12,7 @@ import UnlockModal from '@/components/payments/UnlockModal'
 import ReviewList from '@/components/listings/ReviewList'
 import ReportDalaliModal from '@/components/listings/ReportDalaliModal'
 import NeighborhoodInfo from '@/components/listings/NeighborhoodInfo'
+import { VideoPlayer } from '@/components/listings/VideoPlayer'
 
 const SimilarListings = dynamic(
   () => import('@/components/listings/SimilarListings'),
@@ -225,14 +226,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
       {videoUrl && (
         <div className="px-4 pt-3">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">🎥 Video ya Nyumba</p>
-          <video
-            src={videoUrl}
-            controls
-            playsInline
-            poster={images[0]}
-            className="w-full rounded-2xl bg-black shadow-sm"
-            style={{ maxHeight: 260 }}
-          />
+          <VideoPlayer src={videoUrl} poster={images[0]} />
         </div>
       )}
 
