@@ -140,7 +140,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           {[
             { label: 'Listings', value: stats.totalListings },
             { label: 'Zinafanya kazi', value: stats.activeCount },
-            { label: 'Maoni', value: stats.totalViews },
+            { label: 'Waliotazama', value: stats.totalViews },
             { label: 'Leads', value: stats.totalLeads },
           ].map(s => (
             <div key={s.label} className="bg-white/15 rounded-xl p-2.5 text-center">

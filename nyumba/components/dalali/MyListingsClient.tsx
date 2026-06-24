@@ -305,7 +305,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                 <p className="text-xs font-semibold text-gray-800 truncate">
                   {TYPE[best.type] || best.type} — {best.district}
                 </p>
-                <p className="text-[10px] text-primary-600">{best.view_count ?? 0} maoni</p>
+                <p className="text-[10px] text-primary-600">{best.view_count ?? 0} waliotazama</p>
               </div>
               {worst.id !== best.id && (
                 <div className="flex-1 bg-amber-50 rounded-xl p-2.5 text-center">
@@ -313,7 +313,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                   <p className="text-xs font-semibold text-gray-800 truncate">
                     {TYPE[worst.type] || worst.type} — {worst.district}
                   </p>
-                  <p className="text-[10px] text-amber-600">{worst.view_count ?? 0} maoni</p>
+                  <p className="text-[10px] text-amber-600">{worst.view_count ?? 0} waliotazama</p>
                 </div>
               )}
             </div>

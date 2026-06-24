@@ -76,7 +76,7 @@ export default function ListingAnalyticsCard({ listingId }: { listingId: string 
         <div className="grid grid-cols-4 gap-2">
           <div className="bg-white rounded-lg p-2 text-center">
             <p className="text-base font-bold text-gray-900">{data.totalViews}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">👁 Maoni</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">👁 Waliotazama</p>
           </div>
           <div className="bg-white rounded-lg p-2 text-center">
             <p className="text-base font-bold text-gray-900">{data.totalLeads}</p>
