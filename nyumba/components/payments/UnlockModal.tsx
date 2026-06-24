@@ -353,22 +353,36 @@ export default function UnlockModal({
         {step === 'success' && (
           <div className="px-5 pt-2 text-center">
             <div className="text-5xl mb-3">🎉</div>
-            <h2 className="text-base font-bold text-gray-900 mb-2">Umefanikiwa!</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-1">Umefanikiwa!</h2>
             <p className="text-sm text-gray-500 mb-5">
-              Sasa unaweza kuzungumza na{' '}
+              Sasa unaweza kuwasiliana na{' '}
               <span className="font-semibold text-gray-800">{dalaliName}</span> moja kwa moja.
             </p>
-            <a
-              href={`https://wa.me/${whatsappNumber.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl
-                         bg-green-500 text-white font-semibold text-sm shadow-md
-                         active:scale-[0.97] transition-transform mb-3"
-            >
-              <span className="text-xl">💬</span>
-              Fungua WhatsApp
-            </a>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <a
+                href={`https://wa.me/${whatsappNumber.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl
+                           bg-green-500 text-white font-semibold text-sm shadow-md
+                           active:scale-[0.97] transition-transform"
+              >
+                <span className="text-2xl leading-none">💬</span>
+                <span>WhatsApp</span>
+                <span className="text-xs font-normal opacity-80">Tuma ujumbe</span>
+              </a>
+              <a
+                href={`tel:+${whatsappNumber.replace(/\D/g, '')}`}
+                className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl
+                           bg-blue-500 text-white font-semibold text-sm shadow-md
+                           active:scale-[0.97] transition-transform"
+              >
+                <span className="text-2xl leading-none">📞</span>
+                <span>Piga Simu</span>
+                <span className="text-xs font-normal opacity-80">Zungumza moja kwa moja</span>
+              </a>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">Namba moja inatumika kwa njia zote mbili</p>
             <button onClick={onClose} className="w-full py-3 min-h-[44px] text-sm text-gray-400">
               Funga
             </button>

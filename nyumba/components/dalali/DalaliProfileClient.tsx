@@ -188,7 +188,7 @@ export default function DalaliProfileClient({
 
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-              Nambari ya WhatsApp <span className="text-red-400">*</span>
+              Namba ya Mawasiliano <span className="text-red-400">*</span>
             </label>
             <div className="flex gap-2">
               <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
@@ -203,7 +203,7 @@ export default function DalaliProfileClient({
                            focus:outline-none focus:ring-2 focus:ring-primary-300"
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">Wateja wanalipa Tsh 2,000 kupata nambari hii</p>
+            <p className="text-xs text-gray-400 mt-1">Wateja watalipa Tsh 2,000 kupata nambari hii — itatumika kwa 💬 WhatsApp na 📞 Simu</p>
           </div>
 
           <div>
