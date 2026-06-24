@@ -91,7 +91,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Listing iliyokataliwa haiwezi kuhaririwa' }, { status: 400 })
     }
 
-    const { type, price_monthly, bedrooms, furnished, description, region, district, amenities, images } = body
+    const { type, price_monthly, bedrooms, furnished, description, region, district, amenities, images, latitude, longitude, address_full, place_id } = body
     const updatePayload: Record<string, unknown> = {
       type,
       title: `${type.charAt(0).toUpperCase() + type.slice(1)} – ${district}`,
@@ -103,6 +103,10 @@ export async function PATCH(
       images: images ?? [],
       status: 'pending',
       street: '',
+      latitude: typeof latitude === 'number' ? latitude : null,
+      longitude: typeof longitude === 'number' ? longitude : null,
+      address_full: typeof address_full === 'string' ? address_full || null : null,
+      place_id: typeof place_id === 'string' ? place_id || null : null,
     }
     if (bedrooms !== undefined) updatePayload.bedrooms = bedrooms ?? null
 

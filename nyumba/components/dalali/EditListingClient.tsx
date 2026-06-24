@@ -1,7 +1,14 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
+import type { LocationData } from '@/components/maps/ListingLocationPicker'
+
+const ListingLocationPicker = dynamic(
+  () => import('@/components/maps/ListingLocationPicker'),
+  { ssr: false, loading: () => <div className="h-[320px] bg-gray-100 rounded-2xl animate-pulse" /> }
+)
 
 type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio' | 'duka'
 type Furnished = 'furnished' | 'semi' | 'empty'
@@ -18,6 +25,10 @@ type ListingData = {
   district: string
   amenities: string[]
   images: string[]
+  latitude: number | null
+  longitude: number | null
+  address_full: string | null
+  place_id: string | null
 }
 
 const LISTING_TYPES = [
@@ -78,6 +89,17 @@ export default function EditListingClient({ listing }: { listing: ListingData })
   const [district, setDistrict] = useState(listing.district)
   const [amenities, setAmenities] = useState<string[]>(listing.amenities ?? [])
   const [images, setImages] = useState<string[]>(listing.images ?? [])
+  const [latitude, setLatitude] = useState<number | null>(listing.latitude ?? null)
+  const [longitude, setLongitude] = useState<number | null>(listing.longitude ?? null)
+  const [addressFull, setAddressFull] = useState(listing.address_full ?? '')
+  const [placeId, setPlaceId] = useState(listing.place_id ?? '')
+
+  function handleLocationChange(loc: LocationData) {
+    setLatitude(loc.latitude)
+    setLongitude(loc.longitude)
+    setAddressFull(loc.address_full)
+    setPlaceId(loc.place_id ?? '')
+  }
 
   function toggleAmenity(v: string) {
     setAmenities(prev => prev.includes(v) ? prev.filter(a => a !== v) : [...prev, v])
@@ -94,6 +116,9 @@ export default function EditListingClient({ listing }: { listing: ListingData })
           type, price_monthly: parseInt(price),
           bedrooms: bedrooms ? parseInt(bedrooms) : null,
           furnished, description, region, district, amenities, images,
+          latitude, longitude,
+          address_full: addressFull || null,
+          place_id: placeId || null,
         }),
       })
       const data = await res.json()
@@ -199,18 +224,35 @@ export default function EditListingClient({ listing }: { listing: ListingData })
 
         {/* STEP 1 — Mahali */}
         {step === 1 && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Mkoa *</label>
-              <select value={region} onChange={e => setRegion(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Mkoa *</label>
+                <select value={region} onChange={e => setRegion(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
+                  {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Mtaa / Wilaya *</label>
+                <input type="text" value={district} onChange={e => setDistrict(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300" />
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Mtaa / Wilaya *</label>
-              <input type="text" value={district} onChange={e => setDistrict(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300" />
+
+            {/* Satellite location picker */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                📍 Pin ya Ramani (hiari)
+              </label>
+              <ListingLocationPicker
+                initialLocation={
+                  latitude !== null && longitude !== null
+                    ? { latitude, longitude, address_full: addressFull, place_id: placeId || undefined }
+                    : undefined
+                }
+                onLocationChange={handleLocationChange}
+              />
             </div>
           </div>
         )}
