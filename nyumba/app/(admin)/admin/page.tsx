@@ -7,13 +7,7 @@ export default async function AdminPage() {
     <AdminDashboard
       pendingListings={data.pendingListings}
       allListings={data.allListings}
-      users={data.users}
-      unlocks={data.unlocks}
-      subscriptions={data.subscriptions}
       pendingVerifications={data.pendingVerifications}
-      madalaliDetailed={data.madalaliDetailed}
-      watejaDetailed={data.watejaDetailed}
-      savedListings={data.savedListings}
       reports={data.reports as Parameters<typeof AdminDashboard>[0]['reports']}
       regionStats={data.regionStats}
       stats={data.stats}
@@ -46,30 +40,6 @@ export type AdminListing = {
   } | null
 }
 
-export type AdminUser = {
-  id: string
-  full_name: string
-  phone: string | null
-  role: string
-  created_at: string
-}
-
-export type AdminUnlock = {
-  id: string
-  amount_paid: number
-  created_at: string
-  listing_id: string
-  client_id: string | null
-}
-
-export type AdminSubscription = {
-  id: string
-  plan: string
-  status: string
-  expires_at: string
-  dalali_id: string
-  created_at: string
-}
 
 export type AdminVerification = {
   user_id: string
@@ -83,29 +53,3 @@ export type AdminVerification = {
   user: { id: string; full_name: string; phone: string | null } | null
 }
 
-export type AdminDalaliDetailed = {
-  id: string
-  full_name: string
-  email: string | null
-  phone: string | null
-  avatar_url: string | null
-  created_at: string
-  is_active: boolean | null
-  dalali_profiles: {
-    whatsapp_number: string | null
-    verification_status: string | null
-    is_premium_verified: boolean
-    rating_avg: number | null
-  } | null
-  subscriptions: { plan: string; status: string; expires_at: string | null }[]
-}
-
-export type AdminClientDetailed = {
-  id: string
-  full_name: string
-  email: string | null
-  phone: string | null
-  avatar_url: string | null
-  created_at: string
-  is_active: boolean | null
-}

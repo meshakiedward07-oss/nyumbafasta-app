@@ -20,6 +20,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const role    = searchParams.get('role') ?? 'all'
     const q       = searchParams.get('q') ?? ''
+    const status  = searchParams.get('status') ?? 'all'
+    const sort    = searchParams.get('sort') ?? 'newest'
     const page    = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
     const perPage = Math.min(100, Math.max(10, parseInt(searchParams.get('per_page') ?? '50', 10)))
     const from    = (page - 1) * perPage
@@ -35,12 +37,27 @@ export async function GET(req: NextRequest) {
         dalali_profiles ( whatsapp_number, verification_status, is_premium_verified, rating_avg ),
         subscriptions ( plan, status, expires_at )
       `, { count: 'exact' })
-      .order('created_at', { ascending: false })
       .range(from, to)
 
-    // Role filter
-    if (role !== 'all') {
+    // Sort
+    if (sort === 'oldest') {
+      query = query.order('created_at', { ascending: true })
+    } else if (sort === 'name') {
+      query = query.order('full_name', { ascending: true })
+    } else {
+      query = query.order('created_at', { ascending: false })
+    }
+
+    // Role filter (exclude admin, dalali_activity is handled by separate endpoint)
+    if (role !== 'all' && role !== 'dalali_activity') {
       query = query.eq('role', role)
+    }
+
+    // Status filter
+    if (status === 'active') {
+      query = query.eq('is_active', true)
+    } else if (status === 'suspended') {
+      query = query.eq('is_active', false)
     }
 
     // Search (name, email, phone)

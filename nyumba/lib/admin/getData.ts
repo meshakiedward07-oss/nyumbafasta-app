@@ -1,19 +1,13 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import type {
-  AdminListing, AdminUser, AdminUnlock, AdminSubscription,
-  AdminVerification, AdminDalaliDetailed, AdminClientDetailed,
+  AdminListing,
+  AdminVerification,
 } from '@/app/(admin)/admin/page'
 
 export type AdminPageData = {
   pendingListings: AdminListing[]
   allListings: AdminListing[]
-  users: AdminUser[]
-  unlocks: AdminUnlock[]
-  subscriptions: AdminSubscription[]
   pendingVerifications: AdminVerification[]
-  madalaliDetailed: AdminDalaliDetailed[]
-  watejaDetailed: AdminClientDetailed[]
-  savedListings: { client_id: string }[]
   reports: unknown[]
   regionStats: [string, number][]
   stats: {
@@ -23,14 +17,6 @@ export type AdminPageData = {
     totalUsers: number
     clientCount: number
     dalaliCount: number
-    verifiedCount: number
-    premiumCount: number
-    totalUnlockRevenue: number
-    totalSubRevenue: number
-    totalBoostRevenue: number
-    totalRevenue: number
-    unlocksCount: number
-    activeBoostsCount: number
     activeTrials: number
     expiredTrials: number
     convertedTrials: number
@@ -44,14 +30,10 @@ export async function getAdminData(): Promise<AdminPageData> {
   const [
     pendingListingsRes,
     allListingsRes,
-    usersRes,
-    unlocksRes,
-    subscriptionsRes,
+    clientCountRes,
+    dalaliCountRes,
+    totalUsersCountRes,
     verificationRes,
-    madalaliRes,
-    watejaRes,
-    savedListingsRes,
-    boostPaymentsRes,
     trialSubsRes,
     reportsRes,
   ] = await Promise.all([
@@ -71,23 +53,9 @@ export async function getAdminData(): Promise<AdminPageData> {
 
     admin.from('listings').select('status'),
 
-    admin
-      .from('users')
-      .select('id, full_name, phone, role, created_at')
-      .order('created_at', { ascending: false })
-      .limit(100),
-
-    admin
-      .from('contact_unlocks')
-      .select('id, amount_paid, created_at, listing_id, client_id')
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false }),
-
-    admin
-      .from('subscriptions')
-      .select('id, plan, status, expires_at, dalali_id, created_at')
-      .order('created_at', { ascending: false })
-      .limit(100),
+    admin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'client'),
+    admin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'dalali'),
+    admin.from('users').select('*', { count: 'exact', head: true }),
 
     admin
       .from('dalali_profiles')
@@ -98,31 +66,6 @@ export async function getAdminData(): Promise<AdminPageData> {
       `)
       .eq('verification_status', 'pending')
       .order('verification_submitted_at', { ascending: true }),
-
-    admin
-      .from('users')
-      .select(`
-        id, full_name, email, phone, avatar_url, created_at, is_active,
-        dalali_profiles ( whatsapp_number, verification_status, is_premium_verified, rating_avg ),
-        subscriptions ( plan, status, expires_at )
-      `)
-      .eq('role', 'dalali')
-      .order('created_at', { ascending: false }),
-
-    admin
-      .from('users')
-      .select('id, full_name, email, phone, avatar_url, created_at, is_active')
-      .eq('role', 'client')
-      .order('created_at', { ascending: false }),
-
-    admin.from('saved_listings').select('client_id'),
-
-    admin
-      .from('boost_payments')
-      .select('id, amount, weeks, status, boosted_from, created_at')
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .limit(200),
 
     admin
       .from('subscriptions')
@@ -143,19 +86,16 @@ export async function getAdminData(): Promise<AdminPageData> {
       .limit(200),
   ])
 
-  const allAdminListings   = (pendingListingsRes.data ?? []) as unknown as AdminListing[]
-  const pendingListings    = allAdminListings.filter(l => l.status === 'pending')
-  const allListings        = allListingsRes.data ?? []
-  const users              = (usersRes.data ?? []) as AdminUser[]
-  const unlocks            = (unlocksRes.data ?? []) as AdminUnlock[]
-  const subscriptions      = (subscriptionsRes.data ?? []) as AdminSubscription[]
+  const allAdminListings     = (pendingListingsRes.data ?? []) as unknown as AdminListing[]
+  const pendingListings      = allAdminListings.filter(l => l.status === 'pending')
+  const allListings          = allListingsRes.data ?? []
   const pendingVerifications = (verificationRes.data ?? []) as unknown as AdminVerification[]
-  const madalaliDetailed   = (madalaliRes.data ?? []) as unknown as AdminDalaliDetailed[]
-  const watejaDetailed     = (watejaRes.data ?? []) as unknown as AdminClientDetailed[]
-  const savedListings      = (savedListingsRes.data ?? []) as { client_id: string }[]
-  const boostPayments      = (boostPaymentsRes.data ?? []) as { id: string; amount: number }[]
-  const trialSubs          = (trialSubsRes?.data ?? []) as { id: string; status: string; trial_converted_at: string | null }[]
-  const reports            = (reportsRes?.data ?? []) as unknown[]
+  const trialSubs            = (trialSubsRes?.data ?? []) as { id: string; status: string; trial_converted_at: string | null }[]
+  const reports              = (reportsRes?.data ?? []) as unknown[]
+
+  const clientCount  = clientCountRes.count  ?? 0
+  const dalaliCount  = dalaliCountRes.count  ?? 0
+  const totalUsers   = totalUsersCountRes.count ?? 0
 
   const regionStats: [string, number][] = Object.entries(
     allAdminListings
@@ -171,51 +111,23 @@ export async function getAdminData(): Promise<AdminPageData> {
     return acc
   }, {})
 
-  const totalUnlockRevenue = unlocks.reduce((sum, u) => sum + (u.amount_paid ?? 0), 0)
-  const totalSubRevenue    = subscriptions
-    .filter(s => s.status === 'active')
-    .reduce((sum, s) => sum + (s.plan === 'premium' ? 25_000 : 10_000), 0)
-  const totalBoostRevenue  = boostPayments.reduce((sum, b) => sum + (b.amount ?? 0), 0)
-  const clientCount        = users.filter(u => u.role === 'client').length
-  const dalaliCount        = users.filter(u => u.role === 'dalali').length
-  const verifiedCount      = madalaliDetailed.filter(d =>
-    (d.dalali_profiles as { verification_status?: string } | null)?.verification_status === 'approved'
-  ).length
-  const premiumCount       = madalaliDetailed.filter(d =>
-    (d.dalali_profiles as { is_premium_verified?: boolean } | null)?.is_premium_verified === true
-  ).length
-
   return {
     pendingListings,
     allListings:        allAdminListings,
-    users,
-    unlocks,
-    subscriptions,
     pendingVerifications,
-    madalaliDetailed,
-    watejaDetailed,
-    savedListings,
     reports,
     regionStats,
     stats: {
-      pendingCount:       pendingListings.length,
-      activeCount:        statusCounts['active'] ?? 0,
-      totalListings:      allListings.length,
-      totalUsers:         users.length,
+      pendingCount:    pendingListings.length,
+      activeCount:     statusCounts['active'] ?? 0,
+      totalListings:   allListings.length,
+      totalUsers,
       clientCount,
       dalaliCount,
-      verifiedCount,
-      premiumCount,
-      totalUnlockRevenue,
-      totalSubRevenue,
-      totalBoostRevenue,
-      totalRevenue:       totalUnlockRevenue + totalSubRevenue + totalBoostRevenue,
-      unlocksCount:       unlocks.length,
-      activeBoostsCount:  allAdminListings.filter(l => l.is_boosted).length,
-      activeTrials:       trialSubs.filter(t => t.status === 'active').length,
-      expiredTrials:      trialSubs.filter(t => t.status === 'trial_expired').length,
-      convertedTrials:    trialSubs.filter(t => t.trial_converted_at).length,
-      totalTrials:        trialSubs.length,
+      activeTrials:    trialSubs.filter(t => t.status === 'active').length,
+      expiredTrials:   trialSubs.filter(t => t.status === 'trial_expired').length,
+      convertedTrials: trialSubs.filter(t => t.trial_converted_at).length,
+      totalTrials:     trialSubs.length,
     },
   }
 }

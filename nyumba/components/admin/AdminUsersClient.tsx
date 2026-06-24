@@ -6,7 +6,19 @@ import { createClient } from '@/lib/supabase/client'
 import { PLAN_BADGES, getPlan } from '@/lib/config/subscription-plans'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type RoleFilter = 'all' | 'client' | 'dalali' | 'staff' | 'dalali_activity'
+type RoleFilter   = 'all' | 'client' | 'dalali' | 'staff' | 'dalali_activity'
+type StatusFilter = 'all' | 'active' | 'suspended'
+type SortOption   = 'newest' | 'oldest' | 'name'
+
+type SummaryStats = {
+  total: number
+  clients: number
+  dalali: number
+  staff: number
+  active: number
+  suspended: number
+  verified_dalali: number
+}
 
 type UserRow = {
   id: string
@@ -76,17 +88,22 @@ function SubBadge({ subscriptions }: { subscriptions: UserRow['subscriptions'] }
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function AdminUsersClient() {
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
-  const [search, setSearch]         = useState('')
-  const [debouncedQ, setDebouncedQ] = useState('')
-  const [page, setPage]             = useState(1)
+  const [roleFilter,   setRoleFilter]   = useState<RoleFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [sortBy,       setSortBy]       = useState<SortOption>('newest')
+  const [search, setSearch]             = useState('')
+  const [debouncedQ, setDebouncedQ]     = useState('')
+  const [page, setPage]                 = useState(1)
 
   const [users, setUsers]   = useState<UserRow[]>([])
   const [counts, setCounts] = useState<Counts>({ all: 0, client: 0, dalali: 0, staff: 0 })
   const [total, setTotal]   = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const [error, setError]   = useState('')
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState('')
+
+  const [summary, setSummary]           = useState<SummaryStats | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UserRow | null>(null)
 
   // Action state
   const [actionLoading, setActionLoading]       = useState<string | null>(null)
@@ -108,8 +125,16 @@ export default function AdminUsersClient() {
     return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current) }
   }, [search])
 
-  // Reset page when filter changes
-  useEffect(() => { setPage(1) }, [roleFilter])
+  // Reset page when any filter changes
+  useEffect(() => { setPage(1) }, [roleFilter, statusFilter, sortBy])
+
+  // Fetch summary stats once on mount
+  useEffect(() => {
+    fetch('/api/v1/admin/users/summary')
+      .then(r => r.json())
+      .then(d => setSummary(d))
+      .catch(() => {})
+  }, [])
 
   // Fetch users
   const fetchUsers = useCallback(async (opts?: { silent?: boolean }) => {
@@ -119,6 +144,8 @@ export default function AdminUsersClient() {
       const params = new URLSearchParams({
         role:     roleFilter,
         q:        debouncedQ,
+        status:   statusFilter,
+        sort:     sortBy,
         page:     String(page),
         per_page: '50',
       })
@@ -134,7 +161,7 @@ export default function AdminUsersClient() {
     } finally {
       setLoading(false)
     }
-  }, [roleFilter, debouncedQ, page])
+  }, [roleFilter, debouncedQ, statusFilter, sortBy, page])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
@@ -165,6 +192,25 @@ export default function AdminUsersClient() {
   }, [fetchUsers])
 
   // ── Actions ───────────────────────────────────────────────────────────────
+  async function handleBan(userId: string) {
+    setActionLoading(userId)
+    setActionError('')
+    try {
+      const res = await fetch(`/api/v1/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ban' }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Imeshindwa')
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_active: false } : u))
+      setSummary(prev => prev ? { ...prev, active: Math.max(0, prev.active - 1), suspended: prev.suspended + 1 } : prev)
+    } catch (e: unknown) {
+      setActionError(e instanceof Error ? e.message : 'Hitilafu imetokea')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   async function handleSuspendActivate(userId: string, action: 'suspend' | 'activate') {
     setActionLoading(userId)
     setActionError('')
@@ -252,6 +298,26 @@ export default function AdminUsersClient() {
 
       <div className="px-4 lg:px-6 pt-4 space-y-4">
 
+        {/* ── Summary stat cards ── */}
+        {summary && roleFilter !== 'dalali_activity' && (
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+            {[
+              { label: 'Wote',       value: summary.total,           bg: 'bg-gray-50',     text: 'text-gray-800'    },
+              { label: 'Wateja',     value: summary.clients,         bg: 'bg-blue-50',     text: 'text-blue-700'    },
+              { label: 'Madalali',   value: summary.dalali,          bg: 'bg-amber-50',    text: 'text-amber-700'   },
+              { label: 'Wafanyakazi',value: summary.staff,           bg: 'bg-purple-50',   text: 'text-purple-700'  },
+              { label: 'Wanaotumia', value: summary.active,          bg: 'bg-green-50',    text: 'text-green-700'   },
+              { label: 'Waliozuiliwa',value: summary.suspended,      bg: 'bg-red-50',      text: 'text-red-600'     },
+              { label: 'Verified',   value: summary.verified_dalali, bg: 'bg-primary-50',  text: 'text-primary-700' },
+            ].map(s => (
+              <div key={s.label} className={`${s.bg} rounded-2xl p-3 text-center`}>
+                <p className={`text-lg font-bold ${s.text}`}>{s.value.toLocaleString()}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* ── Role tabs ── */}
         <div className="flex bg-gray-100 rounded-xl p-1 gap-1 overflow-x-auto scrollbar-none">
           {tabs.map(t => (
@@ -287,6 +353,43 @@ export default function AdminUsersClient() {
             </button>
           )}
         </div>
+
+        {/* ── Status filter + Sort (hidden for dalali_activity) ── */}
+        {roleFilter !== 'dalali_activity' && (
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="flex gap-1">
+              {([
+                { key: 'all',       label: 'Wote'        },
+                { key: 'active',    label: '✅ Wanaotumia'},
+                { key: 'suspended', label: '⛔ Waliozuiliwa' },
+              ] as { key: StatusFilter; label: string }[]).map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setStatusFilter(f.key)}
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
+                    statusFilter === f.key
+                      ? 'bg-gray-800 text-white border-gray-800'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-xs text-gray-400">Panga:</span>
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as SortOption)}
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none"
+              >
+                <option value="newest">Wapya Kwanza</option>
+                <option value="oldest">Wakongwe Kwanza</option>
+                <option value="name">Jina A–Z</option>
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* ── Dalali Activity View ── */}
         {roleFilter === 'dalali_activity' && <DalaliActivityView />}
@@ -339,7 +442,11 @@ export default function AdminUsersClient() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {users.map(u => (
-                    <tr key={u.id} className={`hover:bg-gray-50 transition-colors ${u.is_active === false ? 'opacity-60' : ''}`}>
+                    <tr
+                      key={u.id}
+                      className={`hover:bg-gray-50 transition-colors cursor-pointer ${u.is_active === false ? 'opacity-60' : ''}`}
+                      onClick={() => setSelectedUser(u)}
+                    >
                       {/* Name + phone */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -389,7 +496,7 @@ export default function AdminUsersClient() {
                           {u.role !== 'admin' && (
                             <>
                               <button
-                                onClick={() => handleSuspendActivate(u.id, u.is_active === false ? 'activate' : 'suspend')}
+                                onClick={e => { e.stopPropagation(); handleSuspendActivate(u.id, u.is_active === false ? 'activate' : 'suspend') }}
                                 disabled={actionLoading === u.id}
                                 className={`text-[10px] px-2 py-1 rounded-lg font-semibold disabled:opacity-40 whitespace-nowrap ${
                                   u.is_active === false ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-700'
@@ -397,8 +504,17 @@ export default function AdminUsersClient() {
                               >
                                 {actionLoading === u.id ? '...' : u.is_active === false ? 'Washa' : 'Simamisha'}
                               </button>
+                              {u.is_active !== false && (
+                                <button
+                                  onClick={e => { e.stopPropagation(); handleBan(u.id) }}
+                                  disabled={actionLoading === u.id}
+                                  className="text-[10px] px-2 py-1 rounded-lg bg-orange-50 text-orange-700 font-semibold disabled:opacity-40"
+                                >
+                                  Ban
+                                </button>
+                              )}
                               <button
-                                onClick={() => setConfirmDeleteId(u.id)}
+                                onClick={e => { e.stopPropagation(); setConfirmDeleteId(u.id) }}
                                 disabled={actionLoading === u.id}
                                 className="text-[10px] px-2 py-1 rounded-lg bg-red-50 text-red-600 font-semibold disabled:opacity-40"
                               >
@@ -583,6 +699,160 @@ export default function AdminUsersClient() {
           </div>
         </div>
       )}
+
+      {/* ── User detail modal ── */}
+      {selectedUser && (
+        <UserDetailModal
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onSuspend={() => { handleSuspendActivate(selectedUser.id, selectedUser.is_active === false ? 'activate' : 'suspend'); setSelectedUser(null) }}
+          onBan={() => { handleBan(selectedUser.id); setSelectedUser(null) }}
+          onDelete={() => { setConfirmDeleteId(selectedUser.id); setSelectedUser(null) }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── User Detail Modal ─────────────────────────────────────────────────────────
+
+function UserDetailModal({
+  user, onClose, onSuspend, onBan, onDelete,
+}: {
+  user: UserRow
+  onClose: () => void
+  onSuspend: () => void
+  onBan: () => void
+  onDelete: () => void
+}) {
+  const ROLE_COLOR: Record<string, string> = {
+    admin:  'bg-red-100 text-red-700',
+    dalali: 'bg-amber-100 text-amber-700',
+    staff:  'bg-purple-100 text-purple-700',
+    client: 'bg-blue-100 text-blue-700',
+  }
+  const ROLE_LABEL: Record<string, string> = {
+    admin: '🛡️ Admin', dalali: '🏢 Dalali',
+    staff: '👨‍💼 Wafanyakazi', client: '🔍 Mteja',
+  }
+  const waNum = (user.dalali_profiles?.whatsapp_number ?? '').replace(/\D/g, '')
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div
+        className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl px-5 pt-4 pb-10 sm:pb-5 shadow-2xl max-h-[85vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4 sm:hidden" />
+
+        {/* Header */}
+        <div className="flex items-start gap-3 mb-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold flex-shrink-0 ${ROLE_COLOR[user.role] ?? 'bg-gray-100 text-gray-700'}`}>
+            {user.full_name?.[0]?.toUpperCase() ?? '?'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-gray-900 text-base leading-tight">{user.full_name}</p>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLOR[user.role] ?? 'bg-gray-100 text-gray-500'}`}>
+              {ROLE_LABEL[user.role] ?? user.role}
+            </span>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg flex-shrink-0">✕</button>
+        </div>
+
+        {/* Info rows */}
+        <div className="space-y-2 mb-4 text-sm">
+          {[
+            { label: 'Email',   value: user.email   ?? '—' },
+            { label: 'Simu',    value: user.phone   ?? '—' },
+            { label: 'Hali',    value: user.is_active === false ? '⛔ Imezuiliwa' : '✅ Inatumika' },
+            { label: 'Alijiunga', value: new Date(user.created_at).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short', year: 'numeric' }) },
+          ].map(r => (
+            <div key={r.label} className="flex justify-between items-center py-1.5 border-b border-gray-50">
+              <span className="text-gray-500 text-xs">{r.label}</span>
+              <span className="text-gray-800 font-medium text-xs text-right max-w-[200px] truncate">{r.value}</span>
+            </div>
+          ))}
+
+          {/* Dalali-specific */}
+          {user.role === 'dalali' && user.dalali_profiles && (
+            <>
+              <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                <span className="text-gray-500 text-xs">Uthibitisho</span>
+                <span className="text-xs font-medium">
+                  {user.dalali_profiles.verification_status === 'approved' ? '✓ Imethibitishwa'
+                    : user.dalali_profiles.verification_status === 'pending' ? '⏳ Inasubiri'
+                    : '✗ Hakuna'}
+                </span>
+              </div>
+              {user.subscriptions?.find(s => s.status === 'active') && (
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                  <span className="text-gray-500 text-xs">Subscription</span>
+                  <span className="text-xs font-medium capitalize">
+                    {user.subscriptions.find(s => s.status === 'active')?.plan ?? '—'}
+                  </span>
+                </div>
+              )}
+              {user.dalali_profiles.rating_avg != null && (
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                  <span className="text-gray-500 text-xs">Rating</span>
+                  <span className="text-xs font-medium">⭐ {user.dalali_profiles.rating_avg.toFixed(1)}</span>
+                </div>
+              )}
+              {waNum && (
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                  <span className="text-gray-500 text-xs">WhatsApp</span>
+                  <a
+                    href={`https://wa.me/${waNum}`}
+                    target="_blank" rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 bg-[#25D366] text-white text-[10px] px-2 py-0.5 rounded-md"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white flex-shrink-0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    {user.dalali_profiles.whatsapp_number}
+                  </a>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Actions */}
+        {user.role !== 'admin' && (
+          <div className="flex flex-wrap gap-2">
+            {user.role === 'dalali' && (
+              <Link
+                href={`/admin/users/${user.id}`}
+                onClick={onClose}
+                className="flex-1 text-center py-2.5 rounded-xl text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-100"
+              >
+                Profaili →
+              </Link>
+            )}
+            <button
+              onClick={onSuspend}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-semibold ${
+                user.is_active === false ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+              }`}
+            >
+              {user.is_active === false ? '✅ Washa' : '⏸️ Simamisha'}
+            </button>
+            {user.is_active !== false && (
+              <button
+                onClick={onBan}
+                className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700"
+              >
+                🚫 Ban
+              </button>
+            )}
+            <button
+              onClick={onDelete}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600"
+            >
+              🗑️
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

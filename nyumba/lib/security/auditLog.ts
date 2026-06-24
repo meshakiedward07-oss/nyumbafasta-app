@@ -10,6 +10,7 @@ export type AuditAction =
   | 'listing_rejected'
   | 'user_suspended'
   | 'user_activated'
+  | 'user_banned'
   | 'payment_initiated'
   | 'payment_completed'
   | 'payment_failed'

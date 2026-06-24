@@ -2,6 +2,29 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+function getCurrentMonth() {
+  return new Date().toISOString().slice(0, 7) // 'YYYY-MM'
+}
+
+function generateMonthOptions(): { value: string; label: string }[] {
+  const opts = []
+  const now = new Date()
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    opts.push({
+      value: d.toISOString().slice(0, 7),
+      label: d.toLocaleDateString('sw-TZ', { month: 'long', year: 'numeric' }),
+    })
+  }
+  return opts
+}
+
+function daysInMonth(yyyyMm: string) {
+  const [y, m] = yyyyMm.split('-').map(Number)
+  return new Date(y, m, 0).getDate()
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────
 type Period = 'daily' | 'weekly' | 'monthly' | 'yearly'
 
@@ -291,9 +314,9 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
 
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function AccountingClient() {
-  const [period,    setPeriod]    = useState<Period>('monthly')
-  const [date,      setDate]      = useState(new Date().toISOString().split('T')[0])
-  const [tab,       setTab]       = useState<'overview' | 'mapato' | 'matumizi' | 'recurring'>('overview')
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth())
+  const [monthOptions,  setMonthOptions]  = useState<{ value: string; label: string }[]>([])
+  const [tab,       setTab]       = useState<'overview' | 'mapato' | 'matumizi' | 'miamala'>('overview')
   const [summary,   setSummary]   = useState<FinancialSummary | null>(null)
   const [incRecords, setIncRecords] = useState<IncomeRecord[]>([])
   const [expRecords, setExpRecords] = useState<ExpenseRecord[]>([])
@@ -304,6 +327,12 @@ export default function AccountingClient() {
   const [syncMsg,    setSyncMsg]    = useState('')
   const [toast,      setToast]      = useState('')
   const [downloading, setDownloading] = useState<'pdf' | 'excel' | null>(null)
+
+  // keep period/date for legacy API compatibility
+  const period = 'monthly' as Period
+  const date   = `${selectedMonth}-01`
+
+  useEffect(() => { setMonthOptions(generateMonthOptions()) }, [])
 
   function showToast(msg: string) {
     setToast(msg)
@@ -317,8 +346,8 @@ export default function AccountingClient() {
       const params = new URLSearchParams({ period, date })
       const [sumRes, incRes, expRes, recRes] = await Promise.all([
         fetch(`/api/v1/accounting/summary?${params}`),
-        fetch(`/api/v1/accounting/income?${params}&limit=30`),
-        fetch(`/api/v1/accounting/expenses?${params}&limit=30`),
+        fetch(`/api/v1/accounting/income?${params}&limit=100`),
+        fetch(`/api/v1/accounting/expenses?${params}&limit=100`),
         fetch('/api/v1/accounting/recurring'),
       ])
 
@@ -344,7 +373,8 @@ export default function AccountingClient() {
       }
     } catch { showToast('Imeshindwa kupakia data') }
     finally { setLoading(false) }
-  }, [period, date])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -585,20 +615,40 @@ ON CONFLICT DO NOTHING;`}</pre>
         </button>
       </div>
 
-      {/* ── Period selector ── */}
-      <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none">
-        {(['daily', 'weekly', 'monthly', 'yearly'] as Period[]).map(p => (
-          <button key={p} onClick={() => setPeriod(p)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              period === p ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500'
-            }`}
-          >
-            {p === 'daily' ? '📅 Leo' : p === 'weekly' ? '📅 Wiki' : p === 'monthly' ? '📅 Mwezi' : '📅 Mwaka'}
-          </button>
-        ))}
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          className="flex-shrink-0 ml-auto text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-primary-400" />
+      {/* ── Month selector ── */}
+      <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2">
+        <span className="text-xs text-gray-400 flex-shrink-0">📅 Mwezi:</span>
+        <select
+          value={selectedMonth}
+          onChange={e => setSelectedMonth(e.target.value)}
+          className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-primary-400 font-medium text-gray-700 bg-white"
+        >
+          {monthOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}{opt.value === getCurrentMonth() ? ' (Sasa)' : ''}
+            </option>
+          ))}
+        </select>
       </div>
+
+      {/* ── Month indicator banner ── */}
+      {(() => {
+        const isCurrentMonth = selectedMonth === getCurrentMonth()
+        const currentLabel   = monthOptions.find(m => m.value === selectedMonth)?.label ?? selectedMonth
+        const today          = new Date().getDate()
+        const totalDays      = daysInMonth(selectedMonth)
+        return (
+          <div className={`px-4 py-2 flex items-center justify-between text-xs ${
+            isCurrentMonth ? 'bg-green-600 text-white' : 'bg-gray-700 text-white'
+          }`}>
+            <span className="font-semibold">{currentLabel}</span>
+            {isCurrentMonth
+              ? <span className="opacity-80">Siku ya {today} / {totalDays} — inaendelea</span>
+              : <span className="opacity-80">Imekamilika</span>
+            }
+          </div>
+        )
+      })()}
 
       {/* ── Download + Sync bar ── */}
       <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2">
@@ -623,7 +673,7 @@ ON CONFLICT DO NOTHING;`}</pre>
           { key: 'overview',  label: 'Muhtasari', icon: '📊' },
           { key: 'mapato',    label: 'Mapato',    icon: '📈' },
           { key: 'matumizi',  label: 'Matumizi',  icon: '📉' },
-          { key: 'recurring', label: 'Mara kwa Mara', icon: '🔄' },
+          { key: 'miamala',   label: 'Miamala',   icon: '📋' },
         ] as { key: typeof tab; label: string; icon: string }[]).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
@@ -858,68 +908,112 @@ ON CONFLICT DO NOTHING;`}</pre>
               </>
             )}
 
-            {/* ══ TAB: RECURRING ═════════════════════════════════════════ */}
-            {tab === 'recurring' && (
+            {/* ══ TAB: MIAMALA ═══════════════════════════════════════════ */}
+            {tab === 'miamala' && (
               <>
-                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                  <p className="text-xs text-gray-400 mb-1">Jumla ya Mara kwa Mara / Mwezi</p>
-                  <p className="text-xl font-bold text-gray-900">{fmtFull(recurringTotal)}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {recurring.filter(r => r.is_active).length} kati ya {recurring.length} ziko active
-                  </p>
+                {/* Summary row */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-green-50 rounded-xl p-3 text-center">
+                    <p className="text-xs text-gray-500 mb-0.5">Mapato</p>
+                    <p className="text-sm font-bold text-green-600">{fmtTsh(income?.total ?? 0)}</p>
+                  </div>
+                  <div className="bg-red-50 rounded-xl p-3 text-center">
+                    <p className="text-xs text-gray-500 mb-0.5">Matumizi</p>
+                    <p className="text-sm font-bold text-red-500">{fmtTsh(expenses?.total ?? 0)}</p>
+                  </div>
+                  <div className={`rounded-xl p-3 text-center ${profit >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
+                    <p className="text-xs text-gray-500 mb-0.5">{profit >= 0 ? 'Faida' : 'Hasara'}</p>
+                    <p className={`text-sm font-bold ${profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                      {profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}
+                    </p>
+                  </div>
                 </div>
 
+                {/* Combined timeline */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  {recurring.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-sm text-gray-400">
-                      Hakuna matumizi ya mara kwa mara
+                  <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-800">Miamala Yote</h3>
+                    <div className="flex gap-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-green-400 rounded-full" />Mapato {incRecords.length}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-red-400 rounded-full" />Matumizi {expRecords.length}
+                      </span>
+                    </div>
+                  </div>
+                  {incRecords.length === 0 && expRecords.length === 0 ? (
+                    <div className="px-4 py-10 text-center text-sm text-gray-400">
+                      Hakuna miamala mwezi huu
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-50">
-                      {recurring.map(r => (
-                        <div key={r.id} className="px-4 py-3 flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${
-                            r.is_active ? 'bg-green-50' : 'bg-gray-100'
-                          }`}>
-                            {catEmoji(r.category)}
+                      {[
+                        ...incRecords.map(r => ({ ...r, _type: 'income' as const, _date: r.transaction_date })),
+                        ...expRecords.map(r => ({ ...r, _type: 'expense' as const, _date: r.expense_date })),
+                      ]
+                        .sort((a, b) => new Date(b._date).getTime() - new Date(a._date).getTime())
+                        .map((item, i) => (
+                          <div key={i} className="px-4 py-3 flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 font-bold ${
+                              item._type === 'income' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-400'
+                            }`}>
+                              {item._type === 'income' ? '↑' : '↓'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-800 truncate">
+                                {item._type === 'income'
+                                  ? ((item as IncomeRecord).description || sourceLabel((item as IncomeRecord).source))
+                                  : (item as ExpenseRecord).description}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {item._date}
+                                {item._type === 'income' && (item as IncomeRecord).payment_method
+                                  ? ` · ${(item as IncomeRecord).payment_method?.toUpperCase()}`
+                                  : ''}
+                                {item._type === 'expense'
+                                  ? ` · ${catEmoji((item as ExpenseRecord).category)} ${catLabel((item as ExpenseRecord).category)}`
+                                  : ''}
+                              </p>
+                            </div>
+                            <p className={`text-sm font-semibold flex-shrink-0 ${
+                              item._type === 'income' ? 'text-green-600' : 'text-red-500'
+                            }`}>
+                              {item._type === 'income' ? '+' : '-'}
+                              {fmtFull(Number((item as IncomeRecord).amount_tzs ?? (item as ExpenseRecord).amount_tzs))}
+                            </p>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-medium truncate ${r.is_active ? 'text-gray-800' : 'text-gray-400'}`}>
-                              {r.description}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {fmtFull(Number(r.amount_tzs))}
-                              {r.amount_usd ? ` ($${r.amount_usd})` : ''}
-                              {' · '}
-                              {r.recurring_period === 'monthly' ? 'Kila mwezi' :
-                               r.recurring_period === 'annual'  ? 'Kila mwaka'  : 'Kila wiki'}
-                            </p>
-                            <p className="text-[10px] text-gray-300 mt-0.5">
-                              Inayofuata: {r.next_due_date}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => toggleRecurring(r.id, r.is_active)}
-                            className={`flex-shrink-0 px-2 py-1 rounded-lg text-xs font-medium transition-all ${
-                              r.is_active
-                                ? 'bg-green-50 text-green-600 hover:bg-red-50 hover:text-red-500'
-                                : 'bg-gray-100 text-gray-400 hover:bg-green-50 hover:text-green-600'
-                            }`}
-                          >
-                            {r.is_active ? 'Washa ✅' : 'Zimwa ⏸️'}
-                          </button>
-                        </div>
-                      ))}
+                        ))
+                      }
                     </div>
                   )}
                 </div>
 
-                <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-                  <p className="text-xs text-amber-700">
-                    ℹ️ Gharama za mara kwa mara zinaongezwa moja kwa moja siku ya malipo.
-                    Hakikisha kiasi ni sahihi kabla ya kuwasha.
-                  </p>
-                </div>
+                {/* Recurring expenses summary */}
+                {recurring.length > 0 && (
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-bold text-amber-800">🔄 Gharama za Mara kwa Mara</p>
+                      <p className="text-xs text-amber-600">{fmtFull(recurringTotal)} / mwezi</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      {recurring.filter(r => r.is_active).map(r => (
+                        <div key={r.id} className="flex items-center justify-between text-xs">
+                          <span className="text-amber-700">{catEmoji(r.category)} {r.description}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-amber-800 font-medium">{fmtFull(Number(r.amount_tzs))}</span>
+                            <button
+                              onClick={() => toggleRecurring(r.id, r.is_active)}
+                              className="text-amber-500 hover:text-red-500 text-[10px]"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </>

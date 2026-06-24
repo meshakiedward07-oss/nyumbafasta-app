@@ -28,6 +28,7 @@
     "@types/web-push": "^3.6.4",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "@vis.gl/react-google-maps": "^1.8.3",
     "axios": "^1.17.0",
     "browser-image-compression": "^2.0.2",
     "cheerio": "^1.2.0",

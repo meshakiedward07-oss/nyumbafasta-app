@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const { action } = await req.json()
-    if (!['suspend', 'activate'].includes(action)) {
+    if (!['suspend', 'activate', 'ban'].includes(action)) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
 
@@ -31,13 +31,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+    const auditAction = action === 'suspend' ? 'user_suspended'
+      : action === 'ban' ? 'user_banned'
+      : 'user_activated'
+
     await auditLog({
-      action: action === 'suspend' ? 'user_suspended' : 'user_activated',
+      action: auditAction,
       user_id: admin.id,
       target_id: params.id,
       target_type: 'user',
       ip_address: getClientIp(req),
-      severity: action === 'suspend' ? 'warning' : 'info',
+      severity: action === 'activate' ? 'info' : 'warning',
     })
 
     return NextResponse.json({ ok: true })

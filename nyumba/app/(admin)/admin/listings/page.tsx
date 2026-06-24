@@ -7,13 +7,7 @@ export default async function AdminListingsPage() {
     <AdminDashboard
       pendingListings={data.pendingListings}
       allListings={data.allListings}
-      users={data.users}
-      unlocks={data.unlocks}
-      subscriptions={data.subscriptions}
       pendingVerifications={data.pendingVerifications}
-      madalaliDetailed={data.madalaliDetailed}
-      watejaDetailed={data.watejaDetailed}
-      savedListings={data.savedListings}
       reports={data.reports as Parameters<typeof AdminDashboard>[0]['reports']}
       regionStats={data.regionStats}
       stats={data.stats}

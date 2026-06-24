@@ -1,9 +1,10 @@
 'use client'
-import { useEffect, useRef } from 'react'
-import type { Map as LeafletMap } from 'leaflet'
+import { useState, useEffect } from 'react'
+import { Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.gl/react-google-maps'
+import Link from 'next/link'
+import { MapProvider } from '@/components/maps/MapProvider'
 import type { ListingWithDalali } from '@/lib/types/database'
 
-// Listings with optional coordinates
 type MapListing = ListingWithDalali & {
   latitude?: number | null
   longitude?: number | null
@@ -19,103 +20,112 @@ function fmtPrice(n: number): string {
   return `${n}`
 }
 
-// Map of Dar es Salaam default center
-const DAR_CENTER: [number, number] = [-6.7924, 39.2083]
+const DAR_CENTER = { lat: -6.7924, lng: 39.2083 }
 
-export default function MapView({ listings }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<LeafletMap | null>(null)
+function MapContent({ listings }: Props) {
+  const map = useMap()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const withCoords = listings.filter(
     l => typeof l.latitude === 'number' && typeof l.longitude === 'number'
   )
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return
+    if (!map || withCoords.length === 0) return
+    const bounds = new google.maps.LatLngBounds()
+    withCoords.forEach(l =>
+      bounds.extend({ lat: l.latitude as number, lng: l.longitude as number })
+    )
+    map.fitBounds(bounds, 40)
+  }, [map]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Lazy-import leaflet (SSR safe)
-    import('leaflet').then(L => {
-      if (!containerRef.current || mapRef.current) return
+  const selected = withCoords.find(l => l.id === selectedId)
 
-      const map = L.map(containerRef.current, {
-        center: DAR_CENTER,
-        zoom: 12,
-        zoomControl: true,
-      })
+  return (
+    <>
+      {withCoords.map(l => (
+        <AdvancedMarker
+          key={l.id}
+          position={{ lat: l.latitude as number, lng: l.longitude as number }}
+          onClick={() => setSelectedId(l.id)}
+        >
+          <Pin background="#1D9E75" borderColor="#085041" glyphColor="#fff" scale={0.75} />
+        </AdvancedMarker>
+      ))}
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
-        maxZoom: 19,
-      }).addTo(map)
-
-      // Add markers for listings that have coordinates
-      withCoords.forEach(listing => {
-        const lat = listing.latitude as number
-        const lng = listing.longitude as number
-        const price = fmtPrice(listing.price_monthly)
-
-        // Simple pin marker
-        const icon = L.divIcon({
-          className: '',
-          html: `<div style="
-            width:16px;height:16px;
-            background:#1D9E75;
-            border:3px solid #fff;
-            border-radius:50%;
-            box-shadow:0 2px 6px rgba(0,0,0,0.35);
-            cursor:pointer;
-          "></div>`,
-          iconSize: [16, 16],
-          iconAnchor: [8, 8],
-        })
-
-        const imgHtml = listing.images?.[0]
-          ? `<img src="${listing.images[0]}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:8px;" />`
-          : `<div style="width:100%;height:60px;display:flex;align-items:center;justify-content:center;font-size:24px;background:#f3f4f6;border-radius:8px;margin-bottom:8px;">🏠</div>`
-
-        const popup = L.popup({ maxWidth: 200, offset: [0, -20] }).setContent(`
-          <div style="font-family:sans-serif;font-size:13px;padding:4px 2px;">
-            ${imgHtml}
-            <p style="font-weight:700;margin:0 0 4px;line-height:1.3;color:#111;">
-              ${listing.title || listing.type + ' – ' + listing.district}
+      {selected && (
+        <InfoWindow
+          position={{ lat: selected.latitude as number, lng: selected.longitude as number }}
+          onCloseClick={() => setSelectedId(null)}
+          pixelOffset={[0, -38]}
+        >
+          <div style={{ fontFamily: 'sans-serif', fontSize: 13, padding: '4px 2px', maxWidth: 200 }}>
+            {selected.images?.[0] ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={selected.images[0]}
+                alt={selected.district}
+                style={{ width: '100%', height: 80, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }}
+              />
+            ) : (
+              <div style={{ width: '100%', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, background: '#f3f4f6', borderRadius: 8, marginBottom: 8 }}>
+                🏠
+              </div>
+            )}
+            <p style={{ fontWeight: 700, margin: '0 0 4px', lineHeight: 1.3, color: '#111' }}>
+              {selected.title || `${selected.type} – ${selected.district}`}
             </p>
-            <p style="color:#1D9E75;font-weight:700;margin:0 0 2px;">Tsh ${price}/mwezi</p>
-            <p style="color:#6b7280;font-size:11px;margin:0 0 8px;">📍 ${listing.district}, ${listing.region}</p>
-            <a href="/listings/${listing.id}"
-              style="display:block;background:#1D9E75;color:#fff;text-align:center;padding:6px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;">
+            <p style={{ color: '#1D9E75', fontWeight: 700, margin: '0 0 2px' }}>
+              Tsh {fmtPrice(selected.price_monthly)}/mwezi
+            </p>
+            <p style={{ color: '#6b7280', fontSize: 11, margin: '0 0 8px' }}>
+              📍 {selected.district}, {selected.region}
+            </p>
+            <Link
+              href={`/listings/${selected.id}`}
+              style={{
+                display: 'block',
+                background: '#1D9E75',
+                color: '#fff',
+                textAlign: 'center',
+                padding: '6px',
+                borderRadius: 8,
+                textDecoration: 'none',
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
               Angalia →
-            </a>
+            </Link>
           </div>
-        `)
+        </InfoWindow>
+      )}
+    </>
+  )
+}
 
-        L.marker([lat, lng], { icon }).addTo(map).bindPopup(popup)
-      })
-
-      // Auto-fit bounds if we have listings with coords
-      if (withCoords.length > 0) {
-        const bounds = L.latLngBounds(
-          withCoords.map(l => [l.latitude as number, l.longitude as number])
-        )
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
-      }
-
-      mapRef.current = map
-    })
-
-    return () => {
-      mapRef.current?.remove()
-      mapRef.current = null
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+export default function MapView({ listings }: Props) {
+  const withCoords = listings.filter(
+    l => typeof l.latitude === 'number' && typeof l.longitude === 'number'
+  )
 
   return (
     <div className="relative w-full" style={{ height: '70vh', minHeight: 400 }}>
-      <div ref={containerRef} className="w-full h-full rounded-2xl overflow-hidden z-0" />
+      <MapProvider>
+        <Map
+          defaultCenter={DAR_CENTER}
+          defaultZoom={12}
+          mapTypeId="hybrid"
+          gestureHandling="greedy"
+          disableDefaultUI
+          style={{ width: '100%', height: '100%', borderRadius: '1rem', overflow: 'hidden' }}
+        >
+          <MapContent listings={listings} />
+        </Map>
+      </MapProvider>
 
-      {/* No coordinates banner */}
       {withCoords.length === 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 rounded-2xl z-10">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 rounded-2xl z-10 pointer-events-none">
           <div className="text-5xl mb-3">🗺️</div>
           <p className="text-sm font-semibold text-gray-600 mb-1">Listings hazina coordinates bado</p>
           <p className="text-xs text-gray-400 text-center px-8">
@@ -124,9 +134,8 @@ export default function MapView({ listings }: Props) {
         </div>
       )}
 
-      {/* Listings count badge */}
       {withCoords.length > 0 && (
-        <div className="absolute top-3 left-3 z-[400] bg-white px-3 py-1.5 rounded-full shadow-md text-xs font-semibold text-gray-700">
+        <div className="absolute top-3 left-3 z-10 bg-white px-3 py-1.5 rounded-full shadow-md text-xs font-semibold text-gray-700">
           📍 {withCoords.length} listings kwenye ramani
         </div>
       )}

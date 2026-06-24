@@ -103,6 +103,8 @@ export async function POST(req: NextRequest) {
       lead_count: 0,
       latitude: data.latitude,
       longitude: data.longitude,
+      address_full: data.address_full,
+      place_id: data.place_id,
       listing_unit_type: data.listing_unit_type,
       total_capacity: data.total_capacity,
       current_occupancy: 0,

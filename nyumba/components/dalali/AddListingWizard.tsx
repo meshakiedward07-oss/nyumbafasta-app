@@ -9,12 +9,12 @@ import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
 import { VideoUpload } from '@/components/listings/VideoUpload'
 import { useDalaliProfile } from '@/lib/hooks/useDalaliProfile'
 
-const LocationPickerMap = dynamic(
-  () => import('@/components/dalali/LocationPickerMap'),
+const ListingLocationPicker = dynamic(
+  () => import('@/components/maps/ListingLocationPicker'),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full rounded-2xl bg-gray-100 animate-pulse" style={{ height: 260 }} />
+      <div className="w-full rounded-2xl bg-gray-100 animate-pulse" style={{ height: 320 }} />
     ),
   }
 )
@@ -36,6 +36,8 @@ type FormData = {
   video_url: string | null
   latitude: number | null
   longitude: number | null
+  address_full: string
+  place_id: string
   shop_size_sqm: string
   floor_level: string
   commercial_use: string
@@ -172,6 +174,8 @@ export default function AddListingWizard() {
     video_url: null,
     latitude: null,
     longitude: null,
+    address_full: '',
+    place_id: '',
     shop_size_sqm: '',
     floor_level: '',
     commercial_use: '',
@@ -557,16 +561,23 @@ export default function AddListingWizard() {
 
             {/* Location picker map */}
             <div>
-              <LocationPickerMap
-                value={form.latitude !== null && form.longitude !== null
-                  ? { lat: form.latitude, lng: form.longitude }
-                  : null
+              <ListingLocationPicker
+                initialLocation={
+                  form.latitude !== null && form.longitude !== null
+                    ? {
+                        latitude: form.latitude,
+                        longitude: form.longitude,
+                        address_full: form.address_full,
+                        place_id: form.place_id || undefined,
+                      }
+                    : undefined
                 }
-                onChange={coords => {
-                  set('latitude',  coords?.lat ?? null)
-                  set('longitude', coords?.lng ?? null)
+                onLocationChange={loc => {
+                  set('latitude', loc.latitude)
+                  set('longitude', loc.longitude)
+                  set('address_full', loc.address_full)
+                  set('place_id', loc.place_id ?? '')
                 }}
-                region={form.region}
               />
             </div>
 

@@ -26,6 +26,8 @@ export interface ListingInput {
   video_url: string | null
   latitude: number | null
   longitude: number | null
+  address_full: string | null
+  place_id: string | null
   // Shop-specific (optional)
   shop_size_sqm: number | null
   floor_level: number | null
@@ -119,6 +121,15 @@ export function validateListing(body: unknown): ValidationResult<ListingInput> {
   const latitude = typeof body.latitude === 'number' ? body.latitude : null
   const longitude = typeof body.longitude === 'number' ? body.longitude : null
 
+  const address_full =
+    typeof body.address_full === 'string' && body.address_full.length <= 500
+      ? body.address_full.trim() || null
+      : null
+  const place_id =
+    typeof body.place_id === 'string' && /^[A-Za-z0-9_-]{1,300}$/.test(body.place_id)
+      ? body.place_id
+      : null
+
   // Unit type
   const listing_unit_type = body.listing_unit_type === 'multi' ? 'multi' : 'single'
 
@@ -167,6 +178,8 @@ export function validateListing(body: unknown): ValidationResult<ListingInput> {
       video_url,
       latitude,
       longitude,
+      address_full,
+      place_id,
       shop_size_sqm,
       floor_level,
       commercial_use,
