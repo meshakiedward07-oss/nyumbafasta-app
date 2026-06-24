@@ -538,6 +538,16 @@ async function runDailyTasks() {
     errors.push(`❌ Dalali monitor: ${String(e)}`)
   }
 
+  // ── 16. Rental reminders — WhatsApp to dalali 24h after client unlock ──
+  try {
+    const { sendRentalReminders } = await import('@/lib/listings/rentalReminder')
+    const { checked, reminded, errors: reminderErrors } = await sendRentalReminders()
+    results.push(`✅ Rental reminders: ${reminded}/${checked} zimetumwa`)
+    if (reminderErrors.length) errors.push(`❌ Rental reminders: ${reminderErrors.join('; ')}`)
+  } catch (e) {
+    errors.push(`❌ Rental reminders: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,

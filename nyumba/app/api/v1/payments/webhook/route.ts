@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     }).eq('external_id', externalId).then(() => {})
 
     if (succeeded) {
-      // Auto-record income (non-blocking — accounting failure must not affect unlock flow)
+      // Auto-record income (non-blocking)
       import('@/lib/accounting/incomeTracker')
         .then(m => m.recordIncomeFromUnlock(unlock.id))
         .catch(e => console.error('[Accounting] recordIncomeFromUnlock failed (non-fatal):', e))
@@ -63,6 +63,15 @@ export async function POST(req: NextRequest) {
       if (listing) {
         const dalaliName   = (listing as typeof listing & { dalali?: { full_name?: string } | null }).dalali?.full_name ?? 'dalali'
         const listingLabel = `${listing.type} – ${listing.district}`
+
+        // Notify dalali via WhatsApp immediately (non-blocking)
+        import('@/lib/listings/rentalReminder')
+          .then(m => m.notifyDalaliNewUnlock({
+            dalaliId:     unlock.dalali_id,
+            listingId:    unlock.listing_id,
+            listingLabel,
+          }))
+          .catch(e => console.error('[RentalReminder] notifyDalaliNewUnlock failed (non-fatal):', e))
 
         const day3 = new Date(); day3.setDate(day3.getDate() + 3)
         const day7 = new Date(); day7.setDate(day7.getDate() + 7)

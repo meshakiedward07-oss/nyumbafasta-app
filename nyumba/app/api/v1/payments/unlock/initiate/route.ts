@@ -96,9 +96,18 @@ export async function POST(req: NextRequest) {
 
       await admin.rpc('increment_lead_count', { listing_id }).maybeSingle()
 
-      const dalaliName  = (listing as typeof listing & { dalali?: { full_name?: string } | null }).dalali?.full_name ?? 'dalali'
+      const dalaliName   = (listing as typeof listing & { dalali?: { full_name?: string } | null }).dalali?.full_name ?? 'dalali'
       const listingLabel = `${listing.type} – ${listing.district}`
-      const leadBody    = `Mteja amepata nambari yako kupitia listing ya ${listingLabel}.`
+      const leadBody     = `Mteja amepata nambari yako kupitia listing ya ${listingLabel}.`
+
+      // Notify dalali via WhatsApp (non-blocking)
+      import('@/lib/listings/rentalReminder')
+        .then(m => m.notifyDalaliNewUnlock({
+          dalaliId:  listing.dalali_id,
+          listingId: listing_id,
+          listingLabel,
+        }))
+        .catch(e => console.error('[RentalReminder] mock notifyDalaliNewUnlock failed (non-fatal):', e))
 
       await admin.from('notifications').insert({
         user_id:  listing.dalali_id,
