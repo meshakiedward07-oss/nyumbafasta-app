@@ -7,13 +7,13 @@ const TIKTOK_AUTH_URL = 'https://www.tiktok.com/v2/auth/authorize'
 // ── OAuth ─────────────────────────────────────────────────────────────────
 
 export function getTikTokAuthUrl(state: string): string {
-  const base = TIKTOK_AUTH_URL
   const clientKey = encodeURIComponent(process.env.TIKTOK_CLIENT_KEY!)
   const redirectUri = encodeURIComponent(`${process.env.NEXT_PUBLIC_APP_URL}/api/v1/social/tiktok/callback`)
-  const scope = 'user.info.basic,video.upload,video.publish'
   const encodedState = encodeURIComponent(state)
-  // Build manually to keep commas literal in scope (TikTok requires this)
-  return `${base}?client_key=${clientKey}&response_type=code&scope=${scope}&redirect_uri=${redirectUri}&state=${encodedState}`
+  // video.upload,video.publish require TikTok app review — start with basic scope
+  const scope = 'user.info.basic,video.upload,video.publish'
+  // Trailing slash required by TikTok docs; commas kept literal (not %2C)
+  return `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&response_type=code&scope=${scope}&redirect_uri=${redirectUri}&state=${encodedState}`
 }
 
 export async function exchangeCodeForToken(code: string): Promise<{
