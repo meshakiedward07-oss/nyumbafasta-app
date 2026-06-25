@@ -548,6 +548,73 @@ async function runDailyTasks() {
     errors.push(`❌ Rental reminders: ${String(e)}`)
   }
 
+  // ── 17. Social: process scheduled posts ──────────────
+  try {
+    const { processDueScheduledPosts } = await import('@/lib/social/autoPost')
+    await processDueScheduledPosts()
+    results.push('✅ Scheduled social posts zimeshughulikiwa')
+  } catch (e) {
+    errors.push(`❌ Scheduled posts: ${String(e)}`)
+  }
+
+  // ── 18. Social: refresh IG/FB post metrics ────────────
+  try {
+    const { updateAllPostMetrics } = await import('@/lib/social/metricsTracker')
+    const { updated, failed } = await updateAllPostMetrics()
+    results.push(`✅ Social metrics: ${updated} updated, ${failed} failed`)
+  } catch (e) {
+    errors.push(`❌ Social metrics: ${String(e)}`)
+  }
+
+  // ── 19. Social: sync new listings to Facebook Marketplace ──
+  try {
+    const { syncAllListingsToMarketplace, renewExpiringListings } = await import('@/lib/social/facebookMarketplace')
+    const sync = await syncAllListingsToMarketplace()
+    await renewExpiringListings()
+    results.push(`✅ Marketplace sync: ${sync.posted} posted, ${sync.failed} failed, ${sync.skipped} skipped`)
+  } catch (e) {
+    errors.push(`❌ Marketplace sync: ${String(e)}`)
+  }
+
+  // ── 20. Social: poll TikTok 'processing' posts for final status ──
+  try {
+    const { getValidToken, checkTikTokPostStatus } = await import('@/lib/social/tiktok')
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: processingPosts } = await admin
+      .from('tiktok_posts')
+      .select('id, publish_id')
+      .eq('status', 'processing')
+      .gte('created_at', cutoff)
+      .not('publish_id', 'is', null)
+      .limit(20)
+
+    if (processingPosts?.length) {
+      const token = await getValidToken()
+      if (token) {
+        let ttUpdated = 0
+        for (const post of processingPosts) {
+          try {
+            const st = await checkTikTokPostStatus(post.publish_id as string, token)
+            if (st.status === 'PUBLISH_COMPLETE') {
+              await admin.from('tiktok_posts').update({ status: 'published', updated_at: new Date().toISOString() }).eq('id', post.id)
+              ttUpdated++
+            } else if (st.status === 'FAILED' || st.status === 'CANCELLED') {
+              await admin.from('tiktok_posts').update({ status: 'failed', updated_at: new Date().toISOString() }).eq('id', post.id)
+              ttUpdated++
+            }
+          } catch { /* skip this post */ }
+        }
+        results.push(`✅ TikTok status poll: ${ttUpdated}/${processingPosts.length} updated`)
+      } else {
+        results.push('⚠️ TikTok status poll: token haipatikani')
+      }
+    } else {
+      results.push('✅ TikTok status poll: hakuna posts za processing')
+    }
+  } catch (e) {
+    errors.push(`❌ TikTok status poll: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,

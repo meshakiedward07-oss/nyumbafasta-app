@@ -6,6 +6,7 @@ import {
   waitForIGContainer,
   publishIGContainer,
   postToFacebook,
+  uploadFacebookVideoUrl,
 } from './metaClient'
 import { watermarkImage } from '@/lib/media/watermark'
 import { watermarkVideo } from '@/lib/media/videoWatermark'
@@ -47,6 +48,20 @@ export async function postListingToSocialMedia(
 
   if (error || !listing) {
     throw new Error(`Listing haipatikani: ${listingId}`)
+  }
+
+  // Dedup guard — skip if a successful post exists for this listing in the last 24h
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentPost } = await supabaseAdmin
+    .from('social_posts')
+    .select('id')
+    .eq('listing_id', listingId)
+    .eq('status', 'published')
+    .gte('created_at', since24h)
+    .limit(1)
+    .maybeSingle()
+  if (recentPost) {
+    throw new Error(`[Dedup] Listing ${listingId} tayari ilichapishwa saa 24 zilizopita — skip`)
   }
 
   const l = listing as Listing
@@ -143,7 +158,12 @@ export async function postListingToSocialMedia(
       const { caption: fbCaption, hashtags: fbHashtags } = await generateCaption(l, 'facebook')
       const fbFullCaption = `${fbCaption}\n\n${fbHashtags}`
 
-      fbPostId = await postToFacebook(fbFullCaption, imageUrl ?? undefined)
+      if (videoUrl) {
+        // Post video (Reel) to Facebook when video is available
+        fbPostId = await uploadFacebookVideoUrl(videoUrl, fbFullCaption, l.title ?? undefined)
+      } else {
+        fbPostId = await postToFacebook(fbFullCaption, imageUrl ?? undefined)
+      }
       console.log(`[Social] FB published: ${fbPostId}`)
     } catch (err) {
       const e = err instanceof Error ? err.message : String(err)

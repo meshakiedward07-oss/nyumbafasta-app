@@ -1,6 +1,6 @@
 import { createHmac } from 'crypto'
 
-const GRAPH = 'https://graph.facebook.com/v18.0'
+const GRAPH = 'https://graph.facebook.com/v21.0'
 
 const igToken   = () => process.env.INSTAGRAM_ACCESS_TOKEN ?? ''
 // Page operations require PAGE token, not System User token
@@ -288,15 +288,13 @@ export async function replyToFBComment(commentId: string, message: string): Prom
 }
 
 export async function sendFBMessage(recipientId: string, message: string): Promise<void> {
-  await fetch(`${GRAPH}/me/messages`, {
+  await fetch(`${GRAPH}/${fbPageId()}/messages`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${fbToken()}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      recipient: { id: recipientId },
-      message:   { text: message.slice(0, 2000) },
+      recipient:    { id: recipientId },
+      message:      { text: message.slice(0, 2000) },
+      access_token: fbToken(),
     }),
   })
 }
