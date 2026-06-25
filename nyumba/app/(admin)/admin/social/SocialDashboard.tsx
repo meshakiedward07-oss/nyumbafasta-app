@@ -11,7 +11,15 @@ import TikTokTab from './TikTokTab'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'marketplace' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule' | 'tiktok'
+type Tab = 'yote' | 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'marketplace' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule' | 'tiktok'
+
+type UnifiedPlatformStat = {
+  platform: string; label?: string; totalPosts: number; successPosts: number; failedPosts: number
+  totalViews: number; totalLikes: number; totalComments: number; totalShares: number; lastPostAt: string | null
+}
+type UnifiedTotals = { posts: number; views: number; likes: number; comments: number; shares: number }
+type UnifiedRecentPost = { id: string; platform: string; status: string; postId: string | null; created_at: string | null; listing_id: string | null }
+type PlatformConnection = { platform: string; label: string; is_connected: boolean }
 
 type SocialStats = {
   totalPosts: number; publishedPosts: number
@@ -86,7 +94,7 @@ function PlatformIcon({ platform }: { platform: string }) {
 // ── Main Component ─────────────────────────────────────────────────────────
 
 export default function SocialDashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>('overview')
+  const [activeTab, setActiveTab] = useState<Tab>('yote')
   const [stats, setStats]         = useState<SocialStats | null>(null)
   const [posts, setPosts]         = useState<SocialPost[]>([])
   const [comments, setComments]   = useState<Comment[]>([])
@@ -95,6 +103,13 @@ export default function SocialDashboard() {
   const [total, setTotal]         = useState(0)
   const [loading, setLoading]     = useState(false)
   const [toast, setToast]         = useState<string | null>(null)
+
+  // Unified tab state
+  const [unifiedStats, setUnifiedStats]       = useState<{ platforms: UnifiedPlatformStat[]; totals: UnifiedTotals; recentPosts: UnifiedRecentPost[] } | null>(null)
+  const [connections, setConnections]         = useState<PlatformConnection[]>([])
+  const [unifiedPeriod, setUnifiedPeriod]     = useState<'today' | 'week' | 'month' | 'all'>('month')
+  const [postAllListing, setPostAllListing]   = useState('')
+  const [postAllLoading, setPostAllLoading]   = useState(false)
 
   // Post Now state
   const [listings, setListings]       = useState<Listing[]>([])
@@ -112,10 +127,35 @@ export default function SocialDashboard() {
     setTimeout(() => setToast(null), 4000)
   }
 
+  const fetchUnified = useCallback(async (period: 'today' | 'week' | 'month' | 'all') => {
+    setLoading(true)
+    try {
+      const [statsRes, connRes, listingsRes] = await Promise.all([
+        fetch(`/api/v1/social/stats?period=${period}`),
+        fetch('/api/v1/social/connections'),
+        fetch('/api/v1/listings?status=active&limit=50'),
+      ])
+      const statsData = await statsRes.json() as { platforms: UnifiedPlatformStat[]; totals: UnifiedTotals; recentPosts: UnifiedRecentPost[] }
+      const connData  = await connRes.json() as { platforms: PlatformConnection[] }
+      const listData  = await listingsRes.json() as { listings?: Listing[] }
+      setUnifiedStats(statsData)
+      setConnections(connData.platforms ?? [])
+      setListings(listData.listings ?? [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const fetchData = useCallback(async (tab: Tab) => {
     setLoading(true)
     try {
-      if (tab === 'overview') {
+      if (tab === 'yote') {
+        await fetchUnified(unifiedPeriod)
+        setLoading(false)
+        return
+      } else if (tab === 'overview') {
         const res = await fetch('/api/v1/social/posts?tab=stats')
         const data = await res.json() as { stats: SocialStats }
         setStats(data.stats)
@@ -149,11 +189,16 @@ export default function SocialDashboard() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [fetchUnified, unifiedPeriod])
 
   useEffect(() => {
     fetchData(activeTab)
   }, [activeTab, fetchData])
+
+  useEffect(() => {
+    if (activeTab === 'yote') fetchUnified(unifiedPeriod)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unifiedPeriod])
 
   async function handleGenerateCaption() {
     if (!selectedListing) { showToast('Chagua listing kwanza'); return }
@@ -216,6 +261,25 @@ export default function SocialDashboard() {
     }
   }
 
+  async function handlePostAll() {
+    if (!postAllListing) { showToast('Chagua listing kwanza'); return }
+    setPostAllLoading(true)
+    try {
+      const res = await fetch('/api/v1/social/post-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: postAllListing }),
+      })
+      const data = await res.json() as { successCount?: number; failedCount?: number; results?: Array<{ platform: string; success: boolean; error?: string }>; error?: string }
+      if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
+      showToast(`✅ ${data.successCount ?? 0} platforms zilipita${data.failedCount ? `, ❌ ${data.failedCount} zilishindwa` : ''}`)
+      setPostAllListing('')
+      fetchUnified(unifiedPeriod)
+    } finally {
+      setPostAllLoading(false)
+    }
+  }
+
   async function handleRefreshMetrics() {
     setLoading(true)
     try {
@@ -233,6 +297,7 @@ export default function SocialDashboard() {
   }
 
   const TABS: { id: Tab; label: string; emoji: string }[] = [
+    { id: 'yote',        label: 'Platforms Zote', emoji: '🌐' },
     { id: 'overview',    label: 'Muhtasari',   emoji: '📊' },
     { id: 'tiktok',      label: 'TikTok',      emoji: '🎵' },
     { id: 'posts',       label: 'Machapisho',  emoji: '📸' },
@@ -281,6 +346,173 @@ export default function SocialDashboard() {
           </button>
         ))}
       </div>
+
+      {/* ── PLATFORMS ZOTE (unified) ── */}
+      {activeTab === 'yote' && (
+        <div className="space-y-6">
+
+          {/* Connection status row */}
+          <div className="grid grid-cols-3 gap-4">
+            {(connections.length > 0 ? connections : [
+              { platform: 'instagram', label: 'Instagram', is_connected: false },
+              { platform: 'facebook',  label: 'Facebook',  is_connected: false },
+              { platform: 'tiktok',    label: 'TikTok',    is_connected: false },
+            ]).map(c => (
+              <div key={c.platform} className={`flex items-center gap-3 p-4 rounded-xl border ${c.is_connected ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div className={`w-2.5 h-2.5 rounded-full ${c.is_connected ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <div>
+                  <p className="text-sm font-medium text-gray-800">{c.label}</p>
+                  <p className={`text-xs ${c.is_connected ? 'text-green-600' : 'text-gray-400'}`}>
+                    {c.is_connected ? 'Imeunganishwa' : 'Haijaunganishwa'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Period selector + Totals */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-800">Takwimu za Pamoja</h3>
+              <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+                {(['today', 'week', 'month', 'all'] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setUnifiedPeriod(p)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      unifiedPeriod === p ? 'bg-white text-[#1D9E75] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {p === 'today' ? 'Leo' : p === 'week' ? 'Wiki' : p === 'month' ? 'Mwezi' : 'Yote'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-5 gap-3">
+                {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />)}
+              </div>
+            ) : unifiedStats ? (
+              <div className="grid grid-cols-5 gap-3">
+                {[
+                  { label: 'Machapisho',  value: unifiedStats.totals.posts,    emoji: '📸' },
+                  { label: 'Maoni',       value: unifiedStats.totals.comments, emoji: '💬' },
+                  { label: 'Likes',       value: unifiedStats.totals.likes,    emoji: '❤️' },
+                  { label: 'Shares',      value: unifiedStats.totals.shares,   emoji: '🔁' },
+                  { label: 'Views',       value: unifiedStats.totals.views,    emoji: '👁️' },
+                ].map(c => (
+                  <div key={c.label} className="text-center bg-gray-50 rounded-xl p-3">
+                    <div className="text-lg">{c.emoji}</div>
+                    <div className="text-xl font-bold text-gray-900">{c.value.toLocaleString()}</div>
+                    <div className="text-xs text-gray-500">{c.label}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Per-platform breakdown */}
+          {unifiedStats && (
+            <div className="grid grid-cols-3 gap-4">
+              {unifiedStats.platforms.map(p => {
+                const icons: Record<string, string> = { instagram: '📸', facebook: '👤', tiktok: '🎵' }
+                const colors: Record<string, string> = { instagram: 'text-pink-600', facebook: 'text-blue-600', tiktok: 'text-gray-900' }
+                return (
+                  <div key={p.platform} className="bg-white rounded-xl border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xl">{icons[p.platform] ?? '🌐'}</span>
+                      <span className={`font-semibold ${colors[p.platform] ?? 'text-gray-800'} capitalize`}>{p.platform}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-400 text-xs">Posts</span>
+                        <p className="font-bold text-gray-900">{p.totalPosts}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Zilipita</span>
+                        <p className="font-bold text-green-600">{p.successPosts}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Likes</span>
+                        <p className="font-bold text-gray-900">{p.totalLikes.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs">Maoni</span>
+                        <p className="font-bold text-gray-900">{p.totalComments.toLocaleString()}</p>
+                      </div>
+                      {p.totalViews > 0 && (
+                        <div>
+                          <span className="text-gray-400 text-xs">Views</span>
+                          <p className="font-bold text-gray-900">{p.totalViews.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {p.failedPosts > 0 && (
+                        <div>
+                          <span className="text-gray-400 text-xs">Zilishindwa</span>
+                          <p className="font-bold text-red-600">{p.failedPosts}</p>
+                        </div>
+                      )}
+                    </div>
+                    {p.lastPostAt && (
+                      <p className="text-[10px] text-gray-400 mt-3">Mwisho: {fmtDate(p.lastPostAt)}</p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Quick post all */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="font-semibold text-gray-800 mb-3">Chapisha Kwenye Platforms Zote</h3>
+            <div className="flex gap-3">
+              <select
+                value={postAllListing}
+                onChange={e => setPostAllListing(e.target.value)}
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+              >
+                <option value="">-- Chagua listing --</option>
+                {listings.map(l => (
+                  <option key={l.id} value={l.id}>{l.title} — {l.district}</option>
+                ))}
+              </select>
+              <button
+                onClick={handlePostAll}
+                disabled={postAllLoading || !postAllListing}
+                className="px-5 py-2.5 bg-[#1D9E75] text-white text-sm font-semibold rounded-xl hover:bg-[#178a65] disabled:opacity-50 transition-all whitespace-nowrap"
+              >
+                {postAllLoading ? '⏳ Inachapisha...' : '🚀 Chapisha Yote'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Itachapisha kwenye Instagram, Facebook, na TikTok kwa wakati mmoja.</p>
+          </div>
+
+          {/* Recent posts (unified) */}
+          {unifiedStats && unifiedStats.recentPosts.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-800 mb-3">Machapisho ya Hivi Karibuni</h3>
+              <div className="space-y-2">
+                {unifiedStats.recentPosts.slice(0, 10).map(rp => {
+                  const pIcons: Record<string, string> = { instagram: '📸', facebook: '👤', tiktok: '🎵' }
+                  const statusColors: Record<string, string> = {
+                    posted: 'text-green-600', published: 'text-green-600',
+                    failed: 'text-red-600', posting: 'text-blue-600', pending: 'text-yellow-600',
+                  }
+                  return (
+                    <div key={rp.id + rp.platform} className="flex items-center gap-3 text-sm py-2 border-b border-gray-50 last:border-0">
+                      <span>{pIcons[rp.platform] ?? '🌐'}</span>
+                      <span className="capitalize text-gray-600 w-20">{rp.platform}</span>
+                      <span className={`font-medium ${statusColors[rp.status] ?? 'text-gray-600'}`}>{rp.status}</span>
+                      <span className="text-gray-400 text-xs ml-auto">{rp.created_at ? fmtDate(rp.created_at) : ''}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── OVERVIEW ── */}
       {activeTab === 'overview' && (

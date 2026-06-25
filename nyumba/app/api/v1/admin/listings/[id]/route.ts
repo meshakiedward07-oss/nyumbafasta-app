@@ -79,7 +79,7 @@ export async function PATCH(
       await sendPushToUser(listing.dalali_id, notifTitle, notifBody, '/dashboard/listings')
     }
 
-    // Auto-post to Facebook Marketplace on approval (non-fatal)
+    // Auto-post to ALL social platforms on approval (non-fatal, non-blocking)
     if (action === 'approve' && listing) {
       void (async () => {
         try {
@@ -88,38 +88,30 @@ export async function PATCH(
             .select('*')
             .eq('id', params.id)
             .single()
-          if (fullListing) {
-            const { postListingToMarketplace } = await import('@/lib/social/facebookMarketplace')
-            const mResult = await postListingToMarketplace(fullListing)
-            console.log(`[Approval] Marketplace: ${mResult.success ? '✅ ' + mResult.itemId : '❌ ' + mResult.error}`)
-          }
-        } catch (err) {
-          console.error('[Approval] Marketplace post failed (non-fatal):', err)
-        }
-      })()
-    }
 
-    // Auto-post to TikTok on approval if listing has video (non-fatal, non-blocking)
-    if (action === 'approve' && listing) {
-      void (async () => {
-        try {
-          const { data: fullListing } = await admin
-            .from('listings')
-            .select('*')
-            .eq('id', params.id)
-            .single()
-          if (fullListing?.video_url) {
-            const { postVideoToTikTok, generateTikTokCaption } = await import('@/lib/social/tiktok')
-            const caption = generateTikTokCaption(fullListing as import('@/lib/types/database').Listing)
-            const ttResult = await postVideoToTikTok({
-              videoUrl: fullListing.video_url,
-              caption,
+          if (!fullListing) return
+
+          // Facebook Marketplace
+          const { postListingToMarketplace } = await import('@/lib/social/facebookMarketplace')
+          const mResult = await postListingToMarketplace(fullListing)
+          console.log(`[Approval] Marketplace: ${mResult.success ? '✅ ' + mResult.itemId : '❌ ' + mResult.error}`)
+
+          // Instagram + Facebook + TikTok via unified orchestrator
+          const { postListingToAllPlatforms, getConnectedPlatforms } = await import('@/lib/social/unifiedPost')
+          const connectedPlatforms = await getConnectedPlatforms()
+          if (connectedPlatforms.length > 0) {
+            const uResult = await postListingToAllPlatforms({
               listingId: params.id,
+              platforms: connectedPlatforms,
+              createdBy: user.id,
             })
-            console.log(`[Approval] TikTok: ${ttResult.success ? '✅ ' + ttResult.publishId : '❌ ' + ttResult.error}`)
+            console.log(`[Approval] Social: ${uResult.successCount}/${uResult.results.length} platforms ✅`)
+            for (const r of uResult.results) {
+              if (!r.success) console.warn(`[Approval] ${r.platform} failed: ${r.error}`)
+            }
           }
         } catch (err) {
-          console.error('[Approval] TikTok post failed (non-fatal):', err)
+          console.error('[Approval] Social post failed (non-fatal):', err)
         }
       })()
     }
