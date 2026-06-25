@@ -11,7 +11,7 @@ function isObject(v: unknown): v is Record<string, unknown> {
 }
 
 const LISTING_TYPES = ['chumba', 'apartment', 'nyumba', 'studio', 'duka'] as const
-const FURNISHED_VALUES = ['empty', 'semi', 'full'] as const
+const FURNISHED_VALUES = ['empty', 'semi', 'furnished'] as const
 
 export interface ListingInput {
   type: (typeof LISTING_TYPES)[number]
