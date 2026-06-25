@@ -2,7 +2,6 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import type { Listing } from '@/lib/types/database'
 
 const TIKTOK_API_BASE = 'https://open.tiktokapis.com/v2'
-const TIKTOK_AUTH_URL = 'https://www.tiktok.com/v2/auth/authorize'
 
 // ── OAuth ─────────────────────────────────────────────────────────────────
 
