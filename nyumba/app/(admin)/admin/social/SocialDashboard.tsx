@@ -7,10 +7,11 @@ import CarouselTab from './CarouselTab'
 import SpamTab from './SpamTab'
 import BestTimeTab from './BestTimeTab'
 import MarketplaceTab from './MarketplaceTab'
+import TikTokTab from './TikTokTab'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'marketplace' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule'
+type Tab = 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'marketplace' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule' | 'tiktok'
 
 type SocialStats = {
   totalPosts: number; publishedPosts: number
@@ -232,19 +233,20 @@ export default function SocialDashboard() {
   }
 
   const TABS: { id: Tab; label: string; emoji: string }[] = [
-    { id: 'overview', label: 'Muhtasari',   emoji: '📊' },
-    { id: 'posts',    label: 'Machapisho',  emoji: '📸' },
-    { id: 'upload',   label: 'Pakia Video', emoji: '📹' },
-    { id: 'groups',   label: 'Makundi',     emoji: '👥' },
-    { id: 'stories',  label: 'Stories',     emoji: '🔴' },
-    { id: 'carousel',     label: 'Carousel',    emoji: '🖼️' },
-    { id: 'marketplace',  label: 'Marketplace', emoji: '🛒' },
-    { id: 'spam',         label: 'Spam',        emoji: '🚫' },
-    { id: 'besttime', label: 'Wakati Bora', emoji: '⏰' },
-    { id: 'comments', label: 'Maoni',       emoji: '💬' },
-    { id: 'dms',      label: 'DMs',         emoji: '📨' },
-    { id: 'postnow',  label: 'Chapisha',    emoji: '✍️' },
-    { id: 'schedule', label: 'Ratiba',      emoji: '📅' },
+    { id: 'overview',    label: 'Muhtasari',   emoji: '📊' },
+    { id: 'tiktok',      label: 'TikTok',      emoji: '🎵' },
+    { id: 'posts',       label: 'Machapisho',  emoji: '📸' },
+    { id: 'upload',      label: 'Pakia Video', emoji: '📹' },
+    { id: 'groups',      label: 'Makundi',     emoji: '👥' },
+    { id: 'stories',     label: 'Stories',     emoji: '🔴' },
+    { id: 'carousel',    label: 'Carousel',    emoji: '🖼️' },
+    { id: 'marketplace', label: 'Marketplace', emoji: '🛒' },
+    { id: 'spam',        label: 'Spam',        emoji: '🚫' },
+    { id: 'besttime',    label: 'Wakati Bora', emoji: '⏰' },
+    { id: 'comments',    label: 'Maoni',       emoji: '💬' },
+    { id: 'dms',         label: 'DMs',         emoji: '📨' },
+    { id: 'postnow',     label: 'Chapisha',    emoji: '✍️' },
+    { id: 'schedule',    label: 'Ratiba',      emoji: '📅' },
   ]
 
   return (
@@ -252,7 +254,7 @@ export default function SocialDashboard() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Social Media</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Instagram + Facebook automation — NyumbaFasta</p>
+        <p className="text-sm text-gray-500 mt-0.5">TikTok, Instagram + Facebook automation — NyumbaFasta</p>
       </div>
 
       {/* Toast */}
@@ -394,6 +396,9 @@ export default function SocialDashboard() {
           </div>
         </div>
       )}
+
+      {/* ── TIKTOK ── */}
+      {activeTab === 'tiktok' && <TikTokTab showToast={showToast} />}
 
       {/* ── PAKIA VIDEO ── */}
       {activeTab === 'upload' && <VideoUploadTab />}

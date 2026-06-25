@@ -99,6 +99,31 @@ export async function PATCH(
       })()
     }
 
+    // Auto-post to TikTok on approval if listing has video (non-fatal, non-blocking)
+    if (action === 'approve' && listing) {
+      void (async () => {
+        try {
+          const { data: fullListing } = await admin
+            .from('listings')
+            .select('*')
+            .eq('id', params.id)
+            .single()
+          if (fullListing?.video_url) {
+            const { postVideoToTikTok, generateTikTokCaption } = await import('@/lib/social/tiktok')
+            const caption = generateTikTokCaption(fullListing as import('@/lib/types/database').Listing)
+            const ttResult = await postVideoToTikTok({
+              videoUrl: fullListing.video_url,
+              caption,
+              listingId: params.id,
+            })
+            console.log(`[Approval] TikTok: ${ttResult.success ? '✅ ' + ttResult.publishId : '❌ ' + ttResult.error}`)
+          }
+        } catch (err) {
+          console.error('[Approval] TikTok post failed (non-fatal):', err)
+        }
+      })()
+    }
+
     return NextResponse.json({ success: true, status: newStatus })
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
