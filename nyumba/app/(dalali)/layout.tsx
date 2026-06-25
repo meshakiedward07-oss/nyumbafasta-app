@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import DalaliBottomNav from '@/components/shared/DalaliBottomNav'
 
 export default async function DalaliLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -7,7 +8,6 @@ export default async function DalaliLayout({ children }: { children: React.React
 
   if (!user) redirect('/login?redirect=/dashboard')
 
-  // Verify dalali role
   const { data: profile } = await supabase
     .from('users')
     .select('role')
@@ -18,5 +18,10 @@ export default async function DalaliLayout({ children }: { children: React.React
     redirect('/')
   }
 
-  return <>{children}</>
+  return (
+    <>
+      <div className="pb-20">{children}</div>
+      <DalaliBottomNav />
+    </>
+  )
 }

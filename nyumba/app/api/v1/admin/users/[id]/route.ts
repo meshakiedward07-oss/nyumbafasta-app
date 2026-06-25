@@ -103,7 +103,18 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     })
 
     if (rpcError) {
-      // Fallback: direct delete if RPC not available yet
+      // Fallback: manually cascade-delete FK-constrained rows, then delete user
+      // Order matters — delete child tables before parent (users)
+      await Promise.all([
+        adminClient.from('subscriptions').delete().eq('dalali_id', params.id),
+        adminClient.from('saved_listings').delete().eq('client_id', params.id),
+        adminClient.from('notifications').delete().eq('user_id', params.id),
+      ])
+      await adminClient.from('contact_unlocks').delete().or(`dalali_id.eq.${params.id},client_id.eq.${params.id}`)
+      await adminClient.from('reviews').delete().or(`dalali_id.eq.${params.id},reviewer_id.eq.${params.id}`)
+      await adminClient.from('listings').delete().eq('dalali_id', params.id)
+      await adminClient.from('dalali_profiles').delete().eq('user_id', params.id)
+
       const { error: dbError } = await adminClient.from('users').delete().eq('id', params.id)
       if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
       await adminClient.auth.admin.deleteUser(params.id)

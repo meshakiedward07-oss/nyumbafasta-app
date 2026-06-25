@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import DalaliBottomNav from '@/components/shared/DalaliBottomNav'
 import ShareButton from '@/components/shared/ShareButton'
 import BoostModal from '@/components/dalali/BoostModal'
 import QuickEditModal from '@/components/dalali/QuickEditModal'
@@ -621,8 +620,6 @@ export default function MyListingsClient({ listings: initial }: { listings: List
           </div>
         </div>
       )}
-
-      <DalaliBottomNav />
 
       {editListing && (
         <QuickEditModal

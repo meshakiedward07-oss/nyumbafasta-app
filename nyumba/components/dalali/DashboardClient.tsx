@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { Listing } from '@/lib/types/database'
-import DalaliBottomNav from '@/components/shared/DalaliBottomNav'
 import NotificationBell from '@/components/shared/NotificationBell'
 import { PLAN_BADGES, getListingLimit, getPlan } from '@/lib/config/subscription-plans'
 import { ListingDeadlineBanner } from '@/components/dalali/ListingDeadlineBanner'
@@ -543,8 +542,6 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           </div>
         )}
       </div>
-
-      <DalaliBottomNav />
 
       {/* Welcome Modal — inaonekana baada ya kuthibitisha email */}
       {showWelcome && (

@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import DalaliBottomNav from '@/components/shared/DalaliBottomNav'
 import type { DalaliReview } from '@/app/(dalali)/dashboard/reviews/page'
 
 type Props = {
@@ -221,7 +220,6 @@ export default function DalaliReviewsClient({ reviews: initial, ratingAvg, ratin
         ))}
       </div>
 
-      <DalaliBottomNav />
     </div>
   )
 }
