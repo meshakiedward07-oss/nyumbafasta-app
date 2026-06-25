@@ -453,7 +453,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           <div className="flex gap-4 text-center">
             <div className="flex-1">
               <p className="text-lg font-bold text-gray-900">{listing.view_count}</p>
-              <p className="text-xs text-gray-400">👁 Waliangalia</p>
+              <p className="text-xs text-gray-400">👁 Waliotazama</p>
             </div>
             <div className="w-px bg-gray-100" />
             <div className="flex-1">

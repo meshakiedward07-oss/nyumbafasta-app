@@ -86,6 +86,105 @@ function SubBadge({ subscriptions }: { subscriptions: UserRow['subscriptions'] }
   )
 }
 
+// ── Action Menu (dropdown for table rows) ─────────────────────────────────────
+function ActionMenu({ user, onView, onSuspend, onBan, onDelete, loading }: {
+  user: UserRow
+  onView?: string
+  onSuspend: () => void
+  onBan: () => void
+  onDelete: () => void
+  loading: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const waNum = user.dalali_profiles?.whatsapp_number?.replace(/\D/g, '') ?? ''
+
+  return (
+    <div className="relative flex justify-center" ref={ref}>
+      <button
+        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+        disabled={loading}
+        title="Vitendo"
+        className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold text-xl transition-colors disabled:opacity-40 ${
+          open ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'
+        }`}
+      >
+        {loading ? <span className="text-xs font-normal">...</span> : '⋮'}
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-9 z-30 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 min-w-[185px]"
+          onClick={e => e.stopPropagation()}
+        >
+          {onView && (
+            <Link
+              href={onView}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-primary-700 hover:bg-primary-50 transition-colors w-full"
+            >
+              <span>👁️</span>
+              <span className="font-medium">Angalia Profaili</span>
+            </Link>
+          )}
+          <button
+            onClick={() => { onSuspend(); setOpen(false) }}
+            className={`flex items-center gap-2.5 px-3 py-2.5 text-sm w-full text-left transition-colors ${
+              user.is_active === false ? 'text-green-700 hover:bg-green-50' : 'text-amber-700 hover:bg-amber-50'
+            }`}
+          >
+            <span>{user.is_active === false ? '✅' : '⏸️'}</span>
+            <span className="font-medium">{user.is_active === false ? 'Washa Akaunti' : 'Simamisha'}</span>
+          </button>
+          {user.is_active !== false && (
+            <button
+              onClick={() => { onBan(); setOpen(false) }}
+              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-orange-700 w-full text-left hover:bg-orange-50 transition-colors"
+            >
+              <span>🚫</span>
+              <span className="font-medium">Ban Mtumiaji</span>
+            </button>
+          )}
+          {waNum && (
+            <a
+              href={`https://wa.me/${waNum}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2.5 text-sm w-full hover:bg-green-50 transition-colors"
+              style={{ color: '#128C7E' }}
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 flex-shrink-0" style={{ fill: '#128C7E' }}>
+                <path d={WA_PATH} />
+              </svg>
+              <span className="font-medium">Tuma WhatsApp</span>
+            </a>
+          )}
+          <div className="border-t border-gray-100 mt-1 pt-1">
+            <button
+              onClick={() => { onDelete(); setOpen(false) }}
+              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 w-full text-left hover:bg-red-50 transition-colors"
+            >
+              <span>🗑️</span>
+              <span className="font-medium">Futa Akaunti</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function AdminUsersClient() {
   const [roleFilter,   setRoleFilter]   = useState<RoleFilter>('all')
@@ -485,55 +584,19 @@ export default function AdminUsersClient() {
                       {/* Joined */}
                       <td className="px-3 py-3 text-xs text-gray-400 whitespace-nowrap" suppressHydrationWarning>{timeAgo(u.created_at)}</td>
                       {/* Actions */}
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-1 justify-center flex-wrap">
-                          {u.role === 'dalali' && (
-                            <Link href={`/admin/users/${u.id}`}
-                              className="text-[10px] px-2 py-1 rounded-lg bg-primary-50 text-primary-600 font-semibold whitespace-nowrap">
-                              Angalia →
-                            </Link>
-                          )}
-                          {u.role !== 'admin' && (
-                            <>
-                              <button
-                                onClick={e => { e.stopPropagation(); handleSuspendActivate(u.id, u.is_active === false ? 'activate' : 'suspend') }}
-                                disabled={actionLoading === u.id}
-                                className={`text-[10px] px-2 py-1 rounded-lg font-semibold disabled:opacity-40 whitespace-nowrap ${
-                                  u.is_active === false ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-700'
-                                }`}
-                              >
-                                {actionLoading === u.id ? '...' : u.is_active === false ? 'Washa' : 'Simamisha'}
-                              </button>
-                              {u.is_active !== false && (
-                                <button
-                                  onClick={e => { e.stopPropagation(); handleBan(u.id) }}
-                                  disabled={actionLoading === u.id}
-                                  className="text-[10px] px-2 py-1 rounded-lg bg-orange-50 text-orange-700 font-semibold disabled:opacity-40"
-                                >
-                                  Ban
-                                </button>
-                              )}
-                              <button
-                                onClick={e => { e.stopPropagation(); setConfirmDeleteId(u.id) }}
-                                disabled={actionLoading === u.id}
-                                className="text-[10px] px-2 py-1 rounded-lg bg-red-50 text-red-600 font-semibold disabled:opacity-40"
-                              >
-                                Futa
-                              </button>
-                            </>
-                          )}
-                          {/* WhatsApp quick link for dalali */}
-                          {u.role === 'dalali' && u.dalali_profiles?.whatsapp_number && (
-                            <a
-                              href={`https://wa.me/${waNum(u.dalali_profiles.whatsapp_number)}`}
-                              target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 bg-[#25D366] text-white text-[10px] px-2 py-1 rounded-lg"
-                            >
-                              <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white flex-shrink-0"><path d={WA_PATH}/></svg>
-                              WA
-                            </a>
-                          )}
-                        </div>
+                      <td className="px-2 py-3">
+                        {u.role !== 'admin' ? (
+                          <ActionMenu
+                            user={u}
+                            onView={u.role === 'dalali' ? `/admin/users/${u.id}` : undefined}
+                            onSuspend={() => handleSuspendActivate(u.id, u.is_active === false ? 'activate' : 'suspend')}
+                            onBan={() => handleBan(u.id)}
+                            onDelete={() => setConfirmDeleteId(u.id)}
+                            loading={actionLoading === u.id}
+                          />
+                        ) : (
+                          <span className="block text-center text-xs text-gray-300">Admin</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -582,11 +645,11 @@ export default function AdminUsersClient() {
                     <p className="text-[10px] text-gray-300 flex-shrink-0" suppressHydrationWarning>{timeAgo(u.created_at)}</p>
                   </div>
                   {u.role !== 'admin' && (
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 flex-wrap pt-1">
                       {u.role === 'dalali' && (
                         <Link href={`/admin/users/${u.id}`}
-                          className="flex items-center justify-center px-3 py-2.5 rounded-xl text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-100">
-                          Angalia →
+                          className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-100">
+                          👁️ Angalia
                         </Link>
                       )}
                       <button
@@ -598,10 +661,21 @@ export default function AdminUsersClient() {
                       >
                         {actionLoading === u.id ? '...' : u.is_active === false ? '✅ Washa' : '⏸️ Simamisha'}
                       </button>
+                      {u.is_active !== false && (
+                        <button
+                          onClick={() => handleBan(u.id)}
+                          disabled={actionLoading === u.id}
+                          className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700 disabled:opacity-40 active:scale-[0.97] transition-all"
+                          title="Ban Mtumiaji"
+                        >
+                          🚫
+                        </button>
+                      )}
                       <button
                         onClick={() => setConfirmDeleteId(u.id)}
                         disabled={actionLoading === u.id}
                         className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600 disabled:opacity-40 active:scale-[0.97] transition-all"
+                        title="Futa Akaunti"
                       >
                         🗑️
                       </button>

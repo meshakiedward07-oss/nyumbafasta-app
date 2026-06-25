@@ -303,7 +303,7 @@ export default function MarketplaceTab() {
                         {item.price_tzs ? ` • TZS ${item.price_tzs.toLocaleString('sw-TZ')}/mwezi` : ''}
                       </p>
                       <div className="flex gap-3 mt-1.5 text-xs text-gray-400">
-                        <span>👁️ {item.views} views</span>
+                        <span>👁️ {item.views} waliotazama</span>
                         <span>💬 {item.inquiries} maswali</span>
                         {item.posted_at && <span>📅 {fmtDate(item.posted_at)}</span>}
                         {item.expires_at && <span>⏳ Inaisha: {fmtDate(item.expires_at)}</span>}
