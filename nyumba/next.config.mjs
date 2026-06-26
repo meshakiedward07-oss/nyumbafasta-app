@@ -33,7 +33,7 @@ const nextConfig = {
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(self)',
+            value: 'camera=(), microphone=(), geolocation=(self), autoplay=*, fullscreen=*',
           },
           // HTTPS enforcement — browsers refuse HTTP for 1 year (incl. subdomains)
           {

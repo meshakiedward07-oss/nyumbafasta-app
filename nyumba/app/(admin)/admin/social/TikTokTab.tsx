@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useEffect, useCallback } from 'react'
+import { VideoPlayer } from '@/components/listings/VideoPlayer'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -412,16 +413,10 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
           {selectedListing && (
             <>
               {/* Video preview */}
-              <div className="rounded-xl overflow-hidden bg-black" style={{ aspectRatio: '16/9' }}>
-                <video
-                  key={selectedListing.video_url!}
-                  src={selectedListing.video_url!}
-                  controls
-                  preload="metadata"
-                  playsInline
-                  className="w-full h-full object-contain"
-                />
-              </div>
+              <VideoPlayer
+                src={selectedListing.video_url!}
+                title={selectedListing.title}
+              />
 
               {/* Caption */}
               <div>

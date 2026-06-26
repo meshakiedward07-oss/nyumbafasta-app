@@ -141,6 +141,7 @@ export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Pr
         xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`)
         xhr.setRequestHeader('Content-Type', fileToUpload.type || 'video/mp4')
         xhr.setRequestHeader('x-upsert', 'false')
+        xhr.setRequestHeader('cache-control', '31536000') // 1 year browser cache
         xhr.send(fileToUpload)
       })
 

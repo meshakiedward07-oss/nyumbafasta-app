@@ -441,6 +441,8 @@ export default function VideoUploadTab() {
               <video
                 src={videoUrl ?? preview ?? ''}
                 controls
+                preload="metadata"
+                playsInline
                 className="w-full h-full object-contain"
               />
               {/* Watermark preview pill — mirrors Cloudinary overlay position (bottom-center) */}
