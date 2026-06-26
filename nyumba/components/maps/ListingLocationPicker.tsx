@@ -142,6 +142,7 @@ function PickerContent({ initialLocation, onLocationChange }: Props) {
           gestureHandling="greedy"
           disableDefaultUI
           onClick={handleMapClick}
+          mapId="nyumbafasta-location-picker"
           style={{ width: '100%', height: '100%' }}
         >
           {position && (
