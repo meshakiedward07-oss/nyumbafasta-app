@@ -791,7 +791,7 @@ export default function AddListingWizard() {
       </div>
 
       {/* ── Fixed bottom CTA ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
         {step < 3 ? (
           <button
             onClick={() => setStep(s => s + 1)}
