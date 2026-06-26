@@ -39,7 +39,7 @@ export function VideoPlayer({
 
   // Detect slow connection
   useEffect(() => {
-    const conn = (navigator as any).connection
+    const conn = (navigator as unknown as { connection?: { effectiveType?: string } }).connection
     if (conn?.effectiveType === '2g' || conn?.effectiveType === 'slow-2g') {
       setSlowConnection(true)
     }
