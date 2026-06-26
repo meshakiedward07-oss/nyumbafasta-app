@@ -8,7 +8,10 @@ function ensureVapid() {
   const email  = process.env.VAPID_EMAIL
   const pubKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const privKey = process.env.VAPID_PRIVATE_KEY
-  if (!email || !pubKey || !privKey) return
+  if (!email || !pubKey || !privKey) {
+    console.error('[Push] VAPID keys missing — set NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_EMAIL in Vercel env vars')
+    return
+  }
   webpush.setVapidDetails(email, pubKey, privKey)
   vapidInitialised = true
 }
@@ -21,7 +24,10 @@ export async function sendPushToUser(
 ): Promise<void> {
   try {
     ensureVapid()
-    if (!vapidInitialised) return
+    if (!vapidInitialised) {
+      console.warn('[Push] Skipping push for user', userId, '— VAPID not configured')
+      return
+    }
 
     const admin = createAdminClient()
     const { data } = await admin
