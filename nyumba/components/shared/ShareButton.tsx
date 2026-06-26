@@ -8,7 +8,7 @@ const amenityEmoji: Record<string, string> = {
   ac: '❄️ AC', dstv: '📺 DSTV', solar: '☀️ Solar', soko: '🛒 Soko', bustani: '🌿 Bustani',
 }
 const furnishedLabel: Record<string, string> = {
-  furnished: 'Furnished', semi: 'Semi-furnished', empty: 'Empty',
+  furnished: 'Ina Samani', semi: 'Nusu Samani', empty: 'Bila Samani',
 }
 const typeLabel: Record<string, string> = {
   chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
