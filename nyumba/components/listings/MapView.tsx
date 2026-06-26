@@ -192,7 +192,7 @@ export default function MapView({ listings, className = '' }: Props) {
           <Map
             defaultCenter={DAR_CENTER}
             defaultZoom={11}
-            mapTypeId="roadmap"
+            mapTypeId="hybrid"
             gestureHandling="greedy"
             disableDefaultUI={false}
             mapId="nyumbafasta-map"

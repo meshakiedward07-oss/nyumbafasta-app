@@ -23,7 +23,7 @@ export default function SingleListingMap({ latitude, longitude, district, region
           <Map
             defaultCenter={{ lat: latitude, lng: longitude }}
             defaultZoom={16}
-            mapTypeId="roadmap"
+            mapTypeId="hybrid"
             disableDefaultUI
             gestureHandling="none"
             style={{ width: '100%', height: '100%' }}
