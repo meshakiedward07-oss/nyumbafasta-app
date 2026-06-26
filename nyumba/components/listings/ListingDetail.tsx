@@ -10,6 +10,7 @@ import ShareButton from '@/components/shared/ShareButton'
 import Avatar from '@/components/shared/Avatar'
 import UnlockModal from '@/components/payments/UnlockModal'
 import ReviewList from '@/components/listings/ReviewList'
+import ReviewForm from '@/components/listings/ReviewForm'
 import ReportDalaliModal from '@/components/listings/ReportDalaliModal'
 import NeighborhoodInfo from '@/components/listings/NeighborhoodInfo'
 import { VideoPlayer } from '@/components/listings/VideoPlayer'
@@ -48,9 +49,9 @@ const typeLabel: Record<string, string> = {
 }
 
 const furnishedLabel: Record<string, string> = {
-  furnished: 'Furnished',
-  semi: 'Semi-furnished',
-  empty: 'Empty',
+  furnished: 'Ina Samani',
+  semi: 'Nusu Samani',
+  empty: 'Bila Samani',
 }
 
 function timeAgo(dateStr: string): string {
@@ -80,7 +81,7 @@ type Props = {
   similarListings?: ListingFull[]
 }
 
-export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlockCreatedAt, hasReviewed, reviews }: Props) {
+export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlockId, unlockCreatedAt, hasReviewed, reviews }: Props) {
   const router = useRouter()
   const [activeImg, setActiveImg] = useState(0)
 
@@ -99,7 +100,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const [showUnlockModal, setShowUnlockModal]   = useState(false)
   const [showReportModal, setShowReportModal]   = useState(false)
   const [localUnlocked, setLocalUnlocked] = useState(hasUnlocked)
-  const [reviewed] = useState(hasReviewed)
+  const [reviewed, setReviewed] = useState(hasReviewed)
   const [touchStartX, setTouchStartX] = useState(0)
 
   function handleTouchStart(e: React.TouchEvent) {
@@ -122,6 +123,8 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const rating = profile?.rating_avg ?? 0
   const ratingCount = profile?.rating_count ?? 0
   const whatsappNumber = profile?.whatsapp_number
+  // Normalised number for links (guaranteed digits-only starting with 255, or empty string)
+  const waPhone = (whatsappNumber ?? '').replace(/\D/g, '').replace(/^0/, '255') || null
 
   const isTaken = listing.status === 'taken'
 
@@ -180,7 +183,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Boosted badge */}
         {listing.is_boosted && (
           <div className="absolute top-3 left-3 bg-primary-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-            ⚡ Imeboostwa
+            ⚡ Inaoneshwa Zaidi
           </div>
         )}
 
@@ -348,7 +351,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         )}
 
         {/* Contact history badge */}
-        {localUnlocked && unlockCreatedAt && (
+        {localUnlocked && unlockCreatedAt && waPhone && (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-3">
             <div className="flex items-center gap-3 mb-2.5">
               <span className="text-2xl flex-shrink-0">✅</span>
@@ -359,7 +362,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             </div>
             <div className="grid grid-cols-2 gap-2">
               <a
-                href={`https://wa.me/${whatsappNumber?.replace(/\D/g, '')}`}
+                href={`https://wa.me/${waPhone}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-1.5 bg-green-500 text-white text-xs px-3 py-2 rounded-xl font-semibold active:scale-95 transition-transform"
@@ -367,7 +370,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 💬 WhatsApp
               </a>
               <a
-                href={`tel:+${whatsappNumber?.replace(/\D/g, '')}`}
+                href={`tel:+${waPhone}`}
                 className="flex items-center justify-center gap-1.5 bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-semibold active:scale-95 transition-transform"
               >
                 📞 Piga Simu
@@ -395,7 +398,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 </span>
                 {isVerified && (
                   <span className="bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                    ✓ Verified
+                    ✓ Imethibitishwa
                   </span>
                 )}
               </div>
@@ -433,50 +436,28 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           ratingCount={listing.dalali?.dalali_profiles?.rating_count ?? 0}
         />
 
-        {/* Review prompt — shown after unlock, client gets notification in 3 days */}
+        {/* Review prompt — shown after unlock */}
         {localUnlocked && !reviewed && (
-          <div className="bg-primary-50 border border-primary-100 rounded-2xl p-4 animate-fadeIn">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">⭐</span>
-              <div>
-                <p className="text-sm font-semibold text-primary-700">Tutakuomba toa maoni</p>
-                <p className="text-xs text-primary-500 mt-0.5">
-                  Baada ya siku 3 utapata arifa kukuomba utoe maoni kuhusu dalali
-                </p>
+          unlockId
+            ? <ReviewForm
+                unlockId={unlockId}
+                dalaliName={listing.dalali?.full_name ?? 'Dalali'}
+                onSubmitted={() => setReviewed(true)}
+              />
+            : <div className="bg-primary-50 border border-primary-100 rounded-2xl p-4 animate-fadeIn">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">⭐</span>
+                  <div>
+                    <p className="text-sm font-semibold text-primary-700">Tutakuomba toa maoni</p>
+                    <p className="text-xs text-primary-500 mt-0.5">
+                      Baada ya siku 3 utapata arifa kukuomba utoe maoni kuhusu dalali
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
         )}
 
-        {/* Stats */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex gap-4 text-center">
-            <div className="flex-1">
-              <p className="text-lg font-bold text-gray-900">{listing.view_count}</p>
-              <p className="text-xs text-gray-400">👁 Waliotazama</p>
-            </div>
-            <div className="w-px bg-gray-100" />
-            <div className="flex-1">
-              <p className="text-lg font-bold text-gray-900">{listing.share_count ?? 0}</p>
-              <p className="text-xs text-gray-400">🔗 Walishare</p>
-            </div>
-            <div className="w-px bg-gray-100" />
-            <div className="flex-1">
-              <p className="text-lg font-bold text-gray-900">{listing.lead_count}</p>
-              <p className="text-xs text-gray-400">📞 Leads</p>
-            </div>
-          </div>
-        </div>
-
       </div>
-
-      {/* ── Taken banner ── */}
-      {isTaken && (
-        <div className="mx-4 mb-4 bg-gray-50 border border-gray-200 rounded-2xl p-4 text-center">
-          <p className="font-semibold text-gray-700 mb-1">😔 Nyumba hii imeshapangishwa</p>
-          <p className="text-gray-400 text-sm">Angalia zinazofanana hapa chini</p>
-        </div>
-      )}
 
       {/* ── Similar listings (shown for all listings) ── */}
       <SimilarListings
@@ -488,9 +469,12 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
       />
 
       {/* ── Fixed bottom CTA ── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4 shadow-lg">
+      <div
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg"
+        style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+      >
         {isTaken ? (
-          <div className="text-center">
+          <div className="text-center pb-1">
             <p className="text-sm font-semibold text-amber-700 mb-1">🔴 Nyumba hii imeshapangishwa</p>
             <a href={`/?region=${listing.region}`}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl
@@ -498,11 +482,11 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               🔍 Tafuta zinazofanana — {listing.region}
             </a>
           </div>
-        ) : localUnlocked ? (
-          <div className="space-y-2">
+        ) : localUnlocked && waPhone ? (
+          <div className="space-y-2 pb-1">
             <div className="grid grid-cols-2 gap-3">
               <a
-                href={`https://wa.me/${whatsappNumber?.replace(/\D/g, '')}`}
+                href={`https://wa.me/${waPhone}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-col items-center justify-center gap-1 py-3 rounded-2xl
@@ -513,7 +497,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 <span>WhatsApp</span>
               </a>
               <a
-                href={`tel:+${whatsappNumber?.replace(/\D/g, '')}`}
+                href={`tel:+${waPhone}`}
                 className="flex flex-col items-center justify-center gap-1 py-3 rounded-2xl
                            bg-blue-500 text-white font-semibold text-sm shadow-md
                            active:scale-95 transition-transform"

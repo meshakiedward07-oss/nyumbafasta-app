@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import SeoListingGrid, { type SeoListing } from '@/components/seo/SeoListingGrid'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
@@ -14,7 +14,7 @@ type DalaliProfileRow = {
   rating_avg: number
   rating_count: number
   is_premium_verified: boolean
-  whatsapp_number: string | null
+  // whatsapp_number is intentionally NOT fetched — contact goes through paid unlock flow
 }
 
 type DalaliRow = {
@@ -37,7 +37,7 @@ async function getDalali(id: string): Promise<DalaliRow | null> {
     const { data } = await admin
       .from('users')
       .select(
-        'id, full_name, avatar_url, is_active, role, dalali_profiles ( bio, rating_avg, rating_count, is_premium_verified, whatsapp_number )'
+        'id, full_name, avatar_url, is_active, role, dalali_profiles ( bio, rating_avg, rating_count, is_premium_verified )'
       )
       .eq('id', id)
       .single()
@@ -96,18 +96,11 @@ export default async function DalaliProfilePage({
       .eq('dalali_id', dalali.id)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
-      .limit(20)
+      .limit(50)
     listings = (data ?? []) as SeoListing[]
   } catch {
     listings = []
   }
-
-  // Only reveal contact to logged-in users
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const isLoggedIn = !!user
 
   const rating = profile?.rating_avg ?? 0
   const ratingCount = profile?.rating_count ?? 0
@@ -178,7 +171,7 @@ export default async function DalaliProfilePage({
                     <h1 className="text-xl font-bold text-gray-900">{dalali.full_name}</h1>
                     {isVerified && (
                       <span className="bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full">
-                        ✓ Verified
+                        ✓ Imethibitishwa
                       </span>
                     )}
                   </div>
@@ -197,24 +190,19 @@ export default async function DalaliProfilePage({
                 <p className="text-sm text-gray-600 leading-relaxed mt-4">{profile.bio}</p>
               )}
 
-              {/* Contact — only for logged-in users */}
+              {/* Contact CTA — always goes through the paid unlock flow on listing detail */}
               <div className="mt-4">
-                {isLoggedIn && profile?.whatsapp_number ? (
-                  <a
-                    href={`https://wa.me/${profile.whatsapp_number.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-green-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold"
-                  >
-                    💬 Wasiliana na {dalali.full_name.split(' ')[0]}
-                  </a>
-                ) : (
+                {listings.length > 0 ? (
                   <Link
-                    href={`/login?redirect=/dalali/${dalali.id}`}
+                    href={`/listings/${listings[0].id}`}
                     className="inline-flex items-center gap-2 bg-primary-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold"
                   >
-                    🔓 Ingia ili kuwasiliana
+                    💬 Wasiliana na {dalali.full_name.split(' ')[0]}
                   </Link>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">
+                    Dalali huyu hana listings zinazofanya kazi sasa hivi.
+                  </p>
                 )}
               </div>
             </section>
@@ -224,7 +212,14 @@ export default async function DalaliProfilePage({
               <h2 className="text-lg font-semibold text-gray-800 mb-4">
                 Nyumba za {dalali.full_name} ({listings.length})
               </h2>
-              <SeoListingGrid listings={listings} />
+              {listings.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center shadow-sm">
+                  <p className="text-2xl mb-2">🏠</p>
+                  <p className="text-sm text-gray-500">Hakuna listings sasa hivi</p>
+                </div>
+              ) : (
+                <SeoListingGrid listings={listings} />
+              )}
             </section>
           </article>
         </main>

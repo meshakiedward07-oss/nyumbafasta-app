@@ -35,7 +35,7 @@ export default function ListingCardSkeleton() {
 
 export function ListingGridSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="px-4 grid gap-4">
+    <div className="px-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
       {Array.from({ length: count }).map((_, i) => (
         <ListingCardSkeleton key={i} />
       ))}

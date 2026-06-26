@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 import Avatar from '@/components/shared/Avatar'
 import SaveButton from '@/components/shared/SaveButton'
@@ -8,7 +8,6 @@ import ShareButton from '@/components/shared/ShareButton'
 import type { ListingWithDalali } from '@/lib/types/database'
 
 export default function ListingCard({ listing, hasUnlocked = false }: { listing: ListingWithDalali; hasUnlocked?: boolean }) {
-  const router = useRouter()
   const [imgError, setImgError] = useState(false)
 
   const profile = listing.dalali?.dalali_profiles
@@ -19,12 +18,12 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
     ? 'bg-primary-50 text-primary-700'
     : 'bg-gray-100 text-gray-500'
 
-  const statusLabel = listing.status === 'active' ? 'Inapatikana' : 'Imechukuliwa'
+  const statusLabel = listing.status === 'active' ? 'Inapatikana' : 'Imepangishwa'
 
   const furnishedLabel: Record<string, string> = {
-    furnished: 'Furnished',
-    semi: 'Semi-furnished',
-    empty: 'Empty',
+    furnished: 'Ina Samani',
+    semi: 'Nusu Samani',
+    empty: 'Bila Samani',
   }
 
   const typeLabel: Record<string, string> = {
@@ -36,7 +35,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
   }
 
   return (
-    <div onClick={() => router.push(`/listings/${listing.id}`)} className="block animate-fadeIn cursor-pointer">
+    <Link href={`/listings/${listing.id}`} className="block animate-fadeIn">
       <div className={`
         bg-white rounded-2xl overflow-hidden shadow-sm border
         transition-all duration-200 active:scale-[0.98] hover:shadow-md hover:-translate-y-0.5
@@ -120,7 +119,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
           <div className="flex gap-1.5 flex-wrap mb-3">
             {hasUnlocked && (
               <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">
-                💬 Umeshazungumza
+                ✅ Namba Unayo
               </span>
             )}
             {listing.furnished && (
@@ -191,15 +190,15 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
 
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
 
 // Helpers
 function formatPrice(amount: number): string {
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M/mo`
-  if (amount >= 1_000) return `${(amount / 1_000).toFixed(0)}k/mo`
-  return `${amount}/mo`
+  if (amount >= 1_000_000) return `Tsh ${(amount / 1_000_000).toFixed(1)}M/mwezi`
+  if (amount >= 1_000) return `Tsh ${(amount / 1_000).toFixed(0)}k/mwezi`
+  return `Tsh ${amount}/mwezi`
 }
 
 const amenityLabel: Record<string, string> = {

@@ -35,8 +35,8 @@ function StepBar({ step, total }: { step: number; total: number }) {
 }
 
 function UploadBox({
-  label, value, onPick, loading,
-}: { label: string; value: string | null; onPick: () => void; loading: boolean }) {
+  label, value, onPick, loading, error,
+}: { label: string; value: string | null; onPick: () => void; loading: boolean; error?: string }) {
   return (
     <div>
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{label}</p>
@@ -56,9 +56,11 @@ function UploadBox({
           type="button"
           onClick={onPick}
           disabled={loading}
-          className="w-full aspect-video border-2 border-dashed border-gray-200 rounded-2xl
+          className={`w-full aspect-video border-2 border-dashed rounded-2xl
                      flex flex-col items-center justify-center gap-2 text-gray-400
-                     disabled:opacity-50 active:scale-95 transition-all bg-gray-50"
+                     disabled:opacity-50 active:scale-95 transition-all bg-gray-50 ${
+                       error ? 'border-red-300' : 'border-gray-200'
+                     }`}
         >
           {loading ? (
             <span className="w-7 h-7 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
@@ -69,6 +71,11 @@ function UploadBox({
             </>
           )}
         </button>
+      )}
+      {error && (
+        <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+          <span>⚠️</span> {error}
+        </p>
       )}
     </div>
   )
@@ -234,7 +241,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
           </div>
         )}
 
-        {error && (
+        {error && !['front', 'back', 'selfie'].includes(currentContent) && (
           <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
         )}
 
@@ -292,11 +299,16 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
             <input ref={frontRef} type="file" accept="image/*" capture="environment" className="hidden"
               onChange={e => handleFilePick(e, setFront, 'front')} />
+            <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 mb-3">
+              <p className="text-xs text-blue-700 font-medium">📋 Kitambulisho kinachokubalika:</p>
+              <p className="text-xs text-blue-600 mt-0.5">Kitambulisho cha NIDA <span className="text-blue-400">(kinachopendekezwa)</span> au Passport ya Tanzania — nambari na picha ziwe wazi.</p>
+            </div>
             <UploadBox
               label="Upande wa Mbele wa Kitambulisho (NIDA / Passport)"
               value={front}
               onPick={() => frontRef.current?.click()}
               loading={uploading === 'front'}
+              error={error || undefined}
             />
             <p className="text-xs text-gray-400 mt-2">Hakikisha maandishi yanaonekana wazi.</p>
           </div>
@@ -312,6 +324,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
               value={back}
               onPick={() => backRef.current?.click()}
               loading={uploading === 'back'}
+              error={error || undefined}
             />
           </div>
         )}
@@ -326,6 +339,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
               value={selfie}
               onPick={() => selfieRef.current?.click()}
               loading={uploading === 'selfie'}
+              error={error || undefined}
             />
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
               💡 Piga picha ya uso wako ukishikilia kitambulisho — uso na picha ya kitambulisho zinaonekana wazi.
@@ -335,7 +349,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
       </div>
 
       {/* CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4">
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 px-4 pt-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
         {!isLastStep ? (
           <button
             onClick={() => setStep(s => s + 1)}

@@ -311,12 +311,24 @@ function RegisterForm() {
                     <button
                       type="button"
                       onClick={() => setShowPass(p => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm px-1"
-                      tabIndex={-1}
+                      aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
                     >
                       {showPass ? '🙈' : '👁️'}
                     </button>
                   </div>
+                  {password.length > 0 && (
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <div className="flex gap-1 flex-1">
+                        <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 1 ? 'bg-red-400' : 'bg-gray-200'}`} />
+                        <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 8 ? 'bg-amber-400' : 'bg-gray-200'}`} />
+                        <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 12 && /[0-9!@#$%^&*]/.test(password) ? 'bg-primary-500' : 'bg-gray-200'}`} />
+                      </div>
+                      <span className={`text-[10px] font-medium ${password.length < 8 ? 'text-red-400' : password.length < 12 ? 'text-amber-500' : 'text-primary-600'}`}>
+                        {password.length < 8 ? 'Dhaifu' : password.length < 12 ? 'Wastani' : 'Nguvu'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* WhatsApp — dalali only */}
@@ -341,6 +353,11 @@ function RegisterForm() {
                                    focus:outline-none focus:ring-2 focus:ring-primary-300"
                       />
                     </div>
+                    {whatsapp.replace(/\D/g, '').length >= 9 && (
+                      <p className="text-xs text-primary-600 mt-1 font-medium">
+                        Nambari itahifadhiwa kama: +255{whatsapp.replace(/\D/g, '').replace(/^0/, '')}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-400 mt-1">
                       Wateja watalipa Tsh 2,000 kupata nambari hii
                     </p>

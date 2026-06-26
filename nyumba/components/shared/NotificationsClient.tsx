@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Notification } from '@/lib/types/database'
 import BottomNav from '@/components/shared/BottomNav'
+import DalaliBottomNav from '@/components/shared/DalaliBottomNav'
 import ReviewForm from '@/components/listings/ReviewForm'
+import { createClient } from '@/lib/supabase/client'
 
 const TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
   listing_approved:        { icon: '✅', color: 'bg-primary-50 border-primary-100' },
@@ -54,8 +56,16 @@ type Props = {
 
 export default function NotificationsClient({ notifications, role }: Props) {
   const router = useRouter()
+  const supabase = createClient()
   const [activeReview, setActiveReview] = useState<ReviewNotifData & { notifId: string } | null>(null)
   const [reviewed, setReviewed] = useState<Set<string>>(new Set())
+  const [reviewDalaliName, setReviewDalaliName] = useState('Dalali')
+
+  useEffect(() => {
+    if (!activeReview?.dalali_id) { setReviewDalaliName('Dalali'); return }
+    supabase.from('users').select('full_name').eq('id', activeReview.dalali_id).single()
+      .then(({ data }) => { if (data?.full_name) setReviewDalaliName(data.full_name) })
+  }, [activeReview?.dalali_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mark all as read on mount
   useEffect(() => {
@@ -73,6 +83,23 @@ export default function NotificationsClient({ notifications, role }: Props) {
       const d = n.data as ReviewNotifData | null
       if (d?.unlock_id) {
         setActiveReview({ ...d, notifId: n.id })
+      }
+      return
+    }
+    // Navigate to the relevant page for action-type notifications
+    if (n.ref_id) {
+      if (n.type === 'listing_approved' || n.type === 'listing_rejected' || n.type === 'listing_expired' ||
+          n.type === 'listing_expiring_7days' || n.type === 'listing_expiring_14days' || n.type === 'listing_expiring_today' ||
+          n.type === 'listing_taken') {
+        router.push(`/dashboard/listings`)
+      } else if (n.type === 'new_lead') {
+        router.push(`/dashboard/crm`)
+      } else if (n.type === 'new_review') {
+        router.push(`/dashboard/reviews`)
+      } else if (n.type === 'boost_activated') {
+        router.push(`/listings/${n.ref_id}`)
+      } else if (n.type === 'subscription_active') {
+        router.push(`/dashboard/subscription`)
       }
     }
   }
@@ -110,6 +137,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
                   const cfg = TYPE_CONFIG[n.type] ?? TYPE_CONFIG.default
                   const isReview = isReviewType(n.type)
                   const alreadyReviewed = reviewed.has(n.id)
+                  const isTappable = isReview ? !alreadyReviewed : !!n.ref_id
                   return (
                     <div
                       key={n.id}
@@ -117,7 +145,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
                       className={`rounded-2xl border p-4 flex gap-3 transition-all
                         ${cfg.color}
                         ${!n.is_read && !alreadyReviewed ? 'shadow-sm' : 'opacity-70'}
-                        ${isReview && !alreadyReviewed ? 'cursor-pointer active:scale-[0.98]' : ''}
+                        ${isTappable ? 'cursor-pointer active:scale-[0.98]' : ''}
                       `}
                     >
                       <span className="text-2xl flex-shrink-0 mt-0.5">{cfg.icon}</span>
@@ -160,7 +188,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
         </div>
       )}
 
-      {role === 'dalali' ? null : <BottomNav role={role} />}
+      {role === 'dalali' ? <DalaliBottomNav /> : <BottomNav role={role} />}
 
       {/* Review modal — inafunguka kwa click ya review_request notification */}
       {activeReview && (
@@ -171,7 +199,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
             <div className="px-4 pb-10">
               <ReviewForm
                 unlockId={activeReview.unlock_id}
-                dalaliName="dalali"
+                dalaliName={reviewDalaliName}
                 onSubmitted={() => {
                   setReviewed(prev => new Set(prev).add(activeReview.notifId))
                   setActiveReview(null)

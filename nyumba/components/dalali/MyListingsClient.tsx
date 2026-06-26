@@ -71,6 +71,12 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
+
+  function showToast(msg: string, ok: boolean) {
+    setToast({ msg, ok })
+    setTimeout(() => setToast(null), 3500)
+  }
 
   const days = daysLeft(listing.expires_at)
   const needsRenewal = days <= 14 || listing.status === 'expired'
@@ -86,10 +92,10 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
       })
       if (error) throw error
       setShowModal(false)
+      showToast(`✅ "${listing.title || `${TYPE[listing.type]} — ${listing.district}`}" imehuishwa kwa siku 90!`, true)
       onRenewed()
-      alert(`✅ Listing "${listing.title || `${TYPE[listing.type]} — ${listing.district}`}" imehuishwa kwa siku 90!`)
     } catch (err) {
-      alert('Kosa: ' + String(err))
+      showToast('Kosa: ' + String(err), false)
     } finally {
       setLoading(false)
     }
@@ -108,6 +114,14 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
       >
         🔄 Huisha
       </button>
+
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-3 rounded-2xl text-sm font-medium text-white shadow-lg transition-all
+          ${toast.ok ? 'bg-green-500' : 'bg-red-500'}`}>
+          {toast.msg}
+        </div>
+      )}
 
       {/* Renewal Modal — bottom sheet */}
       {showModal && (
@@ -197,13 +211,17 @@ export default function MyListingsClient({ listings: initial }: { listings: List
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    function handle(e: MouseEvent) {
+    function handle(e: MouseEvent | TouchEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setOpenMenu(null)
       }
     }
     document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
+    document.addEventListener('touchstart', handle, { passive: true })
+    return () => {
+      document.removeEventListener('mousedown', handle)
+      document.removeEventListener('touchstart', handle)
+    }
   }, [])
 
   async function setStatus(id: string, status: 'active' | 'taken') {
@@ -295,8 +313,14 @@ export default function MyListingsClient({ listings: initial }: { listings: List
         {/* Performance summary */}
         {listings.filter(l => l.status === 'active').length > 0 && (() => {
           const active = listings.filter(l => l.status === 'active')
-          const best = active.reduce((a, b) => (b.view_count ?? 0) > (a.view_count ?? 0) ? b : a)
-          const worst = active.reduce((a, b) => (b.view_count ?? 0) < (a.view_count ?? 0) ? b : a)
+          const best = active.reduce((a, b) => {
+            const diff = (b.view_count ?? 0) - (a.view_count ?? 0)
+            return diff !== 0 ? (diff > 0 ? b : a) : (b.id > a.id ? b : a)
+          })
+          const worst = active.reduce((a, b) => {
+            const diff = (b.view_count ?? 0) - (a.view_count ?? 0)
+            return diff !== 0 ? (diff < 0 ? b : a) : (b.id < a.id ? b : a)
+          })
           return (
             <div className="bg-white rounded-2xl border border-gray-100 p-3 flex gap-2">
               <div className="flex-1 bg-primary-50 rounded-xl p-2.5 text-center">

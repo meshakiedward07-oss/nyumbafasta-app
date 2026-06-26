@@ -48,6 +48,7 @@ export default function BroadcastClient() {
   const [message, setMessage] = useState('')
   const [preview, setPreview] = useState('')
   const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState('')
   const [result,  setResult]  = useState<{ sent_count: number; failed_count: number; recipients_count: number } | null>(null)
   const [history, setHistory] = useState<BroadcastRecord[]>([])
 
@@ -72,6 +73,7 @@ export default function BroadcastClient() {
 
     setSending(true)
     setResult(null)
+    setSendError('')
 
     const res = await fetch('/api/v1/whatsapp/broadcast', {
       method: 'POST',
@@ -87,7 +89,7 @@ export default function BroadcastClient() {
       setMessage('')
       fetchHistory()
     } else {
-      alert(`Kosa: ${data.error ?? 'Imeshindwa kutuma'}`)
+      setSendError(data.error ?? 'Imeshindwa kutuma ujumbe')
     }
   }
 
@@ -174,6 +176,17 @@ export default function BroadcastClient() {
             <p className="text-sm font-bold text-gray-900 mb-3">Mfano wa Ujumbe</p>
             <div className="bg-[#E1F5EE] rounded-xl p-4">
               <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">{preview}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Send error */}
+        {sendError && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
+            <span className="text-xl">❌</span>
+            <div>
+              <p className="text-sm font-bold text-red-800">Broadcast Imeshindwa</p>
+              <p className="text-xs text-red-700 mt-1">{sendError}</p>
             </div>
           </div>
         )}

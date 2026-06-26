@@ -19,9 +19,6 @@ export default function RegisterCompletePage() {
         const agreementRaw = localStorage.getItem('pending_agreement')
         const agreement = agreementRaw ? JSON.parse(agreementRaw) : null
 
-        localStorage.removeItem('pending_register')
-        localStorage.removeItem('pending_agreement')
-
         const res = await fetch('/api/v1/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -32,6 +29,10 @@ export default function RegisterCompletePage() {
           const data = await res.json()
           throw new Error(data.error || 'Imeshindwa kuunda akaunti')
         }
+
+        // Only remove pending data after successful registration
+        localStorage.removeItem('pending_register')
+        localStorage.removeItem('pending_agreement')
 
         if (role === 'dalali') {
           router.replace('/dashboard?welcome=true')
@@ -52,12 +53,20 @@ export default function RegisterCompletePage() {
         <div className="text-4xl mb-4">⚠️</div>
         <p className="text-gray-700 font-medium mb-2">Hitilafu imetokea</p>
         <p className="text-sm text-red-500 text-center mb-6">{error}</p>
-        <button
-          onClick={() => router.replace('/')}
-          className="bg-primary-500 text-white px-6 py-3 rounded-xl text-sm font-semibold"
-        >
-          Rudi Nyumbani
-        </button>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
+            onClick={() => { setError(''); window.location.reload() }}
+            className="bg-primary-500 text-white px-6 py-3 rounded-xl text-sm font-semibold"
+          >
+            Jaribu Tena
+          </button>
+          <button
+            onClick={() => router.replace('/register')}
+            className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl text-sm font-semibold"
+          >
+            Rudi Usajili
+          </button>
+        </div>
       </div>
     )
   }

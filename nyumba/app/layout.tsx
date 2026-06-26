@@ -87,7 +87,7 @@ export const metadata: Metadata = {
     description: 'Tafuta vyumba na apartments Tanzania kwa urahisi. Zungumza na dalali moja kwa moja.',
     images: [
       {
-        url: '/transparent_logo_nyumbafasta.png',
+        url: '/logo_nyumbafasta.png',
         width: 1200,
         height: 630,
         alt: 'NyumbaFasta — Pata Nyumba Haraka Tanzania',

@@ -1,8 +1,7 @@
 'use client'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-
-const SUPPORT_WHATSAPP = '255615261147'
+import { supportWaUrl } from '@/lib/config/support'
 
 export default function AccountBannedPage() {
   const supabase = createClient()
@@ -25,7 +24,6 @@ export default function AccountBannedPage() {
         <h1 className="text-xl font-bold text-gray-900 mb-2">
           Akaunti Imefutwa
         </h1>
-        <p className="text-sm text-gray-600 mb-1">Account Permanently Banned</p>
 
         <div className="bg-red-50 border border-red-100 rounded-xl p-4 my-5 text-left space-y-2">
           <p className="text-sm text-red-800 font-medium">Akaunti yako imefutwa kwa sababu ya:</p>
@@ -41,15 +39,12 @@ export default function AccountBannedPage() {
           <p className="text-xs text-gray-600">
             Uamuzi huu ni wa mwisho na umefanywa baada ya uchunguzi wa kina.
             Kufungua akaunti mpya kwa kutumia jina lingine pia ni ukiukaji wa masharti yetu.
-            <br /><br />
-            This decision is final and was made after thorough investigation.
-            Creating a new account under a different name is also a violation of our terms.
           </p>
         </div>
 
         {/* Contact for appeal */}
         <a
-          href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('Habari, akaunti yangu ya NyumbaFasta imefutwa. Nataka kuomba rufaa ya uamuzi huu.')}`}
+          href={supportWaUrl('Habari, akaunti yangu ya NyumbaFasta imefutwa. Nataka kuomba rufaa ya uamuzi huu.')}
           target="_blank"
           rel="noopener noreferrer"
           className="block w-full bg-gray-800 text-white py-3.5 rounded-xl text-sm font-semibold mb-3 hover:bg-gray-700 transition-colors"

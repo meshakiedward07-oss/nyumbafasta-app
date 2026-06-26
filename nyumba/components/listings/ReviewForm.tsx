@@ -59,7 +59,7 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
 
       {/* Star picker */}
       <div className="mb-4">
-        <p className="text-xs font-semibold text-gray-500 mb-2">Rating:</p>
+        <p className="text-xs font-semibold text-gray-500 mb-2">Kiwango chako:</p>
         <div className="flex items-center gap-2">
           <div className="flex gap-1">
             {[1, 2, 3, 4, 5].map(star => (
@@ -83,7 +83,7 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
 
       {/* Found house? */}
       <div className="mb-4">
-        <p className="text-xs font-semibold text-gray-500 mb-2">Ulipata nyumba?</p>
+        <p className="text-xs font-semibold text-gray-500 mb-2">Ulipata nyumba? <span className="font-normal text-gray-400">(hiari)</span></p>
         <div className="flex gap-2">
           <button
             type="button"

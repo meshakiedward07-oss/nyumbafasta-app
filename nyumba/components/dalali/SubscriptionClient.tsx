@@ -243,7 +243,13 @@ export default function SubscriptionClient({
         <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
           <div className="text-5xl mb-4 animate-bounce">🎉</div>
           <p className="text-lg font-bold text-gray-900 mb-2">Subscription Imewashwa!</p>
-          <p className="text-sm text-gray-500">Listings zako zinaendelea kuonekana kwa wateja.</p>
+          <p className="text-sm text-gray-500 mb-6">Listings zako zinaendelea kuonekana kwa wateja.</p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="bg-primary-500 text-white px-8 py-3.5 rounded-2xl text-sm font-semibold active:scale-95 transition-all"
+          >
+            Rudi Dashboard →
+          </button>
         </div>
       )}
 
@@ -430,6 +436,13 @@ export default function SubscriptionClient({
           </div>
           <p className="text-xs text-gray-400 mb-6">Inasubiri uthibitisho... ({secondsLeft}s)</p>
 
+          <button
+            onClick={() => { stopPolling(); setError(''); setStep(renewPlan ? 'renew_phone' : 'phone') }}
+            className="text-sm text-primary-600 font-medium py-2 min-h-[44px] mb-3"
+          >
+            ← Badilisha njia ya kulipa
+          </button>
+
           <div className="flex justify-center mb-6">
             <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
           </div>
@@ -455,13 +468,6 @@ export default function SubscriptionClient({
               </button>
             </div>
           )}
-
-          <button
-            onClick={() => { stopPolling(); setError(''); setStep(renewPlan ? 'renew_phone' : 'phone') }}
-            className="text-sm text-gray-400 underline py-2"
-          >
-            ← Badilisha njia ya kulipa
-          </button>
         </div>
       )}
 
@@ -761,7 +767,11 @@ export default function SubscriptionClient({
                 style={{ backgroundColor: currentPlanData.color }}>
                 {renewLoading ? 'Inafanya upya...' : `🔄 Huisha Mapema — Tsh ${fmt(renewPrice)}`}
               </button>
-              {discount > 0 && <p className="text-xs text-gray-500 text-center mt-1">🎉 Punguzo {discount}% ya uaminifu limetumika</p>}
+              {discount > 0 && (
+                <p className="text-xs text-gray-500 text-center mt-1">
+                  🎉 Punguzo {discount}% limetumika — unaokoa Tsh {fmt(currentPlanData.price - renewPrice)}/mwezi
+                </p>
+              )}
             </div>
           )}
 
@@ -785,12 +795,17 @@ export default function SubscriptionClient({
           )}
 
           {/* Loyalty discount info */}
-          {discount > 0 && (
+          {discount > 0 && currentPlan && !isFree && (
             <div className="bg-primary-50 border border-primary-100 rounded-2xl p-3 flex items-center gap-3">
               <span className="text-2xl">🎉</span>
               <div>
                 <p className="text-sm font-semibold text-primary-800">Asante kwa uaminifu wako!</p>
-                <p className="text-xs text-primary-600">Miezi {completedMonths} nasi — unapata punguzo la {discount}%</p>
+                <p className="text-xs text-primary-600">
+                  Miezi {completedMonths} nasi — unapata punguzo la {discount}%
+                </p>
+                <p className="text-xs font-semibold text-primary-700 mt-0.5">
+                  Unaokoa Tsh {fmt(currentPlanData.price - renewPrice)}/mwezi
+                </p>
               </div>
             </div>
           )}

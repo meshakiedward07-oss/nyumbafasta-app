@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { TANZANIA_REGIONS, getDistricts, getWards } from '@/lib/data/tanzania-locations'
 import { createClient } from '@/lib/supabase/client'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
+import { getListingLimit } from '@/lib/config/subscription-plans'
 import { VideoUpload } from '@/components/listings/VideoUpload'
 import { useDalaliProfile } from '@/lib/hooks/useDalaliProfile'
 
@@ -80,7 +81,7 @@ function StepBar({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }).map((_, i) => (
         <div
           key={i}
-          className={`h-1.5 flex-1 rounded-full transition-all ${
+          className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
             i < current ? 'bg-primary-500' : i === current ? 'bg-primary-300' : 'bg-gray-200'
           }`}
         />
@@ -108,7 +109,8 @@ export default function AddListingWizard() {
   const [payingExtra, setPayingExtra] = useState(false)
   const [extraDone, setExtraDone]     = useState(false)
 
-  const PLAN_LIMITS: Record<string, number> = { free: 2, basic: 5, premium: 20, enterprise: 50 }
+  // Plan limits sourced from subscription-plans.ts — single source of truth
+
 
   useEffect(() => { loadLimit() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -130,7 +132,7 @@ export default function AddListingWizard() {
           .in('status', ['active', 'pending']),
       ])
 
-      const baseLim = sub ? (PLAN_LIMITS[sub.plan] ?? 0) : 0
+      const baseLim = sub ? getListingLimit(sub.plan) : 0
       const extra   = (sub as { extra_listings?: number } | null)?.extra_listings ?? 0
       const total   = baseLim + extra
       const current = count ?? 0
@@ -286,7 +288,7 @@ export default function AddListingWizard() {
                 Aina ya Mali
               </label>
               <div className="grid grid-cols-2 gap-2">
-                {LISTING_TYPES.map(t => (
+                {LISTING_TYPES.map((t, i) => (
                   <button
                     key={t.value}
                     onClick={() => set('type', t.value)}
@@ -294,7 +296,7 @@ export default function AddListingWizard() {
                       form.type === t.value
                         ? 'border-primary-500 bg-primary-50'
                         : 'border-gray-100 bg-gray-50'
-                    }`}
+                    } ${i === LISTING_TYPES.length - 1 && LISTING_TYPES.length % 2 !== 0 ? 'col-span-2' : ''}`}
                   >
                     <span className="text-xl">{t.icon}</span>
                     <span className={`text-sm font-medium ${form.type === t.value ? 'text-primary-700' : 'text-gray-700'}`}>
@@ -356,9 +358,9 @@ export default function AddListingWizard() {
                       className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                                  focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                     >
-                      <option value="empty">Empty</option>
-                      <option value="semi">Semi-furnished</option>
-                      <option value="furnished">Furnished</option>
+                      <option value="empty">Bila Samani</option>
+                      <option value="semi">Nusu Samani</option>
+                      <option value="furnished">Ina Samani</option>
                     </select>
                   </div>
                 </div>
@@ -500,10 +502,13 @@ export default function AddListingWizard() {
                 placeholder={form.type === 'duka' ? 'Elezea duka lako — eneo, jirani, masharti maalum...' : 'Elezea nyumba yako — eneo, jirani, masharti maalum...'}
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
+                maxLength={500}
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                            focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
               />
-              <p className="text-xs text-gray-400 mt-1 text-right">{form.description.length}/500</p>
+              <p className={`text-xs mt-1 text-right ${form.description.length >= 490 ? 'text-amber-500' : 'text-gray-400'}`}>
+                {form.description.length}/500
+              </p>
             </div>
           </>
         )}
@@ -716,9 +721,9 @@ export default function AddListingWizard() {
                 {form.type !== 'duka' && form.bedrooms && <Row label="Vyumba" value={`Vyumba ${form.bedrooms}`} />}
                 {form.type !== 'duka' && (
                   <Row label="Samani" value={
-                    form.furnished === 'furnished' ? 'Furnished'
-                    : form.furnished === 'semi' ? 'Semi-furnished'
-                    : 'Empty'
+                    form.furnished === 'furnished' ? 'Ina Samani'
+                    : form.furnished === 'semi' ? 'Nusu Samani'
+                    : 'Bila Samani'
                   } />
                 )}
                 {form.type === 'duka' && form.shop_size_sqm && <Row label="Ukubwa" value={`${form.shop_size_sqm} m²`} />}
@@ -786,7 +791,7 @@ export default function AddListingWizard() {
       </div>
 
       {/* ── Fixed bottom CTA ── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
         {step < 3 ? (
           <button
             onClick={() => setStep(s => s + 1)}

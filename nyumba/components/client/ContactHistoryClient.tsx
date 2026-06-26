@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import BottomNav from '@/components/shared/BottomNav'
 import type { ContactItem } from '@/app/account/contacts/page'
 
@@ -64,7 +65,7 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
             <p className="text-white/70 text-xs">Contacts</p>
           </div>
           <div className="bg-white/10 rounded-2xl p-3 text-center">
-            <p className="text-white text-xl font-bold">Tsh {(totalSpent / 1000).toFixed(0)}k</p>
+            <p className="text-white text-xl font-bold">Tsh {totalSpent.toLocaleString()}</p>
             <p className="text-white/70 text-xs">Uliozidi</p>
           </div>
         </div>
@@ -116,7 +117,7 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-gray-900">{dalali?.full_name ?? 'Dalali'}</p>
                       {dalali?.dalali_profiles?.is_premium_verified && (
-                        <span className="text-[10px] bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">✓ Verified</span>
+                        <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">✓ Imethibitishwa</span>
                       )}
                     </div>
                     {listing && (
@@ -190,11 +191,11 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
                     </a>
                   ) : null}
                   {listing && (
-                    <a href={`/listings/${listing.id}`}
+                    <Link href={`/listings/${listing.id}`}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
                                  bg-gray-50 border border-gray-100 text-gray-600 text-xs font-medium active:scale-[0.97] transition-transform">
                       <span>👁</span> Angalia Listing
-                    </a>
+                    </Link>
                   )}
                   {!isEditing && (
                     <button

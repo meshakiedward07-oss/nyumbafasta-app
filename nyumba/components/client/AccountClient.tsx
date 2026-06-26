@@ -51,7 +51,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
       if (!res.ok) throw new Error((await res.json()).error)
       setSuccess('Jina limehifadhiwa!')
       setEditing(false)
-      setTimeout(() => setSuccess(''), 3000)
+      setTimeout(() => setSuccess(''), 5000)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Imeshindwa kuhifadhi')
     } finally {
@@ -150,7 +150,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         {/* ── Taarifa zangu (profile card) ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 border-b border-gray-50 flex justify-between items-center">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Taarifa Zangu</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Taarifa Zangu</p>
             {!editing ? (
               <button onClick={() => setEditing(true)}
                 className="text-xs text-primary-600 font-semibold">
@@ -244,7 +244,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
               <div>
                 <p className="text-sm font-semibold text-gray-900">Historia ya Mawasiliano</p>
                 <p className="text-xs text-gray-500">
-                  {unlocksCount} dalali · Jumla Tsh {totalSpent.toLocaleString()} uliozidi
+                  {unlocksCount} dalali · Jumla Tsh {totalSpent.toLocaleString()} uliotumia
                 </p>
               </div>
             </div>
@@ -255,15 +255,8 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         {/* ── AKAUNTI section ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 border-b border-gray-50">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Akaunti</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Akaunti</p>
           </div>
-          <button
-            onClick={() => setEditing(true)}
-            className="w-full flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all text-left">
-            <span className="text-xl">✏️</span>
-            <span className="text-sm text-gray-700 flex-1">Hariri Profile</span>
-            <span className="text-gray-300 text-lg">›</span>
-          </button>
           <Link href="/notifications"
             className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <span className="text-xl">🔔</span>
@@ -281,7 +274,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         {/* ── MSAADA section ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 border-b border-gray-50">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Msaada</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Msaada</p>
           </div>
           <Link href="/terms"
             className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all">

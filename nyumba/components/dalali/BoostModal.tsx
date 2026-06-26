@@ -111,7 +111,6 @@ export default function BoostModal({
 
   function handleSelectorPay(method: PaymentMethod) {
     setSelectedMethod(method)
-    setPhoneNumber('')
     setPhoneError('')
     setBoostStep('mobile_phone')
   }
@@ -164,6 +163,7 @@ export default function BoostModal({
       <div
         className="bg-white w-full rounded-t-3xl px-5 pt-5 pb-10 shadow-xl max-w-lg mx-auto max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
+        onTouchEnd={e => e.stopPropagation()}
       >
         {/* Handle */}
         <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
@@ -183,14 +183,17 @@ export default function BoostModal({
             </div>
 
             {isStillBoosted && (
-              <div className="bg-yellow-50 border border-yellow-100 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
-                <span className="text-base">⚡</span>
-                <div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">⚡</span>
                   <p className="text-xs font-semibold text-yellow-800">Imeboostwa tayari</p>
-                  <p className="text-xs text-yellow-600" suppressHydrationWarning>
-                    Hadi: {boostedUntilDate!.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </p>
                 </div>
+                <p className="text-xs text-yellow-600 mb-1" suppressHydrationWarning>
+                  Inaisha: {boostedUntilDate!.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+                <p className="text-xs text-yellow-700 font-medium">
+                  Boost mpya itaongeza muda kutoka tarehe ya mwisho ya boost iliyopo.
+                </p>
               </div>
             )}
 
@@ -234,7 +237,7 @@ export default function BoostModal({
                   'Inaonekana JUU ya listings zote',
                   'Badge ya "🚀 Inashauriwa" inayovutia',
                   'Wateja wengi zaidi wanakuona',
-                  'Leads +300% average kwa dalali wanaobust',
+                  'Leads +300% average kwa dalali wanaotumia boost',
                 ].map(b => (
                   <div key={b} className="flex items-center gap-2">
                     <span className="text-primary-500 text-xs font-bold">✓</span>

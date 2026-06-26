@@ -68,9 +68,9 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 function VerifBadge({ status }: { status?: string | null }) {
-  if (status === 'approved') return <span className="text-[10px] bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">✓ Verified</span>
-  if (status === 'pending')  return <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">⏳ Pending</span>
-  return <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-medium">✗ Hakuna</span>
+  if (status === 'approved') return <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">✓ Imethibitishwa</span>
+  if (status === 'pending')  return <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">⏳ Inasubiri</span>
+  return <span className="text-xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-medium">✗ Hakuna</span>
 }
 
 function SubBadge({ subscriptions }: { subscriptions: UserRow['subscriptions'] }) {
@@ -399,7 +399,7 @@ export default function AdminUsersClient() {
 
         {/* ── Summary stat cards ── */}
         {summary && roleFilter !== 'dalali_activity' && (
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
             {[
               { label: 'Wote',       value: summary.total,           bg: 'bg-gray-50',     text: 'text-gray-800'    },
               { label: 'Wateja',     value: summary.clients,         bg: 'bg-blue-50',     text: 'text-blue-700'    },
@@ -427,7 +427,7 @@ export default function AdminUsersClient() {
                 roleFilter === t.key ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-400'
               }`}
             >
-              {t.label} <span className="text-[10px] opacity-70">({t.count})</span>
+              {t.label} {t.key !== 'dalali_activity' && <span className="text-[10px] opacity-70">({t.count})</span>}
             </button>
           ))}
         </div>
@@ -638,7 +638,7 @@ export default function AdminUsersClient() {
                           className="inline-flex items-center gap-1 bg-[#25D366] text-white text-[10px] px-2 py-0.5 rounded-md mt-1"
                         >
                           <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white flex-shrink-0"><path d={WA_PATH}/></svg>
-                          {u.dalali_profiles.whatsapp_number}
+                          +{waNum(u.dalali_profiles.whatsapp_number)}
                         </a>
                       )}
                     </div>

@@ -68,6 +68,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
   const [userRole, setUserRole]       = useState<string | null>(null)
   const [, setUserId]                 = useState<string | null>(null)
   const [unlockedIds, setUnlockedIds] = useState<string[]>([])
+  const [searchInput, setSearchInput] = useState('')
   const [filters, setFilters]         = useState<Filters>({
     region:    '',
     type:      '',
@@ -120,7 +121,10 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
       if (filters?.min_price) query = query.gte('price_monthly', parseInt(filters.min_price))
       if (filters?.max_price) query = query.lte('price_monthly', parseInt(filters.max_price))
       if (filters?.furnished) query = query.eq('furnished', filters.furnished)
-      if (filters?.search)    query = query.ilike('title', `%${filters.search}%`)
+      if (filters?.search) {
+        const term = filters.search.replace(/[%_]/g, '\\$&')
+        query = query.or(`title.ilike.%${term}%,district.ilike.%${term}%,ward.ilike.%${term}%,mtaa.ilike.%${term}%`)
+      }
 
       const { data, count, error } = await query
       if (error) throw error
@@ -164,7 +168,14 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
     setFilters(prev => ({ ...prev, [key]: value ?? '' }))
   }
 
+  // Debounce search — 300ms delay before firing Supabase query
+  useEffect(() => {
+    const t = setTimeout(() => applyFilter('search', searchInput), 300)
+    return () => clearTimeout(t)
+  }, [searchInput]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function clearFilters() {
+    setSearchInput('')
     setFilters({ region: '', type: '', min_price: '', max_price: '', furnished: '', search: '' })
   }
 
@@ -181,9 +192,9 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           <input
             type="search"
             inputMode="search"
-            placeholder="Tafuta mtaa, street..."
-            value={filters?.search ?? ''}
-            onChange={e => applyFilter('search', e.target.value)}
+            placeholder="Tafuta mtaa, wilaya..."
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white text-base
                        text-gray-900 placeholder-gray-400 focus:outline-none
                        focus:ring-2 focus:ring-white/50 shadow-sm"
@@ -249,9 +260,9 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           {hasExtraFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 ml-0.5" />}
         </button>
 
-        {hasExtraFilters && (
+        {(hasExtraFilters || filters?.region || filters?.type) && (
           <button
-            onClick={() => setFilters(prev => ({ ...prev, min_price: '', max_price: '', furnished: '' }))}
+            onClick={clearFilters}
             className="flex-shrink-0 text-xs bg-red-50 text-red-500 border border-red-100 rounded-full px-3 py-1.5"
           >
             ✕ Futa filters
@@ -298,7 +309,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             <div className="col-span-2">
               <label className="text-xs text-gray-500 mb-1 block">Hali ya samani</label>
               <div className="flex gap-2">
-                {[{ value: '', label: 'Yote' }, { value: 'furnished', label: 'Furnished' }, { value: 'semi', label: 'Semi' }, { value: 'empty', label: 'Empty' }].map(f => (
+                {[{ value: '', label: 'Yote' }, { value: 'furnished', label: 'Ina Samani' }, { value: 'semi', label: 'Nusu Samani' }, { value: 'empty', label: 'Bila Samani' }].map(f => (
                   <button
                     key={f.value}
                     onClick={() => applyFilter('furnished', f.value)}
@@ -346,12 +357,15 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
               Zinashauriwa na NyumbaFasta
             </p>
           </div>
-          <div className="flex gap-3 px-4 overflow-x-auto scrollbar-none pb-1">
-            {boosted.map(listing => (
-              <div key={listing.id} className="flex-shrink-0 w-64">
-                <ListingCard listing={listing} hasUnlocked={unlockedIds.includes(listing.id)} />
-              </div>
-            ))}
+          <div className="relative">
+            <div className="flex gap-3 px-4 overflow-x-auto scrollbar-none pb-1">
+              {boosted.map(listing => (
+                <div key={listing.id} className="flex-shrink-0 w-64">
+                  <ListingCard listing={listing} hasUnlocked={unlockedIds.includes(listing.id)} />
+                </div>
+              ))}
+            </div>
+            <div className="absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none" />
           </div>
           <div className="border-b border-gray-200 mt-4 mx-4" />
         </div>
@@ -365,11 +379,25 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
         <div className="px-4 grid gap-4">
           {loading ? (
             [1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse">
+              <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse border border-gray-100">
                 <div className="h-44 bg-gray-200" />
                 <div className="p-3 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4" />
-                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/5" />
+                    <div className="h-4 bg-gray-200 rounded w-1/5" />
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded w-2/5" />
+                  <div className="flex gap-1.5 mt-1">
+                    <div className="h-5 w-16 bg-gray-100 rounded-full" />
+                    <div className="h-5 w-12 bg-gray-100 rounded-full" />
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-6 h-6 rounded-full bg-gray-200" />
+                      <div className="h-3 w-20 bg-gray-200 rounded" />
+                    </div>
+                    <div className="h-3 w-8 bg-gray-100 rounded" />
+                  </div>
                 </div>
               </div>
             ))
@@ -378,22 +406,17 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
               <div className="text-5xl mb-4">🗺️</div>
               {filters?.region ? (
                 <>
-                  <p className="text-gray-700 font-semibold mb-1">{filters.region} — Bado Tunaanza!</p>
+                  <p className="text-gray-700 font-semibold mb-1">Hakuna nyumba {filters.region}</p>
                   <p className="text-gray-400 text-sm mb-5 px-4">
-                    Hakuna listings bado kwenye mkoa huu. Kuwa wa kwanza kupost!
+                    Hakuna listings zinazopatikana kwenye mkoa huu sasa hivi.
                   </p>
-                  <Link
-                    href="/register"
+                  <button
+                    onClick={clearFilters}
                     className="inline-flex items-center gap-2 bg-primary-500 text-white
                                px-5 py-3 rounded-xl text-sm font-semibold active:scale-[0.97] transition-all"
                   >
-                    🏠 Ongeza Listing ya Kwanza
-                  </Link>
-                  <div className="mt-4">
-                    <button onClick={clearFilters} className="text-primary-500 text-sm font-medium underline">
-                      au angalia mikoa mingine
-                    </button>
-                  </div>
+                    🔍 Tafuta Mikoa Mingine
+                  </button>
                 </>
               ) : (
                 <>

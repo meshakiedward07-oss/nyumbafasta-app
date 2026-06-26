@@ -210,7 +210,7 @@ export default function SimilarListings({
                   {listing.title}
                 </p>
                 <p className="text-[#1D9E75] font-bold text-xs mb-1">
-                  Tsh {formatPrice(listing.price_monthly)}/mo
+                  Tsh {formatPrice(listing.price_monthly)}/mwezi
                 </p>
                 <p className="text-gray-400 text-xs line-clamp-1">📍 {listing.district}</p>
                 {listing.dalali?.dalali_profiles?.rating_avg && (

@@ -22,6 +22,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
   const router = useRouter()
   const [items, setItems] = useState(initial)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null)
 
   async function handleUnsave(listingId: string) {
     setRemoving(listingId)
@@ -111,7 +112,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                           {typeLabel[listing.type] || listing.type} – {listing.district}
                         </p>
                         <p className="text-primary-600 font-bold text-sm whitespace-nowrap">
-                          {formatPrice(listing.price_monthly)}/mo
+                          {formatPrice(listing.price_monthly)}/mwezi
                         </p>
                       </div>
                       <p className="text-xs text-gray-400 mb-2">📍 {listing.district}, {listing.region}</p>
@@ -128,19 +129,33 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                   </Link>
 
                   {/* Unsave action */}
-                  <div className="border-t border-gray-50 px-3 py-2 flex justify-end">
-                    <button
-                      onClick={() => handleUnsave(listing.id)}
-                      disabled={removing === listing.id}
-                      className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 disabled:opacity-50 transition-colors"
-                    >
-                      {removing === listing.id ? (
-                        <span className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
-                      ) : (
+                  <div className="border-t border-gray-50 px-3 py-2 flex justify-end items-center gap-2">
+                    {confirmingRemove === listing.id ? (
+                      <>
+                        <span className="text-xs text-gray-500">Una uhakika?</span>
+                        <button
+                          onClick={() => { handleUnsave(listing.id); setConfirmingRemove(null) }}
+                          disabled={removing === listing.id}
+                          className="text-xs text-white bg-red-500 px-3 py-1 rounded-lg font-medium disabled:opacity-50"
+                        >
+                          {removing === listing.id ? '...' : 'Ondoa'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmingRemove(null)}
+                          className="text-xs text-gray-400 px-2 py-1"
+                        >
+                          Ghairi
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmingRemove(listing.id)}
+                        className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors"
+                      >
                         <span>🗑</span>
-                      )}
-                      Ondoa
-                    </button>
+                        Ondoa
+                      </button>
+                    )}
                   </div>
                 </div>
               )

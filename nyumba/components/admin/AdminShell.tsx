@@ -56,7 +56,7 @@ const NAV_SECTIONS = [
   {
     title: 'Social Media',
     items: [
-      { href: '/admin/social',            label: 'Dashboard',  emoji: '📊', exact: true  },
+      { href: '/admin/social',            label: 'Jumla',      emoji: '📊', exact: true  },
       { href: '/admin/social?tab=postnow',label: 'Chapisha',   emoji: '✍️', exact: false },
     ],
   },
@@ -351,15 +351,22 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </main>
 
         {/* Mobile bottom nav */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 px-1 py-2">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 px-1 pt-2" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
           <div className="flex justify-around">
             {BOTTOM_NAV.map(item => (
               <Link key={item.href + item.label} href={item.href}>
                 <div className={`flex flex-col items-center px-2 py-1 rounded-xl transition-all ${
                   isActive(item.href, item.exact) ? 'text-[#1D9E75]' : 'text-gray-400'
                 }`}>
-                  <span className="text-xl">{item.emoji}</span>
-                  <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
+                  <div className="relative">
+                    <span className="text-xl">{item.emoji}</span>
+                    {item.href === '/admin/whatsapp' && (
+                      <span className="absolute -top-1.5 -right-2 scale-75 origin-top-right">
+                        <PendingBadge />
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs mt-0.5 font-medium">{item.label}</span>
                 </div>
               </Link>
             ))}

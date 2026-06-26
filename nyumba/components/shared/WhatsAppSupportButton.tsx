@@ -30,7 +30,7 @@ export default function WhatsAppSupportButton() {
       `}
     >
       {/* Pulse ring */}
-      <span className="absolute inline-flex w-full h-full rounded-full bg-[#25D366] opacity-60 animate-ping" />
+      <span className="absolute inline-flex w-full h-full rounded-full bg-[#25D366] opacity-60 motion-safe:animate-ping" />
 
       {/* Button */}
       <span className="relative w-14 h-14 rounded-full bg-[#25D366] shadow-lg shadow-black/25 flex items-center justify-center">

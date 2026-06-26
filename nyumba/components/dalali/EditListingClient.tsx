@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
 import type { LocationData } from '@/components/maps/ListingLocationPicker'
+import { TANZANIA_REGIONS } from '@/lib/data/tanzania-locations'
 
 const ListingLocationPicker = dynamic(
   () => import('@/components/maps/ListingLocationPicker'),
@@ -39,10 +40,7 @@ const LISTING_TYPES = [
   { value: 'duka' as ListingType,      label: 'Duka',      icon: '🏪' },
 ]
 
-const REGIONS = [
-  'Dar es Salaam', 'Arusha', 'Dodoma', 'Mwanza', 'Zanzibar',
-  'Mbeya', 'Morogoro', 'Tanga', 'Kilimanjaro', 'Pwani',
-]
+const REGIONS = TANZANIA_REGIONS.map(r => r.name)
 
 const AMENITIES = [
   { value: 'umeme', label: 'Umeme', icon: '⚡' },
@@ -172,11 +170,11 @@ export default function EditListingClient({ listing }: { listing: ListingData })
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">Aina ya Nyumba</label>
               <div className="grid grid-cols-2 gap-2">
-                {LISTING_TYPES.map(t => (
+                {LISTING_TYPES.map((t, i) => (
                   <button key={t.value} onClick={() => setType(t.value)}
                     className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
                       type === t.value ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'
-                    }`}>
+                    } ${i === LISTING_TYPES.length - 1 && LISTING_TYPES.length % 2 !== 0 ? 'col-span-2' : ''}`}>
                     <span className="text-xl">{t.icon}</span>
                     <span className={`text-sm font-medium ${type === t.value ? 'text-primary-700' : 'text-gray-700'}`}>{t.label}</span>
                     {type === t.value && <span className="ml-auto text-primary-500 text-sm">✓</span>}
@@ -207,9 +205,9 @@ export default function EditListingClient({ listing }: { listing: ListingData })
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Samani</label>
                   <select value={furnished} onChange={e => setFurnished(e.target.value as Furnished)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                    <option value="empty">Empty</option>
-                    <option value="semi">Semi-furnished</option>
-                    <option value="furnished">Furnished</option>
+                    <option value="empty">Bila Samani</option>
+                    <option value="semi">Nusu Samani</option>
+                    <option value="furnished">Ina Samani</option>
                   </select>
                 </div>
               </div>
@@ -323,7 +321,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
       </div>
 
       {/* Fixed CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
         {step < 3 ? (
           <button onClick={() => setStep(s => s + 1)} disabled={!canProceed}
             className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">

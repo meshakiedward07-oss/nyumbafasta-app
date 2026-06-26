@@ -34,6 +34,15 @@ const POLL_INTERVAL_MS = 3000
 const TIMEOUT_SECS     = 120
 const UNLOCK_AMOUNT    = 2000
 
+// Normalise any phone input → 255XXXXXXXXX (9 subscriber digits)
+function normalisePhone(raw: string): { normalized: string; valid: boolean } {
+  const digits = raw.replace(/\D/g, '')
+  // Strip any leading country code (255) or leading zero
+  const stripped = digits.replace(/^(255|0)/, '')
+  const normalized = `255${stripped}`
+  return { normalized, valid: stripped.length === 9 }
+}
+
 export default function UnlockModal({
   listingId, dalaliName, listingTitle, whatsappNumber, onClose, onUnlocked,
 }: Props) {
@@ -45,11 +54,24 @@ export default function UnlockModal({
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
   const [secondsLeft, setSecondsLeft] = useState(TIMEOUT_SECS)
-  // Track whether user explicitly chose a provider — prevents auto-detect override
   const userChoseProvider = useRef(false)
 
   const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Normalise the dalali's WhatsApp number once for all links
+  const waPhone = whatsappNumber.replace(/\D/g, '').replace(/^0/, '255')
+
+  // ── Block Android back-gesture during payment ─────────────
+  useEffect(() => {
+    if (step !== 'waiting') return
+    history.pushState(null, '', window.location.href)
+    function handlePop() {
+      history.pushState(null, '', window.location.href)
+    }
+    window.addEventListener('popstate', handlePop)
+    return () => window.removeEventListener('popstate', handlePop)
+  }, [step])
 
   // ── Stop timers ──────────────────────────────────────────
   const stopPolling = useCallback(() => {
@@ -102,14 +124,8 @@ export default function UnlockModal({
     e.preventDefault()
     setError('')
 
-    // Validate phone before sending to API
-    const digits = phone.replace(/\D/g, '')
-    if (!digits) {
-      setError('Weka namba yako ya simu ya malipo')
-      return
-    }
-    const normalized = digits.startsWith('0') ? `255${digits.slice(1)}` : `255${digits}`
-    if (!normalized.startsWith('255') || normalized.length !== 12) {
+    const { normalized, valid } = normalisePhone(phone)
+    if (!valid) {
       setError('Namba ya simu si sahihi. Mfano: 0744 123 456')
       return
     }
@@ -121,7 +137,7 @@ export default function UnlockModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listing_id: listingId,
-          msisdn: normalized,   // always send in 255XXXXXXXXX format
+          msisdn: normalized,
           provider,
         }),
       })
@@ -144,23 +160,18 @@ export default function UnlockModal({
     }
   }
 
-  // ── Called by PaymentMethodSelector confirm button ────────
-  // Mobile money only → mark explicit choice, go to phone input step
   function handleSelectorPay(method: PaymentProvider) {
     userChoseProvider.current = true
     setProvider(method)
     setStep('phone')
   }
 
-  // ── Phone input change ────────────────────────────────────
-  // Only auto-detect provider when user hasn't explicitly chosen one.
-  // Requires a full local number (≥9 digits) to avoid premature detection.
   function handlePhoneChange(value: string) {
     const digits = value.replace(/\D/g, '')
     setPhone(digits)
     if (!userChoseProvider.current && digits.length >= 9) {
-      const full = digits.startsWith('0') ? `255${digits.slice(1)}` : `255${digits}`
-      setProvider(detectProvider(full))
+      const { normalized } = normalisePhone(digits)
+      setProvider(detectProvider(normalized))
     }
   }
 
@@ -176,12 +187,19 @@ export default function UnlockModal({
   const progressPct = ((TIMEOUT_SECS - secondsLeft) / TIMEOUT_SECS) * 100
   const pInfo = PROVIDERS[provider]
 
+  // Display phone in waiting step (strip leading digits to show local form)
+  const displayPhone = phone.replace(/^(255|0)/, '').replace(/^/, '0')
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+      onClick={step === 'waiting' ? undefined : onClose}
+    >
       <div
         className="bg-white rounded-t-3xl w-full max-w-md pb-10 overflow-hidden
                    animate-in slide-in-from-bottom duration-300"
         onClick={e => e.stopPropagation()}
+        onTouchEnd={e => e.stopPropagation()}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2">
@@ -198,7 +216,6 @@ export default function UnlockModal({
               Bei: <span className="font-semibold text-gray-700">Tsh {UNLOCK_AMOUNT.toLocaleString()}</span> · Lipa mara moja tu
             </p>
 
-            {/* Listing info strip */}
             <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-5">
               <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm flex-shrink-0">
                 {dalaliName[0]}
@@ -232,12 +249,17 @@ export default function UnlockModal({
           </div>
         )}
 
-        {/* ── STEP: Phone input (mobile money) ── */}
+        {/* ── STEP: Phone input ── */}
         {step === 'phone' && (
           <div className="px-5 pt-2">
-            {/* Back + provider badge */}
             <div className="flex items-center gap-2 mb-4">
-              <button onClick={() => setStep('select')} className="text-gray-400 text-lg">←</button>
+              <button
+                onClick={() => setStep('select')}
+                aria-label="Rudi nyuma"
+                className="text-gray-400 text-lg p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              >
+                ←
+              </button>
               <div className="flex items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={pInfo.iconSrc} alt={pInfo.iconAlt} className="h-5 w-auto object-contain" />
@@ -268,7 +290,7 @@ export default function UnlockModal({
                     placeholder={pInfo.hint.split(' ')[0] + ' XXX XXXX'}
                     value={phone}
                     onChange={e => handlePhoneChange(e.target.value)}
-                    maxLength={10}
+                    maxLength={12}
                     className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base
                                focus:outline-none focus:ring-2 focus:ring-primary-300"
                   />
@@ -280,11 +302,11 @@ export default function UnlockModal({
 
               <button
                 type="submit"
-                disabled={loading || phone.replace(/\D/g,'').length < 9}
+                disabled={loading || normalisePhone(phone).normalized.length !== 12}
                 className="w-full text-white py-3.5 min-h-[48px] rounded-2xl text-sm font-semibold
                            disabled:opacity-50 transition-all active:scale-[0.98]"
                 style={{
-                  backgroundColor: loading || phone.replace(/\D/g,'').length < 9
+                  backgroundColor: loading || normalisePhone(phone).normalized.length !== 12
                     ? '#9CA3AF'
                     : pInfo.btnColor,
                 }}
@@ -296,33 +318,42 @@ export default function UnlockModal({
             <p className="text-center text-xs text-gray-400 mt-3 mb-1">
               Utapata ombi la PIN kwenye simu yako
             </p>
-            <button onClick={() => setStep('select')} className="w-full py-3 text-sm text-gray-400 text-center">
+            <button
+              onClick={() => setStep('select')}
+              className="w-full py-3 min-h-[44px] text-sm text-gray-400 text-center"
+            >
               ← Badilisha njia ya kulipa
             </button>
           </div>
         )}
 
-        {/* ── STEP: Waiting for STK Push ── */}
+        {/* ── STEP: Waiting ── */}
         {step === 'waiting' && (
           <div className="px-5 pt-2 text-center">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4 text-xs text-amber-700 font-medium">
+              ⚠️ Usifunge — malipo yanashughulikiwa
+            </div>
             <div className="text-4xl mb-3">📲</div>
             <h2 className="text-base font-bold text-gray-900 mb-2">Angalia Simu Yako!</h2>
             <p className="text-sm text-gray-500 mb-1">
               Ombi la malipo limetumwa kwa
-              <span className="font-semibold text-gray-700 ml-1">+255{phone}</span>
+              <span className="font-semibold text-gray-700 ml-1">+255{displayPhone.replace(/^0/, '')}</span>
             </p>
-            <p className="text-sm text-gray-500 mb-5">
+            <p className="text-sm text-gray-500 mb-4">
               Ingiza PIN yako ya <span className="font-semibold">{pInfo.name}</span>
             </p>
 
-            {/* Progress bar */}
+            <button
+              onClick={handleRetry}
+              className="text-sm text-primary-600 font-medium py-2 min-h-[44px] mb-3"
+            >
+              ← Badilisha njia ya kulipa
+            </button>
+
             <div className="bg-gray-100 rounded-full h-2 mb-1.5 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-1000"
-                style={{
-                  width: `${progressPct}%`,
-                  backgroundColor: pInfo.btnColor,
-                }}
+                style={{ width: `${progressPct}%`, backgroundColor: pInfo.btnColor }}
               />
             </div>
             <p className="text-xs text-gray-400 mb-5">Inasubiri uthibitisho... ({secondsLeft}s)</p>
@@ -334,18 +365,21 @@ export default function UnlockModal({
               />
             </div>
 
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 text-left mb-4">
-              <p className="font-semibold mb-1">Jinsi ya kuthibitisha:</p>
-              <ol className="list-decimal list-inside space-y-0.5">
-                <li>Angalia SMS au ombi la USSD kwenye simu</li>
-                <li>Ingiza PIN yako ya {pInfo.name}</li>
-                <li>Thibitisha Tsh {UNLOCK_AMOUNT.toLocaleString()}</li>
-              </ol>
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-left mb-4">
+              <p className="text-xs font-semibold text-amber-700 mb-2">Jinsi ya kuthibitisha:</p>
+              <div className="space-y-1.5">
+                {[
+                  `Angalia SMS au ombi la USSD kwenye simu`,
+                  `Ingiza PIN yako ya ${pInfo.name}`,
+                  `Thibitisha Tsh ${UNLOCK_AMOUNT.toLocaleString()}`,
+                ].map((step, i) => (
+                  <div key={i} className="flex gap-2 text-xs text-amber-700">
+                    <span className="flex-shrink-0 font-bold">{i + 1}.</span>
+                    <span>{step}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            <button onClick={handleRetry} className="text-sm text-gray-400 underline py-3">
-              Badilisha njia ya kulipa
-            </button>
           </div>
         )}
 
@@ -360,7 +394,7 @@ export default function UnlockModal({
             </p>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <a
-                href={`https://wa.me/${whatsappNumber.replace(/\D/g, '')}`}
+                href={`https://wa.me/${waPhone}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl
@@ -372,7 +406,7 @@ export default function UnlockModal({
                 <span className="text-xs font-normal opacity-80">Tuma ujumbe</span>
               </a>
               <a
-                href={`tel:+${whatsappNumber.replace(/\D/g, '')}`}
+                href={`tel:+${waPhone}`}
                 className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl
                            bg-blue-500 text-white font-semibold text-sm shadow-md
                            active:scale-[0.97] transition-transform"

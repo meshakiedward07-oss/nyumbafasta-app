@@ -160,6 +160,21 @@ export default function AgreementModal({
         />
       </div>
 
+      {/* Commitments preview — shown upfront so user knows what they'll agree to */}
+      <div className="bg-primary-50 border-b border-primary-100 px-4 py-3 flex-shrink-0">
+        <p className="text-xs font-semibold text-primary-800 mb-2 max-w-lg mx-auto">
+          {lang === 'sw' ? '📋 Utakubali yafuatayo:' : '📋 You will agree to the following:'}
+        </p>
+        <ul className="space-y-1 max-w-lg mx-auto">
+          {boxes.map(b => (
+            <li key={b.id} className="flex items-start gap-2 text-xs text-primary-700">
+              <span className="text-primary-400 flex-shrink-0 mt-0.5">○</span>
+              {lang === 'sw' ? b.sw : b.en}
+            </li>
+          ))}
+        </ul>
+      </div>
+
       {/* Scroll-to-read notice */}
       {!hasScrolled && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex-shrink-0">
@@ -175,8 +190,7 @@ export default function AgreementModal({
       {/* Agreement text */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full"
-        style={{ maxHeight: fullPage ? 'calc(100vh - 340px)' : '45vh' }}
+        className="flex-1 min-h-0 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full"
       >
         <div className="space-y-1">
           {content.split('\n').map((line, i) => {

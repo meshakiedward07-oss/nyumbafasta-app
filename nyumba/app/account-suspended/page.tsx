@@ -1,8 +1,7 @@
 'use client'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-
-const SUPPORT_WHATSAPP = '255615261147'
+import { supportWaUrl } from '@/lib/config/support'
 
 export default function AccountSuspendedPage() {
   const supabase = createClient()
@@ -25,7 +24,6 @@ export default function AccountSuspendedPage() {
         <h1 className="text-xl font-bold text-gray-900 mb-2">
           Akaunti Imesimamishwa
         </h1>
-        <p className="text-sm text-gray-600 mb-1">Account Suspended</p>
 
         <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 my-5 text-left space-y-2">
           <p className="text-sm text-orange-800 font-medium">Sababu inayowezekana:</p>
@@ -38,13 +36,11 @@ export default function AccountSuspendedPage() {
 
         <p className="text-xs text-gray-500 mb-6">
           Kama unaamini hii ni kosa, wasiliana nasi kupitia WhatsApp ili tushughulikie hali yako haraka.
-          <br /><br />
-          If you believe this is a mistake, contact us via WhatsApp to resolve your case quickly.
         </p>
 
         {/* WhatsApp support */}
         <a
-          href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('Habari, akaunti yangu ya NyumbaFasta imesimamishwa. Nataka kujua sababu na jinsi ya kuirudisha.')}`}
+          href={supportWaUrl('Habari, akaunti yangu ya NyumbaFasta imesimamishwa. Nataka kujua sababu na jinsi ya kuirudisha.')}
           target="_blank"
           rel="noopener noreferrer"
           className="block w-full bg-[#25D366] text-white py-3.5 rounded-xl text-sm font-semibold mb-3 hover:bg-[#20b857] transition-colors"

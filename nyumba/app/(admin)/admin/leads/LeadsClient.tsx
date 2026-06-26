@@ -69,6 +69,7 @@ export default function LeadsClient() {
   const [runSources, setRunSources] = useState<string[]>(['google_maps'])
   const [running, setRunning] = useState(false)
   const [runResult, setRunResult] = useState<any>(null)
+  const [runError, setRunError] = useState('')
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
 
@@ -128,7 +129,7 @@ export default function LeadsClient() {
   }, [])
 
   async function handleRunAgent() {
-    if (runSources.length === 0) { alert('Chagua angalau source moja'); return }
+    if (runSources.length === 0) { setRunError('Chagua angalau source moja'); return }
     setRunning(true)
     setRunResult(null)
     try {
@@ -711,8 +712,14 @@ export default function LeadsClient() {
                   ℹ️ Agent itaanza kutafuta madalali kwenye {runRegion}. Matokeo yataonekana baada ya dakika 5-15.
                 </div>
 
+                {runError && (
+                  <p className="text-xs text-red-500 mb-3 flex items-center gap-1">
+                    <span>⚠️</span> {runError}
+                  </p>
+                )}
+
                 <button
-                  onClick={handleRunAgent}
+                  onClick={() => { setRunError(''); handleRunAgent() }}
                   disabled={running || runSources.length === 0}
                   className="w-full bg-[#1D9E75] text-white py-4 rounded-2xl font-bold text-base disabled:opacity-50"
                 >

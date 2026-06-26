@@ -7,12 +7,13 @@ export default function ChangePasswordPage() {
   const supabase = createClient()
   const router   = useRouter()
 
-  const [password,  setPassword]  = useState('')
-  const [confirm,   setConfirm]   = useState('')
-  const [showPass,  setShowPass]  = useState(false)
-  const [saving,    setSaving]    = useState(false)
-  const [error,     setError]     = useState('')
-  const [done,      setDone]      = useState(false)
+  const [password,     setPassword]     = useState('')
+  const [confirm,      setConfirm]      = useState('')
+  const [showPass,     setShowPass]     = useState(false)
+  const [showConfirm,  setShowConfirm]  = useState(false)
+  const [saving,       setSaving]       = useState(false)
+  const [error,        setError]        = useState('')
+  const [done,         setDone]         = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -37,9 +38,15 @@ export default function ChangePasswordPage() {
       return
     }
 
-    // Clear must_change_password flag
     const { data: { user } } = await supabase.auth.getUser()
+    let role = 'client'
     if (user) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      role = userData?.role ?? 'client'
       await supabase
         .from('users')
         .update({ must_change_password: false })
@@ -49,9 +56,10 @@ export default function ChangePasswordPage() {
     setDone(true)
     setSaving(false)
 
-    // Redirect after 2 seconds
     setTimeout(() => {
-      router.push('/admin/staff-leads')
+      if (role === 'admin' || role === 'staff') router.push('/admin')
+      else if (role === 'dalali') router.push('/dashboard')
+      else router.push('/')
     }, 2000)
   }
 
@@ -106,8 +114,8 @@ export default function ChangePasswordPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"
-                  tabIndex={-1}
+                  aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1"
                 >
                   {showPass ? '🙈' : '👁️'}
                 </button>
@@ -116,14 +124,24 @@ export default function ChangePasswordPage() {
 
             <div>
               <label className="text-xs text-gray-500 mb-1.5 block">Thibitisha Password</label>
-              <input
-                type={showPass ? 'text' : 'password'}
-                required
-                placeholder="Rudia password mpya"
-                value={confirm}
-                onChange={e => setConfirm(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  required
+                  placeholder="Rudia password mpya"
+                  value={confirm}
+                  onChange={e => setConfirm(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(p => !p)}
+                  aria-label={showConfirm ? 'Ficha uthibitisho' : 'Onyesha uthibitisho'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1"
+                >
+                  {showConfirm ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
 
             <button

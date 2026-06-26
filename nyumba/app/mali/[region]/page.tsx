@@ -25,7 +25,7 @@ export function generateStaticParams() {
   return TANZANIA_REGIONS.map(r => ({ region: regionToSlug(r.name) }))
 }
 
-export const revalidate = 3600 // refresh listings hourly
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({
   params,
@@ -53,16 +53,22 @@ export async function generateMetadata({
   }
 }
 
-async function fetchRegionListings(region: string): Promise<SeoListing[]> {
+async function fetchRegionListings(region: string, district?: string): Promise<SeoListing[]> {
   try {
     const admin = createAdminClient()
-    const { data } = await admin
+    let query = admin
       .from('listings')
       .select('id, title, type, district, region, price_monthly, images, description')
       .eq('status', 'active')
       .eq('region', region)
       .order('created_at', { ascending: false })
       .limit(20)
+
+    if (district) {
+      query = query.eq('district', district)
+    }
+
+    const { data } = await query
     return (data ?? []) as SeoListing[]
   } catch {
     return []
@@ -71,13 +77,16 @@ async function fetchRegionListings(region: string): Promise<SeoListing[]> {
 
 export default async function RegionPage({
   params,
+  searchParams,
 }: {
   params: { region: string }
+  searchParams: { district?: string }
 }) {
   const region = slugToRegion(params.region)
   if (!region) notFound()
 
-  const listings = await fetchRegionListings(region)
+  const district = searchParams.district
+  const listings = await fetchRegionListings(region, district)
   const districts = getDistricts(region)
   const slug = regionToSlug(region)
 
@@ -104,13 +113,21 @@ export default async function RegionPage({
         <article>
           <header className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
-              Nyumba za Kupanga {region}
+              Nyumba za Kupanga {district ? `${district}, ` : ''}{region}
             </h1>
             <p className="text-gray-600 text-sm mt-2 leading-relaxed">
               Tafuta vyumba, apartments, nyumba na studio za kupanga {region}, Tanzania.
               NyumbaFasta inakuunganisha moja kwa moja na madalali wa eneo lako — bei halisi,
               picha za kweli, na mawasiliano ya haraka kupitia WhatsApp.
             </p>
+            {district && (
+              <Link
+                href={`/mali/${slug}`}
+                className="inline-flex items-center gap-1 mt-3 text-xs text-primary-600 hover:underline"
+              >
+                ← Onyesha {region} yote
+              </Link>
+            )}
           </header>
 
           {/* Property type sub-pages */}
@@ -131,9 +148,38 @@ export default async function RegionPage({
 
           <section aria-label={`Listings ${region}`}>
             <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Nyumba zinazopatikana {region}
+              Nyumba zinazopatikana {district ? `${district}, ` : ''}{region}
             </h2>
-            <SeoListingGrid listings={listings} />
+
+            {listings.length > 0 ? (
+              <SeoListingGrid listings={listings} />
+            ) : (
+              <div className="text-center py-14 px-4">
+                <div className="text-5xl mb-4">🏠</div>
+                <h3 className="text-base font-bold text-gray-800 mb-2">
+                  Hakuna listings {district ? `za ${district}` : `za ${region}`} kwa sasa
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Jaribu kutafuta mkoa mwingine au angalia listings zote zilizopo.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  {district && (
+                    <Link
+                      href={`/mali/${slug}`}
+                      className="bg-primary-500 text-white px-6 py-3 rounded-2xl text-sm font-semibold"
+                    >
+                      Tazama {region} Yote
+                    </Link>
+                  )}
+                  <Link
+                    href="/"
+                    className="bg-gray-100 text-gray-700 px-6 py-3 rounded-2xl text-sm font-semibold"
+                  >
+                    Tafuta Nyumba
+                  </Link>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* District internal links */}
@@ -147,7 +193,11 @@ export default async function RegionPage({
                   <Link
                     key={d}
                     href={`/mali/${slug}?district=${encodeURIComponent(d)}`}
-                    className="text-xs bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-full hover:border-primary-300 transition-colors"
+                    className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
+                      district === d
+                        ? 'bg-primary-500 text-white border border-primary-500'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'
+                    }`}
                   >
                     {d}
                   </Link>

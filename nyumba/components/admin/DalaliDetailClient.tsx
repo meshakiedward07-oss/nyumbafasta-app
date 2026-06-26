@@ -99,8 +99,20 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
 
-      {/* Header */}
-      <div className="bg-primary-800 px-4 pt-10 pb-5 flex items-center gap-3">
+      {/* Desktop header */}
+      <div className="hidden lg:flex items-center gap-3 px-6 py-5 border-b border-gray-100 bg-white">
+        <button onClick={() => router.back()}
+          className="p-2 rounded-full hover:bg-gray-100 text-gray-600 text-lg transition-colors">
+          ←
+        </button>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">{dalali.full_name}</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Maelezo ya Dalali · Admin Panel</p>
+        </div>
+      </div>
+
+      {/* Mobile header */}
+      <div className="lg:hidden bg-primary-800 px-4 pt-10 pb-5 flex items-center gap-3">
         <button onClick={() => router.back()}
           className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white text-lg">
           ←
@@ -144,7 +156,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
                 </span>
                 {profile?.is_premium_verified && (
                   <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    ✓ Verified
+                    ✓ Imethibitishwa
                   </span>
                 )}
               </div>
@@ -297,12 +309,14 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
               </button>
             )}
 
-            {/* View all listings */}
+            {/* View all listings — public profile opens in new tab */}
             <Link
-              href={`/admin?user=${dalali.id}`}
+              href={`/dalali/${dalali.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center justify-center w-full py-3 rounded-xl text-sm font-semibold bg-gray-50 text-gray-700 border border-gray-200"
             >
-              🏠 Angalia Listings ({dalali.listings_count})
+              🏠 Ona Listings ({dalali.listings_count}) →
             </Link>
 
             {/* Delete */}
@@ -331,18 +345,18 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Sababu:</p>
             <div className="space-y-2 mb-4">
               {[
-                'Scam — anatoa fake listings',
-                'Unyanyasaji wa wateja',
-                'Taarifa za uongo',
-                'Uvunjaji wa masharti',
-                'Sababu nyingine',
+                { v: 'Scam — anatoa fake listings', icon: '🚨' },
+                { v: 'Unyanyasaji wa wateja',       icon: '🚨' },
+                { v: 'Taarifa za uongo',            icon: '🚨' },
+                { v: 'Uvunjaji wa masharti',        icon: '🚨' },
+                { v: 'Sababu nyingine',             icon: '📝' },
               ].map(r => (
-                <button key={r} onClick={() => setDeleteReason(r)}
+                <button key={r.v} onClick={() => setDeleteReason(r.v)}
                   className={`w-full flex items-center gap-2 p-3 rounded-xl border-2 text-left text-sm transition-all ${
-                    deleteReason === r ? 'border-red-400 bg-red-50 text-red-800' : 'border-gray-100 text-gray-700'
+                    deleteReason === r.v ? 'border-red-400 bg-red-50 text-red-800' : 'border-gray-100 text-gray-700'
                   }`}
                 >
-                  🚨 {r}
+                  <span>{r.icon}</span><span>{r.v}</span>
                 </button>
               ))}
             </div>

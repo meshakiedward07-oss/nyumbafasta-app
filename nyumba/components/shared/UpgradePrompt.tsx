@@ -19,13 +19,12 @@ export default function UpgradePrompt({ feature, requiredPlan }: Props) {
       <p className="text-gray-500 text-sm mb-4">
         Upgrade kwenda {plan.name} kwa Tsh {plan.price.toLocaleString()}/mwezi
       </p>
-      <Link href="/dashboard/subscription">
-        <button
-          className="px-6 py-3 rounded-xl text-white font-semibold active:scale-95 transition-transform"
-          style={{ backgroundColor: plan.color }}
-        >
-          Upgrade Sasa →
-        </button>
+      <Link
+        href="/dashboard/subscription"
+        className="inline-block px-6 py-3 rounded-xl text-white font-semibold active:scale-95 transition-transform"
+        style={{ backgroundColor: plan.color }}
+      >
+        Upgrade Sasa →
       </Link>
     </div>
   )

@@ -73,6 +73,7 @@ export function BulkPhotoUpload({
     }))
   )
   const [isDragOver, setIsDragOver] = useState(false)
+  const [addError, setAddError]     = useState('')
   const fileRef     = useRef<HTMLInputElement>(null)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
@@ -110,10 +111,11 @@ export function BulkPhotoUpload({
   const addFiles = useCallback((rawFiles: File[]) => {
     const images = rawFiles.filter(f => f.type.startsWith('image/'))
     if (!images.length) return
+    setAddError('')
 
     const sized = images.filter(f => {
       if (f.size > 20 * 1024 * 1024) {
-        alert(`${f.name} ni kubwa mno (max 20MB)`)
+        setAddError(`"${f.name}" ni kubwa mno (max 20MB kwa kila picha)`)
         return false
       }
       return true
@@ -126,7 +128,7 @@ export function BulkPhotoUpload({
     setPhotos(prev => {
       const canAdd = Math.max(0, maxPhotos - prev.length)
       if (!canAdd) {
-        alert(`Unaweza kupakia picha ${maxPhotos} tu kwa jumla`)
+        setAddError(`Unaweza kupakia picha ${maxPhotos} tu kwa jumla`)
         return prev
       }
       newItems = sized.slice(0, canAdd).map(file => ({
@@ -211,6 +213,13 @@ export function BulkPhotoUpload({
           Chagua picha nyingi kwa pamoja · Max {maxPhotos} picha · PNG, JPG
         </p>
       </div>
+
+      {/* Validation error */}
+      {addError && (
+        <p className="text-xs text-red-500 flex items-center gap-1 -mt-1">
+          <span>⚠️</span> {addError}
+        </p>
+      )}
 
       {/* Status line */}
       {photos.length > 0 && (

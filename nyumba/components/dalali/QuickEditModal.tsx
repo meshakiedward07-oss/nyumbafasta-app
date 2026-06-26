@@ -58,8 +58,8 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
   async function handleSave() {
     setError('')
     const priceNum = parseInt(price, 10)
-    if (!Number.isFinite(priceNum) || priceNum < 1000) {
-      setError('Bei si sahihi (angalau Tsh 1,000)')
+    if (!Number.isFinite(priceNum) || priceNum < 10000) {
+      setError('Bei si sahihi — kodi ya chini kabisa ni Tsh 10,000/mwezi')
       return
     }
 
@@ -110,7 +110,8 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
           <h2 className="font-bold text-gray-900">⚡ Update Haraka</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"
+            aria-label="Funga"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"
           >
             ✕
           </button>

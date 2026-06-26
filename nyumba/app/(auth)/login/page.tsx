@@ -269,8 +269,8 @@ function LoginForm() {
                       <button
                         type="button"
                         onClick={() => setShowPass(p => !p)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm px-1"
-                        tabIndex={-1}
+                        aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
                       >
                         {showPass ? '🙈' : '👁️'}
                       </button>
@@ -326,7 +326,7 @@ function LoginForm() {
 
                 {/* Hint */}
                 <p className="text-center text-xs text-gray-400 mt-4">
-                  💡 Ingia kwa urahisi na Google account yako au barua pepe
+                  💡 Ingia kwa urahisi na akaunti ya Google au barua pepe
                 </p>
               </>
             )}

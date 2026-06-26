@@ -82,6 +82,8 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
     const isSelected = selected === m.id
     return (
       <button
+        role="radio"
+        aria-checked={isSelected}
         onClick={() => onSelect(m.id)}
         className="relative flex flex-col items-center justify-center gap-1.5 p-3
                    rounded-2xl border-2 transition-all duration-150 min-h-[80px] active:scale-[0.97]"
@@ -98,7 +100,7 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
         <div className="h-10 flex items-center justify-center">
           <PaymentIcon iconSrc={m.iconSrc} iconAlt={m.iconAlt} />
         </div>
-        <p className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{m.name}</p>
+        <p className="text-xs font-semibold text-gray-700 text-center leading-tight">{m.name}</p>
         <p className="text-[9px] text-gray-400">{m.company}</p>
       </button>
     )
@@ -108,7 +110,7 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
     <div className="space-y-4">
 
       {/* Mobile Money */}
-      <div>
+      <div role="radiogroup" aria-label="Chagua njia ya kulipa">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
           📱 Mobile Money
         </p>

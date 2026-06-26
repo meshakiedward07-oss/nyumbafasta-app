@@ -68,6 +68,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
   const showWelcome = searchParams.get('welcome') === 'true'
   const supabase = createClient()
   const [loggingOut, setLoggingOut] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'all'>('active')
   const [mounted, setMounted] = useState(false)
 
@@ -76,6 +77,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
 
   async function handleLogout() {
     setLoggingOut(true)
+    setShowLogoutConfirm(false)
     await supabase.auth.signOut()
     router.push('/')
     router.refresh()
@@ -92,7 +94,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
     : null
 
   const daysLeft = mounted && subscription?.expires_at
-    ? Math.ceil((new Date(subscription.expires_at).getTime() - Date.now()) / 86_400_000)
+    ? Math.round((new Date(subscription.expires_at).getTime() - Date.now()) / 86_400_000)
     : null
 
   return (
@@ -106,7 +108,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
             <h1 className="text-white text-xl font-bold">{dalaliName}</h1>
             {profile?.is_premium_verified && (
               <span className="inline-flex items-center gap-1 bg-white/20 text-white text-xs px-2 py-0.5 rounded-full mt-1">
-                ✓ Verified Premium
+                ✓ Imethibitishwa
               </span>
             )}
             {profile?.whatsapp_number ? (
@@ -122,9 +124,9 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           <div className="flex items-center gap-3">
             <NotificationBell className="text-white/80 hover:text-white transition-colors" />
             <button
-              onClick={handleLogout}
+              onClick={() => setShowLogoutConfirm(true)}
               disabled={loggingOut}
-              className="text-white/70 text-xs hover:text-white transition-colors flex items-center gap-1 disabled:opacity-50"
+              className="text-white/70 text-xs hover:text-white transition-colors flex items-center gap-1 disabled:opacity-50 min-h-[44px] px-1"
             >
               {loggingOut && (
                 <span className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
@@ -135,12 +137,12 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
             { label: 'Listings', value: stats.totalListings },
             { label: 'Zinafanya kazi', value: stats.activeCount },
             { label: 'Waliotazama', value: stats.totalViews },
-            { label: 'Leads', value: stats.totalLeads },
+            { label: 'Ombi', value: stats.totalLeads },
           ].map(s => (
             <div key={s.label} className="bg-white/15 rounded-xl p-2.5 text-center">
               <p className="text-white font-bold text-lg leading-none">{s.value}</p>
@@ -336,7 +338,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         })()}
 
         {/* ── Verification banner ── */}
-        {profile?.verification_status === 'unverified' || !profile?.verification_status ? (
+        {profile !== null && (profile?.verification_status === 'unverified' || !profile?.verification_status) ? (
           <div className="bg-red-50 border border-red-100 rounded-2xl p-3 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-red-800">🪪 Thibitisha utambulisho wako</p>
@@ -432,7 +434,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-none -mx-4 px-4">
             {([
               { key: 'active', label: `Zinafanya kazi (${stats.activeCount})` },
               { key: 'pending', label: `Zinasubiri (${stats.pendingCount})` },
@@ -455,14 +457,23 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           {filteredListings.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
               <div className="text-4xl mb-3">🏘</div>
-              <p className="text-sm text-gray-500 mb-1">
-                {activeTab === 'active' ? 'Huna listings zinazofanya kazi' : 'Hakuna listings'}
+              <p className="text-sm font-semibold text-gray-600 mb-1">
+                {activeTab === 'active' ? 'Huna listings zinazofanya kazi'
+                : activeTab === 'pending' ? 'Hakuna listings zinazosubiri'
+                : 'Bado hujaweka listing yoyote'}
+              </p>
+              <p className="text-xs text-gray-400 mb-4 leading-relaxed">
+                {activeTab === 'active'
+                  ? 'Listings zilizoidhinishwa na admin zinaonekana hapa. Ongeza listing ili wateja wakupate.'
+                : activeTab === 'pending'
+                  ? 'Listings zako zote zimeshaidhinishwa na admin. Vizuri sana!'
+                  : 'Ongeza nyumba au chumba unachotaka kukodisha. Wateja zaidi ya 10,000 wanasubiri!'}
               </p>
               <Link
                 href="/dashboard/listings/new"
-                className="inline-block mt-3 text-xs text-primary-600 font-medium bg-primary-50 px-4 py-2 rounded-full"
+                className="inline-block text-xs text-white font-semibold bg-primary-500 px-5 py-2.5 rounded-full"
               >
-                Ongeza Listing ya Kwanza
+                ➕ Ongeza Listing ya Kwanza
               </Link>
             </div>
           ) : (
@@ -504,14 +515,14 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                   <div className="flex border-t border-gray-50">
                     <Link
                       href={`/listings/${listing.id}`}
-                      className="flex-1 text-center py-2 text-xs text-gray-500 hover:text-gray-700"
+                      className="flex-1 text-center py-3 text-xs text-gray-500 hover:text-gray-700 min-h-[44px] flex items-center justify-center"
                     >
                       Angalia
                     </Link>
                     <div className="w-px bg-gray-50" />
                     <Link
                       href={`/listings/${listing.id}/edit`}
-                      className="flex-1 text-center py-2 text-xs text-primary-600 font-medium"
+                      className="flex-1 text-center py-3 text-xs text-primary-600 font-medium min-h-[44px] flex items-center justify-center"
                     >
                       Hariri
                     </Link>
@@ -542,6 +553,32 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           </div>
         )}
       </div>
+
+      {/* Logout confirm dialog */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
+          onClick={() => setShowLogoutConfirm(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-xs text-center shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="text-4xl mb-3">👋</div>
+            <h2 className="font-bold text-gray-900 mb-2">Toka kwenye akaunti?</h2>
+            <p className="text-gray-500 text-sm mb-5">Utahitaji kuingia tena baadaye.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold"
+              >
+                Hapana
+              </button>
+              <button
+                onClick={handleLogout}
+                className="py-3 rounded-xl bg-red-500 text-white text-sm font-semibold"
+              >
+                Ndiyo, toka
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Welcome Modal — inaonekana baada ya kuthibitisha email */}
       {showWelcome && (
