@@ -284,7 +284,10 @@ export default function WhatsAppPanel() {
   // ── Filtered sessions ──────────────────────────────────────────────────────
 
   const filtered = sessions.filter(s => {
-    if (search) return s.phone_number.includes(search)
+    if (search) {
+      const q = search.toLowerCase()
+      return s.phone_number.includes(search) || (s.escalation_reason ?? '').toLowerCase().includes(q)
+    }
     return true
   })
 
@@ -461,7 +464,7 @@ export default function WhatsAppPanel() {
               ) : (
                 <div className="flex-1 text-center py-2 text-xs text-gray-400">
                   {selected.status === 'pending'
-                    ? 'Bonyeza "Chukua" ili uanze kujibu'
+                    ? 'Bonyeza "Chukua Mazungumzo" ili uanze kujibu'
                     : selected.status === 'amina'
                       ? 'Amina anashughulikia mazungumzo haya'
                       : 'Mazungumzo yamefungwa'}

@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import ListingCard from '@/components/listings/ListingCard'
 import BottomNav from '@/components/shared/BottomNav'

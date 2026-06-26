@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import type {
@@ -74,8 +73,6 @@ export default function AdminDashboard({
   pendingVerifications, stats, reports = [], regionStats = [],
   initialTab = 'overview',
 }: Props) {
-  const router = useRouter()
-
   // ── Main tabs ─────────────────────────────────────────
   const [tab, setTab]   = useState<Tab>(initialTab)
   const [listings, setListings] = useState(pendingListings)
@@ -83,10 +80,11 @@ export default function AdminDashboard({
   const [listingStatusFilter, setListingStatusFilter] = useState<string>('pending')
   const [loadingId, setLoadingId]   = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
+  const [rejectListingId, setRejectListingId]         = useState<string | null>(null)
+  const [listingRejectReason, setListingRejectReason] = useState('')
 
   // ── Verification ──────────────────────────────────────
   const [verifications, setVerifications] = useState(pendingVerifications)
-  const [rejectReason, setRejectReason]   = useState('')
   const [verifyLoading, setVerifyLoading] = useState<string | null>(null)
 
   // ── Reports ───────────────────────────────────────────
@@ -103,14 +101,14 @@ export default function AdminDashboard({
 
 
   // ── Approve / Reject listing ─────────────────────────
-  async function handleAction(id: string, action: 'approve' | 'reject') {
+  async function handleAction(id: string, action: 'approve' | 'reject', reason?: string) {
     setLoadingId(id)
     setActionError('')
     try {
       const res = await fetch(`/api/v1/admin/listings/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...(reason ? { reason } : {}) }),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? 'Imeshindwa')
       const newStatus = action === 'approve' ? 'active' : 'rejected'
@@ -184,24 +182,28 @@ export default function AdminDashboard({
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
 
-      {/* ── Header — hidden on desktop (AdminShell sidebar provides branding) ── */}
-      <div className="bg-primary-800 px-4 pt-10 pb-5 lg:hidden">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-white text-xl font-bold">⚙️ Admin Panel</h1>
-            <p className="text-green-200 text-xs mt-0.5">NyumbaFasta · Usimamizi wa Mfumo</p>
-          </div>
-          <button onClick={() => router.push('/')} className="text-green-200 text-xs hover:text-white">
-            ← Tovuti
-          </button>
-        </div>
-      </div>
-
       {/* ── Desktop page title ── */}
       <div className="hidden lg:flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white">
         <div>
           <h1 className="text-xl font-bold text-gray-900">⚙️ Dashboard</h1>
           <p className="text-xs text-gray-400 mt-0.5">NyumbaFasta · Usimamizi wa Mfumo</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {listings.length > 0 && (
+            <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full font-semibold">
+              🏠 {listings.length} zinasubiri
+            </span>
+          )}
+          {verifications.length > 0 && (
+            <span className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-semibold">
+              🪪 {verifications.length} uthibitisho
+            </span>
+          )}
+          {reportsList.filter(r => r.status === 'pending').length > 0 && (
+            <span className="flex items-center gap-1 text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-full font-semibold">
+              🚨 {reportsList.filter(r => r.status === 'pending').length} ripoti
+            </span>
+          )}
         </div>
       </div>
 
@@ -307,7 +309,7 @@ export default function AdminDashboard({
         ══════════════════════════════════════════════ */}
         {tab === 'overview' && (
           <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Zinasubiri',      value: stats.pendingCount, icon: '⏳', urgent: stats.pendingCount > 0 },
                 { label: 'Listings active', value: stats.activeCount,  icon: '✅', urgent: false },
@@ -562,7 +564,7 @@ export default function AdminDashboard({
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => handleAction(listing.id, 'reject')} disabled={loadingId === listing.id}
+                      <button onClick={() => { setRejectListingId(listing.id); setListingRejectReason('') }} disabled={loadingId === listing.id}
                         className="flex-1 py-2.5 rounded-xl border-2 border-red-200 text-red-600 text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
                         {loadingId === listing.id ? '...' : '✕ Kataa'}
                       </button>
@@ -593,8 +595,6 @@ export default function AdminDashboard({
                 key={v.user_id}
                 v={v}
                 loading={verifyLoading === v.user_id}
-                rejectReason={rejectReason}
-                onRejectReasonChange={setRejectReason}
                 onApprove={async () => {
                   setVerifyLoading(v.user_id)
                   await fetch('/api/v1/admin/verify', {
@@ -605,16 +605,14 @@ export default function AdminDashboard({
                   setVerifications(prev => prev.filter(x => x.user_id !== v.user_id))
                   setVerifyLoading(null)
                 }}
-                onReject={async () => {
-                  if (!rejectReason.trim()) return
+                onReject={async (reason: string) => {
                   setVerifyLoading(v.user_id)
                   await fetch('/api/v1/admin/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ dalali_user_id: v.user_id, action: 'reject', reason: rejectReason }),
+                    body: JSON.stringify({ dalali_user_id: v.user_id, action: 'reject', reason }),
                   })
                   setVerifications(prev => prev.filter(x => x.user_id !== v.user_id))
-                  setRejectReason('')
                   setVerifyLoading(null)
                 }}
               />
@@ -676,6 +674,47 @@ export default function AdminDashboard({
                 className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold text-sm disabled:opacity-40"
               >
                 {userActionLoading ? '...' : '🗑️ Futa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Listing rejection modal ── */}
+      {rejectListingId && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setRejectListingId(null)}>
+          <div className="bg-white w-full rounded-t-3xl px-5 pt-4 pb-10 shadow-xl max-h-[70vh] overflow-y-auto"
+               onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
+            <div className="text-3xl text-center mb-2">🚫</div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-4">Sababu ya Kukataa Listing</h3>
+            <div className="space-y-2 mb-5">
+              {[
+                { v: 'Picha bandia au hazifanyi',  icon: '📷' },
+                { v: 'Bei au taarifa za uongo',     icon: '💸' },
+                { v: 'Eneo au anwani si sahihi',    icon: '📍' },
+                { v: 'Maudhui yasiyofaa',           icon: '⚠️' },
+                { v: 'Sababu nyingine',             icon: '📝' },
+              ].map(r => (
+                <button key={r.v} onClick={() => setListingRejectReason(r.v)}
+                  className={`w-full flex items-center gap-2 p-3 rounded-xl border-2 text-left text-sm transition-all ${
+                    listingRejectReason === r.v ? 'border-red-400 bg-red-50 text-red-800' : 'border-gray-100 text-gray-700'
+                  }`}
+                >
+                  <span>{r.icon}</span><span>{r.v}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setRejectListingId(null)}
+                className="flex-1 py-3 border-2 border-gray-200 rounded-2xl text-sm font-semibold text-gray-600">
+                Ghairi
+              </button>
+              <button
+                onClick={() => { handleAction(rejectListingId, 'reject', listingRejectReason); setRejectListingId(null) }}
+                disabled={!listingRejectReason}
+                className="flex-1 py-3 bg-red-500 text-white rounded-2xl text-sm font-bold disabled:opacity-40">
+                ✕ Kataa Listing
               </button>
             </div>
           </div>
@@ -787,16 +826,15 @@ export default function AdminDashboard({
 
 // ── Verification Card ─────────────────────────────────────
 function VerifyCard({
-  v, loading, rejectReason, onRejectReasonChange, onApprove, onReject,
+  v, loading, onApprove, onReject,
 }: {
   v: AdminVerification
   loading: boolean
-  rejectReason: string
-  onRejectReasonChange: (s: string) => void
   onApprove: () => void
-  onReject: () => void
+  onReject: (reason: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -842,7 +880,7 @@ function VerifyCard({
             className="flex-1 bg-primary-500 text-white text-xs font-semibold py-2.5 rounded-xl disabled:opacity-50 active:scale-95 transition-all">
             {loading ? '...' : '✅ Thibitisha'}
           </button>
-          <button onClick={onReject} disabled={loading || !rejectReason.trim()}
+          <button onClick={() => onReject(rejectReason)} disabled={loading || !rejectReason.trim()}
             className="flex-1 bg-red-500 text-white text-xs font-semibold py-2.5 rounded-xl disabled:opacity-50 active:scale-95 transition-all">
             ❌ Kataa
           </button>
@@ -852,7 +890,7 @@ function VerifyCard({
           type="text"
           placeholder="Sababu ya kukataa (lazima kabla ya kukataa)"
           value={rejectReason}
-          onChange={e => onRejectReasonChange(e.target.value)}
+          onChange={e => setRejectReason(e.target.value)}
           className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-red-200"
         />
       </div>

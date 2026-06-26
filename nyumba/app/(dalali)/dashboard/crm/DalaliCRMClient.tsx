@@ -21,6 +21,7 @@ export default function DalaliCRMClient() {
   const [contacts, setContacts] = useState<UnlockContact[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ total_unlocks: 0, this_month: 0 })
+  const [hasMore, setHasMore] = useState(false)
 
   const fetchContacts = useCallback(async () => {
     setLoading(true)
@@ -31,7 +32,8 @@ export default function DalaliCRMClient() {
     startOfMonth.setDate(1)
     startOfMonth.setHours(0, 0, 0, 0)
 
-    const [all, month] = await Promise.all([
+    const PAGE = 50
+    const [all, month, total] = await Promise.all([
       supabase.from('contact_unlocks')
         .select(`
           id, created_at,
@@ -40,15 +42,20 @@ export default function DalaliCRMClient() {
         `)
         .eq('dalali_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50),
+        .limit(PAGE),
       supabase.from('contact_unlocks')
         .select('id', { count: 'exact', head: true })
         .eq('dalali_id', user.id)
         .gte('created_at', startOfMonth.toISOString()),
+      supabase.from('contact_unlocks')
+        .select('id', { count: 'exact', head: true })
+        .eq('dalali_id', user.id),
     ])
 
+    const totalCount = total.count ?? 0
     setContacts((all.data as unknown as UnlockContact[]) || [])
-    setStats({ total_unlocks: all.data?.length ?? 0, this_month: month.count ?? 0 })
+    setHasMore(totalCount > PAGE)
+    setStats({ total_unlocks: totalCount, this_month: month.count ?? 0 })
     setLoading(false)
   }, [supabase])
 
@@ -73,6 +80,11 @@ export default function DalaliCRMClient() {
       <div className="px-4 py-4">
         <p className="text-xs text-gray-500 mb-4">
           Hawa ni wateja waliofungua nambari yako ya mawasiliano kupitia NyumbaFasta.
+          {hasMore && (
+            <span className="ml-1 text-amber-600 font-medium">
+              (Inaonyesha 50 za hivi karibuni)
+            </span>
+          )}
         </p>
 
         {loading ? (

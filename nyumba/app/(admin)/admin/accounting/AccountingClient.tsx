@@ -327,6 +327,7 @@ export default function AccountingClient() {
   const [syncMsg,    setSyncMsg]    = useState('')
   const [toast,      setToast]      = useState('')
   const [downloading, setDownloading] = useState<'pdf' | 'excel' | null>(null)
+  const [confirmDeleteExpId, setConfirmDeleteExpId] = useState<string | null>(null)
 
   // keep period/date for legacy API compatibility
   const period = 'monthly' as Period
@@ -404,7 +405,7 @@ export default function AccountingClient() {
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
       a.href     = url
-      a.download = format === 'pdf' ? 'nyumbafasta_ripoti.pdf' : 'nyumbafasta_hesabu.xlsx'
+      a.download = format === 'pdf' ? `nyumbafasta_ripoti_${selectedMonth}.pdf` : `nyumbafasta_hesabu_${selectedMonth}.xlsx`
       a.click()
       URL.revokeObjectURL(url)
     } catch { showToast('Imeshindwa kupakua ripoti') }
@@ -654,11 +655,11 @@ ON CONFLICT DO NOTHING;`}</pre>
       <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2">
         <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-medium disabled:opacity-50">
-          {downloading === 'pdf' ? '⏳' : '⬇️'} PDF
+          {downloading === 'pdf' ? '⏳' : '⬇️'} PDF · {monthOptions.find(m => m.value === selectedMonth)?.label?.split(' ')[0] ?? selectedMonth}
         </button>
         <button onClick={() => handleDownload('excel')} disabled={!!downloading}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-xl text-xs font-medium disabled:opacity-50">
-          {downloading === 'excel' ? '⏳' : '⬇️'} Excel
+          {downloading === 'excel' ? '⏳' : '⬇️'} Excel · {monthOptions.find(m => m.value === selectedMonth)?.label?.split(' ')[0] ?? selectedMonth}
         </button>
         <button onClick={handleSync}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium">
@@ -689,9 +690,28 @@ ON CONFLICT DO NOTHING;`}</pre>
 
         {/* ── Loading ── */}
         {loading && (
-          <div className="flex flex-col items-center py-12 gap-3">
-            <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-gray-400">Inapakia takwimu...</p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              {[1,2,3].map(i => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-3 animate-pulse">
+                  <div className="h-2 bg-gray-100 rounded w-12 mx-auto mb-2" />
+                  <div className="h-5 bg-gray-200 rounded w-16 mx-auto mb-1" />
+                  <div className="h-2 bg-gray-100 rounded w-10 mx-auto" />
+                </div>
+              ))}
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3 animate-pulse">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gray-100 rounded-full flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-2.5 bg-gray-200 rounded w-3/4" />
+                    <div className="h-2 bg-gray-100 rounded w-1/2" />
+                  </div>
+                  <div className="h-4 bg-gray-200 rounded w-16" />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -892,13 +912,26 @@ ON CONFLICT DO NOTHING;`}</pre>
                             <p className="text-sm font-semibold text-red-500">
                               -{fmtFull(Number(r.amount_tzs))}
                             </p>
-                            <button onClick={() => deleteExpenseRecord(r.id)}
-                              className="text-gray-300 hover:text-red-400 transition-colors">
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
+                            {confirmDeleteExpId === r.id ? (
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => { deleteExpenseRecord(r.id); setConfirmDeleteExpId(null) }}
+                                  className="text-[10px] text-white font-semibold px-2 py-0.5 bg-red-500 rounded-lg">
+                                  Futa
+                                </button>
+                                <button onClick={() => setConfirmDeleteExpId(null)}
+                                  className="text-[10px] text-gray-400 hover:text-gray-600 px-1">
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button onClick={() => setConfirmDeleteExpId(r.id)}
+                                className="text-gray-300 hover:text-red-400 transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}

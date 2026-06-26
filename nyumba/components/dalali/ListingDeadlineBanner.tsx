@@ -25,22 +25,25 @@ export function ListingDeadlineBanner() {
 
   const { daysRemaining, daysSince, deadlineDays } = status
   const pct        = Math.min(100, Math.round((daysSince / deadlineDays) * 100))
-  const isCritical = daysRemaining <= 7
-  const isUrgent   = daysRemaining <= 14
+  const isCritical  = daysRemaining <= 7
+  const isUrgent    = daysRemaining <= 14
+  const isWarning   = daysRemaining <= 30
 
-  const colorBar  = isCritical ? 'bg-red-500'    : isUrgent ? 'bg-amber-500'    : 'bg-blue-500'
-  const colorBg   = isCritical ? 'bg-red-50'     : isUrgent ? 'bg-amber-50'     : 'bg-blue-50'
-  const colorBdr  = isCritical ? 'border-red-300' : isUrgent ? 'border-amber-300' : 'border-blue-200'
-  const colorHead = isCritical ? 'text-red-800'  : isUrgent ? 'text-amber-800'  : 'text-blue-800'
-  const colorSub  = isCritical ? 'text-red-600'  : isUrgent ? 'text-amber-600'  : 'text-blue-600'
-  const colorBtn  = isCritical ? 'bg-red-600 hover:bg-red-700' : isUrgent ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'
-  const icon      = isCritical ? '🚨' : isUrgent ? '⚠️' : 'ℹ️'
+  const colorBar  = isCritical ? 'bg-red-500'    : isUrgent ? 'bg-amber-500'    : isWarning ? 'bg-orange-400' : 'bg-blue-500'
+  const colorBg   = isCritical ? 'bg-red-50'     : isUrgent ? 'bg-amber-50'     : isWarning ? 'bg-orange-50'  : 'bg-blue-50'
+  const colorBdr  = isCritical ? 'border-red-300' : isUrgent ? 'border-amber-300' : isWarning ? 'border-orange-200' : 'border-blue-200'
+  const colorHead = isCritical ? 'text-red-800'  : isUrgent ? 'text-amber-800'  : isWarning ? 'text-orange-800' : 'text-blue-800'
+  const colorSub  = isCritical ? 'text-red-600'  : isUrgent ? 'text-amber-600'  : isWarning ? 'text-orange-600' : 'text-blue-600'
+  const colorBtn  = isCritical ? 'bg-red-600 hover:bg-red-700' : isUrgent ? 'bg-amber-500 hover:bg-amber-600' : isWarning ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'
+  const icon      = isCritical ? '🚨' : isUrgent ? '⚠️' : isWarning ? '⏳' : 'ℹ️'
 
   const heading = isCritical
     ? `Akaunti yako itafutwa siku ${daysRemaining}!`
     : isUrgent
     ? `Siku ${daysRemaining} zimesalia — weka listing sasa`
-    : `Siku ${daysRemaining} zimesalia kuweka listing yako ya kwanza`
+    : isWarning
+    ? `Siku ${daysRemaining} zimesalia — anza kuweka nyumba zako`
+    : `Karibu! Una siku ${daysRemaining} za kuanza. Ongeza listing yako ya kwanza`
 
   return (
     <div className={`rounded-xl p-4 mb-4 border-2 ${colorBg} ${colorBdr}`}>

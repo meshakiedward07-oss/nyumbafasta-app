@@ -243,9 +243,9 @@ export default function StaffManagementClient() {
               </div>
               <button
                 onClick={() => setConfirmDelete(s)}
-                className="w-full mt-2 bg-red-50 text-red-600 text-xs py-2 rounded-xl font-medium border border-red-100"
+                className="mt-2 text-xs text-red-400 hover:text-red-600 border border-dashed border-red-200 hover:border-red-400 rounded-xl px-3 py-1.5 transition-colors"
               >
-                🗑 Futa Akaunti
+                🗑 Futa
               </button>
             </div>
           ))}

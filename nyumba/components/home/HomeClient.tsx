@@ -1,6 +1,6 @@
 'use client'
 import { useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import ListingsSection from '@/components/listings/ListingsSection'
@@ -9,6 +9,7 @@ import type { ListingWithDalali } from '@/lib/types/database'
 // Isolated so useSearchParams doesn't block SSR of the header + listings above it
 function WelcomeModal() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [dismissed, setDismissed] = useState(false)
   const show = searchParams.get('welcome') === 'true' && !dismissed
 
@@ -23,7 +24,7 @@ function WelcomeModal() {
           Akaunti yako imethibitishwa vizuri. Uko tayari kutafuta nyumba na vyumba Tanzania!
         </p>
         <button
-          onClick={() => setDismissed(true)}
+          onClick={() => { setDismissed(true); router.replace('/') }}
           className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
         >
           Anza Kutumia →

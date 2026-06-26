@@ -35,7 +35,7 @@ export default function AssignClient() {
       supabase.from('users')
         .select('id, full_name, staff_title, phone')
         .eq('role', 'staff')
-        .eq('is_active', true),
+        .eq('staff_active', true),
     ])
     setUnassignedLeads((leadsRes.data as Lead[]) || [])
     setStaff((staffRes.data as StaffMember[]) || [])

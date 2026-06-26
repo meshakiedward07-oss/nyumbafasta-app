@@ -61,7 +61,7 @@ export default function DalaliProfileClient({
         body: JSON.stringify({ avatar_url: url }),
       })
       setSuccess('Picha imehifadhiwa!')
-      setTimeout(() => setSuccess(''), 3000)
+      setTimeout(() => setSuccess(''), 5000)
       router.refresh()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload ilishindwa')
@@ -91,7 +91,7 @@ export default function DalaliProfileClient({
       })
       if (!res.ok) throw new Error((await res.json()).error)
       setSuccess('Wasifu umehifadhiwa!')
-      setTimeout(() => setSuccess(''), 3000)
+      setTimeout(() => setSuccess(''), 5000)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Imeshindwa kuhifadhi')
     } finally {
@@ -203,6 +203,11 @@ export default function DalaliProfileClient({
                            focus:outline-none focus:ring-2 focus:ring-primary-300"
               />
             </div>
+            {whatsapp.replace(/\D/g, '').length >= 9 && (
+              <p className="text-xs text-primary-600 mt-1 font-medium">
+                Nambari itahifadhiwa kama: +255{whatsapp.replace(/\D/g, '').replace(/^0/, '')}
+              </p>
+            )}
             <p className="text-xs text-gray-400 mt-1">Wateja watalipa Tsh 2,000 kupata nambari hii — itatumika kwa 💬 WhatsApp na 📞 Simu</p>
           </div>
 
