@@ -71,7 +71,7 @@ export default function TemplatesClient() {
             <p className="text-gray-500 text-sm mt-0.5">{templates.length} templates</p>
           </div>
           <button onClick={() => setShowAdd(true)}
-            className="px-4 py-2 bg-[#1D9E75] text-white rounded-xl text-sm font-bold hover:bg-[#178a65]">
+            className="px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-bold hover:bg-primary-600">
             ➕ Template Mpya
           </button>
         </div>
@@ -129,14 +129,14 @@ export default function TemplatesClient() {
           MOBILE VIEW
       ════════════════════════════════ */}
       <div className="lg:hidden">
-      <header className="bg-[#1D9E75] px-4 py-4 sticky top-0 z-10">
+      <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-white font-bold text-lg">💬 WhatsApp Templates</h1>
             <p className="text-green-100 text-xs">{templates.length} templates</p>
           </div>
           <button onClick={() => setShowAdd(true)}
-            className="bg-white text-[#1D9E75] text-xs px-4 py-2 rounded-xl font-bold">
+            className="bg-white text-primary-500 text-xs px-4 py-2 rounded-xl font-bold">
             ➕ Ongeza
           </button>
         </div>
@@ -198,7 +198,7 @@ export default function TemplatesClient() {
           <div className="bg-white w-full rounded-t-3xl lg:rounded-2xl p-5 max-h-[85vh] overflow-y-auto lg:max-w-md lg:w-full">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg">➕ Template Mpya</h3>
-              <button onClick={() => setShowAdd(false)} className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setShowAdd(false)} aria-label="Funga" className="text-gray-400 text-xl">✕</button>
             </div>
             <div className="space-y-3">
               <input type="text" placeholder="Jina la template" value={form.name}
@@ -221,7 +221,7 @@ export default function TemplatesClient() {
                 rows={6}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none resize-none" />
               <button onClick={addTemplate} disabled={!form.name || !form.message}
-                className="w-full bg-[#1D9E75] text-white py-4 rounded-2xl font-bold disabled:opacity-50">
+                className="w-full bg-primary-500 text-white py-4 rounded-2xl font-bold disabled:opacity-50">
                 ➕ Hifadhi Template
               </button>
             </div>

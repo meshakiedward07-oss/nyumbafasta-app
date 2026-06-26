@@ -91,7 +91,7 @@ export default function NotificationBell({ className = '', asLink = true }: Prop
   }
 
   return (
-    <Link href="/notifications" className={`relative inline-flex items-center justify-center ${className}`}>
+    <Link href="/notifications" aria-label={`Arifa${unread > 0 ? ` (${unread} mpya)` : ''}`} className={`relative inline-flex items-center justify-center ${className}`}>
       {inner}
     </Link>
   )

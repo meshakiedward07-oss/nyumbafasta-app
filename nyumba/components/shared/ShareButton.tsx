@@ -160,6 +160,7 @@ export default function ShareButton({ listing, variant = 'detail', className = '
     return (
       <button
         onClick={doShare}
+        aria-label="Shiriki listing hii"
         title="Shiriki listing hii"
         className={`flex items-center justify-center w-8 h-8 rounded-full
                     bg-white/90 text-green-600 shadow-sm

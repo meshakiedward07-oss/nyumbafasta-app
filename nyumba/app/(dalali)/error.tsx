@@ -26,7 +26,7 @@ export default function DalaliError({
         <div className="flex gap-3 justify-center mt-4">
           <button
             onClick={reset}
-            className="px-6 py-3 bg-[#1D9E75] text-white rounded-xl font-semibold text-sm"
+            className="px-6 py-3 bg-primary-500 text-white rounded-xl font-semibold text-sm"
           >
             Jaribu tena
           </button>

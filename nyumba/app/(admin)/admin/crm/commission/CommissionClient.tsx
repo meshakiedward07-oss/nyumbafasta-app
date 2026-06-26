@@ -99,11 +99,11 @@ export default function CommissionClient() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-[#1D9E75] px-4 py-4 sticky top-0 z-10">
+      <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-white font-bold text-lg">💼 Commission Tracking</h1>
           <button onClick={() => setShowAdd(true)}
-            className="bg-white text-[#1D9E75] text-xs px-4 py-2 rounded-xl font-bold">
+            className="bg-white text-primary-500 text-xs px-4 py-2 rounded-xl font-bold">
             + Ongeza
           </button>
         </div>
@@ -125,7 +125,7 @@ export default function CommissionClient() {
           <div className="bg-white w-full rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-gray-800">Ongeza Commission</h2>
-              <button onClick={() => setShowAdd(false)} className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setShowAdd(false)} aria-label="Funga" className="text-gray-400 text-xl">✕</button>
             </div>
             <div className="space-y-4">
               <div>
@@ -156,10 +156,10 @@ export default function CommissionClient() {
                 </label>
                 <input type="range" min={1} max={15} value={form.commission_rate}
                   onChange={e => setForm(f => ({ ...f, commission_rate: Number(e.target.value) }))}
-                  className="w-full accent-[#1D9E75]" />
+                  className="w-full accent-primary-500" />
                 <div className="flex justify-between text-xs text-gray-400 mt-1">
                   <span>1%</span>
-                  <span className="font-bold text-[#1D9E75]">
+                  <span className="font-bold text-primary-500">
                     = Tsh {Math.floor(form.deal_value * (form.commission_rate / 100)).toLocaleString()}
                   </span>
                   <span>15%</span>
@@ -172,7 +172,7 @@ export default function CommissionClient() {
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none" />
               </div>
               <button onClick={addCommission} disabled={saving || !form.lead_id || !form.dalali_id}
-                className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-bold disabled:opacity-50">
+                className="w-full bg-primary-500 text-white py-3 rounded-xl font-bold disabled:opacity-50">
                 {saving ? 'Inahifadhi...' : 'Hifadhi Commission'}
               </button>
             </div>
@@ -187,7 +187,7 @@ export default function CommissionClient() {
             <button key={s} onClick={() => setFilterStatus(s)}
               className={`text-xs px-4 py-2 rounded-xl font-medium capitalize transition-all ${
                 filterStatus === s
-                  ? 'bg-[#1D9E75] text-white'
+                  ? 'bg-primary-500 text-white'
                   : 'bg-white text-gray-600 border border-gray-200'
               }`}>
               {s === 'all' ? 'Zote' : s}
@@ -243,7 +243,7 @@ export default function CommissionClient() {
                 )}
                 {(c.status === 'pending' || c.status === 'approved') && (
                   <button onClick={() => updateStatus(c.id, 'paid')}
-                    className="flex-1 bg-[#1D9E75] text-white text-xs py-2 rounded-xl font-medium">
+                    className="flex-1 bg-primary-500 text-white text-xs py-2 rounded-xl font-medium">
                     💳 Lipa
                   </button>
                 )}

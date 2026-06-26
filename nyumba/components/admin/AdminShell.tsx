@@ -43,51 +43,51 @@ const NAV_SECTIONS = [
   {
     title: 'Muhtasari',
     items: [
-      { href: '/admin', label: 'Dashboard', emoji: '📊', exact: true },
+      { href: '/admin', label: 'Dashibodi', emoji: '📊', exact: true },
     ],
   },
   {
     title: 'WhatsApp',
     items: [
       { href: '/admin/whatsapp',           label: 'Mazungumzo',  emoji: '📱', exact: false, badge: true },
-      { href: '/admin/whatsapp/broadcast', label: 'Broadcast',   emoji: '📢', exact: false },
+      { href: '/admin/whatsapp/broadcast', label: 'Tuma Ujumbe', emoji: '📢', exact: false },
     ],
   },
   {
-    title: 'Social Media',
+    title: 'Mitandao ya Jamii',
     items: [
-      { href: '/admin/social',            label: 'Jumla',      emoji: '📊', exact: true  },
+      { href: '/admin/social',            label: 'Muhtasari',  emoji: '📊', exact: true  },
       { href: '/admin/social?tab=postnow',label: 'Chapisha',   emoji: '✍️', exact: false },
     ],
   },
   {
-    title: 'Lead Hunting',
+    title: 'Utafutaji wa Wateja',
     items: [
-      { href: '/admin/leads',               label: 'Leads Zote',  emoji: '🤖', exact: false },
-      { href: '/admin/facebook-groups',     label: 'FB Groups',   emoji: '👥', exact: false },
-      { href: '/admin/instagram-profiles',  label: 'IG Profiles', emoji: '📸', exact: false },
+      { href: '/admin/leads',               label: 'Leads Zote',    emoji: '🤖', exact: false },
+      { href: '/admin/facebook-groups',     label: 'Vikundi FB',    emoji: '👥', exact: false },
+      { href: '/admin/instagram-profiles',  label: 'Wasifu IG',     emoji: '📸', exact: false },
     ],
   },
   {
     title: 'CRM',
     items: [
-      { href: '/admin/crm',               label: 'Pipeline',    emoji: '🎯', exact: true  },
-      { href: '/admin/crm/assign',        label: 'Assignment',  emoji: '👨‍💼', exact: false },
-      { href: '/admin/crm/analytics',     label: 'Analytics',   emoji: '📊', exact: false },
-      { href: '/admin/crm/reports',       label: 'Reports',     emoji: '📈', exact: false },
-      { href: '/admin/crm/commission',    label: 'Commission',  emoji: '💰', exact: false },
-      { href: '/admin/crm/templates',     label: 'WA Templates',emoji: '💬', exact: false },
+      { href: '/admin/crm',               label: 'Mchakato',         emoji: '🎯', exact: true  },
+      { href: '/admin/crm/assign',        label: 'Mgawanyo',         emoji: '👨‍💼', exact: false },
+      { href: '/admin/crm/analytics',     label: 'Takwimu',          emoji: '📊', exact: false },
+      { href: '/admin/crm/reports',       label: 'Ripoti',           emoji: '📈', exact: false },
+      { href: '/admin/crm/commission',    label: 'Kamisheni',        emoji: '💰', exact: false },
+      { href: '/admin/crm/templates',     label: 'Violezo WA',       emoji: '💬', exact: false },
     ],
   },
   {
     title: 'Usimamizi',
     items: [
-      { href: '/admin/staff',         label: 'Wafanyakazi',  emoji: '👨‍💼', exact: false },
-      { href: '/admin/staff-leads',   label: 'Staff Leads',  emoji: '🎯', exact: false },
-      { href: '/admin/users',         label: 'Watumiaji',    emoji: '👥', exact: false },
-      { href: '/admin/listings',      label: 'Listings',     emoji: '🏠', exact: false },
-      { href: '/admin/verifications', label: 'Verification', emoji: '✅', exact: false },
-      { href: '/admin/subscriptions', label: 'Subscriptions',emoji: '💳', exact: false },
+      { href: '/admin/staff',         label: 'Wafanyakazi',      emoji: '👨‍💼', exact: false },
+      { href: '/admin/staff-leads',   label: 'Leads za Wafanyakazi', emoji: '🎯', exact: false },
+      { href: '/admin/users',         label: 'Watumiaji',        emoji: '👥', exact: false },
+      { href: '/admin/listings',      label: 'Matangazo',        emoji: '🏠', exact: false },
+      { href: '/admin/verifications', label: 'Uthibitisho',      emoji: '✅', exact: false },
+      { href: '/admin/subscriptions', label: 'Usajili',          emoji: '💳', exact: false },
     ],
   },
   {
@@ -105,7 +105,7 @@ const NAV_SECTIONS = [
 ]
 
 const BOTTOM_NAV = [
-  { href: '/admin',            emoji: '📊', label: 'Home',      exact: true  },
+  { href: '/admin',            emoji: '📊', label: 'Nyumbani',  exact: true  },
   { href: '/admin/whatsapp',   emoji: '📱', label: 'WhatsApp',  exact: false },
   { href: '/admin/leads',      emoji: '🤖', label: 'Leads',     exact: false },
   { href: '/admin/crm',        emoji: '🎯', label: 'CRM',       exact: false },
@@ -143,12 +143,12 @@ function StaffSidebar({
       <div className="px-6 py-5 border-b border-gray-100">
         <Link href="/admin/staff-leads" onClick={onLinkClick}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#1D9E75] rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-sm">NF</span>
             </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">NyumbaFasta</p>
-              <p className="text-xs text-gray-400">Staff Portal</p>
+              <p className="text-xs text-gray-400">Jopo la Wafanyakazi</p>
             </div>
           </div>
         </Link>
@@ -173,7 +173,7 @@ function StaffSidebar({
               <Link key={key} href={perm.adminPath} onClick={onLinkClick}>
                 <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
                   isActive(perm.adminPath)
-                    ? 'bg-[#1D9E75] text-white'
+                    ? 'bg-primary-500 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}>
                   <span className="text-base w-5 text-center flex-shrink-0">{perm.emoji}</span>
@@ -190,7 +190,7 @@ function StaffSidebar({
       <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-0.5">
         <button onClick={onLogout} className="w-full text-left">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
-            <span>🚪</span><span>Logout</span>
+            <span>🚪</span><span>Toka</span>
           </div>
         </button>
       </div>
@@ -217,12 +217,12 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
       <div className="px-6 py-5 border-b border-gray-100">
         <Link href="/admin" onClick={onLinkClick}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#1D9E75] rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-sm">NF</span>
             </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">NyumbaFasta</p>
-              <p className="text-xs text-gray-400">Admin Panel</p>
+              <p className="text-xs text-gray-400">Jopo la Msimamizi</p>
             </div>
           </div>
         </Link>
@@ -244,7 +244,7 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
                 >
                   <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium ${
                     isActive(item.href, item.exact)
-                      ? 'bg-[#1D9E75] text-white'
+                      ? 'bg-primary-500 text-white'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}>
                     <span className="text-base w-5 text-center flex-shrink-0">{item.emoji}</span>
@@ -267,12 +267,12 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
       <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-0.5">
         <Link href="/" onClick={onLinkClick}>
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 text-sm">
-            <span>🌐</span><span>Rudi App</span>
+            <span>🌐</span><span>Rudi Kwenye App</span>
           </div>
         </Link>
         <button onClick={onLogout} className="w-full text-left">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
-            <span>🚪</span><span>Logout</span>
+            <span>🚪</span><span>Toka</span>
           </div>
         </button>
       </div>
@@ -326,7 +326,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 z-40 flex items-center justify-between flex-shrink-0">
           <Link href="/admin">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#1D9E75] rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xs">NF</span>
               </div>
               <span className="font-bold text-gray-900 text-sm">Admin</span>
@@ -356,7 +356,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             {BOTTOM_NAV.map(item => (
               <Link key={item.href + item.label} href={item.href}>
                 <div className={`flex flex-col items-center px-2 py-1 rounded-xl transition-all ${
-                  isActive(item.href, item.exact) ? 'text-[#1D9E75]' : 'text-gray-400'
+                  isActive(item.href, item.exact) ? 'text-primary-500' : 'text-gray-400'
                 }`}>
                   <div className="relative">
                     <span className="text-xl">{item.emoji}</span>

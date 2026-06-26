@@ -45,7 +45,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 this.setState({ hasError: false, error: '' })
                 window.location.reload()
               }}
-              className="bg-[#1D9E75] text-white px-6 py-3 rounded-xl font-semibold text-sm"
+              className="bg-primary-500 text-white px-6 py-3 rounded-xl font-semibold text-sm"
             >
               🔄 Jaribu Tena
             </button>

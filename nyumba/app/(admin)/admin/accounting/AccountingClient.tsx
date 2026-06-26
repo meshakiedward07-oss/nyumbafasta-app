@@ -262,10 +262,10 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             <span className="text-xs text-gray-500">Njia ya Malipo</span>
             <select value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))}
               className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400">
-              <option value="card">Card</option>
-              <option value="bank_transfer">Bank Transfer</option>
+              <option value="card">Kadi</option>
+              <option value="bank_transfer">Benki</option>
               <option value="mpesa">M-Pesa</option>
-              <option value="cash">Cash</option>
+              <option value="cash">Taslimu</option>
             </select>
           </label>
         </div>

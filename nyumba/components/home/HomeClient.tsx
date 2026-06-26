@@ -25,7 +25,7 @@ function WelcomeModal() {
         </p>
         <button
           onClick={() => { setDismissed(true); router.replace('/') }}
-          className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
+          className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
         >
           Anza Kutumia →
         </button>
@@ -44,7 +44,7 @@ export default function HomeClient({ initialListings, initialTotal }: Props) {
     <div className="min-h-screen bg-gray-50">
 
       {/* Sticky header */}
-      <header className="bg-[#1D9E75] sticky top-0 z-20 shadow-sm">
+      <header className="bg-primary-500 sticky top-0 z-20 shadow-sm">
         <div className="flex items-center justify-between px-3 py-2">
           {/* Next.js Image with priority — LCP element, preloaded by browser */}
           <div className="relative h-12 w-[55%] sm:w-[45%]">

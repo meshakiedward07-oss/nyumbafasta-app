@@ -62,7 +62,7 @@ export default function ResendEmailButton({ email }: { email: string }) {
         onClick={handleResend}
         disabled={loading}
         className="w-full py-3 rounded-xl border-2 border-gray-200 text-gray-600 text-sm font-medium
-                   hover:border-[#1D9E75] hover:text-[#1D9E75] transition-colors disabled:opacity-50"
+                   hover:border-primary-500 hover:text-primary-500 transition-colors disabled:opacity-50"
       >
         {loading ? 'Inatuma...' : '📧 Tuma Email Tena'}
       </button>

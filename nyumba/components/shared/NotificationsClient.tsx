@@ -166,7 +166,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
                           <div className="mt-2">
                             <button
                               onClick={() => router.push(`/dashboard/listings?renew=${n.ref_id}`)}
-                              className="text-xs bg-[#1D9E75] text-white px-3 py-1.5 rounded-lg font-medium"
+                              className="text-xs bg-primary-500 text-white px-3 py-1.5 rounded-lg font-medium"
                             >
                               🔄 Huisha Sasa →
                             </button>

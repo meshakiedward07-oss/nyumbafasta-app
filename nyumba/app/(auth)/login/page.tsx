@@ -134,7 +134,7 @@ function LoginForm() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
 
       {/* Header */}
-      <div className="bg-[#1D9E75] px-4 pt-10 pb-8 flex justify-center items-center">
+      <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/transparent_logo_nyumbafasta.png"

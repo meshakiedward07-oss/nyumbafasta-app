@@ -98,7 +98,7 @@ export default function FacebookGroupsPage() {
               value={newUrl}
               onChange={e => setNewUrl(e.target.value)}
               className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm
-                focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <input
               type="text"
@@ -106,7 +106,7 @@ export default function FacebookGroupsPage() {
               value={newName}
               onChange={e => setNewName(e.target.value)}
               className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm
-                focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <div className="flex gap-2">
               <select
@@ -119,8 +119,8 @@ export default function FacebookGroupsPage() {
               <button
                 onClick={addGroup}
                 disabled={loading || !newUrl.trim()}
-                className="px-4 py-2.5 bg-[#1D9E75] text-white rounded-xl text-sm font-bold
-                  disabled:opacity-50 whitespace-nowrap hover:bg-[#178a65]"
+                className="px-4 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-bold
+                  disabled:opacity-50 whitespace-nowrap hover:bg-primary-600"
               >
                 ➕ Ongeza
               </button>
@@ -131,6 +131,7 @@ export default function FacebookGroupsPage() {
 
         {/* Groups table */}
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -160,7 +161,7 @@ export default function FacebookGroupsPage() {
                     <span className="text-sm font-medium">{group.posts_found || 0}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm font-medium text-[#1D9E75]">{group.leads_found || 0}</span>
+                    <span className="text-sm font-medium text-primary-500">{group.leads_found || 0}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs text-gray-400">
@@ -200,6 +201,7 @@ export default function FacebookGroupsPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -208,7 +210,7 @@ export default function FacebookGroupsPage() {
       ════════════════════════════════ */}
       <div className="lg:hidden">
         {/* Header */}
-        <header className="bg-[#1D9E75] px-4 py-4 sticky top-0 z-10 shadow">
+        <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10 shadow">
           <h1 className="text-white font-bold text-lg">👥 Facebook Groups</h1>
           <p className="text-green-100 text-xs">
             Groups: {groups.length} | Active: {activeCount}
@@ -222,21 +224,21 @@ export default function FacebookGroupsPage() {
             <input type="url" placeholder="https://facebook.com/groups/..."
               value={newUrl} onChange={e => setNewUrl(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-2
-                focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <input type="text" placeholder="Jina la group (optional)"
               value={newName} onChange={e => setNewName(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-2
-                focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             <select value={newRegion} onChange={e => setNewRegion(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3
-                focus:outline-none focus:ring-2 focus:ring-[#1D9E75]">
+                focus:outline-none focus:ring-2 focus:ring-primary-500">
               {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
             {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
             <button onClick={addGroup} disabled={loading || !newUrl.trim()}
-              className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-semibold
+              className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold
                 disabled:opacity-50 active:scale-95 transition-transform">
               {loading ? 'Inaongeza...' : '➕ Ongeza Group'}
             </button>

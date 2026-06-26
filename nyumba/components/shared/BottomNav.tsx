@@ -8,7 +8,7 @@ type Role = 'client' | 'dalali' | 'admin' | string
 // 3rd tab varies by role
 function getItems(role: Role) {
   const mid =
-    role === 'admin'  ? { href: '/admin',     icon: '🛡️', label: 'Admin'     } :
+    role === 'admin'  ? { href: '/admin',     icon: '🛡️', label: 'Msimamizi' } :
     role === 'dalali' ? { href: '/dashboard', icon: '📊', label: 'Dashibodi' } :
                         { href: '/notifications', icon: null, label: 'Arifa' }
   return [
@@ -41,7 +41,7 @@ export default function BottomNav({ role = 'client' }: { role?: Role }) {
               {icon === null ? (
                 <NotificationBell asLink={false} className={`transition-transform duration-150 ${active ? 'scale-110' : ''}`} />
               ) : (
-                <span className={`text-xl transition-transform duration-150 ${active ? 'scale-110' : ''}`}>
+                <span aria-hidden="true" className={`text-xl transition-transform duration-150 ${active ? 'scale-110' : ''}`}>
                   {icon}
                 </span>
               )}

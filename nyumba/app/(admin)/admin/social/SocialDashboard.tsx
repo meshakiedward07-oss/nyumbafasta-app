@@ -337,7 +337,7 @@ export default function SocialDashboard() {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
               activeTab === tab.id
-                ? 'bg-white text-[#1D9E75] shadow-sm'
+                ? 'bg-white text-primary-500 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -380,7 +380,7 @@ export default function SocialDashboard() {
                     key={p}
                     onClick={() => setUnifiedPeriod(p)}
                     className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                      unifiedPeriod === p ? 'bg-white text-[#1D9E75] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                      unifiedPeriod === p ? 'bg-white text-primary-500 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     {p === 'today' ? 'Leo' : p === 'week' ? 'Wiki' : p === 'month' ? 'Mwezi' : 'Yote'}
@@ -470,7 +470,7 @@ export default function SocialDashboard() {
               <select
                 value={postAllListing}
                 onChange={e => setPostAllListing(e.target.value)}
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">-- Chagua listing --</option>
                 {listings.map(l => (
@@ -480,7 +480,7 @@ export default function SocialDashboard() {
               <button
                 onClick={handlePostAll}
                 disabled={postAllLoading || !postAllListing}
-                className="px-5 py-2.5 bg-[#1D9E75] text-white text-sm font-semibold rounded-xl hover:bg-[#178a65] disabled:opacity-50 transition-all whitespace-nowrap"
+                className="px-5 py-2.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 disabled:opacity-50 transition-all whitespace-nowrap"
               >
                 {postAllLoading ? '⏳ Inachapisha...' : '🚀 Chapisha Yote'}
               </button>
@@ -547,7 +547,7 @@ export default function SocialDashboard() {
           <div className="mt-6 flex gap-3">
             <button
               onClick={() => setActiveTab('upload')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#1D9E75] text-white text-sm font-medium rounded-xl hover:bg-[#178a65] transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600 transition-all"
             >
               📹 Pakia Video Mpya
             </button>
@@ -580,7 +580,7 @@ export default function SocialDashboard() {
             <button
               onClick={handleRefreshMetrics}
               disabled={loading}
-              className="px-3 py-1.5 bg-[#1D9E75] text-white text-sm rounded-lg hover:bg-[#178a65] disabled:opacity-50"
+              className="px-3 py-1.5 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50"
             >
               {loading ? '...' : '🔄 Sasisha Metrics'}
             </button>
@@ -676,7 +676,7 @@ export default function SocialDashboard() {
                     )}
                     <p className="text-sm text-gray-800 mt-1">{comment.comment_text}</p>
                     {comment.reply_text && (
-                      <div className="mt-2 pl-3 border-l-2 border-[#1D9E75]">
+                      <div className="mt-2 pl-3 border-l-2 border-primary-500">
                         <p className="text-xs text-gray-500 font-medium">Jibu la Amina:</p>
                         <p className="text-xs text-gray-600">{comment.reply_text}</p>
                       </div>
@@ -717,7 +717,7 @@ export default function SocialDashboard() {
                     )}
                     <p className="text-sm text-gray-800 mt-1">{dm.message_text}</p>
                     {dm.reply_text && (
-                      <div className="mt-2 pl-3 border-l-2 border-[#1D9E75]">
+                      <div className="mt-2 pl-3 border-l-2 border-primary-500">
                         <p className="text-xs text-gray-500 font-medium">Jibu la Amina:</p>
                         <p className="text-xs text-gray-600">{dm.reply_text}</p>
                       </div>
@@ -751,7 +751,7 @@ export default function SocialDashboard() {
                 <select
                   value={selectedListing}
                   onChange={(e) => { setSelectedListing(e.target.value); setGeneratedCaption('') }}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">-- Chagua listing --</option>
                   {listings.map(l => (
@@ -771,7 +771,7 @@ export default function SocialDashboard() {
                   onClick={() => setPostMode('single')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
                     postMode === 'single'
-                      ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                      ? 'bg-primary-500 text-white border-primary-500'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -781,7 +781,7 @@ export default function SocialDashboard() {
                   onClick={() => setPostMode('carousel')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
                     postMode === 'carousel'
-                      ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                      ? 'bg-primary-500 text-white border-primary-500'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -804,7 +804,7 @@ export default function SocialDashboard() {
                     onClick={() => setSelectedPlatform(p)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
                       selectedPlatform === p
-                        ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                        ? 'bg-primary-500 text-white border-primary-500'
                         : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                     }`}
                   >
@@ -834,7 +834,7 @@ export default function SocialDashboard() {
                     onChange={(e) => setGeneratedCaption(e.target.value)}
                     rows={6}
                     placeholder="Caption itaonekana hapa baada ya kugeneratea, au andika mwenyewe..."
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75] resize-none"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                   />
                   {generatedHashtags && (
                     <p className="text-xs text-gray-500 mt-1">Hashtags: {generatedHashtags}</p>
@@ -847,7 +847,7 @@ export default function SocialDashboard() {
                     type="datetime-local"
                     value={scheduledAt}
                     onChange={(e) => setScheduledAt(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                   <p className="text-xs text-gray-400 mt-1">Acha wazi kwa kuchapisha sasa hivi</p>
                 </div>
@@ -867,7 +867,7 @@ export default function SocialDashboard() {
               <button
                 onClick={handlePost}
                 disabled={postLoading || !selectedListing}
-                className="flex-1 py-3 bg-[#1D9E75] text-white font-semibold rounded-xl hover:bg-[#178a65] disabled:opacity-50 transition-all"
+                className="btn-primary flex-1 py-3"
               >
                 {postLoading
                   ? '⏳ Inachapisha...'
@@ -923,7 +923,7 @@ export default function SocialDashboard() {
 
       {loading && activeTab !== 'overview' && (
         <div className="flex justify-center py-12">
-          <div className="w-6 h-6 border-2 border-[#1D9E75] border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
     </div>

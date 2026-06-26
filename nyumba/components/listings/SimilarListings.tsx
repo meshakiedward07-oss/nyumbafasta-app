@@ -166,7 +166,7 @@ export default function SimilarListings({
         <p className="font-semibold text-gray-800">📍 Unaweza kupenda pia</p>
         <Link
           href={`/?region=${encodeURIComponent(region)}&type=${type}`}
-          className="text-xs text-[#1D9E75] underline"
+          className="text-xs text-primary-500 underline"
         >
           Ona zaidi →
         </Link>
@@ -209,7 +209,7 @@ export default function SimilarListings({
                 <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-1 mb-1">
                   {listing.title}
                 </p>
-                <p className="text-[#1D9E75] font-bold text-xs mb-1">
+                <p className="text-primary-500 font-bold text-xs mb-1">
                   Tsh {formatPrice(listing.price_monthly)}/mwezi
                 </p>
                 <p className="text-gray-400 text-xs line-clamp-1">📍 {listing.district}</p>
@@ -217,7 +217,7 @@ export default function SimilarListings({
                   <p className="text-gray-400 text-xs mt-0.5">
                     ⭐ {listing.dalali.dalali_profiles.rating_avg}
                     {listing.dalali.dalali_profiles.is_premium_verified && (
-                      <span className="text-[#1D9E75] ml-1">✓</span>
+                      <span className="text-primary-500 ml-1">✓</span>
                     )}
                   </p>
                 )}

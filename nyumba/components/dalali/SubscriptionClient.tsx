@@ -782,7 +782,7 @@ export default function SubscriptionClient({
                 <span className="text-2xl">🏠</span>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-gray-700">Free Plan</p>
+                    <p className="text-sm font-bold text-gray-700">Mpango wa Bure</p>
                     <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">Daima Bure</span>
                   </div>
                   <p className="text-xs text-gray-500">Listings 2 · Picha 2 · Bila video</p>
@@ -836,7 +836,7 @@ export default function SubscriptionClient({
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🚀</span>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-900">Upgrade kwenda Basic</p>
+                    <p className="text-sm font-semibold text-gray-900">Panda Daraja — Basic</p>
                     <p className="text-xs text-gray-500">Tsh 10,000/mwezi — listings 5</p>
                   </div>
                 </div>
@@ -850,7 +850,7 @@ export default function SubscriptionClient({
                 <div className="flex items-center gap-3">
                   <span className="text-xl">⬆️</span>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-900">Upgrade kwenda Enterprise</p>
+                    <p className="text-sm font-semibold text-gray-900">Panda Daraja — Enterprise</p>
                     <p className="text-xs text-gray-500">Tsh {fmt(applyDiscount(50_000, discount))}/mwezi — listings 50{discount > 0 ? ` (-${discount}%)` : ''}</p>
                   </div>
                 </div>
@@ -864,7 +864,7 @@ export default function SubscriptionClient({
                 <div className="flex items-center gap-3">
                   <span className="text-xl">⬆️</span>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-900">Upgrade kwenda Premium</p>
+                    <p className="text-sm font-semibold text-gray-900">Panda Daraja — Premium</p>
                     <p className="text-xs text-gray-500">Tsh {fmt(applyDiscount(25_000, discount))}/mwezi{discount > 0 ? ` (-${discount}%)` : ''}</p>
                   </div>
                 </div>

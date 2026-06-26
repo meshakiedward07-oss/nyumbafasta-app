@@ -37,9 +37,8 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
   return (
     <Link href={`/listings/${listing.id}`} className="block animate-fadeIn">
       <div className={`
-        bg-white rounded-2xl overflow-hidden shadow-sm border
-        transition-all duration-200 active:scale-[0.98] hover:shadow-md hover:-translate-y-0.5
-        ${listing.is_boosted ? 'border-yellow-400 ring-2 ring-yellow-100 shadow-yellow-100' : 'border-gray-100'}
+        card transition-all duration-200 active:scale-[0.98] hover:shadow-md hover:-translate-y-0.5
+        ${listing.is_boosted ? 'border-yellow-400 ring-2 ring-yellow-100 shadow-yellow-100' : ''}
       `}>
 
         {/* Boosted badge */}
@@ -118,7 +117,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
           {/* Badges */}
           <div className="flex gap-1.5 flex-wrap mb-3">
             {hasUnlocked && (
-              <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">
+              <span className="bg-primary-50 text-primary-700 text-xs px-2 py-0.5 rounded-full border border-primary-100">
                 ✅ Namba Unayo
               </span>
             )}

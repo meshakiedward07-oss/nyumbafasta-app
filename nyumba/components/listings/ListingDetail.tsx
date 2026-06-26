@@ -237,7 +237,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
       <div className="px-4 pt-4 space-y-4">
 
         {/* Price + title */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="card p-4">
           <div className="flex justify-between items-start gap-3 mb-2">
             <h2 className="text-base font-bold text-gray-900 flex-1 leading-snug">
               {listing.title || `${typeLabel[listing.type] || listing.type} – ${listing.district}`}
@@ -280,7 +280,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         </div>
 
         {/* Location */}
-        <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <section className="card p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 Mahali</h3>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3">
             <div>
@@ -317,7 +317,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
         {/* Description */}
         {listing.description && (
-          <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <section className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">📄 Maelezo</h3>
             <p className="text-gray-600 text-sm leading-relaxed">{listing.description}</p>
           </section>
@@ -325,7 +325,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
         {/* Amenities */}
         {listing.amenities?.length > 0 && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">✅ Huduma zilizopo</h3>
             <div className="flex flex-wrap gap-2">
               {listing.amenities.map(a => (
@@ -347,12 +347,12 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
         {/* Contact history badge */}
         {localUnlocked && unlockCreatedAt && waPhone && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-3">
+          <div className="bg-primary-50 border border-primary-200 rounded-2xl p-3">
             <div className="flex items-center gap-3 mb-2.5">
               <span className="text-2xl flex-shrink-0">✅</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-green-800">Umeshazungumza na dalali huyu</p>
-                <p className="text-xs text-green-600" suppressHydrationWarning>Ulifungua contact {timeAgo(unlockCreatedAt)}</p>
+                <p className="text-sm font-semibold text-primary-800">Umeshazungumza na dalali huyu</p>
+                <p className="text-xs text-primary-600" suppressHydrationWarning>Ulifungua contact {timeAgo(unlockCreatedAt)}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -378,7 +378,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         <ShareButton listing={listing} variant="detail" />
 
         {/* Dalali card */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="card p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">👤 Kuhusu Dalali</h3>
           <div className="flex items-start gap-3">
             <Avatar
@@ -472,8 +472,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           <div className="text-center pb-1">
             <p className="text-sm font-semibold text-amber-700 mb-1">🔴 Nyumba hii imeshapangishwa</p>
             <a href={`/?region=${listing.region}`}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl
-                         bg-primary-500 text-white font-semibold text-sm active:scale-95 transition-transform">
+              className="btn-primary w-full py-3 text-sm">
               🔍 Tafuta zinazofanana — {listing.region}
             </a>
           </div>
@@ -513,9 +512,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 }
                 setShowUnlockModal(true)
               }}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl
-                         bg-primary-500 text-white font-semibold text-sm shadow-md
-                         active:scale-95 transition-transform"
+              className="btn-primary w-full py-3.5 text-sm"
             >
               🔓 Pata Nambari ya WhatsApp – Tsh 2,000
             </button>

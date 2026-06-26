@@ -142,7 +142,7 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
                 {listing.title || `${TYPE[listing.type] || listing.type} — ${listing.district}`}
               </p>
               <p className="text-gray-500 text-xs mt-0.5">📍 {listing.district}, {listing.region}</p>
-              <p className="text-[#1D9E75] font-semibold text-sm mt-1">
+              <p className="text-primary-500 font-semibold text-sm mt-1">
                 Tsh {listing.price_monthly?.toLocaleString()}/mwezi
               </p>
             </div>
@@ -182,7 +182,7 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
               <button
                 onClick={handleRenew}
                 disabled={loading}
-                className="flex-1 py-3 rounded-xl bg-[#1D9E75] text-white text-sm font-bold disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl bg-primary-500 text-white text-sm font-bold disabled:opacity-50"
               >
                 {loading ? 'Inahuisha...' : '✅ Huisha Sasa'}
               </button>
@@ -396,7 +396,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                     )}
                     {listing.status === 'taken' && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <span className="text-white text-[10px] font-bold">TAKEN</span>
+                        <span className="text-white text-[10px] font-bold">IMEPANGISHWA</span>
                       </div>
                     )}
                   </div>
@@ -485,7 +485,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                       <span>📞 {listing.lead_count ?? 0}</span>
                       {listing.is_boosted && (
                         <span className="text-yellow-600 font-semibold" suppressHydrationWarning>
-                          🚀 Boosted
+                          🚀 Imeimarishwa
                         </span>
                       )}
                     </div>
@@ -549,7 +549,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                       onClick={() => setEditListing(listing)}
                       className="flex-1 py-2.5 text-xs font-semibold text-primary-700 active:bg-primary-50 transition-colors"
                     >
-                      ⚡ Update
+                      ⚡ Sasisha
                     </button>
                   </div>
                 )}

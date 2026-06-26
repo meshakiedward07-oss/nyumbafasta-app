@@ -25,7 +25,7 @@ export default function AdminError({
         )}
         <button
           onClick={reset}
-          className="mt-4 px-6 py-3 bg-[#1D9E75] text-white rounded-xl font-semibold text-sm"
+          className="mt-4 px-6 py-3 bg-primary-500 text-white rounded-xl font-semibold text-sm"
         >
           Jaribu tena
         </button>

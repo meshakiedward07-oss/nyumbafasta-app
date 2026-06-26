@@ -81,10 +81,10 @@ function MessageBubble({ msg }: { msg: WAMessage }) {
     ? 'bg-blue-500 text-white rounded-tl-2xl rounded-tr-2xl rounded-br-2xl'
     : isAdmin
       ? 'bg-amber-500 text-white rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl'
-      : 'bg-[#E1F5EE] text-gray-800 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl'
+      : 'bg-primary-50 text-gray-800 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl'
 
   const label = isUser ? 'Mteja' : isAdmin ? 'Admin' : isAmina ? 'Amina' : ''
-  const labelColor = isUser ? 'text-blue-600' : isAdmin ? 'text-amber-600' : 'text-[#1D9E75]'
+  const labelColor = isUser ? 'text-blue-600' : isAdmin ? 'text-amber-600' : 'text-primary-500'
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-2`}>
@@ -312,7 +312,7 @@ export default function WhatsAppPanel() {
         <div className="px-4 py-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h1 className="font-bold text-gray-900 text-sm">Mazungumzo ya WhatsApp</h1>
-            <Link href="/admin/whatsapp/broadcast" className="text-xs text-[#1D9E75] font-semibold">
+            <Link href="/admin/whatsapp/broadcast" className="text-xs text-primary-500 font-semibold">
               Broadcast
             </Link>
           </div>
@@ -334,7 +334,7 @@ export default function WhatsAppPanel() {
                 onClick={() => setStatusFilter(f)}
                 className={`text-[10px] font-semibold px-2 py-1 rounded-lg transition-all ${
                   statusFilter === f
-                    ? 'bg-[#1D9E75] text-white'
+                    ? 'bg-primary-500 text-white'
                     : 'bg-gray-100 text-gray-600'
                 }`}
               >
@@ -365,7 +365,7 @@ export default function WhatsAppPanel() {
                 key={session.phone_number}
                 onClick={() => setSelected(session)}
                 className={`w-full text-left px-4 py-3 border-b border-gray-50 transition-all hover:bg-gray-50 ${
-                  selected?.phone_number === session.phone_number ? 'bg-[#E1F5EE]' : ''
+                  selected?.phone_number === session.phone_number ? 'bg-primary-50' : ''
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
@@ -416,13 +416,13 @@ export default function WhatsAppPanel() {
               <div className="flex lg:hidden gap-1">
                 <button
                   onClick={() => setActiveTab('chat')}
-                  className={`text-xs px-2 py-1 rounded-lg ${activeTab === 'chat' ? 'bg-[#1D9E75] text-white' : 'bg-gray-100 text-gray-600'}`}
+                  className={`text-xs px-2 py-1 rounded-lg ${activeTab === 'chat' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'}`}
                 >
                   Chat
                 </button>
                 <button
                   onClick={() => setActiveTab('controls')}
-                  className={`text-xs px-2 py-1 rounded-lg ${activeTab === 'controls' ? 'bg-[#1D9E75] text-white' : 'bg-gray-100 text-gray-600'}`}
+                  className={`text-xs px-2 py-1 rounded-lg ${activeTab === 'controls' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'}`}
                 >
                   Dhibiti
                 </button>
@@ -456,7 +456,7 @@ export default function WhatsAppPanel() {
                   <button
                     onClick={handleSend}
                     disabled={sending || !msgText.trim()}
-                    className="bg-[#1D9E75] text-white px-4 rounded-xl text-sm font-semibold disabled:opacity-50 self-end py-2"
+                    className="bg-primary-500 text-white px-4 rounded-xl text-sm font-semibold disabled:opacity-50 self-end py-2"
                   >
                     Tuma
                   </button>
@@ -514,7 +514,7 @@ export default function WhatsAppPanel() {
                       <button
                         onClick={handleHandback}
                         disabled={sending}
-                        className="w-full bg-[#1D9E75] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+                        className="w-full bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
                       >
                         Rudisha kwa Amina
                       </button>
@@ -565,13 +565,13 @@ export default function WhatsAppPanel() {
                 <div className="flex gap-1">
                   <button
                     onClick={() => setInstrScope('phone_specific')}
-                    className={`flex-1 text-[10px] py-1.5 rounded-lg font-semibold ${instrScope === 'phone_specific' ? 'bg-[#1D9E75] text-white' : 'bg-gray-100 text-gray-600'}`}
+                    className={`flex-1 text-[10px] py-1.5 rounded-lg font-semibold ${instrScope === 'phone_specific' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'}`}
                   >
                     Kwa namba hii
                   </button>
                   <button
                     onClick={() => setInstrScope('global')}
-                    className={`flex-1 text-[10px] py-1.5 rounded-lg font-semibold ${instrScope === 'global' ? 'bg-[#1D9E75] text-white' : 'bg-gray-100 text-gray-600'}`}
+                    className={`flex-1 text-[10px] py-1.5 rounded-lg font-semibold ${instrScope === 'global' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'}`}
                   >
                     Kwa wote
                   </button>
@@ -586,7 +586,7 @@ export default function WhatsAppPanel() {
                 <button
                   onClick={handleAddInstruction}
                   disabled={sending || !instrText.trim()}
-                  className="w-full bg-[#1D9E75] text-white py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
+                  className="w-full bg-primary-500 text-white py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
                 >
                   Ongeza Maelekezo
                 </button>
@@ -596,9 +596,9 @@ export default function WhatsAppPanel() {
               {instructions.length > 0 ? (
                 <div className="space-y-2">
                   {instructions.map(instr => (
-                    <div key={instr.id} className="bg-[#E1F5EE] rounded-xl p-2.5 flex items-start gap-2">
+                    <div key={instr.id} className="bg-primary-50 rounded-xl p-2.5 flex items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] text-[#1D9E75] font-bold mb-0.5">
+                        <p className="text-[9px] text-primary-500 font-bold mb-0.5">
                           {instr.scope === 'global' ? 'Kwa wote' : 'Namba hii'}
                         </p>
                         <p className="text-xs text-gray-700 leading-relaxed">{instr.instruction}</p>

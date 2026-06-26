@@ -119,11 +119,11 @@ export default function ReportsClient() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-[#1D9E75] px-4 py-4 sticky top-0 z-10">
+      <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-white font-bold text-lg">📋 CRM Reports</h1>
           <button onClick={exportCSV} disabled={exporting}
-            className="bg-white text-[#1D9E75] text-xs px-4 py-2 rounded-xl font-bold disabled:opacity-50">
+            className="bg-white text-primary-500 text-xs px-4 py-2 rounded-xl font-bold disabled:opacity-50">
             {exporting ? 'Exporting...' : '⬇️ CSV'}
           </button>
         </div>
@@ -131,7 +131,7 @@ export default function ReportsClient() {
           {(['daily', 'weekly', 'monthly'] as const).map(p => (
             <button key={p} onClick={() => setPeriod(p)}
               className={`text-xs px-4 py-2 rounded-xl font-medium transition-all ${
-                period === p ? 'bg-white text-[#1D9E75]' : 'bg-white/20 text-white'
+                period === p ? 'bg-white text-primary-500' : 'bg-white/20 text-white'
               }`}>
               {p === 'daily' ? 'Leo' : p === 'weekly' ? 'Wiki' : 'Mwezi'}
             </button>
@@ -140,8 +140,8 @@ export default function ReportsClient() {
       </header>
 
       <div className="px-4 py-4 space-y-5">
-        <div className="bg-[#1D9E75]/5 border border-[#1D9E75]/20 rounded-2xl p-4">
-          <p className="text-[#1D9E75] font-semibold text-sm">📅 Ripoti ya {periodLabel}</p>
+        <div className="bg-primary-500/5 border border-primary-500/20 rounded-2xl p-4">
+          <p className="text-primary-500 font-semibold text-sm">📅 Ripoti ya {periodLabel}</p>
           <p className="text-xs text-gray-500 mt-0.5">
             {period === 'daily' ? 'Tangu saa 12 usiku wa leo' :
              period === 'weekly' ? 'Siku 7 zilizopita' : 'Mwezi uliopita'}
@@ -225,7 +225,7 @@ export default function ReportsClient() {
         {report.new_leads > 0 && (
           <div className="bg-white rounded-2xl p-5 border border-gray-100">
             <p className="font-semibold text-gray-700 mb-3">🎯 Conversion Rate</p>
-            <div className="text-5xl font-bold text-[#1D9E75] mb-1">
+            <div className="text-5xl font-bold text-primary-500 mb-1">
               {Math.round((report.closed / (report.new_leads || 1)) * 100)}%
             </div>
             <p className="text-sm text-gray-500">

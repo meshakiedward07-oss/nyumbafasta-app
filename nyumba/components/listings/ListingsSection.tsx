@@ -185,7 +185,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
     <div className="bg-gray-50 pb-20">
 
       {/* ── Search bar ── */}
-      <div className="bg-[#1D9E75] px-3 pb-3">
+      <div className="bg-primary-500 px-3 pb-3">
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
           <input

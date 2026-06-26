@@ -88,7 +88,7 @@ export default function AssignClient() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-[#1D9E75] px-4 py-4 sticky top-0 z-10">
+      <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-white font-bold text-lg">🎯 Gawa Prospects</h1>
@@ -97,7 +97,7 @@ export default function AssignClient() {
             </p>
           </div>
           <button onClick={autoAssign} disabled={loading || unassignedLeads.length === 0 || staff.length === 0}
-            className="bg-white text-[#1D9E75] text-xs px-4 py-2 rounded-xl font-bold disabled:opacity-50">
+            className="bg-white text-primary-500 text-xs px-4 py-2 rounded-xl font-bold disabled:opacity-50">
             ⚡ Gawa Zote Moja kwa Moja
           </button>
         </div>
@@ -122,7 +122,7 @@ export default function AssignClient() {
               {staff.map(member => (
                 <div key={member.id}
                   className="flex-shrink-0 bg-white rounded-xl p-3 border border-gray-100 text-center w-28">
-                  <div className="w-10 h-10 rounded-full bg-[#1D9E75] flex items-center justify-center
+                  <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center
                     text-white font-bold mx-auto mb-1 text-sm">
                     {member.full_name?.[0]}
                   </div>
@@ -177,7 +177,7 @@ export default function AssignClient() {
                   {staff.map(member => (
                     <button key={member.id} onClick={() => assignLead(lead.id, member.id)}
                       disabled={assigning === lead.id}
-                      className="flex-shrink-0 bg-[#1D9E75] text-white text-xs px-3 py-1.5
+                      className="flex-shrink-0 bg-primary-500 text-white text-xs px-3 py-1.5
                         rounded-lg font-medium disabled:opacity-50">
                       {assigning === lead.id ? '...' : member.full_name?.split(' ')[0]}
                     </button>

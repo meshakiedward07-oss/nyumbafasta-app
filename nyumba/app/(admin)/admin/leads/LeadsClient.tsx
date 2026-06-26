@@ -233,7 +233,7 @@ export default function LeadsClient() {
             </button>
             <button
               onClick={() => setShowRunModal(true)}
-              className="px-4 py-2 bg-[#1D9E75] text-white rounded-xl text-sm font-bold hover:bg-[#178a65]"
+              className="px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-bold hover:bg-primary-600"
             >
               🤖 Run Agent
             </button>
@@ -264,7 +264,7 @@ export default function LeadsClient() {
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1) }}
             className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white
-              focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+              focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
           <select value={filterRegion} onChange={e => { setFilterRegion(e.target.value); setPage(1) }}
             className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none min-w-44">
@@ -285,6 +285,7 @@ export default function LeadsClient() {
 
         {/* Desktop table */}
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -367,6 +368,7 @@ export default function LeadsClient() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {leads.length === 0 && !loading && (
             <div className="text-center py-16">
@@ -374,7 +376,7 @@ export default function LeadsClient() {
               <p className="font-semibold text-gray-700">Hakuna leads bado</p>
               <p className="text-gray-400 text-sm mt-1">Bonyeza &quot;Run Agent&quot; kupata leads mpya</p>
               <button onClick={() => setShowRunModal(true)}
-                className="mt-4 bg-[#1D9E75] text-white px-6 py-3 rounded-xl text-sm font-semibold">
+                className="mt-4 bg-primary-500 text-white px-6 py-3 rounded-xl text-sm font-semibold">
                 🤖 Run Agent Sasa
               </button>
             </div>
@@ -405,7 +407,7 @@ export default function LeadsClient() {
       <div className="lg:hidden">
 
       {/* Header */}
-      <header className="bg-[#1D9E75] sticky top-0 z-10 px-4 py-4">
+      <header className="bg-primary-500 sticky top-0 z-10 px-4 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-white font-bold text-lg">🤖 Leads za Madalali</h1>
@@ -425,7 +427,7 @@ export default function LeadsClient() {
             </button>
             <button
               onClick={() => setShowRunModal(true)}
-              className="bg-white text-[#1D9E75] text-xs px-3 py-2 rounded-lg font-bold"
+              className="bg-white text-primary-500 text-xs px-3 py-2 rounded-lg font-bold"
             >
               🤖 Run Agent
             </button>
@@ -470,7 +472,7 @@ export default function LeadsClient() {
                 <div className="flex items-center gap-2">
                   <div className="w-20 bg-gray-100 rounded-full h-1.5">
                     <div
-                      className="bg-[#1D9E75] h-1.5 rounded-full"
+                      className="bg-primary-500 h-1.5 rounded-full"
                       style={{
                         width: `${Math.min(100,
                           (item.count / (stats.by_region[0]?.count || 1)) * 100
@@ -496,7 +498,7 @@ export default function LeadsClient() {
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
           className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white
-            focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+            focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
         <div className="flex gap-2">
           <select
@@ -540,7 +542,7 @@ export default function LeadsClient() {
             <p className="text-gray-400 text-sm mt-1">Bonyeza &quot;Run Agent&quot; kupata leads mpya</p>
             <button
               onClick={() => setShowRunModal(true)}
-              className="mt-4 bg-[#1D9E75] text-white px-6 py-3 rounded-xl text-sm font-semibold"
+              className="mt-4 bg-primary-500 text-white px-6 py-3 rounded-xl text-sm font-semibold"
             >
               🤖 Run Agent Sasa
             </button>
@@ -646,12 +648,12 @@ export default function LeadsClient() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg">🤖 Endesha Agent</h3>
               <button onClick={() => { setShowRunModal(false); setRunResult(null) }}
-                className="text-gray-400 text-xl">✕</button>
+                aria-label="Funga" className="text-gray-400 text-xl">✕</button>
             </div>
 
             {running ? (
               <div className="py-10 text-center">
-                <div className="w-12 h-12 border-4 border-[#1D9E75] border-t-transparent
+                <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent
                   rounded-full animate-spin mx-auto mb-4" />
                 <p className="font-semibold text-gray-700">Inatafuta madalali...</p>
                 <p className="text-sm text-gray-400 mt-1">
@@ -669,7 +671,7 @@ export default function LeadsClient() {
                     value={runRegion}
                     onChange={e => setRunRegion(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm
-                      focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                      focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
                     {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
@@ -683,7 +685,7 @@ export default function LeadsClient() {
                         key={source.id}
                         className={`flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all
                           ${runSources.includes(source.id)
-                            ? 'border-[#1D9E75] bg-green-50'
+                            ? 'border-primary-500 bg-green-50'
                             : 'border-gray-200 bg-white'}`}
                       >
                         <input
@@ -701,7 +703,7 @@ export default function LeadsClient() {
                         <span className="text-lg">{source.emoji}</span>
                         <span className="text-xs font-medium text-gray-700">{source.label}</span>
                         {runSources.includes(source.id) && (
-                          <span className="ml-auto text-[#1D9E75] text-sm">✓</span>
+                          <span className="ml-auto text-primary-500 text-sm">✓</span>
                         )}
                       </label>
                     ))}
@@ -721,7 +723,7 @@ export default function LeadsClient() {
                 <button
                   onClick={() => { setRunError(''); handleRunAgent() }}
                   disabled={running || runSources.length === 0}
-                  className="w-full bg-[#1D9E75] text-white py-4 rounded-2xl font-bold text-base disabled:opacity-50"
+                  className="w-full bg-primary-500 text-white py-4 rounded-2xl font-bold text-base disabled:opacity-50"
                 >
                   {`🚀 Anza Kutafuta — ${runRegion}`}
                 </button>
@@ -801,7 +803,7 @@ export default function LeadsClient() {
                         fetchLeads()
                         fetchStats()
                       }}
-                      className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-semibold"
+                      className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold"
                     >
                       Ona Leads Mpya →
                     </button>
@@ -821,7 +823,7 @@ export default function LeadsClient() {
               <h3 className="font-bold text-lg">
                 {getSourceEmoji(selectedLead.source)} {selectedLead.business_name}
               </h3>
-              <button onClick={() => setSelectedLead(null)} className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setSelectedLead(null)} aria-label="Funga" className="text-gray-400 text-xl">✕</button>
             </div>
 
             <div className="space-y-3">
@@ -942,7 +944,7 @@ export default function LeadsClient() {
           <div className="bg-white w-full rounded-t-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg">➕ Ongeza Lead Manually</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setShowAddModal(false)} aria-label="Funga" className="text-gray-400 text-xl">✕</button>
             </div>
             <div className="space-y-3">
               <input
@@ -981,7 +983,7 @@ export default function LeadsClient() {
               <button
                 onClick={handleAddManualLead}
                 disabled={!newLead.business_name}
-                className="w-full bg-[#1D9E75] text-white py-4 rounded-2xl font-bold disabled:opacity-50"
+                className="w-full bg-primary-500 text-white py-4 rounded-2xl font-bold disabled:opacity-50"
               >
                 ➕ Ongeza Lead
               </button>

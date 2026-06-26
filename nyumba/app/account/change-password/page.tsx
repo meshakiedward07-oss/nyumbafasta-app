@@ -77,7 +77,7 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-[#1D9E75] px-4 pt-10 pb-8 flex justify-center">
+      <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/transparent_logo_nyumbafasta.png" alt="NyumbaFasta" className="h-16 w-auto object-contain" />
       </div>
@@ -109,7 +109,7 @@ export default function ChangePasswordPage() {
                   placeholder="Angalau herufi 8"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
                 />
                 <button
                   type="button"
@@ -131,7 +131,7 @@ export default function ChangePasswordPage() {
                   placeholder="Rudia password mpya"
                   value={confirm}
                   onChange={e => setConfirm(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
                 />
                 <button
                   type="button"
@@ -147,7 +147,7 @@ export default function ChangePasswordPage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full bg-[#1D9E75] text-white py-3.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+              className="w-full bg-primary-500 text-white py-3.5 rounded-xl text-sm font-semibold disabled:opacity-50"
             >
               {saving ? 'Inabadilisha...' : 'Badilisha Password'}
             </button>

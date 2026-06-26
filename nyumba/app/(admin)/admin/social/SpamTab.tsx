@@ -184,7 +184,7 @@ export default function SpamTab() {
         <button
           onClick={() => setInnerTab('stats')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            innerTab === 'stats' ? 'bg-[#1D9E75] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            innerTab === 'stats' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
           }`}
         >
           📊 Takwimu za Spam
@@ -192,7 +192,7 @@ export default function SpamTab() {
         <button
           onClick={() => setInnerTab('keywords')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            innerTab === 'keywords' ? 'bg-[#1D9E75] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            innerTab === 'keywords' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
           }`}
         >
           🔑 Maneno ya Spam
@@ -307,12 +307,12 @@ export default function SpamTab() {
                 onChange={(e) => setNewKeyword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
                 placeholder="neno la spam..."
-                className="flex-1 min-w-[160px] border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="flex-1 min-w-[160px] border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               <select
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 {CATEGORIES.map(c => (
                   <option key={c} value={c}>{c}</option>
@@ -321,7 +321,7 @@ export default function SpamTab() {
               <button
                 onClick={handleAddKeyword}
                 disabled={addingKw || !newKeyword.trim()}
-                className="px-4 py-2 bg-[#1D9E75] text-white text-sm font-medium rounded-lg hover:bg-[#178a65] disabled:opacity-50"
+                className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50"
               >
                 {addingKw ? '...' : '+ Ongeza'}
               </button>

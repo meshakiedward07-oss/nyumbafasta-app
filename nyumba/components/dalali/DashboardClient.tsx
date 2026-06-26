@@ -139,7 +139,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
-            { label: 'Listings', value: stats.totalListings },
+            { label: 'Matangazo', value: stats.totalListings },
             { label: 'Zinafanya kazi', value: stats.activeCount },
             { label: 'Waliotazama', value: stats.totalViews },
             { label: 'Ombi', value: stats.totalLeads },
@@ -289,7 +289,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                   <Link href="/dashboard/subscription"
                     className="text-xs font-medium px-3 py-1.5 rounded-full text-white"
                     style={{ backgroundColor: badge.color }}>
-                    {isFree ? 'Upgrade' : 'Simamia'}
+                    {isFree ? 'Panda Daraja' : 'Simamia'}
                   </Link>
                 </div>
                 {isFree && daysLeft !== null && daysLeft <= 14 && daysLeft > 0 && (
@@ -396,7 +396,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         {/* ── CRM Banner ── */}
         <Link
           href="/dashboard/crm"
-          className="flex items-center gap-3 p-4 bg-gradient-to-r from-[#1D9E75] to-green-600 rounded-2xl text-white"
+          className="flex items-center gap-3 p-4 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl text-white"
         >
           <span className="text-3xl flex-shrink-0">🎯</span>
           <div className="flex-1 min-w-0">
@@ -506,7 +506,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                       <div className="flex items-center gap-3 text-xs text-gray-400">
                         <span>👁 {listing.view_count}</span>
                         <span>📞 {listing.lead_count}</span>
-                        {listing.is_boosted && <span className="text-primary-500 font-medium">⚡ Boosted</span>}
+                        {listing.is_boosted && <span className="text-primary-500 font-medium">⚡ Imeimarishwa</span>}
                       </div>
                     </div>
                   </div>
@@ -594,7 +594,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
             </p>
             <button
               onClick={() => router.replace('/dashboard')}
-              className="w-full bg-[#1D9E75] text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
+              className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
             >
               Anza Kutumia →
             </button>

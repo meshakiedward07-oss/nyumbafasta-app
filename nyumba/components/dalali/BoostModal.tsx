@@ -179,7 +179,7 @@ export default function BoostModal({
                 <h3 className="text-base font-bold text-gray-900">Boost Listing Yako</h3>
                 <p className="text-xs text-gray-500 truncate">{listingTitle}</p>
               </div>
-              <button onClick={onClose} className="text-gray-400 text-xl leading-none">✕</button>
+              <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl leading-none">✕</button>
             </div>
 
             {isStillBoosted && (

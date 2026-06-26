@@ -85,7 +85,7 @@ export default function StaffManagementClient() {
         {roleFilter === 'staff' && (
           <button
             onClick={() => setShowAdd(true)}
-            className="bg-[#1D9E75] text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2"
+            className="bg-primary-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2"
           >
             ➕ Ongeza
           </button>
@@ -103,7 +103,7 @@ export default function StaffManagementClient() {
             onClick={() => setRoleFilter(tab.key)}
             className={`text-sm px-4 py-1.5 rounded-full font-medium transition-all ${
               roleFilter === tab.key
-                ? 'bg-[#1D9E75] text-white'
+                ? 'bg-primary-500 text-white'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -147,7 +147,7 @@ export default function StaffManagementClient() {
           </p>
           <button
             onClick={() => setShowAdd(true)}
-            className="bg-[#1D9E75] text-white px-5 py-2.5 rounded-xl text-sm font-semibold"
+            className="bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold"
           >
             ➕ Ongeza Mfanyakazi
           </button>
@@ -158,7 +158,7 @@ export default function StaffManagementClient() {
             <div key={s.id} className="bg-white rounded-2xl border border-gray-100 p-4">
               <div className="flex items-start gap-3">
                 {/* Avatar */}
-                <div className="w-11 h-11 rounded-full bg-[#E1F5EE] flex items-center justify-center font-bold text-[#1D9E75] text-lg flex-shrink-0">
+                <div className="w-11 h-11 rounded-full bg-primary-50 flex items-center justify-center font-bold text-primary-500 text-lg flex-shrink-0">
                   {s.full_name.charAt(0).toUpperCase()}
                 </div>
 
@@ -186,7 +186,7 @@ export default function StaffManagementClient() {
                   <p className="text-[10px] text-gray-400">Active Leads</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-[#1D9E75]">{s.totalConverted}</p>
+                  <p className="font-bold text-primary-500">{s.totalConverted}</p>
                   <p className="text-[10px] text-gray-400">Walisajili</p>
                 </div>
               </div>
@@ -194,8 +194,8 @@ export default function StaffManagementClient() {
               <div className="mt-2 pt-2 border-t border-gray-50">
                 {(() => {
                   const pct = Math.round((s.activeLeads / s.max_leads_capacity) * 100)
-                  const barColor = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-[#1D9E75]'
-                  const textColor = pct >= 90 ? 'text-red-600' : pct >= 70 ? 'text-amber-600' : 'text-[#1D9E75]'
+                  const barColor = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-primary-500'
+                  const textColor = pct >= 90 ? 'text-red-600' : pct >= 70 ? 'text-amber-600' : 'text-primary-500'
                   return (
                     <>
                       <div className="flex justify-between text-[10px] mb-1">
@@ -380,7 +380,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="mfano: Asha Mohammed"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </div>
 
@@ -391,7 +391,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
               value={phone}
               onChange={e => setPhone(e.target.value)}
               placeholder="255712345678"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </div>
 
@@ -403,7 +403,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="asha@nyumbafasta.co"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </div>
 
@@ -412,7 +412,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
             <select
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             >
               {TITLES.map(t => <option key={t}>{t}</option>)}
             </select>
@@ -429,7 +429,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
               step={50}
               value={capacity}
               onChange={e => setCapacity(Number(e.target.value))}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
             <div className="flex gap-1.5 mt-1.5">
               {[100, 250, 500, 1000].map(n => (
@@ -439,7 +439,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
                   onClick={() => setCapacity(n)}
                   className={`flex-1 text-xs py-1.5 rounded-lg border transition-all ${
                     capacity === n
-                      ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                      ? 'bg-primary-500 text-white border-primary-500'
                       : 'text-gray-500 border-gray-200 hover:bg-gray-50'
                   }`}
                 >
@@ -455,7 +455,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
             <select
               value={roleTemplate}
               onChange={e => setRoleTemplate(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             >
               <option value="">Bila ruhusa (weka baadaye)</option>
               <option value="sales_agent">Sales Agent — Leads tu</option>
@@ -483,7 +483,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
             <button
               type="submit"
               disabled={saving || !name || !phone || !email}
-              className="flex-1 bg-[#1D9E75] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+              className="btn-primary flex-1 py-2.5"
             >
               {saving ? 'Inahifadhi...' : 'Unda Akaunti'}
             </button>
@@ -536,7 +536,7 @@ function ActivityFeedModal({
             <h2 className="font-bold text-gray-900">📋 Shughuli za {staff.full_name}</h2>
             <p className="text-xs text-gray-400 mt-0.5">Vitendo 50 vya hivi karibuni</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 text-xl px-2">✕</button>
+          <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl px-2">✕</button>
         </div>
         <div className="overflow-y-auto flex-1 p-5">
           {loading ? (
@@ -664,7 +664,7 @@ function DalaliActivityView() {
                 </div>
                 <button
                   onClick={() => setExtending(row)}
-                  className="flex-shrink-0 bg-[#E1F5EE] text-[#1D9E75] text-xs px-3 py-2 rounded-xl font-medium whitespace-nowrap"
+                  className="flex-shrink-0 bg-primary-50 text-primary-500 text-xs px-3 py-2 rounded-xl font-medium whitespace-nowrap"
                 >
                   ➕ Panulia
                 </button>
@@ -737,7 +737,7 @@ function ExtendDeadlineModal({
                   key={d}
                   type="button"
                   onClick={() => setDays(d)}
-                  className={`flex-1 text-xs py-2 rounded-xl border ${days === d ? 'bg-[#1D9E75] text-white border-[#1D9E75]' : 'border-gray-200 text-gray-600'}`}
+                  className={`flex-1 text-xs py-2 rounded-xl border ${days === d ? 'bg-primary-500 text-white border-primary-500' : 'border-gray-200 text-gray-600'}`}
                 >
                   +{d}
                 </button>
@@ -767,7 +767,7 @@ function ExtendDeadlineModal({
             <button type="button" onClick={onClose} className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm text-gray-600">
               Ghairi
             </button>
-            <button type="submit" disabled={saving} className="flex-1 bg-[#1D9E75] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50">
+            <button type="submit" disabled={saving} className="btn-primary flex-1 py-2.5">
               {saving ? 'Inahifadhi...' : 'Panulia'}
             </button>
           </div>
@@ -833,7 +833,7 @@ function EditStaffModal({
               required
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
           </div>
 
@@ -842,7 +842,7 @@ function EditStaffModal({
             <select
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             >
               {TITLES.map(t => <option key={t}>{t}</option>)}
             </select>
@@ -859,7 +859,7 @@ function EditStaffModal({
               step={50}
               value={capacity}
               onChange={e => setCapacity(Number(e.target.value))}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             />
             <div className="flex gap-1.5 mt-1.5">
               {[100, 250, 500, 1000].map(n => (
@@ -869,7 +869,7 @@ function EditStaffModal({
                   onClick={() => setCapacity(n)}
                   className={`flex-1 text-xs py-1.5 rounded-lg border transition-all ${
                     capacity === n
-                      ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                      ? 'bg-primary-500 text-white border-primary-500'
                       : 'text-gray-500 border-gray-200 hover:bg-gray-50'
                   }`}
                 >
@@ -890,7 +890,7 @@ function EditStaffModal({
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 bg-[#1D9E75] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+              className="btn-primary flex-1 py-2.5"
             >
               {saving ? 'Inahifadhi...' : 'Hifadhi'}
             </button>

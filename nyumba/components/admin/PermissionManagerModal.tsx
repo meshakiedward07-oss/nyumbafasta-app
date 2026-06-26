@@ -94,7 +94,7 @@ export default function PermissionManagerModal({ staff, onClose, onSaved }: Prop
                   key={key}
                   onClick={() => applyTemplate(key)}
                   disabled={saving}
-                  className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-[#1D9E75] hover:text-white rounded-full font-medium transition-colors disabled:opacity-50"
+                  className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-primary-500 hover:text-white rounded-full font-medium transition-colors disabled:opacity-50"
                 >
                   {t.label}
                 </button>
@@ -119,14 +119,14 @@ export default function PermissionManagerModal({ staff, onClose, onSaved }: Prop
                     <label
                       key={perm.key}
                       className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${
-                        isGranted ? 'border-[#1D9E75] bg-[#E1F5EE]' : 'border-gray-200 hover:bg-gray-50'
+                        isGranted ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={isGranted}
                         onChange={() => toggle(perm.key as PermissionKey)}
-                        className="mt-0.5 accent-[#1D9E75]"
+                        className="mt-0.5 accent-primary-500"
                       />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-800">
@@ -158,7 +158,7 @@ export default function PermissionManagerModal({ staff, onClose, onSaved }: Prop
           <button
             onClick={saveCustom}
             disabled={saving || loading}
-            className="flex-1 bg-[#1D9E75] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+            className="btn-primary flex-1 py-2.5"
           >
             {saving ? 'Inahifadhi...' : 'Hifadhi Ruhusa'}
           </button>

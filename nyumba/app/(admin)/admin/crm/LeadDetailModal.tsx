@@ -135,8 +135,8 @@ export default function LeadDetailModal({
                   key={s.key}
                   title={s.label}
                   className={`flex-1 h-1.5 rounded-full transition-all ${
-                    isPast    ? 'bg-[#1D9E75]'
-                    : isCurrent ? 'bg-[#1D9E75] opacity-60'
+                    isPast    ? 'bg-primary-500'
+                    : isCurrent ? 'bg-primary-500 opacity-60'
                     : 'bg-gray-200'
                   }`}
                 />
@@ -200,7 +200,7 @@ export default function LeadDetailModal({
             <button
               disabled={actioning}
               onClick={() => patchStage(nextStage.key)}
-              className="w-full flex items-center justify-center gap-2 bg-[#1D9E75] text-white
+              className="w-full flex items-center justify-center gap-2 bg-primary-500 text-white
                 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
             >
               ↗ Hatua Inayofuata: {nextStage.emoji} {nextStage.label}
@@ -239,7 +239,7 @@ export default function LeadDetailModal({
               onClick={() => setTab(t.id as typeof tab)}
               className={`flex-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${
                 tab === t.id
-                  ? 'border-[#1D9E75] text-[#1D9E75]'
+                  ? 'border-primary-500 text-primary-500'
                   : 'border-transparent text-gray-400'
               }`}
             >
@@ -309,7 +309,7 @@ export default function LeadDetailModal({
 
               {lead.assigned_staff && (
                 <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#1D9E75] flex items-center justify-center
+                  <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center
                     text-white text-xs font-bold flex-shrink-0">
                     {(lead.assigned_staff as { full_name?: string }).full_name?.[0] || '?'}
                   </div>
@@ -334,7 +334,7 @@ export default function LeadDetailModal({
                   onChange={e => setNote(e.target.value)}
                   placeholder="Andika kumbuka hapa..."
                   className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2
-                    focus:outline-none focus:border-[#1D9E75]"
+                    focus:outline-none focus:border-primary-500"
                   onKeyDown={e => { if (e.key === 'Enter' && note.trim()) submitNote() }}
                 />
                 <button
@@ -394,7 +394,7 @@ export default function LeadDetailModal({
                     value={followupDate}
                     onChange={e => setFollowupDate(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm
-                      focus:outline-none focus:border-[#1D9E75]"
+                      focus:outline-none focus:border-primary-500"
                   />
                 </div>
                 <div>
@@ -405,13 +405,13 @@ export default function LeadDetailModal({
                     onChange={e => setFollowupNote(e.target.value)}
                     placeholder="Mfano: Piga simu kuhusu usajili"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm
-                      focus:outline-none focus:border-[#1D9E75]"
+                      focus:outline-none focus:border-primary-500"
                   />
                 </div>
                 <button
                   onClick={submitFollowup}
                   disabled={!followupDate || actioning}
-                  className="w-full bg-[#1D9E75] text-white py-3 rounded-xl text-sm font-semibold
+                  className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold
                     disabled:opacity-50"
                 >
                   {actioning ? 'Inahifadhi...' : '📅 Panga Follow-up'}

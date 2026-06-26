@@ -185,7 +185,7 @@ export default function AdminDashboard({
       {/* ── Desktop page title ── */}
       <div className="hidden lg:flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">⚙️ Dashboard</h1>
+          <h1 className="text-xl font-bold text-gray-900">⚙️ Dashibodi</h1>
           <p className="text-xs text-gray-400 mt-0.5">NyumbaFasta · Usimamizi wa Mfumo</p>
         </div>
         <div className="flex items-center gap-2">
@@ -240,35 +240,35 @@ export default function AdminDashboard({
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>📊</span><span>Analytics</span>
+              <span>📊</span><span>Takwimu</span>
             </Link>
             <Link
               href="/admin/crm/assign"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>👥</span><span>Assign</span>
+              <span>👥</span><span>Mgawanyo</span>
             </Link>
             <Link
               href="/admin/crm/reports"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>📋</span><span>Reports</span>
+              <span>📋</span><span>Ripoti</span>
             </Link>
             <Link
               href="/admin/crm/commission"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>💼</span><span>Commission</span>
+              <span>💼</span><span>Kamisheni</span>
             </Link>
             <Link
               href="/admin/crm/templates"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>💬</span><span>WA Templates</span>
+              <span>💬</span><span>Violezo WA</span>
             </Link>
             <Link
               href="/admin/leads"
@@ -282,14 +282,14 @@ export default function AdminDashboard({
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>👥</span><span>FB Groups</span>
+              <span>👥</span><span>Vikundi FB</span>
             </Link>
             <Link
               href="/admin/instagram-profiles"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>📸</span><span>IG Profiles</span>
+              <span>📸</span><span>Wasifu IG</span>
             </Link>
             <Link
               href="/admin/accounting"
@@ -312,7 +312,7 @@ export default function AdminDashboard({
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: 'Zinasubiri',      value: stats.pendingCount, icon: '⏳', urgent: stats.pendingCount > 0 },
-                { label: 'Listings active', value: stats.activeCount,  icon: '✅', urgent: false },
+                { label: 'Matangazo Hai',   value: stats.activeCount,  icon: '✅', urgent: false },
                 { label: 'Watumiaji',       value: stats.totalUsers,   icon: '👥', urgent: false },
               ].map(s => (
                 <div key={s.label} className={`rounded-2xl p-4 shadow-sm border ${s.urgent ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
@@ -385,11 +385,11 @@ export default function AdminDashboard({
             {/* Trial stats */}
             {(stats.totalTrials ?? 0) > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                <h3 className="text-sm font-bold text-gray-800 mb-3">🎉 Trial Overview</h3>
+                <h3 className="text-sm font-bold text-gray-800 mb-3">🎉 Muhtasari wa Majaribio</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-primary-50 rounded-xl p-3 text-center">
                     <p className="text-2xl font-bold text-primary-700">{stats.activeTrials ?? 0}</p>
-                    <p className="text-xs text-primary-500">Active trials</p>
+                    <p className="text-xs text-primary-500">Majaribio hai</p>
                   </div>
                   <div className="bg-green-50 rounded-xl p-3 text-center">
                     <p className="text-2xl font-bold text-green-700">{stats.convertedTrials ?? 0}</p>
@@ -420,17 +420,17 @@ export default function AdminDashboard({
 
             {/* ── Cron Jobs card ── */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-800 mb-3">⚙️ Cron Jobs</h3>
+              <h3 className="text-sm font-bold text-gray-800 mb-3">⚙️ Kazi za Otomatiki</h3>
 
               <div className="space-y-2 text-sm mb-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Daily cron:</span>
+                  <span className="text-gray-500">Kila siku:</span>
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
                     Kila siku 6 AM ✅
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Hourly cron:</span>
+                  <span className="text-gray-500">Kila saa:</span>
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
                     Kila saa ✅
                   </span>
@@ -455,7 +455,7 @@ export default function AdminDashboard({
                       <span className="w-3 h-3 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
                       Inaendesha...
                     </span>
-                  ) : '▶️ Run Daily Tasks'}
+                  ) : '▶️ Endesha Kazi za Kila Siku'}
                 </button>
                 <button
                   onClick={() => runCron('hourly')}
@@ -463,7 +463,7 @@ export default function AdminDashboard({
                   className="flex-1 bg-gray-50 text-gray-600 py-2.5 rounded-xl text-xs font-semibold
                              border border-gray-100 disabled:opacity-50 active:scale-[0.97] transition-all"
                 >
-                  ⚡ Run Hourly
+                  ⚡ Kila Saa
                 </button>
               </div>
 
@@ -727,12 +727,14 @@ export default function AdminDashboard({
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-gray-800">🚨 Ripoti za Scam</p>
             <div className="flex gap-1.5">
-              {['pending', 'reviewed', 'dismissed'].map(s => (
+              {(['pending', 'reviewed', 'dismissed'] as const).map(s => (
                 <span key={s} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                   s === 'pending' ? 'bg-red-100 text-red-700' :
                   s === 'reviewed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                 }`}>
-                  {reportsList.filter(r => r.status === s).length} {s}
+                  {reportsList.filter(r => r.status === s).length} {
+                    s === 'pending' ? 'zinasubiri' : s === 'reviewed' ? 'zilizoangaliwa' : 'zilizopita'
+                  }
                 </span>
               ))}
             </div>
@@ -757,7 +759,7 @@ export default function AdminDashboard({
                         report.status === 'pending' ? 'bg-red-100 text-red-700' :
                         report.status === 'reviewed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                       }`}>
-                        {report.status}
+                        {report.status === 'pending' ? 'Inasubiri' : report.status === 'reviewed' ? 'Imeangaliwa' : 'Imepita'}
                       </span>
                     </div>
                     {report.listing && (
@@ -811,7 +813,7 @@ export default function AdminDashboard({
                       disabled={reportActionLoading === report.id}
                       className="flex-1 py-2 rounded-xl bg-gray-50 text-gray-500 text-xs border border-gray-100 disabled:opacity-40"
                     >
-                      Dismiss
+                      Pitisha
                     </button>
                   </div>
                 )}

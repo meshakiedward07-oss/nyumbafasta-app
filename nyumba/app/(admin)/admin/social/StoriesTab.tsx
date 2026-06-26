@@ -133,7 +133,7 @@ export default function StoriesTab() {
                   onClick={() => setStoryType(t)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
                     storyType === t
-                      ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                      ? 'bg-primary-500 text-white border-primary-500'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -150,7 +150,7 @@ export default function StoriesTab() {
               <select
                 value={selectedListing}
                 onChange={e => setSelectedListing(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">-- Chagua listing --</option>
                 {listings.map(l => (
@@ -173,7 +173,7 @@ export default function StoriesTab() {
                   value={promoImageUrl}
                   onChange={e => setPromoImageUrl(e.target.value)}
                   placeholder="https://..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <p className="text-xs text-gray-400 mt-1">Picha inahitaji kuwa ya hadharani (public HTTPS URL). Ukubwa bora: 1080×1920</p>
               </div>
@@ -184,7 +184,7 @@ export default function StoriesTab() {
                   value={promoLinkUrl}
                   onChange={e => setPromoLinkUrl(e.target.value)}
                   placeholder="https://nyumbafasta.co/..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -193,7 +193,7 @@ export default function StoriesTab() {
           <button
             type="submit"
             disabled={posting}
-            className="w-full py-3 bg-[#1D9E75] text-white font-semibold rounded-xl hover:bg-[#178a65] disabled:opacity-50 transition-all"
+            className="btn-primary w-full py-3"
           >
             {posting ? '⏳ Inachapisha...' : '🚀 Tuma Story Sasa'}
           </button>

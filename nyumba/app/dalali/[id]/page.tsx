@@ -133,7 +133,7 @@ export default async function DalaliProfilePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
       />
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-[#1D9E75] sticky top-0 z-20 shadow-sm">
+        <header className="bg-primary-500 sticky top-0 z-20 shadow-sm">
           <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-2">
             <Link href="/" className="h-11 w-[180px] block">
               {/* eslint-disable-next-line @next/next/no-img-element */}

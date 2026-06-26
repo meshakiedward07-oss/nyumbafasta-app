@@ -122,7 +122,7 @@ export default function CarouselTab() {
             <select
               value={selectedId}
               onChange={e => setSelectedId(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">-- Chagua listing --</option>
               {listings.map(l => (
@@ -173,7 +173,7 @@ export default function CarouselTab() {
           <button
             type="submit"
             disabled={posting || !selectedId || (selected?.images?.length ?? 0) < 2}
-            className="w-full py-3 bg-[#1D9E75] text-white font-semibold rounded-xl hover:bg-[#178a65] disabled:opacity-50 transition-all"
+            className="btn-primary w-full py-3"
           >
             {posting ? '⏳ Inachapisha carousel...' : '🚀 Chapisha Carousel Sasa'}
           </button>

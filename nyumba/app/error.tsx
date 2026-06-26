@@ -24,7 +24,7 @@ export default function GlobalError({
         <div className="flex gap-3 justify-center">
           <button
             onClick={reset}
-            className="px-5 py-2.5 bg-[#1D9E75] text-white rounded-xl font-semibold text-sm"
+            className="px-5 py-2.5 bg-primary-500 text-white rounded-xl font-semibold text-sm"
           >
             Jaribu tena
           </button>

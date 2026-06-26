@@ -2,7 +2,7 @@ export default function LoginLoading() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header skeleton — matches green header with logo */}
-      <div className="bg-[#1D9E75] px-4 pt-10 pb-8 flex justify-center items-center">
+      <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center items-center">
         <div className="h-20 w-40 bg-white/20 rounded-xl animate-pulse" />
       </div>
 

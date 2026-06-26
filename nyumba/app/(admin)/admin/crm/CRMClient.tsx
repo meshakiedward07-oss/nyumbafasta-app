@@ -85,7 +85,7 @@ export default function CRMClient() {
             </div>
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-[#1D9E75] text-white text-xs px-3 py-2 rounded-xl font-medium"
+              className="bg-primary-500 text-white text-xs px-3 py-2 rounded-xl font-medium"
             >
               + Lead Mpya
             </button>
@@ -122,7 +122,7 @@ export default function CRMClient() {
             value={search}
             onChange={e => handleSearchChange(e.target.value)}
             placeholder="Tafuta jina, simu, mkoa..."
-            className="w-full pl-8 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#1D9E75]"
+            className="w-full pl-8 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary-500"
           />
         </div>
 
@@ -449,7 +449,7 @@ function AddLeadModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
       <div className="bg-white w-full max-w-lg rounded-t-2xl p-5 pb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-gray-800">➕ Ongeza Lead Mpya</h2>
-          <button onClick={onClose} className="text-gray-400 text-xl">✕</button>
+          <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl">✕</button>
         </div>
 
         {error && (
@@ -462,42 +462,42 @@ function AddLeadModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
             placeholder="Jina la dalali / biashara *"
             value={form.business_name}
             onChange={e => setForm(f => ({ ...f, business_name: e.target.value }))}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1D9E75]"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-500"
           />
           <input
             type="tel"
             placeholder="Nambari ya simu (255...)"
             value={form.phone}
             onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1D9E75]"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-500"
           />
           <input
             type="tel"
             placeholder="WhatsApp (kama tofauti na simu)"
             value={form.whatsapp}
             onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1D9E75]"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-500"
           />
           <input
             type="text"
             placeholder="Mkoa / Eneo (mfano: Dar es Salaam)"
             value={form.region}
             onChange={e => setForm(f => ({ ...f, region: e.target.value }))}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1D9E75]"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-500"
           />
           <textarea
             placeholder="Maelezo (hiari)"
             value={form.notes}
             onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
             rows={2}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1D9E75] resize-none"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-500 resize-none"
           />
         </div>
 
         <button
           onClick={submit}
           disabled={saving || !form.business_name.trim()}
-          className="w-full mt-4 bg-[#1D9E75] text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-50"
+          className="btn-primary w-full mt-4 py-3"
         >
           {saving ? 'Inaongeza...' : 'Ongeza Lead'}
         </button>

@@ -116,7 +116,7 @@ export default function BroadcastClient() {
           <div className="space-y-2">
             {TARGET_OPTIONS.map(opt => (
               <label key={opt.value} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                target === opt.value ? 'border-[#1D9E75] bg-[#E1F5EE]' : 'border-gray-100 bg-gray-50'
+                target === opt.value ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'
               }`}>
                 <input
                   type="radio"
@@ -124,7 +124,7 @@ export default function BroadcastClient() {
                   value={opt.value}
                   checked={target === opt.value}
                   onChange={() => setTarget(opt.value)}
-                  className="mt-0.5 accent-[#1D9E75]"
+                  className="mt-0.5 accent-primary-500"
                 />
                 <div>
                   <p className="text-sm font-semibold text-gray-800">{opt.label}</p>
@@ -145,7 +145,7 @@ export default function BroadcastClient() {
                 onClick={() => setTone(opt.value)}
                 className={`flex-1 py-2.5 px-3 rounded-xl border-2 text-xs font-semibold transition-all ${
                   tone === opt.value
-                    ? 'border-[#1D9E75] bg-[#1D9E75] text-white'
+                    ? 'border-primary-500 bg-primary-500 text-white'
                     : 'border-gray-200 bg-white text-gray-700'
                 }`}
               >
@@ -165,7 +165,7 @@ export default function BroadcastClient() {
             onChange={e => setMessage(e.target.value)}
             rows={4}
             placeholder="Andika ujumbe wako hapa..."
-            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 resize-none outline-none focus:border-[#1D9E75]"
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 resize-none outline-none focus:border-primary-500"
           />
           <p className="text-[10px] text-gray-400 text-right mt-1">{message.length} herufi</p>
         </div>
@@ -174,7 +174,7 @@ export default function BroadcastClient() {
         {message.trim() && (
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <p className="text-sm font-bold text-gray-900 mb-3">Mfano wa Ujumbe</p>
-            <div className="bg-[#E1F5EE] rounded-xl p-4">
+            <div className="bg-primary-50 rounded-xl p-4">
               <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">{preview}</p>
             </div>
           </div>
@@ -209,7 +209,7 @@ export default function BroadcastClient() {
         <button
           onClick={handleSend}
           disabled={sending || !message.trim()}
-          className="w-full bg-[#1D9E75] text-white py-4 rounded-2xl text-sm font-bold disabled:opacity-50 shadow-md"
+          className="w-full bg-primary-500 text-white py-4 rounded-2xl text-sm font-bold disabled:opacity-50 shadow-md"
         >
           {sending ? (
             <span className="flex items-center justify-center gap-2">

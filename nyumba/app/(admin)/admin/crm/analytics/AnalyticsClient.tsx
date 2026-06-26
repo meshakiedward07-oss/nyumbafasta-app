@@ -57,7 +57,7 @@ export default function AnalyticsClient() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-[#1D9E75] px-4 py-4 sticky top-0 z-10">
+      <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <h1 className="text-white font-bold text-lg mb-1">📊 CRM Analytics</h1>
         <p className="text-green-100 text-xs">Takwimu za uandikishaji wa madalali watarajiwa</p>
       </header>
@@ -132,7 +132,7 @@ export default function AnalyticsClient() {
                   </div>
                   <div className="bg-gray-100 rounded-full h-2">
                     <div
-                      className="bg-[#1D9E75] h-2 rounded-full transition-all"
+                      className="bg-primary-500 h-2 rounded-full transition-all"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -174,7 +174,7 @@ export default function AnalyticsClient() {
                     </div>
                     <div className="bg-gray-100 rounded-full h-2">
                       <div
-                        className="bg-[#1D9E75] h-2 rounded-full transition-all"
+                        className="bg-primary-500 h-2 rounded-full transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>

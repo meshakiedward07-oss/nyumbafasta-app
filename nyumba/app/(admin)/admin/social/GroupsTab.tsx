@@ -169,7 +169,7 @@ export default function GroupsTab() {
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="px-4 py-2 bg-[#1D9E75] text-white text-sm font-medium rounded-xl hover:bg-[#178a65]"
+          className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600"
         >
           + Ongeza Kundi
         </button>
@@ -189,7 +189,7 @@ export default function GroupsTab() {
                 value={newGroupId}
                 onChange={e => setNewGroupId(e.target.value)}
                 placeholder="mfano: 1234567890"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 required
               />
               <p className="text-xs text-gray-400 mt-1">Toa kutoka URL: facebook.com/groups/<strong>ID_HAPA</strong></p>
@@ -201,7 +201,7 @@ export default function GroupsTab() {
                 value={newGroupName}
                 onChange={e => setNewGroupName(e.target.value)}
                 placeholder="mfano: Nyumba Tanzania"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 required
               />
             </div>
@@ -212,7 +212,7 @@ export default function GroupsTab() {
                 value={newGroupUrl}
                 onChange={e => setNewGroupUrl(e.target.value)}
                 placeholder="https://facebook.com/groups/..."
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
             <div>
@@ -222,7 +222,7 @@ export default function GroupsTab() {
                 value={newMembers}
                 onChange={e => setNewMembers(e.target.value)}
                 placeholder="mfano: 45000"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
@@ -230,7 +230,7 @@ export default function GroupsTab() {
             <button
               type="submit"
               disabled={addLoading}
-              className="px-6 py-2.5 bg-[#1D9E75] text-white text-sm font-medium rounded-xl disabled:opacity-50"
+              className="px-6 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-xl disabled:opacity-50"
             >
               {addLoading ? 'Inahifadhi...' : 'Hifadhi Kundi'}
             </button>
@@ -252,7 +252,7 @@ export default function GroupsTab() {
           <select
             value={selectedListing}
             onChange={e => setSelectedListing(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="">-- Chagua listing --</option>
             {listings.map(l => (

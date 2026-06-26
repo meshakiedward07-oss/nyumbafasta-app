@@ -12,7 +12,7 @@ export default function NoAccessPage() {
       </p>
       <Link
         href="/admin/staff-leads"
-        className="bg-[#1D9E75] text-white px-5 py-2.5 rounded-xl text-sm font-semibold"
+        className="bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold"
       >
         ← Rudi kwenye Dashboard
       </Link>

@@ -391,7 +391,7 @@ export default function AdminUsersClient() {
         <div className="mx-4 mt-3 bg-primary-500 text-white text-sm font-medium px-4 py-3 rounded-2xl flex items-center gap-2 shadow-sm">
           <span className="text-lg">🔔</span>
           <span>{newUserBanner}</span>
-          <button onClick={() => setNewUserBanner(null)} className="ml-auto text-green-200 hover:text-white">✕</button>
+          <button onClick={() => setNewUserBanner(null)} aria-label="Funga" className="ml-auto text-primary-100 hover:text-white">✕</button>
         </div>
       )}
 
@@ -830,7 +830,7 @@ function UserDetailModal({
               {ROLE_LABEL[user.role] ?? user.role}
             </span>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg flex-shrink-0">✕</button>
+          <button aria-label="Funga" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg flex-shrink-0">✕</button>
         </div>
 
         {/* Info rows */}
@@ -1236,7 +1236,7 @@ function ExtendDeadlineModal({
                   type="button"
                   onClick={() => setDays(d)}
                   className={`flex-1 py-2 text-sm rounded-xl border transition-all ${
-                    days === d ? 'bg-[#1D9E75] text-white border-[#1D9E75]' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    days === d ? 'bg-primary-500 text-white border-primary-500' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   +{d}
@@ -1249,7 +1249,7 @@ function ExtendDeadlineModal({
             <input
               value={reason}
               onChange={e => setReason(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
               placeholder="mfano: Ana uhakika wa kuweka listing"
             />
           </div>
@@ -1262,7 +1262,7 @@ function ExtendDeadlineModal({
           <button
             onClick={handleExtend}
             disabled={saving}
-            className="flex-1 bg-[#1D9E75] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+            className="btn-primary flex-1 py-2.5"
           >
             {saving ? 'Inapanua...' : `Panua Siku ${days}`}
           </button>

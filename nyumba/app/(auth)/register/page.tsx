@@ -97,14 +97,14 @@ function RegisterForm() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
         <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-sm">
-          <div className="w-20 h-20 bg-[#E1F5EE] rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-20 h-20 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-4xl">📧</span>
           </div>
           <h2 className="font-bold text-xl text-gray-800 mb-2">Angalia Barua Pepe Yako!</h2>
           <p className="text-gray-500 text-sm mb-1">Tumetuma email ya uthibitisho kwa:</p>
           <p className="font-semibold text-gray-800 mb-5">{registeredEmail}</p>
-          <div className="bg-[#E1F5EE] rounded-xl p-4 mb-5 text-left">
-            <p className="text-[#0F6E56] text-sm font-medium mb-3">Hatua za kufuata:</p>
+          <div className="bg-primary-50 rounded-xl p-4 mb-5 text-left">
+            <p className="text-primary-800 text-sm font-medium mb-3">Hatua za kufuata:</p>
             <div className="space-y-2.5">
               {[
                 'Fungua Gmail au email yako',
@@ -112,10 +112,10 @@ function RegisterForm() {
                 'Bonyeza "Thibitisha Akaunti Yangu"',
               ].map((txt, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="w-5 h-5 bg-[#1D9E75] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  <span className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                     {i + 1}
                   </span>
-                  <p className="text-[#085041] text-xs">{txt}</p>
+                  <p className="text-primary-800 text-xs">{txt}</p>
                 </div>
               ))}
             </div>
@@ -126,7 +126,7 @@ function RegisterForm() {
           </p>
           <button
             onClick={() => router.push('/login')}
-            className="mt-4 text-[#1D9E75] text-sm underline"
+            className="mt-4 text-primary-500 text-sm underline"
           >
             Rudi Login →
           </button>
@@ -163,7 +163,7 @@ function RegisterForm() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
 
       {/* Header */}
-      <div className="bg-[#1D9E75] px-4 pt-10 pb-8 flex justify-center items-center">
+      <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/transparent_logo_nyumbafasta.png"

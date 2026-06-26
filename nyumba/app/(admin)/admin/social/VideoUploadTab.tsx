@@ -176,10 +176,10 @@ export default function VideoUploadTab() {
 
     function onDragOver(e: DragEvent) {
       e.preventDefault()
-      if (!dragging.current) { dragging.current = true; el!.classList.add('border-[#1D9E75]', 'bg-[#1D9E75]/5') }
+      if (!dragging.current) { dragging.current = true; el!.classList.add('border-primary-500', 'bg-primary-500/5') }
     }
     function onDragLeave() {
-      dragging.current = false; el!.classList.remove('border-[#1D9E75]', 'bg-[#1D9E75]/5')
+      dragging.current = false; el!.classList.remove('border-primary-500', 'bg-primary-500/5')
     }
     function onDrop(e: DragEvent) {
       e.preventDefault(); onDragLeave()
@@ -394,7 +394,7 @@ export default function VideoUploadTab() {
               ref={dropRef}
               onClick={() => state !== 'uploading' && inputRef.current?.click()}
               className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer
-                ${state === 'uploading' ? 'cursor-default opacity-70 border-gray-200' : 'hover:border-[#1D9E75] hover:bg-[#1D9E75]/5 border-gray-300'}`}
+                ${state === 'uploading' ? 'cursor-default opacity-70 border-gray-200' : 'hover:border-primary-500 hover:bg-primary-500/5 border-gray-300'}`}
             >
               <input
                 ref={inputRef}
@@ -410,7 +410,7 @@ export default function VideoUploadTab() {
                   <p className="font-semibold text-gray-700">Inapakia video...</p>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div
-                      className="bg-[#1D9E75] h-3 rounded-full transition-all duration-300"
+                      className="bg-primary-500 h-3 rounded-full transition-all duration-300"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
@@ -424,7 +424,7 @@ export default function VideoUploadTab() {
                     {formatBytes(file.size)}
                     {duration !== null && ` • ${duration}s`}
                   </p>
-                  <p className="text-xs text-[#1D9E75]">Click kubadilisha faili</p>
+                  <p className="text-xs text-primary-500">Click kubadilisha faili</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -483,7 +483,7 @@ export default function VideoUploadTab() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="mfano: Promotion ya Mbezi Beach Apartments"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 disabled={isUploading || isPosting}
               />
             </div>
@@ -494,7 +494,7 @@ export default function VideoUploadTab() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Maelezo mafupi ya video"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 disabled={isUploading || isPosting}
               />
             </div>
@@ -510,7 +510,7 @@ export default function VideoUploadTab() {
                     disabled={isUploading || isPosting}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-all ${
                       videoType === t.value
-                        ? 'bg-[#1D9E75] text-white border-[#1D9E75]'
+                        ? 'bg-primary-500 text-white border-primary-500'
                         : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                     }`}
                   >
@@ -526,7 +526,7 @@ export default function VideoUploadTab() {
             <button
               onClick={handleUpload}
               disabled={!file || !title.trim()}
-              className="w-full py-3 bg-[#1D9E75] text-white font-semibold rounded-xl hover:bg-[#178a65] disabled:opacity-50 transition-all"
+              className="btn-primary w-full py-3"
             >
               ⬆️ Pakia Video
             </button>
@@ -556,7 +556,7 @@ export default function VideoUploadTab() {
                   checked={igEnabled}
                   onChange={(e) => setIgEnabled(e.target.checked)}
                   disabled={isPosting}
-                  className="w-4 h-4 accent-[#1D9E75]"
+                  className="w-4 h-4 accent-primary-500"
                 />
                 <span className="text-sm font-medium text-gray-700">📸 Instagram Reels</span>
                 {platformStatus.instagram !== 'idle' && (
@@ -569,7 +569,7 @@ export default function VideoUploadTab() {
                   checked={fbEnabled}
                   onChange={(e) => setFbEnabled(e.target.checked)}
                   disabled={isPosting}
-                  className="w-4 h-4 accent-[#1D9E75]"
+                  className="w-4 h-4 accent-primary-500"
                 />
                 <span className="text-sm font-medium text-gray-700">👤 Facebook Video</span>
                 {platformStatus.facebook !== 'idle' && (
@@ -611,7 +611,7 @@ export default function VideoUploadTab() {
                   rows={5}
                   disabled={isPosting || isUploading}
                   placeholder="Caption + hashtags za Instagram..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75] resize-none"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                 />
               </div>
             )}
@@ -625,7 +625,7 @@ export default function VideoUploadTab() {
                   rows={4}
                   disabled={isPosting || isUploading}
                   placeholder="Caption ya Facebook..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75] resize-none"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                 />
               </div>
             )}
@@ -640,7 +640,7 @@ export default function VideoUploadTab() {
                   type="radio"
                   checked={!scheduleMode}
                   onChange={() => setScheduleMode(false)}
-                  className="accent-[#1D9E75]"
+                  className="accent-primary-500"
                   disabled={isPosting}
                 />
                 <span className="text-sm text-gray-700">Sasa Hivi</span>
@@ -650,7 +650,7 @@ export default function VideoUploadTab() {
                   type="radio"
                   checked={scheduleMode}
                   onChange={() => setScheduleMode(true)}
-                  className="accent-[#1D9E75]"
+                  className="accent-primary-500"
                   disabled={isPosting}
                 />
                 <span className="text-sm text-gray-700">Panga Ratiba</span>
@@ -662,7 +662,7 @@ export default function VideoUploadTab() {
                 value={scheduledAt}
                 onChange={(e) => setScheduledAt(e.target.value)}
                 disabled={isPosting}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             )}
           </div>
@@ -676,7 +676,7 @@ export default function VideoUploadTab() {
                 <button
                   onClick={handlePublish}
                   disabled={disabled}
-                  className="w-full py-3 bg-[#1D9E75] text-white font-semibold rounded-xl hover:bg-[#178a65] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                  className="btn-primary w-full py-3 flex items-center justify-center gap-2"
                 >
                   {isPosting ? (
                     <>
@@ -714,7 +714,7 @@ export default function VideoUploadTab() {
           <button
             onClick={loadHistory}
             disabled={histLoading}
-            className="text-xs text-[#1D9E75] hover:underline disabled:opacity-50"
+            className="text-xs text-primary-500 hover:underline disabled:opacity-50"
           >
             {histLoading ? 'Inapakia...' : '🔄 Refresh'}
           </button>
@@ -757,7 +757,7 @@ export default function VideoUploadTab() {
                       setState('uploaded')
                       window.scrollTo({ top: 0, behavior: 'smooth' })
                     }}
-                    className="text-xs px-2 py-1 bg-[#1D9E75] text-white rounded-lg hover:bg-[#178a65] flex-shrink-0"
+                    className="text-xs px-2 py-1 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex-shrink-0"
                   >
                     Chapisha
                   </button>

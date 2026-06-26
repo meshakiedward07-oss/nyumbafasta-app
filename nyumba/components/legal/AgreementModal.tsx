@@ -115,7 +115,7 @@ export default function AgreementModal({
       : 'flex flex-col h-full'
     }>
       {/* Header */}
-      <div className="bg-[#1D9E75] px-4 py-4 flex-shrink-0">
+      <div className="bg-primary-500 px-4 py-4 flex-shrink-0">
         <div className="flex items-center gap-3 max-w-lg mx-auto">
           {onBack && (
             <button onClick={onBack} className="text-white/80 text-xl leading-none p-1">
@@ -135,7 +135,7 @@ export default function AgreementModal({
             <button
               onClick={() => setLang('sw')}
               className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                lang === 'sw' ? 'bg-white text-[#1D9E75]' : 'text-white'
+                lang === 'sw' ? 'bg-white text-primary-500' : 'text-white'
               }`}
             >
               SW
@@ -143,7 +143,7 @@ export default function AgreementModal({
             <button
               onClick={() => setLang('en')}
               className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                lang === 'en' ? 'bg-white text-[#1D9E75]' : 'text-white'
+                lang === 'en' ? 'bg-white text-primary-500' : 'text-white'
               }`}
             >
               EN
@@ -155,7 +155,7 @@ export default function AgreementModal({
       {/* Scroll progress bar */}
       <div className="h-1 bg-gray-200 flex-shrink-0">
         <div
-          className="h-full bg-[#1D9E75] transition-all duration-200"
+          className="h-full bg-primary-500 transition-all duration-200"
           style={{ width: `${scrollPct}%` }}
         />
       </div>
@@ -234,7 +234,7 @@ export default function AgreementModal({
               <div
                 className={`w-5 h-5 rounded border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
                   checkboxes[box.id]
-                    ? 'bg-[#1D9E75] border-[#1D9E75]'
+                    ? 'bg-primary-500 border-primary-500'
                     : 'border-gray-300 bg-white'
                 }`}
                 onClick={() => hasScrolled && toggleCheckbox(box.id)}
@@ -322,7 +322,7 @@ export default function AgreementModal({
           disabled={!canAccept || submitting}
           className={`w-full py-3.5 min-h-[48px] rounded-xl text-sm font-bold transition-all ${
             canAccept && !submitting
-              ? 'bg-[#1D9E75] text-white hover:bg-[#158a63] active:scale-[0.98]'
+              ? 'bg-primary-500 text-white hover:bg-[#158a63] active:scale-[0.98]'
               : 'bg-gray-100 text-gray-400 cursor-not-allowed'
           }`}
         >

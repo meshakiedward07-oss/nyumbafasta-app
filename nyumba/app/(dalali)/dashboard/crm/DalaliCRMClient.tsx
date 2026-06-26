@@ -63,7 +63,7 @@ export default function DalaliCRMClient() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      <header className="bg-[#1D9E75] px-4 py-4 sticky top-0 z-10">
+      <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <h1 className="text-white font-bold text-lg mb-3">📊 Wateja Waliofungua</h1>
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white/20 rounded-xl p-3 text-center">

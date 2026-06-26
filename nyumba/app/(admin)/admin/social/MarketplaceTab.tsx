@@ -200,7 +200,7 @@ export default function MarketplaceTab() {
           <button
             onClick={() => setInnerTab('listings')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              innerTab === 'listings' ? 'bg-[#1D9E75] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+              innerTab === 'listings' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
             🏠 Listings
@@ -208,7 +208,7 @@ export default function MarketplaceTab() {
           <button
             onClick={() => setInnerTab('inquiries')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              innerTab === 'inquiries' ? 'bg-[#1D9E75] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+              innerTab === 'inquiries' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
             💬 Maswali

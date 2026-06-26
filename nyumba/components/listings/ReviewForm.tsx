@@ -53,7 +53,7 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
           <p className="text-xs text-gray-400 mt-0.5">Je, ulifurahi na huduma ya {dalaliName}?</p>
         </div>
         {onDismiss && (
-          <button onClick={onDismiss} className="text-gray-400 text-xl leading-none w-8 h-8 flex items-center justify-center">✕</button>
+          <button aria-label="Funga" onClick={onDismiss} className="text-gray-400 text-xl leading-none w-8 h-8 flex items-center justify-center">✕</button>
         )}
       </div>
 

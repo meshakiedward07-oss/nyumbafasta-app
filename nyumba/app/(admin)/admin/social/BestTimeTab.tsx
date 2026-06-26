@@ -185,7 +185,7 @@ export default function BestTimeTab() {
               onClick={() => setPlatform(p)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 platform === p
-                  ? 'bg-[#1D9E75] text-white'
+                  ? 'bg-primary-500 text-white'
                   : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
               }`}
             >
@@ -277,7 +277,7 @@ export default function BestTimeTab() {
 
           {/* AI recommendation */}
           {recText && (
-            <div className="bg-gradient-to-br from-[#E1F5EE] to-white border border-[#1D9E75]/20 rounded-xl p-5">
+            <div className="bg-gradient-to-br from-primary-50 to-white border border-primary-500/20 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-lg">🤖</span>
                 <h3 className="font-semibold text-gray-800">Ushauri wa Amina</h3>

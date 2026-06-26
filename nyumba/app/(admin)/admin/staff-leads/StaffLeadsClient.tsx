@@ -55,7 +55,7 @@ export default function StaffLeadsClient(props: {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      <header className="bg-[#1D9E75] px-4 py-4 sticky top-0 z-10">
+      <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <h1 className="text-white font-bold text-lg mb-1">
           {isAdmin ? '👥 Leads za Wafanyakazi Wote' : '🎯 Madalali Watarajiwa Wangu'}
         </h1>
@@ -100,7 +100,7 @@ export default function StaffLeadsClient(props: {
           <button
             onClick={() => setActiveStage('all')}
             className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium ${
-              activeStage === 'all' ? 'bg-[#1D9E75] text-white' : 'bg-white text-gray-600'
+              activeStage === 'all' ? 'bg-primary-500 text-white' : 'bg-white text-gray-600'
             }`}
           >
             Zote ({leads.length})
@@ -110,7 +110,7 @@ export default function StaffLeadsClient(props: {
               key={s.key}
               onClick={() => setActiveStage(s.key)}
               className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium ${
-                activeStage === s.key ? 'bg-[#1D9E75] text-white' : 'bg-white text-gray-600'
+                activeStage === s.key ? 'bg-primary-500 text-white' : 'bg-white text-gray-600'
               }`}
             >
               {s.emoji} {s.label} (
