@@ -5,6 +5,55 @@ import type { Listing } from '@/lib/types/database'
 
 export type UnifiedPlatform = 'instagram' | 'facebook' | 'tiktok'
 
+// ── Spec-compatible type aliases ─────────────────────────────────────────────
+export type Platform = UnifiedPlatform
+
+export interface PostPayload {
+  listingId:  string
+  videoUrl:   string
+  imageUrls:  string[]
+  caption:    string
+  platforms:  Platform[]
+  postType:   'video' | 'image' | 'carousel'
+}
+
+export interface PlatformResult {
+  platform:   Platform
+  success:    boolean
+  postId?:    string
+  postUrl?:   string
+  error?:     string
+  publishId?: string
+}
+
+export interface PostAllResult {
+  results:      PlatformResult[]
+  successCount: number
+  failCount:    number
+}
+
+/**
+ * Spec alias — posts to multiple platforms in parallel.
+ * Wraps postListingToAllPlatforms for callers using the PostPayload API.
+ */
+export async function postToAllPlatforms(payload: PostPayload): Promise<PostAllResult> {
+  const result = await postListingToAllPlatforms({
+    listingId:  payload.listingId,
+    platforms:  payload.platforms,
+  })
+  return {
+    results:      result.results.map(r => ({
+      platform:   r.platform,
+      success:    r.success,
+      postId:     r.postId,
+      postUrl:    r.postUrl,
+      error:      r.error,
+    })),
+    successCount: result.successCount,
+    failCount:    result.failedCount,
+  }
+}
+
 export interface UnifiedPostResult {
   platform: UnifiedPlatform
   success: boolean
