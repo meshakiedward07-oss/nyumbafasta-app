@@ -304,18 +304,13 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               </div>
             )}
           </div>
-          {listing.address_full && (
-            <div className="pt-2 border-t border-gray-100 mb-3">
-              <p className="text-xs text-gray-400 mb-0.5">Anwani Kamili</p>
-              <p className="text-xs text-gray-600">{listing.address_full}</p>
-            </div>
-          )}
           {!!(listing.latitude && listing.longitude) && (
             <SingleListingMap
               latitude={listing.latitude as number}
               longitude={listing.longitude as number}
               district={listing.district}
               region={listing.region}
+              address={listing.address_full}
             />
           )}
         </section>
