@@ -25,6 +25,9 @@ type Props = {
   listingId: string
   dalaliName: string
   listingTitle: string
+  listingPrice: number
+  listingLocation: string
+  listingBedrooms?: number
   whatsappNumber: string
   onClose: () => void
   onUnlocked: () => void
@@ -44,7 +47,8 @@ function normalisePhone(raw: string): { normalized: string; valid: boolean } {
 }
 
 export default function UnlockModal({
-  listingId, dalaliName, listingTitle, whatsappNumber, onClose, onUnlocked,
+  listingId, dalaliName, listingTitle, listingPrice, listingLocation, listingBedrooms,
+  whatsappNumber, onClose, onUnlocked,
 }: Props) {
   const supabase = createClient()
 
@@ -61,6 +65,11 @@ export default function UnlockModal({
 
   // Normalise the dalali's WhatsApp number once for all links
   const waPhone = whatsappNumber.replace(/\D/g, '').replace(/^0/, '255')
+
+  // Pre-filled WhatsApp message with listing details
+  const bedroomLine = listingBedrooms ? `\n🛏️ Vyumba ${listingBedrooms}` : ''
+  const waMessage = `Habari ${dalaliName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${listingTitle}*\n📍 ${listingLocation}${bedroomLine}\n💰 TZS ${listingPrice.toLocaleString()}/mwezi\n\n🔗 https://nyumbafasta.co/listings/${listingId}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
+  const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}`
 
   // ── Block Android back-gesture during payment ─────────────
   useEffect(() => {
@@ -394,7 +403,7 @@ export default function UnlockModal({
             </p>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <a
-                href={`https://wa.me/${waPhone}`}
+                href={waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl
@@ -403,7 +412,7 @@ export default function UnlockModal({
               >
                 <span className="text-2xl leading-none">💬</span>
                 <span>WhatsApp</span>
-                <span className="text-xs font-normal opacity-80">Tuma ujumbe</span>
+                <span className="text-xs font-normal opacity-80">Na maelezo ya listing</span>
               </a>
               <a
                 href={`tel:+${waPhone}`}

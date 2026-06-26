@@ -126,6 +126,14 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   // Normalised number for links (guaranteed digits-only starting with 255, or empty string)
   const waPhone = (whatsappNumber ?? '').replace(/\D/g, '').replace(/^0/, '255') || null
 
+  // Pre-filled WhatsApp message — includes listing title, location, price, link
+  const dalaliDisplayName = listing.dalali?.full_name ?? 'Dalali'
+  const displayTitle = listing.title || `${typeLabel[listing.type] || listing.type} – ${listing.district}`
+  const locationDisplay = [listing.district, listing.region].filter(Boolean).join(', ')
+  const bedroomLine = listing.bedrooms ? `\n🛏️ Vyumba ${listing.bedrooms}` : ''
+  const waMessage = `Habari ${dalaliDisplayName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${displayTitle}*\n📍 ${locationDisplay}${bedroomLine}\n💰 TZS ${listing.price_monthly.toLocaleString()}/mwezi\n\n🔗 https://nyumbafasta.co/listings/${listing.id}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
+  const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
+
   const isTaken = listing.status === 'taken'
 
   const statusBadge = listing.status === 'active'
@@ -357,7 +365,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             </div>
             <div className="grid grid-cols-2 gap-2">
               <a
-                href={`https://wa.me/${waPhone}`}
+                href={waUrl ?? '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-1.5 bg-green-500 text-white text-xs px-3 py-2 rounded-xl font-semibold active:scale-95 transition-transform"
@@ -480,7 +488,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           <div className="space-y-2 pb-1">
             <div className="grid grid-cols-2 gap-3">
               <a
-                href={`https://wa.me/${waPhone}`}
+                href={waUrl ?? '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-col items-center justify-center gap-1 py-3 rounded-2xl
@@ -489,6 +497,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               >
                 <span className="text-xl leading-none">💬</span>
                 <span>WhatsApp</span>
+                <span className="text-[10px] font-normal opacity-75">Na maelezo ya listing</span>
               </a>
               <a
                 href={`tel:+${waPhone}`}
@@ -537,7 +546,10 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         <UnlockModal
           listingId={listing.id}
           dalaliName={listing.dalali?.full_name ?? 'Dalali'}
-          listingTitle={`${typeLabel[listing.type] || listing.type} – ${listing.district}`}
+          listingTitle={displayTitle}
+          listingPrice={listing.price_monthly}
+          listingLocation={locationDisplay}
+          listingBedrooms={listing.bedrooms ?? undefined}
           whatsappNumber={whatsappNumber ?? ''}
           onClose={() => setShowUnlockModal(false)}
           onUnlocked={() => {
