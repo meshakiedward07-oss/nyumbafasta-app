@@ -44,7 +44,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLng / 2) ** 2
-  return Math.round(Math.sqrt(a / (1 - a)) * R * 2 * 10) / 10
+  return Math.round(2 * R * Math.asin(Math.sqrt(a)) * 10) / 10
 }
 
 // ── Google Places nearby search ─────────────────────────

@@ -62,22 +62,24 @@ function PickerContent({ initialLocation, onLocationChange }: Props) {
     geocoderRef.current = new geocodingLib.Geocoder()
   }, [geocodingLib])
 
+  // Tanzania bounding box — reject coordinates outside the country
+  function isInTanzania(lat: number, lng: number) {
+    return lat >= -12 && lat <= -1 && lng >= 29 && lng <= 41
+  }
+
   const reverseGeocode = useCallback(
     (lat: number, lng: number, placeIdOverride?: string) => {
       if (!geocoderRef.current) {
+        // Geocoder not yet loaded — update coords and leave address empty; the
+        // address input already shows a hint so the user knows it's not set.
         onLocationChange({ latitude: lat, longitude: lng, address_full: '', place_id: placeIdOverride })
         return
       }
       geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
-        if (status === 'OK' && results?.[0]) {
-          const r = results[0]
-          const addr = r.formatted_address ?? ''
-          const pid = placeIdOverride ?? r.place_id ?? ''
-          setAddress(addr)
-          onLocationChange({ latitude: lat, longitude: lng, address_full: addr, place_id: pid })
-        } else {
-          onLocationChange({ latitude: lat, longitude: lng, address_full: '', place_id: placeIdOverride })
-        }
+        const addr = (status === 'OK' && results?.[0]?.formatted_address) ? results[0].formatted_address : ''
+        const pid  = placeIdOverride ?? (status === 'OK' && results?.[0]?.place_id ? results[0].place_id : '')
+        if (addr) setAddress(addr)
+        onLocationChange({ latitude: lat, longitude: lng, address_full: addr, place_id: pid })
       })
     },
     [onLocationChange]
@@ -109,8 +111,8 @@ function PickerContent({ initialLocation, onLocationChange }: Props) {
     const latLng = e.detail.latLng
     if (!latLng) return
     const { lat, lng } = latLng
+    if (!isInTanzania(lat, lng)) return  // ignore clicks outside Tanzania
     setPosition({ lat, lng })
-    // Don't pan on click — user already sees the spot
     reverseGeocode(lat, lng)
   }
 
@@ -118,6 +120,7 @@ function PickerContent({ initialLocation, onLocationChange }: Props) {
     if (!e.latLng) return
     const lat = e.latLng.lat()
     const lng = e.latLng.lng()
+    if (!isInTanzania(lat, lng)) return
     setPosition({ lat, lng })
     reverseGeocode(lat, lng)
   }
@@ -134,8 +137,12 @@ function PickerContent({ initialLocation, onLocationChange }: Props) {
         setLocating(false)
         const lat = pos.coords.latitude
         const lng = pos.coords.longitude
+        if (!isInTanzania(lat, lng)) {
+          setGpsError('Mahali ulipo haiko Tanzania. Tumia utafutaji badala yake.')
+          return
+        }
         setPosition({ lat, lng })
-        setMapTarget({ lat, lng }) // ← pan map to GPS location
+        setMapTarget({ lat, lng })
         reverseGeocode(lat, lng)
         if (searchInputRef.current) searchInputRef.current.value = ''
       },

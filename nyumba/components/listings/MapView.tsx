@@ -221,16 +221,26 @@ export default function MapView({ listings, className = '' }: Props) {
           </div>
         )}
 
+        {/* Count badge — show hidden count when some listings lack coordinates */}
+        {!loadingAll && withCoords.length > 0 && withCoords.length < allListings.length && (
+          <div className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-sm
+                          px-3 py-1.5 rounded-full shadow-md text-xs text-gray-500">
+            {allListings.length - withCoords.length} bila mahali
+          </div>
+        )}
+
         {/* Empty state */}
         {!loadingAll && withCoords.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center
                           bg-gray-50 z-10 pointer-events-none">
             <div className="text-5xl mb-3">🗺️</div>
             <p className="text-sm font-semibold text-gray-600 mb-1">
-              Listings hazina mahali bado
+              Ramani hazionyeshi listings bado
             </p>
             <p className="text-xs text-gray-400 text-center px-8">
-              Madalali wanaweza kuweka coordinates kwenye Add Listing form
+              {allListings.length > 0
+                ? `Listings ${allListings.length} zipo lakini hazina coordinates. Madalali waweke mahali kwenye fomu.`
+                : 'Hakuna listings kwa sasa. Rudi baadaye.'}
             </p>
           </div>
         )}

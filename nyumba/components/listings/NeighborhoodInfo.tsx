@@ -48,7 +48,7 @@ function Skeleton() {
 export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
   const [data, setData]       = useState<NeighborhoodData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [hidden, setHidden]   = useState(false)
+  const [error, setError]     = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -58,15 +58,23 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
         return res.json() as Promise<NeighborhoodData>
       })
       .then(d => { if (!cancelled) setData(d) })
-      .catch(() => { if (!cancelled) setHidden(true) })
+      .catch(() => { if (!cancelled) setError(true) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [listingId])
 
-  if (hidden) return null
   if (loading) return <Skeleton />
 
-  if (!data) return null
+  if (error || !data) {
+    return (
+      <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-700 mb-1">📍 Habari za Mtaa</h3>
+        <p className="text-xs text-gray-400">
+          Taarifa za mtaa hazikupatikana kwa sasa. Jaribu tena baadaye.
+        </p>
+      </section>
+    )
+  }
 
   return (
     <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
