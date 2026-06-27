@@ -96,7 +96,7 @@ export async function PATCH(
           const mResult = await postListingToMarketplace(fullListing)
           console.log(`[Approval] Marketplace: ${mResult.success ? '✅ ' + mResult.itemId : '❌ ' + mResult.error}`)
 
-          // Instagram + Facebook + TikTok via unified orchestrator
+          // Instagram + Facebook + TikTok via unified orchestrator (video)
           const { postListingToAllPlatforms, getConnectedPlatforms } = await import('@/lib/social/unifiedPost')
           const connectedPlatforms = await getConnectedPlatforms()
           if (connectedPlatforms.length > 0) {
@@ -108,6 +108,30 @@ export async function PATCH(
             console.log(`[Approval] Social: ${uResult.successCount}/${uResult.results.length} platforms ✅`)
             for (const r of uResult.results) {
               if (!r.success) console.warn(`[Approval] ${r.platform} failed: ${r.error}`)
+            }
+          }
+
+          // Carousel — post 5 seconds after video to avoid rate limits (requires 2+ images)
+          if ((fullListing.images?.length ?? 0) >= 2) {
+            await new Promise(r => setTimeout(r, 5000))
+            try {
+              const { postListingCarousel } = await import('@/lib/social/carouselPost')
+              const cResult = await postListingCarousel(fullListing)
+              console.log(`[Approval] Carousel: ${cResult.success ? '✅ ' + cResult.postId : '❌ ' + cResult.error}`)
+            } catch (cErr) {
+              console.error('[Approval] Carousel failed (non-fatal):', cErr)
+            }
+          }
+
+          // Instagram Story — post first image as story
+          if ((fullListing.images?.length ?? 0) >= 1) {
+            await new Promise(r => setTimeout(r, 2000))
+            try {
+              const { postListingStory } = await import('@/lib/social/instagramStories')
+              const sResult = await postListingStory(fullListing)
+              console.log(`[Approval] Story: ${sResult.success ? '✅ ' + sResult.storyId : '❌ ' + sResult.error}`)
+            } catch (sErr) {
+              console.error('[Approval] Story failed (non-fatal):', sErr)
             }
           }
         } catch (err) {

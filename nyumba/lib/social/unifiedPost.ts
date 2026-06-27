@@ -129,7 +129,7 @@ export async function postListingToAllPlatforms(opts: UnifiedPostOptions): Promi
       if (!listing?.video_url) {
         results.push({ platform: 'tiktok', success: false, error: 'Listing haina video' })
       } else {
-        const caption  = generateTikTokCaption(listing as Listing)
+        const caption  = await generateTikTokCaption(listing as Listing)
         const ttResult = await postVideoToTikTok({ videoUrl: listing.video_url, caption, listingId })
         results.push({
           platform: 'tiktok',

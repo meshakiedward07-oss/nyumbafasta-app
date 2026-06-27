@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       .select('*')
       .eq('id', listingId)
       .single()
-    if (listing) caption = generateTikTokCaption(listing as Listing)
+    if (listing) caption = await generateTikTokCaption(listing as Listing)
   }
 
   if (!caption) caption = '🏠 Nyumba inapatikana Tanzania! nyumbafasta.co #NyumbaFasta'

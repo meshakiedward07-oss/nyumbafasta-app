@@ -114,8 +114,8 @@ export default function SocialDashboard() {
   // Post Now state
   const [listings, setListings]       = useState<Listing[]>([])
   const [selectedListing, setSelectedListing] = useState('')
-  const [selectedPlatform, setSelectedPlatform] = useState<'instagram' | 'facebook' | 'both'>('both')
-  const [postMode, setPostMode]       = useState<'single' | 'carousel'>('single')
+  const [selectedPlatform, setSelectedPlatform] = useState<'instagram' | 'facebook' | 'both' | 'all'>('all')
+  const [postMode, setPostMode]       = useState<'single' | 'carousel' | 'story'>('single')
   const [generatedCaption, setGeneratedCaption] = useState('')
   const [generatedHashtags, setGeneratedHashtags] = useState('')
   const [captionLoading, setCaptionLoading] = useState(false)
@@ -222,6 +222,21 @@ export default function SocialDashboard() {
     if (!selectedListing) { showToast('Chagua listing kwanza'); return }
     setPostLoading(true)
     try {
+      // ── Story ────────────────────────────────────────────────────────────
+      if (postMode === 'story') {
+        const res = await fetch('/api/v1/social/stories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storyType: 'listing', listingId: selectedListing }),
+        })
+        const data = await res.json() as { ok?: boolean; storyId?: string; error?: string }
+        if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
+        showToast(data.ok ? `✅ Story imechapishwa! (${data.storyId})` : '❌ Imeshindwa kuchapisha story')
+        setSelectedListing('')
+        return
+      }
+
+      // ── Carousel ─────────────────────────────────────────────────────────
       if (postMode === 'carousel') {
         const res = await fetch('/api/v1/social/carousel', {
           method: 'POST',
@@ -230,29 +245,38 @@ export default function SocialDashboard() {
         })
         const data = await res.json() as { success?: boolean; slidesCount?: number; error?: string }
         if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-        showToast(data.success ? `✅ Carousel imechapishwa! (Slides: ${data.slidesCount})` : 'Imeshindwa kuchapisha')
+        showToast(data.success ? `✅ Carousel imechapishwa! (Slides: ${data.slidesCount})` : '❌ Imeshindwa kuchapisha')
         setSelectedListing('')
         return
       }
 
-      const body: Record<string, unknown> = {
-        listingId: selectedListing,
-        platform: selectedPlatform,
-      }
-      if (scheduledAt) body.scheduledAt = scheduledAt
-
-      const res = await fetch('/api/v1/social/post', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json() as { ok?: boolean; status?: string; scheduled?: boolean; error?: string }
-      if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-      if (data.scheduled) {
-        showToast('Post imepangwa kwa mafanikio!')
+      // ── Single / All platforms ────────────────────────────────────────────
+      if (selectedPlatform === 'all') {
+        // Post to all connected platforms (IG + FB + TikTok)
+        const res = await fetch('/api/v1/social/post-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: selectedListing }),
+        })
+        const data = await res.json() as { successCount?: number; failedCount?: number; error?: string }
+        if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
+        showToast(`✅ ${data.successCount ?? 0} platform zilipita${data.failedCount ? `, ❌ ${data.failedCount} zilishindwa` : ''}`)
       } else {
-        showToast(data.status === 'published' ? 'Imechapishwa kwa mafanikio!' : `Imeshindwa: ${data.ok}`)
+        const body: Record<string, unknown> = {
+          listingId: selectedListing,
+          platform: selectedPlatform,
+        }
+        if (scheduledAt) body.scheduledAt = scheduledAt
+        const res = await fetch('/api/v1/social/post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        const data = await res.json() as { ok?: boolean; status?: string; scheduled?: boolean; error?: string }
+        if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
+        showToast(data.scheduled ? '📅 Post imepangwa!' : data.status === 'published' ? '✅ Imechapishwa!' : '❌ Imeshindwa')
       }
+
       setGeneratedCaption('')
       setGeneratedHashtags('')
       setSelectedListing('')
@@ -766,30 +790,30 @@ export default function SocialDashboard() {
             {/* Post mode */}
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1.5">Aina ya Post</label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPostMode('single')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
-                    postMode === 'single'
-                      ? 'bg-primary-500 text-white border-primary-500'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  📸 Picha Moja
-                </button>
-                <button
-                  onClick={() => setPostMode('carousel')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
-                    postMode === 'carousel'
-                      ? 'bg-primary-500 text-white border-primary-500'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  🖼️ Carousel
-                </button>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { key: 'single',   label: '📸 Picha/Video' },
+                  { key: 'carousel', label: '🖼️ Carousel' },
+                  { key: 'story',    label: '🔴 Story' },
+                ] as const).map(m => (
+                  <button
+                    key={m.key}
+                    onClick={() => setPostMode(m.key)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                      postMode === m.key
+                        ? 'bg-primary-500 text-white border-primary-500'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
               </div>
               {postMode === 'carousel' && (
-                <p className="text-xs text-gray-500 mt-1">Picha zote zinaonekana — wateja wanaswipe ➡️ (Instagram tu, inahitaji picha 2+)</p>
+                <p className="text-xs text-gray-500 mt-1">📸 Picha zote kama slides — inahitaji picha 2+ (Instagram tu)</p>
+              )}
+              {postMode === 'story' && (
+                <p className="text-xs text-gray-500 mt-1">🔴 Picha ya kwanza kama Story — inaisha baada ya saa 24 (Instagram tu)</p>
               )}
             </div>
 
@@ -797,25 +821,30 @@ export default function SocialDashboard() {
             {postMode === 'single' && (
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1.5">Jukwaa</label>
-              <div className="flex gap-2">
-                {(['instagram', 'facebook', 'both'] as const).map(p => (
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { key: 'all',       label: '🌐 Zote (IG + FB + TikTok)' },
+                  { key: 'instagram', label: '📸 Instagram' },
+                  { key: 'facebook',  label: '👤 Facebook' },
+                  { key: 'both',      label: '📸👤 IG + FB' },
+                ] as const).map(p => (
                   <button
-                    key={p}
-                    onClick={() => setSelectedPlatform(p)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
-                      selectedPlatform === p
+                    key={p.key}
+                    onClick={() => setSelectedPlatform(p.key)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                      selectedPlatform === p.key
                         ? 'bg-primary-500 text-white border-primary-500'
                         : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    {p === 'instagram' ? '📸 Instagram' : p === 'facebook' ? '👤 Facebook' : '🌐 Vyote Viwili'}
+                    {p.label}
                   </button>
                 ))}
               </div>
             </div>
             )}
 
-            {/* Caption + Schedule — only for single post mode */}
+            {/* Caption + Schedule — only for single post mode (not carousel or story) */}
             {postMode === 'single' && (
               <>
                 <div>
@@ -854,11 +883,16 @@ export default function SocialDashboard() {
               </>
             )}
 
-            {/* Carousel info box */}
+            {/* Info boxes */}
             {postMode === 'carousel' && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
                 Caption ya AI itazalishwa kiotomatiki. Watermark itawekwa kwenye kila slide.
                 Mchakato huchukua dakika 1-2 — usifunge dirisha.
+              </div>
+            )}
+            {postMode === 'story' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800">
+                Picha ya kwanza ya listing itatumika kama Story. Inachapishwa Instagram tu. Inaisha baada ya saa 24.
               </div>
             )}
 
@@ -873,6 +907,10 @@ export default function SocialDashboard() {
                   ? '⏳ Inachapisha...'
                   : postMode === 'carousel'
                   ? '🖼️ Chapisha Carousel'
+                  : postMode === 'story'
+                  ? '🔴 Chapisha Story'
+                  : selectedPlatform === 'all'
+                  ? '🌐 Chapisha Zote (IG + FB + TikTok)'
                   : scheduledAt ? '📅 Panga' : '🚀 Chapisha Sasa'}
               </button>
               <button

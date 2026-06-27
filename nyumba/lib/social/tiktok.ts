@@ -223,7 +223,7 @@ export async function checkTikTokPostStatus(
 
 // ── Caption Generator ─────────────────────────────────────────────────────
 
-export function generateTikTokCaption(listing: Listing): string {
+function buildStaticTikTokCaption(listing: Listing): string {
   const price = listing.price_monthly.toLocaleString('sw-TZ')
   const location = listing.location_display ?? `${listing.district}, ${listing.region}`
 
@@ -253,4 +253,61 @@ ${bedroomLine}${furnishedLine}
 📱 Tafuta zaidi: nyumbafasta.co
 
 #NyumbaFasta #NyumbaZaKupanga #Tanzania #DarEsSalaam #RealEstate #MaliIsiyohamia #NyumbaTanzania #HouseForRent`.trim()
+}
+
+// AI-powered TikTok caption using Claude — falls back to static on error
+export async function generateTikTokCaption(listing: Listing): Promise<string> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return buildStaticTikTokCaption(listing)
+  }
+
+  const price    = listing.price_monthly.toLocaleString('sw-TZ')
+  const location = listing.location_display ?? `${listing.district}, ${listing.region}`
+  const typeMap: Record<string, string> = {
+    chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
+  }
+  const type = typeMap[listing.type] ?? listing.type
+  const bedroomInfo = listing.bedrooms ? `Vyumba ${listing.bedrooms}` : ''
+  const amenities   = listing.amenities?.slice(0, 4).join(', ') || ''
+
+  try {
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const client    = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const response = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages: [{
+        role:    'user',
+        content: `Andika TikTok caption kwa Kiswahili cha vijana wa Tanzania kwa listing hii:
+
+Aina: ${type}
+Mahali: ${location}
+Bei: TZS ${price}/mwezi
+${bedroomInfo ? `Vyumba: ${bedroomInfo}` : ''}
+${amenities ? `Vifaa: ${amenities}` : ''}
+${listing.description ? `Maelezo: ${listing.description.slice(0, 150)}` : ''}
+
+Mahitaji:
+- Anza na emoji inayovutia na sentensi ya kuchekesha/ya kuvutia
+- Tumia lugha ya mitaani ya Dar es Salaam (sawa, poa, noma, bro)
+- Jumuisha bei, mahali, na kama ina vyumba
+- Ongeza link: nyumbafasta.co
+- Mwisho ongeza hashtags: #NyumbaFasta #NyumbaZaKupanga #Tanzania #DarEsSalaam #fyp #nyumba #househunting
+- Usiwe rasmi — andika kama TikTok creator wa Tanzania
+- Max maneno 100, max hashtags 8
+
+Andika caption TU bila maelezo mengine.`,
+      }],
+    })
+
+    const aiCaption = response.content[0].type === 'text'
+      ? response.content[0].text.trim()
+      : ''
+
+    return aiCaption || buildStaticTikTokCaption(listing)
+  } catch (err) {
+    console.error('[TikTok] AI caption failed, using static:', err instanceof Error ? err.message : err)
+    return buildStaticTikTokCaption(listing)
+  }
 }
