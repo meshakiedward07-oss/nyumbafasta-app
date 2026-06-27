@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 type MessageRow = {
   id:                string
@@ -91,6 +92,26 @@ export default function InboxPage() {
   }, [filterPlatform, filterStatus])
 
   useEffect(() => { loadMessages(); loadStats() }, [loadMessages, loadStats])
+
+  // Realtime: reload when a new personal/unclear message is classified
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('inbox-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'message_classifications' },
+        (payload) => {
+          const cat = (payload.new as { category?: string })?.category
+          if (cat === 'personal' || cat === 'unclear') {
+            loadMessages()
+            loadStats()
+          }
+        },
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [loadMessages, loadStats])
 
   async function handleReply() {
     if (!selected || !replyText.trim()) return
