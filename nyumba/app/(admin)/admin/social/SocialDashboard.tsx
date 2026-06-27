@@ -59,37 +59,98 @@ function fmtDate(iso: string) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    published: 'bg-green-100 text-green-700',
-    pending:   'bg-yellow-100 text-yellow-700',
-    failed:    'bg-red-100 text-red-700',
-    publishing:'bg-blue-100 text-blue-700',
+  const map: Record<string, { bg: string; text: string }> = {
+    published:  { bg: '#eaf3de', text: '#3b6d11' },
+    posted:     { bg: '#eaf3de', text: '#3b6d11' },
+    pending:    { bg: '#faeeda', text: '#854f0b' },
+    failed:     { bg: '#fcebeb', text: '#a32d2d' },
+    publishing: { bg: '#e6f1fb', text: '#185fa5' },
   }
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[status] ?? 'bg-gray-100 text-gray-600'}`}>{status}</span>
+  const s = map[status]
+  if (s) {
+    return (
+      <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: s.bg, color: s.text }}>
+        {status}
+      </span>
+    )
+  }
+  return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{status}</span>
 }
 
 function CommentTypeBadge({ type }: { type: string }) {
-  const map: Record<string, string> = {
-    inquiry:  'bg-blue-100 text-blue-700',
-    interest: 'bg-green-100 text-green-700',
-    negative: 'bg-red-100 text-red-700',
-    spam:     'bg-gray-100 text-gray-500',
-    question: 'bg-purple-100 text-purple-700',
-    praise:   'bg-emerald-100 text-emerald-700',
-    unknown:  'bg-gray-100 text-gray-600',
+  const map: Record<string, { bg: string; text: string; label: string }> = {
+    inquiry:  { bg: '#e6f1fb', text: '#185fa5', label: 'Inquiry'  },
+    interest: { bg: '#eaf3de', text: '#3b6d11', label: 'Interest' },
+    negative: { bg: '#fcebeb', text: '#a32d2d', label: 'Negative' },
+    spam:     { bg: '#f4f4f0', text: '#666660', label: 'Spam'     },
+    question: { bg: '#eeedfe', text: '#534ab7', label: 'Swali'    },
+    praise:   { bg: '#eaf3de', text: '#3b6d11', label: 'Sifa'     },
+    unknown:  { bg: '#f4f4f0', text: '#666660', label: '?'        },
   }
-  const labels: Record<string, string> = {
-    inquiry: 'Inquiry', interest: 'Interest', negative: 'Negative',
-    spam: 'Spam', question: 'Swali', praise: 'Sifa', unknown: '?',
+  const s = map[type]
+  if (s) {
+    return (
+      <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: s.bg, color: s.text }}>
+        {s.label}
+      </span>
+    )
   }
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[type] ?? 'bg-gray-100 text-gray-600'}`}>{labels[type] ?? type}</span>
+  return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{type}</span>
 }
 
 function PlatformIcon({ platform }: { platform: string }) {
-  if (platform === 'instagram') return <span className="text-pink-500">📸</span>
-  if (platform === 'facebook') return <span className="text-blue-500">👤</span>
+  if (platform === 'instagram') return <span style={{ color: '#c13584' }}>📸</span>
+  if (platform === 'facebook')  return <span style={{ color: '#1877f2' }}>👤</span>
+  if (platform === 'tiktok')    return <span style={{ color: '#1a1a18' }}>🎵</span>
   return <span>🌐</span>
 }
+
+// ── Sidebar navigation groups ──────────────────────────────────────────────
+
+const SIDEBAR_GROUPS: { title: string; items: { id: Tab; label: string; emoji: string }[] }[] = [
+  {
+    title: 'Muhtasari',
+    items: [
+      { id: 'yote',     label: 'Platforms Zote', emoji: '🌐' },
+      { id: 'overview', label: 'Takwimu',        emoji: '📊' },
+    ],
+  },
+  {
+    title: 'Chapisha',
+    items: [
+      { id: 'postnow',  label: 'Chapisha Sasa', emoji: '✍️'  },
+      { id: 'upload',   label: 'Pakia Video',   emoji: '📹' },
+      { id: 'carousel', label: 'Carousel',      emoji: '🖼️'  },
+      { id: 'stories',  label: 'Stories',       emoji: '🔴' },
+    ],
+  },
+  {
+    title: 'Machapisho',
+    items: [
+      { id: 'posts',    label: 'Machapisho', emoji: '📸' },
+      { id: 'schedule', label: 'Ratiba',     emoji: '📅' },
+      { id: 'tiktok',   label: 'TikTok',     emoji: '🎵' },
+    ],
+  },
+  {
+    title: 'Jamii & Soko',
+    items: [
+      { id: 'groups',      label: 'Makundi FB',  emoji: '👥' },
+      { id: 'marketplace', label: 'Marketplace', emoji: '🛒' },
+    ],
+  },
+  {
+    title: 'Usimamizi',
+    items: [
+      { id: 'comments', label: 'Maoni',       emoji: '💬' },
+      { id: 'dms',      label: 'DMs',         emoji: '📨' },
+      { id: 'spam',     label: 'Spam',        emoji: '🚫' },
+      { id: 'besttime', label: 'Wakati Bora', emoji: '⏰' },
+    ],
+  },
+]
+
+const ALL_NAV_ITEMS = SIDEBAR_GROUPS.flatMap(g => g.items)
 
 // ── Main Component ─────────────────────────────────────────────────────────
 
@@ -105,22 +166,22 @@ export default function SocialDashboard() {
   const [toast, setToast]         = useState<string | null>(null)
 
   // Unified tab state
-  const [unifiedStats, setUnifiedStats]       = useState<{ platforms: UnifiedPlatformStat[]; totals: UnifiedTotals; recentPosts: UnifiedRecentPost[] } | null>(null)
-  const [connections, setConnections]         = useState<PlatformConnection[]>([])
-  const [unifiedPeriod, setUnifiedPeriod]     = useState<'today' | 'week' | 'month' | 'all'>('month')
-  const [postAllListing, setPostAllListing]   = useState('')
-  const [postAllLoading, setPostAllLoading]   = useState(false)
+  const [unifiedStats, setUnifiedStats]     = useState<{ platforms: UnifiedPlatformStat[]; totals: UnifiedTotals; recentPosts: UnifiedRecentPost[] } | null>(null)
+  const [connections, setConnections]       = useState<PlatformConnection[]>([])
+  const [unifiedPeriod, setUnifiedPeriod]   = useState<'today' | 'week' | 'month' | 'all'>('month')
+  const [postAllListing, setPostAllListing] = useState('')
+  const [postAllLoading, setPostAllLoading] = useState(false)
 
   // Post Now state
-  const [listings, setListings]       = useState<Listing[]>([])
-  const [selectedListing, setSelectedListing] = useState('')
-  const [selectedPlatform, setSelectedPlatform] = useState<'instagram' | 'facebook' | 'both' | 'all'>('all')
-  const [postMode, setPostMode]       = useState<'single' | 'carousel' | 'story'>('single')
-  const [generatedCaption, setGeneratedCaption] = useState('')
+  const [listings, setListings]                   = useState<Listing[]>([])
+  const [selectedListing, setSelectedListing]     = useState('')
+  const [selectedPlatform, setSelectedPlatform]   = useState<'instagram' | 'facebook' | 'both' | 'all'>('all')
+  const [postMode, setPostMode]                   = useState<'single' | 'carousel' | 'story'>('single')
+  const [generatedCaption, setGeneratedCaption]   = useState('')
   const [generatedHashtags, setGeneratedHashtags] = useState('')
-  const [captionLoading, setCaptionLoading] = useState(false)
-  const [postLoading, setPostLoading] = useState(false)
-  const [scheduledAt, setScheduledAt] = useState('')
+  const [captionLoading, setCaptionLoading]       = useState(false)
+  const [postLoading, setPostLoading]             = useState(false)
+  const [scheduledAt, setScheduledAt]             = useState('')
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -222,7 +283,6 @@ export default function SocialDashboard() {
     if (!selectedListing) { showToast('Chagua listing kwanza'); return }
     setPostLoading(true)
     try {
-      // ── Story ────────────────────────────────────────────────────────────
       if (postMode === 'story') {
         const res = await fetch('/api/v1/social/stories', {
           method: 'POST',
@@ -243,7 +303,6 @@ export default function SocialDashboard() {
         return
       }
 
-      // ── Carousel ─────────────────────────────────────────────────────────
       if (postMode === 'carousel') {
         const res = await fetch('/api/v1/social/carousel', {
           method: 'POST',
@@ -257,9 +316,7 @@ export default function SocialDashboard() {
         return
       }
 
-      // ── Single / All platforms ────────────────────────────────────────────
       if (selectedPlatform === 'all') {
-        // Post to all connected platforms (IG + FB + TikTok)
         const res = await fetch('/api/v1/social/post-all', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -327,671 +384,784 @@ export default function SocialDashboard() {
     }
   }
 
-  const TABS: { id: Tab; label: string; emoji: string }[] = [
-    { id: 'yote',        label: 'Platforms Zote', emoji: '🌐' },
-    { id: 'overview',    label: 'Muhtasari',   emoji: '📊' },
-    { id: 'tiktok',      label: 'TikTok',      emoji: '🎵' },
-    { id: 'posts',       label: 'Machapisho',  emoji: '📸' },
-    { id: 'upload',      label: 'Pakia Video', emoji: '📹' },
-    { id: 'groups',      label: 'Makundi',     emoji: '👥' },
-    { id: 'stories',     label: 'Stories',     emoji: '🔴' },
-    { id: 'carousel',    label: 'Carousel',    emoji: '🖼️' },
-    { id: 'marketplace', label: 'Marketplace', emoji: '🛒' },
-    { id: 'spam',        label: 'Spam',        emoji: '🚫' },
-    { id: 'besttime',    label: 'Wakati Bora', emoji: '⏰' },
-    { id: 'comments',    label: 'Maoni',       emoji: '💬' },
-    { id: 'dms',         label: 'DMs',         emoji: '📨' },
-    { id: 'postnow',     label: 'Chapisha',    emoji: '✍️' },
-    { id: 'schedule',    label: 'Ratiba',      emoji: '📅' },
-  ]
+  const activeTabInfo = ALL_NAV_ITEMS.find(t => t.id === activeTab)
+
+  // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Social Media</h1>
-        <p className="text-sm text-gray-500 mt-0.5">TikTok, Instagram + Facebook automation — NyumbaFasta</p>
-      </div>
+    <div className="flex min-h-full" style={{ background: '#f4f4f0' }}>
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl text-sm">
+        <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl text-sm max-w-xs">
           {toast}
         </div>
       )}
 
-      {/* Tabs — scrollable with right fade hint */}
-      <div className="relative mb-6">
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto scrollbar-hide">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${
-                activeTab === tab.id
-                  ? 'bg-white text-primary-500 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+      {/* ── Desktop sidebar nav ─────────────────────────────────────────── */}
+      <aside
+        className="hidden lg:flex flex-col w-[185px] flex-shrink-0 sticky top-0 self-start bg-white border-r"
+        style={{ borderColor: '#e5e5e0', maxHeight: '100vh' }}
+      >
+        {/* Brand */}
+        <div className="px-4 py-4 border-b flex-shrink-0" style={{ borderColor: '#e5e5e0' }}>
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: '#1a1a18' }}
             >
-              <span>{tab.emoji}</span>
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-        {/* Fade hint — shows more tabs available on mobile */}
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-100 to-transparent rounded-r-xl sm:hidden" />
-      </div>
-
-      {/* ── PLATFORMS ZOTE (unified) ── */}
-      {activeTab === 'yote' && (
-        <div className="space-y-6">
-
-          {/* Connection status row */}
-          <div className="grid grid-cols-3 gap-4">
-            {(connections.length > 0 ? connections : [
-              { platform: 'instagram', label: 'Instagram', is_connected: false },
-              { platform: 'facebook',  label: 'Facebook',  is_connected: false },
-              { platform: 'tiktok',    label: 'TikTok',    is_connected: false },
-            ]).map(c => (
-              <div key={c.platform} className={`flex items-center gap-3 p-4 rounded-xl border ${c.is_connected ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                <div className={`w-2.5 h-2.5 rounded-full ${c.is_connected ? 'bg-green-500' : 'bg-gray-300'}`} />
-                <div>
-                  <p className="text-sm font-medium text-gray-800">{c.label}</p>
-                  <p className={`text-xs ${c.is_connected ? 'text-green-600' : 'text-gray-400'}`}>
-                    {c.is_connected ? 'Imeunganishwa' : 'Haijaunganishwa'}
-                  </p>
-                </div>
-              </div>
-            ))}
+              <span className="text-white text-xs font-bold">SM</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold leading-tight" style={{ color: '#1a1a18' }}>Social Media</p>
+              <p className="text-[10px] leading-tight" style={{ color: '#999992' }}>NyumbaFasta</p>
+            </div>
           </div>
+        </div>
 
-          {/* Period selector + Totals */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-800">Takwimu za Pamoja</h3>
-              <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
-                {(['today', 'week', 'month', 'all'] as const).map(p => (
+        {/* Nav groups */}
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
+          {SIDEBAR_GROUPS.map(group => (
+            <div key={group.title} className="mb-4">
+              <p
+                className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5"
+                style={{ color: '#999992' }}
+              >
+                {group.title}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map(item => (
                   <button
-                    key={p}
-                    onClick={() => setUnifiedPeriod(p)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                      unifiedPeriod === p ? 'bg-white text-primary-500 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-left ${
+                      activeTab === item.id
+                        ? 'bg-primary-50 text-primary-700 font-semibold'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
-                    {p === 'today' ? 'Leo' : p === 'week' ? 'Wiki' : p === 'month' ? 'Mwezi' : 'Yote'}
+                    <span className="text-xs w-4 flex-shrink-0 text-center">{item.emoji}</span>
+                    <span className="text-xs truncate">{item.label}</span>
+                    {activeTab === item.id && (
+                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
+                    )}
                   </button>
                 ))}
               </div>
             </div>
+          ))}
+        </nav>
 
-            {loading ? (
-              <div className="grid grid-cols-5 gap-3">
-                {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />)}
-              </div>
-            ) : unifiedStats ? (
-              <div className="grid grid-cols-5 gap-3">
-                {[
-                  { label: 'Machapisho',  value: unifiedStats.totals.posts,    emoji: '📸' },
-                  { label: 'Maoni',       value: unifiedStats.totals.comments, emoji: '💬' },
-                  { label: 'Likes',       value: unifiedStats.totals.likes,    emoji: '❤️' },
-                  { label: 'Shares',      value: unifiedStats.totals.shares,   emoji: '🔁' },
-                  { label: 'Views',       value: unifiedStats.totals.views,    emoji: '👁️' },
-                ].map(c => (
-                  <div key={c.label} className="text-center bg-gray-50 rounded-xl p-3">
-                    <div className="text-lg">{c.emoji}</div>
-                    <div className="text-xl font-bold text-gray-900">{c.value.toLocaleString()}</div>
-                    <div className="text-xs text-gray-500">{c.label}</div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          {/* Per-platform breakdown */}
-          {unifiedStats && (
-            <div className="grid grid-cols-3 gap-4">
-              {unifiedStats.platforms.map(p => {
-                const icons: Record<string, string> = { instagram: '📸', facebook: '👤', tiktok: '🎵' }
-                const colors: Record<string, string> = { instagram: 'text-pink-600', facebook: 'text-blue-600', tiktok: 'text-gray-900' }
-                return (
-                  <div key={p.platform} className="bg-white rounded-xl border border-gray-200 p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xl">{icons[p.platform] ?? '🌐'}</span>
-                      <span className={`font-semibold ${colors[p.platform] ?? 'text-gray-800'} capitalize`}>{p.platform}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-gray-400 text-xs">Posts</span>
-                        <p className="font-bold text-gray-900">{p.totalPosts}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 text-xs">Zilipita</span>
-                        <p className="font-bold text-green-600">{p.successPosts}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 text-xs">Likes</span>
-                        <p className="font-bold text-gray-900">{p.totalLikes.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 text-xs">Maoni</span>
-                        <p className="font-bold text-gray-900">{p.totalComments.toLocaleString()}</p>
-                      </div>
-                      {p.totalViews > 0 && (
-                        <div>
-                          <span className="text-gray-400 text-xs">Views</span>
-                          <p className="font-bold text-gray-900">{p.totalViews.toLocaleString()}</p>
-                        </div>
-                      )}
-                      {p.failedPosts > 0 && (
-                        <div>
-                          <span className="text-gray-400 text-xs">Zilishindwa</span>
-                          <p className="font-bold text-red-600">{p.failedPosts}</p>
-                        </div>
-                      )}
-                    </div>
-                    {p.lastPostAt && (
-                      <p className="text-[10px] text-gray-400 mt-3">Mwisho: {fmtDate(p.lastPostAt)}</p>
-                    )}
-                  </div>
-                )
-              })}
+        {/* Platform connection status */}
+        <div className="px-3 py-3 border-t flex-shrink-0" style={{ borderColor: '#e5e5e0' }}>
+          <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#999992' }}>
+            Muunganiko
+          </p>
+          {(connections.length > 0 ? connections : [
+            { platform: 'instagram', label: 'Instagram', is_connected: false },
+            { platform: 'facebook',  label: 'Facebook',  is_connected: false },
+            { platform: 'tiktok',    label: 'TikTok',    is_connected: false },
+          ]).map(c => (
+            <div key={c.platform} className="flex items-center gap-2 py-0.5">
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.is_connected ? 'bg-green-500' : 'bg-gray-300'}`} />
+              <span className="text-[11px]" style={{ color: c.is_connected ? '#3b6d11' : '#999992' }}>
+                {c.label}
+              </span>
             </div>
-          )}
-
-          {/* Quick post all */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="font-semibold text-gray-800 mb-3">Chapisha Kwenye Platforms Zote</h3>
-            <div className="flex gap-3">
-              <select
-                value={postAllListing}
-                onChange={e => setPostAllListing(e.target.value)}
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">-- Chagua listing --</option>
-                {listings.map(l => (
-                  <option key={l.id} value={l.id}>{l.title} — {l.district}</option>
-                ))}
-              </select>
-              <button
-                onClick={handlePostAll}
-                disabled={postAllLoading || !postAllListing}
-                className="px-5 py-2.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 disabled:opacity-50 transition-all whitespace-nowrap"
-              >
-                {postAllLoading ? '⏳ Inachapisha...' : '🚀 Chapisha Yote'}
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 mt-2">Itachapisha kwenye Instagram, Facebook, na TikTok kwa wakati mmoja.</p>
-          </div>
-
-          {/* Recent posts (unified) */}
-          {unifiedStats && unifiedStats.recentPosts.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-gray-800 mb-3">Machapisho ya Hivi Karibuni</h3>
-              <div className="space-y-2">
-                {unifiedStats.recentPosts.slice(0, 10).map(rp => {
-                  const pIcons: Record<string, string> = { instagram: '📸', facebook: '👤', tiktok: '🎵' }
-                  const statusColors: Record<string, string> = {
-                    posted: 'text-green-600', published: 'text-green-600',
-                    failed: 'text-red-600', posting: 'text-blue-600', pending: 'text-yellow-600',
-                  }
-                  return (
-                    <div key={rp.id + rp.platform} className="flex items-center gap-3 text-sm py-2 border-b border-gray-50 last:border-0">
-                      <span>{pIcons[rp.platform] ?? '🌐'}</span>
-                      <span className="capitalize text-gray-600 w-20">{rp.platform}</span>
-                      <span className={`font-medium ${statusColors[rp.status] ?? 'text-gray-600'}`}>{rp.status}</span>
-                      <span className="text-gray-400 text-xs ml-auto">{rp.created_at ? fmtDate(rp.created_at) : ''}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+          ))}
         </div>
-      )}
+      </aside>
 
-      {/* ── OVERVIEW ── */}
-      {activeTab === 'overview' && (
-        <div>
-          {loading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : stats ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label: 'Machapisho Yote',      value: stats.totalPosts,        emoji: '📸', color: 'text-blue-600'   },
-                { label: 'Yalichapishwa',         value: stats.publishedPosts,    emoji: '✅', color: 'text-green-600'  },
-                { label: 'Wiki Hii',              value: stats.postsThisWeek,     emoji: '📅', color: 'text-purple-600' },
-                { label: 'Maoni Yote',            value: stats.totalComments,     emoji: '💬', color: 'text-orange-600' },
-                { label: 'Maoni Bila Jibu',       value: stats.unrepliedComments, emoji: '⚠️', color: 'text-red-600'    },
-                { label: 'Maoni Leo',             value: stats.commentsToday,     emoji: '🔔', color: 'text-pink-600'   },
-                { label: 'DMs Zote',              value: stats.totalDMs,          emoji: '📨', color: 'text-indigo-600' },
-                { label: 'DMs Bila Jibu',         value: stats.unrepliedDMs,      emoji: '📬', color: 'text-red-600'    },
-              ].map(card => (
-                <div key={card.label} className="bg-white rounded-xl border border-gray-200 p-4">
-                  <div className="text-2xl mb-1">{card.emoji}</div>
-                  <div className={`text-2xl font-bold ${card.color}`}>{card.value.toLocaleString()}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{card.label}</div>
-                </div>
-              ))}
-            </div>
-          ) : null}
+      {/* ── Main content ───────────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 flex flex-col">
 
-          <div className="mt-6 flex gap-3">
-            <button
-              onClick={() => setActiveTab('upload')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600 transition-all"
-            >
-              📹 Pakia Video Mpya
-            </button>
-            <button
-              onClick={() => setActiveTab('postnow')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-all"
-            >
-              ✍️ Chapisha Listing
-            </button>
+        {/* Topbar */}
+        <div
+          className="bg-white border-b px-6 py-4 flex items-center justify-between flex-shrink-0"
+          style={{ borderColor: '#e5e5e0' }}
+        >
+          <div>
+            <h1 className="text-base font-bold leading-tight" style={{ color: '#1a1a18' }}>
+              {activeTabInfo ? `${activeTabInfo.emoji} ${activeTabInfo.label}` : '🌐 Social Media'}
+            </h1>
+            <p className="text-xs mt-0.5" style={{ color: '#999992' }}>
+              TikTok, Instagram + Facebook automation — NyumbaFasta
+            </p>
           </div>
-
-          <div className="mt-4 bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="font-semibold text-gray-800 mb-3">Maarifa ya Mfumo</h3>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>📌 <strong>Webhook URL:</strong> <code className="bg-gray-100 px-1 rounded">/api/v1/meta/webhook</code> — weka kwenye Meta Developer Console</p>
-              <p>🔑 <strong>Verify Token:</strong> <code className="bg-gray-100 px-1 rounded">nyumbafasta_meta_webhook_2026</code></p>
-              <p>⚡ <strong>Maoni ya Spam:</strong> hayajibiiwi kiotomatiki</p>
-              <p>🤖 <strong>DMs:</strong> zinajibiwa na Amina kwa Kiswahili cha Dar es Salaam</p>
-              <p>📊 <strong>Metrics:</strong> zinasasishwa kila saa 24 kupitia cron job</p>
-            </div>
+          {/* Mobile nav selector */}
+          <div className="lg:hidden">
+            <select
+              value={activeTab}
+              onChange={e => setActiveTab(e.target.value as Tab)}
+              className="text-sm rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
+            >
+              {ALL_NAV_ITEMS.map(item => (
+                <option key={item.id} value={item.id}>{item.emoji} {item.label}</option>
+              ))}
+            </select>
           </div>
         </div>
-      )}
 
-      {/* ── POSTS ── */}
-      {activeTab === 'posts' && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-500">Jumla: {total} posts</p>
-            <button
-              onClick={handleRefreshMetrics}
-              disabled={loading}
-              className="px-3 py-1.5 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50"
-            >
-              {loading ? '...' : '🔄 Sasisha Metrics'}
-            </button>
-          </div>
-          <div className="space-y-3">
-            {posts.map(post => (
-              <div key={post.id} className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <PlatformIcon platform={post.platform} />
-                      <StatusBadge status={post.status} />
-                      <span className="text-xs text-gray-400">{post.media_type}</span>
-                      {post.published_at && (
-                        <span className="text-xs text-gray-400">{fmtDate(post.published_at)}</span>
-                      )}
-                    </div>
-                    {post.listings && (
-                      <p className="text-sm font-medium text-gray-800 truncate">
-                        {post.listings.title} — {post.listings.district}
+        {/* Page content */}
+        <div className="flex-1 p-6">
+
+          {/* ── PLATFORMS ZOTE (unified) ── */}
+          {activeTab === 'yote' && (
+            <div className="space-y-5">
+
+              {/* Connection status row */}
+              <div className="grid grid-cols-3 gap-4">
+                {(connections.length > 0 ? connections : [
+                  { platform: 'instagram', label: 'Instagram', is_connected: false },
+                  { platform: 'facebook',  label: 'Facebook',  is_connected: false },
+                  { platform: 'tiktok',    label: 'TikTok',    is_connected: false },
+                ]).map(c => (
+                  <div
+                    key={c.platform}
+                    className="flex items-center gap-3 p-4 rounded-xl border"
+                    style={{
+                      background: c.is_connected ? '#eaf3de' : '#f8f8f5',
+                      borderColor: c.is_connected ? '#b6d99a' : '#e5e5e0',
+                    }}
+                  >
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${c.is_connected ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: '#1a1a18' }}>{c.label}</p>
+                      <p className="text-xs" style={{ color: c.is_connected ? '#3b6d11' : '#999992' }}>
+                        {c.is_connected ? 'Imeunganishwa' : 'Haijaunganishwa'}
                       </p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{post.caption}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Period selector + Totals */}
+              <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e5e0' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold" style={{ color: '#1a1a18' }}>Takwimu za Pamoja</h3>
+                  <div className="flex gap-1 rounded-lg p-0.5" style={{ background: '#f4f4f0' }}>
+                    {(['today', 'week', 'month', 'all'] as const).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setUnifiedPeriod(p)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                          unifiedPeriod === p
+                            ? 'bg-white text-primary-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        {p === 'today' ? 'Leo' : p === 'week' ? 'Wiki' : p === 'month' ? 'Mwezi' : 'Yote'}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                {post.metrics && Object.keys(post.metrics).length > 0 && (
-                  <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">
-                    {post.metrics.ig_likes    != null && <MetricChip label="IG Likes"    value={post.metrics.ig_likes}    />}
-                    {post.metrics.ig_comments != null && <MetricChip label="IG Maoni"    value={post.metrics.ig_comments} />}
-                    {post.metrics.ig_reach    != null && <MetricChip label="IG Reach"    value={post.metrics.ig_reach}    />}
-                    {post.metrics.fb_likes    != null && <MetricChip label="FB Likes"    value={post.metrics.fb_likes}    />}
-                    {post.metrics.fb_comments != null && <MetricChip label="FB Maoni"    value={post.metrics.fb_comments} />}
-                    {post.metrics.fb_shares   != null && <MetricChip label="FB Shares"   value={post.metrics.fb_shares}   />}
+
+                {loading ? (
+                  <div className="grid grid-cols-5 gap-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : unifiedStats ? (
+                  <div className="grid grid-cols-5 gap-3">
+                    {[
+                      { label: 'Machapisho', value: unifiedStats.totals.posts,    emoji: '📸' },
+                      { label: 'Maoni',      value: unifiedStats.totals.comments, emoji: '💬' },
+                      { label: 'Likes',      value: unifiedStats.totals.likes,    emoji: '❤️' },
+                      { label: 'Shares',     value: unifiedStats.totals.shares,   emoji: '🔁' },
+                      { label: 'Views',      value: unifiedStats.totals.views,    emoji: '👁️' },
+                    ].map(c => (
+                      <div key={c.label} className="text-center rounded-xl p-3" style={{ background: '#f8f8f5' }}>
+                        <div className="text-lg">{c.emoji}</div>
+                        <div className="text-xl font-bold" style={{ color: '#1a1a18' }}>{c.value.toLocaleString()}</div>
+                        <div className="text-xs" style={{ color: '#999992' }}>{c.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Per-platform breakdown */}
+              {unifiedStats && (
+                <div className="grid grid-cols-3 gap-4">
+                  {unifiedStats.platforms.map(p => {
+                    const icons: Record<string, string>  = { instagram: '📸', facebook: '👤', tiktok: '🎵' }
+                    const colors: Record<string, string> = { instagram: '#c13584', facebook: '#1877f2', tiktok: '#1a1a18' }
+                    return (
+                      <div key={p.platform} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e5e0' }}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-xl">{icons[p.platform] ?? '🌐'}</span>
+                          <span className="font-semibold capitalize text-sm" style={{ color: colors[p.platform] ?? '#1a1a18' }}>
+                            {p.platform}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-[10px]" style={{ color: '#999992' }}>Posts</span>
+                            <p className="font-bold" style={{ color: '#1a1a18' }}>{p.totalPosts}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px]" style={{ color: '#999992' }}>Zilipita</span>
+                            <p className="font-bold" style={{ color: '#3b6d11' }}>{p.successPosts}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px]" style={{ color: '#999992' }}>Likes</span>
+                            <p className="font-bold" style={{ color: '#1a1a18' }}>{p.totalLikes.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px]" style={{ color: '#999992' }}>Maoni</span>
+                            <p className="font-bold" style={{ color: '#1a1a18' }}>{p.totalComments.toLocaleString()}</p>
+                          </div>
+                          {p.totalViews > 0 && (
+                            <div>
+                              <span className="text-[10px]" style={{ color: '#999992' }}>Views</span>
+                              <p className="font-bold" style={{ color: '#1a1a18' }}>{p.totalViews.toLocaleString()}</p>
+                            </div>
+                          )}
+                          {p.failedPosts > 0 && (
+                            <div>
+                              <span className="text-[10px]" style={{ color: '#999992' }}>Zilishindwa</span>
+                              <p className="font-bold" style={{ color: '#a32d2d' }}>{p.failedPosts}</p>
+                            </div>
+                          )}
+                        </div>
+                        {p.lastPostAt && (
+                          <p className="text-[10px] mt-3" style={{ color: '#999992' }}>
+                            Mwisho: {fmtDate(p.lastPostAt)}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Quick post all */}
+              <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e5e0' }}>
+                <h3 className="font-semibold mb-3" style={{ color: '#1a1a18' }}>Chapisha Kwenye Platforms Zote</h3>
+                <div className="flex gap-3">
+                  <select
+                    value={postAllListing}
+                    onChange={e => setPostAllListing(e.target.value)}
+                    className="flex-1 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
+                  >
+                    <option value="">-- Chagua listing --</option>
+                    {listings.map(l => (
+                      <option key={l.id} value={l.id}>{l.title} — {l.district}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handlePostAll}
+                    disabled={postAllLoading || !postAllListing}
+                    className="px-5 py-2.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 disabled:opacity-50 transition-all whitespace-nowrap"
+                  >
+                    {postAllLoading ? '⏳ Inachapisha...' : '🚀 Chapisha Yote'}
+                  </button>
+                </div>
+                <p className="text-xs mt-2" style={{ color: '#999992' }}>
+                  Itachapisha kwenye Instagram, Facebook, na TikTok kwa wakati mmoja.
+                </p>
+              </div>
+
+              {/* Recent posts */}
+              {unifiedStats && unifiedStats.recentPosts.length > 0 && (
+                <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e5e0' }}>
+                  <h3 className="font-semibold mb-3" style={{ color: '#1a1a18' }}>Machapisho ya Hivi Karibuni</h3>
+                  <div className="space-y-2">
+                    {unifiedStats.recentPosts.slice(0, 10).map(rp => {
+                      const pIcons: Record<string, string> = { instagram: '📸', facebook: '👤', tiktok: '🎵' }
+                      const statusColors: Record<string, string> = {
+                        posted: '#3b6d11', published: '#3b6d11',
+                        failed: '#a32d2d', posting: '#185fa5', pending: '#854f0b',
+                      }
+                      return (
+                        <div
+                          key={rp.id + rp.platform}
+                          className="flex items-center gap-3 text-sm py-2 border-b last:border-0"
+                          style={{ borderColor: '#f4f4f0' }}
+                        >
+                          <span>{pIcons[rp.platform] ?? '🌐'}</span>
+                          <span className="capitalize w-20 text-xs" style={{ color: '#666660' }}>{rp.platform}</span>
+                          <span className="font-medium text-xs" style={{ color: statusColors[rp.status] ?? '#666660' }}>
+                            {rp.status}
+                          </span>
+                          <span className="text-xs ml-auto" style={{ color: '#999992' }}>
+                            {rp.created_at ? fmtDate(rp.created_at) : ''}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── OVERVIEW ── */}
+          {activeTab === 'overview' && (
+            <div>
+              {loading ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : stats ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Machapisho Yote',  value: stats.totalPosts,        emoji: '📸', bg: '#e6f1fb', color: '#185fa5' },
+                    { label: 'Yalichapishwa',     value: stats.publishedPosts,    emoji: '✅', bg: '#eaf3de', color: '#3b6d11' },
+                    { label: 'Wiki Hii',          value: stats.postsThisWeek,     emoji: '📅', bg: '#eeedfe', color: '#534ab7' },
+                    { label: 'Maoni Yote',        value: stats.totalComments,     emoji: '💬', bg: '#faeeda', color: '#854f0b' },
+                    { label: 'Maoni Bila Jibu',   value: stats.unrepliedComments, emoji: '⚠️', bg: '#fcebeb', color: '#a32d2d' },
+                    { label: 'Maoni Leo',         value: stats.commentsToday,     emoji: '🔔', bg: '#eeedfe', color: '#534ab7' },
+                    { label: 'DMs Zote',          value: stats.totalDMs,          emoji: '📨', bg: '#e6f1fb', color: '#185fa5' },
+                    { label: 'DMs Bila Jibu',     value: stats.unrepliedDMs,      emoji: '📬', bg: '#fcebeb', color: '#a32d2d' },
+                  ].map(card => (
+                    <div key={card.label} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e5e0' }}>
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-3"
+                        style={{ background: card.bg }}
+                      >
+                        {card.emoji}
+                      </div>
+                      <div className="text-2xl font-bold" style={{ color: card.color }}>{card.value.toLocaleString()}</div>
+                      <div className="text-xs mt-0.5" style={{ color: '#666660' }}>{card.label}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={() => setActiveTab('upload')}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600 transition-all"
+                >
+                  📹 Pakia Video Mpya
+                </button>
+                <button
+                  onClick={() => setActiveTab('postnow')}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white text-sm font-medium rounded-xl hover:bg-gray-50 transition-all"
+                  style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
+                >
+                  ✍️ Chapisha Listing
+                </button>
+              </div>
+
+              <div className="mt-4 bg-white rounded-xl border p-5" style={{ borderColor: '#e5e5e0' }}>
+                <h3 className="font-semibold mb-3" style={{ color: '#1a1a18' }}>Maarifa ya Mfumo</h3>
+                <div className="space-y-2 text-sm" style={{ color: '#666660' }}>
+                  <p>📌 <strong>Webhook URL:</strong>{' '}
+                    <code className="px-1 rounded text-xs" style={{ background: '#f4f4f0' }}>/api/v1/meta/webhook</code>
+                    {' '}— weka kwenye Meta Developer Console
+                  </p>
+                  <p>🔑 <strong>Verify Token:</strong>{' '}
+                    <code className="px-1 rounded text-xs" style={{ background: '#f4f4f0' }}>nyumbafasta_meta_webhook_2026</code>
+                  </p>
+                  <p>⚡ <strong>Maoni ya Spam:</strong> hayajibiiwi kiotomatiki</p>
+                  <p>🤖 <strong>DMs:</strong> zinajibiwa na Amina kwa Kiswahili cha Dar es Salaam</p>
+                  <p>📊 <strong>Metrics:</strong> zinasasishwa kila saa 24 kupitia cron job</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── POSTS ── */}
+          {activeTab === 'posts' && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm" style={{ color: '#666660' }}>Jumla: {total} posts</p>
+                <button
+                  onClick={handleRefreshMetrics}
+                  disabled={loading}
+                  className="px-3 py-1.5 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                >
+                  {loading ? '...' : '🔄 Sasisha Metrics'}
+                </button>
+              </div>
+              <div className="space-y-3">
+                {posts.map(post => (
+                  <div key={post.id} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e5e0' }}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <PlatformIcon platform={post.platform} />
+                          <StatusBadge status={post.status} />
+                          <span className="text-xs" style={{ color: '#999992' }}>{post.media_type}</span>
+                          {post.published_at && (
+                            <span className="text-xs" style={{ color: '#999992' }}>{fmtDate(post.published_at)}</span>
+                          )}
+                        </div>
+                        {post.listings && (
+                          <p className="text-sm font-medium truncate" style={{ color: '#1a1a18' }}>
+                            {post.listings.title} — {post.listings.district}
+                          </p>
+                        )}
+                        <p className="text-xs mt-1 line-clamp-2" style={{ color: '#666660' }}>{post.caption}</p>
+                      </div>
+                    </div>
+                    {post.metrics && Object.keys(post.metrics).length > 0 && (
+                      <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t" style={{ borderColor: '#f4f4f0' }}>
+                        {post.metrics.ig_likes    != null && <MetricChip label="IG Likes"  value={post.metrics.ig_likes}    />}
+                        {post.metrics.ig_comments != null && <MetricChip label="IG Maoni"  value={post.metrics.ig_comments} />}
+                        {post.metrics.ig_reach    != null && <MetricChip label="IG Reach"  value={post.metrics.ig_reach}    />}
+                        {post.metrics.fb_likes    != null && <MetricChip label="FB Likes"  value={post.metrics.fb_likes}    />}
+                        {post.metrics.fb_comments != null && <MetricChip label="FB Maoni"  value={post.metrics.fb_comments} />}
+                        {post.metrics.fb_shares   != null && <MetricChip label="FB Shares" value={post.metrics.fb_shares}   />}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {!loading && posts.length === 0 && (
+                  <div className="text-center py-16" style={{ color: '#999992' }}>
+                    <div className="text-4xl mb-3">📸</div>
+                    <p className="font-medium" style={{ color: '#666660' }}>Hakuna machapisho katika kipindi hiki</p>
+                    <p className="text-sm mt-1">
+                      Jaribu kubadilisha kipindi cha muda, au{' '}
+                      <button onClick={() => setActiveTab('postnow')} className="text-primary-500 hover:underline">
+                        chapisha listing ya kwanza
+                      </button>
+                    </p>
                   </div>
                 )}
               </div>
-            ))}
-            {!loading && posts.length === 0 && (
-              <div className="text-center py-16 text-gray-400">
-                <div className="text-4xl mb-3">📸</div>
-                <p className="font-medium text-gray-500">Hakuna machapisho katika kipindi hiki</p>
-                <p className="text-sm mt-1">
-                  Jaribu kubadilisha kipindi cha muda, au{' '}
-                  <button
-                    onClick={() => setActiveTab('postnow')}
-                    className="text-primary-500 hover:underline"
-                  >
-                    chapisha listing ya kwanza
-                  </button>
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* ── TIKTOK ── */}
-      {activeTab === 'tiktok' && <TikTokTab showToast={showToast} />}
+          {/* ── TIKTOK ── */}
+          {activeTab === 'tiktok' && <TikTokTab showToast={showToast} />}
 
-      {/* ── PAKIA VIDEO ── */}
-      {activeTab === 'upload' && <VideoUploadTab />}
+          {/* ── PAKIA VIDEO ── */}
+          {activeTab === 'upload' && <VideoUploadTab />}
 
-      {/* ── MAKUNDI (Facebook Groups) ── */}
-      {activeTab === 'groups' && <GroupsTab />}
+          {/* ── MAKUNDI ── */}
+          {activeTab === 'groups' && <GroupsTab />}
 
-      {/* ── STORIES (Instagram Stories) ── */}
-      {activeTab === 'stories' && <StoriesTab />}
+          {/* ── STORIES ── */}
+          {activeTab === 'stories' && <StoriesTab />}
 
-      {/* ── CAROUSEL (Instagram Carousel) ── */}
-      {activeTab === 'carousel' && <CarouselTab />}
+          {/* ── CAROUSEL ── */}
+          {activeTab === 'carousel' && <CarouselTab />}
 
-      {/* ── MARKETPLACE ── */}
-      {activeTab === 'marketplace' && <MarketplaceTab />}
+          {/* ── MARKETPLACE ── */}
+          {activeTab === 'marketplace' && <MarketplaceTab />}
 
-      {/* ── SPAM ── */}
-      {activeTab === 'spam' && <SpamTab />}
+          {/* ── SPAM ── */}
+          {activeTab === 'spam' && <SpamTab />}
 
-      {/* ── BEST TIME ── */}
-      {activeTab === 'besttime' && <BestTimeTab />}
+          {/* ── BEST TIME ── */}
+          {activeTab === 'besttime' && <BestTimeTab />}
 
-      {/* ── COMMENTS ── */}
-      {activeTab === 'comments' && (
-        <div>
-          <p className="text-sm text-gray-500 mb-4">Jumla: {total} maoni</p>
-          <div className="space-y-3">
-            {comments.map(comment => (
-              <div key={comment.id} className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <PlatformIcon platform={comment.platform} />
-                      <CommentTypeBadge type={comment.comment_type} />
-                      {comment.reply_sent
-                        ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Jibu limetumwa</span>
-                        : <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">Halijalibiwa</span>
-                      }
-                      <span className="text-xs text-gray-400">{fmtDate(comment.created_at)}</span>
-                    </div>
-                    {comment.commenter_name && (
-                      <p className="text-xs font-medium text-gray-600">@{comment.commenter_name}</p>
-                    )}
-                    <p className="text-sm text-gray-800 mt-1">{comment.comment_text}</p>
-                    {comment.reply_text && (
-                      <div className="mt-2 pl-3 border-l-2 border-primary-500">
-                        <p className="text-xs text-gray-500 font-medium">Jibu la Amina:</p>
-                        <p className="text-xs text-gray-600">{comment.reply_text}</p>
+          {/* ── COMMENTS ── */}
+          {activeTab === 'comments' && (
+            <div>
+              <p className="text-sm mb-4" style={{ color: '#666660' }}>Jumla: {total} maoni</p>
+              <div className="space-y-3">
+                {comments.map(comment => (
+                  <div key={comment.id} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e5e0' }}>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <PlatformIcon platform={comment.platform} />
+                          <CommentTypeBadge type={comment.comment_type} />
+                          {comment.reply_sent
+                            ? <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#eaf3de', color: '#3b6d11' }}>Jibu limetumwa</span>
+                            : <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#faeeda', color: '#854f0b' }}>Halijalibiwa</span>
+                          }
+                          <span className="text-xs" style={{ color: '#999992' }}>{fmtDate(comment.created_at)}</span>
+                        </div>
+                        {comment.commenter_name && (
+                          <p className="text-xs font-medium" style={{ color: '#666660' }}>@{comment.commenter_name}</p>
+                        )}
+                        <p className="text-sm mt-1" style={{ color: '#1a1a18' }}>{comment.comment_text}</p>
+                        {comment.reply_text && (
+                          <div className="mt-2 pl-3 border-l-2 border-primary-400">
+                            <p className="text-xs font-medium" style={{ color: '#999992' }}>Jibu la Amina:</p>
+                            <p className="text-xs" style={{ color: '#666660' }}>{comment.reply_text}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-            {!loading && comments.length === 0 && (
-              <div className="text-center py-16 text-gray-400">
-                <div className="text-4xl mb-3">💬</div>
-                <p>Hakuna maoni bado</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── DMs ── */}
-      {activeTab === 'dms' && (
-        <div>
-          <p className="text-sm text-gray-500 mb-4">Jumla: {total} DMs</p>
-          <div className="space-y-3">
-            {dms.map(dm => (
-              <div key={dm.id} className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <PlatformIcon platform={dm.platform} />
-                      {dm.reply_sent
-                        ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Jibu limetumwa</span>
-                        : <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">Halijalibiwa</span>
-                      }
-                      <span className="text-xs text-gray-400">{fmtDate(dm.created_at)}</span>
                     </div>
-                    {dm.sender_name && (
-                      <p className="text-xs font-medium text-gray-600">{dm.sender_name}</p>
-                    )}
-                    <p className="text-sm text-gray-800 mt-1">{dm.message_text}</p>
-                    {dm.reply_text && (
-                      <div className="mt-2 pl-3 border-l-2 border-primary-500">
-                        <p className="text-xs text-gray-500 font-medium">Jibu la Amina:</p>
-                        <p className="text-xs text-gray-600">{dm.reply_text}</p>
-                      </div>
-                    )}
                   </div>
-                </div>
-              </div>
-            ))}
-            {!loading && dms.length === 0 && (
-              <div className="text-center py-16 text-gray-400">
-                <div className="text-4xl mb-3">📨</div>
-                <p>Hakuna DMs bado</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── POST NOW ── */}
-      {activeTab === 'postnow' && (
-        <div className="max-w-2xl">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-            <h2 className="font-semibold text-gray-800 text-lg">Chapisha Listing</h2>
-
-            {/* Listing selector */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">Chagua Listing</label>
-              {loading ? (
-                <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
-              ) : (
-                <select
-                  value={selectedListing}
-                  onChange={(e) => { setSelectedListing(e.target.value); setGeneratedCaption('') }}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">-- Chagua listing --</option>
-                  {listings.map(l => (
-                    <option key={l.id} value={l.id}>
-                      {l.title} — {l.district}, {l.region}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Post mode */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">Aina ya Post</label>
-              <div className="flex flex-wrap gap-2">
-                {([
-                  { key: 'single',   label: '📸 Picha/Video' },
-                  { key: 'carousel', label: '🖼️ Carousel' },
-                  { key: 'story',    label: '🔴 Story' },
-                ] as const).map(m => (
-                  <button
-                    key={m.key}
-                    onClick={() => setPostMode(m.key)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
-                      postMode === m.key
-                        ? 'bg-primary-500 text-white border-primary-500'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {m.label}
-                  </button>
                 ))}
+                {!loading && comments.length === 0 && (
+                  <div className="text-center py-16" style={{ color: '#999992' }}>
+                    <div className="text-4xl mb-3">💬</div>
+                    <p>Hakuna maoni bado</p>
+                  </div>
+                )}
               </div>
-              {postMode === 'carousel' && (
-                <p className="text-xs text-gray-500 mt-1">📸 Picha zote kama slides — inahitaji picha 2+ (Instagram tu)</p>
-              )}
-              {postMode === 'story' && (
-                <p className="text-xs text-gray-500 mt-1">🔴 Picha ya kwanza kama Story — IG + FB + TikTok (kama listing ina video). Inaisha baada ya saa 24.</p>
-              )}
             </div>
+          )}
 
-            {/* Platform — only shown for single post mode */}
-            {postMode === 'single' && (
+          {/* ── DMs ── */}
+          {activeTab === 'dms' && (
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">Jukwaa</label>
-              <div className="flex flex-wrap gap-2">
-                {([
-                  { key: 'all',       label: '🌐 Zote (IG + FB + TikTok)' },
-                  { key: 'instagram', label: '📸 Instagram' },
-                  { key: 'facebook',  label: '👤 Facebook' },
-                  { key: 'both',      label: '📸👤 IG + FB' },
-                ] as const).map(p => (
-                  <button
-                    key={p.key}
-                    onClick={() => setSelectedPlatform(p.key)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
-                      selectedPlatform === p.key
-                        ? 'bg-primary-500 text-white border-primary-500'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {p.label}
-                  </button>
+              <p className="text-sm mb-4" style={{ color: '#666660' }}>Jumla: {total} DMs</p>
+              <div className="space-y-3">
+                {dms.map(dm => (
+                  <div key={dm.id} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e5e0' }}>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <PlatformIcon platform={dm.platform} />
+                          {dm.reply_sent
+                            ? <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#eaf3de', color: '#3b6d11' }}>Jibu limetumwa</span>
+                            : <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#faeeda', color: '#854f0b' }}>Halijalibiwa</span>
+                          }
+                          <span className="text-xs" style={{ color: '#999992' }}>{fmtDate(dm.created_at)}</span>
+                        </div>
+                        {dm.sender_name && (
+                          <p className="text-xs font-medium" style={{ color: '#666660' }}>{dm.sender_name}</p>
+                        )}
+                        <p className="text-sm mt-1" style={{ color: '#1a1a18' }}>{dm.message_text}</p>
+                        {dm.reply_text && (
+                          <div className="mt-2 pl-3 border-l-2 border-primary-400">
+                            <p className="text-xs font-medium" style={{ color: '#999992' }}>Jibu la Amina:</p>
+                            <p className="text-xs" style={{ color: '#666660' }}>{dm.reply_text}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 ))}
+                {!loading && dms.length === 0 && (
+                  <div className="text-center py-16" style={{ color: '#999992' }}>
+                    <div className="text-4xl mb-3">📨</div>
+                    <p>Hakuna DMs bado</p>
+                  </div>
+                )}
               </div>
             </div>
-            )}
+          )}
 
-            {/* Caption + Schedule — only for single post mode (not carousel or story) */}
-            {postMode === 'single' && (
-              <>
+          {/* ── POST NOW ── */}
+          {activeTab === 'postnow' && (
+            <div className="max-w-2xl">
+              <div className="bg-white rounded-xl border p-6 space-y-5" style={{ borderColor: '#e5e5e0' }}>
+                <h2 className="font-semibold text-lg" style={{ color: '#1a1a18' }}>Chapisha Listing</h2>
+
+                {/* Listing selector */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-sm font-medium text-gray-700">Caption</label>
-                    <button
-                      onClick={handleGenerateCaption}
-                      disabled={captionLoading || !selectedListing}
-                      className="text-xs px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
+                  <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>Chagua Listing</label>
+                  {loading ? (
+                    <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+                  ) : (
+                    <select
+                      value={selectedListing}
+                      onChange={(e) => { setSelectedListing(e.target.value); setGeneratedCaption('') }}
+                      className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
                     >
-                      {captionLoading ? '⏳ Inaandika...' : '✨ Tengeneza kwa AI'}
-                    </button>
-                  </div>
-                  <textarea
-                    value={generatedCaption}
-                    onChange={(e) => setGeneratedCaption(e.target.value)}
-                    rows={6}
-                    placeholder="Caption itaonekana hapa baada ya kugeneratea, au andika mwenyewe..."
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                  />
-                  {generatedHashtags && (
-                    <p className="text-xs text-gray-500 mt-1">Hashtags: {generatedHashtags}</p>
+                      <option value="">-- Chagua listing --</option>
+                      {listings.map(l => (
+                        <option key={l.id} value={l.id}>
+                          {l.title} — {l.district}, {l.region}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </div>
 
+                {/* Post mode */}
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1.5">Panga Muda (hiari)</label>
-                  <input
-                    type="datetime-local"
-                    value={scheduledAt}
-                    onChange={(e) => setScheduledAt(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Acha wazi kwa kuchapisha sasa hivi</p>
-                </div>
-              </>
-            )}
-
-            {/* Info boxes */}
-            {postMode === 'carousel' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
-                Caption ya AI itazalishwa kiotomatiki. Watermark itawekwa kwenye kila slide.
-                Mchakato huchukua dakika 1-2 — usifunge dirisha.
-              </div>
-            )}
-            {postMode === 'story' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800">
-                Picha ya kwanza ya listing itatumika kama Story kwenye IG Story + FB Story. Kama listing ina video, TikTok pia itachapishwa. Inaisha baada ya saa 24.
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={handlePost}
-                disabled={postLoading || !selectedListing}
-                className="btn-primary flex-1 py-3"
-              >
-                {postLoading
-                  ? '⏳ Inachapisha...'
-                  : postMode === 'carousel'
-                  ? '🖼️ Chapisha Carousel'
-                  : postMode === 'story'
-                  ? '🔴 Chapisha Story'
-                  : selectedPlatform === 'all'
-                  ? '🌐 Chapisha Zote (IG + FB + TikTok)'
-                  : scheduledAt ? '📅 Panga' : '🚀 Chapisha Sasa'}
-              </button>
-              <button
-                onClick={() => { setGeneratedCaption(''); setGeneratedHashtags(''); setSelectedListing(''); setScheduledAt('') }}
-                className="px-5 py-3 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50"
-              >
-                Futa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── SCHEDULE ── */}
-      {activeTab === 'schedule' && (
-        <div>
-          <p className="text-sm text-gray-500 mb-4">Posts zilizopangwa: {total}</p>
-          <div className="space-y-3">
-            {(schedule as Array<{
-              id: string; platform: string; scheduled_at: string; status: string
-              listings?: { title: string; district: string }
-            }>).map(item => (
-              <div key={item.id} className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex items-center gap-3">
-                  <PlatformIcon platform={item.platform} />
-                  <div className="flex-1">
-                    {item.listings && (
-                      <p className="text-sm font-medium text-gray-800">
-                        {item.listings.title} — {item.listings.district}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-500">{fmtDate(item.scheduled_at)}</p>
+                  <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>Aina ya Post</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { key: 'single',   label: '📸 Picha/Video' },
+                      { key: 'carousel', label: '🖼️ Carousel'    },
+                      { key: 'story',    label: '🔴 Story'       },
+                    ] as const).map(m => (
+                      <button
+                        key={m.key}
+                        onClick={() => setPostMode(m.key)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                          postMode === m.key
+                            ? 'bg-primary-500 text-white border-primary-500'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
                   </div>
-                  <StatusBadge status={item.status} />
+                  {postMode === 'carousel' && (
+                    <p className="text-xs mt-1" style={{ color: '#999992' }}>
+                      📸 Picha zote kama slides — inahitaji picha 2+ (Instagram tu)
+                    </p>
+                  )}
+                  {postMode === 'story' && (
+                    <p className="text-xs mt-1" style={{ color: '#999992' }}>
+                      🔴 Picha ya kwanza ya listing kama Story. Inaisha baada ya saa 24.
+                    </p>
+                  )}
+                </div>
+
+                {/* Platform — only for single post mode */}
+                {postMode === 'single' && (
+                  <div>
+                    <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>Jukwaa</label>
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        { key: 'all',       label: '🌐 Zote (IG + FB + TikTok)' },
+                        { key: 'instagram', label: '📸 Instagram'                },
+                        { key: 'facebook',  label: '👤 Facebook'                 },
+                        { key: 'both',      label: '📸👤 IG + FB'               },
+                      ] as const).map(p => (
+                        <button
+                          key={p.key}
+                          onClick={() => setSelectedPlatform(p.key)}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                            selectedPlatform === p.key
+                              ? 'bg-primary-500 text-white border-primary-500'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Caption + Schedule — only for single post mode */}
+                {postMode === 'single' && (
+                  <>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-sm font-medium" style={{ color: '#1a1a18' }}>Caption</label>
+                        <button
+                          onClick={handleGenerateCaption}
+                          disabled={captionLoading || !selectedListing}
+                          className="text-xs px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {captionLoading ? '⏳ Inaandika...' : '✨ Tengeneza kwa AI'}
+                        </button>
+                      </div>
+                      <textarea
+                        value={generatedCaption}
+                        onChange={(e) => setGeneratedCaption(e.target.value)}
+                        rows={6}
+                        placeholder="Caption itaonekana hapa baada ya kugeneratea, au andika mwenyewe..."
+                        className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                        style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
+                      />
+                      {generatedHashtags && (
+                        <p className="text-xs mt-1" style={{ color: '#999992' }}>Hashtags: {generatedHashtags}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>Panga Muda (hiari)</label>
+                      <input
+                        type="datetime-local"
+                        value={scheduledAt}
+                        onChange={(e) => setScheduledAt(e.target.value)}
+                        className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
+                      />
+                      <p className="text-xs mt-1" style={{ color: '#999992' }}>Acha wazi kwa kuchapisha sasa hivi</p>
+                    </div>
+                  </>
+                )}
+
+                {/* Info boxes */}
+                {postMode === 'carousel' && (
+                  <div className="rounded-xl p-3 text-xs" style={{ background: '#faeeda', border: '1px solid #f5d5a0', color: '#854f0b' }}>
+                    Caption ya AI itazalishwa kiotomatiki. Watermark itawekwa kwenye kila slide.
+                    Mchakato huchukua dakika 1-2 — usifunge dirisha.
+                  </div>
+                )}
+                {postMode === 'story' && (
+                  <div className="rounded-xl p-3 text-xs" style={{ background: '#e6f1fb', border: '1px solid #b3d0f5', color: '#185fa5' }}>
+                    Picha ya kwanza ya listing itatumika kama Story kwenye IG Story + FB Story.
+                    Kama listing ina video, TikTok pia itachapishwa. Inaisha baada ya saa 24.
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={handlePost}
+                    disabled={postLoading || !selectedListing}
+                    className="btn-primary flex-1 py-3"
+                  >
+                    {postLoading
+                      ? '⏳ Inachapisha...'
+                      : postMode === 'carousel'
+                      ? '🖼️ Chapisha Carousel'
+                      : postMode === 'story'
+                      ? '🔴 Chapisha Story'
+                      : selectedPlatform === 'all'
+                      ? '🌐 Chapisha Zote (IG + FB + TikTok)'
+                      : scheduledAt ? '📅 Panga' : '🚀 Chapisha Sasa'}
+                  </button>
+                  <button
+                    onClick={() => { setGeneratedCaption(''); setGeneratedHashtags(''); setSelectedListing(''); setScheduledAt('') }}
+                    className="px-5 py-3 rounded-xl hover:bg-gray-50 transition-all text-sm"
+                    style={{ border: '1px solid #e5e5e0', color: '#666660' }}
+                  >
+                    Futa
+                  </button>
                 </div>
               </div>
-            ))}
-            {!loading && schedule.length === 0 && (
-              <div className="text-center py-16 text-gray-400">
-                <div className="text-4xl mb-3">📅</div>
-                <p>Hakuna posts zilizopangwa</p>
-                <p className="text-sm mt-1">Panga kutoka kichupo cha &ldquo;Chapisha&rdquo;</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {loading && activeTab !== 'overview' && (
-        <div className="flex justify-center py-12">
-          <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
+          {/* ── SCHEDULE ── */}
+          {activeTab === 'schedule' && (
+            <div>
+              <p className="text-sm mb-4" style={{ color: '#666660' }}>Posts zilizopangwa: {total}</p>
+              <div className="space-y-3">
+                {(schedule as Array<{
+                  id: string; platform: string; scheduled_at: string; status: string
+                  listings?: { title: string; district: string }
+                }>).map(item => (
+                  <div key={item.id} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e5e0' }}>
+                    <div className="flex items-center gap-3">
+                      <PlatformIcon platform={item.platform} />
+                      <div className="flex-1">
+                        {item.listings && (
+                          <p className="text-sm font-medium" style={{ color: '#1a1a18' }}>
+                            {item.listings.title} — {item.listings.district}
+                          </p>
+                        )}
+                        <p className="text-xs" style={{ color: '#999992' }}>{fmtDate(item.scheduled_at)}</p>
+                      </div>
+                      <StatusBadge status={item.status} />
+                    </div>
+                  </div>
+                ))}
+                {!loading && schedule.length === 0 && (
+                  <div className="text-center py-16" style={{ color: '#999992' }}>
+                    <div className="text-4xl mb-3">📅</div>
+                    <p>Hakuna posts zilizopangwa</p>
+                    <p className="text-sm mt-1">Panga kutoka &ldquo;Chapisha Sasa&rdquo;</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {loading && activeTab !== 'overview' && activeTab !== 'yote' && (
+            <div className="flex justify-center py-12">
+              <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+
+        </div>{/* end .p-6 */}
+      </div>{/* end main */}
     </div>
   )
 }
 
 function MetricChip({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex flex-col items-center bg-gray-50 rounded-lg px-3 py-1.5 min-w-[60px]">
-      <span className="text-sm font-bold text-gray-800">{value.toLocaleString()}</span>
-      <span className="text-[10px] text-gray-500">{label}</span>
+    <div className="flex flex-col items-center rounded-lg px-3 py-1.5 min-w-[60px]" style={{ background: '#f8f8f5' }}>
+      <span className="text-sm font-bold" style={{ color: '#1a1a18' }}>{value.toLocaleString()}</span>
+      <span className="text-[10px]" style={{ color: '#999992' }}>{label}</span>
     </div>
   )
 }
