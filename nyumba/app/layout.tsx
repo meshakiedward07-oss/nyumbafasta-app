@@ -3,6 +3,7 @@ import localFont from 'next/font/local'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/react'
 import ClientProviders from '@/components/shared/ClientProviders'
+import SiteFooter from '@/components/shared/SiteFooter'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import './globals.css'
 
@@ -139,6 +140,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         suppressHydrationWarning
       >
         {children}
+        <SiteFooter />
         <ClientProviders />
         <GoogleAnalytics />
         <SpeedInsights />
