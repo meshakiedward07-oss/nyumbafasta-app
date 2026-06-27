@@ -618,7 +618,12 @@ export default function VideoUploadTab() {
 
             {fbEnabled && (
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1.5">👤 Facebook</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-gray-600">👤 Facebook</label>
+                  <span className={`text-xs font-medium ${
+                    captionFb.length > 4750 ? 'text-red-500' : captionFb.length > 4000 ? 'text-amber-500' : 'text-gray-400'
+                  }`}>{captionFb.length}/5000</span>
+                </div>
                 <textarea
                   value={captionFb}
                   onChange={(e) => setCaptionFb(e.target.value.slice(0, 5000))}

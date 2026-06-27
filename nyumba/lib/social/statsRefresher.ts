@@ -57,8 +57,8 @@ async function refreshInstagramStats(): Promise<number> {
         .eq('id', post.id)
 
       updated++
-    } catch {
-      // Skip individual post errors silently
+    } catch (err) {
+      console.error('[StatsRefresher] IG post', post.id, 'refresh failed:', err instanceof Error ? err.message : err)
     }
   }
   return updated
@@ -101,8 +101,8 @@ async function refreshFacebookStats(): Promise<number> {
         .eq('id', post.id)
 
       updated++
-    } catch {
-      // Skip individual post errors silently
+    } catch (err) {
+      console.error('[StatsRefresher] FB post', post.id, 'refresh failed:', err instanceof Error ? err.message : err)
     }
   }
   return updated
@@ -163,7 +163,8 @@ async function refreshTikTokStats(): Promise<number> {
       updated++
     }
     return updated
-  } catch {
+  } catch (err) {
+    console.error('[StatsRefresher] TikTok refresh failed:', err instanceof Error ? err.message : err)
     return 0
   }
 }

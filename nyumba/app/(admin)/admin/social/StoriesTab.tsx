@@ -42,6 +42,7 @@ export default function StoriesTab() {
   // Form state
   const [storyType, setStoryType]   = useState<'listing' | 'promotion'>('listing')
   const [listings, setListings]     = useState<{ id: string; title: string; district: string }[]>([])
+  const [listingsError, setListingsError] = useState(false)
   const [selectedListing, setSelectedListing] = useState('')
   const [promoImageUrl, setPromoImageUrl]     = useState('')
   const [promoLinkUrl, setPromoLinkUrl]       = useState('')
@@ -63,9 +64,17 @@ export default function StoriesTab() {
   }
 
   async function fetchListings() {
-    const res  = await fetch('/api/v1/listings?status=active&limit=50')
-    const data = await res.json() as { listings?: { id: string; title: string; district: string }[] }
-    setListings(data.listings ?? [])
+    setListingsError(false)
+    try {
+      const res  = await fetch('/api/v1/listings?status=active&limit=50')
+      if (!res.ok) throw new Error('fetch failed')
+      const data = await res.json() as { listings?: { id: string; title: string; district: string }[] }
+      const fetched = data.listings ?? []
+      setListings(fetched)
+      if (fetched.length === 0) setListingsError(false)
+    } catch {
+      setListingsError(true)
+    }
   }
 
   useEffect(() => { fetchStories(); fetchListings() }, [])
@@ -158,17 +167,37 @@ export default function StoriesTab() {
           {/* Listing Story fields */}
           {storyType === 'listing' && (
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Chagua Listing</label>
-              <select
-                value={selectedListing}
-                onChange={e => setSelectedListing(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">-- Chagua listing --</option>
-                {listings.map(l => (
-                  <option key={l.id} value={l.id}>{l.title} — {l.district}</option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-medium text-gray-600">Chagua Listing</label>
+                {listingsError && (
+                  <button
+                    type="button"
+                    onClick={fetchListings}
+                    className="text-xs text-primary-500 hover:underline"
+                  >
+                    🔄 Jaribu tena
+                  </button>
+                )}
+              </div>
+              {listingsError ? (
+                <div className="w-full border border-red-200 bg-red-50 rounded-xl px-3 py-2.5 text-sm text-red-600">
+                  ❌ Imeshindwa kupakia listings. Angalia muunganiko wako.
+                </div>
+              ) : (
+                <select
+                  value={selectedListing}
+                  onChange={e => setSelectedListing(e.target.value)}
+                  disabled={listings.length === 0}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
+                >
+                  <option value="">
+                    {listings.length === 0 ? 'Inapakia listings...' : '-- Chagua listing --'}
+                  </option>
+                  {listings.map(l => (
+                    <option key={l.id} value={l.id}>{l.title} — {l.district}</option>
+                  ))}
+                </select>
+              )}
               <p className="text-xs text-gray-400 mt-1">
                 Picha ya listing itapigwa 9:16, watermark itaongezwa. Story itatumwa kwa IG + FB + TikTok (kama video ipo).
               </p>

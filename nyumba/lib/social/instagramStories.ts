@@ -80,7 +80,11 @@ export async function postInstagramStory(params: {
       return { success: false, error: containerData.error.message }
     }
 
-    const containerId = containerData.id!
+    if (!containerData.id) {
+      return { success: false, error: 'Instagram haikurudisha container ID' }
+    }
+
+    const containerId = containerData.id
     console.log('[IG Stories] Container created:', containerId)
 
     // Wait for Meta to process the image

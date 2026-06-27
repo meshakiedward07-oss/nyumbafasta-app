@@ -319,8 +319,9 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
   }
 
   // ── Published / failed counts ──────────────────────────────────────────
-  const publishedCount = posts.filter(p => p.status === 'published').length
-  const failedCount    = posts.filter(p => p.status === 'failed').length
+  const publishedCount   = posts.filter(p => p.status === 'published').length
+  const processingCount  = posts.filter(p => p.status === 'processing').length
+  const failedCount      = posts.filter(p => p.status === 'failed').length
 
   return (
     <div className="space-y-5">
@@ -387,6 +388,12 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
               <p className="text-2xl font-bold text-white">{publishedCount}</p>
               <p className="text-gray-500 text-xs">Zilizochapishwa</p>
             </div>
+            {processingCount > 0 && (
+              <div className="text-center">
+                <p className="text-2xl font-bold text-yellow-400">{processingCount}</p>
+                <p className="text-gray-500 text-xs">Zinasindikwa</p>
+              </div>
+            )}
             <div className="text-center">
               <p className={`text-2xl font-bold ${failedCount > 0 ? 'text-red-400' : 'text-gray-600'}`}>{failedCount}</p>
               <p className="text-gray-500 text-xs">Zilizoshindwa</p>
@@ -428,10 +435,18 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
                   onChange={e => setCaption(e.target.value)}
                   rows={6}
                   maxLength={2200}
-                  className="w-full px-4 py-3 border-2 rounded-xl text-sm resize-none focus:outline-none focus:border-black transition-colors"
+                  className={`w-full px-4 py-3 border-2 rounded-xl text-sm resize-none focus:outline-none transition-colors ${
+                    caption.length > 2090 ? 'border-red-400 focus:border-red-500' : 'focus:border-black'
+                  }`}
                   placeholder="Andika maelezo ya video..."
                 />
-                <p className="text-xs text-gray-400 mt-1 text-right">{caption.length}/2200</p>
+                <p className={`text-xs mt-1 text-right font-medium ${
+                  caption.length > 2090 ? 'text-red-500' : caption.length > 1760 ? 'text-amber-500' : 'text-gray-400'
+                }`}>
+                  {caption.length}/2200
+                  {caption.length > 2090 && ' — umefika kikomo!'}
+                  {caption.length > 1760 && caption.length <= 2090 && ' — karibu na kikomo'}
+                </p>
               </div>
 
               {/* Privacy */}

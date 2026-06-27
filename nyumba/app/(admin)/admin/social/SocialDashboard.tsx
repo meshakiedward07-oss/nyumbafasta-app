@@ -360,22 +360,26 @@ export default function SocialDashboard() {
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 overflow-x-auto">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-              activeTab === tab.id
-                ? 'bg-white text-primary-500 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <span>{tab.emoji}</span>
-            <span>{tab.label}</span>
-          </button>
-        ))}
+      {/* Tabs — scrollable with right fade hint */}
+      <div className="relative mb-6">
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto scrollbar-hide">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+                activeTab === tab.id
+                  ? 'bg-white text-primary-500 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <span>{tab.emoji}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+        {/* Fade hint — shows more tabs available on mobile */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-100 to-transparent rounded-r-xl sm:hidden" />
       </div>
 
       {/* ── PLATFORMS ZOTE (unified) ── */}
@@ -652,8 +656,16 @@ export default function SocialDashboard() {
             {!loading && posts.length === 0 && (
               <div className="text-center py-16 text-gray-400">
                 <div className="text-4xl mb-3">📸</div>
-                <p>Hakuna machapisho bado</p>
-                <p className="text-sm mt-1">Chapisha listing ya kwanza kutoka kichupo cha &ldquo;Chapisha&rdquo;</p>
+                <p className="font-medium text-gray-500">Hakuna machapisho katika kipindi hiki</p>
+                <p className="text-sm mt-1">
+                  Jaribu kubadilisha kipindi cha muda, au{' '}
+                  <button
+                    onClick={() => setActiveTab('postnow')}
+                    className="text-primary-500 hover:underline"
+                  >
+                    chapisha listing ya kwanza
+                  </button>
+                </p>
               </div>
             )}
           </div>
