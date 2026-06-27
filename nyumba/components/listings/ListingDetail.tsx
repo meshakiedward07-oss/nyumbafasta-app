@@ -129,7 +129,8 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   // Pre-filled WhatsApp message — includes listing title, location, price, link
   const dalaliDisplayName = listing.dalali?.full_name ?? 'Dalali'
   const displayTitle = listing.title || `${typeLabel[listing.type] || listing.type} – ${listing.district}`
-  const locationDisplay = [listing.district, listing.region].filter(Boolean).join(', ')
+  const locationDisplay = listing.location_display
+    || [listing.mtaa, listing.ward, listing.district, listing.region].filter(Boolean).join(', ')
   const bedroomLine = listing.bedrooms ? `\n🛏️ Vyumba ${listing.bedrooms}` : ''
   const waMessage = `Habari ${dalaliDisplayName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${displayTitle}*\n📍 ${locationDisplay}${bedroomLine}\n💰 TZS ${listing.price_monthly.toLocaleString()}/mwezi\n\n🔗 https://nyumbafasta.co/listings/${listing.id}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
   const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
@@ -291,30 +292,16 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         <section className="card p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 Mahali</h3>
 
-          {/* Breadcrumb hierarchy */}
-          <div className="flex items-center gap-1 text-xs flex-wrap mb-3 bg-gray-50 rounded-xl px-3 py-2">
-            <span className="font-semibold text-gray-700">{listing.region}</span>
-            <span className="text-gray-300">›</span>
-            <span className="font-semibold text-gray-700">{listing.district}</span>
-            {listing.ward && (
-              <>
-                <span className="text-gray-300">›</span>
-                <span className="font-semibold text-gray-700">{listing.ward}</span>
-              </>
-            )}
-            {listing.mtaa && (
-              <>
-                <span className="text-gray-300">›</span>
-                <span className="font-semibold text-gray-700">{listing.mtaa}</span>
-              </>
-            )}
-            {listing.street && (
-              <>
-                <span className="text-gray-300">›</span>
-                <span className="font-semibold text-primary-600">{listing.street}</span>
-              </>
-            )}
-          </div>
+          {/* Summary line — location_display or fallback chain */}
+          {(() => {
+            const summary = listing.location_display
+              || [listing.mtaa, listing.ward, listing.district, listing.region].filter(Boolean).join(', ')
+            return summary ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 mb-3">
+                <p className="text-sm font-semibold text-gray-800">{summary}</p>
+              </div>
+            ) : null
+          })()}
 
           {/* Detail grid */}
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
@@ -340,11 +327,11 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             )}
             {listing.street && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-400 mb-0.5">Barabara / Mtaa</p>
+                <p className="text-xs text-gray-400 mb-0.5">Barabara</p>
                 <p className="text-sm font-medium text-gray-800">{listing.street}</p>
               </div>
             )}
-            {listing.address_full && (
+            {listing.address_full && listing.address_full !== listing.location_display && (
               <div className="col-span-2">
                 <p className="text-xs text-gray-400 mb-0.5">Anwani Kamili</p>
                 <p className="text-sm font-medium text-gray-800">{listing.address_full}</p>

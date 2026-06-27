@@ -106,11 +106,14 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
           {/* Location */}
           <p className="text-gray-500 text-xs mb-2 flex items-center gap-1">
             <span>📍</span>
-            <span>
-              {(listing as { ward?: string | null }).ward
-                ? `${(listing as { ward?: string | null }).ward}, `
-                : ''
-              }{listing.district}, {listing.region}
+            <span className="truncate">
+              {(listing as { location_display?: string | null }).location_display
+                || [
+                    (listing as { mtaa?: string | null }).mtaa,
+                    (listing as { ward?: string | null }).ward,
+                    listing.district,
+                    listing.region,
+                  ].filter(Boolean).join(', ')}
             </span>
           </p>
 
