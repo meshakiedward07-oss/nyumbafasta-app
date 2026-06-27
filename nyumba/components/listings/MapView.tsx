@@ -68,14 +68,9 @@ function MapContent({ listings }: { listings: MapListing[] }) {
   useEffect(() => {
     if (!map || withCoords.length === 0) return
     if (typeof google === 'undefined') return
-    if (withCoords.length === 1) {
-      map.setCenter({ lat: withCoords[0].latitude as number, lng: withCoords[0].longitude as number })
-      map.setZoom(15)
-      return
-    }
     const bounds = new google.maps.LatLngBounds()
     withCoords.forEach(l => bounds.extend({ lat: l.latitude as number, lng: l.longitude as number }))
-    map.fitBounds(bounds, 60)
+    map.fitBounds(bounds, withCoords.length === 1 ? 80 : 60)
   }, [map, withCoords.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = withCoords.find(l => l.id === selectedId)
@@ -160,6 +155,7 @@ const DAR_CENTER = { lat: -6.7924, lng: 39.2083 }
 export default function MapView({ listings, className = '' }: Props) {
   const [allListings, setAllListings] = useState<MapListing[]>(listings)
   const [loadingAll, setLoadingAll]   = useState(false)
+  const [mapType, setMapType]         = useState<'hybrid' | 'roadmap'>('hybrid')
 
   // On mount, fetch ALL listings with coordinates (not just current page)
   useEffect(() => {
@@ -192,7 +188,7 @@ export default function MapView({ listings, className = '' }: Props) {
           <Map
             defaultCenter={DAR_CENTER}
             defaultZoom={11}
-            mapTypeId="hybrid"
+            mapTypeId={mapType}
             gestureHandling="greedy"
             disableDefaultUI={false}
             mapId="nyumbafasta-map"
@@ -211,6 +207,32 @@ export default function MapView({ listings, className = '' }: Props) {
             {loadingAll ? 'Inapakia...' : `${withCoords.length} listings`}
           </div>
         )}
+
+        {/* Map type toggle */}
+        <div className="absolute top-3 right-3 z-10 flex rounded-lg overflow-hidden shadow border border-gray-200">
+          <button
+            type="button"
+            onClick={() => setMapType('hybrid')}
+            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+              mapType === 'hybrid'
+                ? 'bg-gray-900 text-white'
+                : 'bg-white/90 text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Setilaiti
+          </button>
+          <button
+            type="button"
+            onClick={() => setMapType('roadmap')}
+            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+              mapType === 'roadmap'
+                ? 'bg-gray-900 text-white'
+                : 'bg-white/90 text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Ramani
+          </button>
+        </div>
 
         {/* Hint badge */}
         {withCoords.length > 0 && (

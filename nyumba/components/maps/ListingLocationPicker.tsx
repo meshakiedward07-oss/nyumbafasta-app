@@ -90,7 +90,7 @@ function PickerContent({ initialLocation, onLocationChange }: Props) {
     if (!placesLib || !searchInputRef.current) return
     const ac = new placesLib.Autocomplete(searchInputRef.current, {
       componentRestrictions: { country: 'TZ' },
-      fields: ['geometry', 'formatted_address', 'place_id'],
+      fields: ['geometry', 'formatted_address', 'place_id', 'name'],
     })
     const listener = ac.addListener('place_changed', () => {
       const place = ac.getPlace()
