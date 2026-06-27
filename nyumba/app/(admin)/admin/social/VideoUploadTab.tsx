@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { VideoPlayer } from '@/components/listings/VideoPlayer'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -436,17 +437,14 @@ export default function VideoUploadTab() {
               )}
             </div>
           ) : (
-            /* Video preview after upload — with watermark overlay preview */
-            <div className="relative rounded-2xl overflow-hidden bg-black aspect-video">
-              <video
+            /* Video preview after upload — streamed via VideoPlayer (same as dalali/client) */
+            <div className="relative">
+              <VideoPlayer
                 src={videoUrl ?? preview ?? ''}
-                controls
-                preload="metadata"
-                playsInline
-                className="w-full h-full object-contain"
+                title="Preview ya Video"
               />
               {/* Watermark preview pill — mirrors Cloudinary overlay position (bottom-center) */}
-              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-none select-none">
+              <div className="absolute bottom-14 left-1/2 -translate-x-1/2 pointer-events-none select-none z-20">
                 <div className="bg-black/70 rounded-2xl px-3 py-1.5 flex flex-col items-center">
                   <span className="text-white/80 text-[9px] font-semibold tracking-wide leading-none">NyumbaFasta</span>
                   <span className="text-white text-xs font-bold leading-tight">nyumbafasta.co</span>
@@ -454,7 +452,7 @@ export default function VideoUploadTab() {
               </div>
               <button
                 onClick={handleReset}
-                className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/80"
+                className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/80 z-20"
               >
                 ✕ Video Mpya
               </button>
