@@ -290,36 +290,101 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Location */}
         <section className="card p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 Mahali</h3>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-3">
+
+          {/* Breadcrumb hierarchy */}
+          <div className="flex items-center gap-1 text-xs flex-wrap mb-3 bg-gray-50 rounded-xl px-3 py-2">
+            <span className="font-semibold text-gray-700">{listing.region}</span>
+            <span className="text-gray-300">›</span>
+            <span className="font-semibold text-gray-700">{listing.district}</span>
+            {listing.ward && (
+              <>
+                <span className="text-gray-300">›</span>
+                <span className="font-semibold text-gray-700">{listing.ward}</span>
+              </>
+            )}
+            {listing.mtaa && (
+              <>
+                <span className="text-gray-300">›</span>
+                <span className="font-semibold text-gray-700">{listing.mtaa}</span>
+              </>
+            )}
+            {listing.street && (
+              <>
+                <span className="text-gray-300">›</span>
+                <span className="font-semibold text-primary-600">{listing.street}</span>
+              </>
+            )}
+          </div>
+
+          {/* Detail grid */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
             <div>
-              <p className="text-xs text-gray-400">Mkoa</p>
+              <p className="text-xs text-gray-400 mb-0.5">Mkoa</p>
               <p className="text-sm font-medium text-gray-800">{listing.region}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Wilaya</p>
+              <p className="text-xs text-gray-400 mb-0.5">Wilaya</p>
               <p className="text-sm font-medium text-gray-800">{listing.district}</p>
             </div>
             {listing.ward && (
               <div>
-                <p className="text-xs text-gray-400">Kata</p>
+                <p className="text-xs text-gray-400 mb-0.5">Kata</p>
                 <p className="text-sm font-medium text-gray-800">{listing.ward}</p>
               </div>
             )}
             {listing.mtaa && (
               <div>
-                <p className="text-xs text-gray-400">Mtaa / Kijiji</p>
+                <p className="text-xs text-gray-400 mb-0.5">Mtaa / Kijiji</p>
                 <p className="text-sm font-medium text-gray-800">{listing.mtaa}</p>
               </div>
             )}
+            {listing.street && (
+              <div className="col-span-2">
+                <p className="text-xs text-gray-400 mb-0.5">Barabara / Mtaa</p>
+                <p className="text-sm font-medium text-gray-800">{listing.street}</p>
+              </div>
+            )}
+            {listing.address_full && (
+              <div className="col-span-2">
+                <p className="text-xs text-gray-400 mb-0.5">Anwani Kamili</p>
+                <p className="text-sm font-medium text-gray-800">{listing.address_full}</p>
+              </div>
+            )}
           </div>
-          {!!(listing.latitude && listing.longitude) && (
+
+          {/* Map — exact coordinates or Google Maps search fallback */}
+          {!!(listing.latitude && listing.longitude) ? (
             <SingleListingMap
               latitude={listing.latitude as number}
               longitude={listing.longitude as number}
               district={listing.district}
               region={listing.region}
-              address={listing.address_full}
+              address={listing.address_full ?? listing.street ?? undefined}
             />
+          ) : (
+            <a
+              href={`https://www.google.com/maps/search/${encodeURIComponent(
+                [listing.street, listing.mtaa, listing.ward, listing.district, listing.region, 'Tanzania']
+                  .filter(Boolean).join(', ')
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-3.5 hover:bg-primary-50 hover:border-primary-200 transition-colors active:scale-[0.98]"
+            >
+              <div className="w-11 h-11 bg-white border border-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span className="text-2xl">🗺️</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800">Angalia kwenye Google Maps</p>
+                <p className="text-xs text-gray-500 truncate mt-0.5">
+                  {[listing.street, listing.mtaa, listing.district, listing.region]
+                    .filter(Boolean).join(' › ')}
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-primary-600 flex-shrink-0 bg-primary-50 px-2 py-1 rounded-lg">
+                Fungua →
+              </span>
+            </a>
           )}
         </section>
 

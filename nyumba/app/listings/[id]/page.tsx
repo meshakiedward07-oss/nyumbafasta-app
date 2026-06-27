@@ -100,7 +100,8 @@ export default async function ListingDetailPage({
       .from('listings')
       .select(`
         id, title, type, status, price_monthly,
-        district, region, furnished, amenities,
+        district, region, street, ward, mtaa, address_full, location_display,
+        furnished, amenities,
         images, video_url, description, bedrooms,
         is_boosted, view_count, lead_count, share_count,
         latitude, longitude,
