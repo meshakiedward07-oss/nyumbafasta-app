@@ -89,14 +89,26 @@ export default function StoriesTab() {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(body),
       })
-      const data = await res.json() as { ok?: boolean; storyId?: string; expiresAt?: string; error?: string }
+      type PlatformResult = { platform: string; success: boolean; storyId?: string; error?: string }
+      const data = await res.json() as {
+        ok?: boolean
+        successCount?: number
+        failedCount?:  number
+        results?:      PlatformResult[]
+        error?: string
+      }
 
-      if (data.ok) {
-        showMsg(`✅ Story imechapishwa! Inaisha baada ya masaa 24.`)
+      if (data.ok || (data.successCount ?? 0) > 0) {
+        const platforms = (data.results ?? [])
+          .filter(r => r.success)
+          .map(r => r.platform.toUpperCase())
+          .join(' + ')
+        showMsg(`✅ Story imechapishwa kwenye ${platforms || 'platforms'}! (${data.successCount}/${(data.results?.length ?? 1)})`)
         setSelectedListing(''); setPromoImageUrl(''); setPromoLinkUrl('')
         fetchStories()
       } else {
-        showMsg(`❌ Imeshindwa: ${data.error}`)
+        const errs = (data.results ?? []).filter(r => !r.success).map(r => `${r.platform}: ${r.error}`).join(', ')
+        showMsg(`❌ Imeshindwa: ${errs || data.error}`)
       }
     } finally {
       setPosting(false)
@@ -158,7 +170,7 @@ export default function StoriesTab() {
                 ))}
               </select>
               <p className="text-xs text-gray-400 mt-1">
-                Picha ya listing itapigwa 9:16, watermark ya NyumbaFasta itaongezwa kiotomatiki
+                Picha ya listing itapigwa 9:16, watermark itaongezwa. Story itatumwa kwa IG + FB + TikTok (kama video ipo).
               </p>
             </div>
           )}
@@ -200,10 +212,12 @@ export default function StoriesTab() {
         </form>
 
         <div className="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
-          <p className="font-semibold mb-1">ℹ️ Kuhusu Instagram Stories:</p>
+          <p className="font-semibold mb-1">ℹ️ Kuhusu Stories (IG + FB + TikTok):</p>
           <ul className="list-disc list-inside space-y-0.5">
-            <li>Story inaisha kiotomatiki baada ya masaa 24</li>
-            <li>Link sticker inahitaji ruhusa ya <code>pages_read_engagement</code> kwenye Meta</li>
+            <li>IG Story + FB Story zinachapishwa kwa picha daima</li>
+            <li>TikTok Story inachapishwa kama video (kama listing ina video)</li>
+            <li>Stories zinaisha kiotomatiki baada ya masaa 24</li>
+            <li>Link sticker (IG) inahitaji ruhusa ya <code>pages_read_engagement</code></li>
             <li>Ukubwa bora wa picha: 1080 × 1920 px (9:16)</li>
           </ul>
         </div>

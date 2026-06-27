@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { postListingStory, postPromoStory, getRecentStories } from '@/lib/social/instagramStories'
+import { postListingStoryAllPlatforms, postPromoStory, getRecentStories } from '@/lib/social/instagramStories'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import type { Listing } from '@/lib/types/database'
 
@@ -58,12 +58,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Listing haipatikani' }, { status: 404 })
       }
 
-      const result = await postListingStory(listing as Listing)
-      const expiresAt = result.success
-        ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        : null
-
-      return NextResponse.json({ ok: result.success, ...result, expiresAt })
+      const result = await postListingStoryAllPlatforms(listing as Listing)
+      return NextResponse.json({
+        ok:           result.successCount > 0,
+        successCount: result.successCount,
+        failedCount:  result.failedCount,
+        results:      result.results,
+      })
     }
 
     // Promotional story

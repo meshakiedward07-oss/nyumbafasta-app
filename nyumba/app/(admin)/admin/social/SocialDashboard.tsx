@@ -229,9 +229,16 @@ export default function SocialDashboard() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ storyType: 'listing', listingId: selectedListing }),
         })
-        const data = await res.json() as { ok?: boolean; storyId?: string; error?: string }
-        if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-        showToast(data.ok ? `✅ Story imechapishwa! (${data.storyId})` : '❌ Imeshindwa kuchapisha story')
+        type PlatformR = { platform: string; success: boolean; storyId?: string; error?: string }
+        const data = await res.json() as { ok?: boolean; successCount?: number; results?: PlatformR[]; error?: string }
+        if (data.error && !data.ok) { showToast(`Hitilafu: ${data.error}`); return }
+        if (data.ok || (data.successCount ?? 0) > 0) {
+          const platforms = (data.results ?? []).filter(r => r.success).map(r => r.platform.toUpperCase()).join(' + ')
+          showToast(`✅ Story imechapishwa kwenye ${platforms}! (${data.successCount}/${data.results?.length ?? 1})`)
+        } else {
+          const errs = (data.results ?? []).filter(r => !r.success).map(r => `${r.platform}: ${r.error}`).join(', ')
+          showToast(`❌ Imeshindwa: ${errs || data.error}`)
+        }
         setSelectedListing('')
         return
       }
@@ -813,7 +820,7 @@ export default function SocialDashboard() {
                 <p className="text-xs text-gray-500 mt-1">📸 Picha zote kama slides — inahitaji picha 2+ (Instagram tu)</p>
               )}
               {postMode === 'story' && (
-                <p className="text-xs text-gray-500 mt-1">🔴 Picha ya kwanza kama Story — inaisha baada ya saa 24 (Instagram tu)</p>
+                <p className="text-xs text-gray-500 mt-1">🔴 Picha ya kwanza kama Story — IG + FB + TikTok (kama listing ina video). Inaisha baada ya saa 24.</p>
               )}
             </div>
 
@@ -892,7 +899,7 @@ export default function SocialDashboard() {
             )}
             {postMode === 'story' && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800">
-                Picha ya kwanza ya listing itatumika kama Story. Inachapishwa Instagram tu. Inaisha baada ya saa 24.
+                Picha ya kwanza ya listing itatumika kama Story kwenye IG Story + FB Story. Kama listing ina video, TikTok pia itachapishwa. Inaisha baada ya saa 24.
               </div>
             )}
 

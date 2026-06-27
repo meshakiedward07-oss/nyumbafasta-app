@@ -5,6 +5,8 @@ import type { Listing } from '@/lib/types/database'
 const GRAPH      = 'https://graph.facebook.com/v18.0'
 const igToken    = () => process.env.INSTAGRAM_ACCESS_TOKEN ?? ''
 const igUserId   = () => process.env.INSTAGRAM_USER_ID      ?? ''
+const fbToken    = () => process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
+const fbPageId   = () => process.env.FACEBOOK_PAGE_ID ?? ''
 
 // ── Build a 9:16 story-format image URL ───────────────────────────────────────
 // For Cloudinary images: insert crop+watermark transformations
@@ -109,6 +111,118 @@ export async function postInstagramStory(params: {
   }
 }
 
+// ── Facebook Story ────────────────────────────────────────────────────────────
+
+export async function postFacebookStory(params: {
+  imageUrl:  string
+  videoUrl?: string
+}): Promise<{ success: boolean; storyId?: string; error?: string }> {
+  if (!fbPageId() || !fbToken()) {
+    return { success: false, error: 'FACEBOOK_PAGE_ID au FACEBOOK_PAGE_ACCESS_TOKEN hazijakonfigurwa' }
+  }
+
+  try {
+    // Video story takes priority over image story when video is provided
+    if (params.videoUrl) {
+      const res  = await fetch(`${GRAPH}/${fbPageId()}/video_stories`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          video:        { file_url: params.videoUrl },
+          access_token: fbToken(),
+        }),
+      })
+      const data = await res.json() as { post_id?: string; error?: { message: string } }
+      if (data.error) throw new Error(data.error.message)
+      console.log('[FB Story] Video story posted:', data.post_id)
+      return { success: true, storyId: data.post_id }
+    }
+
+    // Photo story
+    const res  = await fetch(`${GRAPH}/${fbPageId()}/photo_stories`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        photo:        { url: params.imageUrl },
+        access_token: fbToken(),
+      }),
+    })
+    const data = await res.json() as { post_id?: string; error?: { message: string } }
+    if (data.error) throw new Error(data.error.message)
+    console.log('[FB Story] Photo story posted:', data.post_id)
+    return { success: true, storyId: data.post_id }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[FB Story] Exception:', msg)
+    return { success: false, error: msg }
+  }
+}
+
+// ── TikTok "Story" (posted as regular video — TikTok has no Story API) ──────
+
+export async function postTikTokStory(params: {
+  videoUrl:   string
+  listingId?: string
+  caption?:   string
+}): Promise<{ success: boolean; storyId?: string; error?: string }> {
+  try {
+    const { postVideoToTikTok } = await import('./tiktok')
+    const caption = params.caption ?? '🏠 Nyumba mpya inapatikana! nyumbafasta.co #NyumbaFasta #Tanzania #fyp'
+    const result  = await postVideoToTikTok({
+      videoUrl:  params.videoUrl,
+      caption,
+      listingId: params.listingId,
+    })
+    return { success: result.success, storyId: result.publishId, error: result.error }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[TikTok Story] Exception:', msg)
+    return { success: false, error: msg }
+  }
+}
+
+// ── Post to ALL 3 platforms in parallel ──────────────────────────────────────
+
+export type StoryPlatformResult = {
+  platform: 'instagram' | 'facebook' | 'tiktok'
+  success:  boolean
+  storyId?: string
+  error?:   string
+}
+
+export async function postAllPlatformStories(params: {
+  imageUrl:   string       // used by IG + FB
+  videoUrl?:  string       // used by TikTok (and FB video story if present)
+  listingId?: string
+  listingUrl?: string
+  caption?:   string
+}): Promise<{ results: StoryPlatformResult[]; successCount: number; failedCount: number }> {
+  const tasks: Promise<StoryPlatformResult>[] = [
+    // Instagram Story
+    postInstagramStory({ imageUrl: params.imageUrl, listingUrl: params.listingUrl })
+      .then(r => ({ platform: 'instagram' as const, ...r })),
+
+    // Facebook Story
+    postFacebookStory({ imageUrl: params.imageUrl, videoUrl: params.videoUrl })
+      .then(r => ({ platform: 'facebook' as const, ...r })),
+  ]
+
+  // TikTok Story only if video is available (TikTok is video-only platform)
+  if (params.videoUrl) {
+    tasks.push(
+      postTikTokStory({ videoUrl: params.videoUrl, listingId: params.listingId, caption: params.caption })
+        .then(r => ({ platform: 'tiktok' as const, ...r })),
+    )
+  }
+
+  const results = await Promise.all(tasks)
+  return {
+    results,
+    successCount: results.filter(r => r.success).length,
+    failedCount:  results.filter(r => !r.success).length,
+  }
+}
+
 // ── Post listing as story ─────────────────────────────────────────────────────
 
 export async function postListingStory(
@@ -175,6 +289,53 @@ export async function postPromoStory(params: {
   }
 
   return result
+}
+
+// ── Post listing story to ALL 3 platforms ────────────────────────────────────
+
+export async function postListingStoryAllPlatforms(
+  listing: Listing,
+): Promise<{ results: StoryPlatformResult[]; successCount: number; failedCount: number }> {
+  const rawImageUrl = listing.images?.[0]
+  if (!rawImageUrl) {
+    return {
+      results:      [{ platform: 'instagram', success: false, error: 'Listing haina picha' }],
+      successCount: 0,
+      failedCount:  1,
+    }
+  }
+
+  const storyImageUrl = buildStoryImageUrl(rawImageUrl)
+  const appUrl        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const listingUrl    = `${appUrl}/listings/${listing.id}`
+  const videoUrl      = (listing as Listing & { video_url?: string | null }).video_url ?? undefined
+
+  const { results, successCount, failedCount } = await postAllPlatformStories({
+    imageUrl:   storyImageUrl,
+    videoUrl,
+    listingId:  listing.id,
+    listingUrl,
+  })
+
+  // Record every attempt in DB (one row per platform)
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  await Promise.allSettled(
+    results.map(r =>
+      supabaseAdmin.from('instagram_stories').insert({
+        listing_id:    listing.id,
+        story_type:    `listing_${r.platform}`,
+        media_url:     storyImageUrl,
+        story_id:      r.storyId ?? null,
+        status:        r.success ? 'posted' : 'failed',
+        error_message: r.error  ?? null,
+        expires_at:    r.success ? expiresAt : null,
+        posted_at:     r.success ? new Date().toISOString() : null,
+      })
+    )
+  )
+
+  console.log(`[Stories] All platforms: ${successCount}/${results.length} ✅`)
+  return { results, successCount, failedCount }
 }
 
 // ── Get story history ─────────────────────────────────────────────────────────

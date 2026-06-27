@@ -127,9 +127,9 @@ export async function PATCH(
           if ((fullListing.images?.length ?? 0) >= 1) {
             await new Promise(r => setTimeout(r, 2000))
             try {
-              const { postListingStory } = await import('@/lib/social/instagramStories')
-              const sResult = await postListingStory(fullListing)
-              console.log(`[Approval] Story: ${sResult.success ? '✅ ' + sResult.storyId : '❌ ' + sResult.error}`)
+              const { postListingStoryAllPlatforms } = await import('@/lib/social/instagramStories')
+              const sResult = await postListingStoryAllPlatforms(fullListing)
+              console.log(`[Approval] Stories: ${sResult.successCount}/${sResult.results.length} platforms ✅`)
             } catch (sErr) {
               console.error('[Approval] Story failed (non-fatal):', sErr)
             }
