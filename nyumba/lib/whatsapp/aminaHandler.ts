@@ -10,6 +10,11 @@ import {
 } from '@/lib/whatsapp/sessionManager'
 import { detectDalaliIntent } from '@/lib/leads/dalaliDetection'
 import { captureDalaliLead } from '@/lib/leads/captureFromWhatsApp'
+import {
+  classifyMessage,
+  saveClassification,
+  notifyOwnerPersonalMessage,
+} from '@/lib/inbox/messageClassifier'
 
 // ── Deduplication (uses existing whatsapp_conversations for dedup key) ────────
 
@@ -195,6 +200,40 @@ export async function handleWhatsAppMessage(
       await escalateToAdmin(from, profileName, escalationReason)
       response = ESCALATION_MESSAGE
     } else {
+      // 5b. AI message classification — gate before Amina
+      const classCtx = {
+        messageId:   messageId,
+        platform:    'whatsapp' as const,
+        senderPhone: from,
+        senderName:  profileName,
+        messageText,
+        messageType: 'text',
+      }
+      const classification = await classifyMessage(classCtx)
+      console.log(`[Amina] classify=${classification.category} conf=${classification.confidence.toFixed(2)}`)
+
+      if (classification.category === 'spam') {
+        await saveClassification(classCtx, classification, 'ignored')
+        console.log('[Amina] Spam ignored:', from.slice(0, 5) + '****')
+        return ''
+      }
+
+      if (classification.category === 'personal' && classification.shouldNotifyOwner) {
+        const classId = await saveClassification(classCtx, classification, 'flagged')
+        if (classId) await notifyOwnerPersonalMessage(classCtx, classification, classId)
+        console.log('[Amina] Personal msg — owner notified, Amina silent')
+        return ''
+      }
+
+      if (classification.category === 'unclear' && classification.confidence >= 0.7) {
+        // High-confidence unclear means it's likely NOT a business message
+        const classId = await saveClassification(classCtx, classification, 'flagged')
+        if (classId) await notifyOwnerPersonalMessage(classCtx, classification, classId)
+        console.log('[Amina] Unclear (high conf) — owner notified, Amina silent')
+        return ''
+      }
+
+      // category === 'nyumbafasta' (or unclear with low confidence) → Amina handles
       // 6. Fetch any admin instructions for this conversation
       const adminInstructions = await getAminaInstructions(from)
       console.log(`[Amina] instructions fetched (${Date.now() - t0}ms), has=${!!adminInstructions}`)
@@ -226,6 +265,9 @@ export async function handleWhatsAppMessage(
         adminInstructions || undefined,
       )
       console.log(`[Amina] AI done (${Date.now() - t0}ms)`)
+
+      // Save classification record for analytics (fire-and-forget)
+      void saveClassification(classCtx, classification, 'auto_replied', response).catch(() => null)
     }
   }
 

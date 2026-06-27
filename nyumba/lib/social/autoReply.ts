@@ -4,6 +4,11 @@ import { handleIncomingMessage } from '@/lib/chat/aiAgent'
 import { replyToIGComment, replyToFBComment, sendIGDM, sendFBMessage } from './metaClient'
 import { detectDalaliIntent } from '@/lib/leads/dalaliDetection'
 import { captureDalaliLead } from '@/lib/leads/captureFromWhatsApp'
+import {
+  classifyMessage,
+  saveClassification,
+  notifyOwnerPersonalMessage,
+} from '@/lib/inbox/messageClassifier'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -184,6 +189,37 @@ export async function handleSocialDM(
   }).select('id').single()
   const dmId = inserted?.id as string | undefined
 
+  // ── AI classification gate — runs before Amina ───────────────────────────
+  const classCtx = {
+    messageId:   data.messageId  ?? `${platform}-${data.senderId}-${Date.now()}`,
+    platform,
+    senderId:    data.senderId,
+    senderName:  data.senderName,
+    messageText: data.messageText,
+    messageType: 'text',
+  }
+  const classification = await classifyMessage(classCtx)
+  console.log(`[Social] classify=${classification.category} conf=${classification.confidence.toFixed(2)} on ${platform}`)
+
+  if (classification.category === 'spam') {
+    await saveClassification(classCtx, classification, 'ignored')
+    return
+  }
+
+  if (classification.category === 'personal' && classification.shouldNotifyOwner) {
+    const classId = await saveClassification(classCtx, classification, 'flagged')
+    if (classId) await notifyOwnerPersonalMessage(classCtx, classification, classId)
+    console.log('[Social] Personal msg — owner notified, Amina silent')
+    return
+  }
+
+  if (classification.category === 'unclear' && classification.confidence >= 0.7) {
+    const classId = await saveClassification(classCtx, classification, 'flagged')
+    if (classId) await notifyOwnerPersonalMessage(classCtx, classification, classId)
+    console.log('[Social] Unclear msg — owner notified, Amina silent')
+    return
+  }
+
   // Dalali lead detection — fire-and-forget, does not affect reply
   detectDalaliIntent(data.messageText, []).then(signal => {
     if (signal.isDalaliProspect && signal.confidence >= 60) {
@@ -199,7 +235,7 @@ export async function handleSocialDM(
     }
   }).catch(() => { /* non-fatal */ })
 
-  // Route through Amina
+  // Route through Amina (category === 'nyumbafasta' or low-confidence unclear)
   let replyText: string
   try {
     replyText = await handleIncomingMessage(
@@ -236,6 +272,9 @@ export async function handleSocialDM(
         .update({ reply_sent: true, reply_text: replyText, replied_at: new Date().toISOString() })
         .eq('message_id', data.messageId)
     }
+
+    // Save classification record for analytics
+    void saveClassification(classCtx, classification, 'auto_replied', replyText).catch(() => null)
 
     console.log(`[Social] DM replied on ${platform} to ${data.senderId.slice(0, 6)}***`)
   } catch (err) {

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type {
@@ -98,6 +98,20 @@ export default function AdminDashboard({
   const [cronResults, setCronResults]             = useState<string[]>([])
   const [cronErrors, setCronErrors]               = useState<string[]>([])
   const [cronLastRun, setCronLastRun]             = useState<string | null>(null)
+
+  // ── Inbox unread count (personal messages flagged for owner) ──
+  const [inboxUnread, setInboxUnread] = useState(0)
+  useEffect(() => {
+    function fetchInboxStats() {
+      fetch('/api/v1/inbox/stats')
+        .then(r => r.ok ? r.json() : null)
+        .then((d: { flagged?: number } | null) => { if (d) setInboxUnread(d.flagged ?? 0) })
+        .catch(() => {})
+    }
+    fetchInboxStats()
+    const iv = setInterval(fetchInboxStats, 60_000)
+    return () => clearInterval(iv)
+  }, [])
 
 
   // ── Approve / Reject listing ─────────────────────────
@@ -228,6 +242,18 @@ export default function AdminDashboard({
           ))}
           {/* External links — hidden on desktop (sidebar handles these) */}
           <div className="contents lg:hidden">
+            <Link
+              href="/admin/inbox"
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
+                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors relative"
+            >
+              <span>📬</span><span>Inbox</span>
+              {inboxUnread > 0 && (
+                <span className="absolute top-1.5 right-0 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {inboxUnread > 9 ? '9+' : inboxUnread}
+                </span>
+              )}
+            </Link>
             <Link
               href="/admin/crm"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
@@ -406,6 +432,29 @@ export default function AdminDashboard({
                 </div>
               </div>
             )}
+
+            {/* ── Inbox shortcut (shows badge when personal messages pending) ── */}
+            <Link href="/admin/inbox"
+              className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+              <div>
+                <p className="text-sm font-bold text-amber-800 flex items-center gap-2">
+                  📬 Kisanduku cha Ujumbe
+                  {inboxUnread > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                      {inboxUnread} mapya
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  {inboxUnread > 0
+                    ? `Ujumbe ${inboxUnread} wa kibinafsi unasubiri jibu lako →`
+                    : 'Amina anashughulikia biashara — wewe unashughulikia kibinafsi →'}
+                </p>
+              </div>
+              <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
 
             <Link href="/admin/accounting"
               className="flex items-center justify-between bg-green-50 border border-green-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
