@@ -1145,7 +1145,7 @@ export default function SocialDashboard() {
             </div>
           )}
 
-          {loading && activeTab !== 'overview' && activeTab !== 'yote' && (
+          {loading && ['posts', 'comments', 'dms', 'postnow', 'schedule'].includes(activeTab) && (
             <div className="flex justify-center py-12">
               <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
             </div>

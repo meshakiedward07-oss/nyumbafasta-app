@@ -603,7 +603,9 @@ export default function VideoUploadTab() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-medium text-gray-600">📸 Instagram</label>
-                  <span className="text-xs text-gray-400">{captionIg.length}/2200</span>
+                  <span className={`text-xs font-medium ${
+                    captionIg.length > 2090 ? 'text-red-500' : captionIg.length > 1760 ? 'text-amber-500' : 'text-gray-400'
+                  }`}>{captionIg.length}/2200</span>
                 </div>
                 <textarea
                   value={captionIg}
@@ -611,7 +613,9 @@ export default function VideoUploadTab() {
                   rows={5}
                   disabled={isPosting || isUploading}
                   placeholder="Caption + hashtags za Instagram..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                  className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none ${
+                    captionIg.length > 2090 ? 'border-red-400' : captionIg.length > 1760 ? 'border-amber-400' : 'border-gray-200'
+                  }`}
                 />
               </div>
             )}

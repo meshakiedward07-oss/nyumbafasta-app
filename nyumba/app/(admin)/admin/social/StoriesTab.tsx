@@ -43,6 +43,7 @@ export default function StoriesTab() {
   const [storyType, setStoryType]   = useState<'listing' | 'promotion'>('listing')
   const [listings, setListings]     = useState<{ id: string; title: string; district: string }[]>([])
   const [listingsError, setListingsError] = useState(false)
+  const [listingsLoaded, setListingsLoaded] = useState(false)
   const [selectedListing, setSelectedListing] = useState('')
   const [promoImageUrl, setPromoImageUrl]     = useState('')
   const [promoLinkUrl, setPromoLinkUrl]       = useState('')
@@ -69,11 +70,11 @@ export default function StoriesTab() {
       const res  = await fetch('/api/v1/listings?status=active&limit=50')
       if (!res.ok) throw new Error('fetch failed')
       const data = await res.json() as { listings?: { id: string; title: string; district: string }[] }
-      const fetched = data.listings ?? []
-      setListings(fetched)
-      if (fetched.length === 0) setListingsError(false)
+      setListings(data.listings ?? [])
     } catch {
       setListingsError(true)
+    } finally {
+      setListingsLoaded(true)
     }
   }
 
@@ -183,15 +184,19 @@ export default function StoriesTab() {
                 <div className="w-full border border-red-200 bg-red-50 rounded-xl px-3 py-2.5 text-sm text-red-600">
                   ❌ Imeshindwa kupakia listings. Angalia muunganiko wako.
                 </div>
+              ) : listingsLoaded && listings.length === 0 ? (
+                <div className="w-full border border-amber-200 bg-amber-50 rounded-xl px-3 py-2.5 text-sm text-amber-700">
+                  ⚠️ Hakuna listings active kwa sasa. Ongeza listing kwanza.
+                </div>
               ) : (
                 <select
                   value={selectedListing}
                   onChange={e => setSelectedListing(e.target.value)}
-                  disabled={listings.length === 0}
+                  disabled={!listingsLoaded}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
                 >
                   <option value="">
-                    {listings.length === 0 ? 'Inapakia listings...' : '-- Chagua listing --'}
+                    {!listingsLoaded ? 'Inapakia listings...' : '-- Chagua listing --'}
                   </option>
                   {listings.map(l => (
                     <option key={l.id} value={l.id}>{l.title} — {l.district}</option>
