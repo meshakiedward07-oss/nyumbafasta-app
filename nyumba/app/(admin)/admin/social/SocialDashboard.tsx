@@ -411,7 +411,7 @@ export default function SocialDashboard() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full flex overflow-hidden" style={{ background: '#f4f4f0' }}>
+    <div className="h-screen flex overflow-hidden" style={{ background: '#f4f4f0' }}>
 
       {/* Toast */}
       {toast && (
@@ -680,26 +680,36 @@ export default function SocialDashboard() {
               {/* Quick post all */}
               <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e5e0' }}>
                 <h3 className="font-semibold mb-3" style={{ color: '#1a1a18' }}>Chapisha Kwenye Platforms Zote</h3>
-                <div className="flex gap-3">
-                  <select
-                    value={postAllListing}
-                    onChange={e => setPostAllListing(e.target.value)}
-                    className="flex-1 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
-                  >
-                    <option value="">-- Chagua listing --</option>
-                    {listings.map(l => (
-                      <option key={l.id} value={l.id}>{l.title} — {l.district}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={handlePostAll}
-                    disabled={postAllLoading || !postAllListing}
-                    className="px-5 py-2.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 disabled:opacity-50 transition-all whitespace-nowrap"
-                  >
-{postAllLoading ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha...</> : <><i className="ti ti-rocket" aria-hidden="true" /> Chapisha Yote</>}
-                  </button>
-                </div>
+                {listings.length === 0 && !loading ? (
+                  <div className="text-center py-4 rounded-lg" style={{ background: '#fafafa', border: '1px dashed #e5e5e0' }}>
+                    <i className="ti ti-home-off text-2xl text-gray-300" aria-hidden="true" />
+                    <p className="text-sm text-gray-500 mt-2">Hakuna listings hai bado</p>
+                    <a href="/admin/listings" className="text-xs text-primary-500 font-medium hover:underline mt-1 inline-block">
+                      Idhini listings → /admin/listings
+                    </a>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <select
+                      value={postAllListing}
+                      onChange={e => setPostAllListing(e.target.value)}
+                      className="flex-1 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
+                    >
+                      <option value="">-- Chagua listing ({listings.length}) --</option>
+                      {listings.map(l => (
+                        <option key={l.id} value={l.id}>{l.title} — {l.district}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handlePostAll}
+                      disabled={postAllLoading || !postAllListing}
+                      className="px-5 py-2.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 disabled:opacity-50 transition-all whitespace-nowrap"
+                    >
+                      {postAllLoading ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha...</> : <><i className="ti ti-rocket" aria-hidden="true" /> Chapisha Yote</>}
+                    </button>
+                  </div>
+                )}
                 <p className="text-xs mt-2" style={{ color: '#999992' }}>
                   Itachapisha kwenye Instagram, Facebook, na TikTok kwa wakati mmoja.
                 </p>
@@ -989,9 +999,20 @@ export default function SocialDashboard() {
 
                 {/* Listing selector */}
                 <div>
-                  <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>Chagua Listing</label>
+                  <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>
+                    Chagua Listing
+                    {listings.length > 0 && <span className="ml-1.5 text-xs font-normal text-gray-400">({listings.length} hai)</span>}
+                  </label>
                   {loading ? (
                     <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+                  ) : listings.length === 0 ? (
+                    <div className="text-center py-5 rounded-lg" style={{ background: '#fafafa', border: '1px dashed #e5e5e0' }}>
+                      <i className="ti ti-home-off text-2xl text-gray-300" aria-hidden="true" />
+                      <p className="text-sm text-gray-500 mt-2">Hakuna listings hai</p>
+                      <a href="/admin/listings" className="text-xs text-primary-500 font-medium hover:underline mt-1 inline-block">
+                        Idhini listings → /admin/listings
+                      </a>
+                    </div>
                   ) : (
                     <select
                       value={selectedListing}
