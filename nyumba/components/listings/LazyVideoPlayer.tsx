@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
+import Image from 'next/image'
 import { VideoPlayer } from './VideoPlayer'
 
 interface LazyVideoPlayerProps {
@@ -37,7 +38,7 @@ export function LazyVideoPlayer({ src, poster, title, className }: LazyVideoPlay
       ) : (
         <div className="aspect-video bg-gray-900 rounded-2xl flex items-center justify-center relative overflow-hidden">
           {poster && (
-            <img src={poster} alt={title || ''} className="absolute inset-0 w-full h-full object-cover opacity-60" />
+            <Image fill src={poster} alt={title || ''} className="object-cover opacity-60" sizes="(max-width: 768px) 100vw, 50vw" />
           )}
           <div className="relative z-10 w-14 h-14 bg-black/50 rounded-full flex items-center justify-center">
             <svg viewBox="0 0 24 24" className="w-7 h-7 text-white ml-1 fill-current" aria-hidden="true">

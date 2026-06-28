@@ -162,9 +162,9 @@ export function VideoPlayer({
 
   // Cleanup
   useEffect(() => {
+    const v = videoRef.current
     return () => {
       if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current)
-      const v = videoRef.current
       if (v) { v.pause(); v.src = ''; v.load() }
     }
   }, [])
