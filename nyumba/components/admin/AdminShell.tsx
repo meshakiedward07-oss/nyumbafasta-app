@@ -309,9 +309,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   const isStaff = userRole === 'staff'
 
-  // Social dashboard manages its own full-screen layout with an inner sidebar
+  // Social dashboard: fixed full-viewport overlay — hides everything (sidebar, footer, body scroll)
   if (pathname.startsWith('/admin/social')) {
-    return <div className="h-screen overflow-hidden bg-[#f4f4f0]">{children}</div>
+    return <div className="fixed inset-0 overflow-hidden bg-[#f4f4f0] z-10">{children}</div>
   }
 
   return (
