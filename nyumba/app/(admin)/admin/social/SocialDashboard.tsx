@@ -8,10 +8,11 @@ import SpamTab from './SpamTab'
 import BestTimeTab from './BestTimeTab'
 import MarketplaceTab from './MarketplaceTab'
 import TikTokTab from './TikTokTab'
+import ListingsTab from './ListingsTab'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = 'yote' | 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'marketplace' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule' | 'tiktok'
+type Tab = 'yote' | 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'marketplace' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule' | 'tiktok' | 'listings'
 
 type UnifiedPlatformStat = {
   platform: string; label?: string; totalPosts: number; successPosts: number; failedPosts: number
@@ -118,10 +119,11 @@ const SIDEBAR_GROUPS: { title: string; items: { id: Tab; label: string; icon: st
   {
     title: 'Chapisha',
     items: [
-      { id: 'postnow',  label: 'Chapisha Sasa', icon: 'pencil' },
-      { id: 'upload',   label: 'Pakia Video',   icon: 'video' },
-      { id: 'carousel', label: 'Carousel',      icon: 'layout-columns' },
-      { id: 'stories',  label: 'Stories',       icon: 'circle-dot' },
+      { id: 'listings', label: 'Listings Library', icon: 'layout-grid' },
+      { id: 'postnow',  label: 'Chapisha Sasa',    icon: 'pencil' },
+      { id: 'upload',   label: 'Pakia Video',      icon: 'video' },
+      { id: 'carousel', label: 'Carousel',         icon: 'layout-columns' },
+      { id: 'stories',  label: 'Stories',          icon: 'circle-dot' },
     ],
   },
   {
@@ -186,6 +188,12 @@ export default function SocialDashboard() {
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 4000)
+  }
+
+  // Called from ListingsTab when user wants full scheduling/caption options
+  function handleOpenFullPost(listingId: string) {
+    setSelectedListing(listingId)
+    setActiveTab('postnow')
   }
 
   const fetchUnified = useCallback(async (period: 'today' | 'week' | 'month' | 'all') => {
@@ -830,6 +838,11 @@ export default function SocialDashboard() {
 
           {/* ── TIKTOK ── */}
           {activeTab === 'tiktok' && <TikTokTab showToast={showToast} />}
+
+          {/* ── LISTINGS LIBRARY ── */}
+          {activeTab === 'listings' && (
+            <ListingsTab showToast={showToast} onOpenFull={handleOpenFullPost} />
+          )}
 
           {/* ── PAKIA VIDEO ── */}
           {activeTab === 'upload' && <VideoUploadTab />}
