@@ -327,7 +327,7 @@ export async function postListingStoryAllPlatforms(
     results.map(r =>
       supabaseAdmin.from('instagram_stories').insert({
         listing_id:    listing.id,
-        story_type:    `listing_${r.platform}`,
+        story_type:    'listing',
         media_url:     storyImageUrl,
         story_id:      r.storyId ?? null,
         status:        r.success ? 'posted' : 'failed',

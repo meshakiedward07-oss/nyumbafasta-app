@@ -199,17 +199,23 @@ export default function SocialDashboard() {
   const fetchUnified = useCallback(async (period: 'today' | 'week' | 'month' | 'all') => {
     setLoading(true)
     try {
-      const [statsRes, connRes, listingsRes] = await Promise.all([
+      const [statsResult, connResult, listingsResult] = await Promise.allSettled([
         fetch(`/api/v1/social/stats?period=${period}`),
         fetch('/api/v1/social/connections'),
         fetch('/api/v1/listings?status=active&limit=50'),
       ])
-      const statsData = await statsRes.json() as { platforms: UnifiedPlatformStat[]; totals: UnifiedTotals; recentPosts: UnifiedRecentPost[] }
-      const connData  = await connRes.json() as { platforms: PlatformConnection[] }
-      const listData  = await listingsRes.json() as { listings?: Listing[] }
-      setUnifiedStats(statsData)
-      setConnections(connData.platforms ?? [])
-      setListings(listData.listings ?? [])
+      if (statsResult.status === 'fulfilled') {
+        const statsData = await statsResult.value.json() as { platforms: UnifiedPlatformStat[]; totals: UnifiedTotals; recentPosts: UnifiedRecentPost[] }
+        setUnifiedStats(statsData)
+      }
+      if (connResult.status === 'fulfilled') {
+        const connData = await connResult.value.json() as { platforms: PlatformConnection[] }
+        setConnections(connData.platforms ?? [])
+      }
+      if (listingsResult.status === 'fulfilled') {
+        const listData = await listingsResult.value.json() as { listings?: Listing[] }
+        setListings(listData.listings ?? [])
+      }
     } catch (err) {
       console.error(err)
     } finally {

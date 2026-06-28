@@ -57,7 +57,8 @@ Jibu kwa caption TU, bila maelezo mengine.`
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const rawCaption = (response.content[0] as { type: 'text'; text: string }).text.trim()
+  const block = response.content[0]
+  const rawCaption = (block?.type === 'text' ? block.text : '').trim()
   const caption = rawCaption.slice(0, maxLen)
 
   const hashtags = platform === 'instagram' ? buildHashtags(listing) : buildFBHashtags(listing)

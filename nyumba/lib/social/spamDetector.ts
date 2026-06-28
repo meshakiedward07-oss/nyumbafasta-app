@@ -168,7 +168,7 @@ export async function processCommentForSpam(params: {
       await hideIGComment(params.commentId, true)
       actionTaken = 'hide'
     } else if (!deleted) {
-      actionTaken = 'flagged' as SpamAction
+      actionTaken = 'flag'
     }
   } else if (result.action === 'hide' && params.platform === 'instagram') {
     await hideIGComment(params.commentId, true)
@@ -216,9 +216,9 @@ export async function getSpamStats() {
     { data: topSpammerRow },
     { data: topKeywordRow },
   ] = await Promise.all([
-    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'deleted'),
-    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'hidden'),
-    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'flagged'),
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'delete'),
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'hide'),
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'flag'),
     supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
     supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString()),
     supabaseAdmin.from('spam_comments').select('*').order('created_at', { ascending: false }).limit(20),

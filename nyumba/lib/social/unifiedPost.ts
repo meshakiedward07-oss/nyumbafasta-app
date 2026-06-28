@@ -104,7 +104,7 @@ export async function postListingToAllPlatforms(opts: UnifiedPostOptions): Promi
           success:  !!result.facebookPostId,
           postId:   result.facebookPostId,
           postUrl:  result.facebookPostId
-            ? `https://www.facebook.com/permalink/${result.facebookPostId}`
+            ? `https://www.facebook.com/permalink.php?story_fbid=${result.facebookPostId}`
             : undefined,
           error: !result.facebookPostId ? (result.error ?? 'FB post ilishindwa') : undefined,
         })
