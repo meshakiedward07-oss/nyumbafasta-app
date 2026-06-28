@@ -111,7 +111,7 @@ export default function DalaliProfileClient({
         <h1 className="text-sm font-bold text-gray-900 flex-1">Wasifu Wangu</h1>
         {isVerified && (
           <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">
-            ✓ Premium
+            <i className="ti ti-circle-check" aria-hidden="true" /> Premium
           </span>
         )}
       </div>
@@ -120,7 +120,7 @@ export default function DalaliProfileClient({
 
         {success && (
           <div className="bg-primary-50 border border-primary-100 text-primary-700 text-sm px-4 py-3 rounded-xl">
-            ✅ {success}
+            <i className="ti ti-circle-check" aria-hidden="true" /> {success}
           </div>
         )}
         {error && (
@@ -144,11 +144,11 @@ export default function DalaliProfileClient({
             >
               {uploading ? (
                 <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin block" />
-              ) : '📷'}
+              ) : <i className="ti ti-camera" aria-hidden="true" />}
             </button>
           </div>
           <p className="text-xs text-gray-400">
-            {uploading ? 'Inapakia...' : 'Bonyeza 📷 kubadilisha picha'}
+            {uploading ? 'Inapakia...' : 'Bonyeza kubadilisha picha'}
           </p>
           <input
             ref={fileRef}
@@ -165,7 +165,7 @@ export default function DalaliProfileClient({
             <p className="text-3xl font-bold text-gray-900">{ratingAvg.toFixed(1)}</p>
             <div className="flex justify-center gap-0.5 my-1">
               {[1,2,3,4,5].map(i => (
-                <span key={i} className={`text-lg ${i <= Math.round(ratingAvg) ? 'text-amber-400' : 'text-gray-200'}`}>★</span>
+                <i key={i} className={`ti ti-star-filled text-lg ${i <= Math.round(ratingAvg) ? 'text-amber-400' : 'text-gray-200'}`} aria-hidden="true" />
               ))}
             </div>
             <p className="text-xs text-gray-400">{ratingCount} maoni kutoka kwa wateja</p>
@@ -192,7 +192,7 @@ export default function DalaliProfileClient({
             </label>
             <div className="flex gap-2">
               <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
-                🇹🇿 +255
+                +255
               </div>
               <input
                 type="tel" inputMode="numeric" required
@@ -208,7 +208,7 @@ export default function DalaliProfileClient({
                 Nambari itahifadhiwa kama: +255{whatsapp.replace(/\D/g, '').replace(/^0/, '')}
               </p>
             )}
-            <p className="text-xs text-gray-400 mt-1">Wateja watalipa Tsh 2,000 kupata nambari hii — itatumika kwa 💬 WhatsApp na 📞 Simu</p>
+            <p className="text-xs text-gray-400 mt-1">Wateja watalipa Tsh 2,000 kupata nambari hii — itatumika kwa WhatsApp na Simu</p>
           </div>
 
           <div>
@@ -241,13 +241,13 @@ export default function DalaliProfileClient({
           className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-2xl text-sm font-semibold
                      disabled:opacity-50 active:scale-[0.98] transition-all"
         >
-          {saving ? 'Inahifadhi...' : '💾 Hifadhi Mabadiliko'}
+          {saving ? 'Inahifadhi...' : 'Hifadhi Mabadiliko'}
         </button>
       </form>
 
       {/* ── Danger Zone ── */}
       <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-4 mt-4">
-        <h3 className="text-sm font-bold text-red-600 mb-1">⚠️ Hatua za Hatari</h3>
+        <h3 className="text-sm font-bold text-red-600 mb-1 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />Hatua za Hatari</h3>
         <p className="text-xs text-gray-400 mb-3 leading-relaxed">
           Ukifuta akaunti — listings, subscription na data yako yote itafutwa kabisa na haiwezi kurejeshwa.
         </p>
@@ -256,7 +256,7 @@ export default function DalaliProfileClient({
           className="text-red-600 border border-red-200 px-4 py-2.5 rounded-xl text-sm font-medium
                      hover:bg-red-50 active:scale-[0.97] transition-all"
         >
-          🗑️ Futa Akaunti Yangu
+          <i className="ti ti-trash" aria-hidden="true" /> Futa Akaunti Yangu
         </button>
       </div>
 

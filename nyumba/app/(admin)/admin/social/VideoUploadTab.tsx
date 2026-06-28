@@ -37,12 +37,12 @@ type VideoRecord = {
 const CLOUD  = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? 'daw8jlbbd'
 const PRESET = 'nyumba_listings'
 
-const VIDEO_TYPES: { value: VideoType; label: string; emoji: string }[] = [
-  { value: 'promotion',    label: 'Matangazo',     emoji: '📢' },
-  { value: 'listing_tour', label: 'Ziara ya Nyumba', emoji: '🏠' },
-  { value: 'announcement', label: 'Tangazo',        emoji: '📣' },
-  { value: 'testimonial',  label: 'Ushuhuda',       emoji: '⭐' },
-  { value: 'other',        label: 'Nyingine',       emoji: '🎬' },
+const VIDEO_TYPES: { value: VideoType; label: string; icon: string }[] = [
+  { value: 'promotion',    label: 'Matangazo',       icon: 'speakerphone' },
+  { value: 'listing_tour', label: 'Ziara ya Nyumba', icon: 'home' },
+  { value: 'announcement', label: 'Tangazo',          icon: 'bell-ringing' },
+  { value: 'testimonial',  label: 'Ushuhuda',         icon: 'star' },
+  { value: 'other',        label: 'Nyingine',          icon: 'video' },
 ]
 
 const MAX_SIZE_BYTES   = 500 * 1024 * 1024  // 500MB
@@ -407,7 +407,7 @@ export default function VideoUploadTab() {
 
               {state === 'uploading' ? (
                 <div className="space-y-3">
-                  <div className="text-3xl">⏫</div>
+<div className="text-3xl"><i className="ti ti-loader-2 animate-spin text-primary-500" aria-hidden="true" /></div>
                   <p className="font-semibold text-gray-700">Inapakia video...</p>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div
@@ -419,7 +419,7 @@ export default function VideoUploadTab() {
                 </div>
               ) : file ? (
                 <div className="space-y-2">
-                  <div className="text-3xl">🎬</div>
+<div className="text-3xl"><i className="ti ti-movie text-primary-500" aria-hidden="true" /></div>
                   <p className="font-semibold text-gray-800 truncate">{file.name}</p>
                   <p className="text-sm text-gray-500">
                     {formatBytes(file.size)}
@@ -429,7 +429,7 @@ export default function VideoUploadTab() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="text-5xl">📹</div>
+<div className="text-5xl"><i className="ti ti-video text-gray-300" aria-hidden="true" /></div>
                   <p className="font-semibold text-gray-700 text-lg">Pakia Video Yako</p>
                   <p className="text-sm text-gray-400">Buruta video hapa au click kupakia</p>
                   <p className="text-xs text-gray-400">Aina zinazokubalika: {ALLOWED_EXT_MSG} • Max: 500MB</p>
@@ -454,7 +454,7 @@ export default function VideoUploadTab() {
                 onClick={handleReset}
                 className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/80 z-20"
               >
-                ✕ Video Mpya
+                <i className="ti ti-x" aria-hidden="true" /> Video Mpya
               </button>
             </div>
           )}
@@ -462,14 +462,14 @@ export default function VideoUploadTab() {
           {/* Warnings */}
           {warnings.map((w, i) => (
             <div key={i} className="flex gap-2 bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-sm text-yellow-800">
-              <span>⚠️</span><span>{w}</span>
+              <i className="ti ti-alert-triangle flex-shrink-0 mt-0.5" aria-hidden="true" /><span>{w}</span>
             </div>
           ))}
 
           {/* Error */}
           {error && (
             <div className="flex gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
-              <span>❌</span><span>{error}</span>
+              <i className="ti ti-circle-x flex-shrink-0 mt-0.5" aria-hidden="true" /><span>{error}</span>
             </div>
           )}
 
@@ -514,7 +514,7 @@ export default function VideoUploadTab() {
                         : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <span>{t.emoji}</span><span>{t.label}</span>
+<i className={`ti ti-${t.icon} text-sm`} aria-hidden="true" /><span>{t.label}</span>
                   </button>
                 ))}
               </div>
@@ -528,7 +528,7 @@ export default function VideoUploadTab() {
               disabled={!file || !title.trim()}
               className="btn-primary w-full py-3"
             >
-              ⬆️ Pakia Video
+<i className="ti ti-upload" aria-hidden="true" /> Pakia Video
             </button>
           )}
 
@@ -558,7 +558,7 @@ export default function VideoUploadTab() {
                   disabled={isPosting}
                   className="w-4 h-4 accent-primary-500"
                 />
-                <span className="text-sm font-medium text-gray-700">📸 Instagram Reels</span>
+                <span className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><i className="ti ti-brand-instagram" style={{color:'#c13584'}} aria-hidden="true" /> Instagram Reels</span>
                 {platformStatus.instagram !== 'idle' && (
                   <PlatStatusChip status={platformStatus.instagram} />
                 )}
@@ -571,7 +571,7 @@ export default function VideoUploadTab() {
                   disabled={isPosting}
                   className="w-4 h-4 accent-primary-500"
                 />
-                <span className="text-sm font-medium text-gray-700">👤 Facebook Video</span>
+                <span className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><i className="ti ti-brand-facebook" style={{color:'#1877f2'}} aria-hidden="true" /> Facebook Video</span>
                 {platformStatus.facebook !== 'idle' && (
                   <PlatStatusChip status={platformStatus.facebook} />
                 )}
@@ -594,7 +594,7 @@ export default function VideoUploadTab() {
                     Amina anaandika...
                   </>
                 ) : (
-                  '✨ Tengeneza kwa AI'
+<><i className="ti ti-sparkles" aria-hidden="true" /> Tengeneza kwa AI</>
                 )}
               </button>
             </div>
@@ -602,7 +602,7 @@ export default function VideoUploadTab() {
             {igEnabled && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-gray-600">📸 Instagram</label>
+                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1"><i className="ti ti-brand-instagram" aria-hidden="true" /> Instagram</label>
                   <span className={`text-xs font-medium ${
                     captionIg.length > 2090 ? 'text-red-500' : captionIg.length > 1760 ? 'text-amber-500' : 'text-gray-400'
                   }`}>{captionIg.length}/2200</span>
@@ -623,7 +623,7 @@ export default function VideoUploadTab() {
             {fbEnabled && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-gray-600">👤 Facebook</label>
+                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1"><i className="ti ti-brand-facebook" aria-hidden="true" /> Facebook</label>
                   <span className={`text-xs font-medium ${
                     captionFb.length > 4750 ? 'text-red-500' : captionFb.length > 4000 ? 'text-amber-500' : 'text-gray-400'
                   }`}>{captionFb.length}/5000</span>
@@ -692,7 +692,7 @@ export default function VideoUploadTab() {
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Inachapisha... (Instagram inaweza kuchukua dakika 1–3)
                     </>
-                  ) : scheduleMode ? '📅 Panga Ratiba' : '🚀 Chapisha Sasa'}
+                  ) : scheduleMode ? <><i className="ti ti-calendar" aria-hidden="true" /> Panga Ratiba</> : <><i className="ti ti-rocket" aria-hidden="true" /> Chapisha Sasa</>}
                 </button>
                 {blocker && !isPosting && (
                   <p className="text-xs text-center text-gray-400">{blocker}</p>
@@ -704,12 +704,12 @@ export default function VideoUploadTab() {
           {/* Success state */}
           {state === 'posted' && (
             <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-2">
-              <p className="text-sm font-semibold text-green-800">✅ Video imechapishwa!</p>
+              <p className="text-sm font-semibold text-green-800 flex items-center gap-1.5"><i className="ti ti-check" aria-hidden="true" /> Video imechapishwa!</p>
               {platformStatus.instagram === 'done' && (
-                <p className="text-xs text-green-700">📸 Instagram Reel: imefanikiwa</p>
+                <p className="text-xs text-green-700 flex items-center gap-1"><i className="ti ti-brand-instagram" aria-hidden="true" /> Instagram Reel: imefanikiwa</p>
               )}
               {platformStatus.facebook === 'done' && (
-                <p className="text-xs text-green-700">👤 Facebook Video: imefanikiwa</p>
+                <p className="text-xs text-green-700 flex items-center gap-1"><i className="ti ti-brand-facebook" aria-hidden="true" /> Facebook Video: imefanikiwa</p>
               )}
             </div>
           )}
@@ -719,13 +719,13 @@ export default function VideoUploadTab() {
       {/* ── Video History ── */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800">📋 Video Zilizopita</h3>
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2"><i className="ti ti-list" aria-hidden="true" /> Video Zilizopita</h3>
           <button
             onClick={loadHistory}
             disabled={histLoading}
             className="text-xs text-primary-500 hover:underline disabled:opacity-50"
           >
-            {histLoading ? 'Inapakia...' : '🔄 Refresh'}
+  {histLoading ? 'Inapakia...' : <><i className="ti ti-refresh" aria-hidden="true" /> Refresh</>}
           </button>
         </div>
 
@@ -735,7 +735,7 @@ export default function VideoUploadTab() {
           </div>
         ) : history.length === 0 ? (
           <div className="text-center py-10 text-gray-400">
-            <div className="text-3xl mb-2">🎬</div>
+<div className="text-3xl mb-2"><i className="ti ti-video text-gray-300" aria-hidden="true" /></div>
             <p className="text-sm">Hakuna video zilizopakiwa bado</p>
           </div>
         ) : (
@@ -743,7 +743,7 @@ export default function VideoUploadTab() {
             {history.map((v) => (
               <div key={v.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50">
                 <span className="text-2xl flex-shrink-0">
-                  {VIDEO_TYPES.find(t => t.value === v.video_type)?.emoji ?? '🎬'}
+{(() => { const vt = VIDEO_TYPES.find(t => t.value === v.video_type); return <i className={`ti ti-${vt?.icon ?? 'video'} text-2xl text-gray-500`} aria-hidden="true" /> })()}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">{v.title}</p>
@@ -784,8 +784,8 @@ function PlatStatusChip({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
     posting:    { cls: 'bg-blue-100 text-blue-700',   label: 'Inatuma...' },
     processing: { cls: 'bg-yellow-100 text-yellow-700', label: 'Inasindika...' },
-    done:       { cls: 'bg-green-100 text-green-700',  label: '✓ Imefanikiwa' },
-    error:      { cls: 'bg-red-100 text-red-700',      label: '✗ Imeshindwa' },
+    done:       { cls: 'bg-green-100 text-green-700',  label: 'Imefanikiwa' },
+    error:      { cls: 'bg-red-100 text-red-700',      label: 'Imeshindwa' },
   }
   const s = map[status]
   if (!s) return null

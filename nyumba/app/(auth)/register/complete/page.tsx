@@ -50,7 +50,7 @@ export default function RegisterCompletePage() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <div className="text-4xl mb-4">⚠️</div>
+        <div className="text-4xl mb-4 flex justify-center"><i className="ti ti-alert-triangle text-amber-500" aria-hidden="true" /></div>
         <p className="text-gray-700 font-medium mb-2">Hitilafu imetokea</p>
         <p className="text-sm text-red-500 text-center mb-6">{error}</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">

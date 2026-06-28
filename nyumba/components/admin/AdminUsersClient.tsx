@@ -58,19 +58,19 @@ function timeAgo(dateStr: string) {
 
 function RoleBadge({ role }: { role: string }) {
   const map: Record<string, { label: string; cls: string }> = {
-    admin:  { label: '🛡️ Admin',    cls: 'bg-red-50 text-red-600'        },
-    dalali: { label: '🏢 Dalali',   cls: 'bg-amber-50 text-amber-700'    },
-    client: { label: '🔍 Mteja',    cls: 'bg-blue-50 text-blue-700'      },
-    staff:  { label: '👨‍💼 Wafanyakazi', cls: 'bg-purple-50 text-purple-700' },
+    admin:  { label: 'Admin',    cls: 'bg-red-50 text-red-600'        },
+    dalali: { label: 'Dalali',   cls: 'bg-amber-50 text-amber-700'    },
+    client: { label: 'Mteja',    cls: 'bg-blue-50 text-blue-700'      },
+    staff:  { label: 'Wafanyakazi', cls: 'bg-purple-50 text-purple-700' },
   }
   const b = map[role] ?? { label: role, cls: 'bg-gray-100 text-gray-500' }
   return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${b.cls}`}>{b.label}</span>
 }
 
 function VerifBadge({ status }: { status?: string | null }) {
-  if (status === 'approved') return <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">✓ Imethibitishwa</span>
-  if (status === 'pending')  return <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">⏳ Inasubiri</span>
-  return <span className="text-xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-medium">✗ Hakuna</span>
+  if (status === 'approved') return <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Imethibitishwa</span>
+  if (status === 'pending')  return <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">Inasubiri</span>
+  return <span className="text-xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-x" aria-hidden="true" />Hakuna</span>
 }
 
 function SubBadge({ subscriptions }: { subscriptions: UserRow['subscriptions'] }) {
@@ -81,7 +81,7 @@ function SubBadge({ subscriptions }: { subscriptions: UserRow['subscriptions'] }
   return (
     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium text-white"
       style={{ backgroundColor: badge.color }}>
-      {plan.emoji} {badge.label}
+      <><i className={`ti ti-${plan.icon}`} aria-hidden="true" /> {badge.label}</>
     </span>
   )
 }
@@ -133,7 +133,7 @@ function ActionMenu({ user, onView, onSuspend, onBan, onDelete, loading }: {
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-primary-700 hover:bg-primary-50 transition-colors w-full"
             >
-              <span>👁️</span>
+              <i className="ti ti-eye" aria-hidden="true" />
               <span className="font-medium">Angalia Profaili</span>
             </Link>
           )}
@@ -143,7 +143,7 @@ function ActionMenu({ user, onView, onSuspend, onBan, onDelete, loading }: {
               user.is_active === false ? 'text-green-700 hover:bg-green-50' : 'text-amber-700 hover:bg-amber-50'
             }`}
           >
-            <span>{user.is_active === false ? '✅' : '⏸️'}</span>
+            <i className={`ti ${user.is_active === false ? 'ti-circle-check' : 'ti-player-pause'}`} aria-hidden="true" />
             <span className="font-medium">{user.is_active === false ? 'Washa Akaunti' : 'Simamisha'}</span>
           </button>
           {user.is_active !== false && (
@@ -151,7 +151,7 @@ function ActionMenu({ user, onView, onSuspend, onBan, onDelete, loading }: {
               onClick={() => { onBan(); setOpen(false) }}
               className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-orange-700 w-full text-left hover:bg-orange-50 transition-colors"
             >
-              <span>🚫</span>
+              <i className="ti ti-ban" aria-hidden="true" />
               <span className="font-medium">Ban Mtumiaji</span>
             </button>
           )}
@@ -175,7 +175,7 @@ function ActionMenu({ user, onView, onSuspend, onBan, onDelete, loading }: {
               onClick={() => { onDelete(); setOpen(false) }}
               className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 w-full text-left hover:bg-red-50 transition-colors"
             >
-              <span>🗑️</span>
+              <i className="ti ti-trash" aria-hidden="true" />
               <span className="font-medium">Futa Akaunti</span>
             </button>
           </div>
@@ -360,7 +360,7 @@ export default function AdminUsersClient() {
     { key: 'client',           label: 'Wateja',        count: counts.client },
     { key: 'dalali',           label: 'Madalali',      count: counts.dalali },
     { key: 'staff',            label: 'Wafanyakazi',   count: counts.staff  },
-    { key: 'dalali_activity',  label: '📊 Shughuli',   count: 0             },
+    { key: 'dalali_activity',  label: 'Shughuli',   count: 0             },
   ]
 
   return (
@@ -369,7 +369,7 @@ export default function AdminUsersClient() {
       {/* ── Header ── */}
       <div className="hidden lg:flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">👥 Watumiaji</h1>
+          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-users" aria-hidden="true" />Watumiaji</h1>
           <p className="text-xs text-gray-400 mt-0.5">Jumla: {counts.all.toLocaleString()} watumiaji</p>
         </div>
         <button
@@ -382,16 +382,16 @@ export default function AdminUsersClient() {
 
       {/* ── Mobile header ── */}
       <div className="lg:hidden bg-primary-800 px-4 pt-10 pb-5">
-        <h1 className="text-white text-xl font-bold">👥 Watumiaji</h1>
+        <h1 className="text-white text-xl font-bold flex items-center gap-2"><i className="ti ti-users" aria-hidden="true" />Watumiaji</h1>
         <p className="text-green-200 text-xs mt-0.5">Jumla: {counts.all.toLocaleString()} watumiaji</p>
       </div>
 
       {/* ── New user banner ── */}
       {newUserBanner && (
         <div className="mx-4 mt-3 bg-primary-500 text-white text-sm font-medium px-4 py-3 rounded-2xl flex items-center gap-2 shadow-sm">
-          <span className="text-lg">🔔</span>
+          <i className="ti ti-bell" aria-hidden="true" />
           <span>{newUserBanner}</span>
-          <button onClick={() => setNewUserBanner(null)} aria-label="Funga" className="ml-auto text-primary-100 hover:text-white">✕</button>
+          <button onClick={() => setNewUserBanner(null)} aria-label="Funga" className="ml-auto text-primary-100 hover:text-white">&#x2715;</button>
         </div>
       )}
 
@@ -434,7 +434,7 @@ export default function AdminUsersClient() {
 
         {/* ── Search ── */}
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
           <input
             type="text"
             placeholder="Tafuta jina, email, simu..."
@@ -448,7 +448,7 @@ export default function AdminUsersClient() {
               onClick={() => setSearch('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
             >
-              ✕
+              <i className="ti ti-x" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -459,8 +459,8 @@ export default function AdminUsersClient() {
             <div className="flex gap-1">
               {([
                 { key: 'all',       label: 'Wote'        },
-                { key: 'active',    label: '✅ Wanaotumia'},
-                { key: 'suspended', label: '⛔ Waliozuiliwa' },
+                { key: 'active',    label: 'Wanaotumia'},
+                { key: 'suspended', label: 'Waliozuiliwa' },
               ] as { key: StatusFilter; label: string }[]).map(f => (
                 <button
                   key={f.key}
@@ -512,7 +512,7 @@ export default function AdminUsersClient() {
         {/* ── User list ── */}
         {roleFilter !== 'dalali_activity' && !loading && users.length === 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
-            <div className="text-4xl mb-2">👥</div>
+            <div className="text-4xl mb-2 flex justify-center"><i className="ti ti-users text-gray-400" aria-hidden="true" /></div>
             <p className="text-sm text-gray-500">
               {debouncedQ ? `Hakuna watumiaji wanaolingana na "${debouncedQ}"` : 'Hakuna watumiaji katika kundi hili'}
             </p>
@@ -649,7 +649,7 @@ export default function AdminUsersClient() {
                       {u.role === 'dalali' && (
                         <Link href={`/admin/users/${u.id}`}
                           className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-100">
-                          👁️ Angalia
+                          <i className="ti ti-eye" aria-hidden="true" /> Angalia
                         </Link>
                       )}
                       <button
@@ -659,7 +659,7 @@ export default function AdminUsersClient() {
                           u.is_active === false ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
                         }`}
                       >
-                        {actionLoading === u.id ? '...' : u.is_active === false ? '✅ Washa' : '⏸️ Simamisha'}
+                        {actionLoading === u.id ? '...' : u.is_active === false ? 'Washa' : 'Simamisha'}
                       </button>
                       {u.is_active !== false && (
                         <button
@@ -668,7 +668,7 @@ export default function AdminUsersClient() {
                           className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700 disabled:opacity-40 active:scale-[0.97] transition-all"
                           title="Ban Mtumiaji"
                         >
-                          🚫
+                          <i className="ti ti-ban" aria-hidden="true" />
                         </button>
                       )}
                       <button
@@ -677,7 +677,7 @@ export default function AdminUsersClient() {
                         className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600 disabled:opacity-40 active:scale-[0.97] transition-all"
                         title="Futa Akaunti"
                       >
-                        🗑️
+                        <i className="ti ti-trash" aria-hidden="true" />
                       </button>
                     </div>
                   )}
@@ -721,24 +721,24 @@ export default function AdminUsersClient() {
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
-            <div className="text-3xl text-center mb-2">🚫</div>
+            <div className="text-3xl text-center mb-2 flex justify-center"><i className="ti ti-ban text-orange-500" aria-hidden="true" /></div>
             <h3 className="text-base font-bold text-gray-900 text-center mb-4">Futa Akaunti ya Mtumiaji</h3>
 
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Sababu ya kufuta:</p>
             <div className="space-y-2 mb-4">
               {[
-                { v: 'Scam — anatoa fake listings', icon: '🚨' },
-                { v: 'Unyanyasaji wa wateja',       icon: '🚨' },
-                { v: 'Taarifa za uongo',            icon: '🚨' },
-                { v: 'Uvunjaji wa masharti',        icon: '🚨' },
-                { v: 'Sababu nyingine',             icon: '📝' },
+                { v: 'Scam — anatoa fake listings', icon: 'alert-triangle' },
+                { v: 'Unyanyasaji wa wateja',       icon: 'alert-triangle' },
+                { v: 'Taarifa za uongo',            icon: 'alert-triangle' },
+                { v: 'Uvunjaji wa masharti',        icon: 'alert-triangle' },
+                { v: 'Sababu nyingine',             icon: 'pencil'          },
               ].map(r => (
                 <button key={r.v} onClick={() => setDeleteReason(r.v)}
                   className={`w-full flex items-center gap-2 p-3 rounded-xl border-2 text-left text-sm transition-all ${
                     deleteReason === r.v ? 'border-red-400 bg-red-50 text-red-800' : 'border-gray-100 text-gray-700'
                   }`}
                 >
-                  <span>{r.icon}</span><span>{r.v}</span>
+                  <i className={`ti ti-${r.icon}`} aria-hidden="true" /><span>{r.v}</span>
                 </button>
               ))}
             </div>
@@ -767,7 +767,7 @@ export default function AdminUsersClient() {
                 disabled={!deleteReason || !!actionLoading}
                 className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold text-sm disabled:opacity-40"
               >
-                {actionLoading ? '...' : '🗑️ Futa'}
+                {actionLoading ? '...' : 'Futa'}
               </button>
             </div>
           </div>
@@ -806,8 +806,8 @@ function UserDetailModal({
     client: 'bg-blue-100 text-blue-700',
   }
   const ROLE_LABEL: Record<string, string> = {
-    admin: '🛡️ Admin', dalali: '🏢 Dalali',
-    staff: '👨‍💼 Wafanyakazi', client: '🔍 Mteja',
+    admin: 'Admin', dalali: 'Dalali',
+    staff: 'Wafanyakazi', client: 'Mteja',
   }
   const waNum = (user.dalali_profiles?.whatsapp_number ?? '').replace(/\D/g, '')
 
@@ -830,7 +830,7 @@ function UserDetailModal({
               {ROLE_LABEL[user.role] ?? user.role}
             </span>
           </div>
-          <button aria-label="Funga" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg flex-shrink-0">✕</button>
+          <button aria-label="Funga" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg flex-shrink-0"><i className="ti ti-x" aria-hidden="true" /></button>
         </div>
 
         {/* Info rows */}
@@ -838,7 +838,7 @@ function UserDetailModal({
           {[
             { label: 'Email',   value: user.email   ?? '—' },
             { label: 'Simu',    value: user.phone   ?? '—' },
-            { label: 'Hali',    value: user.is_active === false ? '⛔ Imezuiliwa' : '✅ Inatumika' },
+            { label: 'Hali',    value: user.is_active === false ? 'Imezuiliwa' : 'Inatumika' },
             { label: 'Alijiunga', value: new Date(user.created_at).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short', year: 'numeric' }) },
           ].map(r => (
             <div key={r.label} className="flex justify-between items-center py-1.5 border-b border-gray-50">
@@ -853,9 +853,9 @@ function UserDetailModal({
               <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                 <span className="text-gray-500 text-xs">Uthibitisho</span>
                 <span className="text-xs font-medium">
-                  {user.dalali_profiles.verification_status === 'approved' ? '✓ Imethibitishwa'
-                    : user.dalali_profiles.verification_status === 'pending' ? '⏳ Inasubiri'
-                    : '✗ Hakuna'}
+                  {user.dalali_profiles.verification_status === 'approved' ? 'Imethibitishwa'
+                    : user.dalali_profiles.verification_status === 'pending' ? 'Inasubiri'
+                    : 'Hakuna'}
                 </span>
               </div>
               {user.subscriptions?.find(s => s.status === 'active') && (
@@ -869,7 +869,7 @@ function UserDetailModal({
               {user.dalali_profiles.rating_avg != null && (
                 <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                   <span className="text-gray-500 text-xs">Rating</span>
-                  <span className="text-xs font-medium">⭐ {user.dalali_profiles.rating_avg.toFixed(1)}</span>
+                  <span className="text-xs font-medium flex items-center gap-1"><i className="ti ti-star-filled text-amber-400" aria-hidden="true" />{user.dalali_profiles.rating_avg.toFixed(1)}</span>
                 </div>
               )}
               {waNum && (
@@ -908,21 +908,21 @@ function UserDetailModal({
                 user.is_active === false ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
               }`}
             >
-              {user.is_active === false ? '✅ Washa' : '⏸️ Simamisha'}
+              {user.is_active === false ? 'Washa' : 'Simamisha'}
             </button>
             {user.is_active !== false && (
               <button
                 onClick={onBan}
                 className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700"
               >
-                🚫 Ban
+                <i className="ti ti-ban" aria-hidden="true" /> Ban
               </button>
             )}
             <button
               onClick={onDelete}
               className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600"
             >
-              🗑️
+              <i className="ti ti-trash" aria-hidden="true" />
             </button>
           </div>
         )}
@@ -1096,11 +1096,11 @@ function DalaliActivityView() {
 }
 
 const RISK_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  safe:     { bg: 'bg-green-50',  text: 'text-green-700',  label: '✅ Salama'      },
-  new:      { bg: 'bg-blue-50',   text: 'text-blue-700',   label: '🆕 Mpya'       },
-  at_risk:  { bg: 'bg-amber-50',  text: 'text-amber-700',  label: '⚠️ Hatarini'   },
-  critical: { bg: 'bg-orange-50', text: 'text-orange-700', label: '🔴 Hatari Sana' },
-  overdue:  { bg: 'bg-red-50',    text: 'text-red-700',    label: '🚨 Imepita'    },
+  safe:     { bg: 'bg-green-50',  text: 'text-green-700',  label: 'Salama'      },
+  new:      { bg: 'bg-blue-50',   text: 'text-blue-700',   label: 'Mpya'       },
+  at_risk:  { bg: 'bg-amber-50',  text: 'text-amber-700',  label: 'Hatarini'   },
+  critical: { bg: 'bg-orange-50', text: 'text-orange-700', label: 'Hatari Sana' },
+  overdue:  { bg: 'bg-red-50',    text: 'text-red-700',    label: 'Imepita'    },
 }
 
 function DalaliActivityRow({ dalali, onExtend }: { dalali: DalaliActivity; onExtend: () => void }) {

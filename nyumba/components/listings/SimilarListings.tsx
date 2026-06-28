@@ -139,7 +139,7 @@ export default function SimilarListings({
   if (loading) {
     return (
       <div className="px-4 py-4">
-        <p className="font-semibold text-gray-800 mb-3">📍 Unaweza kupenda pia</p>
+        <p className="font-semibold text-gray-800 mb-3"><i className="ti ti-map-pin" aria-hidden="true" /> Unaweza kupenda pia</p>
         <div className="flex gap-3 overflow-x-auto scrollbar-none">
           {[1, 2, 3].map(i => (
             <div
@@ -163,7 +163,7 @@ export default function SimilarListings({
   return (
     <div className="py-4 border-t border-gray-100">
       <div className="px-4 mb-3 flex items-center justify-between">
-        <p className="font-semibold text-gray-800">📍 Unaweza kupenda pia</p>
+        <p className="font-semibold text-gray-800"><i className="ti ti-map-pin" aria-hidden="true" /> Unaweza kupenda pia</p>
         <Link
           href={`/?region=${encodeURIComponent(region)}&type=${type}`}
           className="text-xs text-primary-500 underline"
@@ -189,13 +189,13 @@ export default function SimilarListings({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-3xl text-gray-300">🏠</span>
+                    <i className="ti ti-home text-3xl text-gray-300" aria-hidden="true" />
                   </div>
                 )}
 
                 {listing.is_boosted && (
                   <div className="absolute top-1.5 left-1.5 bg-yellow-400 text-white text-xs px-1.5 py-0.5 rounded-full">
-                    🚀
+                    <i className="ti ti-rocket" aria-hidden="true" />
                   </div>
                 )}
 
@@ -212,12 +212,12 @@ export default function SimilarListings({
                 <p className="text-primary-500 font-bold text-xs mb-1">
                   Tsh {formatPrice(listing.price_monthly)}/mwezi
                 </p>
-                <p className="text-gray-400 text-xs line-clamp-1">📍 {listing.district}</p>
+                <p className="text-gray-400 text-xs line-clamp-1"><i className="ti ti-map-pin" aria-hidden="true" /> {listing.district}</p>
                 {listing.dalali?.dalali_profiles?.rating_avg && (
                   <p className="text-gray-400 text-xs mt-0.5">
                     ⭐ {listing.dalali.dalali_profiles.rating_avg}
                     {listing.dalali.dalali_profiles.is_premium_verified && (
-                      <span className="text-primary-500 ml-1">✓</span>
+                      <i className="ti ti-circle-check text-primary-500 ml-1" aria-hidden="true" />
                     )}
                   </p>
                 )}

@@ -147,7 +147,7 @@ export default function TermsPage() {
               href="mailto:support@nyumbafasta.co"
               className="flex items-center gap-2 text-sm text-primary-600"
             >
-              <span>✉️</span> support@nyumbafasta.co
+              <i className="ti ti-mail" aria-hidden="true" /> support@nyumbafasta.co
             </a>
             <a
               href="https://wa.me/255665831694"
@@ -155,7 +155,7 @@ export default function TermsPage() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-primary-600"
             >
-              <span>💬</span> WhatsApp: +255 665 831 694
+              <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp: +255 665 831 694
             </a>
           </div>
           <a
@@ -164,7 +164,7 @@ export default function TermsPage() {
             rel="noopener noreferrer"
             className="flex items-center gap-2 bg-[#25D366] text-white px-4 py-3 rounded-xl text-sm font-semibold w-fit"
           >
-            <span className="text-lg">💬</span>
+            <i className="ti ti-brand-whatsapp text-lg" aria-hidden="true" />
             Chat on WhatsApp
           </a>
         </div>

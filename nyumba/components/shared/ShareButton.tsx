@@ -181,7 +181,7 @@ export default function ShareButton({ listing, variant = 'detail', className = '
                     active:scale-[0.97] transition-all ${className}`}
       >
         {shared
-          ? '✅ Imeshirikiwa!'
+          ? 'Imeshirikiwa!'
           : <><ShareIcon size={11} /> Shiriki</>
         }
       </button>
@@ -198,7 +198,7 @@ export default function ShareButton({ listing, variant = 'detail', className = '
                    hover:bg-[#1ebe59] active:scale-[0.98] transition-all"
       >
         <WhatsAppIcon size={18} />
-        {shared ? 'Imeshirikiwa! ✅' : 'Shiriki kwenye WhatsApp'}
+        {shared ? 'Imeshirikiwa!' : 'Shiriki kwenye WhatsApp'}
       </button>
       <button
         onClick={doCopy}
@@ -206,7 +206,7 @@ export default function ShareButton({ listing, variant = 'detail', className = '
                    bg-gray-100 text-gray-700 font-medium text-sm
                    hover:bg-gray-200 active:scale-[0.98] transition-all"
       >
-        {copied ? '✅ Link imenakiliwa!' : '🔗 Nakili Link'}
+        {copied ? <><i className="ti ti-circle-check" aria-hidden="true" /> Link imenakiliwa!</> : <><i className="ti ti-link" aria-hidden="true" /> Nakili Link</>}
       </button>
     </div>
   )

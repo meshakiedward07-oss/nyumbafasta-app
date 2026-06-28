@@ -13,7 +13,7 @@ function VerifyEmailContent() {
       <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-sm">
 
         <div className="w-20 h-20 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-4xl">📧</span>
+          <i className="ti ti-mail text-4xl text-primary-500" aria-hidden="true" />
         </div>
 
         <h2 className="font-bold text-xl text-gray-800 mb-2">Thibitisha Barua Pepe Yako</h2>

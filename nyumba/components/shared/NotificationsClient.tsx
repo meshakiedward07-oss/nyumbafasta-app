@@ -8,21 +8,21 @@ import ReviewForm from '@/components/listings/ReviewForm'
 import { createClient } from '@/lib/supabase/client'
 
 const TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
-  listing_approved:        { icon: '✅', color: 'bg-primary-50 border-primary-100' },
-  listing_rejected:        { icon: '❌', color: 'bg-red-50 border-red-100' },
-  listing_expired:         { icon: '❌', color: 'bg-red-50 border-red-100' },
-  listing_expiring_14days: { icon: '⏰', color: 'bg-yellow-50 border-yellow-100' },
-  listing_expiring_7days:  { icon: '🚨', color: 'bg-orange-50 border-orange-100' },
-  listing_expiring_today:  { icon: '🔴', color: 'bg-red-50 border-red-100' },
-  new_lead:                { icon: '📞', color: 'bg-blue-50 border-blue-100' },
-  subscription_active:     { icon: '⭐', color: 'bg-amber-50 border-amber-100' },
-  review_request:          { icon: '⭐', color: 'bg-amber-50 border-amber-100' },
-  review_reminder:         { icon: '🔔', color: 'bg-orange-50 border-orange-100' },
-  new_review:              { icon: '⭐', color: 'bg-amber-50 border-amber-100' },
-  review_reply:            { icon: '💬', color: 'bg-primary-50 border-primary-100' },
-  boost_activated:         { icon: '🚀', color: 'bg-yellow-50 border-yellow-100' },
-  listing_taken:           { icon: '🏠', color: 'bg-gray-50 border-gray-100' },
-  default:                 { icon: '🔔', color: 'bg-gray-50 border-gray-100' },
+  listing_approved:        { icon: 'circle-check', color: 'bg-primary-50 border-primary-100' },
+  listing_rejected:        { icon: 'circle-x', color: 'bg-red-50 border-red-100' },
+  listing_expired:         { icon: 'circle-x', color: 'bg-red-50 border-red-100' },
+  listing_expiring_14days: { icon: 'clock', color: 'bg-yellow-50 border-yellow-100' },
+  listing_expiring_7days:  { icon: 'alert-triangle', color: 'bg-orange-50 border-orange-100' },
+  listing_expiring_today:  { icon: 'circle-dot', color: 'bg-red-50 border-red-100' },
+  new_lead:                { icon: 'phone', color: 'bg-blue-50 border-blue-100' },
+  subscription_active:     { icon: 'star-filled', color: 'bg-amber-50 border-amber-100' },
+  review_request:          { icon: 'star-filled', color: 'bg-amber-50 border-amber-100' },
+  review_reminder:         { icon: 'bell', color: 'bg-orange-50 border-orange-100' },
+  new_review:              { icon: 'star-filled', color: 'bg-amber-50 border-amber-100' },
+  review_reply:            { icon: 'message-circle', color: 'bg-primary-50 border-primary-100' },
+  boost_activated:         { icon: 'rocket', color: 'bg-yellow-50 border-yellow-100' },
+  listing_taken:           { icon: 'home', color: 'bg-gray-50 border-gray-100' },
+  default:                 { icon: 'bell', color: 'bg-gray-50 border-gray-100' },
 }
 
 function groupByDate(notifications: Notification[]) {
@@ -123,7 +123,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
 
       {notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center px-6">
-          <span className="text-5xl mb-4">🔔</span>
+          <i className="ti ti-bell text-5xl text-gray-300 mb-4" aria-hidden="true" />
           <p className="text-gray-600 font-medium mb-1">Hakuna arifa bado</p>
           <p className="text-gray-400 text-sm">Arifa zitaonekana hapa wakati zinatokea</p>
         </div>
@@ -148,7 +148,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
                         ${isTappable ? 'cursor-pointer active:scale-[0.98]' : ''}
                       `}
                     >
-                      <span className="text-2xl flex-shrink-0 mt-0.5">{cfg.icon}</span>
+                      <i className={`ti ti-${cfg.icon} text-2xl flex-shrink-0 mt-0.5`} aria-hidden="true" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 leading-snug mb-0.5">{n.title}</p>
                         <p className="text-xs text-gray-600 leading-relaxed">{n.body}</p>
@@ -159,7 +159,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
                         )}
                         {alreadyReviewed && (
                           <span className="inline-block mt-2 text-xs text-primary-600 font-medium">
-                            ✅ Maoni yametolewa
+                            <i className="ti ti-circle-check" aria-hidden="true" /> Maoni yametolewa
                           </span>
                         )}
                         {(n.type === 'listing_expired' || n.type === 'listing_expiring_7days' || n.type === 'listing_expiring_today') && n.ref_id && (
@@ -168,7 +168,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
                               onClick={() => router.push(`/dashboard/listings?renew=${n.ref_id}`)}
                               className="text-xs bg-primary-500 text-white px-3 py-1.5 rounded-lg font-medium"
                             >
-                              🔄 Huisha Sasa →
+                              <i className="ti ti-refresh" aria-hidden="true" /> Huisha Sasa →
                             </button>
                           </div>
                         )}

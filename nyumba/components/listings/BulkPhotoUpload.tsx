@@ -204,7 +204,7 @@ export function BulkPhotoUpload({
             }
           }}
         />
-        <p className="text-3xl mb-1.5">📷</p>
+        <i className="ti ti-camera text-3xl mb-1.5 text-gray-400" aria-hidden="true" />
         <p className="text-sm font-medium text-gray-700">
           Buruta picha hapa au{' '}
           <span className="text-primary-600 underline">bonyeza kuchagua</span>
@@ -217,7 +217,7 @@ export function BulkPhotoUpload({
       {/* Validation error */}
       {addError && (
         <p className="text-xs text-red-500 flex items-center gap-1 -mt-1">
-          <span>⚠️</span> {addError}
+          <i className="ti ti-alert-triangle" aria-hidden="true" /> {addError}
         </p>
       )}
 
@@ -232,10 +232,10 @@ export function BulkPhotoUpload({
             </span>
           )}
           {doneCount > 0 && loadingCount === 0 && errorCount === 0 && (
-            <span className="text-primary-600">✅ {doneCount} zimekamilika</span>
+            <span className="text-primary-600 flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />{doneCount} zimekamilika</span>
           )}
           {errorCount > 0 && (
-            <span className="text-red-500">❌ {errorCount} zimeshindwa — bonyeza picha kujaribu tena</span>
+            <span className="text-red-500 flex items-center gap-1"><i className="ti ti-x" aria-hidden="true" />{errorCount} zimeshindwa — bonyeza picha kujaribu tena</span>
           )}
         </div>
       )}
@@ -276,7 +276,7 @@ export function BulkPhotoUpload({
 
       {photos.length > 0 && (
         <p className="text-xs text-gray-400">
-          💡 Picha ya kwanza (⭐ Kuu) ndiyo cover photo — buruta kubadilisha mpangilio.
+          <i className="ti ti-bulb" aria-hidden="true" /> Picha ya kwanza (Kuu) ndiyo cover photo — buruta kubadilisha mpangilio.
         </p>
       )}
     </div>
@@ -321,7 +321,7 @@ function SortablePhoto({
       {isCover && photo.status === 'done' && (
         <span className="absolute top-1 left-1 bg-amber-500 text-white text-[9px] font-bold
                          px-1.5 py-0.5 rounded-full pointer-events-none">
-          ⭐ Kuu
+          <i className="ti ti-star-filled" aria-hidden="true" /> Kuu
         </span>
       )}
 
@@ -338,7 +338,7 @@ function SortablePhoto({
       {/* Error overlay */}
       {photo.status === 'error' && (
         <div className="absolute inset-0 bg-red-500/80 flex flex-col items-center justify-center gap-1 p-1">
-          <span className="text-white text-base">⚠️</span>
+          <i className="ti ti-alert-triangle text-white text-base" aria-hidden="true" />
           <button
             type="button"
             onClick={e => { e.stopPropagation(); onRetry() }}
@@ -358,7 +358,7 @@ function SortablePhoto({
                      flex items-center justify-center text-white text-[10px]
                      opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
         >
-          ✕
+          <i className="ti ti-x" aria-hidden="true" />
         </button>
       )}
     </div>

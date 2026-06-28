@@ -95,7 +95,7 @@ export default function GroupsTab() {
         body:    JSON.stringify({ listingId: selectedListing, groupIds: [group.group_id] }),
       })
       const data = await res.json() as { ok?: boolean; posted?: number; error?: string }
-      showMsg(data.ok ? `✅ Imechapishwa kwenye ${group.group_name}` : `❌ Imeshindwa: ${data.error}`)
+      showMsg(data.ok ? `Imechapishwa kwenye ${group.group_name}` : `Imeshindwa: ${data.error}`)
       fetchGroups()
     } finally {
       setPosting(null)
@@ -112,7 +112,7 @@ export default function GroupsTab() {
         body:    JSON.stringify({ listingId: selectedListing }),
       })
       const data = await res.json() as { ok?: boolean; posted?: number; total?: number; error?: string }
-      showMsg(data.ok ? `✅ Machapisho ${data.posted}/${data.total} yamefanikiwa` : `❌ ${data.error}`)
+      showMsg(data.ok ? `Machapisho ${data.posted}/${data.total} yamefanikiwa` : `${data.error ?? 'Imeshindwa'}`)
       fetchGroups()
     } finally {
       setPostingAll(false)
@@ -138,8 +138,8 @@ export default function GroupsTab() {
         }),
       })
       const data = await res.json() as { ok?: boolean; error?: string }
-      if (!data.ok) { showMsg(`❌ ${data.error}`); return }
-      showMsg(`✅ Kundi "${newGroupName}" limeongezwa!`)
+      if (!data.ok) { showMsg(data.error ?? 'Imeshindwa'); return }
+      showMsg(`Kundi "${newGroupName}" limeongezwa!`)
       setNewGroupId(''); setNewGroupName(''); setNewGroupUrl(''); setNewMembers('')
       setShowAdd(false)
       fetchGroups()
@@ -162,7 +162,7 @@ export default function GroupsTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">👥 Makundi ya Facebook</h2>
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-users" aria-hidden="true" /> Makundi ya Facebook</h2>
           <p className="text-sm text-gray-500">
             {activeGroups.length} hai · {inactiveGroups.length} imezimwa
           </p>
@@ -178,7 +178,7 @@ export default function GroupsTab() {
       {/* Add Group Form */}
       {showAdd && (
         <form onSubmit={handleAdd} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <h3 className="font-semibold text-gray-800">➕ Ongeza Kundi la Facebook</h3>
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2"><i className="ti ti-circle-plus" aria-hidden="true" /> Ongeza Kundi la Facebook</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-gray-600 block mb-1">
@@ -265,7 +265,7 @@ export default function GroupsTab() {
           disabled={postingAll || !selectedListing || activeGroups.length === 0}
           className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
         >
-          {postingAll ? '⏳ Inachapisha...' : `🚀 Post kwenye Makundi Yote (${activeGroups.length})`}
+{postingAll ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha...</> : <><i className="ti ti-rocket" aria-hidden="true" /> Post kwenye Makundi Yote ({activeGroups.length})</>}
         </button>
       </div>
 
@@ -280,7 +280,7 @@ export default function GroupsTab() {
         <div className="space-y-3">
           {groups.length === 0 && (
             <div className="text-center py-16 text-gray-400">
-              <div className="text-4xl mb-3">👥</div>
+<div className="text-4xl mb-3"><i className="ti ti-users" aria-hidden="true" /></div>
               <p>Hakuna makundi bado</p>
               <p className="text-sm mt-1">Ongeza kundi lako la kwanza la Facebook</p>
             </div>
@@ -298,12 +298,12 @@ export default function GroupsTab() {
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-gray-400">
                     <span>ID: {group.group_id}</span>
-                    {group.members_count && <span>👥 {group.members_count.toLocaleString()} wanachama</span>}
-                    <span>📊 Posts: {group.post_count}</span>
-                    <span>🕐 {timeAgo(group.last_posted_at)}</span>
+{group.members_count && <span><i className="ti ti-users" aria-hidden="true" /> {group.members_count.toLocaleString()} wanachama</span>}
+<span><i className="ti ti-chart-bar" aria-hidden="true" /> Posts: {group.post_count}</span>
+<span><i className="ti ti-clock" aria-hidden="true" /> {timeAgo(group.last_posted_at)}</span>
                   </div>
                   {group.notes && (
-                    <p className="text-xs text-amber-600 mt-1">⚠️ {group.notes}</p>
+<p className="text-xs text-amber-600 mt-1 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" /> {group.notes}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -315,20 +315,20 @@ export default function GroupsTab() {
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
-                    {group.is_active ? '🟢 Hai' : '⚫ Imezimwa'}
+{group.is_active ? 'Hai' : 'Imezimwa'}
                   </button>
                   <button
                     onClick={() => handlePostToGroup(group)}
                     disabled={posting === group.group_id || !selectedListing || !group.is_active}
                     className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 disabled:opacity-40"
                   >
-                    {posting === group.group_id ? '⏳' : '📤 Post'}
+{posting === group.group_id ? <i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> : <><i className="ti ti-send" aria-hidden="true" /> Post</>}
                   </button>
                   <button
                     onClick={() => handleDelete(group)}
                     className="px-3 py-1.5 bg-red-100 text-red-600 text-xs font-medium rounded-lg hover:bg-red-200"
                   >
-                    🗑️
+<i className="ti ti-trash" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -339,7 +339,7 @@ export default function GroupsTab() {
 
       {/* Info box */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-        <p className="font-semibold mb-1">⚠️ Jinsi ya kupata Group ID ya Facebook:</p>
+<p className="font-semibold mb-1 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" /> Jinsi ya kupata Group ID ya Facebook:</p>
         <ol className="list-decimal list-inside space-y-1 text-xs">
           <li>Fungua Facebook Group kwenye browser</li>
           <li>Angalia URL: <code className="bg-amber-100 px-1 rounded">facebook.com/groups/<strong>ID_HAPA</strong></code></li>

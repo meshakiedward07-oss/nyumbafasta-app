@@ -58,7 +58,7 @@ export default function AnalyticsClient() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
-        <h1 className="text-white font-bold text-lg mb-1">📊 CRM Analytics</h1>
+        <h1 className="text-white font-bold text-lg mb-1"><i className="ti ti-chart-bar" aria-hidden="true" /> CRM Analytics</h1>
         <p className="text-green-100 text-xs">Takwimu za uandikishaji wa madalali watarajiwa</p>
       </header>
 
@@ -66,36 +66,36 @@ export default function AnalyticsClient() {
 
         {/* Key metrics */}
         <div>
-          <p className="font-semibold text-gray-700 mb-3 text-sm">🎯 Muhtasari</p>
+          <p className="font-semibold text-gray-700 mb-3 text-sm flex items-center gap-1.5"><i className="ti ti-target" aria-hidden="true" /> Muhtasari</p>
           <div className="grid grid-cols-2 gap-3">
             {[
               {
                 label: 'Leads Hai',
                 value: stats.totalActive,
-                emoji: '📊',
+                icon: 'chart-bar',
                 color: 'bg-blue-50 text-blue-700',
               },
               {
                 label: 'Conversion Rate',
                 value: `${stats.conversionRate}%`,
-                emoji: '✅',
+                icon: 'circle-check',
                 color: 'bg-green-50 text-green-700',
               },
               {
                 label: 'Follow-up Leo',
                 value: stats.followupsDueToday,
-                emoji: '⏰',
+                icon: 'clock',
                 color: 'bg-amber-50 text-amber-700',
               },
               {
                 label: 'Hawajaguswa',
                 value: stats.uncontacted,
-                emoji: '⚠️',
+                icon: 'alert-triangle',
                 color: 'bg-red-50 text-red-700',
               },
             ].map((m, i) => (
               <div key={i} className={`${m.color} rounded-2xl p-4`}>
-                <div className="text-2xl mb-1">{m.emoji}</div>
+                <i className={`ti ti-${m.icon} text-2xl mb-1`} aria-hidden="true" />
                 <div className="font-bold text-xl leading-tight">{m.value}</div>
                 <div className="text-xs opacity-70 mt-0.5">{m.label}</div>
               </div>
@@ -105,7 +105,7 @@ export default function AnalyticsClient() {
           {stats.avgDaysToConvert > 0 && (
             <div className="mt-3 bg-purple-50 rounded-2xl p-4">
               <p className="text-sm font-semibold text-purple-800">
-                🕐 Wastani wa siku {stats.avgDaysToConvert} kutoka lead hadi mfanikiwa
+                <i className="ti ti-clock" aria-hidden="true" /> Wastani wa siku {stats.avgDaysToConvert} kutoka lead hadi mfanikiwa
               </p>
               <p className="text-xs text-purple-600 mt-0.5">
                 Kwa leads zilizobadilika kuwa madalali kamili
@@ -116,7 +116,7 @@ export default function AnalyticsClient() {
 
         {/* Onboarding funnel */}
         <div>
-          <p className="font-semibold text-gray-700 mb-3 text-sm">🚀 Funnel ya Uandikishaji</p>
+          <p className="font-semibold text-gray-700 mb-3 text-sm flex items-center gap-1.5"><i className="ti ti-rocket" aria-hidden="true" /> Funnel ya Uandikishaji</p>
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             {funnelStages.map(stage => {
               const count = stats.byStage[stage.key] || 0
@@ -125,7 +125,7 @@ export default function AnalyticsClient() {
                 <div key={stage.key} className="px-4 py-3 border-b border-gray-50 last:border-0">
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-base">{stage.emoji}</span>
+                      <i className={`ti ti-${stage.icon} text-base`} aria-hidden="true" />
                       <span className="text-sm font-medium text-gray-700">{stage.label}</span>
                     </div>
                     <span className="text-sm font-bold text-gray-900">{count}</span>
@@ -144,7 +144,7 @@ export default function AnalyticsClient() {
             <div className="px-4 py-3 bg-red-50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-base">❌</span>
+                  <i className="ti ti-x text-base" aria-hidden="true" />
                   <span className="text-sm font-medium text-red-700">Amepotea</span>
                 </div>
                 <span className="text-sm font-bold text-red-700">
@@ -161,7 +161,7 @@ export default function AnalyticsClient() {
         {/* Leads by source */}
         {sourcesOrdered.length > 0 && (
           <div>
-            <p className="font-semibold text-gray-700 mb-3 text-sm">📡 Chanzo cha Leads</p>
+            <p className="font-semibold text-gray-700 mb-3 text-sm"><i className="ti ti-antenna" aria-hidden="true" /> Chanzo cha Leads</p>
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               {sourcesOrdered.map(([source, count], i) => {
                 const pct = Math.round((count / topSourceCount) * 100)
@@ -188,11 +188,11 @@ export default function AnalyticsClient() {
         {/* Action items */}
         {(stats.uncontacted > 0 || stats.followupsDueToday > 0) && (
           <div>
-            <p className="font-semibold text-gray-700 mb-3 text-sm">⚡ Hatua Zinazohitajika</p>
+            <p className="font-semibold text-gray-700 mb-3 text-sm"><i className="ti ti-bolt" aria-hidden="true" /> Hatua Zinazohitajika</p>
             <div className="space-y-2">
               {stats.uncontacted > 0 && (
                 <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3">
-                  <span className="text-2xl">⚠️</span>
+                  <i className="ti ti-alert-triangle text-2xl" aria-hidden="true" />
                   <div>
                     <p className="font-semibold text-sm text-red-700">
                       {stats.uncontacted} leads hawajaguswa bado

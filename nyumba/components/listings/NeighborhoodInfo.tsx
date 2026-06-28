@@ -21,13 +21,13 @@ interface NeighborhoodData {
 const CATEGORIES: {
   key:   keyof Pick<NeighborhoodData, 'schools' | 'hospitals' | 'markets' | 'transport' | 'banks'>
   label: string
-  emoji: string
+  icon: string
 }[] = [
-  { key: 'schools',   label: 'Shule',     emoji: '🏫' },
-  { key: 'hospitals', label: 'Hospitali', emoji: '🏥' },
-  { key: 'markets',   label: 'Masoko',    emoji: '🛒' },
-  { key: 'transport', label: 'Usafiri',   emoji: '🚌' },
-  { key: 'banks',     label: 'Benki',     emoji: '🏦' },
+  { key: 'schools',   label: 'Shule',     icon: 'school' },
+  { key: 'hospitals', label: 'Hospitali', icon: 'building-hospital' },
+  { key: 'markets',   label: 'Masoko',    icon: 'shopping-cart' },
+  { key: 'transport', label: 'Usafiri',   icon: 'bus' },
+  { key: 'banks',     label: 'Benki',     icon: 'building-bank' },
 ]
 
 function Skeleton() {
@@ -68,7 +68,7 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
   if (error || !data) {
     return (
       <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">📍 Habari za Mtaa</h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5"><i className="ti ti-map-pin" aria-hidden="true" /> Habari za Mtaa</h3>
         <p className="text-xs text-gray-400">
           Taarifa za mtaa hazikupatikana kwa sasa. Jaribu tena baadaye.
         </p>
@@ -78,8 +78,7 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
 
   return (
     <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-      <h3 className="text-sm font-semibold text-gray-700 mb-0.5">
-        📍 Habari za Mtaa
+      <h3 className="text-sm font-semibold text-gray-700 mb-0.5 flex items-center gap-1.5"><i className="ti ti-map-pin" aria-hidden="true" /> Habari za Mtaa
       </h3>
       <p className="text-xs text-gray-400 mb-4">
         Vitu vilivyo karibu na nyumba hii
@@ -87,7 +86,7 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
 
       {/* CBD distance */}
       <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 mb-4 flex items-center gap-3">
-        <span className="text-2xl flex-shrink-0">🏙️</span>
+        <i className="ti ti-building-skyscraper text-2xl flex-shrink-0 text-primary-500" aria-hidden="true" />
         <div>
           <p className="text-sm font-semibold text-primary-800">
             Umbali kutoka {data.cbdLabel}
@@ -108,7 +107,7 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
           return (
             <div key={cat.key} className="bg-gray-50 rounded-xl p-3">
               <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-base leading-none">{cat.emoji}</span>
+                <i className={`ti ti-${cat.icon} text-base leading-none`} aria-hidden="true" />
                 <span className="text-xs font-semibold text-gray-700">{cat.label}</span>
               </div>
 

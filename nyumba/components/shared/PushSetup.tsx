@@ -58,7 +58,7 @@ export default function PushSetup() {
 
         {done ? (
           <div className="text-center py-4">
-            <div className="text-4xl mb-3">🎉</div>
+            <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-confetti text-primary-500" aria-hidden="true" /></div>
             <p className="text-base font-bold text-gray-900">Asante! Utapokea arifa</p>
             <p className="text-sm text-gray-500 mt-1">Tutakuarifu mambo muhimu tu</p>
           </div>
@@ -66,7 +66,7 @@ export default function PushSetup() {
           <>
             {/* Icon */}
             <div className="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">🔔</span>
+              <i className="ti ti-bell text-3xl" aria-hidden="true" />
             </div>
 
             <h3 className="text-lg font-bold text-gray-900 text-center mb-1">
@@ -79,14 +79,14 @@ export default function PushSetup() {
             {/* Benefits list */}
             <div className="space-y-3 mb-7">
               {[
-                { icon: '🏠', text: 'Listing mpya eneo unalolipenda' },
-                { icon: '📞', text: 'Mteja amefungua contact yako (dalali)' },
-                { icon: '✅', text: 'Listing yako imeidhibitishwa na admin' },
-                { icon: '🎉', text: 'Akaunti yako imethibitishwa (verified)' },
+                { icon: 'home', text: 'Listing mpya eneo unalolipenda' },
+                { icon: 'phone', text: 'Mteja amefungua contact yako (dalali)' },
+                { icon: 'circle-check', text: 'Listing yako imeidhibitishwa na admin' },
+                { icon: 'confetti', text: 'Akaunti yako imethibitishwa (verified)' },
               ].map(b => (
                 <div key={b.text} className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
-                    <span className="text-base">{b.icon}</span>
+                    <i className={`ti ti-${b.icon} text-base text-primary-600`} aria-hidden="true" />
                   </div>
                   <p className="text-sm text-gray-700">{b.text}</p>
                 </div>
@@ -100,7 +100,7 @@ export default function PushSetup() {
               className="w-full py-4 rounded-2xl bg-primary-500 text-white font-bold text-sm
                          disabled:opacity-60 active:scale-[0.97] transition-transform mb-3"
             >
-              {loading ? 'Inaomba ruhusa...' : '🔔 Ndiyo, Niarifu'}
+              {loading ? 'Inaomba ruhusa...' : 'Ndiyo, Niarifu'}
             </button>
             <button
               onClick={handleDismiss}

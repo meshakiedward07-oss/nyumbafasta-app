@@ -3,7 +3,7 @@ import Link from 'next/link'
 export default function NoAccessPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
-      <div className="text-6xl mb-4">🔒</div>
+      <div className="text-6xl mb-4 flex justify-center"><i className="ti ti-lock text-gray-400" aria-hidden="true" /></div>
       <h1 className="text-xl font-bold text-gray-900 mb-2">
         Huna Ruhusa ya Kufikia Hapa
       </h1>

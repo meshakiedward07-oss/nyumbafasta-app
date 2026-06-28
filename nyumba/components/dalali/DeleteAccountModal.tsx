@@ -76,7 +76,7 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
         {/* ── STEP 1: Warning ── */}
         {step === 1 && (
           <div className="px-6">
-            <div className="text-4xl text-center mb-3">⚠️</div>
+            <div className="text-4xl text-center mb-3 flex justify-center"><i className="ti ti-alert-triangle text-red-500" aria-hidden="true" /></div>
             <h2 className="text-base font-bold text-gray-900 text-center mb-4">
               Una uhakika unataka kufuta akaunti?
             </h2>
@@ -90,7 +90,7 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
                 'Haiwezi kurejeshwa',
               ].map(item => (
                 <div key={item} className="flex items-center gap-2">
-                  <span className="text-red-400 text-sm flex-shrink-0">❌</span>
+                  <i className="ti ti-x text-red-400 text-sm flex-shrink-0" aria-hidden="true" />
                   <p className="text-sm text-red-700">{item}</p>
                 </div>
               ))}
@@ -160,7 +160,7 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
         {/* ── STEP 3: Confirm ── */}
         {step === 3 && (
           <div className="px-6">
-            <div className="text-3xl text-center mb-3">🔐</div>
+            <div className="text-3xl text-center mb-3 flex justify-center"><i className="ti ti-lock text-gray-600" aria-hidden="true" /></div>
             <h2 className="text-base font-bold text-gray-900 text-center mb-4">
               Thibitisha Ufutaji
             </h2>
@@ -191,7 +191,7 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 mb-1.5 block">🔒 Nenosiri lako</label>
+                <label className="text-xs text-gray-500 mb-1.5 block"><i className="ti ti-lock" aria-hidden="true" /> Nenosiri lako</label>
                 <div className="relative">
                   <input
                     type={showPass ? 'text' : 'password'}
@@ -207,7 +207,7 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"
                     tabIndex={-1}
                   >
-                    {showPass ? '🙈' : '👁️'}
+                    {showPass ? <i className="ti ti-eye-off" aria-hidden="true" /> : <i className="ti ti-eye" aria-hidden="true" />}
                   </button>
                 </div>
               </div>
@@ -224,7 +224,7 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Inafuta...
                 </span>
-              ) : '🗑️ Futa Akaunti Yangu Kabisa'}
+              ) : 'Futa Akaunti Yangu Kabisa'}
             </button>
             <button onClick={() => setStep(2)} className="w-full py-3 text-sm text-gray-400 mt-2">
               ← Rudi

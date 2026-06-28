@@ -20,7 +20,7 @@ export default function MaliLayout({ children }: { children: React.ReactNode }) 
             href="/"
             className="text-white text-sm font-medium bg-white/20 px-3 py-1.5 rounded-full"
           >
-            🔍 Tafuta
+            <i className="ti ti-search" aria-hidden="true" /> Tafuta
           </Link>
         </div>
       </header>

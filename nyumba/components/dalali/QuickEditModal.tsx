@@ -107,13 +107,13 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
 
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900">⚡ Update Haraka</h2>
+          <h2 className="font-bold text-gray-900"><i className="ti ti-bolt" aria-hidden="true" /> Update Haraka</h2>
           <button
             onClick={onClose}
             aria-label="Funga"
             className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"
           >
-            ✕
+            <i className="ti ti-x" aria-hidden="true" />
           </button>
         </div>
 
@@ -213,7 +213,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
                 className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl
                            flex flex-col items-center justify-center gap-1 text-gray-400"
               >
-                <span className="text-2xl">📷</span>
+                <i className="ti ti-camera text-2xl text-gray-400" aria-hidden="true" />
                 <span className="text-xs">Bonyeza kupakia picha</span>
               </button>
             ) : (
@@ -231,7 +231,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
                         onError={() => setImgErrors(prev => new Set([...prev, i]))}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-xl">📷</div>
+                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-xl"><i className="ti ti-camera" aria-hidden="true" /></div>
                     )}
                     {i === 0 && (
                       <div className="absolute bottom-0 left-0 right-0 bg-primary-500/80 text-white text-[9px] text-center py-0.5">
@@ -242,7 +242,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
                       onClick={() => removeImage(i)}
                       className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
                     >
-                      ✕
+                      <i className="ti ti-x" aria-hidden="true" />
                     </button>
                   </div>
                 ))}
@@ -276,7 +276,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Inahifadhi...
               </span>
-            ) : '✅ Hifadhi Mabadiliko'}
+            ) : 'Hifadhi Mabadiliko'}
           </button>
         </div>
       </div>

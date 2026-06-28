@@ -8,14 +8,14 @@ type Role = 'client' | 'dalali' | 'admin' | string
 // 3rd tab varies by role
 function getItems(role: Role) {
   const mid =
-    role === 'admin'  ? { href: '/admin',     icon: '🛡️', label: 'Msimamizi' } :
-    role === 'dalali' ? { href: '/dashboard', icon: '📊', label: 'Dashibodi' } :
+    role === 'admin'  ? { href: '/admin',     icon: 'shield', label: 'Msimamizi' } :
+    role === 'dalali' ? { href: '/dashboard', icon: 'chart-bar', label: 'Dashibodi' } :
                         { href: '/notifications', icon: null, label: 'Arifa' }
   return [
-    { href: '/',        icon: '🔍', label: 'Tafuta'  },
-    { href: '/saved',   icon: '❤️',  label: 'Zilizohifadhiwa' },
+    { href: '/',        icon: 'search', label: 'Tafuta'  },
+    { href: '/saved',   icon: 'heart',  label: 'Zilizohifadhiwa' },
     mid,
-    { href: '/account', icon: '👤', label: 'Akaunti' },
+    { href: '/account', icon: 'user', label: 'Akaunti' },
   ]
 }
 
@@ -41,9 +41,7 @@ export default function BottomNav({ role = 'client' }: { role?: Role }) {
               {icon === null ? (
                 <NotificationBell asLink={false} className={`transition-transform duration-150 ${active ? 'scale-110' : ''}`} />
               ) : (
-                <span aria-hidden="true" className={`text-xl transition-transform duration-150 ${active ? 'scale-110' : ''}`}>
-                  {icon}
-                </span>
+                <i aria-hidden="true" className={`ti ti-${icon} text-xl transition-transform duration-150 ${active ? 'scale-110' : ''}`} />
               )}
               <span className={`text-xs ${active ? 'font-semibold' : ''}`}>{label}</span>
               {active && <span className="w-1 h-1 rounded-full bg-primary-500 mt-0.5" />}

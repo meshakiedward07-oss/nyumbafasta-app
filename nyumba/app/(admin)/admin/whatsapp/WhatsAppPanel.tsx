@@ -607,7 +607,7 @@ export default function WhatsAppPanel() {
                         onClick={() => handleDeleteInstruction(instr.id)}
                         className="text-red-400 hover:text-red-600 text-xs flex-shrink-0 mt-0.5"
                       >
-                        ✕
+                        <i className="ti ti-x" aria-hidden="true" />
                       </button>
                     </div>
                   ))}
@@ -636,7 +636,7 @@ export default function WhatsAppPanel() {
       ) : (
         /* ── Empty state ─────────────────────────────────────────────── */
         <div className="hidden lg:flex flex-1 items-center justify-center flex-col gap-3 text-gray-400">
-          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center text-3xl">💬</div>
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center text-3xl"><i className="ti ti-message-circle text-gray-400" aria-hidden="true" /></div>
           <p className="text-sm font-medium">Chagua mazungumzo kuanza</p>
           {counts.pending > 0 && (
             <p className="text-xs text-red-500 font-semibold">

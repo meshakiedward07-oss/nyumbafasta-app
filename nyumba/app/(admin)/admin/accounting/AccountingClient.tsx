@@ -128,12 +128,12 @@ function catLabel(c: string) {
   return m[c] || c
 }
 
-function catEmoji(c: string) {
+function catIcon(c: string) {
   const m: Record<string, string> = {
-    hosting: '🖥️', api_costs: '⚡', marketing: '📣',
-    legal: '⚖️', staff: '👤', software: '💻', banking: '🏦', other: '📦',
+    hosting: 'server', api_costs: 'bolt', marketing: 'speakerphone',
+    legal: 'scale', staff: 'user', software: 'device-laptop', banking: 'building-bank', other: 'package',
   }
-  return m[c] || '📦'
+  return m[c] || 'package'
 }
 
 // ── Add Expense Modal ──────────────────────────────────────────────────────
@@ -189,7 +189,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
       <div className="bg-white w-full rounded-t-3xl px-5 pt-4 pb-8 max-h-[90vh] overflow-y-auto shadow-xl"
            onClick={e => e.stopPropagation()}>
         <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
-        <h3 className="text-base font-bold text-gray-900 mb-4">➕ Ongeza Matumizi Mapya</h3>
+        <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-1"><i className="ti ti-plus" aria-hidden="true" />Ongeza Matumizi Mapya</h3>
 
         {error && (
           <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-3">{error}</div>
@@ -205,7 +205,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
                 form.category === c ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-100 text-gray-500'
               }`}
             >
-              <div>{catEmoji(c)}</div>
+              <div><i className={`ti ti-${catIcon(c)}`} aria-hidden="true" /></div>
               <div className="mt-0.5 truncate">{catLabel(c)}</div>
             </button>
           ))}
@@ -277,7 +277,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             form.isRecurring ? 'border-primary-300 bg-primary-50' : 'border-gray-100'
           }`}
         >
-          <span className="text-sm text-gray-700">🔄 Ni matumizi ya mara kwa mara?</span>
+          <span className="text-sm text-gray-700 flex items-center gap-1"><i className="ti ti-refresh" aria-hidden="true" />Ni matumizi ya mara kwa mara?</span>
           <div className={`w-10 h-5 rounded-full transition-colors ${form.isRecurring ? 'bg-primary-500' : 'bg-gray-200'}`}>
             <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${form.isRecurring ? 'translate-x-5' : ''}`} />
           </div>
@@ -385,7 +385,7 @@ export default function AccountingClient() {
       const res  = await fetch('/api/v1/accounting/income/sync', { method: 'POST' })
       const data = await res.json() as { synced?: number; skipped?: number; error?: string }
       if (!res.ok) { setSyncMsg(''); showToast(data.error ?? 'Imeshindwa'); return }
-      setSyncMsg(`✅ Synced: ${data.synced}, Zilizopo: ${data.skipped}`)
+      setSyncMsg(`Synced: ${data.synced}, Zilizopo: ${data.skipped}`)
       await loadData()
       setTimeout(() => setSyncMsg(''), 4000)
     } catch { setSyncMsg(''); showToast('Hitilafu ya mtandao') }
@@ -447,18 +447,18 @@ export default function AccountingClient() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
-          <h1 className="text-base font-bold text-gray-900">💰 Hesabu za NyumbaFasta</h1>
+          <h1 className="text-base font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-coins" aria-hidden="true" />Hesabu za NyumbaFasta</h1>
         </div>
         <div className="p-4 space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-            <p className="font-bold text-amber-800 mb-1">⚠️ Database haijaundwa bado</p>
+            <p className="font-bold text-amber-800 mb-1 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />Database haijaundwa bado</p>
             <p className="text-sm text-amber-700 mb-3">
               Jedwali la hesabu halijafanyiwa migration katika Supabase. Fanya hatua hizi:
             </p>
             <ol className="text-sm text-amber-800 space-y-2 list-decimal list-inside">
               <li>Nenda <strong>Supabase Dashboard → SQL Editor</strong></li>
               <li>Copy SQL ifuatayo na paste, kisha Run</li>
-              <li>Rudi ukurasa huu, bonyeza <strong>🔄 Sync Mapato</strong></li>
+              <li>Rudi ukurasa huu, bonyeza <strong>Sync Mapato</strong></li>
             </ol>
           </div>
           <div className="bg-gray-900 rounded-2xl p-4 overflow-x-auto">
@@ -583,7 +583,7 @@ ON CONFLICT DO NOTHING;`}</pre>
             onClick={loadData}
             className="w-full py-3 bg-primary-500 text-white rounded-2xl font-semibold text-sm"
           >
-            🔄 Jaribu Tena (Baada ya Kurun SQL)
+            <i className="ti ti-refresh" aria-hidden="true" /> Jaribu Tena (Baada ya Kurun SQL)
           </button>
         </div>
       </div>
@@ -607,7 +607,7 @@ ON CONFLICT DO NOTHING;`}</pre>
           </svg>
         </Link>
         <div className="flex-1">
-          <h1 className="text-base font-bold text-gray-900">💰 Hesabu za NyumbaFasta</h1>
+          <h1 className="text-base font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-coins" aria-hidden="true" />Hesabu za NyumbaFasta</h1>
           <p className="text-xs text-gray-400">Mapato, Matumizi, Faida</p>
         </div>
         <button onClick={() => setShowAddExp(true)}
@@ -618,7 +618,7 @@ ON CONFLICT DO NOTHING;`}</pre>
 
       {/* ── Month selector ── */}
       <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2">
-        <span className="text-xs text-gray-400 flex-shrink-0">📅 Mwezi:</span>
+        <span className="text-xs text-gray-400 flex-shrink-0 flex items-center gap-1"><i className="ti ti-calendar" aria-hidden="true" />Mwezi:</span>
         <select
           value={selectedMonth}
           onChange={e => setSelectedMonth(e.target.value)}
@@ -663,7 +663,7 @@ ON CONFLICT DO NOTHING;`}</pre>
         </button>
         <button onClick={handleSync}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium">
-          🔄 Sync Mapato
+          <i className="ti ti-refresh" aria-hidden="true" /> Sync Mapato
         </button>
         {syncMsg && <span className="text-xs text-gray-500 ml-1">{syncMsg}</span>}
       </div>
@@ -671,17 +671,17 @@ ON CONFLICT DO NOTHING;`}</pre>
       {/* ── Tab nav ── */}
       <div className="bg-white border-b border-gray-100 flex overflow-x-auto scrollbar-none">
         {([
-          { key: 'overview',  label: 'Muhtasari', icon: '📊' },
-          { key: 'mapato',    label: 'Mapato',    icon: '📈' },
-          { key: 'matumizi',  label: 'Matumizi',  icon: '📉' },
-          { key: 'miamala',   label: 'Miamala',   icon: '📋' },
+          { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
+          { key: 'mapato',    label: 'Mapato',    icon: 'trending-up' },
+          { key: 'matumizi',  label: 'Matumizi',  icon: 'trending-down' },
+          { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
         ] as { key: typeof tab; label: string; icon: string }[]).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
               tab === t.key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400'
             }`}
           >
-            <span>{t.icon}</span><span>{t.label}</span>
+            <i className={`ti ti-${t.icon}`} aria-hidden="true" /><span>{t.label}</span>
           </button>
         ))}
       </div>
@@ -743,7 +743,7 @@ ON CONFLICT DO NOTHING;`}</pre>
 
                 {/* Platform fees note */}
                 <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 flex items-center gap-2">
-                  <span className="text-sm">💳</span>
+                  <i className="ti ti-credit-card text-sm text-amber-600" aria-hidden="true" />
                   <p className="text-xs text-amber-700">
                     Ada ya AzamPay (1%): <strong>{fmtFull(income?.platformFees ?? 0)}</strong>
                     &nbsp;·&nbsp; Mapato halisi: <strong>{fmtFull(income?.netIncome ?? 0)}</strong>
@@ -753,7 +753,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 {/* Income by source bar chart */}
                 {Object.keys(income?.bySource ?? {}).length > 0 && (
                   <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                    <h3 className="text-sm font-bold text-gray-800 mb-3">📈 Mapato kwa Chanzo</h3>
+                    <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1"><i className="ti ti-trending-up" aria-hidden="true" />Mapato kwa Chanzo</h3>
                     <div className="space-y-2.5">
                       {Object.entries(income?.bySource ?? {})
                         .sort(([, a], [, b]) => b - a)
@@ -780,7 +780,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 {/* Expenses by category */}
                 {Object.keys(expenses?.byCategory ?? {}).length > 0 && (
                   <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                    <h3 className="text-sm font-bold text-gray-800 mb-3">📉 Matumizi kwa Aina</h3>
+                    <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1"><i className="ti ti-trending-down" aria-hidden="true" />Matumizi kwa Aina</h3>
                     <div className="space-y-2.5">
                       {Object.entries(expenses?.byCategory ?? {})
                         .sort(([, a], [, b]) => b - a)
@@ -790,7 +790,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                           return (
                             <div key={cat}>
                               <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                <span>{catEmoji(cat)} {catLabel(cat)}</span>
+                                <span><i className={`ti ti-${catIcon(cat)}`} aria-hidden="true" /> {catLabel(cat)}</span>
                                 <span>{fmtFull(amt)} ({sharePct}%)</span>
                               </div>
                               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -807,7 +807,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 {/* Payment methods */}
                 {Object.keys(income?.byMethod ?? {}).length > 0 && (
                   <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                    <h3 className="text-sm font-bold text-gray-800 mb-3">💳 Njia za Malipo</h3>
+                    <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1"><i className="ti ti-credit-card" aria-hidden="true" />Njia za Malipo</h3>
                     <div className="space-y-2">
                       {Object.entries(income?.byMethod ?? {})
                         .sort(([, a], [, b]) => b - a)
@@ -823,12 +823,12 @@ ON CONFLICT DO NOTHING;`}</pre>
 
                 {income?.total === 0 && expenses?.total === 0 && (
                   <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-sm">
-                    <p className="text-2xl mb-2">💰</p>
+                    <p className="text-2xl mb-2 flex justify-center"><i className="ti ti-coins text-gray-400" aria-hidden="true" /></p>
                     <p className="text-sm font-medium text-gray-600">Hakuna data kipindi hiki</p>
                     <p className="text-xs text-gray-400 mt-1">Sync mapato au ongeza matumizi</p>
                     <button onClick={handleSync}
                       className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-xl text-xs font-semibold">
-                      🔄 Sync Mapato Sasa
+                      <i className="ti ti-refresh" aria-hidden="true" /> Sync Mapato Sasa
                     </button>
                   </div>
                 )}
@@ -847,7 +847,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                     <div className="px-4 py-8 text-center">
                       <p className="text-sm text-gray-400">Hakuna mapato — fanya sync kwanza</p>
                       <button onClick={handleSync} className="mt-3 text-xs text-primary-500 font-semibold">
-                        🔄 Sync sasa
+                        <i className="ti ti-refresh" aria-hidden="true" /> Sync sasa
                       </button>
                     </div>
                   ) : (
@@ -855,7 +855,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                       {incRecords.map(r => (
                         <div key={r.id} className="px-4 py-3 flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-sm flex-shrink-0">
-                            {r.source === 'subscription' ? '📦' : r.source === 'contact_unlock' ? '🔓' : '🚀'}
+                            {r.source === 'subscription' ? <i className="ti ti-package" aria-hidden="true" /> : r.source === 'contact_unlock' ? <i className="ti ti-lock-open" aria-hidden="true" /> : <i className="ti ti-rocket" aria-hidden="true" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-gray-800 truncate">
@@ -881,7 +881,7 @@ ON CONFLICT DO NOTHING;`}</pre>
               <>
                 <button onClick={() => setShowAddExp(true)}
                   className="w-full py-3 bg-primary-500 text-white rounded-2xl text-sm font-semibold">
-                  ➕ Ongeza Matumizi Mapya
+                  <i className="ti ti-plus" aria-hidden="true" /> Ongeza Matumizi Mapya
                 </button>
 
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -898,14 +898,14 @@ ON CONFLICT DO NOTHING;`}</pre>
                       {expRecords.map(r => (
                         <div key={r.id} className="px-4 py-3 flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-sm flex-shrink-0">
-                            {catEmoji(r.category)}
+                            <i className={`ti ti-${catIcon(r.category)}`} aria-hidden="true" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-gray-800 truncate">{r.description}</p>
                             <p className="text-xs text-gray-400">
                               {r.expense_date} · {catLabel(r.category)}
                               {r.vendor ? ` · ${r.vendor}` : ''}
-                              {r.is_recurring ? ' 🔄' : ''}
+                              {r.is_recurring ? ' ↻' : ''}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
@@ -919,8 +919,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                                   Futa
                                 </button>
                                 <button onClick={() => setConfirmDeleteExpId(null)}
-                                  className="text-[10px] text-gray-400 hover:text-gray-600 px-1">
-                                  ✕
+                                  className="text-[10px] text-gray-400 hover:text-gray-600 px-1"><i className="ti ti-x" aria-hidden="true" />
                                 </button>
                               </div>
                             ) : (
@@ -1005,7 +1004,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                                   ? ` · ${(item as IncomeRecord).payment_method?.toUpperCase()}`
                                   : ''}
                                 {item._type === 'expense'
-                                  ? ` · ${catEmoji((item as ExpenseRecord).category)} ${catLabel((item as ExpenseRecord).category)}`
+                                  ? ` · ${catLabel((item as ExpenseRecord).category)}`
                                   : ''}
                               </p>
                             </div>
@@ -1026,20 +1025,20 @@ ON CONFLICT DO NOTHING;`}</pre>
                 {recurring.length > 0 && (
                   <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-bold text-amber-800">🔄 Gharama za Mara kwa Mara</p>
+                      <p className="text-xs font-bold text-amber-800 flex items-center gap-1"><i className="ti ti-refresh" aria-hidden="true" />Gharama za Mara kwa Mara</p>
                       <p className="text-xs text-amber-600">{fmtFull(recurringTotal)} / mwezi</p>
                     </div>
                     <div className="space-y-1.5">
                       {recurring.filter(r => r.is_active).map(r => (
                         <div key={r.id} className="flex items-center justify-between text-xs">
-                          <span className="text-amber-700">{catEmoji(r.category)} {r.description}</span>
+                          <span className="text-amber-700"><i className={`ti ti-${catIcon(r.category)}`} aria-hidden="true" /> {r.description}</span>
                           <div className="flex items-center gap-2">
                             <span className="text-amber-800 font-medium">{fmtFull(Number(r.amount_tzs))}</span>
                             <button
                               onClick={() => toggleRecurring(r.id, r.is_active)}
                               className="text-amber-500 hover:text-red-500 text-[10px]"
                             >
-                              ✕
+                              <i className="ti ti-x" aria-hidden="true" />
                             </button>
                           </div>
                         </div>

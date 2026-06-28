@@ -66,7 +66,7 @@ export default function SingleListingMap({ latitude, longitude, district, region
       {/* Address + open in Google Maps */}
       <div className="flex items-start justify-between gap-3 px-1">
         <div className="flex items-start gap-2 flex-1 min-w-0">
-          <span className="text-sm mt-0.5">📍</span>
+          <i className="ti ti-map-pin text-sm mt-0.5 text-gray-600" aria-hidden="true" />
           <p className="text-xs text-gray-600 leading-relaxed">
             {address || `${district}, ${region}`}
           </p>

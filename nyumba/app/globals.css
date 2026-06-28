@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import '@tabler/icons-webfont/dist/tabler-icons.min.css';
 
 @layer base {
   /* Prevents iOS Safari from zooming on input focus */

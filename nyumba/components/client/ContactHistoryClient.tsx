@@ -75,7 +75,7 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
 
         {items.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center shadow-sm">
-            <div className="text-4xl mb-3">💬</div>
+            <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-message-circle text-gray-400" aria-hidden="true" /></div>
             <p className="text-sm font-semibold text-gray-600 mb-1">Hakuna historia bado</p>
             <p className="text-xs text-gray-400">Contacts za madalali utakazofungua zitaonekana hapa</p>
           </div>
@@ -117,7 +117,7 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-gray-900">{dalali?.full_name ?? 'Dalali'}</p>
                       {dalali?.dalali_profiles?.is_premium_verified && (
-                        <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">✓ Imethibitishwa</span>
+                        <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Imethibitishwa</span>
                       )}
                     </div>
                     {listing && (
@@ -135,7 +135,7 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
 
                 {/* Unlock time */}
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-base">💬</span>
+                  <i className="ti ti-message-circle text-base" aria-hidden="true" />
                   <p className="text-xs text-gray-500">
                     Ulifungua contact <span className="font-medium text-gray-700" suppressHydrationWarning>{timeAgo(contact.created_at)}</span>
                   </p>
@@ -160,7 +160,7 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
                       </button>
                       <button onClick={() => saveNote(contact.id)} disabled={savingNote}
                         className="flex-1 py-2 rounded-xl bg-primary-500 text-white text-xs font-semibold disabled:opacity-50">
-                        {savingNote ? 'Inahifadhi...' : '💾 Hifadhi'}
+                        {savingNote ? 'Inahifadhi...' : 'Hifadhi'}
                       </button>
                     </div>
                   </div>
@@ -168,14 +168,14 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
                   <div className="mb-3 bg-gray-50 rounded-xl p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-[10px] font-semibold text-gray-400 mb-1">📝 Notes zako</p>
+                        <p className="text-[10px] font-semibold text-gray-400 mb-1 flex items-center gap-1"><i className="ti ti-note" aria-hidden="true" />Notes zako</p>
                         <p className="text-xs text-gray-600 leading-relaxed">{contact.client_notes}</p>
                       </div>
                       <button
                         onClick={() => { setEditingNotes(contact.id); setNoteText(contact.client_notes ?? '') }}
                         className="text-[10px] text-gray-400 hover:text-gray-600 flex-shrink-0"
                       >
-                        ✏️
+                        <i className="ti ti-pencil" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -187,14 +187,14 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
                     <a href={waUrl} target="_blank" rel="noopener noreferrer"
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
                                  bg-green-500 text-white text-xs font-semibold active:scale-[0.97] transition-transform">
-                      <span>💬</span> Wasiliana Tena
+                      <i className="ti ti-brand-whatsapp" aria-hidden="true" /> Wasiliana Tena
                     </a>
                   ) : null}
                   {listing && (
                     <Link href={`/listings/${listing.id}`}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl
                                  bg-gray-50 border border-gray-100 text-gray-600 text-xs font-medium active:scale-[0.97] transition-transform">
-                      <span>👁</span> Angalia Listing
+                      <i className="ti ti-eye" aria-hidden="true" /> Angalia Listing
                     </Link>
                   )}
                   {!isEditing && (
@@ -203,7 +203,7 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
                       className="px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-gray-500 text-xs active:scale-[0.97] transition-transform"
                       title="Ongeza notes"
                     >
-                      📝
+                      <i className="ti ti-note" aria-hidden="true" />
                     </button>
                   )}
                 </div>

@@ -162,7 +162,7 @@ export default async function DalaliProfilePage({
                     />
                   ) : (
                     <span className="absolute inset-0 flex items-center justify-center text-2xl">
-                      👤
+                      <i className="ti ti-user" aria-hidden="true" />
                     </span>
                   )}
                 </div>
@@ -171,7 +171,7 @@ export default async function DalaliProfilePage({
                     <h1 className="text-xl font-bold text-gray-900">{dalali.full_name}</h1>
                     {isVerified && (
                       <span className="bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full">
-                        ✓ Imethibitishwa
+                          <i className="ti ti-circle-check" aria-hidden="true" /> Imethibitishwa
                       </span>
                     )}
                   </div>
@@ -197,7 +197,7 @@ export default async function DalaliProfilePage({
                     href={`/listings/${listings[0].id}`}
                     className="inline-flex items-center gap-2 bg-primary-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold"
                   >
-                    💬 Wasiliana na {dalali.full_name.split(' ')[0]}
+                    <i className="ti ti-brand-whatsapp" aria-hidden="true" /> Wasiliana na {dalali.full_name.split(' ')[0]}
                   </Link>
                 ) : (
                   <p className="text-sm text-gray-400 italic">
@@ -214,7 +214,7 @@ export default async function DalaliProfilePage({
               </h2>
               {listings.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center shadow-sm">
-                  <p className="text-2xl mb-2">🏠</p>
+                  <p className="text-2xl mb-2"><i className="ti ti-home" aria-hidden="true" /></p>
                   <p className="text-sm text-gray-500">Hakuna listings sasa hivi</p>
                 </div>
               ) : (

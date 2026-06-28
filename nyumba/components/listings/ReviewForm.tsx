@@ -49,11 +49,11 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-bold text-gray-900">⭐ Toa Maoni</h3>
+          <h3 className="text-sm font-bold text-gray-900"><i className="ti ti-star-filled text-amber-400" aria-hidden="true" /> Toa Maoni</h3>
           <p className="text-xs text-gray-400 mt-0.5">Je, ulifurahi na huduma ya {dalaliName}?</p>
         </div>
         {onDismiss && (
-          <button aria-label="Funga" onClick={onDismiss} className="text-gray-400 text-xl leading-none w-8 h-8 flex items-center justify-center">✕</button>
+          <button aria-label="Funga" onClick={onDismiss} className="text-gray-400 text-xl leading-none w-8 h-8 flex items-center justify-center"><i className="ti ti-x" aria-hidden="true" /></button>
         )}
       </div>
 
@@ -71,7 +71,7 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
                 onMouseLeave={() => setHovered(0)}
                 className="text-4xl transition-transform active:scale-90 tap-highlight-none min-w-[44px] min-h-[44px] flex items-center justify-center"
               >
-                <span className={displayRating >= star ? 'text-amber-400' : 'text-gray-200'}>★</span>
+                <i className={`ti ti-star-filled ${displayRating >= star ? 'text-amber-400' : 'text-gray-200'}`} aria-hidden="true" />
               </button>
             ))}
           </div>
@@ -94,7 +94,7 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
                 : 'bg-white border-gray-200 text-gray-600 hover:border-primary-300'
             }`}
           >
-            ✅ Ndiyo
+            <i className="ti ti-circle-check" aria-hidden="true" /> Ndiyo
           </button>
           <button
             type="button"
@@ -105,7 +105,7 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
                 : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'
             }`}
           >
-            ❌ Hapana
+            <i className="ti ti-x" aria-hidden="true" /> Hapana
           </button>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Inatuma...
             </span>
-          ) : '📨 Tuma Maoni'}
+          ) : <><i className="ti ti-send" aria-hidden="true" /> Tuma Maoni</>}
         </button>
       </div>
     </div>

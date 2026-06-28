@@ -108,12 +108,12 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
             <h1 className="text-white text-xl font-bold">{dalaliName}</h1>
             {profile?.is_premium_verified && (
               <span className="inline-flex items-center gap-1 bg-white/20 text-white text-xs px-2 py-0.5 rounded-full mt-1">
-                ✓ Imethibitishwa
+                <i className="ti ti-check" aria-hidden="true" /> Imethibitishwa
               </span>
             )}
             {profile?.whatsapp_number ? (
               <p className="text-green-100/80 text-xs mt-1">
-                📱 +{profile.whatsapp_number}
+                <i className="ti ti-phone" aria-hidden="true" /> +{profile.whatsapp_number}
               </p>
             ) : (
               <a href="/dashboard/profile" className="text-amber-200 text-xs mt-1 inline-block underline">
@@ -170,7 +170,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
               <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-1">
                   <div>
-                    <p className="font-bold text-base">🎉 Trial ya Bure</p>
+                    <p className="font-bold text-base flex items-center gap-1.5"><i className="ti ti-confetti" aria-hidden="true" /> Trial ya Bure</p>
                     <p className="text-green-100 text-xs">
                       {trialDaysLeft > 0 ? `Siku ${trialDaysLeft} zimebaki kati ya 14` : 'Leo ni siku ya mwisho!'}
                     </p>
@@ -190,7 +190,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 </div>
                 {trialDaysLeft <= 7 && (
                   <p className="text-yellow-200 text-xs mb-2 text-center">
-                    {trialDaysLeft <= 3 ? '🚨 Haraka! Siku chache zimebaki' : '⏰ Lipa kabla trial haijamalizika'}
+                    {trialDaysLeft <= 3 ? <><i className="ti ti-alert-octagon" aria-hidden="true" /> Haraka! Siku chache zimebaki</> : <><i className="ti ti-clock" aria-hidden="true" /> Lipa kabla trial haijamalizika</>}
                   </p>
                 )}
                 <Link
@@ -198,7 +198,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
                              bg-white text-primary-600 font-bold text-sm active:scale-[0.97] transition-all"
                 >
-                  💳 Endelea na Subscription — Tsh 10,000/mwezi
+                  <i className="ti ti-credit-card" aria-hidden="true" /> Endelea na Subscription — Tsh 10,000/mwezi
                 </Link>
               </div>
             )
@@ -208,7 +208,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           if (subscription?.status === 'trial_expired') {
             return (
               <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4">
-                <p className="font-bold text-red-700 text-base mb-1">❌ Trial Yako Imekwisha</p>
+                <p className="font-bold text-red-700 text-base mb-1 flex items-center gap-1.5"><i className="ti ti-circle-x" aria-hidden="true" /> Trial Yako Imekwisha</p>
                 <p className="text-red-600 text-xs mb-4">
                   Listings zako zimesimamishwa kwa muda. Lipa sasa uendelee kupata wateja.
                 </p>
@@ -223,7 +223,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                   <Link href="/dashboard/subscription?plan=premium"
                     className="flex flex-col items-center py-3 rounded-xl bg-amber-500 text-white
                                font-bold text-xs active:scale-[0.97] transition-all text-center">
-                    <span className="font-semibold">⭐ Premium</span>
+                    <span className="font-semibold flex items-center gap-1"><i className="ti ti-star-filled" aria-hidden="true" /> Premium</span>
                     <span className="text-lg font-bold">Tsh 25k</span>
                     <span className="text-xs text-amber-100">/mwezi</span>
                   </Link>
@@ -236,7 +236,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           if (subscription?.status === 'grace_period') {
             return (
               <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-4">
-                <p className="text-sm font-bold text-yellow-800 mb-1">⚠️ Subscription Imekwisha!</p>
+                <p className="text-sm font-bold text-yellow-800 mb-1 flex items-center gap-1.5"><i className="ti ti-alert-triangle" aria-hidden="true" /> Subscription Imekwisha!</p>
                 {subscription.grace_period_until && (
                   <p className="text-xs text-yellow-700 mb-1">
                     Grace period: siku {mounted ? Math.max(0, Math.ceil((new Date(subscription.grace_period_until).getTime() - Date.now()) / 86_400_000)) : '...'} zimebaki
@@ -245,7 +245,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 <p className="text-xs text-yellow-600 mb-3">Listings zako bado zinaonekana — zitasimama grace period ikiisha.</p>
                 <Link href="/dashboard/subscription"
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-yellow-500 text-white text-sm font-bold">
-                  🔄 Huisha Sasa
+                  <i className="ti ti-refresh" aria-hidden="true" /> Huisha Sasa
                 </Link>
               </div>
             )
@@ -266,7 +266,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white"
                         style={{ backgroundColor: badge.color }}>
-                        {planData.emoji} {badge.label}
+                        <i className={`ti ti-${planData.icon}`} aria-hidden="true" /> {badge.label}
                       </span>
                       {!isFree && (
                         <span className={`text-xs font-medium ${
@@ -295,11 +295,11 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 {isFree && daysLeft !== null && daysLeft <= 14 && daysLeft > 0 && (
                   <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
                     <p className="text-xs text-amber-700 font-semibold mb-2">
-                      {daysLeft <= 3 ? '🚨 Siku chache tu zimebaki!' : '⚠️ Kipindi cha bure kinaisha hivi karibuni!'}
+                      {daysLeft <= 3 ? <><i className="ti ti-alert-octagon" aria-hidden="true" /> Siku chache tu zimebaki!</> : <><i className="ti ti-alert-triangle" aria-hidden="true" /> Kipindi cha bure kinaisha hivi karibuni!</>}
                     </p>
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-bold">
-                      🚀 Upgrade Sasa — Tsh 10,000/mwezi
+                      <i className="ti ti-rocket" aria-hidden="true" /> Upgrade Sasa — Tsh 10,000/mwezi
                     </Link>
                   </div>
                 )}
@@ -307,7 +307,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                   <div className="mt-3">
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold">
-                      🔄 Huisha Sasa — Usipoteze Wateja
+                      <i className="ti ti-refresh" aria-hidden="true" /> Huisha Sasa — Usipoteze Wateja
                     </Link>
                   </div>
                 )}
@@ -316,7 +316,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-xs font-bold"
                       style={{ backgroundColor: planData.color }}>
-                      ⭐ Upgrade kwenda Basic — Tsh 10,000/mwezi
+                      <i className="ti ti-star-filled" aria-hidden="true" /> Upgrade kwenda Basic — Tsh 10,000/mwezi
                     </Link>
                   </div>
                 )}
@@ -341,7 +341,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         {profile !== null && (profile?.verification_status === 'unverified' || !profile?.verification_status) ? (
           <div className="bg-red-50 border border-red-100 rounded-2xl p-3 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-red-800">🪪 Thibitisha utambulisho wako</p>
+              <p className="text-sm font-semibold text-red-800 flex items-center gap-1.5"><i className="ti ti-id-badge" aria-hidden="true" /> Thibitisha utambulisho wako</p>
               <p className="text-xs text-red-600 mt-0.5">Pata badge ya Verified — wateja wanakuamini zaidi</p>
             </div>
             <Link href="/dashboard/verify"
@@ -357,7 +357,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         ) : profile?.verification_status === 'rejected' ? (
           <div className="bg-red-50 border border-red-100 rounded-2xl p-3 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-red-800">❌ Ombi limekataliwa</p>
+              <p className="text-sm font-semibold text-red-800 flex items-center gap-1.5"><i className="ti ti-circle-x" aria-hidden="true" /> Ombi limekataliwa</p>
               <p className="text-xs text-red-600 mt-0.5">{profile.verification_rejected_reason ?? 'Wasilisha tena na hati sahihi.'}</p>
             </div>
             <Link href="/dashboard/verify"
@@ -384,10 +384,10 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 <div className={`${barColor} rounded-full h-full transition-all`} style={{ width: `${pct}%` }} />
               </div>
               {remaining <= 2 && remaining > 0 && (
-                <p className="text-xs text-amber-600 mt-1.5">⚠️ Zimebaki {remaining} tu — ongeza au upgrade plan</p>
+                <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" /> Zimebaki {remaining} tu — ongeza au upgrade plan</p>
               )}
               {remaining === 0 && (
-                <p className="text-xs text-red-500 mt-1.5">🚫 Umefika limit — futa listing moja au ongeza za ziada</p>
+                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><i className="ti ti-ban" aria-hidden="true" /> Umefika limit — futa listing moja au ongeza za ziada</p>
               )}
             </div>
           )
@@ -398,7 +398,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           href="/dashboard/crm"
           className="flex items-center gap-3 p-4 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl text-white"
         >
-          <span className="text-3xl flex-shrink-0">🎯</span>
+          <i className="ti ti-target text-3xl flex-shrink-0" aria-hidden="true" />
           <div className="flex-1 min-w-0">
             <p className="font-bold">Leads Zangu</p>
             <p className="text-green-100 text-xs">Simamia leads na deals zako</p>
@@ -412,14 +412,14 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
             href="/dashboard/listings/new"
             className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-3 shadow-sm"
           >
-            <span className="text-2xl">➕</span>
+            <i className="ti ti-circle-plus text-2xl text-gray-400" aria-hidden="true" />
             <span className="text-xs text-gray-600 font-medium text-center leading-tight">Ongeza Listing</span>
           </Link>
           <Link
             href="/dashboard/profile"
             className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-3 shadow-sm"
           >
-            <span className="text-2xl">⚙️</span>
+            <i className="ti ti-settings text-2xl text-gray-400" aria-hidden="true" />
             <span className="text-xs text-gray-600 font-medium text-center leading-tight">Wasifu Wangu</span>
           </Link>
         </div>
@@ -456,7 +456,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
 
           {filteredListings.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-              <div className="text-4xl mb-3">🏘</div>
+              <div className="text-4xl mb-3"><i className="ti ti-home-2 text-4xl text-gray-300" aria-hidden="true" /></div>
               <p className="text-sm font-semibold text-gray-600 mb-1">
                 {activeTab === 'active' ? 'Huna listings zinazofanya kazi'
                 : activeTab === 'pending' ? 'Hakuna listings zinazosubiri'
@@ -473,7 +473,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 href="/dashboard/listings/new"
                 className="inline-block text-xs text-white font-semibold bg-primary-500 px-5 py-2.5 rounded-full"
               >
-                ➕ Ongeza Listing ya Kwanza
+                <i className="ti ti-circle-plus" aria-hidden="true" /> Ongeza Listing ya Kwanza
               </Link>
             </div>
           ) : (
@@ -486,7 +486,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                       {listing.images?.[0] ? (
                         <Image fill src={listing.images[0]} alt="" className="object-cover" sizes="64px" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-xl">🏠</div>
+                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-xl"><i className="ti ti-home" aria-hidden="true" /></div>
                       )}
                     </div>
 
@@ -504,9 +504,9 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                         Tsh {formatPrice(listing.price_monthly)} / mwezi
                       </p>
                       <div className="flex items-center gap-3 text-xs text-gray-400">
-                        <span>👁 {listing.view_count}</span>
-                        <span>📞 {listing.lead_count}</span>
-                        {listing.is_boosted && <span className="text-primary-500 font-medium">⚡ Imeimarishwa</span>}
+                        <span className="flex items-center gap-0.5"><i className="ti ti-eye" aria-hidden="true" /> {listing.view_count}</span>
+                        <span className="flex items-center gap-0.5"><i className="ti ti-phone" aria-hidden="true" /> {listing.lead_count}</span>
+                        {listing.is_boosted && <span className="text-primary-500 font-medium flex items-center gap-0.5"><i className="ti ti-bolt" aria-hidden="true" /> Imeimarishwa</span>}
                       </div>
                     </div>
                   </div>
@@ -542,7 +542,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 <p className="text-3xl font-bold text-gray-900">{profile.rating_avg.toFixed(1)}</p>
                 <div className="flex justify-center gap-0.5 mt-0.5">
                   {[1,2,3,4,5].map(i => (
-                    <span key={i} className={`text-sm ${i <= Math.round(profile.rating_avg) ? 'text-amber-400' : 'text-gray-200'}`}>★</span>
+                    <i key={i} className={`ti ti-star-filled text-sm ${i <= Math.round(profile.rating_avg) ? 'text-amber-400' : 'text-gray-200'}`} aria-hidden="true" />
                   ))}
                 </div>
               </div>
@@ -559,7 +559,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
           onClick={() => setShowLogoutConfirm(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-xs text-center shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="text-4xl mb-3">👋</div>
+            <div className="text-4xl mb-3"><i className="ti ti-hand-stop text-4xl text-gray-300" aria-hidden="true" /></div>
             <h2 className="font-bold text-gray-900 mb-2">Toka kwenye akaunti?</h2>
             <p className="text-gray-500 text-sm mb-5">Utahitaji kuingia tena baadaye.</p>
             <div className="grid grid-cols-2 gap-3">
@@ -584,7 +584,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
       {showWelcome && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
-            <div className="text-5xl mb-3">🎉</div>
+            <div className="text-5xl mb-3"><i className="ti ti-confetti text-5xl text-primary-400" aria-hidden="true" /></div>
             <h2 className="font-bold text-xl mb-2 text-gray-900">Karibu NyumbaFasta!</h2>
             <p className="text-gray-500 text-sm mb-2 leading-relaxed">
               Akaunti yako imethibitishwa vizuri.

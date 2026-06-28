@@ -173,19 +173,19 @@ export default function BoostModal({
           <div>
             <div className="flex items-start gap-3 mb-4">
               <div className="w-10 h-10 rounded-2xl bg-yellow-50 flex items-center justify-center flex-shrink-0">
-                <span className="text-xl">🚀</span>
+                <i className="ti ti-rocket text-xl" aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-bold text-gray-900">Boost Listing Yako</h3>
                 <p className="text-xs text-gray-500 truncate">{listingTitle}</p>
               </div>
-              <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl leading-none">✕</button>
+              <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl leading-none"><i className="ti ti-x" aria-hidden="true" /></button>
             </div>
 
             {isStillBoosted && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base">⚡</span>
+                  <i className="ti ti-bolt text-base" aria-hidden="true" />
                   <p className="text-xs font-semibold text-yellow-800">Imeboostwa tayari</p>
                 </div>
                 <p className="text-xs text-yellow-600 mb-1" suppressHydrationWarning>
@@ -231,16 +231,16 @@ export default function BoostModal({
             </div>
 
             <div className="bg-primary-50 rounded-2xl p-4 mb-4">
-              <p className="text-xs font-bold text-primary-800 mb-2">✨ Faida za Boost</p>
+              <p className="text-xs font-bold text-primary-800 mb-2">Faida za Boost</p>
               <div className="space-y-1.5">
                 {[
                   'Inaonekana JUU ya listings zote',
-                  'Badge ya "🚀 Inashauriwa" inayovutia',
+                  'Badge ya Inashauriwa inayovutia',
                   'Wateja wengi zaidi wanakuona',
                   'Leads +300% average kwa dalali wanaotumia boost',
                 ].map(b => (
                   <div key={b} className="flex items-center gap-2">
-                    <span className="text-primary-500 text-xs font-bold">✓</span>
+                    <i className="ti ti-check text-primary-500 text-xs" aria-hidden="true" />
                     <p className="text-xs text-primary-700">{b}</p>
                   </div>
                 ))}
@@ -258,7 +258,7 @@ export default function BoostModal({
                          shadow-sm shadow-yellow-200 active:scale-[0.97] transition-all
                          flex items-center justify-center gap-2"
             >
-              <span>🚀</span>
+              <i className="ti ti-rocket" aria-hidden="true" />
               Endelea → Lipa Tsh {fmt(amount)}
             </button>
             <button onClick={onClose} className="w-full py-3 text-sm text-gray-400 mt-2">
@@ -276,7 +276,7 @@ export default function BoostModal({
             >
               ← Rudi
             </button>
-            <h3 className="font-bold text-base text-gray-900 mb-1">💳 Chagua Njia ya Kulipa</h3>
+            <h3 className="font-bold text-base text-gray-900 mb-1 flex items-center gap-1"><i className="ti ti-credit-card" aria-hidden="true" />Chagua Njia ya Kulipa</h3>
             <p className="text-gray-400 text-sm mb-4">
               Jumla: <span className="font-semibold text-gray-700">Tsh {fmt(amount)}</span>
             </p>
@@ -316,7 +316,7 @@ export default function BoostModal({
                 <img src={providerInfo.iconSrc} alt={providerInfo.iconAlt} className="h-6 w-auto object-contain" />
               )}
               <div>
-                <h3 className="font-bold text-base text-gray-900">📱 Nambari ya Simu</h3>
+                <h3 className="font-bold text-base text-gray-900 flex items-center gap-1"><i className="ti ti-device-mobile" aria-hidden="true" />Nambari ya Simu</h3>
                 <p className="text-xs text-gray-400">
                   {providerInfo?.name ?? 'Mobile Money'} · Tsh {fmt(amount)}
                 </p>
@@ -336,7 +336,7 @@ export default function BoostModal({
               <div className="flex gap-2">
                 <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3
                   text-sm text-gray-500 flex-shrink-0">
-                  🇹🇿 +255
+                  +255
                 </div>
                 <input
                   type="tel"
@@ -356,7 +356,7 @@ export default function BoostModal({
                     }`}
                 />
               </div>
-              {phoneError && <p className="text-red-500 text-xs mt-1">❌ {phoneError}</p>}
+              {phoneError && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><i className="ti ti-circle-x" aria-hidden="true" />{phoneError}</p>}
               {providerInfo?.hint && !phoneError && (
                 <p className="text-xs text-gray-400 mt-1">Mfano: {providerInfo.hint}</p>
               )}
@@ -405,7 +405,7 @@ export default function BoostModal({
                             animate-spin mx-auto mb-5" />
             <div className="inline-flex items-center gap-1.5 bg-green-50 border border-green-100
                             text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-              ✅ Subiri USSD popup kwenye simu yako
+              <i className="ti ti-circle-check" aria-hidden="true" /> Subiri USSD popup kwenye simu yako
             </div>
             <p className="text-gray-500 text-sm mb-1">
               Ingiza PIN yako ya {providerInfo?.name ?? 'mobile money'} kukamilisha malipo
@@ -429,7 +429,7 @@ export default function BoostModal({
         {/* ── STEP 6: Imefanikiwa ── */}
         {boostStep === 'success' && (
           <div className="text-center py-8">
-            <div className="text-6xl mb-4 animate-bounce">🚀</div>
+            <div className="text-6xl mb-4 flex justify-center"><i className="ti ti-rocket text-primary-500" aria-hidden="true" /></div>
             <h3 className="font-bold text-xl text-gray-900 mb-2">Listing Imeboostwa!</h3>
             <p className="text-gray-500 text-sm mb-1">Listing yako itaonekana juu ya wote</p>
             {finalBoostedUntil && (
@@ -442,7 +442,7 @@ export default function BoostModal({
               className="w-full bg-yellow-400 text-gray-900 py-3 rounded-2xl font-bold
                          active:scale-[0.97] transition-transform"
             >
-              ✅ Sawa, Asante!
+              Sawa, Asante!
             </button>
           </div>
         )}

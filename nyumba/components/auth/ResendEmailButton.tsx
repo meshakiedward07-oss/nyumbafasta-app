@@ -45,7 +45,7 @@ export default function ResendEmailButton({ email }: { email: string }) {
   if (sent) {
     return (
       <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-        <p className="text-green-700 text-sm font-medium">✅ Email imetumwa tena!</p>
+        <p className="text-green-700 text-sm font-medium"><i className="ti ti-circle-check" aria-hidden="true" /> Email imetumwa tena!</p>
         <p className="text-green-600 text-xs mt-1">
           Unaweza kutuma tena baada ya sekunde {countdown}
         </p>
@@ -64,7 +64,7 @@ export default function ResendEmailButton({ email }: { email: string }) {
         className="w-full py-3 rounded-xl border-2 border-gray-200 text-gray-600 text-sm font-medium
                    hover:border-primary-500 hover:text-primary-500 transition-colors disabled:opacity-50"
       >
-        {loading ? 'Inatuma...' : '📧 Tuma Email Tena'}
+        {loading ? 'Inatuma...' : <><i className="ti ti-mail" aria-hidden="true" /> Tuma Email Tena</>}
       </button>
     </div>
   )

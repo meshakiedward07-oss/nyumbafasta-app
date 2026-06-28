@@ -26,18 +26,33 @@ const SingleListingMap = dynamic(
 )
 
 const amenityLabel: Record<string, string> = {
-  umeme: '⚡ Umeme',
-  maji: '💧 Maji',
-  wifi: '📶 WiFi',
-  parking: '🚗 Parking',
-  choo_ndani: '🚿 Choo ndani',
-  daladala: '🚌 Daladala',
-  watchman: '💂 Watchman',
-  ac: '❄️ AC',
-  dstv: '📺 DSTV',
-  solar: '☀️ Solar',
-  soko: '🛒 Soko',
-  bustani: '🌿 Bustani',
+  umeme: 'Umeme',
+  maji: 'Maji',
+  wifi: 'WiFi',
+  parking: 'Parking',
+  choo_ndani: 'Choo ndani',
+  daladala: 'Daladala',
+  watchman: 'Watchman',
+  ac: 'AC',
+  dstv: 'DSTV',
+  solar: 'Solar',
+  soko: 'Soko',
+  bustani: 'Bustani',
+}
+
+const amenityIcon: Record<string, string> = {
+  umeme: 'bolt',
+  maji: 'droplet',
+  wifi: 'wifi',
+  parking: 'parking',
+  choo_ndani: 'bath',
+  daladala: 'bus',
+  watchman: 'shield',
+  ac: 'snowflake',
+  dstv: 'device-tv',
+  solar: 'sun',
+  soko: 'shopping-cart',
+  bustani: 'leaf',
 }
 
 const typeLabel: Record<string, string> = {
@@ -184,7 +199,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
-            <span className="text-5xl">🏠</span>
+            <i className="ti ti-home text-5xl text-gray-300" aria-hidden="true" />
             <span className="text-sm">Hakuna picha</span>
           </div>
         )}
@@ -192,7 +207,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Boosted badge */}
         {listing.is_boosted && (
           <div className="absolute top-3 left-3 bg-primary-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-            ⚡ Inaoneshwa Zaidi
+            <><i className="ti ti-bolt" aria-hidden="true" /> Inaoneshwa Zaidi</>
           </div>
         )}
 
@@ -212,7 +227,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Image count */}
         {images.length > 1 && (
           <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-            📷 {activeImg + 1} / {images.length}
+            <i className="ti ti-camera" aria-hidden="true" /> {activeImg + 1} / {images.length}
           </div>
         )}
       </div>
@@ -237,7 +252,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
       {/* ── Video player ── */}
       {videoUrl && (
         <div className="px-4 pt-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">🎥 Video ya Nyumba</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5"><i className="ti ti-video" aria-hidden="true" /> Video ya Nyumba</p>
           <VideoPlayer src={videoUrl} poster={images[0]} />
         </div>
       )}
@@ -258,11 +273,11 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-              🏠 {typeLabel[listing.type] || listing.type}
+              <i className="ti ti-home" aria-hidden="true" /> {typeLabel[listing.type] || listing.type}
             </span>
             {listing.type !== 'duka' && listing.bedrooms && (
               <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                🛏 Vyumba {listing.bedrooms}
+                <i className="ti ti-bed" aria-hidden="true" /> Vyumba {listing.bedrooms}
               </span>
             )}
             {listing.type !== 'duka' && listing.furnished && (
@@ -272,17 +287,17 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             )}
             {listing.type === 'duka' && (listing as typeof listing & { shop_size_sqm?: number | null }).shop_size_sqm && (
               <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                📐 {(listing as typeof listing & { shop_size_sqm?: number | null }).shop_size_sqm} m²
+                <i className="ti ti-ruler" aria-hidden="true" /> {(listing as typeof listing & { shop_size_sqm?: number | null }).shop_size_sqm} m²
               </span>
             )}
             {listing.type === 'duka' && (listing as typeof listing & { floor_level?: number | null }).floor_level != null && (
               <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                🏢 {(listing as typeof listing & { floor_level?: number | null }).floor_level === 0 ? 'Chini' : `Ghorofa ${(listing as typeof listing & { floor_level?: number | null }).floor_level}`}
+                <i className="ti ti-building" aria-hidden="true" /> {(listing as typeof listing & { floor_level?: number | null }).floor_level === 0 ? 'Chini' : `Ghorofa ${(listing as typeof listing & { floor_level?: number | null }).floor_level}`}
               </span>
             )}
             {listing.type === 'duka' && (listing as typeof listing & { commercial_use?: string | null }).commercial_use && (
               <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">
-                🏪 {(listing as typeof listing & { commercial_use?: string | null }).commercial_use}
+                <i className="ti ti-store" aria-hidden="true" /> {(listing as typeof listing & { commercial_use?: string | null }).commercial_use}
               </span>
             )}
           </div>
@@ -290,7 +305,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
         {/* Location */}
         <section className="card p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 Mahali</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5"><i className="ti ti-map-pin" aria-hidden="true" /> Mahali</h3>
 
           {/* Summary line — location_display or fallback chain */}
           {(() => {
@@ -359,7 +374,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-3.5 hover:bg-primary-50 hover:border-primary-200 transition-colors active:scale-[0.98]"
             >
               <div className="w-11 h-11 bg-white border border-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-                <span className="text-2xl">🗺️</span>
+                <i className="ti ti-map text-2xl text-gray-500" aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-800">Angalia kwenye Google Maps</p>
@@ -378,7 +393,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Description */}
         {listing.description && (
           <section className="card p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">📄 Maelezo</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5"><i className="ti ti-file-text" aria-hidden="true" /> Maelezo</h3>
             <p className="text-gray-600 text-sm leading-relaxed">{listing.description}</p>
           </section>
         )}
@@ -386,14 +401,14 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Amenities */}
         {listing.amenities?.length > 0 && (
           <div className="card p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">✅ Huduma zilizopo</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5"><i className="ti ti-check" aria-hidden="true" /> Huduma zilizopo</h3>
             <div className="flex flex-wrap gap-2">
               {listing.amenities.map(a => (
                 <span
                   key={a}
                   className="bg-primary-50 text-primary-700 text-xs px-3 py-1.5 rounded-full border border-primary-100"
                 >
-                  {amenityLabel[a] || a}
+                  <i className={`ti ti-${amenityIcon[a] ?? 'check'}`} aria-hidden="true" /> {amenityLabel[a] || a}
                 </span>
               ))}
             </div>
@@ -409,7 +424,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {localUnlocked && unlockCreatedAt && waPhone && (
           <div className="bg-primary-50 border border-primary-200 rounded-2xl p-3">
             <div className="flex items-center gap-3 mb-2.5">
-              <span className="text-2xl flex-shrink-0">✅</span>
+              <i className="ti ti-circle-check text-2xl text-primary-600 flex-shrink-0" aria-hidden="true" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-primary-800">Umeshazungumza na dalali huyu</p>
                 <p className="text-xs text-primary-600" suppressHydrationWarning>Ulifungua contact {timeAgo(unlockCreatedAt)}</p>
@@ -422,13 +437,13 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-1.5 bg-green-500 text-white text-xs px-3 py-2 rounded-xl font-semibold active:scale-95 transition-transform"
               >
-                💬 WhatsApp
+                <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp
               </a>
               <a
                 href={`tel:+${waPhone}`}
                 className="flex items-center justify-center gap-1.5 bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-semibold active:scale-95 transition-transform"
               >
-                📞 Piga Simu
+                <i className="ti ti-phone" aria-hidden="true" /> Piga Simu
               </a>
             </div>
           </div>
@@ -439,7 +454,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
         {/* Dalali card */}
         <div className="card p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">👤 Kuhusu Dalali</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5"><i className="ti ti-user" aria-hidden="true" /> Kuhusu Dalali</h3>
           <div className="flex items-start gap-3">
             <Avatar
               src={listing.dalali?.avatar_url}
@@ -453,13 +468,13 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 </span>
                 {isVerified && (
                   <span className="bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                    ✓ Imethibitishwa
+                    <i className="ti ti-check" aria-hidden="true" /> Imethibitishwa
                   </span>
                 )}
               </div>
               {rating > 0 && (
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-amber-400 text-sm">⭐</span>
+                  <i className="ti ti-star-filled text-amber-400 text-sm" aria-hidden="true" />
                   <span className="text-sm font-medium text-gray-700">{rating.toFixed(1)}</span>
                   <span className="text-xs text-gray-400">({ratingCount} maoni)</span>
                 </div>
@@ -478,7 +493,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               onClick={() => setShowReportModal(true)}
               className="text-xs text-gray-400 flex items-center gap-1 py-1 hover:text-red-500 transition-colors"
             >
-              <span>⚠️</span>
+              <i className="ti ti-alert-triangle" aria-hidden="true" />
               <span>Ripoti dalali huyu</span>
             </button>
           </div>
@@ -501,7 +516,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               />
             : <div className="bg-primary-50 border border-primary-100 rounded-2xl p-4 animate-fadeIn">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">⭐</span>
+                  <i className="ti ti-star-filled text-2xl text-amber-400" aria-hidden="true" />
                   <div>
                     <p className="text-sm font-semibold text-primary-700">Tutakuomba toa maoni</p>
                     <p className="text-xs text-primary-500 mt-0.5">
@@ -530,10 +545,10 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
       >
         {isTaken ? (
           <div className="text-center pb-1">
-            <p className="text-sm font-semibold text-amber-700 mb-1">🔴 Nyumba hii imeshapangishwa</p>
+            <p className="text-sm font-semibold text-amber-700 mb-1 flex items-center gap-1.5"><i className="ti ti-circle-dot" aria-hidden="true" /> Nyumba hii imeshapangishwa</p>
             <a href={`/?region=${listing.region}`}
               className="btn-primary w-full py-3 text-sm">
-              🔍 Tafuta zinazofanana — {listing.region}
+              <i className="ti ti-search" aria-hidden="true" /> Tafuta zinazofanana — {listing.region}
             </a>
           </div>
         ) : localUnlocked && waPhone ? (
@@ -547,7 +562,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                            bg-green-500 text-white font-semibold text-sm shadow-md
                            active:scale-95 transition-transform"
               >
-                <span className="text-xl leading-none">💬</span>
+                <i className="ti ti-brand-whatsapp text-xl" aria-hidden="true" />
                 <span>WhatsApp</span>
                 <span className="text-[10px] font-normal opacity-75">Na maelezo ya listing</span>
               </a>
@@ -557,7 +572,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                            bg-blue-500 text-white font-semibold text-sm shadow-md
                            active:scale-95 transition-transform"
               >
-                <span className="text-xl leading-none">📞</span>
+                <i className="ti ti-phone text-xl" aria-hidden="true" />
                 <span>Piga Simu</span>
               </a>
             </div>
@@ -575,7 +590,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               }}
               className="btn-primary w-full py-3.5 text-sm"
             >
-              🔓 Pata Nambari ya WhatsApp – Tsh 2,000
+              <i className="ti ti-lock-open" aria-hidden="true" /> Pata Nambari ya WhatsApp – Tsh 2,000
             </button>
             <p className="text-center text-xs text-gray-400 mt-1.5">
               Lipa mara moja kupata nambari ya dalali

@@ -76,7 +76,7 @@ export default function PrivacyPage() {
           {/* TikTok */}
           <div className="border border-gray-100 rounded-xl p-4 mb-3">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">🎵</span>
+              <i className="ti ti-brand-tiktok text-lg" aria-hidden="true" />
               <h3 className="text-sm font-semibold text-gray-900">TikTok API</h3>
             </div>
             <ul className="text-sm text-gray-600 space-y-1.5 leading-relaxed">
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
           {/* Instagram / Meta */}
           <div className="border border-gray-100 rounded-xl p-4 mb-3">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">📸</span>
+              <i className="ti ti-brand-instagram text-lg" aria-hidden="true" />
               <h3 className="text-sm font-semibold text-gray-900">Instagram Graph API (Meta)</h3>
             </div>
             <ul className="text-sm text-gray-600 space-y-1.5 leading-relaxed">
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
           {/* Facebook */}
           <div className="border border-gray-100 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">👤</span>
+              <i className="ti ti-brand-facebook text-lg" aria-hidden="true" />
               <h3 className="text-sm font-semibold text-gray-900">Facebook Graph API (Meta)</h3>
             </div>
             <ul className="text-sm text-gray-600 space-y-1.5 leading-relaxed">
@@ -168,7 +168,7 @@ export default function PrivacyPage() {
         {/* Data Deletion CTA */}
         <div className="bg-primary-50 border-2 border-primary-200 rounded-2xl p-5">
           <div className="flex items-start gap-3">
-            <span className="text-2xl">🗑️</span>
+            <i className="ti ti-trash text-2xl" aria-hidden="true" />
             <div className="flex-1">
               <h2 className="text-sm font-bold text-primary-900 mb-1">
                 Request Deletion of Your Data
@@ -224,7 +224,7 @@ export default function PrivacyPage() {
               href="mailto:support@nyumbafasta.co"
               className="flex items-center gap-2 text-sm text-primary-600"
             >
-              <span>✉️</span> support@nyumbafasta.co
+              <i className="ti ti-mail" aria-hidden="true" /> support@nyumbafasta.co
             </a>
             <a
               href="https://wa.me/255665831694"
@@ -232,7 +232,7 @@ export default function PrivacyPage() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-primary-600"
             >
-              <span>💬</span> WhatsApp: +255 665 831 694
+              <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp: +255 665 831 694
             </a>
           </div>
         </div>

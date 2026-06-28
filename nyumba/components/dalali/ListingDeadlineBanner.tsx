@@ -35,7 +35,7 @@ export function ListingDeadlineBanner() {
   const colorHead = isCritical ? 'text-red-800'  : isUrgent ? 'text-amber-800'  : isWarning ? 'text-orange-800' : 'text-blue-800'
   const colorSub  = isCritical ? 'text-red-600'  : isUrgent ? 'text-amber-600'  : isWarning ? 'text-orange-600' : 'text-blue-600'
   const colorBtn  = isCritical ? 'bg-red-600 hover:bg-red-700' : isUrgent ? 'bg-amber-500 hover:bg-amber-600' : isWarning ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'
-  const icon      = isCritical ? '🚨' : isUrgent ? '⚠️' : isWarning ? '⏳' : 'ℹ️'
+  const iconName  = isCritical ? 'alarm' : isUrgent ? 'alert-triangle' : isWarning ? 'clock' : 'info-circle'
 
   const heading = isCritical
     ? `Akaunti yako itafutwa siku ${daysRemaining}!`
@@ -48,7 +48,7 @@ export function ListingDeadlineBanner() {
   return (
     <div className={`rounded-xl p-4 mb-4 border-2 ${colorBg} ${colorBdr}`}>
       <div className="flex items-start gap-3">
-        <span className="text-xl flex-shrink-0">{icon}</span>
+        <i className={`ti ti-${iconName} text-xl flex-shrink-0`} aria-hidden="true" />
         <div className="flex-1 min-w-0">
           <p className={`font-semibold text-sm ${colorHead}`}>{heading}</p>
           <p className={`text-xs mt-0.5 ${colorSub}`}>

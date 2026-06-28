@@ -219,7 +219,7 @@ export default function UnlockModal({
         {step === 'select' && (
           <div className="px-5 pt-1 pb-2">
             <h2 className="text-base font-bold text-gray-900 text-center mb-0.5">
-              🔓 Fungua Contact ya Dalali
+              <i className="ti ti-lock-open" aria-hidden="true" /> Fungua Contact ya Dalali
             </h2>
             <p className="text-xs text-gray-400 text-center mb-4">
               Bei: <span className="font-semibold text-gray-700">Tsh {UNLOCK_AMOUNT.toLocaleString()}</span> · Lipa mara moja tu
@@ -290,7 +290,7 @@ export default function UnlockModal({
                 </label>
                 <div className="flex gap-2">
                   <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
-                    🇹🇿 +255
+                    +255
                   </div>
                   <input
                     type="tel"
@@ -340,9 +340,9 @@ export default function UnlockModal({
         {step === 'waiting' && (
           <div className="px-5 pt-2 text-center">
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4 text-xs text-amber-700 font-medium">
-              ⚠️ Usifunge — malipo yanashughulikiwa
+              <i className="ti ti-alert-triangle" aria-hidden="true" /> Usifunge — malipo yanashughulikiwa
             </div>
-            <div className="text-4xl mb-3">📲</div>
+            <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-device-mobile text-primary-500" aria-hidden="true" /></div>
             <h2 className="text-base font-bold text-gray-900 mb-2">Angalia Simu Yako!</h2>
             <p className="text-sm text-gray-500 mb-1">
               Ombi la malipo limetumwa kwa
@@ -395,7 +395,7 @@ export default function UnlockModal({
         {/* ── STEP: Success ── */}
         {step === 'success' && (
           <div className="px-5 pt-2 text-center">
-            <div className="text-5xl mb-3">🎉</div>
+            <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-confetti text-primary-500" aria-hidden="true" /></div>
             <h2 className="text-base font-bold text-gray-900 mb-1">Umefanikiwa!</h2>
             <p className="text-sm text-gray-500 mb-5">
               Sasa unaweza kuwasiliana na{' '}
@@ -410,7 +410,7 @@ export default function UnlockModal({
                            bg-green-500 text-white font-semibold text-sm shadow-md
                            active:scale-[0.97] transition-transform"
               >
-                <span className="text-2xl leading-none">💬</span>
+                <i className="ti ti-brand-whatsapp text-2xl" aria-hidden="true" />
                 <span>WhatsApp</span>
                 <span className="text-xs font-normal opacity-80">Na maelezo ya listing</span>
               </a>
@@ -420,7 +420,7 @@ export default function UnlockModal({
                            bg-blue-500 text-white font-semibold text-sm shadow-md
                            active:scale-[0.97] transition-transform"
               >
-                <span className="text-2xl leading-none">📞</span>
+                <i className="ti ti-phone text-2xl" aria-hidden="true" />
                 <span>Piga Simu</span>
                 <span className="text-xs font-normal opacity-80">Zungumza moja kwa moja</span>
               </a>
@@ -435,7 +435,7 @@ export default function UnlockModal({
         {/* ── STEP: Failed ── */}
         {step === 'failed' && (
           <div className="px-5 pt-2 text-center">
-            <div className="text-5xl mb-3">❌</div>
+            <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-circle-x text-red-500" aria-hidden="true" /></div>
             <h2 className="text-base font-bold text-gray-900 mb-2">Malipo Hayakufanikiwa</h2>
             <p className="text-sm text-red-500 mb-5">{error}</p>
             <button

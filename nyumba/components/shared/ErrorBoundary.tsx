@@ -37,7 +37,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="min-h-[200px] flex items-center justify-center p-6">
           <div className="bg-white rounded-2xl border border-red-100 p-8 max-w-md w-full text-center shadow-sm">
-            <div className="text-4xl mb-3">⚠️</div>
+            <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-alert-triangle text-amber-500" aria-hidden="true" /></div>
             <h2 className="font-bold text-lg text-gray-900 mb-2">Kosa Limetokea</h2>
             <p className="text-sm text-gray-500 mb-6">{this.state.error}</p>
             <button
@@ -47,7 +47,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               }}
               className="bg-primary-500 text-white px-6 py-3 rounded-xl font-semibold text-sm"
             >
-              🔄 Jaribu Tena
+              <i className="ti ti-refresh" aria-hidden="true" /> Jaribu Tena
             </button>
           </div>
         </div>

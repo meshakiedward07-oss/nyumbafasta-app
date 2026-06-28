@@ -38,7 +38,7 @@ function ListingExpiryBadge({ expiresAt, status }: { expiresAt: string | null; s
   if (status === 'expired') {
     return (
       <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
-        ❌ Imekwisha
+        <i className="ti ti-circle-x" aria-hidden="true" /> Imekwisha
       </span>
     )
   }
@@ -46,22 +46,22 @@ function ListingExpiryBadge({ expiresAt, status }: { expiresAt: string | null; s
   const days = daysLeft(expiresAt)
   if (days <= 7) return (
     <span suppressHydrationWarning className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium animate-pulse">
-      🔴 Siku {days} tu!
+      <i className="ti ti-circle-dot" aria-hidden="true" /> Siku {days} tu!
     </span>
   )
   if (days <= 14) return (
     <span suppressHydrationWarning className="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full font-medium">
-      ⚠️ Siku {days}
+      <i className="ti ti-alert-triangle" aria-hidden="true" /> Siku {days}
     </span>
   )
   if (days <= 30) return (
     <span suppressHydrationWarning className="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full font-medium">
-      ⏰ Siku {days}
+      <i className="ti ti-clock" aria-hidden="true" /> Siku {days}
     </span>
   )
   return (
     <span suppressHydrationWarning className="bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full">
-      ✅ Siku {days}
+      <i className="ti ti-circle-check" aria-hidden="true" /> Siku {days}
     </span>
   )
 }
@@ -92,7 +92,7 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
       })
       if (error) throw error
       setShowModal(false)
-      showToast(`✅ "${listing.title || `${TYPE[listing.type]} — ${listing.district}`}" imehuishwa kwa siku 90!`, true)
+      showToast(`"${listing.title || `${TYPE[listing.type]} — ${listing.district}`}" imehuishwa kwa siku 90!`, true)
       onRenewed()
     } catch (err) {
       showToast('Kosa: ' + String(err), false)
@@ -112,7 +112,7 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
           listing.status === 'expired' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white'
         }`}
       >
-        🔄 Huisha
+        <i className="ti ti-refresh" aria-hidden="true" /> Huisha
       </button>
 
       {/* Toast */}
@@ -134,14 +134,14 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4 sm:hidden" />
-            <h3 className="font-bold text-lg mb-2">🔄 Huisha Listing</h3>
+            <h3 className="font-bold text-lg mb-2 flex items-center gap-1.5"><i className="ti ti-refresh" aria-hidden="true" /> Huisha Listing</h3>
 
             {/* Listing preview */}
             <div className="bg-gray-50 rounded-xl p-3 mb-4">
               <p className="font-medium text-sm">
                 {listing.title || `${TYPE[listing.type] || listing.type} — ${listing.district}`}
               </p>
-              <p className="text-gray-500 text-xs mt-0.5">📍 {listing.district}, {listing.region}</p>
+              <p className="text-gray-500 text-xs mt-0.5 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" /> {listing.district}, {listing.region}</p>
               <p className="text-primary-500 font-semibold text-sm mt-1">
                 Tsh {listing.price_monthly?.toLocaleString()}/mwezi
               </p>
@@ -155,12 +155,12 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
                 'Itaonekana kwa wateja kwa siku 90 zaidi',
               ].map(txt => (
                 <div key={txt} className="flex items-center gap-2 text-sm">
-                  <span className="text-green-500">✓</span>
+                  <i className="ti ti-check text-green-500" aria-hidden="true" />
                   <span className="text-gray-600">{txt}</span>
                 </div>
               ))}
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-blue-500">ℹ️</span>
+                <i className="ti ti-info-circle text-blue-500" aria-hidden="true" />
                 <span className="text-gray-600">Hii ni bure — inahuisha muda tu</span>
               </div>
             </div>
@@ -184,7 +184,7 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
                 disabled={loading}
                 className="flex-1 py-3 rounded-xl bg-primary-500 text-white text-sm font-bold disabled:opacity-50"
               >
-                {loading ? 'Inahuisha...' : '✅ Huisha Sasa'}
+                {loading ? 'Inahuisha...' : <><i className="ti ti-circle-check" aria-hidden="true" /> Huisha Sasa</>}
               </button>
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
             href="/dashboard/listings/new"
             className="flex items-center gap-1 bg-white text-primary-600 text-xs font-semibold px-3 py-2 rounded-full"
           >
-            ➕ Ongeza
+            <i className="ti ti-circle-plus" aria-hidden="true" /> Ongeza
           </Link>
         </div>
 
@@ -289,7 +289,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
           {([
             { key: 'all', label: `Zote (${listings.length})` },
             { key: 'active', label: `Zinafanya kazi (${activeCount + pendingCount})` },
-            { key: 'expired', label: `❌ Zilizokwisha (${expiredCount})` },
+            { key: 'expired', label: `Zilizokwisha (${expiredCount})` },
           ] as { key: Tab; label: string }[]).map(t => (
             <button
               key={t.key}
@@ -324,7 +324,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
           return (
             <div className="bg-white rounded-2xl border border-gray-100 p-3 flex gap-2">
               <div className="flex-1 bg-primary-50 rounded-xl p-2.5 text-center">
-                <p className="text-[10px] text-gray-400 mb-0.5">🔥 Inafanya vizuri</p>
+                <p className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-0.5"><i className="ti ti-flame" aria-hidden="true" /> Inafanya vizuri</p>
                 <p className="text-xs font-semibold text-gray-800 truncate">
                   {TYPE[best.type] || best.type} — {best.district}
                 </p>
@@ -332,7 +332,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
               </div>
               {worst.id !== best.id && (
                 <div className="flex-1 bg-amber-50 rounded-xl p-2.5 text-center">
-                  <p className="text-[10px] text-gray-400 mb-0.5">💡 Inahitaji nguvu</p>
+                  <p className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-0.5"><i className="ti ti-bulb" aria-hidden="true" /> Inahitaji nguvu</p>
                   <p className="text-xs font-semibold text-gray-800 truncate">
                     {TYPE[worst.type] || worst.type} — {worst.district}
                   </p>
@@ -347,20 +347,20 @@ export default function MyListingsClient({ listings: initial }: { listings: List
           <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
             {tab === 'expired' ? (
               <>
-                <div className="text-5xl mb-3">✅</div>
+                <div className="text-5xl mb-3"><i className="ti ti-circle-check text-5xl text-green-400" aria-hidden="true" /></div>
                 <p className="text-sm text-gray-600 font-medium">Hakuna listings zilizokwisha</p>
                 <p className="text-xs text-gray-400 mt-1">Vizuri sana — listings zako ziko active!</p>
               </>
             ) : (
               <>
-                <div className="text-5xl mb-3">🏘</div>
+                <div className="text-5xl mb-3"><i className="ti ti-home-2 text-5xl text-gray-300" aria-hidden="true" /></div>
                 <p className="text-sm text-gray-600 font-medium mb-1">Bado hujaweka listing yoyote</p>
                 <p className="text-xs text-gray-400 mb-5">Anza sasa — wateja wanangoja!</p>
                 <Link
                   href="/dashboard/listings/new"
                   className="inline-block bg-primary-500 text-white text-sm font-semibold px-6 py-3 rounded-2xl"
                 >
-                  ➕ Ongeza Listing ya Kwanza
+                  <i className="ti ti-circle-plus" aria-hidden="true" /> Ongeza Listing ya Kwanza
                 </Link>
               </>
             )}
@@ -381,7 +381,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                 {/* Expired banner */}
                 {isExpired && (
                   <div className="bg-red-50 px-3 py-2 flex items-center justify-between">
-                    <p className="text-red-600 text-xs font-medium">❌ Imekwisha — haionekani kwa wateja</p>
+                    <p className="text-red-600 text-xs font-medium flex items-center gap-1"><i className="ti ti-circle-x" aria-hidden="true" /> Imekwisha — haionekani kwa wateja</p>
                     <RenewButton listing={listing} onRenewed={refreshListings} />
                   </div>
                 )}
@@ -392,7 +392,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                     {listing.images?.[0] ? (
                       <Image fill src={listing.images[0]} alt="" className="object-cover" sizes="64px" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-2xl text-gray-300">🏠</div>
+                      <div className="w-full h-full flex items-center justify-center text-2xl text-gray-300"><i className="ti ti-home" aria-hidden="true" /></div>
                     )}
                     {listing.status === 'taken' && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -422,14 +422,14 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                               onClick={() => setOpenMenu(null)}
                               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                             >
-                              <span>👁️</span> Angalia
+                              <i className="ti ti-eye" aria-hidden="true" /> Angalia
                             </Link>
                             <Link
                               href={`/listings/${listing.id}/edit`}
                               onClick={() => setOpenMenu(null)}
                               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                             >
-                              <span>✏️</span> Hariri
+                              <i className="ti ti-pencil" aria-hidden="true" /> Hariri
                             </Link>
 
                             {listing.status === 'active' && (
@@ -440,7 +440,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                                 }}
                                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-amber-700 hover:bg-amber-50 w-full text-left"
                               >
-                                <span>🔴</span> Imepangishwa
+                                <i className="ti ti-circle-dot" aria-hidden="true" /> Imepangishwa
                               </button>
                             )}
 
@@ -452,7 +452,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                                 }}
                                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-primary-700 hover:bg-primary-50 w-full text-left"
                               >
-                                <span>✅</span> Inapatikana tena
+                                <i className="ti ti-circle-check" aria-hidden="true" /> Inapatikana tena
                               </button>
                             )}
 
@@ -464,7 +464,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                                 }}
                                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 w-full text-left"
                               >
-                                <span>🗑️</span> Futa
+                                <i className="ti ti-trash" aria-hidden="true" /> Futa
                               </button>
                             </div>
                           </div>
@@ -480,12 +480,12 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                       Tsh {fmt(listing.price_monthly)} / mwezi
                     </p>
                     <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
-                      <span>👁 {listing.view_count ?? 0}</span>
-                      <span>🔗 {listing.share_count ?? 0}</span>
-                      <span>📞 {listing.lead_count ?? 0}</span>
+                      <span className="flex items-center gap-0.5"><i className="ti ti-eye" aria-hidden="true" /> {listing.view_count ?? 0}</span>
+                      <span className="flex items-center gap-0.5"><i className="ti ti-link" aria-hidden="true" /> {listing.share_count ?? 0}</span>
+                      <span className="flex items-center gap-0.5"><i className="ti ti-phone" aria-hidden="true" /> {listing.lead_count ?? 0}</span>
                       {listing.is_boosted && (
                         <span className="text-yellow-600 font-semibold" suppressHydrationWarning>
-                          🚀 Imeimarishwa
+                          <i className="ti ti-rocket" aria-hidden="true" /> Imeimarishwa
                         </span>
                       )}
                     </div>
@@ -509,7 +509,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                         disabled={isLoading}
                         className="flex-1 py-2.5 text-xs font-medium text-amber-700 active:bg-amber-50 transition-colors"
                       >
-                        🔴 Imepangishwa
+                        <i className="ti ti-circle-dot" aria-hidden="true" /> Imepangishwa
                       </button>
                     ) : (
                       <button
@@ -517,7 +517,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                         disabled={isLoading}
                         className="flex-1 py-2.5 text-xs font-medium text-primary-600 active:bg-primary-50 transition-colors"
                       >
-                        ✅ Inapatikana tena
+                        <i className="ti ti-circle-check" aria-hidden="true" /> Inapatikana tena
                       </button>
                     )}
                     <div className="w-px bg-gray-50" />
@@ -525,7 +525,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                       onClick={() => setBoostListing(listing)}
                       className="flex-1 py-2.5 text-xs font-semibold text-yellow-500 active:bg-yellow-50 transition-colors"
                     >
-                      🚀 Boost
+                      <i className="ti ti-rocket" aria-hidden="true" /> Boost
                     </button>
                     <div className="w-px bg-gray-50" />
                     <ShareButton
@@ -542,14 +542,14 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                           : 'text-gray-500 active:bg-gray-50'
                       }`}
                     >
-                      📊 Takwimu
+                      <i className="ti ti-chart-bar" aria-hidden="true" /> Takwimu
                     </button>
                     <div className="w-px bg-gray-50" />
                     <button
                       onClick={() => setEditListing(listing)}
                       className="flex-1 py-2.5 text-xs font-semibold text-primary-700 active:bg-primary-50 transition-colors"
                     >
-                      ⚡ Sasisha
+                      <i className="ti ti-bolt" aria-hidden="true" /> Sasisha
                     </button>
                   </div>
                 )}
@@ -582,7 +582,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
             {dialog.type === 'taken' && (
               <>
                 <div className="text-center mb-4">
-                  <div className="text-4xl mb-2">🔴</div>
+                  <div className="text-4xl mb-2"><i className="ti ti-circle-dot text-4xl text-amber-500" aria-hidden="true" /></div>
                   <h3 className="text-base font-bold text-gray-900">Imepangishwa?</h3>
                   <p className="text-sm text-gray-500 mt-1">
                     <strong>{dialog.title}</strong><br />
@@ -603,7 +603,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
             {dialog.type === 'available' && (
               <>
                 <div className="text-center mb-4">
-                  <div className="text-4xl mb-2">✅</div>
+                  <div className="text-4xl mb-2"><i className="ti ti-circle-check text-4xl text-primary-500" aria-hidden="true" /></div>
                   <h3 className="text-base font-bold text-gray-900">Rudisha listing?</h3>
                   <p className="text-sm text-gray-500 mt-1">
                     <strong>{dialog.title}</strong><br />
@@ -624,7 +624,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
             {dialog.type === 'delete' && (
               <>
                 <div className="text-center mb-4">
-                  <div className="text-4xl mb-2">🗑️</div>
+                  <div className="text-4xl mb-2"><i className="ti ti-trash text-4xl text-red-500" aria-hidden="true" /></div>
                   <h3 className="text-base font-bold text-gray-900">Futa listing?</h3>
                   <p className="text-sm text-gray-500 mt-1">
                     <strong>{dialog.title}</strong><br />

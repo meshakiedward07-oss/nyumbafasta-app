@@ -57,7 +57,7 @@ export default function StaffLeadsClient(props: {
     <div className="min-h-screen bg-gray-50 pb-24">
       <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <h1 className="text-white font-bold text-lg mb-1">
-          {isAdmin ? '👥 Leads za Wafanyakazi Wote' : '🎯 Madalali Watarajiwa Wangu'}
+          {isAdmin ? 'Leads za Wafanyakazi Wote' : 'Madalali Watarajiwa Wangu'}
         </h1>
         <p className="text-green-100 text-xs mb-3">
           {isAdmin
@@ -67,13 +67,13 @@ export default function StaffLeadsClient(props: {
 
         <div className="grid grid-cols-4 gap-2 mb-3">
           {[
-            { label: 'Jumla',     value: stats.total,      emoji: '📊' },
-            { label: 'Hai',       value: stats.active,     emoji: '🔄' },
-            { label: 'Wamefaulu', value: stats.converted,  emoji: '✅' },
-            { label: 'Follow-up', value: stats.followupDue, emoji: '⏰' },
+            { label: 'Jumla',     value: stats.total,      icon: 'chart-bar' },
+            { label: 'Hai',       value: stats.active,     icon: 'refresh' },
+            { label: 'Wamefaulu', value: stats.converted,  icon: 'circle-check' },
+            { label: 'Follow-up', value: stats.followupDue, icon: 'clock' },
           ].map((s, i) => (
             <div key={i} className="bg-white/20 rounded-xl p-2 text-center">
-              <div className="text-sm">{s.emoji}</div>
+              <i className={`ti ti-${s.icon} text-sm`} aria-hidden="true" />
               <div className="text-white font-bold text-sm">{s.value}</div>
               <div className="text-green-100 text-xs leading-none">{s.label}</div>
             </div>
@@ -82,7 +82,7 @@ export default function StaffLeadsClient(props: {
 
         {/* Search */}
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 text-xs">🔍</span>
+          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-white/60 text-xs" aria-hidden="true" />
           <input
             type="text"
             value={search}
@@ -113,7 +113,7 @@ export default function StaffLeadsClient(props: {
                 activeStage === s.key ? 'bg-primary-500 text-white' : 'bg-white text-gray-600'
               }`}
             >
-              {s.emoji} {s.label} (
+              <><i className={`ti ti-${s.icon}`} aria-hidden="true" /> {s.label} (</>
                 {leads.filter(l => l.pipeline_stage === s.key).length}
               )
             </button>
@@ -127,7 +127,7 @@ export default function StaffLeadsClient(props: {
           ))
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <div className="text-4xl mb-3">🎯</div>
+            <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-target text-gray-400" aria-hidden="true" /></div>
             <p className="text-gray-500 font-medium">
               {activeStage === 'all'
                 ? isAdmin
@@ -154,15 +154,15 @@ export default function StaffLeadsClient(props: {
                   <p className="font-semibold text-gray-900">{lead.business_name || '—'}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {lead.phone}
-                    {lead.region && ` · 📍 ${lead.region}`}
+                    {lead.region && ` · ${lead.region}`}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {SOURCE_LABELS[lead.source || ''] || lead.source || ''}
-                    {lead.contact_attempts ? ` · 📞 ${lead.contact_attempts}x` : ''}
+                    {lead.contact_attempts ? ` · ${lead.contact_attempts}x calls` : ''}
                   </p>
                 </div>
                 <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${stage.badgeClass}`}>
-                  {stage.emoji} {stage.label}
+                  <><i className={`ti ti-${stage.icon}`} aria-hidden="true" /> {stage.label}</>
                 </span>
               </div>
 
@@ -177,7 +177,7 @@ export default function StaffLeadsClient(props: {
                     rel="noopener noreferrer"
                     className="flex-1 bg-[#25D366] text-white text-xs py-2 rounded-xl text-center font-medium"
                   >
-                    💬 WhatsApp
+                    <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp
                   </a>
                 )}
                 {lead.phone && (
@@ -185,7 +185,7 @@ export default function StaffLeadsClient(props: {
                     href={`tel:${lead.phone}`}
                     className="flex-1 bg-blue-500 text-white text-xs py-2 rounded-xl text-center font-medium"
                   >
-                    📞 Piga Simu
+                    <i className="ti ti-phone" aria-hidden="true" /> Piga Simu
                   </a>
                 )}
               </div>
@@ -198,13 +198,13 @@ export default function StaffLeadsClient(props: {
               >
                 {PIPELINE_STAGES.map(s => (
                   <option key={s.key} value={s.key}>
-                    {s.emoji} {s.label}
+                    <><i className={`ti ti-${s.icon}`} aria-hidden="true" /> {s.label}</>
                   </option>
                 ))}
               </select>
 
               {lead.notes && (
-                <p className="text-xs text-gray-400 mt-2 line-clamp-2">📝 {lead.notes}</p>
+                <p className="text-xs text-gray-400 mt-2 line-clamp-2"><i className="ti ti-note" aria-hidden="true" /> {lead.notes}</p>
               )}
             </div>
           )

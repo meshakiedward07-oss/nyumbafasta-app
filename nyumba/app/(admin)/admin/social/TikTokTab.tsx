@@ -58,12 +58,12 @@ type Listing = {
 // ── Status config ──────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  pending:    { bg: 'bg-gray-100',   text: 'text-gray-600',   label: '⏳ Inasubiri'       },
-  uploading:  { bg: 'bg-blue-50',    text: 'text-blue-600',   label: '📤 Inapakia'         },
-  processing: { bg: 'bg-amber-50',   text: 'text-amber-600',  label: '⚙️ Inashughulikia'  },
-  published:  { bg: 'bg-green-50',   text: 'text-green-600',  label: '✅ Imechapishwa'     },
-  failed:     { bg: 'bg-red-50',     text: 'text-red-600',    label: '❌ Imeshindwa'        },
-  cancelled:  { bg: 'bg-gray-100',   text: 'text-gray-500',   label: '🚫 Imesimamishwa'    },
+  pending:    { bg: 'bg-gray-100',   text: 'text-gray-600',   label: 'Inasubiri'       },
+  uploading:  { bg: 'bg-blue-50',    text: 'text-blue-600',   label: 'Inapakia'         },
+  processing: { bg: 'bg-amber-50',   text: 'text-amber-600',  label: 'Inashughulikia'  },
+  published:  { bg: 'bg-green-50',   text: 'text-green-600',  label: 'Imechapishwa'     },
+  failed:     { bg: 'bg-red-50',     text: 'text-red-600',    label: 'Imeshindwa'        },
+  cancelled:  { bg: 'bg-gray-100',   text: 'text-gray-500',   label: 'Imesimamishwa'    },
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -160,7 +160,7 @@ function ListingPicker({
                     {l.location_display ?? `${l.district}, ${l.region}`}
                   </p>
                 </div>
-                <span className="text-green-500 text-xs flex-shrink-0">🎥</span>
+                <i className="ti ti-video text-green-500 text-xs flex-shrink-0" aria-hidden="true" />
               </button>
             ))
           )}
@@ -182,7 +182,7 @@ function PostRow({ post }: { post: TikTokPost }) {
         {post.listings?.images?.[0] ? (
           <img src={post.listings.images[0]} alt="" className="w-full h-full object-cover opacity-80" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-white text-xl">🎬</div>
+          <div className="w-full h-full flex items-center justify-center text-white text-xl"><i className="ti ti-movie" aria-hidden="true" /></div>
         )}
         <div className="absolute bottom-1 right-1 text-white text-[10px] font-bold">TT</div>
       </div>
@@ -260,10 +260,10 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
     // Handle OAuth redirect params
     const params = new URLSearchParams(window.location.search)
     if (params.get('tiktok') === 'connected') {
-      showToast('✅ TikTok imaunganishwa kwa mafanikio!')
+      showToast('TikTok imaunganishwa kwa mafanikio!')
       window.history.replaceState({}, '', window.location.pathname)
     } else if (params.get('tiktok') === 'error') {
-      showToast(`❌ TikTok error: ${params.get('msg') ?? 'Imeshindwa'}`)
+      showToast(`TikTok error: ${params.get('msg') ?? 'Imeshindwa'}`)
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [loadAll, showToast])
@@ -304,15 +304,15 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
       })
       const data = await res.json() as { success: boolean; publishId?: string; error?: string }
       if (data.success) {
-        showToast('✅ Video imetumwa TikTok — inaendelea kushughulikiwa...')
+        showToast('Video imetumwa TikTok — inaendelea kushughulikiwa...')
         setSelectedListing(null)
         setCaption('')
         await loadAll()
       } else {
-        showToast(`❌ ${data.error ?? 'Imeshindwa'}`)
+        showToast(`Imeshindwa: ${data.error ?? 'Imeshindwa'}`)
       }
     } catch {
-      showToast('❌ Hitilafu ya mtandao')
+      showToast('Hitilafu ya mtandao')
     } finally {
       setPosting(false)
     }
@@ -331,8 +331,8 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             {/* Logo */}
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 ${connection ? 'bg-white/10' : 'bg-gray-100'}`}>
-              🎵
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${connection ? 'bg-white/10' : 'bg-gray-100'}`}>
+              <i className={`ti ti-brand-tiktok text-3xl ${connection ? 'text-white' : 'text-gray-700'}`} aria-hidden="true" />
             </div>
 
             <div>
@@ -376,7 +376,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
               onClick={handleConnect}
               className="flex items-center gap-2 bg-white text-black font-bold px-5 py-3 rounded-2xl hover:bg-gray-100 transition-colors text-sm"
             >
-              🎵 Unganisha TikTok
+              <i className="ti ti-brand-tiktok" aria-hidden="true" /> Unganisha TikTok
             </button>
           )}
         </div>
@@ -413,7 +413,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
       {/* ── Post Video Form ────────────────────────────────────────────── */}
       {connection && (
         <div className="bg-white rounded-2xl border p-5 space-y-4">
-          <h3 className="font-bold text-gray-900 text-base">📤 Chapisha Video ya Listing</h3>
+          <h3 className="font-bold text-gray-900 text-base flex items-center gap-2"><i className="ti ti-upload" aria-hidden="true" /> Chapisha Video ya Listing</h3>
 
           <ListingPicker selected={selectedListing} onSelect={handleSelectListing} />
 
@@ -454,9 +454,9 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Mipangilio ya Faragha</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { value: 'PUBLIC_TO_EVERYONE',    label: '🌍 Wote',     desc: 'Kila mtu anaona' },
-                    { value: 'MUTUAL_FOLLOW_FRIENDS', label: '👥 Marafiki', desc: 'Wafuatiliaji tu' },
-                    { value: 'SELF_ONLY',             label: '🔒 Mimi tu',  desc: 'Test / Preview'  },
+                    { value: 'PUBLIC_TO_EVERYONE',    label: 'Wote',         desc: 'Kila mtu anaona', icon: 'world' },
+                    { value: 'MUTUAL_FOLLOW_FRIENDS', label: 'Marafiki',     desc: 'Wafuatiliaji tu', icon: 'users' },
+                    { value: 'SELF_ONLY',             label: 'Mimi tu',      desc: 'Test / Preview', icon: 'lock' },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -468,7 +468,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <p className="font-semibold text-sm">{opt.label}</p>
+                      <p className="font-semibold text-sm flex items-center gap-1.5"><i className={`ti ti-${(opt as {icon?:string}).icon ?? 'circle'}`} aria-hidden="true" /> {opt.label}</p>
                       <p className={`text-xs mt-0.5 ${privacy === opt.value ? 'text-gray-300' : 'text-gray-400'}`}>
                         {opt.desc}
                       </p>
@@ -490,7 +490,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
                     Inachapisha TikTok...
                   </>
                 ) : (
-                  <>🎵 Chapisha kwenye TikTok</>
+                  <><i className="ti ti-brand-tiktok" aria-hidden="true" /> Chapisha kwenye TikTok</>
                 )}
               </button>
             </>
@@ -502,13 +502,13 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
       {connection && (
         <div className="bg-white rounded-2xl border overflow-hidden">
           <div className="p-5 border-b flex items-center justify-between">
-            <h3 className="font-bold text-gray-900">📋 Historia ya Machapisho</h3>
+            <h3 className="font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-list" aria-hidden="true" /> Historia ya Machapisho</h3>
             <button
               type="button"
               onClick={loadAll}
               className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
             >
-              🔄 Refresh
+<i className="ti ti-refresh" aria-hidden="true" /> Refresh
             </button>
           </div>
 
@@ -526,7 +526,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
             </div>
           ) : posts.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-5xl mb-3">🎵</p>
+<p className="text-5xl mb-3"><i className="ti ti-brand-tiktok" aria-hidden="true" /></p>
               <p className="text-gray-400 text-sm">Hakuna machapisho bado</p>
             </div>
           ) : (
@@ -542,7 +542,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
       {/* ── Info (not connected) ───────────────────────────────────────── */}
       {!connection && !loading && (
         <div className="bg-gray-50 border rounded-2xl p-5 space-y-3">
-          <h4 className="font-semibold text-gray-800">🔧 Jinsi ya Kuunganisha</h4>
+<h4 className="font-semibold text-gray-800 flex items-center gap-2"><i className="ti ti-tool" aria-hidden="true" /> Jinsi ya Kuunganisha</h4>
           <ol className="space-y-2 text-sm text-gray-600 list-decimal list-inside">
             <li>Bonyeza <strong>Unganisha TikTok</strong> hapo juu</li>
             <li>Ingia kwenye akaunti yako ya TikTok for Business</li>

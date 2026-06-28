@@ -90,7 +90,7 @@ export default function SaveButton({ listingId, className = '', size = 'md' }: P
     >
       {loading
         ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
-        : saved ? '❤️' : '🤍'
+        : saved ? <i className="ti ti-heart-filled text-red-500" aria-hidden="true" /> : <i className="ti ti-heart" aria-hidden="true" />
       }
     </button>
   )

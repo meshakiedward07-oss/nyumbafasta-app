@@ -62,7 +62,7 @@ function SetupGuide() {
   return (
     <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-5">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-xl">⚠️</span>
+        <i className="ti ti-alert-triangle text-xl text-amber-600" aria-hidden="true" />
         <h3 className="font-semibold text-amber-800">Marketplace Haijawekwa</h3>
       </div>
       <p className="text-sm text-amber-700 mb-4">Fuata hatua hizi ili kuanzisha Facebook Marketplace:</p>
@@ -158,7 +158,7 @@ export default function MarketplaceTab() {
         showToast(`Hitilafu: ${data.error ?? `HTTP ${res.status}`}`)
         return
       }
-      showToast(`Sync imekamilika! ✅ Zimewekwa: ${data.posted ?? 0} | ❌ Zimeshindwa: ${data.failed ?? 0} | ⏭️ Zimerukwa: ${data.skipped ?? 0}`)
+      showToast(`Sync imekamilika! Zimewekwa: ${data.posted ?? 0} | Zilishindwa: ${data.failed ?? 0} | Ziliachwa: ${data.skipped ?? 0}`)
       loadStats()
     } catch (e) {
       showToast(`Hitilafu ya mtandao: ${String(e)}`)
@@ -203,7 +203,7 @@ export default function MarketplaceTab() {
               innerTab === 'listings' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
-            🏠 Listings
+<i className="ti ti-home" aria-hidden="true" /> Listings
           </button>
           <button
             onClick={() => setInnerTab('inquiries')}
@@ -211,7 +211,7 @@ export default function MarketplaceTab() {
               innerTab === 'inquiries' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
-            💬 Maswali
+<i className="ti ti-message-circle" aria-hidden="true" /> Maswali
           </button>
         </div>
 
@@ -222,7 +222,7 @@ export default function MarketplaceTab() {
               disabled={loading}
               className="px-3 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
-              🔄 Onyesha Upya
+<i className="ti ti-refresh" aria-hidden="true" /> Onyesha Upya
             </button>
             <button
               onClick={handleSync}
@@ -235,7 +235,7 @@ export default function MarketplaceTab() {
                   Inasync...
                 </>
               ) : (
-                '🔄 Sync Listings Zote'
+<><i className="ti ti-refresh" aria-hidden="true" /> Sync Listings Zote</>
               )}
             </button>
           </div>
@@ -252,14 +252,14 @@ export default function MarketplaceTab() {
           {stats && (
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
               {[
-                { label: 'Active',       value: stats.totalActive,    emoji: '✅', color: 'text-green-600'  },
-                { label: 'Zimewekwa',    value: stats.totalPosted,    emoji: '📦', color: 'text-blue-600'   },
-                { label: 'Zimeshindwa', value: stats.totalFailed,    emoji: '❌', color: 'text-red-600'    },
-                { label: 'Imeonekana',   value: stats.totalViews,     emoji: '👁️', color: 'text-purple-600' },
-                { label: 'Maswali',      value: stats.totalInquiries, emoji: '💬', color: 'text-orange-600' },
+                { label: 'Active',       value: stats.totalActive,    icon: 'check',          color: 'text-green-600'  },
+                { label: 'Zimewekwa',    value: stats.totalPosted,    icon: 'package',         color: 'text-blue-600'   },
+                { label: 'Zimeshindwa',  value: stats.totalFailed,    icon: 'circle-x',        color: 'text-red-600'    },
+                { label: 'Imeonekana',   value: stats.totalViews,     icon: 'eye',             color: 'text-purple-600' },
+                { label: 'Maswali',      value: stats.totalInquiries, icon: 'message-circle',  color: 'text-orange-600' },
               ].map(c => (
                 <div key={c.label} className="bg-white rounded-xl border border-gray-200 p-4">
-                  <div className="text-xl mb-1">{c.emoji}</div>
+                  <div className="text-xl mb-1"><i className={`ti ti-${c.icon}`} aria-hidden="true" /></div>
                   <div className={`text-2xl font-bold ${c.color}`}>{c.value.toLocaleString()}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{c.label}</div>
                 </div>
@@ -303,13 +303,13 @@ export default function MarketplaceTab() {
                         {item.price_tzs ? ` • TZS ${item.price_tzs.toLocaleString('sw-TZ')}/mwezi` : ''}
                       </p>
                       <div className="flex gap-3 mt-1.5 text-xs text-gray-400">
-                        <span>👁️ {item.views} waliotazama</span>
-                        <span>💬 {item.inquiries} maswali</span>
-                        {item.posted_at && <span>📅 {fmtDate(item.posted_at)}</span>}
-                        {item.expires_at && <span>⏳ Inaisha: {fmtDate(item.expires_at)}</span>}
+<span><i className="ti ti-eye" aria-hidden="true" /> {item.views} waliotazama</span>
+<span><i className="ti ti-message-circle" aria-hidden="true" /> {item.inquiries} maswali</span>
+{item.posted_at && <span><i className="ti ti-calendar" aria-hidden="true" /> {fmtDate(item.posted_at)}</span>}
+{item.expires_at && <span><i className="ti ti-clock" aria-hidden="true" /> Inaisha: {fmtDate(item.expires_at)}</span>}
                       </div>
                       {item.error_message && (
-                        <p className="text-xs text-red-600 mt-1">❌ {item.error_message}</p>
+<p className="text-xs text-red-600 mt-1 flex items-center gap-1"><i className="ti ti-circle-x" aria-hidden="true" /> {item.error_message}</p>
                       )}
                     </div>
                     {/* Actions */}
@@ -344,7 +344,7 @@ export default function MarketplaceTab() {
               ))}
               {!loading && (stats?.recentListings ?? []).length === 0 && (
                 <div className="text-center py-16 text-gray-400">
-                  <div className="text-4xl mb-3">🛒</div>
+                  <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-shopping-cart text-gray-400" aria-hidden="true" /></div>
                   <p>Hakuna listings kwenye Marketplace bado</p>
                   {stats?.catalogConfigured ? (
                     <p className="text-sm mt-1">Bonyeza &ldquo;Sync Listings Zote&rdquo; kuanza</p>
@@ -377,7 +377,7 @@ export default function MarketplaceTab() {
                     </div>
                     {inq.listings && (
                       <p className="text-xs font-medium text-gray-500 mb-1">
-                        🏠 {inq.listings.title} — {inq.listings.district}
+<i className="ti ti-home" aria-hidden="true" /> {inq.listings.title} — {inq.listings.district}
                       </p>
                     )}
                     {inq.sender_name && (
@@ -390,7 +390,7 @@ export default function MarketplaceTab() {
             ))}
             {!loading && inquiries.length === 0 && (
               <div className="text-center py-16 text-gray-400">
-                <div className="text-4xl mb-3">💬</div>
+<div className="text-4xl mb-3"><i className="ti ti-message-circle" aria-hidden="true" /></div>
                 <p>Hakuna maswali bado</p>
                 <p className="text-sm mt-1">Maswali ya Marketplace yataonekana hapa mara wateja watakapouliza</p>
               </div>

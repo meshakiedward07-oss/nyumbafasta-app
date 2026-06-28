@@ -50,7 +50,7 @@ function PriceBadge({ price, selected, boosted }: { price: number; selected: boo
         userSelect:   'none',
       }}
     >
-      {boosted && !selected ? '⭐ ' : ''}Tsh {fmtPrice(price)}
+      {boosted && !selected && <i className="ti ti-star-filled" aria-hidden="true" style={{ fontSize: 9, marginRight: 3 }} />}Tsh {fmtPrice(price)}
     </div>
   )
 }
@@ -112,7 +112,7 @@ function MapContent({ listings }: { listings: MapListing[] }) {
               <div style={{ width: '100%', height: 70, display: 'flex', alignItems: 'center',
                 justifyContent: 'center', fontSize: 28, background: '#f3f4f6',
                 borderRadius: 8, marginBottom: 8 }}>
-                🏠
+                <i className="ti ti-home" aria-hidden="true" />
               </div>
             )}
 
@@ -128,7 +128,7 @@ function MapContent({ listings }: { listings: MapListing[] }) {
 
             {/* Location */}
             <p style={{ color: '#6b7280', fontSize: 11, margin: '0 0 8px' }}>
-              📍 {selected.district}, {selected.region}
+              {selected.district}, {selected.region}
             </p>
 
             {/* CTA */}
@@ -255,7 +255,7 @@ export default function MapView({ listings, className = '' }: Props) {
         {!loadingAll && withCoords.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center
                           bg-gray-50 z-10 pointer-events-none">
-            <div className="text-5xl mb-3">🗺️</div>
+            <div className="text-5xl mb-3"><i className="ti ti-map text-5xl text-gray-400" aria-hidden="true" /></div>
             <p className="text-sm font-semibold text-gray-600 mb-1">
               Ramani hazionyeshi listings bado
             </p>

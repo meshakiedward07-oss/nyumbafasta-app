@@ -58,7 +58,7 @@ export default function CRMClient() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-gray-900">
-              🎯 CRM — Madalali Watarajiwa
+              <i className="ti ti-target" aria-hidden="true" /> CRM — Madalali Watarajiwa
             </h1>
             <p className="text-xs text-gray-500 mt-0.5">
               Fuatilia madalali kutoka mawasiliano ya kwanza hadi listing yao ya kwanza
@@ -72,7 +72,7 @@ export default function CRMClient() {
                   view === 'kanban' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'
                 }`}
               >
-                🎯 Kanban
+                <i className="ti ti-layout-kanban" aria-hidden="true" /> Kanban
               </button>
               <button
                 onClick={() => setView('list')}
@@ -80,7 +80,7 @@ export default function CRMClient() {
                   view === 'list' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'
                 }`}
               >
-                📋 Orodha
+                <i className="ti ti-clipboard-list" aria-hidden="true" /> Orodha
               </button>
             </div>
             <button
@@ -116,7 +116,7 @@ export default function CRMClient() {
 
         {/* Search */}
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
           <input
             type="text"
             value={search}
@@ -145,7 +145,7 @@ export default function CRMClient() {
                   stage === s.key ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600'
                 }`}
               >
-                {s.emoji} {s.label} ({stats?.byStage?.[s.key] ?? 0})
+                <><i className={`ti ti-${s.icon}`} aria-hidden="true" /> {s.label} ({stats?.byStage?.[s.key] ?? 0})</>
               </button>
             ))}
           </div>
@@ -219,7 +219,7 @@ function KanbanView({
           >
             <div className={`flex items-center justify-between px-3 py-2 rounded-xl mb-2 ${s.bgClass}`}>
               <span className={`text-xs font-semibold ${s.textClass}`}>
-                {s.emoji} {s.label}
+                <><i className={`ti ti-${s.icon}`} aria-hidden="true" /> {s.label}</>
               </span>
               <span className={`text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center
                 bg-white bg-opacity-70 ${s.textClass}`}>
@@ -282,7 +282,7 @@ function LeadCard({
         <p className="text-xs text-amber-600 font-medium mb-1.5">⏰ Follow-up inahitajika</p>
       )}
       {neverContacted && (
-        <p className="text-xs text-red-500 mb-1.5">⚠️ Hajaguswa bado</p>
+        <p className="text-xs text-red-500 mb-1.5 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />Hajaguswa bado</p>
       )}
 
       <p className="font-semibold text-sm text-gray-800 line-clamp-1">
@@ -290,7 +290,7 @@ function LeadCard({
       </p>
       <p className="text-xs text-gray-500 mt-0.5">{lead.phone || '—'}</p>
       {lead.region && (
-        <p className="text-xs text-gray-400">📍 {lead.region}</p>
+        <p className="text-xs text-gray-400 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" />{lead.region}</p>
       )}
 
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
@@ -300,7 +300,7 @@ function LeadCard({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {(lead.contact_attempts ?? 0) > 0 && (
             <span className="text-xs text-gray-400">
-              📞{lead.contact_attempts}x
+              <i className="ti ti-phone" aria-hidden="true" />{lead.contact_attempts}x
             </span>
           )}
           {daysSince !== null && (
@@ -374,7 +374,7 @@ function ListView({
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${s?.badgeClass || ''}`}>
-                          {s?.emoji} {s?.label}
+                          <>{s && <i className={`ti ti-${s.icon}`} aria-hidden="true" />} {s?.label}</>
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
@@ -400,7 +400,7 @@ function ListView({
                       <td className="px-4 py-3">
                         {lead.next_followup_at ? (
                           <span className={`text-xs ${isOverdue ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                            {isOverdue ? '⚠️ ' : ''}
+                            {isOverdue ? <><i className="ti ti-alert-triangle" aria-hidden="true" />{' '}</> : null}
                             {new Date(lead.next_followup_at).toLocaleDateString('sw-TZ')}
                           </span>
                         ) : (
@@ -448,8 +448,8 @@ function AddLeadModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
       <div className="bg-white w-full max-w-lg rounded-t-2xl p-5 pb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-gray-800">➕ Ongeza Lead Mpya</h2>
-          <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl">✕</button>
+          <h2 className="font-bold text-gray-800 flex items-center gap-1"><i className="ti ti-plus" aria-hidden="true" />Ongeza Lead Mpya</h2>
+          <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl"><i className="ti ti-x" aria-hidden="true" /></button>
         </div>
 
         {error && (

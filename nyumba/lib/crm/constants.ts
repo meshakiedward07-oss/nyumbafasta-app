@@ -4,7 +4,7 @@ export const PIPELINE_STAGES = [
   {
     key:         'mpya',
     label:       'Mpya',
-    emoji:       '🆕',
+    icon:        'square-rounded-plus',
     description: 'Lead mpya, hajaguswa bado',
     color:       'gray',
     bgClass:     'bg-gray-100',
@@ -14,7 +14,7 @@ export const PIPELINE_STAGES = [
   {
     key:         'mawasiliano',
     label:       'Mawasiliano',
-    emoji:       '📞',
+    icon:        'phone',
     description: 'Staff amewasiliana naye angalau mara moja',
     color:       'blue',
     bgClass:     'bg-blue-50',
@@ -24,7 +24,7 @@ export const PIPELINE_STAGES = [
   {
     key:         'anajisajili',
     label:       'Anajisajili',
-    emoji:       '✍️',
+    icon:        'pencil',
     description: 'Yupo kwenye process ya kujisajili',
     color:       'amber',
     bgClass:     'bg-amber-50',
@@ -34,7 +34,7 @@ export const PIPELINE_STAGES = [
   {
     key:         'ameweka_listing',
     label:       'Ameweka Listing',
-    emoji:       '🏠',
+    icon:        'home',
     description: 'Amejisajili na ameweka listing yake ya kwanza',
     color:       'purple',
     bgClass:     'bg-purple-50',
@@ -44,7 +44,7 @@ export const PIPELINE_STAGES = [
   {
     key:         'amefanikiwa',
     label:       'Amefanikiwa',
-    emoji:       '✅',
+    icon:        'circle-check',
     description: 'Dalali kamili — anaendelea kutumia platform',
     color:       'green',
     bgClass:     'bg-green-50',
@@ -54,7 +54,7 @@ export const PIPELINE_STAGES = [
   {
     key:         'amepotea',
     label:       'Amepotea',
-    emoji:       '❌',
+    icon:        'circle-x',
     description: 'Hawezi kupatikana au hakupenda kujiunga',
     color:       'red',
     bgClass:     'bg-red-50',
@@ -66,15 +66,15 @@ export const PIPELINE_STAGES = [
 export type PipelineStage = typeof PIPELINE_STAGES[number]['key']
 
 export const SOURCE_LABELS: Record<string, string> = {
-  google_maps:        '🗺️ Google Maps',
-  google_business:    '🏢 Google Business',
-  facebook_pages:     '📘 Facebook',
-  facebook_groups:    '👥 FB Groups',
-  instagram:          '📸 Instagram',
-  whatsapp_amina:     '🤖 Amina (WhatsApp)',
-  instagram_amina:    '🤖 Amina (IG)',
-  facebook_amina:     '🤖 Amina (FB)',
-  manual:             '✍️ Manual',
+  google_maps:        'Google Maps',
+  google_business:    'Google Business',
+  facebook_pages:     'Facebook',
+  facebook_groups:    'FB Groups',
+  instagram:          'Instagram',
+  whatsapp_amina:     'Amina (WhatsApp)',
+  instagram_amina:    'Amina (IG)',
+  facebook_amina:     'Amina (FB)',
+  manual:             'Manual',
 }
 
 export type DalaliLead = {

@@ -43,13 +43,13 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const VIOLATION_LABELS: Record<string, string> = {
-  fake_listing:       '🏠 Orodha ya Ulaghai',
-  fraud:              '💰 Ulaghai',
-  harassment:         '😠 Unyanyasaji',
-  spam:               '📩 Spam',
-  price_manipulation: '📊 Udanganyifu wa Bei',
-  fake_identity:      '👤 Utambulisho wa Uongo',
-  other:              '📋 Nyingine',
+  fake_listing:       'Orodha ya Ulaghai',
+  fraud:              'Ulaghai',
+  harassment:         'Unyanyasaji',
+  spam:               'Spam',
+  price_manipulation: 'Udanganyifu wa Bei',
+  fake_identity:      'Utambulisho wa Uongo',
+  other:              'Nyingine',
 }
 
 type Tab = 'violations' | 'agreements' | 'actions'
@@ -88,7 +88,7 @@ export default function LegalClient({ violations, stats }: { violations: Violati
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error)
-      setFeedback('Imefanikiwa ✅')
+      setFeedback('Imefanikiwa')
       setTimeout(() => window.location.reload(), 1500)
     } catch (err: unknown) {
       setFeedback(err instanceof Error ? err.message : 'Imeshindwa')
@@ -131,7 +131,7 @@ export default function LegalClient({ violations, stats }: { violations: Violati
               tab === t ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
             }`}
           >
-            {t === 'violations' ? '🚨 Malalamiko' : t === 'agreements' ? '📋 Makubaliano' : '⚡ Hatua'}
+            {t === 'violations' ? 'Malalamiko' : t === 'agreements' ? 'Makubaliano' : 'Hatua'}
           </button>
         ))}
       </div>
@@ -161,7 +161,7 @@ export default function LegalClient({ violations, stats }: { violations: Violati
 
           {filtered.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
-              <p className="text-3xl mb-2">✅</p>
+              <p className="text-3xl mb-2 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></p>
               <p className="text-sm">Hakuna malalamiko ya {statusFilter === 'all' ? '' : statusFilter}</p>
             </div>
           ) : (
@@ -205,7 +205,7 @@ export default function LegalClient({ violations, stats }: { violations: Violati
       {/* Agreements tab */}
       {tab === 'agreements' && (
         <div className="bg-white rounded-xl border border-gray-100 p-6 text-center">
-          <p className="text-4xl mb-3">📋</p>
+          <p className="text-4xl mb-3 flex justify-center"><i className="ti ti-clipboard-list text-gray-400" aria-hidden="true" /></p>
           <p className="font-semibold text-gray-800 mb-1">Makubaliano yaliyosainiwa: {stats.totalAgreements}</p>
           <p className="text-sm text-gray-500">
             Taarifa za kina za makubaliano zinapatikana kwenye database ya Supabase kwenye jedwali la <code className="bg-gray-100 px-1 rounded">user_agreements</code>.
@@ -218,7 +218,7 @@ export default function LegalClient({ violations, stats }: { violations: Violati
         <div className="space-y-4">
           {!selected ? (
             <div className="text-center py-12 text-gray-400">
-              <p className="text-3xl mb-2">👆</p>
+              <p className="text-3xl mb-2 flex justify-center"><i className="ti ti-hand-finger text-gray-400" aria-hidden="true" /></p>
               <p className="text-sm">Chagua malalamiko kutoka kwenye orodha ya Malalamiko</p>
               <button
                 onClick={() => setTab('violations')}
@@ -286,7 +286,7 @@ export default function LegalClient({ violations, stats }: { violations: Violati
                 </div>
 
                 {feedback && (
-                  <p className={`text-xs text-center font-medium ${feedback.includes('✅') ? 'text-green-600' : 'text-red-500'}`}>
+                  <p className={`text-xs text-center font-medium ${feedback === 'Imefanikiwa' ? 'text-green-600' : 'text-red-500'}`}>
                     {feedback}
                   </p>
                 )}

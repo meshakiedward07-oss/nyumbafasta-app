@@ -192,19 +192,19 @@ export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Pr
                        rounded-full w-7 h-7 flex items-center justify-center text-sm
                        font-bold shadow transition-colors"
           >
-            ✕
+            <i className="ti ti-x" aria-hidden="true" />
           </button>
         </div>
 
         {compressInfo && (
           <p className="text-xs text-gray-400">
-            📦 Imepunguzwa: {compressInfo.from} → {compressInfo.to}
+            <i className="ti ti-package" aria-hidden="true" /> Imepunguzwa: {compressInfo.from} → {compressInfo.to}
           </p>
         )}
-        <p className="text-xs text-green-600">✅ Video imepakiwa kwa mafanikio</p>
+        <p className="text-xs text-green-600 flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Video imepakiwa kwa mafanikio</p>
 
         {error && (
-          <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">⚠️ {error}</p>
+          <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />{error}</p>
         )}
       </div>
     )
@@ -233,7 +233,7 @@ export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Pr
           <span className={`flex items-center gap-1 ${
             isCompressing ? 'text-blue-600 font-medium' : 'text-green-600'
           }`}>
-            {isCompressing ? '⏳' : '✅'} Punguza
+            {isCompressing ? <i className="ti ti-hourglass" aria-hidden="true" /> : <i className="ti ti-circle-check" aria-hidden="true" />} Punguza
           </span>
           <span className="text-gray-300">──</span>
           <span className={`flex items-center gap-1 ${
@@ -274,7 +274,7 @@ export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Pr
         }`}
       >
         <span className="text-3xl block">
-          {isDragging ? '📂' : stage === 'error' ? '⚠️' : '🎥'}
+          {isDragging ? <i className="ti ti-folder-open" aria-hidden="true" /> : stage === 'error' ? <i className="ti ti-alert-triangle" aria-hidden="true" /> : <i className="ti ti-video" aria-hidden="true" />}
         </span>
         <p className={`text-sm font-medium ${
           isDragging ? 'text-green-700' : stage === 'error' ? 'text-red-600' : 'text-gray-600'
@@ -284,19 +284,19 @@ export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Pr
         <p className="text-xs text-gray-400">MP4, MOV, WebM, AVI · Max 500MB</p>
         {canCompress() && (
           <span className="inline-block text-xs text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
-            📦 Video kubwa inapunguzwa otomatiki
+            <i className="ti ti-package" aria-hidden="true" /> Video kubwa inapunguzwa otomatiki
           </span>
         )}
       </div>
 
       {error && (
         <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-          ⚠️ {error}
+          <i className="ti ti-alert-triangle" aria-hidden="true" /> {error}
         </p>
       )}
 
       <p className="text-xs text-gray-400">
-        💡 Video inasaidia wateja kuona nyumba vizuri zaidi
+        <i className="ti ti-bulb" aria-hidden="true" /> Video inasaidia wateja kuona nyumba vizuri zaidi
       </p>
     </div>
   )

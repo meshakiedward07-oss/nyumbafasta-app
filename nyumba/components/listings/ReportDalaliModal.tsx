@@ -2,12 +2,12 @@
 import { useState } from 'react'
 
 const REPORT_REASONS = [
-  { value: 'Anaomba pesa nje ya app', icon: '🚨' },
-  { value: 'Picha ni fake',           icon: '🖼️' },
-  { value: 'Nyumba haipatikani',      icon: '🏚️' },
-  { value: 'Nambari si ya kweli',     icon: '📵' },
-  { value: 'Unyanyasaji wa wateja',   icon: '🤬' },
-  { value: 'Sababu nyingine',         icon: '📝' },
+  { value: 'Anaomba pesa nje ya app', icon: 'alert-triangle' },
+  { value: 'Picha ni fake',           icon: 'photo' },
+  { value: 'Nyumba haipatikani',      icon: 'home-off' },
+  { value: 'Nambari si ya kweli',     icon: 'phone-off' },
+  { value: 'Unyanyasaji wa wateja',   icon: 'mood-angry' },
+  { value: 'Sababu nyingine',         icon: 'pencil' },
 ]
 
 type Props = {
@@ -56,7 +56,7 @@ export default function ReportDalaliModal({ listingId, dalaliName, onClose }: Pr
 
         {done ? (
           <div className="px-6 pt-2 text-center pb-4">
-            <div className="text-4xl mb-3">✅</div>
+            <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></div>
             <h2 className="text-base font-bold text-gray-900 mb-2">Ripoti Imetumwa!</h2>
             <p className="text-sm text-gray-500 mb-5">
               Asante kwa kutuarifu. Timu yetu itaangalia ripoti yako ndani ya saa 24.
@@ -70,7 +70,7 @@ export default function ReportDalaliModal({ listingId, dalaliName, onClose }: Pr
           </div>
         ) : (
           <div className="px-6 pt-2">
-            <h2 className="text-base font-bold text-gray-900 mb-1">⚠️ Ripoti Dalali</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-1 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />Ripoti Dalali</h2>
             <p className="text-xs text-gray-400 mb-4">
               Dalali: <span className="font-medium text-gray-600">{dalaliName}</span>
             </p>
@@ -98,7 +98,7 @@ export default function ReportDalaliModal({ listingId, dalaliName, onClose }: Pr
                   }`}>
                     {reason === r.value && <span className="text-white text-[8px]">●</span>}
                   </div>
-                  <span className="text-sm">{r.icon}</span>
+                  <i className={`ti ti-${r.icon} text-sm`} aria-hidden="true" />
                   <span className="text-sm text-gray-700">{r.value}</span>
                 </button>
               ))}
@@ -128,7 +128,7 @@ export default function ReportDalaliModal({ listingId, dalaliName, onClose }: Pr
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Inatuma...
                 </span>
-              ) : '🚨 Tuma Ripoti'}
+              ) : 'Tuma Ripoti'}
             </button>
             <button onClick={onClose} className="w-full py-3 text-sm text-gray-400">
               Ghairi

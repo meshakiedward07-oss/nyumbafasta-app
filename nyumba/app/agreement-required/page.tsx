@@ -95,7 +95,7 @@ export default function AgreementRequiredPage() {
       {/* Notice banner */}
       <div className="bg-amber-500 px-4 py-3 flex-shrink-0">
         <p className="text-white text-xs text-center font-medium max-w-lg mx-auto">
-          ⚠️ Ili kuendelea kutumia NyumbaFasta, lazima ukubali masharti ya matumizi kwanza.
+          Ili kuendelea kutumia NyumbaFasta, lazima ukubali masharti ya matumizi kwanza.
           {' / '}
           To continue using NyumbaFasta, you must accept the terms of use first.
         </p>

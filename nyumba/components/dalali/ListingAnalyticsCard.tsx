@@ -12,9 +12,9 @@ interface ListingAnalytics {
 }
 
 function ScoreBadge({ score }: { score: number }) {
-  if (score >= 70) return <span className="text-primary-600 font-semibold text-xs">🔥 Inafanya vizuri</span>
-  if (score >= 30) return <span className="text-amber-600 font-semibold text-xs">➡️ Wastani</span>
-  return <span className="text-red-500 font-semibold text-xs">⚠️ Inahitaji kuangaliwa</span>
+  if (score >= 70) return <span className="text-primary-600 font-semibold text-xs"><i className="ti ti-flame" aria-hidden="true" /> Inafanya vizuri</span>
+  if (score >= 30) return <span className="text-amber-600 font-semibold text-xs"><i className="ti ti-arrow-right" aria-hidden="true" /> Wastani</span>
+  return <span className="text-red-500 font-semibold text-xs"><i className="ti ti-alert-triangle" aria-hidden="true" /> Inahitaji kuangaliwa</span>
 }
 
 function ScoreBar({ score }: { score: number }) {
@@ -76,28 +76,28 @@ export default function ListingAnalyticsCard({ listingId }: { listingId: string 
         <div className="grid grid-cols-4 gap-2">
           <div className="bg-white rounded-lg p-2 text-center">
             <p className="text-base font-bold text-gray-900">{data.totalViews}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">👁 Waliotazama</p>
+            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-eye" aria-hidden="true" /> Waliotazama</p>
           </div>
           <div className="bg-white rounded-lg p-2 text-center">
             <p className="text-base font-bold text-gray-900">{data.totalLeads}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">🔓 Unlocks</p>
+            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-lock-open" aria-hidden="true" /> Unlocks</p>
           </div>
           <div className="bg-white rounded-lg p-2 text-center">
             <p className="text-base font-bold text-gray-900">{data.totalSaves}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">❤️ Saved</p>
+            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-heart" aria-hidden="true" /> Saved</p>
           </div>
           <div className="bg-white rounded-lg p-2 text-center">
             <p className="text-base font-bold text-gray-900">
               {data.avgRating > 0 ? data.avgRating.toFixed(1) : '—'}
             </p>
-            <p className="text-[10px] text-gray-400 mt-0.5">⭐ Rating</p>
+            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-star-filled" aria-hidden="true" /> Rating</p>
           </div>
         </div>
 
         {/* Low-performance hint */}
         {data.performanceScore < 30 && data.totalViews < 5 && (
           <p className="text-[10px] text-amber-600 mt-2 text-center">
-            💡 Jaribu kupunguza bei au kuongeza picha zaidi
+            <i className="ti ti-bulb" aria-hidden="true" /> Jaribu kupunguza bei au kuongeza picha zaidi
           </p>
         )}
       </div>

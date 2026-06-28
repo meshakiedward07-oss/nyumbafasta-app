@@ -3,11 +3,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const ITEMS = [
-  { href: '/dashboard',              icon: '📊', label: 'Nyumbani'    },
-  { href: '/dashboard/listings',     icon: '🏠', label: 'Matangazo'  },
-  { href: '/dashboard/listings/new', icon: '➕', label: 'Ongeza'     },
-  { href: '/dashboard/reviews',      icon: '⭐', label: 'Maoni'      },
-  { href: '/dashboard/profile',      icon: '👤', label: 'Akaunti'    },
+  { href: '/dashboard',              icon: 'chart-bar', label: 'Nyumbani'    },
+  { href: '/dashboard/listings',     icon: 'home',      label: 'Matangazo'  },
+  { href: '/dashboard/listings/new', icon: 'plus',      label: 'Ongeza'     },
+  { href: '/dashboard/reviews',      icon: 'star',      label: 'Maoni'      },
+  { href: '/dashboard/profile',      icon: 'user',      label: 'Akaunti'    },
 ]
 
 export default function DalaliBottomNav() {
@@ -31,9 +31,7 @@ export default function DalaliBottomNav() {
               className={`flex flex-col items-center gap-0.5 py-1 px-2 min-h-[48px] min-w-[48px] justify-center rounded-xl transition-all duration-150
                 ${active ? 'text-primary-600' : 'text-gray-400 active:scale-90 md:hover:text-primary-600 md:hover:bg-primary-50'}`}
             >
-              <span aria-hidden="true" className={`text-xl transition-transform duration-150 ${active ? 'scale-110' : ''}`}>
-                {icon}
-              </span>
+              <i aria-hidden="true" className={`ti ti-${icon} text-xl transition-transform duration-150 ${active ? 'scale-110' : ''}`} />
               <span className={`text-xs ${active ? 'font-semibold' : ''}`}>{label}</span>
               {active && (
                 <span className="w-1 h-1 rounded-full bg-primary-500 mt-0.5" />

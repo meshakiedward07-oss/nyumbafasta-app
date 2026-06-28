@@ -52,8 +52,8 @@ function ActionBadge({ action }: { action: string }) {
 
 function PlatformIcon({ platform }: { platform: string }) {
   return platform === 'instagram'
-    ? <span className="text-pink-500">📸</span>
-    : <span className="text-blue-500">👤</span>
+    ? <i className="ti ti-brand-instagram" style={{color:'#c13584'}} aria-hidden="true" />
+    : <i className="ti ti-brand-facebook" style={{color:'#1877f2'}} aria-hidden="true" />
 }
 
 function fmtDate(iso: string) {
@@ -187,7 +187,7 @@ export default function SpamTab() {
             innerTab === 'stats' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
           }`}
         >
-          📊 Takwimu za Spam
+<i className="ti ti-chart-bar" aria-hidden="true" /> Takwimu za Spam
         </button>
         <button
           onClick={() => setInnerTab('keywords')}
@@ -195,7 +195,7 @@ export default function SpamTab() {
             innerTab === 'keywords' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
           }`}
         >
-          🔑 Maneno ya Spam
+<i className="ti ti-key" aria-hidden="true" /> Maneno ya Spam
         </button>
       </div>
 
@@ -213,15 +213,15 @@ export default function SpamTab() {
               {/* Stat cards */}
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {[
-                  { label: 'Imefutwa',      value: stats.totalDeleted,   emoji: '🗑️', color: 'text-red-600'    },
-                  { label: 'Imefichwa',     value: stats.totalHidden,    emoji: '👁️', color: 'text-orange-600' },
-                  { label: 'Imewekwa Alama', value: stats.totalFlagged,  emoji: '🚩', color: 'text-yellow-600' },
-                  { label: 'Leo',           value: stats.spamToday,      emoji: '📅', color: 'text-blue-600'   },
-                  { label: 'Wiki Hii',      value: stats.spamThisWeek,   emoji: '📆', color: 'text-purple-600' },
-                  { label: 'Spam Yote',     value: stats.totalDeleted + stats.totalHidden + stats.totalFlagged, emoji: '⚠️', color: 'text-gray-700' },
+                  { label: 'Imefutwa',       value: stats.totalDeleted,   icon: 'trash',          color: 'text-red-600'    },
+                  { label: 'Imefichwa',      value: stats.totalHidden,    icon: 'eye-off',        color: 'text-orange-600' },
+                  { label: 'Imewekwa Alama', value: stats.totalFlagged,   icon: 'flag',           color: 'text-yellow-600' },
+                  { label: 'Leo',            value: stats.spamToday,      icon: 'calendar',       color: 'text-blue-600'   },
+                  { label: 'Wiki Hii',       value: stats.spamThisWeek,   icon: 'calendar-week',  color: 'text-purple-600' },
+                  { label: 'Spam Yote',      value: stats.totalDeleted + stats.totalHidden + stats.totalFlagged, icon: 'alert-triangle', color: 'text-gray-700' },
                 ].map(card => (
                   <div key={card.label} className="bg-white rounded-xl border border-gray-200 p-4">
-                    <div className="text-2xl mb-1">{card.emoji}</div>
+                    <div className="text-2xl mb-1"><i className={`ti ti-${card.icon}`} aria-hidden="true" /></div>
                     <div className={`text-2xl font-bold ${card.color}`}>{card.value.toLocaleString()}</div>
                     <div className="text-xs text-gray-500 mt-0.5">{card.label}</div>
                   </div>
@@ -232,10 +232,10 @@ export default function SpamTab() {
               {(stats.topSpammer || stats.topKeyword) && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 space-y-1 text-sm">
                   {stats.topSpammer && (
-                    <p>👤 <strong>Mspammer Mkubwa:</strong> {stats.topSpammer}</p>
+<p className="flex items-center gap-1"><i className="ti ti-user-exclamation" aria-hidden="true" /> <strong>Mspammer Mkubwa:</strong> {stats.topSpammer}</p>
                   )}
                   {stats.topKeyword && (
-                    <p>🔑 <strong>Neno Linaloonekana Zaidi:</strong> {stats.topKeyword}</p>
+<p className="flex items-center gap-1"><i className="ti ti-key" aria-hidden="true" /> <strong>Neno Linaloonekana Zaidi:</strong> {stats.topKeyword}</p>
                   )}
                 </div>
               )}
@@ -248,7 +248,7 @@ export default function SpamTab() {
                     onClick={loadStats}
                     className="text-xs px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50"
                   >
-                    🔄 Onyesha Upya
+<i className="ti ti-refresh" aria-hidden="true" /> Onyesha Upya
                   </button>
                 </div>
                 <div className="space-y-3">
@@ -283,7 +283,7 @@ export default function SpamTab() {
                   ))}
                   {stats.recentSpam.length === 0 && (
                     <div className="text-center py-12 text-gray-400">
-                      <div className="text-4xl mb-3">✅</div>
+<div className="text-4xl mb-3"><i className="ti ti-circle-check text-green-500" aria-hidden="true" /></div>
                       <p>Hakuna spam iliyogunduliwa hivi karibuni</p>
                     </div>
                   )}
@@ -378,7 +378,7 @@ export default function SpamTab() {
               })}
               {keywords.length === 0 && (
                 <div className="text-center py-12 text-gray-400">
-                  <div className="text-4xl mb-3">🔑</div>
+  <div className="text-4xl mb-3"><i className="ti ti-key" aria-hidden="true" /></div>
                   <p>Hakuna maneno ya spam bado</p>
                   <p className="text-sm mt-1">Ongeza neno la kwanza hapo juu</p>
                 </div>

@@ -81,7 +81,7 @@ export default function FacebookGroupsPage() {
       <div className="hidden lg:block p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">👥 Facebook Groups</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-brand-facebook" aria-hidden="true" />Facebook Groups</h1>
             <p className="text-gray-500 text-sm mt-0.5">
               Groups: {groups.length} · Active: {activeCount}
             </p>
@@ -90,7 +90,7 @@ export default function FacebookGroupsPage() {
 
         {/* Add form inline */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-6">
-          <p className="font-semibold text-sm text-gray-800 mb-4">➕ Ongeza Group Mpya</p>
+          <p className="font-semibold text-sm text-gray-800 mb-4 flex items-center gap-1"><i className="ti ti-plus" aria-hidden="true" />Ongeza Group Mpya</p>
           <div className="grid grid-cols-3 gap-3">
             <input
               type="url"
@@ -122,7 +122,7 @@ export default function FacebookGroupsPage() {
                 className="px-4 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-bold
                   disabled:opacity-50 whitespace-nowrap hover:bg-primary-600"
               >
-                ➕ Ongeza
+                <i className="ti ti-plus" aria-hidden="true" /> Ongeza
               </button>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function FacebookGroupsPage() {
                         group.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                       }`}
                     >
-                      {group.is_active ? '✅ Active' : '⏸️ Paused'}
+                      {group.is_active ? 'Active' : 'Paused'}
                     </button>
                   </td>
                   <td className="px-4 py-3">
@@ -185,7 +185,7 @@ export default function FacebookGroupsPage() {
                       onClick={() => deleteGroup(group.id)}
                       className="text-red-400 hover:text-red-600 text-sm p-1 rounded-lg hover:bg-red-50"
                     >
-                      🗑️
+                      <i className="ti ti-trash" aria-hidden="true" />
                     </button>
                   </td>
                 </tr>
@@ -193,7 +193,7 @@ export default function FacebookGroupsPage() {
               {groups.length === 0 && (
                 <tr>
                   <td colSpan={8} className="text-center py-16 text-gray-400">
-                    <div className="text-4xl mb-3">👥</div>
+                    <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-brand-facebook text-gray-400" aria-hidden="true" /></div>
                     <p className="font-medium">Hakuna groups bado</p>
                     <p className="text-sm mt-1">Ongeza group ya kwanza hapo juu</p>
                   </td>
@@ -211,7 +211,7 @@ export default function FacebookGroupsPage() {
       <div className="lg:hidden">
         {/* Header */}
         <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10 shadow">
-          <h1 className="text-white font-bold text-lg">👥 Facebook Groups</h1>
+          <h1 className="text-white font-bold text-lg flex items-center gap-2"><i className="ti ti-brand-facebook" aria-hidden="true" />Facebook Groups</h1>
           <p className="text-green-100 text-xs">
             Groups: {groups.length} | Active: {activeCount}
           </p>
@@ -220,7 +220,7 @@ export default function FacebookGroupsPage() {
         {/* Add new group */}
         <div className="px-4 py-4">
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-            <p className="font-semibold text-sm mb-3">➕ Ongeza Group Mpya</p>
+            <p className="font-semibold text-sm mb-3 flex items-center gap-1"><i className="ti ti-plus" aria-hidden="true" />Ongeza Group Mpya</p>
             <input type="url" placeholder="https://facebook.com/groups/..."
               value={newUrl} onChange={e => setNewUrl(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-2
@@ -240,7 +240,7 @@ export default function FacebookGroupsPage() {
             <button onClick={addGroup} disabled={loading || !newUrl.trim()}
               className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold
                 disabled:opacity-50 active:scale-95 transition-transform">
-              {loading ? 'Inaongeza...' : '➕ Ongeza Group'}
+              {loading ? 'Inaongeza...' : 'Ongeza Group'}
             </button>
           </div>
         </div>
@@ -255,7 +255,7 @@ export default function FacebookGroupsPage() {
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm truncate">{group.name || group.url}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">📍 {group.region}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" />{group.region}</p>
                   <a href={group.url} target="_blank" rel="noopener noreferrer"
                     className="text-xs text-blue-500 underline break-all">
                     {group.url.length > 50 ? group.url.slice(0, 50) + '...' : group.url}
@@ -266,26 +266,26 @@ export default function FacebookGroupsPage() {
                     className={`text-xs px-2 py-1 rounded-lg font-medium ${
                       group.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                     }`}>
-                    {group.is_active ? '✅ Active' : '⏸️ Paused'}
+                    {group.is_active ? 'Active' : 'Paused'}
                   </button>
                   <button onClick={() => deleteGroup(group.id)}
                     className="text-xs px-2 py-1 rounded-lg bg-red-100 text-red-600">
-                    🗑️
+                    <i className="ti ti-trash" aria-hidden="true" />
                   </button>
                 </div>
               </div>
               <div className="flex gap-4 text-xs text-gray-400 mt-2 border-t pt-2">
-                <span>📝 Posts: {group.posts_found ?? 0}</span>
-                <span>👤 Leads: {group.leads_found ?? 0}</span>
+                <span><i className="ti ti-file-text" aria-hidden="true" /> Posts: {group.posts_found ?? 0}</span>
+                <span><i className="ti ti-user" aria-hidden="true" /> Leads: {group.leads_found ?? 0}</span>
                 {group.last_scraped_at && (
-                  <span>🕐 {new Date(group.last_scraped_at).toLocaleDateString('sw-TZ')}</span>
+                  <span><i className="ti ti-clock" aria-hidden="true" /> {new Date(group.last_scraped_at).toLocaleDateString('sw-TZ')}</span>
                 )}
               </div>
             </div>
           ))}
           {groups.length === 0 && (
             <div className="text-center py-16">
-              <div className="text-5xl mb-3">👥</div>
+              <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-brand-facebook text-gray-400" aria-hidden="true" /></div>
               <p className="text-gray-500 font-medium">Hakuna groups bado</p>
               <p className="text-gray-400 text-sm mt-1">Ongeza group ya kwanza hapo juu!</p>
             </div>

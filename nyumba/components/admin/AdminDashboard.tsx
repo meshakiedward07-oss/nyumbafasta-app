@@ -199,23 +199,23 @@ export default function AdminDashboard({
       {/* ── Desktop page title ── */}
       <div className="hidden lg:flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">⚙️ Dashibodi</h1>
+          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-1.5"><i className="ti ti-settings" aria-hidden="true" /> Dashibodi</h1>
           <p className="text-xs text-gray-400 mt-0.5">NyumbaFasta · Usimamizi wa Mfumo</p>
         </div>
         <div className="flex items-center gap-2">
           {listings.length > 0 && (
             <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full font-semibold">
-              🏠 {listings.length} zinasubiri
+              <i className="ti ti-home" aria-hidden="true" /> {listings.length} zinasubiri
             </span>
           )}
           {verifications.length > 0 && (
             <span className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-semibold">
-              🪪 {verifications.length} uthibitisho
+              <i className="ti ti-id-badge" aria-hidden="true" /> {verifications.length} uthibitisho
             </span>
           )}
           {reportsList.filter(r => r.status === 'pending').length > 0 && (
             <span className="flex items-center gap-1 text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-full font-semibold">
-              🚨 {reportsList.filter(r => r.status === 'pending').length} ripoti
+              <i className="ti ti-alert-octagon" aria-hidden="true" /> {reportsList.filter(r => r.status === 'pending').length} ripoti
             </span>
           )}
         </div>
@@ -225,10 +225,10 @@ export default function AdminDashboard({
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="flex overflow-x-auto scrollbar-none">
           {([
-            { key: 'overview', label: 'Muhtasari',                                                          icon: '📊' },
-            { key: 'listings', label: `Zinasubiri (${listings.length})`,                                  icon: '🏠' },
-            { key: 'verify',   label: `Uthibitisho (${verifications.length})`,                            icon: '🪪' },
-            { key: 'reports',  label: `Ripoti (${reportsList.filter(r => r.status === 'pending').length})`, icon: '🚨' },
+            { key: 'overview', label: 'Muhtasari',                                                          icon: 'chart-bar' },
+            { key: 'listings', label: `Zinasubiri (${listings.length})`,                                  icon: 'home' },
+            { key: 'verify',   label: `Uthibitisho (${verifications.length})`,                            icon: 'id-badge' },
+            { key: 'reports',  label: `Ripoti (${reportsList.filter(r => r.status === 'pending').length})`, icon: 'alert-octagon' },
           ] as { key: Tab; label: string; icon: string }[]).map(t => (
             <button
               key={t.key}
@@ -237,7 +237,7 @@ export default function AdminDashboard({
                 tab === t.key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400'
               }`}
             >
-              <span>{t.icon}</span><span>{t.label}</span>
+              <i className={`ti ti-${t.icon}`} aria-hidden="true" /><span>{t.label}</span>
             </button>
           ))}
           {/* External links — hidden on desktop (sidebar handles these) */}
@@ -247,7 +247,7 @@ export default function AdminDashboard({
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors relative"
             >
-              <span>📬</span><span>Inbox</span>
+              <i className="ti ti-mail" aria-hidden="true" /><span>Inbox</span>
               {inboxUnread > 0 && (
                 <span className="absolute top-1.5 right-0 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                   {inboxUnread > 9 ? '9+' : inboxUnread}
@@ -259,70 +259,70 @@ export default function AdminDashboard({
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>🎯</span><span>CRM</span>
+              <i className="ti ti-target" aria-hidden="true" /><span>CRM</span>
             </Link>
             <Link
               href="/admin/crm/analytics"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>📊</span><span>Takwimu</span>
+              <i className="ti ti-chart-bar" aria-hidden="true" /><span>Takwimu</span>
             </Link>
             <Link
               href="/admin/crm/assign"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>👥</span><span>Mgawanyo</span>
+              <i className="ti ti-users" aria-hidden="true" /><span>Mgawanyo</span>
             </Link>
             <Link
               href="/admin/crm/reports"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>📋</span><span>Ripoti</span>
+              <i className="ti ti-list" aria-hidden="true" /><span>Ripoti</span>
             </Link>
             <Link
               href="/admin/crm/commission"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>💼</span><span>Kamisheni</span>
+              <i className="ti ti-briefcase" aria-hidden="true" /><span>Kamisheni</span>
             </Link>
             <Link
               href="/admin/crm/templates"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>💬</span><span>Violezo WA</span>
+              <i className="ti ti-message-circle" aria-hidden="true" /><span>Violezo WA</span>
             </Link>
             <Link
               href="/admin/leads"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>🤖</span><span>Leads</span>
+              <i className="ti ti-robot" aria-hidden="true" /><span>Leads</span>
             </Link>
             <Link
               href="/admin/facebook-groups"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>👥</span><span>Vikundi FB</span>
+              <i className="ti ti-brand-facebook" aria-hidden="true" /><span>Vikundi FB</span>
             </Link>
             <Link
               href="/admin/instagram-profiles"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>📸</span><span>Wasifu IG</span>
+              <i className="ti ti-brand-instagram" aria-hidden="true" /><span>Wasifu IG</span>
             </Link>
             <Link
               href="/admin/accounting"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <span>💰</span><span>Hesabu</span>
+              <i className="ti ti-coin" aria-hidden="true" /><span>Hesabu</span>
             </Link>
           </div>
         </div>
@@ -337,13 +337,13 @@ export default function AdminDashboard({
           <>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Zinasubiri',      value: stats.pendingCount, icon: '⏳', urgent: stats.pendingCount > 0 },
-                { label: 'Matangazo Hai',   value: stats.activeCount,  icon: '✅', urgent: false },
-                { label: 'Watumiaji',       value: stats.totalUsers,   icon: '👥', urgent: false },
+                { label: 'Zinasubiri',      value: stats.pendingCount, icon: 'loader-2', urgent: stats.pendingCount > 0 },
+                { label: 'Matangazo Hai',   value: stats.activeCount,  icon: 'circle-check', urgent: false },
+                { label: 'Watumiaji',       value: stats.totalUsers,   icon: 'users', urgent: false },
               ].map(s => (
                 <div key={s.label} className={`rounded-2xl p-4 shadow-sm border ${s.urgent ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xl">{s.icon}</span>
+                    <i className={`ti ti-${s.icon} text-xl`} aria-hidden="true" />
                     {s.urgent && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
                   </div>
                   <p className={`text-2xl font-bold ${s.urgent ? 'text-amber-700' : 'text-gray-900'}`}>{s.value}</p>
@@ -357,11 +357,11 @@ export default function AdminDashboard({
               <div className="flex gap-4">
                 <div className="flex-1 text-center bg-primary-50 rounded-xl p-3">
                   <p className="text-2xl font-bold text-primary-700">{stats.clientCount}</p>
-                  <p className="text-xs text-primary-500 mt-0.5">🔍 Wateja</p>
+                  <p className="text-xs text-primary-500 mt-0.5 flex items-center justify-center gap-0.5"><i className="ti ti-search" aria-hidden="true" /> Wateja</p>
                 </div>
                 <div className="flex-1 text-center bg-amber-50 rounded-xl p-3">
                   <p className="text-2xl font-bold text-amber-700">{stats.dalaliCount}</p>
-                  <p className="text-xs text-amber-500 mt-0.5">🏢 Madalali</p>
+                  <p className="text-xs text-amber-500 mt-0.5 flex items-center justify-center gap-0.5"><i className="ti ti-building" aria-hidden="true" /> Madalali</p>
                 </div>
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function AdminDashboard({
             {/* Region stats */}
             {regionStats.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                <h3 className="text-sm font-bold text-gray-800 mb-3">📍 Listings Kwa Mkoa (Top 10)</h3>
+                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5"><i className="ti ti-map-pin" aria-hidden="true" /> Listings Kwa Mkoa (Top 10)</h3>
                 <div className="space-y-2">
                   {regionStats.map(([region, count], i) => {
                     const maxCount = regionStats[0][1]
@@ -398,7 +398,7 @@ export default function AdminDashboard({
             {listings.length > 0 && (
               <button onClick={() => setTab('listings')}
                 className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left flex items-center gap-3">
-                <span className="text-2xl">⚠️</span>
+                <i className="ti ti-alert-triangle text-2xl text-amber-600" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-semibold text-amber-800">
                     {listings.length} listing{listings.length > 1 ? 's' : ''} zinasubiri idhini yako
@@ -411,7 +411,7 @@ export default function AdminDashboard({
             {/* Trial stats */}
             {(stats.totalTrials ?? 0) > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                <h3 className="text-sm font-bold text-gray-800 mb-3">🎉 Muhtasari wa Majaribio</h3>
+                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5"><i className="ti ti-confetti" aria-hidden="true" /> Muhtasari wa Majaribio</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-primary-50 rounded-xl p-3 text-center">
                     <p className="text-2xl font-bold text-primary-700">{stats.activeTrials ?? 0}</p>
@@ -438,7 +438,7 @@ export default function AdminDashboard({
               className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
               <div>
                 <p className="text-sm font-bold text-amber-800 flex items-center gap-2">
-                  📬 Kisanduku cha Ujumbe
+                  <i className="ti ti-mailbox" aria-hidden="true" /> Kisanduku cha Ujumbe
                   {inboxUnread > 0 && (
                     <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
                       {inboxUnread} mapya
@@ -459,7 +459,7 @@ export default function AdminDashboard({
             <Link href="/admin/accounting"
               className="flex items-center justify-between bg-green-50 border border-green-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
               <div>
-                <p className="text-sm font-bold text-green-800">💰 Hesabu za NyumbaFasta</p>
+                <p className="text-sm font-bold text-green-800 flex items-center gap-1.5"><i className="ti ti-coin" aria-hidden="true" /> Hesabu za NyumbaFasta</p>
                 <p className="text-xs text-green-600 mt-0.5">Mapato, matumizi, na faida yote kwa pamoja →</p>
               </div>
               <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -469,19 +469,19 @@ export default function AdminDashboard({
 
             {/* ── Cron Jobs card ── */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-800 mb-3">⚙️ Kazi za Otomatiki</h3>
+              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5"><i className="ti ti-settings" aria-hidden="true" /> Kazi za Otomatiki</h3>
 
               <div className="space-y-2 text-sm mb-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Kila siku:</span>
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                    Kila siku 6 AM ✅
+                    Kila siku 6 AM <i className="ti ti-circle-check" aria-hidden="true" />
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Kila saa:</span>
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                    Kila saa ✅
+                    Kila saa <i className="ti ti-circle-check" aria-hidden="true" />
                   </span>
                 </div>
                 {cronLastRun && (
@@ -504,7 +504,7 @@ export default function AdminDashboard({
                       <span className="w-3 h-3 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
                       Inaendesha...
                     </span>
-                  ) : '▶️ Endesha Kazi za Kila Siku'}
+                  ) : <><i className="ti ti-player-play" aria-hidden="true" /> Endesha Kazi za Kila Siku</>}
                 </button>
                 <button
                   onClick={() => runCron('hourly')}
@@ -512,7 +512,7 @@ export default function AdminDashboard({
                   className="flex-1 bg-gray-50 text-gray-600 py-2.5 rounded-xl text-xs font-semibold
                              border border-gray-100 disabled:opacity-50 active:scale-[0.97] transition-all"
                 >
-                  ⚡ Kila Saa
+                  <i className="ti ti-bolt" aria-hidden="true" /> Kila Saa
                 </button>
               </div>
 
@@ -563,7 +563,7 @@ export default function AdminDashboard({
               const filtered = listingStatusFilter === 'all' ? allListingsState : allListingsState.filter(l => l.status === listingStatusFilter)
               return filtered.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
-                  <div className="text-4xl mb-3">✅</div>
+                  <div className="text-4xl mb-3"><i className="ti ti-circle-check text-4xl text-green-400" aria-hidden="true" /></div>
                   <p className="text-sm font-semibold text-gray-600">Hakuna listings katika filter hii</p>
                 </div>
               ) : filtered.map(listing => (
@@ -615,11 +615,11 @@ export default function AdminDashboard({
                     <div className="flex gap-2">
                       <button onClick={() => { setRejectListingId(listing.id); setListingRejectReason('') }} disabled={loadingId === listing.id}
                         className="flex-1 py-2.5 rounded-xl border-2 border-red-200 text-red-600 text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
-                        {loadingId === listing.id ? '...' : '✕ Kataa'}
+                        {loadingId === listing.id ? '...' : <><i className="ti ti-x" aria-hidden="true" /> Kataa</>}
                       </button>
                       <button onClick={() => handleAction(listing.id, 'approve')} disabled={loadingId === listing.id}
                         className="flex-1 py-2.5 rounded-xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
-                        {loadingId === listing.id ? '...' : '✓ Idhibiti'}
+                        {loadingId === listing.id ? '...' : <><i className="ti ti-check" aria-hidden="true" /> Idhibiti</>}
                       </button>
                     </div>
                   </div>
@@ -636,7 +636,7 @@ export default function AdminDashboard({
           <div className="space-y-4">
             {verifications.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
-                <div className="text-4xl mb-2">✅</div>
+                <div className="text-4xl mb-2"><i className="ti ti-circle-check text-4xl text-green-400" aria-hidden="true" /></div>
                 <p className="text-sm text-gray-500">Hakuna maombi ya uthibitisho yanayosubiri</p>
               </div>
             ) : verifications.map(v => (
@@ -677,24 +677,24 @@ export default function AdminDashboard({
           <div className="bg-white w-full rounded-t-3xl px-6 pt-4 pb-10 shadow-xl max-h-[80vh] overflow-y-auto"
                onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
-            <div className="text-3xl text-center mb-2">🚫</div>
+            <div className="text-3xl text-center mb-2"><i className="ti ti-ban text-3xl text-red-400" aria-hidden="true" /></div>
             <h3 className="text-base font-bold text-gray-900 text-center mb-4">Futa Akaunti ya Mtumiaji</h3>
 
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Sababu ya kufuta:</p>
             <div className="space-y-2 mb-4">
               {[
-                { v: 'Scam — anatoa fake listings', icon: '🚨' },
-                { v: 'Unyanyasaji wa wateja',       icon: '🚨' },
-                { v: 'Taarifa za uongo',            icon: '🚨' },
-                { v: 'Uvunjaji wa masharti',        icon: '🚨' },
-                { v: 'Sababu nyingine',             icon: '📝' },
+                { v: 'Scam — anatoa fake listings', icon: 'alert-octagon' },
+                { v: 'Unyanyasaji wa wateja',       icon: 'alert-octagon' },
+                { v: 'Taarifa za uongo',            icon: 'alert-octagon' },
+                { v: 'Uvunjaji wa masharti',        icon: 'alert-octagon' },
+                { v: 'Sababu nyingine',             icon: 'pencil' },
               ].map(r => (
                 <button key={r.v} onClick={() => setDeleteReason(r.v)}
                   className={`w-full flex items-center gap-2 p-3 rounded-xl border-2 text-left text-sm transition-all ${
                     deleteReason === r.v ? 'border-red-400 bg-red-50 text-red-800' : 'border-gray-100 text-gray-700'
                   }`}
                 >
-                  <span>{r.icon}</span><span>{r.v}</span>
+                  <i className={`ti ti-${r.icon}`} aria-hidden="true" /><span>{r.v}</span>
                 </button>
               ))}
             </div>
@@ -722,7 +722,7 @@ export default function AdminDashboard({
                 disabled={!deleteReason || !!userActionLoading}
                 className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold text-sm disabled:opacity-40"
               >
-                {userActionLoading ? '...' : '🗑️ Futa'}
+                {userActionLoading ? '...' : <><i className="ti ti-trash" aria-hidden="true" /> Futa</>}
               </button>
             </div>
           </div>
@@ -735,22 +735,22 @@ export default function AdminDashboard({
           <div className="bg-white w-full rounded-t-3xl px-5 pt-4 pb-10 shadow-xl max-h-[70vh] overflow-y-auto"
                onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
-            <div className="text-3xl text-center mb-2">🚫</div>
+            <div className="text-3xl text-center mb-2"><i className="ti ti-ban text-3xl text-red-400" aria-hidden="true" /></div>
             <h3 className="text-base font-bold text-gray-900 text-center mb-4">Sababu ya Kukataa Listing</h3>
             <div className="space-y-2 mb-5">
               {[
-                { v: 'Picha bandia au hazifanyi',  icon: '📷' },
-                { v: 'Bei au taarifa za uongo',     icon: '💸' },
-                { v: 'Eneo au anwani si sahihi',    icon: '📍' },
-                { v: 'Maudhui yasiyofaa',           icon: '⚠️' },
-                { v: 'Sababu nyingine',             icon: '📝' },
+                { v: 'Picha bandia au hazifanyi',  icon: 'camera-off' },
+                { v: 'Bei au taarifa za uongo',     icon: 'coin-off' },
+                { v: 'Eneo au anwani si sahihi',    icon: 'map-pin-off' },
+                { v: 'Maudhui yasiyofaa',           icon: 'alert-triangle' },
+                { v: 'Sababu nyingine',             icon: 'pencil' },
               ].map(r => (
                 <button key={r.v} onClick={() => setListingRejectReason(r.v)}
                   className={`w-full flex items-center gap-2 p-3 rounded-xl border-2 text-left text-sm transition-all ${
                     listingRejectReason === r.v ? 'border-red-400 bg-red-50 text-red-800' : 'border-gray-100 text-gray-700'
                   }`}
                 >
-                  <span>{r.icon}</span><span>{r.v}</span>
+                  <i className={`ti ti-${r.icon}`} aria-hidden="true" /><span>{r.v}</span>
                 </button>
               ))}
             </div>
@@ -763,7 +763,7 @@ export default function AdminDashboard({
                 onClick={() => { handleAction(rejectListingId, 'reject', listingRejectReason); setRejectListingId(null) }}
                 disabled={!listingRejectReason}
                 className="flex-1 py-3 bg-red-500 text-white rounded-2xl text-sm font-bold disabled:opacity-40">
-                ✕ Kataa Listing
+                <i className="ti ti-x" aria-hidden="true" /> Kataa Listing
               </button>
             </div>
           </div>
@@ -774,7 +774,7 @@ export default function AdminDashboard({
       {tab === 'reports' && (
         <div className="px-4 pt-4 pb-20 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-gray-800">🚨 Ripoti za Scam</p>
+            <p className="text-sm font-bold text-gray-800 flex items-center gap-1.5"><i className="ti ti-alert-octagon" aria-hidden="true" /> Ripoti za Scam</p>
             <div className="flex gap-1.5">
               {(['pending', 'reviewed', 'dismissed'] as const).map(s => (
                 <span key={s} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
@@ -821,7 +821,7 @@ export default function AdminDashboard({
                 </div>
 
                 <div className="bg-red-50 rounded-xl px-3 py-2 mb-3">
-                  <p className="text-xs font-semibold text-red-700">🚨 {report.reason}</p>
+                  <p className="text-xs font-semibold text-red-700 flex items-center gap-1"><i className="ti ti-alert-octagon" aria-hidden="true" /> {report.reason}</p>
                   {report.details && <p className="text-xs text-red-600 mt-0.5">{report.details}</p>}
                 </div>
 
@@ -849,13 +849,13 @@ export default function AdminDashboard({
                       disabled={reportActionLoading === report.id}
                       className="flex-1 py-2 rounded-xl bg-primary-50 text-primary-700 text-xs font-semibold border border-primary-100 disabled:opacity-40"
                     >
-                      ✅ Imeangaliwa
+                      <i className="ti ti-circle-check" aria-hidden="true" /> Imeangaliwa
                     </button>
                     <button
                       onClick={() => { setConfirmDeleteId(report.dalali?.id ?? null) }}
                       className="flex-1 py-2 rounded-xl bg-red-50 text-red-700 text-xs font-semibold border border-red-100"
                     >
-                      🗑️ Futa Dalali
+                      <i className="ti ti-trash" aria-hidden="true" /> Futa Dalali
                     </button>
                     <button
                       onClick={() => handleReportAction(report.id, 'dismissed')}
@@ -929,11 +929,11 @@ function VerifyCard({
         <div className="flex gap-2">
           <button onClick={onApprove} disabled={loading}
             className="flex-1 bg-primary-500 text-white text-xs font-semibold py-2.5 rounded-xl disabled:opacity-50 active:scale-95 transition-all">
-            {loading ? '...' : '✅ Thibitisha'}
+            {loading ? '...' : 'Thibitisha'}
           </button>
           <button onClick={() => onReject(rejectReason)} disabled={loading || !rejectReason.trim()}
             className="flex-1 bg-red-500 text-white text-xs font-semibold py-2.5 rounded-xl disabled:opacity-50 active:scale-95 transition-all">
-            ❌ Kataa
+            <i className="ti ti-circle-x" aria-hidden="true" /> Kataa
           </button>
         </div>
 

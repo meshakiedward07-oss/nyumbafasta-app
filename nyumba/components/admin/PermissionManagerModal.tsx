@@ -67,7 +67,7 @@ export default function PermissionManagerModal({ staff, onClose, onSaved }: Prop
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="p-5 border-b border-gray-100 flex-shrink-0">
-          <h2 className="font-bold text-gray-900">🔑 Ruhusa za {staff.full_name}</h2>
+          <h2 className="font-bold text-gray-900"><i className="ti ti-key" aria-hidden="true" /> Ruhusa za {staff.full_name}</h2>
           <p className="text-xs text-gray-400 mt-0.5">Chagua vipengele anavyoweza kufikia</p>
         </div>
 
@@ -79,7 +79,7 @@ export default function PermissionManagerModal({ staff, onClose, onSaved }: Prop
           )}
           {success && (
             <div className="bg-green-50 border border-green-100 text-green-700 text-sm px-3 py-2 rounded-xl">
-              ✅ {success}
+              <i className="ti ti-circle-check" aria-hidden="true" /> {success}
             </div>
           )}
 
@@ -130,7 +130,7 @@ export default function PermissionManagerModal({ staff, onClose, onSaved }: Prop
                       />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-800">
-                          {perm.emoji} {perm.label}
+                          <><i className={`ti ti-${perm.icon}`} aria-hidden="true" /> {perm.label}</>
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">{perm.description}</p>
                       </div>

@@ -51,26 +51,26 @@ type FormData = {
 
 // ── Constants ────────────────────────────────────────────
 const LISTING_TYPES: { value: ListingType; label: string; icon: string }[] = [
-  { value: 'chumba',    label: 'Chumba',    icon: '🚪' },
-  { value: 'apartment', label: 'Apartment', icon: '🏢' },
-  { value: 'nyumba',    label: 'Nyumba',    icon: '🏠' },
-  { value: 'studio',    label: 'Studio',    icon: '🛋' },
-  { value: 'duka',      label: 'Duka',      icon: '🏪' },
+  { value: 'chumba',    label: 'Chumba',    icon: 'door' },
+  { value: 'apartment', label: 'Apartment', icon: 'building' },
+  { value: 'nyumba',    label: 'Nyumba',    icon: 'home' },
+  { value: 'studio',    label: 'Studio',    icon: 'sofa' },
+  { value: 'duka',      label: 'Duka',      icon: 'building-store' },
 ]
 
 const AMENITIES: { value: string; label: string; icon: string }[] = [
-  { value: 'umeme',      label: 'Umeme',       icon: '⚡' },
-  { value: 'maji',       label: 'Maji',        icon: '💧' },
-  { value: 'wifi',       label: 'WiFi',        icon: '📶' },
-  { value: 'parking',    label: 'Parking',     icon: '🚗' },
-  { value: 'choo_ndani', label: 'Choo ndani',  icon: '🚿' },
-  { value: 'daladala',   label: 'Daladala',    icon: '🚌' },
-  { value: 'watchman',   label: 'Watchman',    icon: '💂' },
-  { value: 'ac',         label: 'AC',          icon: '❄️' },
-  { value: 'dstv',       label: 'DSTV',        icon: '📺' },
-  { value: 'solar',      label: 'Solar',       icon: '☀️' },
-  { value: 'soko',       label: 'Soko karibu', icon: '🛒' },
-  { value: 'bustani',    label: 'Bustani',     icon: '🌿' },
+  { value: 'umeme',      label: 'Umeme',       icon: 'bolt' },
+  { value: 'maji',       label: 'Maji',        icon: 'droplet' },
+  { value: 'wifi',       label: 'WiFi',        icon: 'wifi' },
+  { value: 'parking',    label: 'Parking',     icon: 'car' },
+  { value: 'choo_ndani', label: 'Choo ndani',  icon: 'bath' },
+  { value: 'daladala',   label: 'Daladala',    icon: 'bus' },
+  { value: 'watchman',   label: 'Watchman',    icon: 'shield' },
+  { value: 'ac',         label: 'AC',          icon: 'snowflake' },
+  { value: 'dstv',       label: 'DSTV',        icon: 'device-tv' },
+  { value: 'solar',      label: 'Solar',       icon: 'sun' },
+  { value: 'soko',       label: 'Soko karibu', icon: 'shopping-cart' },
+  { value: 'bustani',    label: 'Bustani',     icon: 'leaf' },
 ]
 
 
@@ -298,11 +298,11 @@ export default function AddListingWizard() {
                         : 'border-gray-100 bg-gray-50'
                     } ${i === LISTING_TYPES.length - 1 && LISTING_TYPES.length % 2 !== 0 ? 'col-span-2' : ''}`}
                   >
-                    <span className="text-xl">{t.icon}</span>
+                    <i className={`ti ti-${t.icon} text-xl`} aria-hidden="true" />
                     <span className={`text-sm font-medium ${form.type === t.value ? 'text-primary-700' : 'text-gray-700'}`}>
                       {t.label}
                     </span>
-                    {form.type === t.value && <span className="ml-auto text-primary-500 text-sm">✓</span>}
+                    {form.type === t.value && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
                   </button>
                 ))}
               </div>
@@ -433,11 +433,11 @@ export default function AddListingWizard() {
                       : 'border-gray-100 bg-gray-50'
                   }`}
                 >
-                  <span className="text-xl">🏠</span>
+                  <i className="ti ti-home text-xl" aria-hidden="true" />
                   <span className={`text-sm font-medium ${form.listing_unit_type === 'single' ? 'text-primary-700' : 'text-gray-700'}`}>
                     Moja tu
                   </span>
-                  {form.listing_unit_type === 'single' && <span className="ml-auto text-primary-500 text-sm">✓</span>}
+                  {form.listing_unit_type === 'single' && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
                 </button>
                 <button
                   onClick={() => set('listing_unit_type', 'multi')}
@@ -447,11 +447,11 @@ export default function AddListingWizard() {
                       : 'border-gray-100 bg-gray-50'
                   }`}
                 >
-                  <span className="text-xl">🏢</span>
+                  <i className="ti ti-building text-xl" aria-hidden="true" />
                   <span className={`text-sm font-medium ${form.listing_unit_type === 'multi' ? 'text-primary-700' : 'text-gray-700'}`}>
                     Vyumba vingi
                   </span>
-                  {form.listing_unit_type === 'multi' && <span className="ml-auto text-primary-500 text-sm">✓</span>}
+                  {form.listing_unit_type === 'multi' && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
                 </button>
               </div>
 
@@ -643,7 +643,7 @@ export default function AddListingWizard() {
             </div>
 
             <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-xs text-primary-700">
-              📍 Weka mtaa au wilaya halisi. Pin ya ramani ni optional lakini inasaidia wateja kukupata.
+              Weka mtaa au wilaya halisi. Pin ya ramani ni optional lakini inasaidia wateja kukupata.
             </div>
           </div>
         )}
@@ -669,11 +669,11 @@ export default function AddListingWizard() {
                         : 'border-gray-100 bg-gray-50'
                     }`}
                   >
-                    <span className="text-lg leading-none">{a.icon}</span>
+                    <i className={`ti ti-${a.icon} text-lg leading-none`} aria-hidden="true" />
                     <span className={`text-xs font-medium flex-1 ${selected ? 'text-primary-700' : 'text-gray-600'}`}>
                       {a.label}
                     </span>
-                    {selected && <span className="text-primary-500 text-xs">✓</span>}
+                    {selected && <i className="ti ti-check text-primary-500 text-xs" aria-hidden="true" />}
                   </button>
                 )
               })}
@@ -703,7 +703,7 @@ export default function AddListingWizard() {
             {/* ── Video upload ── */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                🎥 Video ya Nyumba (hiari)
+                <i className="ti ti-video" aria-hidden="true" /> Video ya Nyumba (hiari)
               </label>
               <VideoUpload
                 existingVideoUrl={form.video_url}
@@ -714,7 +714,7 @@ export default function AddListingWizard() {
 
             {/* Preview summary */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-800 mb-3">📋 Muhtasari wa Listing</h3>
+              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />Muhtasari wa Listing</h3>
               <div className="space-y-2 text-sm">
                 <Row label="Aina" value={LISTING_TYPES.find(t => t.value === form.type)?.label ?? form.type} />
                 <Row label="Bei" value={`Tsh ${parseInt(form.price_monthly || '0').toLocaleString()} / mwezi`} />
@@ -736,7 +736,7 @@ export default function AddListingWizard() {
                   <Row label="Huduma" value={`${form.amenities.length} zilizochaguliwa`} />
                 )}
                 <Row label="Picha" value={`${form.images.length} picha`} />
-                {form.video_url && <Row label="Video" value="✅ Imepakiwa" />}
+                {form.video_url && <Row label="Video" value="Imepakiwa" />}
               </div>
 
               {/* WhatsApp ya mawasiliano — read-only */}
@@ -746,7 +746,7 @@ export default function AddListingWizard() {
                 </p>
                 <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-base">📱</span>
+                    <i className="ti ti-device-mobile text-base" aria-hidden="true" />
                     <div>
                       <p className="text-xs text-gray-400">WhatsApp</p>
                       <p className="text-sm font-medium text-gray-800">
@@ -765,7 +765,7 @@ export default function AddListingWizard() {
                   </Link>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">
-                  🔒 Wateja watawasiliana nawe kwa namba hii baada ya kulipa
+                  Wateja watawasiliana nawe kwa namba hii baada ya kulipa
                 </p>
               </div>
             </div>
@@ -818,7 +818,7 @@ export default function AddListingWizard() {
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Subiri picha zikamilike...
               </span>
-            ) : '✅ Wasilisha Listing'}
+            ) : 'Wasilisha Listing'}
           </button>
         )}
       </div>
@@ -828,7 +828,7 @@ export default function AddListingWizard() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setShowLimitModal(false)}>
           <div className="bg-white w-full rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-            <h3 className="font-bold text-lg text-gray-900 mb-1">📊 Umefika Limit ya Listings</h3>
+            <h3 className="font-bold text-lg text-gray-900 mb-1 flex items-center gap-2"><i className="ti ti-chart-bar" aria-hidden="true" />Umefika Limit ya Listings</h3>
             <p className="text-gray-500 text-sm mb-5">
               Plan yako inaruhusu listings <strong>{limitInfo?.limit ?? 0}</strong> tu.
               Una listings <strong>{limitInfo?.current ?? 0}</strong> active sasa hivi.
@@ -838,7 +838,7 @@ export default function AddListingWizard() {
               {/* Option 1 — Buy extra */}
               {!extraDone ? (
                 <div className="border border-primary-200 rounded-2xl p-4 bg-primary-50">
-                  <p className="font-semibold text-primary-800 mb-0.5">➕ Ongeza Listings za Ziada</p>
+                  <p className="font-semibold text-primary-800 mb-0.5 flex items-center gap-1"><i className="ti ti-plus" aria-hidden="true" />Ongeza Listings za Ziada</p>
                   <p className="text-sm text-primary-600 mb-3">Tsh 2,000 kwa listing moja kwa mwezi</p>
                   <div className="flex items-center gap-3 mb-3">
                     <button onClick={() => setExtraCount(c => Math.max(1, c - 1))}
@@ -863,7 +863,7 @@ export default function AddListingWizard() {
                 </div>
               ) : (
                 <div className="border border-green-200 rounded-2xl p-4 bg-green-50 text-center">
-                  <p className="text-3xl mb-1">✅</p>
+                  <p className="text-3xl mb-1 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></p>
                   <p className="font-semibold text-green-800">Listings {extraCount} za ziada zimeongezwa!</p>
                   <p className="text-sm text-green-600 mt-1">Sasa unaweza kuendelea.</p>
                   <button
@@ -891,7 +891,7 @@ export default function AddListingWizard() {
               {!extraDone && (
                 <button onClick={() => router.push('/dashboard/listings')}
                   className="w-full border border-gray-200 text-gray-600 py-3 rounded-xl text-sm font-medium">
-                  🗑️ Futa Listing Iliyopita Badala Yake
+                  <i className="ti ti-trash" aria-hidden="true" /> Futa Listing Iliyopita Badala Yake
                 </button>
               )}
             </div>

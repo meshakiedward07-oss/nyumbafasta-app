@@ -92,7 +92,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
               isDalali ? 'bg-amber-400 text-white' :
                          'bg-white/20 text-white'
             }`}>
-              {isAdmin ? '🛡️ Admin' : isDalali ? '🏢 Dalali' : '🔍 Mteja'}
+              {isAdmin ? <><i className="ti ti-shield" aria-hidden="true" /> Admin</> : isDalali ? <><i className="ti ti-building" aria-hidden="true" /> Dalali</> : <><i className="ti ti-search" aria-hidden="true" /> Mteja</>}
             </span>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         {/* ── Flash messages ── */}
         {success && (
           <div className="bg-primary-50 border border-primary-100 text-primary-700 text-sm px-4 py-3 rounded-xl">
-            ✅ {success}
+            <i className="ti ti-circle-check" aria-hidden="true" /> {success}
           </div>
         )}
         {error && (
@@ -118,7 +118,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             <div className="flex items-center justify-between p-4 bg-red-50 border border-red-100 rounded-xl active:scale-[0.97] transition-transform">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <span className="text-lg">🛡️</span>
+                  <i className="ti ti-shield text-lg text-red-500" aria-hidden="true" />
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 text-sm">Admin Panel</p>
@@ -135,7 +135,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             <div className="flex items-center justify-between p-4 bg-green-50 border border-green-100 rounded-xl active:scale-[0.97] transition-transform">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-lg">📊</span>
+                  <i className="ti ti-chart-bar text-lg text-green-600" aria-hidden="true" />
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 text-sm">Dalali Dashboard</p>
@@ -154,7 +154,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             {!editing ? (
               <button onClick={() => setEditing(true)}
                 className="text-xs text-primary-600 font-semibold">
-                ✏️ Hariri
+                <i className="ti ti-pencil" aria-hidden="true" /> Hariri
               </button>
             ) : (
               <div className="flex gap-3">
@@ -206,7 +206,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         <div className="grid grid-cols-2 gap-3">
           <Link href="/saved"
             className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-center gap-3 active:scale-[0.97] transition-transform">
-            <span className="text-2xl">❤️</span>
+            <i className="ti ti-heart text-2xl text-red-400" aria-hidden="true" />
             <div>
               <p className="text-lg font-bold text-gray-900">{savedCount}</p>
               <p className="text-xs text-gray-400">Zilizohifadhiwa</p>
@@ -215,7 +215,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
           {!isDalali && !isAdmin ? (
             <Link href="/account/contacts"
               className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-center gap-3 active:scale-[0.97] transition-transform">
-              <span className="text-2xl">💬</span>
+              <i className="ti ti-message-circle text-2xl text-blue-400" aria-hidden="true" />
               <div>
                 <p className="text-lg font-bold text-gray-900">{unlocksCount}</p>
                 <p className="text-xs text-gray-400">Mawasiliano</p>
@@ -224,7 +224,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
           ) : isDalali ? (
             <Link href="/dashboard/profile"
               className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-center gap-3 active:scale-[0.97] transition-transform">
-              <span className="text-2xl">⚙️</span>
+              <i className="ti ti-settings text-2xl text-gray-400" aria-hidden="true" />
               <div>
                 <p className="text-sm font-bold text-gray-900">Wasifu</p>
                 <p className="text-xs text-gray-400">Dalali profile</p>
@@ -239,7 +239,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             className="flex items-center justify-between p-4 bg-green-50 border border-green-100 rounded-2xl active:scale-[0.97] transition-transform">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-lg">📋</span>
+                <i className="ti ti-list text-lg text-green-600" aria-hidden="true" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900">Historia ya Mawasiliano</p>
@@ -259,13 +259,13 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
           </div>
           <Link href="/notifications"
             className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
-            <span className="text-xl">🔔</span>
+            <i className="ti ti-bell text-xl text-gray-400" aria-hidden="true" />
             <span className="text-sm text-gray-700 flex-1">Mipangilio ya Arifa</span>
             <span className="text-gray-300 text-lg">›</span>
           </Link>
           <Link href="/saved"
             className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all">
-            <span className="text-xl">❤️</span>
+            <i className="ti ti-heart text-xl text-red-400" aria-hidden="true" />
             <span className="text-sm text-gray-700 flex-1">Listings Zilizohifadhiwa</span>
             <span className="text-gray-300 text-lg">›</span>
           </Link>
@@ -278,7 +278,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
           </div>
           <Link href="/terms"
             className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all">
-            <span className="text-xl">📋</span>
+            <i className="ti ti-file-text text-xl text-gray-400" aria-hidden="true" />
             <span className="text-sm text-gray-700 flex-1">Masharti ya Matumizi</span>
             <span className="text-gray-300 text-lg">›</span>
           </Link>
@@ -290,7 +290,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
           className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl
                      bg-red-50 border border-red-100 text-red-500 font-semibold
                      hover:bg-red-100 active:scale-[0.98] transition-all text-sm">
-          🚪 Toka — Sign Out
+          <i className="ti ti-door-exit" aria-hidden="true" /> Toka — Sign Out
         </button>
 
         <div className="h-2" />
@@ -319,7 +319,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                 disabled={loggingOut}
                 className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold text-sm
                            disabled:opacity-60 active:scale-[0.97] transition-transform">
-                {loggingOut ? 'Inatoka...' : '🚪 Ndio, Toka'}
+                {loggingOut ? 'Inatoka...' : <><i className="ti ti-door-exit" aria-hidden="true" /> Ndio, Toka</>}
               </button>
             </div>
           </div>

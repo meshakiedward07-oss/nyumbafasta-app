@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
             await admin.from('notifications').insert({
               user_id: data.user.id,
               type: 'trial_started',
-              title: '🎉 Karibu NyumbaFasta!',
+              title: 'Karibu NyumbaFasta!',
               body: 'Umepata siku 14 za BURE! Anza kuongeza listings sasa na upate wateja wako wa kwanza.',
               is_read: false,
               data: { trial_days: 14 },

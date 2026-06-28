@@ -67,7 +67,7 @@ export default function ChangePasswordPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-sm">
-          <div className="text-5xl mb-4">✅</div>
+          <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></div>
           <h2 className="font-bold text-gray-900 text-lg mb-2">Password Imebadilishwa!</h2>
           <p className="text-gray-500 text-sm">Unakwenda kwenye dashboard yako...</p>
         </div>
@@ -85,7 +85,7 @@ export default function ChangePasswordPage() {
       <div className="flex-1 px-4 -mt-4 pb-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 max-w-sm mx-auto">
           <div className="text-center mb-5">
-            <div className="text-3xl mb-2">🔑</div>
+            <div className="text-3xl mb-2 flex justify-center"><i className="ti ti-key text-gray-600" aria-hidden="true" /></div>
             <h2 className="font-bold text-gray-900">Badilisha Password</h2>
             <p className="text-xs text-gray-400 mt-1">
               Lazima ubadilishe password ya muda kabla ya kuendelea
@@ -117,7 +117,7 @@ export default function ChangePasswordPage() {
                   aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1"
                 >
-                  {showPass ? '🙈' : '👁️'}
+                  {showPass ? <i className="ti ti-eye-off" aria-hidden="true" /> : <i className="ti ti-eye" aria-hidden="true" />}
                 </button>
               </div>
             </div>
@@ -139,7 +139,7 @@ export default function ChangePasswordPage() {
                   aria-label={showConfirm ? 'Ficha uthibitisho' : 'Onyesha uthibitisho'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1"
                 >
-                  {showConfirm ? '🙈' : '👁️'}
+                  {showConfirm ? <i className="ti ti-eye-off" aria-hidden="true" /> : <i className="ti ti-eye" aria-hidden="true" />}
                 </button>
               </div>
             </div>

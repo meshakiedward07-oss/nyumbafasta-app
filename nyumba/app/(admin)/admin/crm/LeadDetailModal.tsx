@@ -11,12 +11,12 @@ type Activity = {
   staff?:    { full_name?: string } | null
 }
 
-const TYPE_EMOJI: Record<string, string> = {
-  call:     '📞',
-  whatsapp: '💬',
-  note:     '📝',
-  sms:      '📱',
-  email:    '✉️',
+const TYPE_ICON_NAMES: Record<string, string> = {
+  call:     'phone',
+  whatsapp: 'brand-whatsapp',
+  note:     'note',
+  sms:      'device-mobile',
+  email:    'mail',
 }
 
 export default function LeadDetailModal({
@@ -117,11 +117,11 @@ export default function LeadDetailModal({
               </h2>
               <p className="text-sm text-gray-500">{lead.phone}</p>
               {lead.region && (
-                <p className="text-xs text-gray-400 mt-0.5">📍 {lead.region}</p>
+                <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" />{lead.region}</p>
               )}
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-3 mt-0.5">
-              <span className="text-xl">✕</span>
+              <i className="ti ti-x text-xl" aria-hidden="true" />
             </button>
           </div>
 
@@ -144,7 +144,7 @@ export default function LeadDetailModal({
             })}
           </div>
           <p className="text-xs text-center text-gray-500">
-            {currentStage?.emoji} {currentStage?.label}
+            <>{currentStage && <i className={`ti ti-${currentStage.icon}`} aria-hidden="true" />} {currentStage?.label}</>
           </p>
         </div>
 
@@ -161,7 +161,7 @@ export default function LeadDetailModal({
                 className="flex-1 flex items-center justify-center gap-1.5 bg-green-50 text-green-700
                   py-2.5 rounded-xl text-sm font-medium border border-green-200"
               >
-                💬 WhatsApp
+                <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp
               </a>
             )}
             {lead.phone && (
@@ -171,7 +171,7 @@ export default function LeadDetailModal({
                 className="flex-1 flex items-center justify-center gap-1.5 bg-blue-50 text-blue-700
                   py-2.5 rounded-xl text-sm font-medium border border-blue-200"
               >
-                📞 Piga Simu
+                <i className="ti ti-phone" aria-hidden="true" /> Piga Simu
               </a>
             )}
           </div>
@@ -179,9 +179,9 @@ export default function LeadDetailModal({
           {/* Call result */}
           <div className="flex gap-1.5">
             {[
-              { result: 'answered',    label: '✅ Alijibu' },
-              { result: 'no_answer',   label: '🔕 Hakujibu' },
-              { result: 'unreachable', label: '🚫 Hapatikani' },
+              { result: 'answered',    label: 'Alijibu' },
+              { result: 'no_answer',   label: 'Hakujibu' },
+              { result: 'unreachable', label: 'Hapatikani' },
             ].map(({ result, label }) => (
               <button
                 key={result}
@@ -203,7 +203,7 @@ export default function LeadDetailModal({
               className="w-full flex items-center justify-center gap-2 bg-primary-500 text-white
                 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
             >
-              ↗ Hatua Inayofuata: {nextStage.emoji} {nextStage.label}
+              <>↗ Hatua Inayofuata: {nextStage && <i className={`ti ti-${nextStage.icon}`} aria-hidden="true" />} {nextStage?.label}</>
             </button>
           )}
 
@@ -221,7 +221,7 @@ export default function LeadDetailModal({
                     : 'bg-gray-100 text-gray-500'
                 }`}
               >
-                {s.emoji} {s.label}
+                <><i className={`ti ti-${s.icon}`} aria-hidden="true" /> {s.label}</>
               </button>
             ))}
           </div>
@@ -231,8 +231,8 @@ export default function LeadDetailModal({
         <div className="flex border-b flex-shrink-0">
           {[
             { id: 'info',     label: 'ℹ️ Info' },
-            { id: 'history',  label: '📋 Historia' },
-            { id: 'followup', label: '📅 Follow-up' },
+            { id: 'history',  label: 'Historia' },
+            { id: 'followup', label: 'Follow-up' },
           ].map(t => (
             <button
               key={t.id}
@@ -256,21 +256,21 @@ export default function LeadDetailModal({
             <div className="space-y-3">
               <div className="bg-gray-50 rounded-xl p-4 space-y-2.5">
                 {[
-                  { label: '📞 Simu',     value: lead.phone },
-                  { label: '💬 WhatsApp', value: lead.whatsapp },
-                  { label: '📍 Mkoa',     value: lead.region },
-                  { label: '📡 Chanzo',   value: SOURCE_LABELS[lead.source || ''] || lead.source },
+                  { label: 'Simu',     value: lead.phone },
+                  { label: '<i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp', value: lead.whatsapp },
+                  { label: 'Mkoa',     value: lead.region },
+                  { label: 'Chanzo',   value: SOURCE_LABELS[lead.source || ''] || lead.source },
                   {
-                    label: '🔄 Mawasiliano',
+                    label: 'Mawasiliano',
                     value: `${lead.contact_attempts ?? 0} mara${lead.last_contacted_at
                       ? ` · Mwisho: ${new Date(lead.last_contacted_at).toLocaleDateString('sw-TZ')}`
                       : ''}`,
                   },
                   lead.converted_to_profile_id
-                    ? { label: '✅ Akaunti',   value: 'Amesajili — akaunti imeunganishwa' }
+                    ? { label: 'Akaunti',   value: 'Amesajili — akaunti imeunganishwa' }
                     : null,
                   lead.first_listing_at
-                    ? { label: '🏠 Listing ya 1', value: `${new Date(lead.first_listing_at).toLocaleDateString('sw-TZ')}` }
+                    ? { label: 'Listing ya 1', value: `${new Date(lead.first_listing_at).toLocaleDateString('sw-TZ')}` }
                     : null,
                 ].filter(Boolean).map((item, i) => item && (
                   <div key={i} className="flex items-start justify-between">
@@ -284,7 +284,7 @@ export default function LeadDetailModal({
 
               {lead.notes && (
                 <div className="bg-yellow-50 rounded-xl p-3">
-                  <p className="text-xs font-medium text-yellow-800 mb-1">📝 Maelezo</p>
+                  <p className="text-xs font-medium text-yellow-800 mb-1 flex items-center gap-1"><i className="ti ti-note" aria-hidden="true" />Maelezo</p>
                   <p className="text-xs text-yellow-700">{lead.notes}</p>
                 </div>
               )}
@@ -295,7 +295,7 @@ export default function LeadDetailModal({
                     ? 'bg-amber-50 border border-amber-200'
                     : 'bg-blue-50'
                 }`}>
-                  <p className="text-xs font-medium text-blue-800 mb-0.5">📅 Follow-up Iliyopangwa</p>
+                  <p className="text-xs font-medium text-blue-800 mb-0.5 flex items-center gap-1"><i className="ti ti-calendar" aria-hidden="true" />Follow-up Iliyopangwa</p>
                   <p className="text-xs text-blue-600">
                     {new Date(lead.next_followup_at).toLocaleDateString('sw-TZ', {
                       weekday: 'long', day: 'numeric', month: 'long',
@@ -342,7 +342,7 @@ export default function LeadDetailModal({
                   disabled={!note.trim() || actioning}
                   className="bg-gray-800 text-white px-3 rounded-xl text-sm disabled:opacity-50"
                 >
-                  💾
+                  <i className="ti ti-device-floppy" aria-hidden="true" />
                 </button>
               </div>
 
@@ -361,7 +361,7 @@ export default function LeadDetailModal({
                   {activities.map(a => (
                     <div key={a.id} className="flex gap-2.5">
                       <span className="text-base mt-0.5 flex-shrink-0">
-                        {TYPE_EMOJI[a.type] || '•'}
+                        <i className={`ti ti-${TYPE_ICON_NAMES[a.type] || 'point'}`} aria-hidden="true" />
                       </span>
                       <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2">
                         <p className="text-xs text-gray-700">{a.content}</p>
@@ -384,7 +384,7 @@ export default function LeadDetailModal({
           {/* FOLLOW-UP */}
           {tab === 'followup' && (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-700">📅 Panga Follow-up Mpya</p>
+              <p className="text-sm font-medium text-gray-700 flex items-center gap-1"><i className="ti ti-calendar" aria-hidden="true" />Panga Follow-up Mpya</p>
 
               <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                 <div>
@@ -414,7 +414,7 @@ export default function LeadDetailModal({
                   className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold
                     disabled:opacity-50"
                 >
-                  {actioning ? 'Inahifadhi...' : '📅 Panga Follow-up'}
+                  {actioning ? 'Inahifadhi...' : 'Panga Follow-up'}
                 </button>
               </div>
 

@@ -124,13 +124,13 @@ export default function InboxPage() {
       })
       const data = await res.json() as { success?: boolean; error?: string }
       if (data.success) {
-        showToast('✅ Jibu limetumwa!')
+        showToast('Jibu limetumwa!')
         setSelected(null)
         setReplyText('')
         loadMessages()
         loadStats()
       } else {
-        showToast(`❌ ${data.error ?? 'Imeshindwa'}`, false)
+        showToast(`${data.error ?? 'Imeshindwa'}`, false)
       }
     } finally {
       setSending(false)
@@ -138,10 +138,10 @@ export default function InboxPage() {
   }
 
   const FILTER_TABS = [
-    { key: 'flagged',       label: `Zinahitaji Jibu (${stats.flagged})`,  emoji: '🔴' },
-    { key: 'auto_replied',  label: `Amina Alijibu (${stats.autoReplied})`,emoji: '🤖' },
-    { key: 'owner_replied', label: `Ulijibu (${stats.ownerReplied})`,     emoji: '✅' },
-    { key: 'spam',          label: `Spam (${stats.spam})`,                emoji: '🚫' },
+    { key: 'flagged',       label: `Zinahitaji Jibu (${stats.flagged})`,  icon: 'circle-dot' },
+    { key: 'auto_replied',  label: `Amina Alijibu (${stats.autoReplied})`,icon: 'robot' },
+    { key: 'owner_replied', label: `Ulijibu (${stats.ownerReplied})`,     icon: 'circle-check' },
+    { key: 'spam',          label: `Spam (${stats.spam})`,                icon: 'ban' },
   ]
 
   const senderLabel = (m: MessageRow) =>
@@ -161,14 +161,14 @@ export default function InboxPage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">📬 Kisanduku cha Ujumbe</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-inbox" aria-hidden="true" />Kisanduku cha Ujumbe</h1>
             <p className="text-sm text-gray-500 mt-0.5">
               Amina anashughulikia biashara — wewe unashughulikia kibinafsi
             </p>
           </div>
           {stats.flagged > 0 && (
             <div className="flex-shrink-0 bg-amber-500 text-white px-4 py-2 rounded-xl font-bold text-sm animate-pulse">
-              🔴 {stats.flagged} zinahitaji jibu lako
+              <i className="ti ti-circle-dot text-red-500" aria-hidden="true" /> {stats.flagged} zinahitaji jibu lako
             </div>
           )}
         </div>
@@ -185,7 +185,7 @@ export default function InboxPage() {
                   : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
               }`}
             >
-              {tab.emoji} {tab.label}
+              <i className={`ti ti-${tab.icon}`} aria-hidden="true" /> {tab.label}
             </button>
           ))}
         </div>
@@ -224,7 +224,7 @@ export default function InboxPage() {
             </div>
           ) : messages.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="text-5xl mb-3">📭</div>
+              <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-inbox text-gray-400" aria-hidden="true" /></div>
               <p className="text-gray-500 font-medium">Hakuna ujumbe wa aina hii</p>
               <p className="text-sm text-gray-400 mt-1">Amina anashughulikia biashara zote kiotomatiki</p>
             </div>
@@ -255,7 +255,7 @@ export default function InboxPage() {
                       <div className="flex items-center gap-3 mt-1.5">
                         <span className="text-xs text-gray-400">{timeAgo(msg.created_at)}</span>
                         {msg.category === 'personal' && (
-                          <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">👤 Kibinafsi</span>
+                          <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full flex items-center gap-1"><i className="ti ti-user" aria-hidden="true" />Kibinafsi</span>
                         )}
                         <span className="text-xs text-gray-400">AI: {Math.round((msg.confidence ?? 0) * 100)}%</span>
                       </div>
@@ -290,7 +290,7 @@ export default function InboxPage() {
                   onClick={() => setSelected(null)}
                   className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-500"
                 >
-                  ✕
+                  <i className="ti ti-x" aria-hidden="true" />
                 </button>
               </div>
 
@@ -302,7 +302,7 @@ export default function InboxPage() {
 
               {/* AI reason */}
               <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex gap-2">
-                <span className="text-blue-500 flex-shrink-0">🤖</span>
+                <i className="ti ti-robot text-blue-500 flex-shrink-0" aria-hidden="true" />
                 <div>
                   <p className="text-xs font-medium text-blue-700">Amina hakujibu kwa sababu:</p>
                   <p className="text-xs text-blue-600 mt-0.5">{selected.reason}</p>
@@ -312,7 +312,7 @@ export default function InboxPage() {
               {/* Amina's auto-reply (if shown for context) */}
               {selected.action === 'auto_replied' && selected.auto_reply_sent && (
                 <div className="bg-green-50 border border-green-100 rounded-xl p-4">
-                  <p className="text-xs font-medium text-green-700 mb-1">🤖 Amina alijibu:</p>
+                  <p className="text-xs font-medium text-green-700 mb-1 flex items-center gap-1"><i className="ti ti-robot" aria-hidden="true" />Amina alijibu:</p>
                   <p className="text-sm text-green-800">{selected.auto_reply_sent}</p>
                 </div>
               )}
@@ -320,7 +320,7 @@ export default function InboxPage() {
               {/* Owner's past reply */}
               {selected.action === 'owner_replied' && selected.owner_reply && (
                 <div className="bg-primary-50 border border-primary-100 rounded-xl p-4">
-                  <p className="text-xs font-medium text-primary-700 mb-1">✅ Jibu lako ({timeAgo(selected.owner_replied_at)}):</p>
+                  <p className="text-xs font-medium text-primary-700 mb-1 flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Jibu lako ({timeAgo(selected.owner_replied_at)}):</p>
                   <p className="text-sm text-primary-800">{selected.owner_reply}</p>
                 </div>
               )}
@@ -360,7 +360,7 @@ export default function InboxPage() {
                   >
                     {sending
                       ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      : '✉️'}
+                      : <i className="ti ti-mail" aria-hidden="true" />}
                     {sending ? 'Inatuma...' : 'Tuma Jibu'}
                   </button>
                 </>

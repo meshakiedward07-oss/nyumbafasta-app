@@ -74,16 +74,16 @@ export default function AssignClient() {
     setLoading(false)
   }
 
-  function getScoreEmoji(score: number) {
-    if (score >= 80) return '🔥'
-    if (score >= 50) return '🌡️'
-    return '❄️'
+  function getScoreIcon(score: number) {
+    if (score >= 80) return <i className="ti ti-flame text-red-500" aria-hidden="true" />
+    if (score >= 50) return <i className="ti ti-thermometer text-amber-500" aria-hidden="true" />
+    return <i className="ti ti-snowflake text-blue-400" aria-hidden="true" />
   }
 
-  const sourceEmoji: Record<string, string> = {
-    google_maps: '🗺️', google_business: '🏢', facebook_pages: '📘',
-    facebook_groups: '👥', instagram: '📸', tiktok: '🎵',
-    whatsapp_amina: '💬', instagram_amina: '📸', facebook_amina: '📘', manual: '✍️',
+  const sourceIcon: Record<string, string> = {
+    google_maps: 'map', google_business: 'building', facebook_pages: 'brand-facebook',
+    facebook_groups: 'users', instagram: 'brand-instagram', tiktok: 'brand-tiktok',
+    whatsapp_amina: 'brand-whatsapp', instagram_amina: 'brand-instagram', facebook_amina: 'brand-facebook', manual: 'pencil',
   }
 
   return (
@@ -91,14 +91,14 @@ export default function AssignClient() {
       <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-white font-bold text-lg">🎯 Gawa Prospects</h1>
+            <h1 className="text-white font-bold text-lg flex items-center gap-2"><i className="ti ti-target" aria-hidden="true" />Gawa Prospects</h1>
             <p className="text-green-100 text-xs">
               Prospects {unassignedLeads.length} bila mfanyakazi
             </p>
           </div>
           <button onClick={autoAssign} disabled={loading || unassignedLeads.length === 0 || staff.length === 0}
             className="bg-white text-primary-500 text-xs px-4 py-2 rounded-xl font-bold disabled:opacity-50">
-            ⚡ Gawa Zote Moja kwa Moja
+            <i className="ti ti-bolt" aria-hidden="true" /> Gawa Zote Moja kwa Moja
           </button>
         </div>
       </header>
@@ -108,11 +108,11 @@ export default function AssignClient() {
         {/* Staff members */}
         <div>
           <p className="font-semibold text-sm text-gray-700 mb-2">
-            👥 Wafanyakazi Available ({staff.length})
+            <i className="ti ti-users" aria-hidden="true" /> Wafanyakazi Available ({staff.length})
           </p>
           {staff.length === 0 ? (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <p className="text-amber-800 font-medium text-sm">⚠️ Hakuna wafanyakazi (role=staff)</p>
+              <p className="text-amber-800 font-medium text-sm flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />Hakuna wafanyakazi (role=staff)</p>
               <p className="text-amber-600 text-xs mt-1">
                 Unda akaunti za wafanyakazi wako kwanza. Nenda Admin → Users, badilisha role kuwa &quot;staff&quot;.
               </p>
@@ -141,7 +141,7 @@ export default function AssignClient() {
         {/* Unassigned prospects */}
         <div>
           <p className="font-semibold text-sm text-gray-700 mb-2">
-            🎯 Prospects Zinazosubiri
+            <i className="ti ti-target" aria-hidden="true" /> Prospects Zinazosubiri
           </p>
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
@@ -149,7 +149,7 @@ export default function AssignClient() {
             ))
           ) : unassignedLeads.length === 0 ? (
             <div className="bg-white rounded-2xl p-8 text-center border border-gray-100">
-              <div className="text-4xl mb-2">✅</div>
+              <div className="text-4xl mb-2 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></div>
               <p className="text-gray-500">Prospects zote zimegawiwa</p>
             </div>
           ) : unassignedLeads.map(lead => (
@@ -157,14 +157,14 @@ export default function AssignClient() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span>{getScoreEmoji(lead.ai_score || 0)}</span>
+                    {getScoreIcon(lead.ai_score || 0)}
                     <p className="font-semibold text-sm">{lead.business_name}</p>
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    📍 {lead.region || '—'} · 📞 {lead.phone || 'Haipo'}
+                    <i className="ti ti-map-pin" aria-hidden="true" /> {lead.region || '—'} · <i className="ti ti-phone" aria-hidden="true" /> {lead.phone || 'Haipo'}
                   </p>
                   <p className="text-xs text-gray-400">
-                    {sourceEmoji[lead.source ?? ''] ?? '📌'} {lead.source?.replace(/_/g, ' ')}
+                    <i className={`ti ti-${sourceIcon[lead.source ?? ''] ?? 'pin'}`} aria-hidden="true" /> {lead.source?.replace(/_/g, ' ')}
                   </p>
                 </div>
                 <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-full">

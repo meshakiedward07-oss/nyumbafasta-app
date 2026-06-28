@@ -98,7 +98,7 @@ function RegisterForm() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
         <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-sm">
           <div className="w-20 h-20 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-4xl">📧</span>
+            <i className="ti ti-mail text-4xl" aria-hidden="true" />
           </div>
           <h2 className="font-bold text-xl text-gray-800 mb-2">Angalia Barua Pepe Yako!</h2>
           <p className="text-gray-500 text-sm mb-1">Tumetuma email ya uthibitisho kwa:</p>
@@ -186,14 +186,14 @@ function RegisterForm() {
                 className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all
                   ${role === 'client' ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'}`}
               >
-                <span className="text-3xl">🔍</span>
+                <i className="ti ti-search text-3xl" aria-hidden="true" />
                 <span className={`text-sm font-semibold ${role === 'client' ? 'text-primary-700' : 'text-gray-700'}`}>
                   Natafuta
                 </span>
                 <span className="text-xs text-gray-400 text-center leading-tight">
                   Nataka kupata nyumba au chumba
                 </span>
-                {role === 'client' && <span className="text-primary-500 text-lg">✓</span>}
+                {role === 'client' && <i className="ti ti-check text-primary-500 text-lg" aria-hidden="true" />}
               </button>
 
               <button
@@ -201,20 +201,20 @@ function RegisterForm() {
                 className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all
                   ${role === 'dalali' ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'}`}
               >
-                <span className="text-3xl">🏢</span>
+                <i className="ti ti-building text-3xl" aria-hidden="true" />
                 <span className={`text-sm font-semibold ${role === 'dalali' ? 'text-primary-700' : 'text-gray-700'}`}>
                   Mimi ni Dalali
                 </span>
                 <span className="text-xs text-gray-400 text-center leading-tight">
                   Napanga/nauza nyumba
                 </span>
-                {role === 'dalali' && <span className="text-primary-500 text-lg">✓</span>}
+                {role === 'dalali' && <i className="ti ti-check text-primary-500 text-lg" aria-hidden="true" />}
               </button>
             </div>
 
             {role === 'dalali' && (
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-4 text-xs text-amber-700">
-                💡 Kama dalali, utahitaji subscription ya kila mwezi (Basic Tsh 10,000 au Premium Tsh 25,000)
+                <i className="ti ti-bulb" aria-hidden="true" /> Kama dalali, utahitaji subscription ya kila mwezi (Basic Tsh 10,000 au Premium Tsh 25,000)
               </div>
             )}
 
@@ -239,7 +239,7 @@ function RegisterForm() {
                 ←
               </button>
               <p className="text-sm font-semibold text-gray-800">
-                {role === 'dalali' ? '🏢 Akaunti ya Dalali' : '🔍 Akaunti ya Mteja'}
+                {role === 'dalali' ? 'Akaunti ya Dalali' : 'Akaunti ya Mteja'}
               </p>
             </div>
 
@@ -270,7 +270,7 @@ function RegisterForm() {
 
               <form onSubmit={e => { e.preventDefault(); proceedToAgreement('email') }} className="space-y-4">
                 <div>
-                  <label className="text-xs text-gray-500 mb-1.5 block">👤 Jina lako kamili</label>
+                  <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1"><i className="ti ti-user" aria-hidden="true" />Jina lako kamili</label>
                   <input
                     type="text"
                     required
@@ -283,7 +283,7 @@ function RegisterForm() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-500 mb-1.5 block">✉️ Barua pepe</label>
+                  <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1"><i className="ti ti-mail" aria-hidden="true" />Barua pepe</label>
                   <input
                     type="email"
                     required
@@ -296,7 +296,7 @@ function RegisterForm() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-500 mb-1.5 block">🔒 Nenosiri</label>
+                  <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1"><i className="ti ti-lock" aria-hidden="true" />Nenosiri</label>
                   <div className="relative">
                     <input
                       type={showPass ? 'text' : 'password'}
@@ -314,7 +314,7 @@ function RegisterForm() {
                       aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
                     >
-                      {showPass ? '🙈' : '👁️'}
+                      {showPass ? <i className="ti ti-eye-off" aria-hidden="true" /> : <i className="ti ti-eye" aria-hidden="true" />}
                     </button>
                   </div>
                   {password.length > 0 && (
@@ -335,12 +335,12 @@ function RegisterForm() {
                 {role === 'dalali' && (
                   <div>
                     <label className="text-xs text-gray-500 mb-1.5 block">
-                      📱 Nambari ya WhatsApp
+                      <i className="ti ti-brand-whatsapp" aria-hidden="true" /> Nambari ya WhatsApp
                       <span className="text-red-400 ml-0.5">*</span>
                     </label>
                     <div className="flex gap-2">
                       <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
-                        🇹🇿 +255
+                        +255
                       </div>
                       <input
                         type="tel"
@@ -366,7 +366,7 @@ function RegisterForm() {
 
                 {/* Agreement notice */}
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
-                  📋 Hatua inayofuata: Utahitaji kusoma na kukubaliana na masharti ya matumizi kabla akaunti haijafunguliwa.
+                  <i className="ti ti-clipboard-list" aria-hidden="true" /> Hatua inayofuata: Utahitaji kusoma na kukubaliana na masharti ya matumizi kabla akaunti haijafunguliwa.
                 </div>
 
                 <button

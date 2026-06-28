@@ -66,7 +66,7 @@ function UploadBox({
             <span className="w-7 h-7 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <span className="text-3xl">📷</span>
+              <i className="ti ti-camera text-3xl" aria-hidden="true" />
               <span className="text-xs">Bonyeza kupakia picha</span>
             </>
           )}
@@ -74,7 +74,7 @@ function UploadBox({
       )}
       {error && (
         <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-          <span>⚠️</span> {error}
+          <i className="ti ti-alert-triangle" aria-hidden="true" /> {error}
         </p>
       )}
     </div>
@@ -179,7 +179,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center max-w-sm w-full">
-          <div className="text-5xl mb-3">✅</div>
+          <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></div>
           <h2 className="text-lg font-bold text-gray-900 mb-2">Umeshathibitishwa!</h2>
           <p className="text-sm text-gray-500">Akaunti yako ina badge ya Verified.</p>
           <button onClick={() => router.push('/dashboard')}
@@ -195,7 +195,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center max-w-sm w-full">
-          <div className="text-5xl mb-3">🎉</div>
+          <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-confetti text-primary-500" aria-hidden="true" /></div>
           <h2 className="text-lg font-bold text-gray-900 mb-2">Imetumwa!</h2>
           <p className="text-sm text-gray-500">Hati zako zimetumwa. Utapata jibu ndani ya masaa 24.</p>
           <button onClick={() => router.push('/dashboard')}
@@ -237,7 +237,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
       <div className="px-4 pt-4 space-y-4">
         {currentStatus === 'rejected' && rejectionReason && (
           <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-700">
-            ❌ Ombi lako la awali lilikataliwa. Sababu: <strong>{rejectionReason}</strong>
+            <i className="ti ti-circle-x" aria-hidden="true" /> Ombi lako la awali lilikataliwa. Sababu: <strong>{rejectionReason}</strong>
           </div>
         )}
 
@@ -249,7 +249,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
         {currentContent === 'nida' && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-3">
             <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-xs text-primary-700">
-              🔒 Taarifa zako za utambulisho zinashughulikiwa kwa usalama na usiri.
+              <i className="ti ti-lock" aria-hidden="true" /> Taarifa zako za utambulisho zinashughulikiwa kwa usalama na usiri.
             </div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
               Nambari ya NIDA <span className="text-red-400">*</span>
@@ -272,14 +272,14 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
         {currentContent === 'whatsapp' && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-3">
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
-              ⚠️ Unahitaji nambari ya WhatsApp kwa verification. Wateja watalipa Tsh 2,000 kupata nambari hii.
+              <i className="ti ti-alert-triangle" aria-hidden="true" /> Unahitaji nambari ya WhatsApp kwa verification. Wateja watalipa Tsh 2,000 kupata nambari hii.
             </div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
               Nambari ya WhatsApp <span className="text-red-400">*</span>
             </label>
             <div className="flex gap-2">
               <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
-                🇹🇿 +255
+                +255
               </div>
               <input
                 type="tel"
@@ -300,7 +300,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
             <input ref={frontRef} type="file" accept="image/*" capture="environment" className="hidden"
               onChange={e => handleFilePick(e, setFront, 'front')} />
             <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 mb-3">
-              <p className="text-xs text-blue-700 font-medium">📋 Kitambulisho kinachokubalika:</p>
+              <p className="text-xs text-blue-700 font-medium flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />Kitambulisho kinachokubalika:</p>
               <p className="text-xs text-blue-600 mt-0.5">Kitambulisho cha NIDA <span className="text-blue-400">(kinachopendekezwa)</span> au Passport ya Tanzania — nambari na picha ziwe wazi.</p>
             </div>
             <UploadBox
@@ -342,7 +342,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
               error={error || undefined}
             />
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
-              💡 Piga picha ya uso wako ukishikilia kitambulisho — uso na picha ya kitambulisho zinaonekana wazi.
+              <i className="ti ti-bulb" aria-hidden="true" /> Piga picha ya uso wako ukishikilia kitambulisho — uso na picha ya kitambulisho zinaonekana wazi.
             </div>
           </div>
         )}
@@ -371,7 +371,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Inatuma...
               </span>
-            ) : '✅ Wasilisha kwa Ukaguzi'}
+            ) : 'Wasilisha kwa Ukaguzi'}
           </button>
         )}
       </div>

@@ -64,7 +64,7 @@ export default function DalaliCRMClient() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
-        <h1 className="text-white font-bold text-lg mb-3">📊 Wateja Waliofungua</h1>
+        <h1 className="text-white font-bold text-lg mb-3"><i className="ti ti-chart-bar" aria-hidden="true" /> Wateja Waliofungua</h1>
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <div className="text-white font-bold text-2xl">{stats.total_unlocks}</div>
@@ -93,7 +93,7 @@ export default function DalaliCRMClient() {
           ))
         ) : contacts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <div className="text-4xl mb-3">📭</div>
+            <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-mail-opened text-gray-400" aria-hidden="true" /></div>
             <p className="text-gray-500 font-medium">Hakuna wateja bado</p>
             <p className="text-gray-400 text-sm mt-1">
               Wateja wataonekana hapa baada ya kufungua mawasiliano yako
@@ -107,17 +107,17 @@ export default function DalaliCRMClient() {
                   {c.client?.full_name || 'Mteja'}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  🏠 {c.listing?.title} · 📍 {c.listing?.region}
+                  <i className="ti ti-home" aria-hidden="true" /> {c.listing?.title} · <i className="ti ti-map-pin" aria-hidden="true" /> {c.listing?.region}
                 </p>
                 <p className="text-xs text-gray-400">
-                  📅 {new Date(c.created_at).toLocaleDateString('sw-TZ')}
+                  <i className="ti ti-calendar" aria-hidden="true" /> {new Date(c.created_at).toLocaleDateString('sw-TZ')}
                 </p>
               </div>
               {c.client?.phone && (
                 <a href={`https://wa.me/${c.client.phone.replace(/[^0-9]/g, '')}`}
                   target="_blank" rel="noopener noreferrer"
                   className="bg-[#25D366] text-white text-xs px-3 py-2 rounded-xl font-medium flex-shrink-0">
-                  💬 WA
+                  <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WA
                 </a>
               )}
             </div>

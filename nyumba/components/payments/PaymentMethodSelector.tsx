@@ -95,7 +95,7 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
         {isSelected && (
           <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full
                            flex items-center justify-center text-white text-[10px] font-bold"
-            style={{ backgroundColor: m.color }}>✓</span>
+            style={{ backgroundColor: m.color }}><i className="ti ti-check" aria-hidden="true" /></span>
         )}
         <div className="h-10 flex items-center justify-center">
           <PaymentIcon iconSrc={m.iconSrc} iconAlt={m.iconAlt} />
@@ -112,7 +112,7 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
       {/* Mobile Money */}
       <div role="radiogroup" aria-label="Chagua njia ya kulipa">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-          📱 Mobile Money
+          <i className="ti ti-device-mobile" aria-hidden="true" /> Mobile Money
         </p>
         <div className="grid grid-cols-2 gap-2">
           {MOBILE.map(m => <ProviderButton key={m.id} m={m} />)}

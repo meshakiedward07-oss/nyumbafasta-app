@@ -121,7 +121,7 @@ export default function ReportsClient() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-white font-bold text-lg">📋 CRM Reports</h1>
+          <h1 className="text-white font-bold text-lg"><i className="ti ti-clipboard-list" aria-hidden="true" /> CRM Reports</h1>
           <button onClick={exportCSV} disabled={exporting}
             className="bg-white text-primary-500 text-xs px-4 py-2 rounded-xl font-bold disabled:opacity-50">
             {exporting ? 'Exporting...' : '⬇️ CSV'}
@@ -141,7 +141,7 @@ export default function ReportsClient() {
 
       <div className="px-4 py-4 space-y-5">
         <div className="bg-primary-500/5 border border-primary-500/20 rounded-2xl p-4">
-          <p className="text-primary-500 font-semibold text-sm">📅 Ripoti ya {periodLabel}</p>
+          <p className="text-primary-500 font-semibold text-sm"><i className="ti ti-calendar" aria-hidden="true" /> Ripoti ya {periodLabel}</p>
           <p className="text-xs text-gray-500 mt-0.5">
             {period === 'daily' ? 'Tangu saa 12 usiku wa leo' :
              period === 'weekly' ? 'Siku 7 zilizopita' : 'Mwezi uliopita'}
@@ -150,7 +150,7 @@ export default function ReportsClient() {
 
         {/* Conversion funnel */}
         <div>
-          <p className="font-semibold text-gray-700 mb-3">🔄 Conversion Funnel</p>
+          <p className="font-semibold text-gray-700 mb-3"><i className="ti ti-git-branch" aria-hidden="true" /> Conversion Funnel</p>
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-16 bg-white rounded-xl animate-pulse mb-2" />
@@ -158,16 +158,16 @@ export default function ReportsClient() {
           ) : (
             <div className="space-y-2">
               {[
-                { label: 'Leads Mpya', value: report.new_leads, emoji: '🆕', color: 'bg-blue-500' },
-                { label: 'Kuwasiliana', value: report.contacted, emoji: '📞', color: 'bg-yellow-500' },
-                { label: 'Zilizofungwa', value: report.closed, emoji: '✅', color: 'bg-green-500' },
-                { label: 'Zilizopotea', value: report.lost, emoji: '❌', color: 'bg-red-400' },
+                { label: 'Leads Mpya', value: report.new_leads, icon: 'square-rounded-plus', color: 'bg-blue-500' },
+                { label: 'Kuwasiliana', value: report.contacted, icon: 'phone', color: 'bg-yellow-500' },
+                { label: 'Zilizofungwa', value: report.closed, icon: 'circle-check', color: 'bg-green-500' },
+                { label: 'Zilizopotea', value: report.lost, icon: 'circle-x', color: 'bg-red-400' },
               ].map((item, i) => {
                 const total = report.new_leads || 1
                 const pct = Math.round((item.value / total) * 100)
                 return (
                   <div key={i} className="bg-white rounded-xl p-4 flex items-center gap-4">
-                    <span className="text-xl">{item.emoji}</span>
+                    <i className={`ti ti-${item.icon} text-xl`} aria-hidden="true" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm text-gray-700">{item.label}</span>
@@ -188,32 +188,32 @@ export default function ReportsClient() {
 
         {/* Key Metrics */}
         <div>
-          <p className="font-semibold text-gray-700 mb-3">📊 Viashiria Vikuu</p>
+          <p className="font-semibold text-gray-700 mb-3 flex items-center gap-1.5"><i className="ti ti-chart-bar" aria-hidden="true" /> Viashiria Vikuu</p>
           <div className="grid grid-cols-2 gap-3">
             {[
               {
                 label: 'Revenue Jumla',
                 value: `Tsh ${report.total_revenue.toLocaleString()}`,
-                emoji: '💰', color: 'bg-green-50 text-green-700',
+                icon: 'coin', color: 'bg-green-50 text-green-700',
               },
               {
                 label: 'Wastani Muda wa Kujibu',
                 value: `Saa ${report.avg_response_time_hours}`,
-                emoji: '⏱️', color: 'bg-blue-50 text-blue-700',
+                icon: 'clock-hour-3', color: 'bg-blue-50 text-blue-700',
               },
               {
                 label: 'Top Source',
                 value: report.top_source,
-                emoji: '📡', color: 'bg-purple-50 text-purple-700',
+                icon: 'radio', color: 'bg-purple-50 text-purple-700',
               },
               {
                 label: 'Mkoa Mkubwa',
                 value: report.top_region,
-                emoji: '📍', color: 'bg-orange-50 text-orange-700',
+                icon: 'map-pin', color: 'bg-orange-50 text-orange-700',
               },
             ].map((m, i) => (
               <div key={i} className={`${m.color} rounded-2xl p-4`}>
-                <div className="text-2xl mb-1">{m.emoji}</div>
+                <i className={`ti ti-${m.icon} text-2xl mb-1`} aria-hidden="true" />
                 <div className="font-bold text-sm leading-tight">{m.value}</div>
                 <div className="text-xs opacity-70 mt-0.5">{m.label}</div>
               </div>
@@ -224,7 +224,7 @@ export default function ReportsClient() {
         {/* Conversion rate */}
         {report.new_leads > 0 && (
           <div className="bg-white rounded-2xl p-5 border border-gray-100">
-            <p className="font-semibold text-gray-700 mb-3">🎯 Conversion Rate</p>
+            <p className="font-semibold text-gray-700 mb-3"><i className="ti ti-target" aria-hidden="true" /> Conversion Rate</p>
             <div className="text-5xl font-bold text-primary-500 mb-1">
               {Math.round((report.closed / (report.new_leads || 1)) * 100)}%
             </div>

@@ -16,7 +16,7 @@ export default function GlobalError({
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl border border-red-100 p-8 max-w-md w-full text-center shadow-sm">
-        <div className="text-5xl mb-4">🏚️</div>
+        <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-home-off text-gray-400" aria-hidden="true" /></div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">Samahani, kuna tatizo</h2>
         <p className="text-sm text-gray-500 mb-4">
           {error.message || 'Hitilafu imetokea. Tafadhali jaribu tena.'}

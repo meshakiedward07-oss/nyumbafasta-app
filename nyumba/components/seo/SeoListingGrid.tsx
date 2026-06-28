@@ -32,7 +32,7 @@ export default function SeoListingGrid({ listings }: { listings: SeoListing[] })
   if (listings.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-5xl mb-4">🏠</div>
+        <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-home text-gray-300" aria-hidden="true" /></div>
         <p className="text-gray-700 font-semibold mb-1">Hakuna listings bado hapa</p>
         <p className="text-gray-400 text-sm mb-5">
           Kuwa wa kwanza kupost nyumba eneo hili!
@@ -41,7 +41,7 @@ export default function SeoListingGrid({ listings }: { listings: SeoListing[] })
           href="/register"
           className="inline-flex items-center gap-2 bg-primary-500 text-white px-5 py-3 rounded-xl text-sm font-semibold"
         >
-          🏠 Ongeza Listing
+          <i className="ti ti-home" aria-hidden="true" /> Ongeza Listing
         </Link>
       </div>
     )
@@ -71,7 +71,7 @@ export default function SeoListingGrid({ listings }: { listings: SeoListing[] })
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-300 text-4xl">
-                    🏠
+                    <i className="ti ti-home" aria-hidden="true" />
                   </div>
                 )}
               </div>
@@ -83,7 +83,7 @@ export default function SeoListingGrid({ listings }: { listings: SeoListing[] })
                   {formatPrice(l.price_monthly)} <span className="text-xs font-normal text-gray-400">/ mwezi</span>
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  📍 {l.district}, {l.region}
+                  <i className="ti ti-map-pin" aria-hidden="true" /> {l.district}, {l.region}
                 </p>
               </div>
             </Link>

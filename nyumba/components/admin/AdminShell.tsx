@@ -43,73 +43,73 @@ const NAV_SECTIONS = [
   {
     title: 'Muhtasari',
     items: [
-      { href: '/admin', label: 'Dashibodi', emoji: '📊', exact: true },
+      { href: '/admin', label: 'Dashibodi', icon: 'chart-bar', exact: true },
     ],
   },
   {
     title: 'WhatsApp',
     items: [
-      { href: '/admin/whatsapp',           label: 'Mazungumzo',  emoji: '📱', exact: false, badge: true },
-      { href: '/admin/whatsapp/broadcast', label: 'Tuma Ujumbe', emoji: '📢', exact: false },
+      { href: '/admin/whatsapp',           label: 'Mazungumzo',  icon: 'brand-whatsapp', exact: false, badge: true },
+      { href: '/admin/whatsapp/broadcast', label: 'Tuma Ujumbe', icon: 'speakerphone', exact: false },
     ],
   },
   {
     title: 'Mitandao ya Jamii',
     items: [
-      { href: '/admin/social',            label: 'Muhtasari',  emoji: '📊', exact: true  },
-      { href: '/admin/social?tab=postnow',label: 'Chapisha',   emoji: '✍️', exact: false },
+      { href: '/admin/social',            label: 'Muhtasari',  icon: 'chart-bar', exact: true  },
+      { href: '/admin/social?tab=postnow',label: 'Chapisha',   icon: 'pencil', exact: false },
     ],
   },
   {
     title: 'Utafutaji wa Wateja',
     items: [
-      { href: '/admin/leads',               label: 'Leads Zote',    emoji: '🤖', exact: false },
-      { href: '/admin/facebook-groups',     label: 'Vikundi FB',    emoji: '👥', exact: false },
-      { href: '/admin/instagram-profiles',  label: 'Wasifu IG',     emoji: '📸', exact: false },
+      { href: '/admin/leads',               label: 'Leads Zote',    icon: 'robot', exact: false },
+      { href: '/admin/facebook-groups',     label: 'Vikundi FB',    icon: 'users', exact: false },
+      { href: '/admin/instagram-profiles',  label: 'Wasifu IG',     icon: 'brand-instagram', exact: false },
     ],
   },
   {
     title: 'CRM',
     items: [
-      { href: '/admin/crm',               label: 'Mchakato',         emoji: '🎯', exact: true  },
-      { href: '/admin/crm/assign',        label: 'Mgawanyo',         emoji: '👨‍💼', exact: false },
-      { href: '/admin/crm/analytics',     label: 'Takwimu',          emoji: '📊', exact: false },
-      { href: '/admin/crm/reports',       label: 'Ripoti',           emoji: '📈', exact: false },
-      { href: '/admin/crm/commission',    label: 'Kamisheni',        emoji: '💰', exact: false },
-      { href: '/admin/crm/templates',     label: 'Violezo WA',       emoji: '💬', exact: false },
+      { href: '/admin/crm',               label: 'Mchakato',         icon: 'target', exact: true  },
+      { href: '/admin/crm/assign',        label: 'Mgawanyo',         icon: 'user-tie', exact: false },
+      { href: '/admin/crm/analytics',     label: 'Takwimu',          icon: 'chart-bar', exact: false },
+      { href: '/admin/crm/reports',       label: 'Ripoti',           icon: 'trending-up', exact: false },
+      { href: '/admin/crm/commission',    label: 'Kamisheni',        icon: 'coin', exact: false },
+      { href: '/admin/crm/templates',     label: 'Violezo WA',       icon: 'message-circle', exact: false },
     ],
   },
   {
     title: 'Usimamizi',
     items: [
-      { href: '/admin/staff',         label: 'Wafanyakazi',      emoji: '👨‍💼', exact: false },
-      { href: '/admin/staff-leads',   label: 'Leads za Wafanyakazi', emoji: '🎯', exact: false },
-      { href: '/admin/users',         label: 'Watumiaji',        emoji: '👥', exact: false },
-      { href: '/admin/listings',      label: 'Matangazo',        emoji: '🏠', exact: false },
-      { href: '/admin/verifications', label: 'Uthibitisho',      emoji: '✅', exact: false },
-      { href: '/admin/subscriptions', label: 'Usajili',          emoji: '💳', exact: false },
+      { href: '/admin/staff',         label: 'Wafanyakazi',      icon: 'user-tie', exact: false },
+      { href: '/admin/staff-leads',   label: 'Leads za Wafanyakazi', icon: 'target', exact: false },
+      { href: '/admin/users',         label: 'Watumiaji',        icon: 'users', exact: false },
+      { href: '/admin/listings',      label: 'Matangazo',        icon: 'home', exact: false },
+      { href: '/admin/verifications', label: 'Uthibitisho',      icon: 'check', exact: false },
+      { href: '/admin/subscriptions', label: 'Usajili',          icon: 'credit-card', exact: false },
     ],
   },
   {
     title: 'Fedha',
     items: [
-      { href: '/admin/accounting', label: 'Hesabu', emoji: '💰', exact: false },
+      { href: '/admin/accounting', label: 'Hesabu', icon: 'coin', exact: false },
     ],
   },
   {
     title: 'Kisheria',
     items: [
-      { href: '/admin/legal', label: 'Makubaliano & Malalamiko', emoji: '⚖️', exact: false },
+      { href: '/admin/legal', label: 'Makubaliano & Malalamiko', icon: 'scale', exact: false },
     ],
   },
 ]
 
 const BOTTOM_NAV = [
-  { href: '/admin',            emoji: '📊', label: 'Nyumbani',  exact: true  },
-  { href: '/admin/whatsapp',   emoji: '📱', label: 'WhatsApp',  exact: false },
-  { href: '/admin/leads',      emoji: '🤖', label: 'Leads',     exact: false },
-  { href: '/admin/crm',        emoji: '🎯', label: 'CRM',       exact: false },
-  { href: '/admin/accounting', emoji: '💰', label: 'Hesabu',    exact: false },
+  { href: '/admin',            icon: 'chart-bar', label: 'Nyumbani',  exact: true  },
+  { href: '/admin/whatsapp',   icon: 'brand-whatsapp', label: 'WhatsApp',  exact: false },
+  { href: '/admin/leads',      icon: 'robot', label: 'Leads',     exact: false },
+  { href: '/admin/crm',        icon: 'target', label: 'CRM',       exact: false },
+  { href: '/admin/accounting', icon: 'coin', label: 'Hesabu',    exact: false },
 ]
 
 // ── Staff dynamic sidebar ──────────────────────────────────────────────────
@@ -176,7 +176,7 @@ function StaffSidebar({
                     ? 'bg-primary-500 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}>
-                  <span className="text-base w-5 text-center flex-shrink-0">{perm.emoji}</span>
+<i className={`ti ti-${perm.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
                   <span>{perm.label}</span>
                   {isActive(perm.adminPath) && (
                     <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
@@ -190,7 +190,7 @@ function StaffSidebar({
       <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-0.5">
         <button onClick={onLogout} className="w-full text-left">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
-            <span>🚪</span><span>Toka</span>
+<i className="ti ti-door-exit" aria-hidden="true" /><span>Toka</span>
           </div>
         </button>
       </div>
@@ -247,7 +247,7 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
                       ? 'bg-primary-500 text-white'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}>
-                    <span className="text-base w-5 text-center flex-shrink-0">{item.emoji}</span>
+<i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
                     <span>{item.label}</span>
                     {('badge' in item && item.badge) && !isActive(item.href, item.exact) && (
                       <PendingBadge />
@@ -267,12 +267,12 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
       <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-0.5">
         <Link href="/" onClick={onLinkClick}>
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 text-sm">
-            <span>🌐</span><span>Rudi Kwenye App</span>
+<i className="ti ti-world" aria-hidden="true" /><span>Rudi Kwenye App</span>
           </div>
         </Link>
         <button onClick={onLogout} className="w-full text-left">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
-            <span>🚪</span><span>Toka</span>
+<i className="ti ti-door-exit" aria-hidden="true" /><span>Toka</span>
           </div>
         </button>
       </div>
@@ -364,7 +364,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                   isActive(item.href, item.exact) ? 'text-primary-500' : 'text-gray-400'
                 }`}>
                   <div className="relative">
-                    <span className="text-xl">{item.emoji}</span>
+<i className={`ti ti-${item.icon} text-xl`} aria-hidden="true" />
                     {item.href === '/admin/whatsapp' && (
                       <span className="absolute -top-1.5 -right-2 scale-75 origin-top-right">
                         <PendingBadge />

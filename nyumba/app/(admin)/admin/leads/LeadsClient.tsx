@@ -26,13 +26,13 @@ type Lead = {
 const REGIONS = TANZANIA_REGIONS
 
 const SOURCES = [
-  { id: 'google_maps',      label: 'Google Maps',      emoji: '🗺️' },
-  { id: 'google_business',  label: 'Google (Kiswahili)', emoji: '🏢' },
-  { id: 'facebook_groups',  label: 'FB Groups',        emoji: '👥' },
-  { id: 'facebook_pages',   label: 'FB Pages',         emoji: '📄' },
-  { id: 'instagram',        label: 'Instagram',        emoji: '📸' },
-  { id: 'tiktok',           label: 'TikTok',           emoji: '🎵' },
-  { id: 'manual',           label: 'Manual',           emoji: '✍️' },
+  { id: 'google_maps',      label: 'Google Maps',      icon: 'map' },
+  { id: 'google_business',  label: 'Google (Kiswahili)', icon: 'building' },
+  { id: 'facebook_groups',  label: 'FB Groups',        icon: 'brand-facebook' },
+  { id: 'facebook_pages',   label: 'FB Pages',         icon: 'brand-facebook' },
+  { id: 'instagram',        label: 'Instagram',        icon: 'brand-instagram' },
+  { id: 'tiktok',           label: 'TikTok',           icon: 'brand-tiktok' },
+  { id: 'manual',           label: 'Manual',           icon: 'pencil' },
 ]
 
 const STATUSES = [
@@ -190,8 +190,9 @@ export default function LeadsClient() {
     return STATUSES.find(s => s.id === status)?.color || 'bg-gray-100 text-gray-600'
   }
 
-  function getSourceEmoji(source: string) {
-    return SOURCES.find(s => s.id === source)?.emoji || '📌'
+  function renderSourceIcon(source: string) {
+    const icon = SOURCES.find(s => s.id === source)?.icon || 'pin'
+    return <i className={`ti ti-${icon}`} aria-hidden="true" />
   }
 
   function timeAgo(date: string) {
@@ -218,7 +219,7 @@ export default function LeadsClient() {
         {/* Desktop header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">🤖 Leads za Madalali</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-robot" aria-hidden="true" />Leads za Madalali</h1>
             <p className="text-gray-500 text-sm mt-0.5">
               Jumla: {total} leads
               {lastRun && ` · Mwisho: ${timeAgo(lastRun)} · Leo +${leadsToday}`}
@@ -229,13 +230,13 @@ export default function LeadsClient() {
               onClick={() => setShowAddModal(true)}
               className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 bg-white"
             >
-              ➕ Ongeza Lead
+              <i className="ti ti-plus" aria-hidden="true" /> Ongeza Lead
             </button>
             <button
               onClick={() => setShowRunModal(true)}
               className="px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-bold hover:bg-primary-600"
             >
-              🤖 Run Agent
+              <i className="ti ti-robot" aria-hidden="true" /> Run Agent
             </button>
           </div>
         </div>
@@ -243,13 +244,13 @@ export default function LeadsClient() {
         {/* Desktop stats */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Jumla Leads',  value: stats.total,     emoji: '📊', color: 'bg-blue-50 border-blue-200 text-blue-700' },
-            { label: 'Leo',          value: stats.new_today,  emoji: '🆕', color: 'bg-green-50 border-green-200 text-green-700' },
-            { label: 'Walipigiwa',   value: stats.contacted,  emoji: '📞', color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
-            { label: 'Walisajili',   value: stats.converted,  emoji: '✅', color: 'bg-purple-50 border-purple-200 text-purple-700' },
+            { label: 'Jumla Leads',  value: stats.total,     icon: 'chart-bar', color: 'bg-blue-50 border-blue-200 text-blue-700' },
+            { label: 'Leo',          value: stats.new_today,  icon: 'square-rounded-plus', color: 'bg-green-50 border-green-200 text-green-700' },
+            { label: 'Walipigiwa',   value: stats.contacted,  icon: 'phone', color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
+            { label: 'Walisajili',   value: stats.converted,  icon: 'circle-check', color: 'bg-purple-50 border-purple-200 text-purple-700' },
           ].map((s, i) => (
             <div key={i} className={`${s.color} border rounded-2xl p-4`}>
-              <div className="text-2xl mb-2">{s.emoji}</div>
+              <i className={`ti ti-${s.icon} text-2xl mb-2`} aria-hidden="true" />
               <p className="text-3xl font-bold">{s.value}</p>
               <p className="text-sm mt-1 opacity-70">{s.label}</p>
             </div>
@@ -260,7 +261,7 @@ export default function LeadsClient() {
         <div className="flex gap-3 mb-4">
           <input
             type="text"
-            placeholder="🔍 Tafuta jina au simu..."
+            placeholder="Tafuta jina au simu..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1) }}
             className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white
@@ -268,17 +269,17 @@ export default function LeadsClient() {
           />
           <select value={filterRegion} onChange={e => { setFilterRegion(e.target.value); setPage(1) }}
             className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none min-w-44">
-            <option value="">🗺️ Mikoa Yote</option>
+            <option value="">Mikoa Yote</option>
             {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
           <select value={filterSource} onChange={e => { setFilterSource(e.target.value); setPage(1) }}
             className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none min-w-44">
-            <option value="">📡 Sources Zote</option>
-            {SOURCES.map(s => <option key={s.id} value={s.id}>{s.emoji} {s.label}</option>)}
+            <option value="">Sources Zote</option>
+            {SOURCES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
           <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}
             className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none min-w-36">
-            <option value="">📋 Status Zote</option>
+            <option value="">Status Zote</option>
             {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         </div>
@@ -315,7 +316,7 @@ export default function LeadsClient() {
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span>{getSourceEmoji(lead.source)}</span>
+                      {renderSourceIcon(lead.source)}
                       <div>
                         <p className="font-medium text-sm text-gray-900">{lead.business_name}</p>
                         {lead.email && <p className="text-xs text-gray-400">{lead.email}</p>}
@@ -329,10 +330,10 @@ export default function LeadsClient() {
                     </a>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm text-gray-600">📍 {lead.region || '—'}</span>
+                    <span className="text-sm text-gray-600 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" />{lead.region || '—'}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm">{getSourceEmoji(lead.source)} {lead.source?.replace(/_/g, ' ')}</span>
+                    <span className="text-sm">{renderSourceIcon(lead.source)} {lead.source?.replace(/_/g, ' ')}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getScoreColor(lead.ai_score)}`}>
@@ -360,7 +361,7 @@ export default function LeadsClient() {
                         onClick={e => e.stopPropagation()}
                         className="bg-[#25D366] text-white text-xs px-2.5 py-1.5 rounded-lg font-medium hover:bg-green-600"
                       >
-                        💬 WA
+                        <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WA
                       </a>
                     )}
                   </td>
@@ -372,12 +373,12 @@ export default function LeadsClient() {
 
           {leads.length === 0 && !loading && (
             <div className="text-center py-16">
-              <div className="text-5xl mb-3">🤖</div>
+              <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-robot text-gray-400" aria-hidden="true" /></div>
               <p className="font-semibold text-gray-700">Hakuna leads bado</p>
               <p className="text-gray-400 text-sm mt-1">Bonyeza &quot;Run Agent&quot; kupata leads mpya</p>
               <button onClick={() => setShowRunModal(true)}
                 className="mt-4 bg-primary-500 text-white px-6 py-3 rounded-xl text-sm font-semibold">
-                🤖 Run Agent Sasa
+                <i className="ti ti-robot" aria-hidden="true" /> Run Agent Sasa
               </button>
             </div>
           )}
@@ -410,11 +411,11 @@ export default function LeadsClient() {
       <header className="bg-primary-500 sticky top-0 z-10 px-4 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-white font-bold text-lg">🤖 Leads za Madalali</h1>
+            <h1 className="text-white font-bold text-lg flex items-center gap-2"><i className="ti ti-robot" aria-hidden="true" />Leads za Madalali</h1>
             <p className="text-green-100 text-xs">Jumla: {total} leads</p>
             {lastRun && (
               <p className="text-green-100 text-xs">
-                🕐 Mwisho: {timeAgo(lastRun)} · Leo: +{leadsToday}
+                Mwisho: {timeAgo(lastRun)} · Leo: +{leadsToday}
               </p>
             )}
           </div>
@@ -423,13 +424,13 @@ export default function LeadsClient() {
               onClick={() => setShowAddModal(true)}
               className="bg-white/20 text-white text-xs px-3 py-2 rounded-lg font-medium"
             >
-              ➕ Ongeza
+              <i className="ti ti-plus" aria-hidden="true" /> Ongeza
             </button>
             <button
               onClick={() => setShowRunModal(true)}
               className="bg-white text-primary-500 text-xs px-3 py-2 rounded-lg font-bold"
             >
-              🤖 Run Agent
+              <i className="ti ti-robot" aria-hidden="true" /> Run Agent
             </button>
           </div>
         </div>
@@ -438,13 +439,13 @@ export default function LeadsClient() {
       {/* Stats Cards */}
       <div className="grid grid-cols-4 gap-2 px-4 py-3">
         {[
-          { label: 'Jumla',      value: stats.total,     emoji: '📊', color: 'bg-blue-50 text-blue-700' },
-          { label: 'Leo',        value: stats.new_today,  emoji: '🆕', color: 'bg-green-50 text-green-700' },
-          { label: 'Walipigiwa', value: stats.contacted,  emoji: '📞', color: 'bg-yellow-50 text-yellow-700' },
-          { label: 'Walisajili', value: stats.converted,  emoji: '✅', color: 'bg-purple-50 text-purple-700' },
+          { label: 'Jumla',      value: stats.total,     icon: 'chart-bar', color: 'bg-blue-50 text-blue-700' },
+          { label: 'Leo',        value: stats.new_today,  icon: 'square-rounded-plus', color: 'bg-green-50 text-green-700' },
+          { label: 'Walipigiwa', value: stats.contacted,  icon: 'phone', color: 'bg-yellow-50 text-yellow-700' },
+          { label: 'Walisajili', value: stats.converted,  icon: 'circle-check', color: 'bg-purple-50 text-purple-700' },
         ].map((stat, i) => (
           <div key={i} className={`${stat.color} rounded-xl p-2 text-center`}>
-            <div className="text-lg">{stat.emoji}</div>
+            <i className={`ti ti-${stat.icon} text-lg`} aria-hidden="true" />
             <div className="font-bold text-lg leading-none">{stat.value}</div>
             <div className="text-xs opacity-70">{stat.label}</div>
           </div>
@@ -455,7 +456,7 @@ export default function LeadsClient() {
       {stats.by_region && stats.by_region.length > 0 && (
         <div className="px-4 mb-3">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-            📊 Leads kwa Mkoa
+            <i className="ti ti-chart-bar" aria-hidden="true" /> Leads kwa Mkoa
           </p>
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             {stats.by_region.slice(0, 10).map((item, i) => (
@@ -494,7 +495,7 @@ export default function LeadsClient() {
       <div className="px-4 space-y-2 mb-3">
         <input
           type="text"
-          placeholder="🔍 Tafuta jina au simu..."
+          placeholder="Tafuta jina au simu..."
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
           className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white
@@ -506,7 +507,7 @@ export default function LeadsClient() {
             onChange={e => { setFilterRegion(e.target.value); setPage(1) }}
             className="flex-1 text-xs bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none"
           >
-            <option value="">🗺️ Mikoa Yote</option>
+            <option value="">Mikoa Yote</option>
             {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
           <select
@@ -514,15 +515,15 @@ export default function LeadsClient() {
             onChange={e => { setFilterSource(e.target.value); setPage(1) }}
             className="flex-1 text-xs bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none"
           >
-            <option value="">📡 Sources Zote</option>
-            {SOURCES.map(s => <option key={s.id} value={s.id}>{s.emoji} {s.label}</option>)}
+            <option value="">Sources Zote</option>
+            {SOURCES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
           <select
             value={filterStatus}
             onChange={e => { setFilterStatus(e.target.value); setPage(1) }}
             className="flex-1 text-xs bg-white border border-gray-200 rounded-xl px-3 py-2 focus:outline-none"
           >
-            <option value="">📋 Status Zote</option>
+            <option value="">Status Zote</option>
             {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         </div>
@@ -537,14 +538,14 @@ export default function LeadsClient() {
 
         {!loading && leads.length === 0 && (
           <div className="text-center py-16">
-            <div className="text-5xl mb-3">🤖</div>
+            <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-robot text-gray-400" aria-hidden="true" /></div>
             <p className="font-semibold text-gray-700">Hakuna leads bado</p>
             <p className="text-gray-400 text-sm mt-1">Bonyeza &quot;Run Agent&quot; kupata leads mpya</p>
             <button
               onClick={() => setShowRunModal(true)}
               className="mt-4 bg-primary-500 text-white px-6 py-3 rounded-xl text-sm font-semibold"
             >
-              🤖 Run Agent Sasa
+              <i className="ti ti-robot" aria-hidden="true" /> Run Agent Sasa
             </button>
           </div>
         )}
@@ -559,12 +560,12 @@ export default function LeadsClient() {
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base">{getSourceEmoji(lead.source)}</span>
+                  {renderSourceIcon(lead.source)}
                   <p className="font-semibold text-gray-900 text-sm">{lead.business_name}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {lead.region && (
-                    <span className="text-xs text-gray-400">📍 {lead.region}</span>
+                    <span className="text-xs text-gray-400 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" />{lead.region}</span>
                   )}
                   {lead.phone && (
                     <a
@@ -572,7 +573,7 @@ export default function LeadsClient() {
                       onClick={e => e.stopPropagation()}
                       className="text-xs text-blue-600"
                     >
-                      📞 {lead.phone}
+                      <i className="ti ti-phone" aria-hidden="true" /> {lead.phone}
                     </a>
                   )}
                 </div>
@@ -602,7 +603,7 @@ export default function LeadsClient() {
                     onClick={e => e.stopPropagation()}
                     className="bg-[#25D366] text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1"
                   >
-                    💬 WA
+                    <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WA
                   </a>
                 )}
                 <span className="text-xs text-gray-400">{timeAgo(lead.created_at)}</span>
@@ -610,7 +611,7 @@ export default function LeadsClient() {
             </div>
 
             {lead.ai_notes && (
-              <p className="text-xs text-gray-400 mt-2 line-clamp-1">🤖 {lead.ai_notes}</p>
+              <p className="text-xs text-gray-400 mt-2 line-clamp-1 flex items-center gap-1"><i className="ti ti-robot" aria-hidden="true" />{lead.ai_notes}</p>
             )}
           </div>
         ))}
@@ -646,9 +647,9 @@ export default function LeadsClient() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
           <div className="bg-white w-full rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">🤖 Endesha Agent</h3>
+              <h3 className="font-bold text-lg flex items-center gap-2"><i className="ti ti-robot" aria-hidden="true" />Endesha Agent</h3>
               <button onClick={() => { setShowRunModal(false); setRunResult(null) }}
-                aria-label="Funga" className="text-gray-400 text-xl">✕</button>
+                aria-label="Funga" className="text-gray-400 text-xl"><i className="ti ti-x" aria-hidden="true" /></button>
             </div>
 
             {running ? (
@@ -660,13 +661,13 @@ export default function LeadsClient() {
                   Inaweza kuchukua dakika 5–15. Tafadhali subiri.
                 </p>
                 <p className="text-xs text-gray-300 mt-2">
-                  📍 {runRegion} · Sources: {runSources.length}
+                  <i className="ti ti-map-pin" aria-hidden="true" /> {runRegion} · Sources: {runSources.length}
                 </p>
               </div>
             ) : !runResult ? (
               <>
                 <div className="mb-4">
-                  <label className="text-sm font-medium text-gray-700 block mb-2">📍 Chagua Mkoa</label>
+                  <label className="text-sm font-medium text-gray-700 block mb-2 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" />Chagua Mkoa</label>
                   <select
                     value={runRegion}
                     onChange={e => setRunRegion(e.target.value)}
@@ -678,7 +679,7 @@ export default function LeadsClient() {
                 </div>
 
                 <div className="mb-5">
-                  <label className="text-sm font-medium text-gray-700 block mb-2">📡 Chagua Sources</label>
+                  <label className="text-sm font-medium text-gray-700 block mb-2 flex items-center gap-1"><i className="ti ti-antenna" aria-hidden="true" />Chagua Sources</label>
                   <div className="grid grid-cols-2 gap-2">
                     {SOURCES.filter(s => s.id !== 'manual').map(source => (
                       <label
@@ -700,10 +701,10 @@ export default function LeadsClient() {
                           }}
                           className="hidden"
                         />
-                        <span className="text-lg">{source.emoji}</span>
+                        <i className={`ti ti-${source?.icon ?? 'pin'} text-lg`} aria-hidden="true" />
                         <span className="text-xs font-medium text-gray-700">{source.label}</span>
                         {runSources.includes(source.id) && (
-                          <span className="ml-auto text-primary-500 text-sm">✓</span>
+                          <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />
                         )}
                       </label>
                     ))}
@@ -716,7 +717,7 @@ export default function LeadsClient() {
 
                 {runError && (
                   <p className="text-xs text-red-500 mb-3 flex items-center gap-1">
-                    <span>⚠️</span> {runError}
+                    <i className="ti ti-alert-triangle" aria-hidden="true" /> {runError}
                   </p>
                 )}
 
@@ -725,7 +726,7 @@ export default function LeadsClient() {
                   disabled={running || runSources.length === 0}
                   className="w-full bg-primary-500 text-white py-4 rounded-2xl font-bold text-base disabled:opacity-50"
                 >
-                  {`🚀 Anza Kutafuta — ${runRegion}`}
+                  {`Anza Kutafuta — ${runRegion}`}
                 </button>
               </>
             ) : (
@@ -733,7 +734,7 @@ export default function LeadsClient() {
                 {runResult.error ? (
                   <div className="space-y-3">
                     <div className="bg-red-50 rounded-xl p-4 text-red-700">
-                      <p className="font-bold mb-1">❌ Kosa Limetokea</p>
+                      <p className="font-bold mb-1 flex items-center gap-1"><i className="ti ti-circle-x" aria-hidden="true" />Kosa Limetokea</p>
                       <p className="text-sm">
                         {typeof runResult.error === 'string'
                           ? runResult.error
@@ -752,7 +753,7 @@ export default function LeadsClient() {
                   <div className="space-y-3">
                     {/* Summary */}
                     <div className="bg-green-50 rounded-xl p-4">
-                      <p className="font-bold text-green-700 mb-1">✅ Imekamilika!</p>
+                      <p className="font-bold text-green-700 mb-1 flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Imekamilika!</p>
                       <p className="text-green-600 text-sm">
                         Leads mpya: <span className="font-bold text-green-800">
                           {(runResult.runs ?? []).reduce((sum: number, r: any) => sum + (Number(r.saved) || 0), 0)}
@@ -765,7 +766,7 @@ export default function LeadsClient() {
                         <div key={i} className="bg-white border border-gray-100 rounded-xl p-3
                           flex items-center justify-between">
                           <span className="text-sm font-medium">
-                            {getSourceEmoji(String(run.source ?? ''))} {String(run.source ?? '')}
+                            {renderSourceIcon(String(run.source ?? ''))} {String(run.source ?? '')}
                           </span>
                           <div className="flex items-center gap-2">
                             {run.status !== 'FAILED' && (
@@ -777,7 +778,7 @@ export default function LeadsClient() {
                               ${run.status === 'FAILED'
                                 ? 'bg-red-100 text-red-600'
                                 : 'bg-green-100 text-green-600'}`}>
-                              {run.status === 'FAILED' ? '❌ Imeshindwa' : '✅ Imefanikiwa'}
+                              {run.status === 'FAILED' ? <><i className="ti ti-circle-x" aria-hidden="true" /> Imeshindwa</> : <><i className="ti ti-circle-check" aria-hidden="true" /> Imefanikiwa</>}
                             </span>
                           </div>
                         </div>
@@ -787,7 +788,7 @@ export default function LeadsClient() {
                       <div className="bg-yellow-50 rounded-xl p-3">
                         {runResult.errors.map((e: any, i: number) => (
                           <p key={i} className="text-xs text-yellow-700">
-                            ⚠️ {String(e.source ?? '')}: {
+                            <i className="ti ti-alert-triangle" aria-hidden="true" /> {String(e.source ?? '')}: {
                               typeof e.error === 'string'
                                 ? e.error
                                 : (e.error as any)?.message ?? JSON.stringify(e.error)
@@ -821,21 +822,21 @@ export default function LeadsClient() {
           <div className="bg-white w-full rounded-t-2xl p-5 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg">
-                {getSourceEmoji(selectedLead.source)} {selectedLead.business_name}
+                {renderSourceIcon(selectedLead.source)} {selectedLead.business_name}
               </h3>
-              <button onClick={() => setSelectedLead(null)} aria-label="Funga" className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setSelectedLead(null)} aria-label="Funga" className="text-gray-400 text-xl"><i className="ti ti-x" aria-hidden="true" /></button>
             </div>
 
             <div className="space-y-3">
               <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold
                 ${getScoreColor(selectedLead.ai_score)}`}>
-                🤖 AI Score: {selectedLead.ai_score}/100
+                <i className="ti ti-robot" aria-hidden="true" /> AI Score: {selectedLead.ai_score}/100
               </div>
 
               <div className="bg-gray-50 rounded-xl p-4 space-y-2">
                 {selectedLead.phone && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">📞 Simu</span>
+                    <span className="text-sm text-gray-600 flex items-center gap-1"><i className="ti ti-phone" aria-hidden="true" />Simu</span>
                     <a href={`tel:${selectedLead.phone}`} className="text-sm font-medium text-blue-600">
                       {selectedLead.phone}
                     </a>
@@ -843,7 +844,7 @@ export default function LeadsClient() {
                 )}
                 {selectedLead.email && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">✉️ Email</span>
+                    <span className="text-sm text-gray-600 flex items-center gap-1"><i className="ti ti-mail" aria-hidden="true" />Email</span>
                     <a href={`mailto:${selectedLead.email}`} className="text-sm font-medium text-blue-600">
                       {selectedLead.email}
                     </a>
@@ -851,14 +852,14 @@ export default function LeadsClient() {
                 )}
                 {selectedLead.region && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">📍 Mkoa</span>
+                    <span className="text-sm text-gray-600 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" />Mkoa</span>
                     <span className="text-sm font-medium">{selectedLead.region}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">📡 Source</span>
+                  <span className="text-sm text-gray-600 flex items-center gap-1"><i className="ti ti-antenna" aria-hidden="true" />Source</span>
                   <span className="text-sm font-medium">
-                    {getSourceEmoji(selectedLead.source)} {selectedLead.source}
+                    {renderSourceIcon(selectedLead.source)} {selectedLead.source}
                   </span>
                 </div>
               </div>
@@ -867,44 +868,44 @@ export default function LeadsClient() {
                 {selectedLead.website_url && (
                   <a href={selectedLead.website_url} target="_blank" rel="noopener noreferrer"
                     className="bg-blue-50 text-blue-700 text-xs px-3 py-2 rounded-xl text-center font-medium">
-                    🌐 Website
+                    <i className="ti ti-world" aria-hidden="true" /> Website
                   </a>
                 )}
                 {selectedLead.facebook_url && (
                   <a href={selectedLead.facebook_url} target="_blank" rel="noopener noreferrer"
                     className="bg-blue-600 text-white text-xs px-3 py-2 rounded-xl text-center font-medium">
-                    📘 Facebook
+                    <i className="ti ti-brand-facebook" aria-hidden="true" /> Facebook
                   </a>
                 )}
                 {selectedLead.instagram_url && (
                   <a href={selectedLead.instagram_url} target="_blank" rel="noopener noreferrer"
                     className="bg-pink-500 text-white text-xs px-3 py-2 rounded-xl text-center font-medium">
-                    📸 Instagram
+                    <i className="ti ti-brand-instagram" aria-hidden="true" /> Instagram
                   </a>
                 )}
                 {selectedLead.tiktok_url && (
                   <a href={selectedLead.tiktok_url} target="_blank" rel="noopener noreferrer"
                     className="bg-black text-white text-xs px-3 py-2 rounded-xl text-center font-medium">
-                    🎵 TikTok
+                    <i className="ti ti-brand-tiktok" aria-hidden="true" /> TikTok
                   </a>
                 )}
                 {selectedLead.source_url && (
                   <a href={selectedLead.source_url} target="_blank" rel="noopener noreferrer"
                     className="bg-gray-100 text-gray-700 text-xs px-3 py-2 rounded-xl text-center font-medium">
-                    🔗 Source
+                    <i className="ti ti-link" aria-hidden="true" /> Source
                   </a>
                 )}
               </div>
 
               {selectedLead.ai_notes && (
                 <div className="bg-purple-50 rounded-xl p-3">
-                  <p className="text-xs font-medium text-purple-700 mb-1">🤖 Claude Analysis:</p>
+                  <p className="text-xs font-medium text-purple-700 mb-1 flex items-center gap-1"><i className="ti ti-robot" aria-hidden="true" />Claude Analysis:</p>
                   <p className="text-xs text-purple-600">{selectedLead.ai_notes}</p>
                 </div>
               )}
 
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-2">📋 Badilisha Status</label>
+                <label className="text-sm font-medium text-gray-700 block mb-2 flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />Badilisha Status</label>
                 <div className="grid grid-cols-3 gap-2">
                   {STATUSES.map(s => (
                     <button
@@ -930,7 +931,7 @@ export default function LeadsClient() {
                   className="block w-full bg-[#25D366] text-white py-4 rounded-2xl
                     font-bold text-center text-base"
                 >
-                  💬 Wasiliana WhatsApp
+                  <i className="ti ti-brand-whatsapp" aria-hidden="true" /> Wasiliana WhatsApp
                 </a>
               )}
             </div>
@@ -943,8 +944,8 @@ export default function LeadsClient() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
           <div className="bg-white w-full rounded-t-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">➕ Ongeza Lead Manually</h3>
-              <button onClick={() => setShowAddModal(false)} aria-label="Funga" className="text-gray-400 text-xl">✕</button>
+              <h3 className="font-bold text-lg flex items-center gap-1"><i className="ti ti-plus" aria-hidden="true" />Ongeza Lead Manually</h3>
+              <button onClick={() => setShowAddModal(false)} aria-label="Funga" className="text-gray-400 text-xl"><i className="ti ti-x" aria-hidden="true" /></button>
             </div>
             <div className="space-y-3">
               <input
@@ -985,7 +986,7 @@ export default function LeadsClient() {
                 disabled={!newLead.business_name}
                 className="w-full bg-primary-500 text-white py-4 rounded-2xl font-bold disabled:opacity-50"
               >
-                ➕ Ongeza Lead
+                <i className="ti ti-plus" aria-hidden="true" /> Ongeza Lead
               </button>
             </div>
           </div>

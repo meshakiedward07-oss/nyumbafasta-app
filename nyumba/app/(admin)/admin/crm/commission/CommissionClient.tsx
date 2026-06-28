@@ -101,7 +101,7 @@ export default function CommissionClient() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-white font-bold text-lg">💼 Commission Tracking</h1>
+          <h1 className="text-white font-bold text-lg"><i className="ti ti-briefcase" aria-hidden="true" /> Commission Tracking</h1>
           <button onClick={() => setShowAdd(true)}
             className="bg-white text-primary-500 text-xs px-4 py-2 rounded-xl font-bold">
             + Ongeza
@@ -125,7 +125,7 @@ export default function CommissionClient() {
           <div className="bg-white w-full rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-gray-800">Ongeza Commission</h2>
-              <button onClick={() => setShowAdd(false)} aria-label="Funga" className="text-gray-400 text-xl">✕</button>
+              <button onClick={() => setShowAdd(false)} aria-label="Funga" className="text-gray-400 text-xl"><i className="ti ti-x" aria-hidden="true" /></button>
             </div>
             <div className="space-y-4">
               <div>
@@ -201,7 +201,7 @@ export default function CommissionClient() {
           ))
         ) : filtered.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center border border-gray-100">
-            <div className="text-4xl mb-2">💼</div>
+            <div className="text-4xl mb-2 flex justify-center"><i className="ti ti-briefcase text-gray-400" aria-hidden="true" /></div>
             <p className="text-gray-400 text-sm">Hakuna commission records</p>
           </div>
         ) : filtered.map(c => (
@@ -210,7 +210,7 @@ export default function CommissionClient() {
               <div>
                 <p className="font-semibold text-sm">{c.agent_leads?.business_name || 'Deal'}</p>
                 <p className="text-xs text-gray-400">
-                  👨‍💼 {c.users?.full_name || '—'} · 📍 {c.agent_leads?.region || '—'}
+                  <i className="ti ti-user" aria-hidden="true" /> {c.users?.full_name || '—'} · <i className="ti ti-map-pin" aria-hidden="true" /> {c.agent_leads?.region || '—'}
                 </p>
               </div>
               <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusStyles[c.status]}`}>
@@ -238,20 +238,20 @@ export default function CommissionClient() {
                 {c.status === 'pending' && (
                   <button onClick={() => updateStatus(c.id, 'approved')}
                     className="flex-1 bg-blue-500 text-white text-xs py-2 rounded-xl font-medium">
-                    ✓ Approve
+                    <i className="ti ti-check" aria-hidden="true" /> Approve
                   </button>
                 )}
                 {(c.status === 'pending' || c.status === 'approved') && (
                   <button onClick={() => updateStatus(c.id, 'paid')}
                     className="flex-1 bg-primary-500 text-white text-xs py-2 rounded-xl font-medium">
-                    💳 Lipa
+                    <i className="ti ti-credit-card" aria-hidden="true" /> Lipa
                   </button>
                 )}
               </div>
             )}
             {c.paid_at && (
               <p className="text-xs text-green-600 mt-1">
-                ✅ Imelipwa: {new Date(c.paid_at).toLocaleDateString('sw-TZ')}
+                <i className="ti ti-circle-check" aria-hidden="true" /> Imelipwa: {new Date(c.paid_at).toLocaleDateString('sw-TZ')}
               </p>
             )}
           </div>

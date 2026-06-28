@@ -255,7 +255,7 @@ function PickerContent({ initialLocation, onLocationChange }: Props) {
       {/* Address display */}
       {address ? (
         <div className="flex items-start gap-2 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2.5">
-          <span className="text-primary-600 mt-0.5 text-sm flex-shrink-0">📍</span>
+          <i className="ti ti-map-pin text-primary-600 mt-0.5 text-sm flex-shrink-0" aria-hidden="true" />
           <p className="text-xs text-primary-800 leading-relaxed flex-1">{address}</p>
         </div>
       ) : (

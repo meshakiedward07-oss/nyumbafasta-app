@@ -45,7 +45,7 @@ export default function AccountSuspendedPage() {
           rel="noopener noreferrer"
           className="block w-full bg-[#25D366] text-white py-3.5 rounded-xl text-sm font-semibold mb-3 hover:bg-[#20b857] transition-colors"
         >
-          📱 Wasiliana WhatsApp
+          <i className="ti ti-brand-whatsapp" aria-hidden="true" /> Wasiliana WhatsApp
         </a>
 
         <button

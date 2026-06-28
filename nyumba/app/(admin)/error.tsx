@@ -15,7 +15,7 @@ export default function AdminError({
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl border border-red-100 p-8 max-w-md w-full text-center shadow-sm">
-        <div className="text-5xl mb-4">⚠️</div>
+        <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-alert-triangle text-amber-500" aria-hidden="true" /></div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">Hitilafu imetokea</h2>
         <p className="text-sm text-gray-500 mb-1">
           {error.message || 'Kuna tatizo kwenye ukurasa huu'}

@@ -149,7 +149,7 @@ function LoginForm() {
           {/* Suspension banner */}
           {isSuspended && (
             <div className="bg-red-50 border-b border-red-100 px-4 py-3 flex items-start gap-2">
-              <span className="text-lg flex-shrink-0">🚫</span>
+              <i className="ti ti-ban text-lg flex-shrink-0" aria-hidden="true" />
               <div>
                 <p className="text-sm font-semibold text-red-700">Akaunti Imesimamishwa</p>
                 <p className="text-xs text-red-500 mt-0.5">
@@ -172,7 +172,7 @@ function LoginForm() {
             {showUnverified && (
               <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                 <p className="font-semibold text-yellow-800 text-sm mb-1">
-                  ✉️ Thibitisha Barua Pepe Yako Kwanza
+                  <i className="ti ti-mail" aria-hidden="true" /> Thibitisha Barua Pepe Yako Kwanza
                 </p>
                 <p className="text-yellow-600 text-xs mb-3">
                   Tumetuma email ya uthibitisho kwa {unverifiedEmail}. Angalia inbox yako.
@@ -185,7 +185,7 @@ function LoginForm() {
             {forgotMode ? (
               resetSent ? (
                 <div className="text-center py-4">
-                  <div className="text-5xl mb-4">📧</div>
+                  <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-mail text-primary-500" aria-hidden="true" /></div>
                   <h3 className="text-base font-bold text-gray-900 mb-2">Barua pepe imetumwa!</h3>
                   <p className="text-sm text-gray-500 mb-6 leading-relaxed">
                     Angalia inbox yako na ubonyeze kiungo cha kubadilisha nenosiri.
@@ -201,7 +201,7 @@ function LoginForm() {
               ) : (
                 <form onSubmit={handleForgotPassword} className="space-y-4">
                   <div className="text-center mb-2">
-                    <div className="text-3xl mb-2">🔑</div>
+                    <div className="text-3xl mb-2 flex justify-center"><i className="ti ti-key text-gray-400" aria-hidden="true" /></div>
                     <h3 className="text-base font-bold text-gray-900">Badilisha Nenosiri</h3>
                     <p className="text-xs text-gray-400 mt-1">
                       Tutakutumia kiungo cha kubadilisha nenosiri
@@ -242,7 +242,7 @@ function LoginForm() {
                 <form onSubmit={handleEmailLogin} className="space-y-4">
 
                   <div>
-                    <label className="text-xs text-gray-500 mb-1.5 block">✉️ Barua pepe</label>
+                    <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1"><i className="ti ti-mail" aria-hidden="true" />Barua pepe</label>
                     <input
                       type="email"
                       required
@@ -255,7 +255,7 @@ function LoginForm() {
                   </div>
 
                   <div>
-                    <label className="text-xs text-gray-500 mb-1.5 block">🔒 Nenosiri</label>
+                    <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1"><i className="ti ti-lock" aria-hidden="true" />Nenosiri</label>
                     <div className="relative">
                       <input
                         type={showPass ? 'text' : 'password'}
@@ -272,7 +272,7 @@ function LoginForm() {
                         aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
                       >
-                        {showPass ? '🙈' : '👁️'}
+                        {showPass ? <i className="ti ti-eye-off" aria-hidden="true" /> : <i className="ti ti-eye" aria-hidden="true" />}
                       </button>
                     </div>
                   </div>
@@ -326,7 +326,7 @@ function LoginForm() {
 
                 {/* Hint */}
                 <p className="text-center text-xs text-gray-400 mt-4">
-                  💡 Ingia kwa urahisi na akaunti ya Google au barua pepe
+                  <i className="ti ti-bulb" aria-hidden="true" /> Ingia kwa urahisi na akaunti ya Google au barua pepe
                 </p>
               </>
             )}

@@ -18,7 +18,7 @@ function WelcomeModal() {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
-        <div className="text-5xl mb-3">🎉</div>
+        <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-confetti text-primary-500" aria-hidden="true" /></div>
         <h2 className="font-bold text-xl mb-2 text-gray-900">Karibu NyumbaFasta!</h2>
         <p className="text-gray-500 text-sm mb-5 leading-relaxed">
           Akaunti yako imethibitishwa vizuri. Uko tayari kutafuta nyumba na vyumba Tanzania!
@@ -59,7 +59,7 @@ export default function HomeClient({ initialListings, initialTotal }: Props) {
           </div>
           <Link href="/account">
             <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-              <span className="text-white text-lg">👤</span>
+              <i className="ti ti-user text-white text-lg" aria-hidden="true" />
             </div>
           </Link>
         </div>

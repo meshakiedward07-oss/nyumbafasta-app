@@ -20,7 +20,7 @@ const TYPES = [
   { value: 'apartment', label: 'Apartment' },
   { value: 'nyumba', label: 'Nyumba' },
   { value: 'studio', label: 'Studio' },
-  { value: 'duka', label: '🏪 Duka' },
+  { value: 'duka', label: 'Duka' },
 ]
 
 const LIMIT = 10
@@ -187,7 +187,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
       {/* ── Search bar ── */}
       <div className="bg-primary-500 px-3 pb-3">
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
           <input
             type="search"
             inputMode="search"
@@ -208,7 +208,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150
             ${(filters?.region ?? '') === '' ? 'bg-primary-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'}`}
         >
-          🗺️ Zote
+          <i className="ti ti-map" aria-hidden="true" /> Zote
         </button>
 
         {PRIORITY_REGIONS.map(r => (
@@ -231,7 +231,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
               ? 'bg-primary-500 text-white border-primary-500'
               : 'bg-white text-gray-500 border-gray-200'}`}
         >
-          <option value="">🗺️ Mikoa Yote</option>
+          <option value="">Mikoa Yote</option>
           {TANZANIA_REGIONS.map(r => (
             <option key={r.name} value={r.name}>{r.name}</option>
           ))}
@@ -255,7 +255,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             transition-all duration-150 flex items-center gap-1
             ${showFilters ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-200'}`}
         >
-          🎛 Filters zaidi
+          <i className="ti ti-adjustments" aria-hidden="true" /> Filters zaidi
           {hasExtraFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 ml-0.5" />}
         </button>
 
@@ -264,7 +264,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             onClick={clearFilters}
             className="flex-shrink-0 text-xs bg-red-50 text-red-500 border border-red-100 rounded-full px-3 py-1.5"
           >
-            ✕ Futa filters
+            <i className="ti ti-x" aria-hidden="true" /> Futa filters
           </button>
         )}
       </div>
@@ -281,7 +281,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5
                            focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
               >
-                <option value="">🗺️ Mikoa Yote Tanzania</option>
+                <option value="">Mikoa Yote Tanzania</option>
                 {TANZANIA_REGIONS.map(r => (
                   <option key={r.name} value={r.name}>{r.name}</option>
                 ))}
@@ -336,13 +336,13 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             onClick={() => setViewMode('grid')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
           >
-            🔲 Grid
+            <i className="ti ti-layout-grid" aria-hidden="true" /> Grid
           </button>
           <button
             onClick={() => setViewMode('map')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
           >
-            🗺️ Ramani
+            <i className="ti ti-map" aria-hidden="true" /> Ramani
           </button>
         </div>
       </div>
@@ -402,7 +402,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             ))
           ) : listings.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-5xl mb-4">🗺️</div>
+              <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-map text-gray-400" aria-hidden="true" /></div>
               {filters?.region ? (
                 <>
                   <p className="text-gray-700 font-semibold mb-1">Hakuna nyumba {filters.region}</p>
@@ -414,7 +414,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
                     className="inline-flex items-center gap-2 bg-primary-500 text-white
                                px-5 py-3 rounded-xl text-sm font-semibold active:scale-[0.97] transition-all"
                   >
-                    🔍 Tafuta Mikoa Mingine
+                    <i className="ti ti-search" aria-hidden="true" /> Tafuta Mikoa Mingine
                   </button>
                 </>
               ) : (

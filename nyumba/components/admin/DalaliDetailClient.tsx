@@ -152,12 +152,10 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full font-medium text-white"
                   style={{ backgroundColor: planBadge.color }}>
-                  {planData.emoji} {planBadge.label}
+                  <><i className={`ti ti-${planData.icon}`} aria-hidden="true" /> {planBadge.label}</>
                 </span>
                 {profile?.is_premium_verified && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    ✓ Imethibitishwa
-                  </span>
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Imethibitishwa</span>
                 )}
               </div>
             </div>
@@ -178,7 +176,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
                   </svg>
                 </div>
                 <div>
-                  <p className="font-bold text-sm">💬 Piga WhatsApp</p>
+                  <p className="font-bold text-sm flex items-center gap-1"><i className="ti ti-brand-whatsapp" aria-hidden="true" />Piga WhatsApp</p>
                   <p className="text-green-100 text-xs">{profile!.whatsapp_number}</p>
                 </div>
               </div>
@@ -186,7 +184,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
             </a>
           ) : (
             <div className="bg-gray-50 border border-dashed border-gray-300 rounded-xl p-3 mb-3 text-center">
-              <p className="text-gray-400 text-sm">⚠️ WhatsApp haijawekwa na dalali huyu</p>
+              <p className="text-gray-400 text-sm flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />WhatsApp haijawekwa na dalali huyu</p>
             </div>
           )}
 
@@ -197,7 +195,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
               className="flex items-center justify-between bg-blue-50 border border-blue-200 p-3 rounded-xl active:scale-[0.98] transition-transform"
             >
               <div className="flex items-center gap-2">
-                <span className="text-blue-500 text-lg">✉️</span>
+                <i className="ti ti-mail text-blue-500 text-lg" aria-hidden="true" />
                 <div>
                   <p className="font-medium text-sm text-blue-800">Tuma Email</p>
                   <p className="text-blue-500 text-xs truncate max-w-[200px]">{dalali.email}</p>
@@ -256,7 +254,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
                 const pd = getPlan(sub.plan)
                 return (
                   <div key={i} className="px-4 py-3 flex items-center gap-3">
-                    <span className="text-lg">{pd.emoji}</span>
+                    <i className={`ti ti-${pd.icon} text-lg`} aria-hidden="true" />
                     <div className="flex-1">
                       <p className="text-xs font-semibold text-gray-800">{pd.name}</p>
                       <p className="text-xs text-gray-400">
@@ -282,7 +280,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
 
         {/* ── Admin actions ── */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">⚙️ Admin Actions</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3"><i className="ti ti-settings" aria-hidden="true" /> Admin Actions</p>
           <div className="space-y-2">
 
             {/* Suspend / Activate */}
@@ -305,7 +303,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
                 disabled={verifyLoading}
                 className="w-full py-3 rounded-xl text-sm font-semibold bg-primary-50 text-primary-700 border border-primary-200 active:scale-[0.98] transition-all disabled:opacity-40"
               >
-                {verifyLoading ? '...' : '✅ Thibitisha (NIDA Verified)'}
+                {verifyLoading ? '...' : 'Thibitisha (NIDA Verified)'}
               </button>
             )}
 
@@ -316,7 +314,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
               rel="noopener noreferrer"
               className="flex items-center justify-center w-full py-3 rounded-xl text-sm font-semibold bg-gray-50 text-gray-700 border border-gray-200"
             >
-              🏠 Ona Listings ({dalali.listings_count}) →
+              <i className="ti ti-home" aria-hidden="true" /> Ona Listings ({dalali.listings_count}) →
             </Link>
 
             {/* Delete */}
@@ -325,7 +323,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
               disabled={actionLoading}
               className="w-full py-3 rounded-xl text-sm font-semibold bg-red-50 text-red-700 border border-red-200 active:scale-[0.98] transition-all disabled:opacity-40"
             >
-              🗑️ Futa Akaunti
+              <i className="ti ti-trash" aria-hidden="true" /> Futa Akaunti
             </button>
           </div>
         </div>
@@ -338,25 +336,25 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
           <div className="bg-white w-full rounded-t-3xl px-6 pt-4 pb-10 shadow-xl max-h-[85vh] overflow-y-auto"
                onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-            <div className="text-3xl text-center mb-2">🚫</div>
+            <div className="text-3xl text-center mb-2 flex justify-center"><i className="ti ti-ban text-orange-500" aria-hidden="true" /></div>
             <h3 className="font-bold text-center text-gray-900 mb-4">Futa Akaunti</h3>
             <p className="text-xs text-gray-500 text-center mb-4">{dalali.full_name} — {dalali.email}</p>
 
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Sababu:</p>
             <div className="space-y-2 mb-4">
               {[
-                { v: 'Scam — anatoa fake listings', icon: '🚨' },
-                { v: 'Unyanyasaji wa wateja',       icon: '🚨' },
-                { v: 'Taarifa za uongo',            icon: '🚨' },
-                { v: 'Uvunjaji wa masharti',        icon: '🚨' },
-                { v: 'Sababu nyingine',             icon: '📝' },
+                { v: 'Scam — anatoa fake listings', icon: 'alert-triangle' },
+                { v: 'Unyanyasaji wa wateja',       icon: 'alert-triangle' },
+                { v: 'Taarifa za uongo',            icon: 'alert-triangle' },
+                { v: 'Uvunjaji wa masharti',        icon: 'alert-triangle' },
+                { v: 'Sababu nyingine',             icon: 'pencil'          },
               ].map(r => (
                 <button key={r.v} onClick={() => setDeleteReason(r.v)}
                   className={`w-full flex items-center gap-2 p-3 rounded-xl border-2 text-left text-sm transition-all ${
                     deleteReason === r.v ? 'border-red-400 bg-red-50 text-red-800' : 'border-gray-100 text-gray-700'
                   }`}
                 >
-                  <span>{r.icon}</span><span>{r.v}</span>
+                  <i className={`ti ti-${r.icon}`} aria-hidden="true" /><span>{r.v}</span>
                 </button>
               ))}
             </div>
@@ -379,7 +377,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
               <button onClick={handleDelete}
                 disabled={!deleteReason || actionLoading}
                 className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold text-sm disabled:opacity-40">
-                {actionLoading ? '...' : '🗑️ Futa'}
+                {actionLoading ? '...' : 'Futa'}
               </button>
             </div>
           </div>

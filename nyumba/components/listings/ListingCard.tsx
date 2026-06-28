@@ -44,7 +44,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
         {/* Boosted badge */}
         {listing.is_boosted && (
           <div className="bg-gradient-to-r from-yellow-400 to-amber-400 text-white text-xs font-bold px-3 py-1 text-center tracking-wide">
-            🚀 Inashauriwa na NyumbaFasta
+            <i className="ti ti-rocket" aria-hidden="true" /> Inashauriwa na NyumbaFasta
           </div>
         )}
 
@@ -61,7 +61,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
-              <span className="text-4xl">🏠</span>
+              <i className="ti ti-home text-4xl text-gray-300" aria-hidden="true" />
               <span className="text-xs">Hakuna picha</span>
             </div>
           )}
@@ -70,11 +70,11 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
           <div className="absolute bottom-2 right-2 flex gap-1">
             {listing.images?.length > 1 && (
               <span className="bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
-                📷 {listing.images.length}
+                <i className="ti ti-camera" aria-hidden="true" /> {listing.images.length}
               </span>
             )}
             {(listing as typeof listing & { video_url?: string | null }).video_url && (
-              <span className="bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">🎥</span>
+              <span className="bg-black/60 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5"><i className="ti ti-video" aria-hidden="true" /></span>
             )}
           </div>
 
@@ -105,7 +105,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
 
           {/* Location */}
           <p className="text-gray-500 text-xs mb-2 flex items-center gap-1">
-            <span>📍</span>
+            <i className="ti ti-map-pin" aria-hidden="true" />
             <span className="truncate">
               {(listing as { location_display?: string | null }).location_display
                 || [
@@ -121,7 +121,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
           <div className="flex gap-1.5 flex-wrap mb-3">
             {hasUnlocked && (
               <span className="bg-primary-50 text-primary-700 text-xs px-2 py-0.5 rounded-full border border-primary-100">
-                ✅ Namba Unayo
+                <i className="ti ti-circle-check" aria-hidden="true" /> Namba Unayo
               </span>
             )}
             {listing.furnished && (
@@ -145,7 +145,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
           {listing.listing_unit_type === 'multi' && listing.status === 'active' && (
             <div className="mb-2">
               <span className="bg-primary-50 text-primary-700 text-xs px-2 py-0.5 rounded-full border border-primary-100">
-                🏢 Nafasi {(listing.total_capacity ?? 1) - (listing.current_occupancy ?? 0)} zilizobaki
+                <i className="ti ti-building" aria-hidden="true" /> Nafasi {(listing.total_capacity ?? 1) - (listing.current_occupancy ?? 0)} zilizobaki
               </span>
             </div>
           )}
@@ -171,12 +171,12 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
                     {listing.dalali?.full_name}
                   </span>
                   {isVerified && (
-                    <span className="text-primary-500 text-xs" title="Dalali aliyethibitishwa">✓</span>
+                    <i className="ti ti-check text-primary-500 text-xs" aria-hidden="true" title="Dalali aliyethibitishwa" />
                   )}
                 </div>
                 {rating > 0 && (
                   <div className="flex items-center gap-0.5">
-                    <span className="text-amber-400 text-xs">⭐</span>
+                    <i className="ti ti-star-filled text-amber-400 text-xs" aria-hidden="true" />
                     <span className="text-xs text-gray-400">{rating.toFixed(1)}</span>
                   </div>
                 )}
@@ -185,7 +185,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
 
             {/* Views */}
             <div className="flex items-center gap-1 text-gray-400">
-              <span className="text-xs">👁</span>
+              <i className="ti ti-eye text-xs" aria-hidden="true" />
               <span className="text-xs">{listing.view_count}</span>
             </div>
           </div>
@@ -204,16 +204,16 @@ function formatPrice(amount: number): string {
 }
 
 const amenityLabel: Record<string, string> = {
-  umeme: '⚡ Umeme',
-  maji: '💧 Maji',
-  wifi: '📶 WiFi',
-  parking: '🚗 Parking',
-  choo_ndani: '🚿 Choo ndani',
-  daladala: '🚌 Daladala',
-  watchman: '💂 Watchman',
-  ac: '❄️ AC',
-  dstv: '📺 DSTV',
-  solar: '☀️ Solar',
-  soko: '🛒 Soko',
-  bustani: '🌿 Bustani',
+  umeme: 'Umeme',
+  maji: 'Maji',
+  wifi: 'WiFi',
+  parking: 'Parking',
+  choo_ndani: 'Choo ndani',
+  daladala: 'Daladala',
+  watchman: 'Watchman',
+  ac: 'AC',
+  dstv: 'DSTV',
+  solar: 'Solar',
+  soko: 'Soko',
+  bustani: 'Bustani',
 }

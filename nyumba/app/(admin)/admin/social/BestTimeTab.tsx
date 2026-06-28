@@ -189,7 +189,7 @@ export default function BestTimeTab() {
                   : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
               }`}
             >
-              {p === 'instagram' ? '📸 Instagram' : '👤 Facebook'}
+{p === 'instagram' ? <><i className="ti ti-brand-instagram" aria-hidden="true" /> Instagram</> : <><i className="ti ti-brand-facebook" aria-hidden="true" /> Facebook</>}
             </button>
           ))}
         </div>
@@ -204,7 +204,7 @@ export default function BestTimeTab() {
               Inachunguza...
             </>
           ) : (
-            '🤖 Chunguza Upya'
+<><i className="ti ti-robot" aria-hidden="true" /> Chunguza Upya</>
           )}
         </button>
       </div>
@@ -225,13 +225,13 @@ export default function BestTimeTab() {
         <div className="space-y-5">
           {/* Meta info */}
           <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-            {dataPoints > 0 && <span>📊 Posts zilizochunguzwa: <strong>{dataPoints}</strong></span>}
-            {avgEng > 0    && <span>📈 Wastani wa engagement: <strong>{avgEng}%</strong></span>}
-            {rec.analysis_date && <span>📅 Uchambuzi wa: <strong>{rec.analysis_date}</strong></span>}
+{dataPoints > 0 && <span className="flex items-center gap-1"><i className="ti ti-chart-bar" aria-hidden="true" /> Posts zilizochunguzwa: <strong>{dataPoints}</strong></span>}
+{avgEng > 0 && <span className="flex items-center gap-1"><i className="ti ti-trending-up" aria-hidden="true" /> Wastani wa engagement: <strong>{avgEng}%</strong></span>}
+{rec.analysis_date && <span className="flex items-center gap-1"><i className="ti ti-calendar" aria-hidden="true" /> Uchambuzi wa: <strong>{rec.analysis_date}</strong></span>}
             {dataPoints === 0  && (
               <span className="text-amber-600">
-                ⚠️ Bado kuna data ndogo — chapisha posts zaidi kisha bonyeza &ldquo;Chunguza Upya&rdquo;
-              </span>
+  <><i className="ti ti-alert-triangle" aria-hidden="true" /> Bado kuna data ndogo — chapisha posts zaidi kisha bonyeza &ldquo;Chunguza Upya&rdquo;
+              </></span>
             )}
           </div>
 
@@ -279,7 +279,7 @@ export default function BestTimeTab() {
           {recText && (
             <div className="bg-gradient-to-br from-primary-50 to-white border border-primary-500/20 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg">🤖</span>
+<i className="ti ti-robot text-lg text-primary-500" aria-hidden="true" />
                 <h3 className="font-semibold text-gray-800">Ushauri wa Amina</h3>
               </div>
               <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{recText}</p>

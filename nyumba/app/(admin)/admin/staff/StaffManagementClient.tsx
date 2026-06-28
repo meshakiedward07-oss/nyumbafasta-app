@@ -77,7 +77,7 @@ export default function StaffManagementClient() {
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">👨‍💼 Wafanyakazi</h1>
+          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-users" aria-hidden="true" />Wafanyakazi</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Timu inayoshughulikia madalali watarajiwa
           </p>
@@ -87,7 +87,7 @@ export default function StaffManagementClient() {
             onClick={() => setShowAdd(true)}
             className="bg-primary-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2"
           >
-            ➕ Ongeza
+            <i className="ti ti-plus" aria-hidden="true" /> Ongeza
           </button>
         )}
       </div>
@@ -95,8 +95,8 @@ export default function StaffManagementClient() {
       {/* Tab switcher */}
       <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3">
         {([
-          { key: 'staff',           label: '👥 Wafanyakazi' },
-          { key: 'dalali_activity', label: '⚠️ Hatari (Madalali)' },
+          { key: 'staff',           label: 'Wafanyakazi' },
+          { key: 'dalali_activity', label: 'Hatari (Madalali)' },
         ] as { key: RoleFilter; label: string }[]).map(tab => (
           <button
             key={tab.key}
@@ -121,12 +121,12 @@ export default function StaffManagementClient() {
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { label: 'Wafanyakazi', value: activeCount,    emoji: '👤' },
-          { label: 'Leads Active', value: totalLeads,    emoji: '🔄' },
-          { label: 'Walisajili',  value: totalConverted, emoji: '✅' },
+          { label: 'Wafanyakazi', value: activeCount,    icon: 'user' },
+          { label: 'Leads Active', value: totalLeads,    icon: 'refresh' },
+          { label: 'Walisajili',  value: totalConverted, icon: 'circle-check' },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
-            <div className="text-xl">{s.emoji}</div>
+            <i className={`ti ti-${s.icon} text-xl`} aria-hidden="true" />
             <div className="text-xl font-bold text-gray-900">{s.value}</div>
             <div className="text-xs text-gray-400">{s.label}</div>
           </div>
@@ -140,7 +140,7 @@ export default function StaffManagementClient() {
         ))
       ) : staff.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
-          <div className="text-5xl mb-3">👥</div>
+          <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-users text-gray-400" aria-hidden="true" /></div>
           <p className="font-semibold text-gray-700">Hakuna wafanyakazi bado</p>
           <p className="text-sm text-gray-400 mt-1 mb-4">
             Ongeza mfanyakazi wa kwanza kushughulikia leads
@@ -149,7 +149,7 @@ export default function StaffManagementClient() {
             onClick={() => setShowAdd(true)}
             className="bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold"
           >
-            ➕ Ongeza Mfanyakazi
+            <i className="ti ti-plus" aria-hidden="true" /> Ongeza Mfanyakazi
           </button>
         </div>
       ) : (
@@ -169,7 +169,7 @@ export default function StaffManagementClient() {
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                       s.staff_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                     }`}>
-                      {s.staff_active ? '🟢 Active' : '⚪ Zimwa'}
+                      {s.staff_active ? 'Active' : 'Zimwa'}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
@@ -216,19 +216,19 @@ export default function StaffManagementClient() {
                   onClick={() => setManagingPerms(s)}
                   className="bg-blue-50 text-blue-700 text-xs py-2 rounded-xl font-medium border border-blue-100"
                 >
-                  🔑 Ruhusa
+                  <i className="ti ti-key" aria-hidden="true" /> Ruhusa
                 </button>
                 <button
                   onClick={() => setActivityStaff(s)}
                   className="border border-gray-200 text-gray-600 text-xs py-2 rounded-xl font-medium"
                 >
-                  📋 Shughuli
+                  <i className="ti ti-clipboard-list" aria-hidden="true" /> Shughuli
                 </button>
                 <button
                   onClick={() => setEditMember(s)}
                   className="border border-gray-200 text-gray-600 text-xs py-2 rounded-xl font-medium"
                 >
-                  ✏️ Hariri
+                  <i className="ti ti-pencil" aria-hidden="true" /> Hariri
                 </button>
                 <button
                   onClick={() => toggleActive(s)}
@@ -245,7 +245,7 @@ export default function StaffManagementClient() {
                 onClick={() => setConfirmDelete(s)}
                 className="mt-2 text-xs text-red-400 hover:text-red-600 border border-dashed border-red-200 hover:border-red-400 rounded-xl px-3 py-1.5 transition-colors"
               >
-                🗑 Futa
+                <i className="ti ti-trash" aria-hidden="true" /> Futa
               </button>
             </div>
           ))}
@@ -294,7 +294,7 @@ export default function StaffManagementClient() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-5">
             <div className="text-center mb-4">
-              <div className="text-4xl mb-2">⚠️</div>
+              <div className="text-4xl mb-2 flex justify-center"><i className="ti ti-alert-triangle text-red-500" aria-hidden="true" /></div>
               <h3 className="font-bold text-gray-900">Futa {confirmDelete.full_name}?</h3>
               <p className="text-sm text-gray-500 mt-1">
                 Leads {confirmDelete.activeLeads} zake zitaachwa bila mgawo. Hatua hii haiwezi kurudishwa.
@@ -359,7 +359,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto">
-        <h2 className="font-bold text-gray-900 mb-4">➕ Ongeza Mfanyakazi Mpya</h2>
+        <h2 className="font-bold text-gray-900 mb-4"><i className="ti ti-plus" aria-hidden="true" /> Ongeza Mfanyakazi Mpya</h2>
 
         {error && (
           <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-3 py-2 rounded-xl mb-3">
@@ -368,7 +368,7 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
         )}
         {success && (
           <div className="bg-green-50 border border-green-100 text-green-700 text-sm px-3 py-2 rounded-xl mb-3">
-            ✅ {success}
+            <i className="ti ti-circle-check" aria-hidden="true" /> {success}
           </div>
         )}
 
@@ -465,11 +465,11 @@ function AddStaffModal({ onClose, onCreated }: { onClose: () => void; onCreated:
               <option value="quality_control">Quality Control — Spam + Violations + Analytics</option>
               <option value="team_lead">Team Lead — Vyote</option>
             </select>
-            <p className="text-[10px] text-gray-400 mt-1">Unaweza kubadilisha ruhusa baadaye kupitia kitufe cha 🔑</p>
+            <p className="text-[10px] text-gray-400 mt-1">Unaweza kubadilisha ruhusa baadaye kupitia kitufe cha Ruhusa</p>
           </div>
 
           <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-700">
-            💡 Password ya muda itatengenezwa na kutumwa kwa WhatsApp. Mfanyakazi atalazimishwa kuibadilisha mara ya kwanza ya kuingia.
+            <i className="ti ti-bulb" aria-hidden="true" /> Password ya muda itatengenezwa na kutumwa kwa WhatsApp. Mfanyakazi atalazimishwa kuibadilisha mara ya kwanza ya kuingia.
           </div>
 
           <div className="flex gap-2 pt-1">
@@ -520,12 +520,12 @@ function ActivityFeedModal({
       .finally(() => setLoading(false))
   }, [staff.id])
 
-  const actionEmoji: Record<string, string> = {
-    lead_stage_update: '🎯',
-    whatsapp_takeover: '💬',
-    comment_moderated: '🚫',
-    violation_resolved: '⚖️',
-    scraper_run: '🤖',
+  const actionIcon: Record<string, string> = {
+    lead_stage_update: 'target',
+    whatsapp_takeover: 'message-circle',
+    comment_moderated: 'ban',
+    violation_resolved: 'scale',
+    scraper_run: 'robot',
   }
 
   return (
@@ -533,10 +533,10 @@ function ActivityFeedModal({
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
           <div>
-            <h2 className="font-bold text-gray-900">📋 Shughuli za {staff.full_name}</h2>
+            <h2 className="font-bold text-gray-900"><i className="ti ti-clipboard-list" aria-hidden="true" /> Shughuli za {staff.full_name}</h2>
             <p className="text-xs text-gray-400 mt-0.5">Vitendo 50 vya hivi karibuni</p>
           </div>
-          <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl px-2">✕</button>
+          <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl px-2"><i className="ti ti-x" aria-hidden="true" /></button>
         </div>
         <div className="overflow-y-auto flex-1 p-5">
           {loading ? (
@@ -545,7 +545,7 @@ function ActivityFeedModal({
             ))
           ) : activities.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
-              <div className="text-3xl mb-2">📭</div>
+              <div className="text-3xl mb-2 flex justify-center"><i className="ti ti-inbox text-gray-400" aria-hidden="true" /></div>
               <p className="text-sm">Hakuna shughuli bado</p>
             </div>
           ) : (
@@ -553,7 +553,7 @@ function ActivityFeedModal({
               {activities.map(a => (
                 <div key={a.id} className="flex items-start gap-3 py-2.5 border-b border-gray-50">
                   <span className="text-base flex-shrink-0 mt-0.5">
-                    {actionEmoji[a.action_type] ?? '📌'}
+                    <i className={`ti ti-${actionIcon[a.action_type] ?? 'pin'}`} aria-hidden="true" />
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-700">{a.description}</p>
@@ -630,7 +630,7 @@ function DalaliActivityView() {
         </div>
       ) : rows.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-          <div className="text-4xl mb-2">✅</div>
+          <div className="text-4xl mb-2 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></div>
           <p className="font-semibold text-gray-700">Hakuna madalali wenye hatari</p>
           <p className="text-sm text-gray-400 mt-1">Madalali wote wamechapisha listings</p>
         </div>
@@ -648,8 +648,8 @@ function DalaliActivityView() {
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">{row.phone} · {row.email}</p>
                   <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                    <span>📅 Siku {row.days_since_registration} tangu usajili</span>
-                    <span>🏠 Listings: {row.total_listings_ever}</span>
+                    <span><i className="ti ti-calendar" aria-hidden="true" /> Siku {row.days_since_registration} tangu usajili</span>
+                    <span><i className="ti ti-home" aria-hidden="true" /> Listings: {row.total_listings_ever}</span>
                     {row.days_before_deletion !== null && (
                       <span className={row.days_before_deletion <= 7 ? 'text-red-600 font-semibold' : row.days_before_deletion <= 14 ? 'text-amber-600' : ''}>
                         ⏳ Siku {row.days_before_deletion} kabla ya kufutwa
@@ -666,7 +666,7 @@ function DalaliActivityView() {
                   onClick={() => setExtending(row)}
                   className="flex-shrink-0 bg-primary-50 text-primary-500 text-xs px-3 py-2 rounded-xl font-medium whitespace-nowrap"
                 >
-                  ➕ Panulia
+                  <i className="ti ti-plus" aria-hidden="true" /> Panulia
                 </button>
               </div>
             </div>
@@ -721,7 +721,7 @@ function ExtendDeadlineModal({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-sm p-5">
-        <h3 className="font-bold text-gray-900 mb-1">➕ Panulia Muda</h3>
+        <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-1"><i className="ti ti-plus" aria-hidden="true" />Panulia Muda</h3>
         <p className="text-xs text-gray-500 mb-4">{dalali.name}</p>
 
         {error && (
@@ -818,7 +818,7 @@ function EditStaffModal({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-md p-5">
-        <h2 className="font-bold text-gray-900 mb-4">✏️ Hariri {member.full_name}</h2>
+        <h2 className="font-bold text-gray-900 mb-4"><i className="ti ti-pencil" aria-hidden="true" /> Hariri {member.full_name}</h2>
 
         {error && (
           <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-3 py-2 rounded-xl mb-3">

@@ -99,53 +99,53 @@ function CommentTypeBadge({ type }: { type: string }) {
 }
 
 function PlatformIcon({ platform }: { platform: string }) {
-  if (platform === 'instagram') return <span style={{ color: '#c13584' }}>📸</span>
-  if (platform === 'facebook')  return <span style={{ color: '#1877f2' }}>👤</span>
-  if (platform === 'tiktok')    return <span style={{ color: '#1a1a18' }}>🎵</span>
-  return <span>🌐</span>
+  if (platform === 'instagram') return <i className="ti ti-brand-instagram" style={{ color: '#c13584' }} aria-hidden="true" />
+  if (platform === 'facebook')  return <i className="ti ti-brand-facebook" style={{ color: '#1877f2' }} aria-hidden="true" />
+  if (platform === 'tiktok')    return <i className="ti ti-brand-tiktok" style={{ color: '#1a1a18' }} aria-hidden="true" />
+  return <i className="ti ti-world" aria-hidden="true" />
 }
 
 // ── Sidebar navigation groups ──────────────────────────────────────────────
 
-const SIDEBAR_GROUPS: { title: string; items: { id: Tab; label: string; emoji: string }[] }[] = [
+const SIDEBAR_GROUPS: { title: string; items: { id: Tab; label: string; icon: string }[] }[] = [
   {
     title: 'Muhtasari',
     items: [
-      { id: 'yote',     label: 'Platforms Zote', emoji: '🌐' },
-      { id: 'overview', label: 'Takwimu',        emoji: '📊' },
+      { id: 'yote',     label: 'Platforms Zote', icon: 'world' },
+      { id: 'overview', label: 'Takwimu',        icon: 'chart-bar' },
     ],
   },
   {
     title: 'Chapisha',
     items: [
-      { id: 'postnow',  label: 'Chapisha Sasa', emoji: '✍️'  },
-      { id: 'upload',   label: 'Pakia Video',   emoji: '📹' },
-      { id: 'carousel', label: 'Carousel',      emoji: '🖼️'  },
-      { id: 'stories',  label: 'Stories',       emoji: '🔴' },
+      { id: 'postnow',  label: 'Chapisha Sasa', icon: 'pencil' },
+      { id: 'upload',   label: 'Pakia Video',   icon: 'video' },
+      { id: 'carousel', label: 'Carousel',      icon: 'layout-columns' },
+      { id: 'stories',  label: 'Stories',       icon: 'circle-dot' },
     ],
   },
   {
     title: 'Machapisho',
     items: [
-      { id: 'posts',    label: 'Machapisho', emoji: '📸' },
-      { id: 'schedule', label: 'Ratiba',     emoji: '📅' },
-      { id: 'tiktok',   label: 'TikTok',     emoji: '🎵' },
+      { id: 'posts',    label: 'Machapisho', icon: 'camera' },
+      { id: 'schedule', label: 'Ratiba',     icon: 'calendar' },
+      { id: 'tiktok',   label: 'TikTok',     icon: 'brand-tiktok' },
     ],
   },
   {
     title: 'Jamii & Soko',
     items: [
-      { id: 'groups',      label: 'Makundi FB',  emoji: '👥' },
-      { id: 'marketplace', label: 'Marketplace', emoji: '🛒' },
+      { id: 'groups',      label: 'Makundi FB',  icon: 'users' },
+      { id: 'marketplace', label: 'Marketplace', icon: 'shopping-cart' },
     ],
   },
   {
     title: 'Usimamizi',
     items: [
-      { id: 'comments', label: 'Maoni',       emoji: '💬' },
-      { id: 'dms',      label: 'DMs',         emoji: '📨' },
-      { id: 'spam',     label: 'Spam',        emoji: '🚫' },
-      { id: 'besttime', label: 'Wakati Bora', emoji: '⏰' },
+      { id: 'comments', label: 'Maoni',       icon: 'message-circle' },
+      { id: 'dms',      label: 'DMs',         icon: 'mail' },
+      { id: 'spam',     label: 'Spam',        icon: 'ban' },
+      { id: 'besttime', label: 'Wakati Bora', icon: 'clock' },
     ],
   },
 ]
@@ -294,10 +294,10 @@ export default function SocialDashboard() {
         if (data.error && !data.ok) { showToast(`Hitilafu: ${data.error}`); return }
         if (data.ok || (data.successCount ?? 0) > 0) {
           const platforms = (data.results ?? []).filter(r => r.success).map(r => r.platform.toUpperCase()).join(' + ')
-          showToast(`✅ Story imechapishwa kwenye ${platforms}! (${data.successCount}/${data.results?.length ?? 1})`)
+          showToast(`Story imechapishwa kwenye ${platforms}! (${data.successCount}/${data.results?.length ?? 1})`)
         } else {
           const errs = (data.results ?? []).filter(r => !r.success).map(r => `${r.platform}: ${r.error}`).join(', ')
-          showToast(`❌ Imeshindwa: ${errs || data.error}`)
+          showToast(`Imeshindwa: ${errs || data.error}`)
         }
         setSelectedListing('')
         return
@@ -311,7 +311,7 @@ export default function SocialDashboard() {
         })
         const data = await res.json() as { success?: boolean; slidesCount?: number; error?: string }
         if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-        showToast(data.success ? `✅ Carousel imechapishwa! (Slides: ${data.slidesCount})` : '❌ Imeshindwa kuchapisha')
+        showToast(data.success ? `Carousel imechapishwa! (Slides: ${data.slidesCount})` : 'Imeshindwa kuchapisha')
         setSelectedListing('')
         return
       }
@@ -324,7 +324,7 @@ export default function SocialDashboard() {
         })
         const data = await res.json() as { successCount?: number; failedCount?: number; error?: string }
         if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-        showToast(`✅ ${data.successCount ?? 0} platform zilipita${data.failedCount ? `, ❌ ${data.failedCount} zilishindwa` : ''}`)
+        showToast(`${data.successCount ?? 0} platform zilipita${data.failedCount ? `, ${data.failedCount} zilishindwa` : ''}`)
       } else {
         const body: Record<string, unknown> = {
           listingId: selectedListing,
@@ -338,7 +338,7 @@ export default function SocialDashboard() {
         })
         const data = await res.json() as { ok?: boolean; status?: string; scheduled?: boolean; error?: string }
         if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-        showToast(data.scheduled ? '📅 Post imepangwa!' : data.status === 'published' ? '✅ Imechapishwa!' : '❌ Imeshindwa')
+        showToast(data.scheduled ? 'Post imepangwa!' : data.status === 'published' ? 'Imechapishwa!' : 'Imeshindwa')
       }
 
       setGeneratedCaption('')
@@ -360,7 +360,7 @@ export default function SocialDashboard() {
       })
       const data = await res.json() as { successCount?: number; failedCount?: number; results?: Array<{ platform: string; success: boolean; error?: string }>; error?: string }
       if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-      showToast(`✅ ${data.successCount ?? 0} platforms zilipita${data.failedCount ? `, ❌ ${data.failedCount} zilishindwa` : ''}`)
+      showToast(`${data.successCount ?? 0} platforms zilipita${data.failedCount ? `, ${data.failedCount} zilishindwa` : ''}`)
       setPostAllListing('')
       fetchUnified(unifiedPeriod)
     } finally {
@@ -440,7 +440,7 @@ export default function SocialDashboard() {
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
-                    <span className="text-xs w-4 flex-shrink-0 text-center">{item.emoji}</span>
+                    <i className={`ti ti-${item.icon} text-sm w-4 flex-shrink-0 text-center`} aria-hidden="true" />
                     <span className="text-xs truncate">{item.label}</span>
                     {activeTab === item.id && (
                       <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
@@ -482,7 +482,7 @@ export default function SocialDashboard() {
         >
           <div>
             <h1 className="text-base font-bold leading-tight" style={{ color: '#1a1a18' }}>
-              {activeTabInfo ? `${activeTabInfo.emoji} ${activeTabInfo.label}` : '🌐 Social Media'}
+              {activeTabInfo ? activeTabInfo.label : 'Social Media'}
             </h1>
             <p className="text-xs mt-0.5" style={{ color: '#999992' }}>
               TikTok, Instagram + Facebook automation — NyumbaFasta
@@ -497,7 +497,7 @@ export default function SocialDashboard() {
               style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
             >
               {ALL_NAV_ITEMS.map(item => (
-                <option key={item.id} value={item.id}>{item.emoji} {item.label}</option>
+                <option key={item.id} value={item.id}>{item.label}</option>
               ))}
             </select>
           </div>
@@ -566,14 +566,14 @@ export default function SocialDashboard() {
                 ) : unifiedStats ? (
                   <div className="grid grid-cols-5 gap-3">
                     {[
-                      { label: 'Machapisho', value: unifiedStats.totals.posts,    emoji: '📸' },
-                      { label: 'Maoni',      value: unifiedStats.totals.comments, emoji: '💬' },
-                      { label: 'Likes',      value: unifiedStats.totals.likes,    emoji: '❤️' },
-                      { label: 'Shares',     value: unifiedStats.totals.shares,   emoji: '🔁' },
-                      { label: 'Views',      value: unifiedStats.totals.views,    emoji: '👁️' },
+                      { label: 'Machapisho', value: unifiedStats.totals.posts,    icon: 'camera' },
+                      { label: 'Maoni',      value: unifiedStats.totals.comments, icon: 'message-circle' },
+                      { label: 'Likes',      value: unifiedStats.totals.likes,    icon: 'heart' },
+                      { label: 'Shares',     value: unifiedStats.totals.shares,   icon: 'repeat' },
+                      { label: 'Views',      value: unifiedStats.totals.views,    icon: 'eye' },
                     ].map(c => (
                       <div key={c.label} className="text-center rounded-xl p-3" style={{ background: '#f8f8f5' }}>
-                        <div className="text-lg">{c.emoji}</div>
+                        <i className={`ti ti-${c.icon} text-lg`} aria-hidden="true" />
                         <div className="text-xl font-bold" style={{ color: '#1a1a18' }}>{c.value.toLocaleString()}</div>
                         <div className="text-xs" style={{ color: '#999992' }}>{c.label}</div>
                       </div>
@@ -586,12 +586,11 @@ export default function SocialDashboard() {
               {unifiedStats && (
                 <div className="grid grid-cols-3 gap-4">
                   {unifiedStats.platforms.map(p => {
-                    const icons: Record<string, string>  = { instagram: '📸', facebook: '👤', tiktok: '🎵' }
                     const colors: Record<string, string> = { instagram: '#c13584', facebook: '#1877f2', tiktok: '#1a1a18' }
                     return (
                       <div key={p.platform} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e5e0' }}>
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="text-xl">{icons[p.platform] ?? '🌐'}</span>
+                          <PlatformIcon platform={p.platform} />
                           <span className="font-semibold capitalize text-sm" style={{ color: colors[p.platform] ?? '#1a1a18' }}>
                             {p.platform}
                           </span>
@@ -657,7 +656,7 @@ export default function SocialDashboard() {
                     disabled={postAllLoading || !postAllListing}
                     className="px-5 py-2.5 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 disabled:opacity-50 transition-all whitespace-nowrap"
                   >
-                    {postAllLoading ? '⏳ Inachapisha...' : '🚀 Chapisha Yote'}
+{postAllLoading ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha...</> : <><i className="ti ti-rocket" aria-hidden="true" /> Chapisha Yote</>}
                   </button>
                 </div>
                 <p className="text-xs mt-2" style={{ color: '#999992' }}>
@@ -671,7 +670,6 @@ export default function SocialDashboard() {
                   <h3 className="font-semibold mb-3" style={{ color: '#1a1a18' }}>Machapisho ya Hivi Karibuni</h3>
                   <div className="space-y-2">
                     {unifiedStats.recentPosts.slice(0, 10).map(rp => {
-                      const pIcons: Record<string, string> = { instagram: '📸', facebook: '👤', tiktok: '🎵' }
                       const statusColors: Record<string, string> = {
                         posted: '#3b6d11', published: '#3b6d11',
                         failed: '#a32d2d', posting: '#185fa5', pending: '#854f0b',
@@ -682,7 +680,7 @@ export default function SocialDashboard() {
                           className="flex items-center gap-3 text-sm py-2 border-b last:border-0"
                           style={{ borderColor: '#f4f4f0' }}
                         >
-                          <span>{pIcons[rp.platform] ?? '🌐'}</span>
+                          <PlatformIcon platform={rp.platform} />
                           <span className="capitalize w-20 text-xs" style={{ color: '#666660' }}>{rp.platform}</span>
                           <span className="font-medium text-xs" style={{ color: statusColors[rp.status] ?? '#666660' }}>
                             {rp.status}
@@ -711,21 +709,21 @@ export default function SocialDashboard() {
               ) : stats ? (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: 'Machapisho Yote',  value: stats.totalPosts,        emoji: '📸', bg: '#e6f1fb', color: '#185fa5' },
-                    { label: 'Yalichapishwa',     value: stats.publishedPosts,    emoji: '✅', bg: '#eaf3de', color: '#3b6d11' },
-                    { label: 'Wiki Hii',          value: stats.postsThisWeek,     emoji: '📅', bg: '#eeedfe', color: '#534ab7' },
-                    { label: 'Maoni Yote',        value: stats.totalComments,     emoji: '💬', bg: '#faeeda', color: '#854f0b' },
-                    { label: 'Maoni Bila Jibu',   value: stats.unrepliedComments, emoji: '⚠️', bg: '#fcebeb', color: '#a32d2d' },
-                    { label: 'Maoni Leo',         value: stats.commentsToday,     emoji: '🔔', bg: '#eeedfe', color: '#534ab7' },
-                    { label: 'DMs Zote',          value: stats.totalDMs,          emoji: '📨', bg: '#e6f1fb', color: '#185fa5' },
-                    { label: 'DMs Bila Jibu',     value: stats.unrepliedDMs,      emoji: '📬', bg: '#fcebeb', color: '#a32d2d' },
+                    { label: 'Machapisho Yote',  value: stats.totalPosts,        icon: 'camera',         bg: '#e6f1fb', color: '#185fa5' },
+                    { label: 'Yalichapishwa',     value: stats.publishedPosts,    icon: 'check',          bg: '#eaf3de', color: '#3b6d11' },
+                    { label: 'Wiki Hii',          value: stats.postsThisWeek,     icon: 'calendar',       bg: '#eeedfe', color: '#534ab7' },
+                    { label: 'Maoni Yote',        value: stats.totalComments,     icon: 'message-circle', bg: '#faeeda', color: '#854f0b' },
+                    { label: 'Maoni Bila Jibu',   value: stats.unrepliedComments, icon: 'alert-triangle', bg: '#fcebeb', color: '#a32d2d' },
+                    { label: 'Maoni Leo',         value: stats.commentsToday,     icon: 'bell',           bg: '#eeedfe', color: '#534ab7' },
+                    { label: 'DMs Zote',          value: stats.totalDMs,          icon: 'mail',           bg: '#e6f1fb', color: '#185fa5' },
+                    { label: 'DMs Bila Jibu',     value: stats.unrepliedDMs,      icon: 'mail-x',         bg: '#fcebeb', color: '#a32d2d' },
                   ].map(card => (
                     <div key={card.label} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e5e0' }}>
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-3"
                         style={{ background: card.bg }}
                       >
-                        {card.emoji}
+                        <i className={`ti ti-${card.icon} text-lg`} aria-hidden="true" />
                       </div>
                       <div className="text-2xl font-bold" style={{ color: card.color }}>{card.value.toLocaleString()}</div>
                       <div className="text-xs mt-0.5" style={{ color: '#666660' }}>{card.label}</div>
@@ -739,30 +737,30 @@ export default function SocialDashboard() {
                   onClick={() => setActiveTab('upload')}
                   className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600 transition-all"
                 >
-                  📹 Pakia Video Mpya
+                  <i className="ti ti-video" aria-hidden="true" /> Pakia Video Mpya
                 </button>
                 <button
                   onClick={() => setActiveTab('postnow')}
                   className="flex items-center gap-2 px-4 py-2.5 bg-white text-sm font-medium rounded-xl hover:bg-gray-50 transition-all"
                   style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
                 >
-                  ✍️ Chapisha Listing
+                  <i className="ti ti-pencil" aria-hidden="true" /> Chapisha Listing
                 </button>
               </div>
 
               <div className="mt-4 bg-white rounded-xl border p-5" style={{ borderColor: '#e5e5e0' }}>
                 <h3 className="font-semibold mb-3" style={{ color: '#1a1a18' }}>Maarifa ya Mfumo</h3>
                 <div className="space-y-2 text-sm" style={{ color: '#666660' }}>
-                  <p>📌 <strong>Webhook URL:</strong>{' '}
+                  <p><i className="ti ti-map-pin" aria-hidden="true" /> <strong>Webhook URL:</strong>{' '}
                     <code className="px-1 rounded text-xs" style={{ background: '#f4f4f0' }}>/api/v1/meta/webhook</code>
                     {' '}— weka kwenye Meta Developer Console
                   </p>
-                  <p>🔑 <strong>Verify Token:</strong>{' '}
+                  <p><i className="ti ti-key" aria-hidden="true" /> <strong>Verify Token:</strong>{' '}
                     <code className="px-1 rounded text-xs" style={{ background: '#f4f4f0' }}>nyumbafasta_meta_webhook_2026</code>
                   </p>
-                  <p>⚡ <strong>Maoni ya Spam:</strong> hayajibiiwi kiotomatiki</p>
-                  <p>🤖 <strong>DMs:</strong> zinajibiwa na Amina kwa Kiswahili cha Dar es Salaam</p>
-                  <p>📊 <strong>Metrics:</strong> zinasasishwa kila saa 24 kupitia cron job</p>
+                  <p><i className="ti ti-bolt" aria-hidden="true" /> <strong>Maoni ya Spam:</strong> hayajibiiwi kiotomatiki</p>
+                  <p><i className="ti ti-robot" aria-hidden="true" /> <strong>DMs:</strong> zinajibiwa na Amina kwa Kiswahili cha Dar es Salaam</p>
+                  <p><i className="ti ti-chart-bar" aria-hidden="true" /> <strong>Metrics:</strong> zinasasishwa kila saa 24 kupitia cron job</p>
                 </div>
               </div>
             </div>
@@ -778,7 +776,7 @@ export default function SocialDashboard() {
                   disabled={loading}
                   className="px-3 py-1.5 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50"
                 >
-                  {loading ? '...' : '🔄 Sasisha Metrics'}
+{loading ? '...' : <><i className="ti ti-refresh" aria-hidden="true" /> Sasisha Metrics</>}
                 </button>
               </div>
               <div className="space-y-3">
@@ -816,7 +814,7 @@ export default function SocialDashboard() {
                 ))}
                 {!loading && posts.length === 0 && (
                   <div className="text-center py-16" style={{ color: '#999992' }}>
-                    <div className="text-4xl mb-3">📸</div>
+                    <div className="text-4xl mb-3"><i className="ti ti-camera" aria-hidden="true" /></div>
                     <p className="font-medium" style={{ color: '#666660' }}>Hakuna machapisho katika kipindi hiki</p>
                     <p className="text-sm mt-1">
                       Jaribu kubadilisha kipindi cha muda, au{' '}
@@ -888,7 +886,7 @@ export default function SocialDashboard() {
                 ))}
                 {!loading && comments.length === 0 && (
                   <div className="text-center py-16" style={{ color: '#999992' }}>
-                    <div className="text-4xl mb-3">💬</div>
+                    <div className="text-4xl mb-3"><i className="ti ti-message-circle" aria-hidden="true" /></div>
                     <p>Hakuna maoni bado</p>
                   </div>
                 )}
@@ -929,7 +927,7 @@ export default function SocialDashboard() {
                 ))}
                 {!loading && dms.length === 0 && (
                   <div className="text-center py-16" style={{ color: '#999992' }}>
-                    <div className="text-4xl mb-3">📨</div>
+                    <div className="text-4xl mb-3"><i className="ti ti-mail" aria-hidden="true" /></div>
                     <p>Hakuna DMs bado</p>
                   </div>
                 )}
@@ -970,31 +968,31 @@ export default function SocialDashboard() {
                   <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>Aina ya Post</label>
                   <div className="flex flex-wrap gap-2">
                     {([
-                      { key: 'single',   label: '📸 Picha/Video' },
-                      { key: 'carousel', label: '🖼️ Carousel'    },
-                      { key: 'story',    label: '🔴 Story'       },
+                      { key: 'single',   label: 'Picha/Video', icon: 'camera' },
+                      { key: 'carousel', label: 'Carousel',    icon: 'layout-columns' },
+                      { key: 'story',    label: 'Story',       icon: 'circle-dot' },
                     ] as const).map(m => (
                       <button
                         key={m.key}
                         onClick={() => setPostMode(m.key)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-1.5 ${
                           postMode === m.key
                             ? 'bg-primary-500 text-white border-primary-500'
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        {m.label}
+                        <i className={`ti ti-${m.icon}`} aria-hidden="true" /> {m.label}
                       </button>
                     ))}
                   </div>
                   {postMode === 'carousel' && (
                     <p className="text-xs mt-1" style={{ color: '#999992' }}>
-                      📸 Picha zote kama slides — inahitaji picha 2+ (Instagram tu)
+                      Picha zote kama slides — inahitaji picha 2+ (Instagram tu)
                     </p>
                   )}
                   {postMode === 'story' && (
                     <p className="text-xs mt-1" style={{ color: '#999992' }}>
-                      🔴 Picha ya kwanza ya listing kama Story. Inaisha baada ya saa 24.
+                      Picha ya kwanza ya listing kama Story. Inaisha baada ya saa 24.
                     </p>
                   )}
                 </div>
@@ -1005,21 +1003,21 @@ export default function SocialDashboard() {
                     <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>Jukwaa</label>
                     <div className="flex flex-wrap gap-2">
                       {([
-                        { key: 'all',       label: '🌐 Zote (IG + FB + TikTok)' },
-                        { key: 'instagram', label: '📸 Instagram'                },
-                        { key: 'facebook',  label: '👤 Facebook'                 },
-                        { key: 'both',      label: '📸👤 IG + FB'               },
+                        { key: 'all',       label: 'Zote (IG + FB + TikTok)', icon: 'world' },
+                        { key: 'instagram', label: 'Instagram',                icon: 'brand-instagram' },
+                        { key: 'facebook',  label: 'Facebook',                 icon: 'brand-facebook' },
+                        { key: 'both',      label: 'IG + FB',                  icon: 'share' },
                       ] as const).map(p => (
                         <button
                           key={p.key}
                           onClick={() => setSelectedPlatform(p.key)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                          className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-1.5 ${
                             selectedPlatform === p.key
                               ? 'bg-primary-500 text-white border-primary-500'
                               : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          {p.label}
+                          <i className={`ti ti-${p.icon}`} aria-hidden="true" /> {p.label}
                         </button>
                       ))}
                     </div>
@@ -1037,7 +1035,7 @@ export default function SocialDashboard() {
                           disabled={captionLoading || !selectedListing}
                           className="text-xs px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
                         >
-                          {captionLoading ? '⏳ Inaandika...' : '✨ Tengeneza kwa AI'}
+{captionLoading ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inaandika...</> : <><i className="ti ti-sparkles" aria-hidden="true" /> Tengeneza kwa AI</>}
                         </button>
                       </div>
                       <textarea
@@ -1089,14 +1087,14 @@ export default function SocialDashboard() {
                     className="btn-primary flex-1 py-3"
                   >
                     {postLoading
-                      ? '⏳ Inachapisha...'
+                      ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha...</>
                       : postMode === 'carousel'
-                      ? '🖼️ Chapisha Carousel'
+                      ? <><i className="ti ti-layout-columns" aria-hidden="true" /> Chapisha Carousel</>
                       : postMode === 'story'
-                      ? '🔴 Chapisha Story'
+                      ? <><i className="ti ti-circle-dot" aria-hidden="true" /> Chapisha Story</>
                       : selectedPlatform === 'all'
-                      ? '🌐 Chapisha Zote (IG + FB + TikTok)'
-                      : scheduledAt ? '📅 Panga' : '🚀 Chapisha Sasa'}
+                      ? <><i className="ti ti-world" aria-hidden="true" /> Chapisha Zote (IG + FB + TikTok)</>
+                      : scheduledAt ? <><i className="ti ti-calendar" aria-hidden="true" /> Panga</> : <><i className="ti ti-rocket" aria-hidden="true" /> Chapisha Sasa</>}
                   </button>
                   <button
                     onClick={() => { setGeneratedCaption(''); setGeneratedHashtags(''); setSelectedListing(''); setScheduledAt('') }}
@@ -1136,7 +1134,7 @@ export default function SocialDashboard() {
                 ))}
                 {!loading && schedule.length === 0 && (
                   <div className="text-center py-16" style={{ color: '#999992' }}>
-                    <div className="text-4xl mb-3">📅</div>
+                    <div className="text-4xl mb-3"><i className="ti ti-calendar" aria-hidden="true" /></div>
                     <p>Hakuna posts zilizopangwa</p>
                     <p className="text-sm mt-1">Panga kutoka &ldquo;Chapisha Sasa&rdquo;</p>
                   </div>

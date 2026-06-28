@@ -113,12 +113,12 @@ export default function StoriesTab() {
           .filter(r => r.success)
           .map(r => r.platform.toUpperCase())
           .join(' + ')
-        showMsg(`✅ Story imechapishwa kwenye ${platforms || 'platforms'}! (${data.successCount}/${(data.results?.length ?? 1)})`)
+        showMsg(`Story imechapishwa kwenye ${platforms || 'platforms'}! (${data.successCount}/${(data.results?.length ?? 1)})`)
         setSelectedListing(''); setPromoImageUrl(''); setPromoLinkUrl('')
         fetchStories()
       } else {
         const errs = (data.results ?? []).filter(r => !r.success).map(r => `${r.platform}: ${r.error}`).join(', ')
-        showMsg(`❌ Imeshindwa: ${errs || data.error}`)
+        showMsg(`Imeshindwa: ${errs || data.error}`)
       }
     } finally {
       setPosting(false)
@@ -142,7 +142,7 @@ export default function StoriesTab() {
 
       {/* Post Story Form */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">🔴 Tuma Story Mpya</h2>
+        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><i className="ti ti-circle-dot text-red-500" aria-hidden="true" /> Tuma Story Mpya</h2>
         <form onSubmit={handlePost} className="space-y-4">
           {/* Story type selector */}
           <div>
@@ -159,7 +159,7 @@ export default function StoriesTab() {
                       : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  {t === 'listing' ? '🏠 Listing Story' : '📢 Promo Story'}
+                  {t === 'listing' ? <><i className="ti ti-home" aria-hidden="true" /> Listing Story</> : <><i className="ti ti-speakerphone" aria-hidden="true" /> Promo Story</>}
                 </button>
               ))}
             </div>
@@ -176,17 +176,17 @@ export default function StoriesTab() {
                     onClick={fetchListings}
                     className="text-xs text-primary-500 hover:underline"
                   >
-                    🔄 Jaribu tena
+<i className="ti ti-refresh" aria-hidden="true" /> Jaribu tena
                   </button>
                 )}
               </div>
               {listingsError ? (
                 <div className="w-full border border-red-200 bg-red-50 rounded-xl px-3 py-2.5 text-sm text-red-600">
-                  ❌ Imeshindwa kupakia listings. Angalia muunganiko wako.
+<><i className="ti ti-circle-x" aria-hidden="true" /> Imeshindwa kupakia listings. Angalia muunganiko wako.</>
                 </div>
               ) : listingsLoaded && listings.length === 0 ? (
                 <div className="w-full border border-amber-200 bg-amber-50 rounded-xl px-3 py-2.5 text-sm text-amber-700">
-                  ⚠️ Hakuna listings active kwa sasa. Ongeza listing kwanza.
+<><i className="ti ti-alert-triangle" aria-hidden="true" /> Hakuna listings active kwa sasa. Ongeza listing kwanza.</>
                 </div>
               ) : (
                 <select
@@ -241,12 +241,12 @@ export default function StoriesTab() {
             disabled={posting}
             className="btn-primary w-full py-3"
           >
-            {posting ? '⏳ Inachapisha...' : '🚀 Tuma Story Sasa'}
+            {posting ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha...</> : <><i className="ti ti-rocket" aria-hidden="true" /> Tuma Story Sasa</>}
           </button>
         </form>
 
         <div className="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
-          <p className="font-semibold mb-1">ℹ️ Kuhusu Stories (IG + FB + TikTok):</p>
+<p className="font-semibold mb-1 flex items-center gap-1"><i className="ti ti-info-circle" aria-hidden="true" /> Kuhusu Stories (IG + FB + TikTok):</p>
           <ul className="list-disc list-inside space-y-0.5">
             <li>IG Story + FB Story zinachapishwa kwa picha daima</li>
             <li>TikTok Story inachapishwa kama video (kama listing ina video)</li>
@@ -259,14 +259,14 @@ export default function StoriesTab() {
 
       {/* Stories history */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-3">📋 Historia ya Stories</h3>
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2"><i className="ti ti-list" aria-hidden="true" /> Historia ya Stories</h3>
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}
           </div>
         ) : stories.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
-            <div className="text-4xl mb-3">🔴</div>
+  <div className="text-4xl mb-3"><i className="ti ti-circle-dot text-red-500" aria-hidden="true" /></div>
             <p>Hakuna stories bado</p>
             <p className="text-sm mt-1">Tuma story yako ya kwanza hapo juu</p>
           </div>
@@ -302,9 +302,7 @@ export default function StoriesTab() {
                         </p>
                       )}
                       {expiry && story.status === 'posted' && (
-                        <p className={`text-xs mt-1 ${expiry.includes('Imeisha') ? 'text-gray-400' : 'text-amber-600'}`}>
-                          ⏳ {expiry}
-                        </p>
+<p className={`text-xs mt-1 flex items-center gap-1 ${expiry.includes('Imeisha') ? 'text-gray-400' : 'text-amber-600'}`}><i className="ti ti-clock" aria-hidden="true" /> {expiry}</p>
                       )}
                       {story.error_message && (
                         <p className="text-xs text-red-500 mt-1 truncate">{story.error_message}</p>

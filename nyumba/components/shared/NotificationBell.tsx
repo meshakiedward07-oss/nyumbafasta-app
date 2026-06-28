@@ -71,7 +71,7 @@ export default function NotificationBell({ className = '', asLink = true }: Prop
 
   const inner = (
     <>
-      <span className="text-xl">🔔</span>
+      <i className="ti ti-bell text-xl" aria-hidden="true" />
       {unread > 0 && (
         <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 text-white
                          text-[10px] font-bold rounded-full flex items-center justify-center px-0.5

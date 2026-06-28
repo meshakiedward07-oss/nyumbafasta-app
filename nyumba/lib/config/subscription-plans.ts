@@ -7,7 +7,7 @@ export type Plan = {
   color: string
   bgColor: string
   borderColor: string
-  emoji: string
+  icon: string
   description: string
   listings: number
   photos: number
@@ -34,7 +34,7 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
     color: '#6B7280',
     bgColor: '#F9FAFB',
     borderColor: '#E5E7EB',
-    emoji: '🏠',
+    icon: 'home',
     description: 'Anza bila malipo — daima bure',
     listings: 2,
     photos: 2,
@@ -63,7 +63,7 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
     color: '#1D9E75',
     bgColor: '#E1F5EE',
     borderColor: '#5DCAA5',
-    emoji: '⭐',
+    icon: 'star-filled',
     description: 'Kwa madalali wanaoanza',
     listings: 5,
     photos: 4,
@@ -93,7 +93,7 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
     color: '#F59E0B',
     bgColor: '#FFFBEB',
     borderColor: '#FCD34D',
-    emoji: '👑',
+    icon: 'crown',
     description: 'Inayopendwa zaidi — kwa madalali wanaokua',
     listings: 20,
     photos: 10,
@@ -104,7 +104,7 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
       { label: 'WhatsApp visible kwa wateja', included: true },
       { label: 'Video ya listing', included: true },
       { label: 'Boost listing — Tsh 5,000/wiki', included: true, highlight: true },
-      { label: 'Verified badge ✓', included: true, highlight: true },
+      { label: 'Verified badge', included: true, highlight: true },
       { label: 'Analytics kamili', included: true, highlight: true },
       { label: 'Search priority: Juu', included: true },
       { label: 'WhatsApp support', included: true },
@@ -123,7 +123,7 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
     color: '#7C3AED',
     bgColor: '#EDE9FE',
     borderColor: '#A78BFA',
-    emoji: '🏢',
+    icon: 'building',
     description: 'Kwa mawakala makubwa na real estate firms',
     listings: 50,
     photos: 20,
@@ -134,7 +134,7 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
       { label: 'WhatsApp visible kwa wateja', included: true },
       { label: 'Video ya listing', included: true },
       { label: 'Boost listing — Tsh 5,000/wiki', included: true },
-      { label: 'Verified badge ✓', included: true },
+      { label: 'Verified badge', included: true },
       { label: 'Analytics kamili + Export', included: true, highlight: true },
       { label: 'Search priority: TOP', included: true, highlight: true },
       { label: 'Priority support 24/7', included: true, highlight: true },
@@ -174,6 +174,6 @@ export function getListingLimit(planId?: string | null): number {
 export const PLAN_BADGES: Record<string, { label: string; color: string; bg: string }> = {
   free:       { label: 'FREE',          color: '#6B7280', bg: '#F3F4F6' },
   basic:      { label: 'BASIC',         color: '#1D9E75', bg: '#E1F5EE' },
-  premium:    { label: 'PREMIUM 👑',    color: '#F59E0B', bg: '#FFFBEB' },
-  enterprise: { label: 'ENTERPRISE 🏢', color: '#7C3AED', bg: '#EDE9FE' },
+  premium:    { label: 'PREMIUM',    color: '#F59E0B', bg: '#FFFBEB' },
+  enterprise: { label: 'ENTERPRISE', color: '#7C3AED', bg: '#EDE9FE' },
 }

@@ -74,7 +74,7 @@ export default function DalaliReviewsClient({ reviews: initial, ratingAvg, ratin
               <p className="text-4xl font-bold text-white">{ratingAvg > 0 ? ratingAvg.toFixed(1) : '—'}</p>
               <div className="flex gap-0.5 justify-center mt-1">
                 {[1,2,3,4,5].map(i => (
-                  <span key={i} className={`text-sm ${i <= Math.round(ratingAvg) ? 'text-amber-300' : 'text-white/30'}`}>★</span>
+                  <i key={i} className={`ti ti-star-filled text-sm ${i <= Math.round(ratingAvg) ? 'text-amber-300' : 'text-white/30'}`} aria-hidden="true" />
                 ))}
               </div>
               <p className="text-white/70 text-xs mt-1">{ratingCount} maoni</p>
@@ -135,20 +135,20 @@ export default function DalaliReviewsClient({ reviews: initial, ratingAvg, ratin
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-gray-900">{review.reviewer?.full_name ?? 'Mteja'}</p>
                     {review.is_verified && (
-                      <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">✓ Imethibitishwa</span>
+                      <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Imethibitishwa</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <div className="flex gap-0.5">
                       {[1,2,3,4,5].map(i => (
-                        <span key={i} className={`text-sm ${i <= review.rating ? 'text-amber-400' : 'text-gray-200'}`}>★</span>
+                        <i key={i} className={`ti ti-star-filled text-sm ${i <= review.rating ? 'text-amber-400' : 'text-gray-200'}`} aria-hidden="true" />
                       ))}
                     </div>
                     <span className="text-xs text-gray-400" suppressHydrationWarning>{timeAgo(review.created_at)}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-gray-400 flex-shrink-0">
-                  <span>👍</span>
+                  <i className="ti ti-thumb-up" aria-hidden="true" />
                   <span>{review.helpful_count ?? 0}</span>
                 </div>
               </div>
@@ -163,7 +163,7 @@ export default function DalaliReviewsClient({ reviews: initial, ratingAvg, ratin
               {/* Existing reply */}
               {review.response && (
                 <div className="bg-primary-50 rounded-xl px-3 py-2.5 border-l-2 border-primary-300 mb-3">
-                  <p className="text-xs font-semibold text-primary-700 mb-1">💬 Jibu lako</p>
+                  <p className="text-xs font-semibold text-primary-700 mb-1 flex items-center gap-1"><i className="ti ti-message-circle" aria-hidden="true" />Jibu lako</p>
                   <p className="text-xs text-gray-600">{review.response}</p>
                   {review.response_at && (
                     <p className="text-[10px] text-gray-400 mt-1" suppressHydrationWarning>{timeAgo(review.response_at)}</p>
@@ -195,7 +195,7 @@ export default function DalaliReviewsClient({ reviews: initial, ratingAvg, ratin
                       disabled={replyLoading || !replyText.trim()}
                       className="flex-1 py-2.5 rounded-xl bg-primary-500 text-white text-xs font-semibold disabled:opacity-40"
                     >
-                      {replyLoading ? 'Inatuma...' : '💬 Tuma Jibu'}
+                      {replyLoading ? 'Inatuma...' : 'Tuma Jibu'}
                     </button>
                   </div>
                 </div>
@@ -205,14 +205,14 @@ export default function DalaliReviewsClient({ reviews: initial, ratingAvg, ratin
                   className="w-full py-2.5 rounded-xl bg-gray-50 text-gray-600 text-xs font-medium
                              hover:bg-gray-100 active:scale-[0.97] transition-all border border-gray-100"
                 >
-                  💬 Jibu Review
+                  <i className="ti ti-message-circle" aria-hidden="true" /> Jibu Review
                 </button>
               ) : (
                 <button
                   onClick={() => { setReplyId(review.id); setReplyText(review.response ?? '') }}
                   className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  ✏️ Hariri jibu
+                  <i className="ti ti-pencil" aria-hidden="true" /> Hariri jibu
                 </button>
               )}
             </div>

@@ -10,9 +10,9 @@ type Template = {
   is_active: boolean
 }
 
-const categoryEmojis: Record<string, string> = {
-  greeting: '👋', followup: '🔄', viewing: '🏠',
-  closing: '✅', reminder: '⏰', general: '💬',
+const categoryIcons: Record<string, string> = {
+  greeting: 'hand-finger', followup: 'refresh', viewing: 'home',
+  closing: 'circle-check', reminder: 'clock', general: 'message-circle',
 }
 
 export default function TemplatesClient() {
@@ -67,18 +67,18 @@ export default function TemplatesClient() {
       <div className="hidden lg:block p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">💬 WhatsApp Templates</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-message-circle" aria-hidden="true" />WhatsApp Templates</h1>
             <p className="text-gray-500 text-sm mt-0.5">{templates.length} templates</p>
           </div>
           <button onClick={() => setShowAdd(true)}
             className="px-4 py-2 bg-primary-500 text-white rounded-xl text-sm font-bold hover:bg-primary-600">
-            ➕ Template Mpya
+            <i className="ti ti-plus" aria-hidden="true" /> Template Mpya
           </button>
         </div>
 
         {templates.length === 0 && (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <div className="text-4xl mb-2">💬</div>
+            <div className="text-4xl mb-2 flex justify-center"><i className="ti ti-message-circle text-gray-400" aria-hidden="true" /></div>
             <p className="text-gray-400">Hakuna templates — ongeza ya kwanza</p>
           </div>
         )}
@@ -86,7 +86,7 @@ export default function TemplatesClient() {
         {Object.entries(grouped).map(([category, temps]) => (
           <div key={category} className="mb-8">
             <p className="font-semibold text-gray-700 mb-4">
-              {categoryEmojis[category] || '💬'}{' '}
+              <i className={`ti ti-${categoryIcons[category] || 'message-circle'}`} aria-hidden="true" />{' '}
               {category.charAt(0).toUpperCase() + category.slice(1)}
             </p>
             <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
@@ -100,11 +100,11 @@ export default function TemplatesClient() {
                         className={`p-1.5 rounded-lg text-xs transition-all ${
                           copied === t.id ? 'bg-green-500 text-white' : 'bg-[#25D366] text-white'
                         }`}>
-                        {copied === t.id ? '✅' : '📋'}
+                        {copied === t.id ? <i className="ti ti-circle-check" aria-hidden="true" /> : <i className="ti ti-clipboard" aria-hidden="true" />}
                       </button>
                       <button onClick={() => deleteTemplate(t.id)}
                         className="p-1.5 bg-red-100 text-red-500 rounded-lg text-xs">
-                        🗑️
+                        <i className="ti ti-trash" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -132,12 +132,12 @@ export default function TemplatesClient() {
       <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-white font-bold text-lg">💬 WhatsApp Templates</h1>
+            <h1 className="text-white font-bold text-lg flex items-center gap-2"><i className="ti ti-message-circle" aria-hidden="true" />WhatsApp Templates</h1>
             <p className="text-green-100 text-xs">{templates.length} templates</p>
           </div>
           <button onClick={() => setShowAdd(true)}
             className="bg-white text-primary-500 text-xs px-4 py-2 rounded-xl font-bold">
-            ➕ Ongeza
+            <i className="ti ti-plus" aria-hidden="true" /> Ongeza
           </button>
         </div>
       </header>
@@ -146,7 +146,7 @@ export default function TemplatesClient() {
         {Object.entries(grouped).map(([category, temps]) => (
           <div key={category}>
             <p className="font-semibold text-sm text-gray-700 mb-3">
-              {categoryEmojis[category] || '💬'}{' '}
+              <i className={`ti ti-${categoryIcons[category] || 'message-circle'}`} aria-hidden="true" />{' '}
               {category.charAt(0).toUpperCase() + category.slice(1)}
             </p>
             <div className="space-y-3">
@@ -161,11 +161,11 @@ export default function TemplatesClient() {
                             ? 'bg-green-500 text-white'
                             : 'bg-[#25D366] text-white'
                         }`}>
-                        {copied === t.id ? '✅ Imekopwa' : '📋 Copy'}
+                        {copied === t.id ? <><i className="ti ti-circle-check" aria-hidden="true" /> Imekopwa</> : <><i className="ti ti-clipboard" aria-hidden="true" /> Copy</>}
                       </button>
                       <button onClick={() => deleteTemplate(t.id)}
                         className="bg-red-100 text-red-600 text-xs px-2 py-1.5 rounded-lg">
-                        🗑️
+                        <i className="ti ti-trash" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -184,7 +184,7 @@ export default function TemplatesClient() {
 
         {templates.length === 0 && (
           <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
-            <div className="text-4xl mb-2">💬</div>
+            <div className="text-4xl mb-2 flex justify-center"><i className="ti ti-message-circle text-gray-400" aria-hidden="true" /></div>
             <p className="text-gray-400 text-sm">Hakuna templates — ongeza ya kwanza</p>
           </div>
         )}
@@ -197,8 +197,8 @@ export default function TemplatesClient() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center lg:justify-center">
           <div className="bg-white w-full rounded-t-3xl lg:rounded-2xl p-5 max-h-[85vh] overflow-y-auto lg:max-w-md lg:w-full">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">➕ Template Mpya</h3>
-              <button onClick={() => setShowAdd(false)} aria-label="Funga" className="text-gray-400 text-xl">✕</button>
+              <h3 className="font-bold text-lg flex items-center gap-1"><i className="ti ti-plus" aria-hidden="true" />Template Mpya</h3>
+              <button onClick={() => setShowAdd(false)} aria-label="Funga" className="text-gray-400 text-xl"><i className="ti ti-x" aria-hidden="true" /></button>
             </div>
             <div className="space-y-3">
               <input type="text" placeholder="Jina la template" value={form.name}
@@ -207,12 +207,12 @@ export default function TemplatesClient() {
               <select value={form.category}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
-                <option value="greeting">👋 Greeting</option>
-                <option value="followup">🔄 Follow-up</option>
-                <option value="viewing">🏠 Viewing</option>
-                <option value="closing">✅ Closing</option>
+                <option value="greeting">Greeting</option>
+                <option value="followup">Follow-up</option>
+                <option value="viewing">Viewing</option>
+                <option value="closing">Closing</option>
                 <option value="reminder">⏰ Reminder</option>
-                <option value="general">💬 General</option>
+                <option value="general">General</option>
               </select>
               <textarea
                 placeholder={`Andika template hapa...\nTumia {jina} kwa jina la lead\nTumia {dalali} kwa jina lako\nTumia {mkoa} kwa mkoa\nTumia {tarehe} kwa tarehe`}
@@ -222,7 +222,7 @@ export default function TemplatesClient() {
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none resize-none" />
               <button onClick={addTemplate} disabled={!form.name || !form.message}
                 className="w-full bg-primary-500 text-white py-4 rounded-2xl font-bold disabled:opacity-50">
-                ➕ Hifadhi Template
+                <i className="ti ti-plus" aria-hidden="true" /> Hifadhi Template
               </button>
             </div>
           </div>

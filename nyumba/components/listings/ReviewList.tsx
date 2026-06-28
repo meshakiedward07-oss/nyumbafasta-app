@@ -64,9 +64,9 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-gray-50">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-gray-900">⭐ Maoni ya Wateja</h3>
+          <h3 className="text-sm font-bold text-gray-900"><i className="ti ti-star-filled text-amber-400" aria-hidden="true" /> Maoni ya Wateja</h3>
           <div className="flex items-center gap-1">
-            <span className="text-amber-400 text-base">★</span>
+            <i className="ti ti-star-filled text-amber-400 text-base" aria-hidden="true" />
             <span className="font-bold text-gray-900 text-sm">{ratingAvg.toFixed(1)}</span>
             <span className="text-xs text-gray-400">({ratingCount})</span>
           </div>
@@ -80,7 +80,7 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
             return (
               <div key={star} className="flex items-center gap-2">
                 <span className="text-xs text-gray-500 w-3 flex-shrink-0">{star}</span>
-                <span className="text-amber-400 text-xs flex-shrink-0">★</span>
+                <i className="ti ti-star-filled text-amber-400 text-xs flex-shrink-0" aria-hidden="true" />
                 <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
                   <div className="bg-amber-400 h-full rounded-full transition-all duration-500"
                     style={{ width: `${pct}%` }} />
@@ -95,8 +95,8 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
         <div className="flex bg-gray-100 rounded-xl p-0.5 gap-0.5">
           {([
             { key: 'recent',  label: 'Hivi karibuni' },
-            { key: 'highest', label: '⭐ Juu zaidi' },
-            { key: 'helpful', label: '👍 Msaada' },
+            { key: 'highest', label: 'Juu zaidi' },
+            { key: 'helpful', label: 'Msaada' },
           ] as { key: SortOrder; label: string }[]).map(({ key, label }) => (
             <button key={key} onClick={() => setSort(key)}
               className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -129,14 +129,14 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
                     </span>
                     {review.is_verified && (
                       <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">
-                        ✓ Imethibitishwa
+                        <i className="ti ti-circle-check" aria-hidden="true" /> Imethibitishwa
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <div className="flex gap-0.5">
                       {[1, 2, 3, 4, 5].map(i => (
-                        <span key={i} className={`text-sm ${i <= review.rating ? 'text-amber-400' : 'text-gray-200'}`}>★</span>
+                        <i key={i} className={`ti ti-star-filled text-sm ${i <= review.rating ? 'text-amber-400' : 'text-gray-200'}`} aria-hidden="true" />
                       ))}
                     </div>
                     <span className="text-xs text-gray-400" suppressHydrationWarning>{timeAgo(review.created_at)}</span>
@@ -162,7 +162,7 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
                       : 'bg-gray-50 text-gray-400 hover:bg-gray-100 active:scale-95'
                   }`}
                 >
-                  <span>👍</span>
+                  <i className="ti ti-thumb-up" aria-hidden="true" />
                   <span>{voted ? 'Umepiga kura' : 'Ilikuwa na msaada'}</span>
                   {hCount > 0 && <span className="font-semibold">({hCount})</span>}
                 </button>
@@ -171,7 +171,7 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
               {/* Dalali reply */}
               {review.response && (
                 <div className="mt-3 ml-11 bg-primary-50 rounded-xl px-3 py-2.5 border-l-2 border-primary-300">
-                  <p className="text-xs font-semibold text-primary-700 mb-1">💬 Jibu la Dalali</p>
+                  <p className="text-xs font-semibold text-primary-700 mb-1 flex items-center gap-1"><i className="ti ti-message-circle" aria-hidden="true" />Jibu la Dalali</p>
                   <p className="text-xs text-gray-600 leading-relaxed">{review.response}</p>
                   {review.response_at && (
                     <p className="text-xs text-gray-400 mt-1" suppressHydrationWarning>{timeAgo(review.response_at)}</p>

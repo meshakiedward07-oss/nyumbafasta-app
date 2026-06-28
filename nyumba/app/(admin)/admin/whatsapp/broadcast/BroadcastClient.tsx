@@ -183,7 +183,7 @@ export default function BroadcastClient() {
         {/* Send error */}
         {sendError && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
-            <span className="text-xl">❌</span>
+            <i className="ti ti-x text-xl" aria-hidden="true" />
             <div>
               <p className="text-sm font-bold text-red-800">Broadcast Imeshindwa</p>
               <p className="text-xs text-red-700 mt-1">{sendError}</p>
@@ -194,7 +194,7 @@ export default function BroadcastClient() {
         {/* Result */}
         {result && (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-start gap-3">
-            <span className="text-xl">✅</span>
+            <i className="ti ti-circle-check text-xl" aria-hidden="true" />
             <div>
               <p className="text-sm font-bold text-green-800">Broadcast Imekamilika!</p>
               <p className="text-xs text-green-700 mt-1">

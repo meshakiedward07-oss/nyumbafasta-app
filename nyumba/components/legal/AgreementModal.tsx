@@ -127,7 +127,7 @@ export default function AgreementModal({
               {lang === 'sw' ? titleSW : titleEN}
             </p>
             <p className="text-white/70 text-xs mt-0.5">
-              {role === 'client' ? '🔍 Mteja / Client' : '🏢 Dalali / Broker'} · v{version}
+              {role === 'client' ? 'Mteja / Client' : 'Dalali / Broker'} · v{version}
             </p>
           </div>
           {/* Language toggle */}
@@ -163,7 +163,7 @@ export default function AgreementModal({
       {/* Commitments preview — shown upfront so user knows what they'll agree to */}
       <div className="bg-primary-50 border-b border-primary-100 px-4 py-3 flex-shrink-0">
         <p className="text-xs font-semibold text-primary-800 mb-2 max-w-lg mx-auto">
-          {lang === 'sw' ? '📋 Utakubali yafuatayo:' : '📋 You will agree to the following:'}
+          {lang === 'sw' ? 'Utakubali yafuatayo:' : 'You will agree to the following:'}
         </p>
         <ul className="space-y-1 max-w-lg mx-auto">
           {boxes.map(b => (
@@ -179,7 +179,7 @@ export default function AgreementModal({
       {!hasScrolled && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex-shrink-0">
           <p className="text-amber-700 text-xs text-center font-medium max-w-lg mx-auto">
-            ⚠️ {lang === 'sw'
+            <i className="ti ti-alert-triangle" aria-hidden="true" /> {lang === 'sw'
               ? `Soma hadi mwisho ili uweze kukubali (${scrollPct}% imesomwa)`
               : `Read to the bottom to accept (${scrollPct}% read)`
             }
@@ -215,7 +215,7 @@ export default function AgreementModal({
         {hasScrolled && (
           <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-3 text-center">
             <span className="text-green-600 text-xs font-medium">
-              ✅ {lang === 'sw' ? 'Umesoma makubaliano yote' : 'You have read the full agreement'}
+              <i className="ti ti-circle-check" aria-hidden="true" /> {lang === 'sw' ? 'Umesoma makubaliano yote' : 'You have read the full agreement'}
             </span>
           </div>
         )}
@@ -257,7 +257,7 @@ export default function AgreementModal({
           <div className="space-y-3 pt-1">
             <div className="bg-gray-50 rounded-xl p-3">
               <p className="text-xs font-semibold text-gray-700 mb-2">
-                ✍️ {lang === 'sw' ? 'Sahihi ya Kidijitali' : 'Digital Signature'}
+                <i className="ti ti-signature" aria-hidden="true" /> {lang === 'sw' ? 'Sahihi ya Kidijitali' : 'Digital Signature'}
               </p>
               <div className="space-y-2">
                 <div>
@@ -305,13 +305,13 @@ export default function AgreementModal({
               <p>⬇️ {lang === 'sw' ? 'Soma hadi mwisho wa makubaliano' : 'Scroll to the bottom of the agreement'}</p>
             )}
             {hasScrolled && !allChecked && (
-              <p>☑️ {lang === 'sw' ? 'Tia alama kwenye visanduku vyote' : 'Check all checkboxes above'}</p>
+              <p><i className="ti ti-checkbox" aria-hidden="true" /> {lang === 'sw' ? 'Tia alama kwenye visanduku vyote' : 'Check all checkboxes above'}</p>
             )}
             {hasScrolled && allChecked && fullName.trim().length < 3 && (
-              <p>✍️ {lang === 'sw' ? 'Andika jina lako kamili' : 'Enter your full name'}</p>
+              <p><i className="ti ti-signature" aria-hidden="true" /> {lang === 'sw' ? 'Andika jina lako kamili' : 'Enter your full name'}</p>
             )}
             {hasScrolled && allChecked && fullName.trim().length >= 3 && phone.trim().length < 9 && (
-              <p>📱 {lang === 'sw' ? 'Weka nambari ya simu sahihi' : 'Enter a valid phone number'}</p>
+              <p><i className="ti ti-device-mobile" aria-hidden="true" /> {lang === 'sw' ? 'Weka nambari ya simu sahihi' : 'Enter a valid phone number'}</p>
             )}
           </div>
         )}
@@ -329,7 +329,7 @@ export default function AgreementModal({
           {submitting
             ? (lang === 'sw' ? 'Inakubali...' : 'Accepting...')
             : canAccept
-              ? (lang === 'sw' ? '✅ Nakubaliana na Masharti Yote' : '✅ I Agree to All Terms')
+              ? (lang === 'sw' ? 'Nakubaliana na Masharti Yote' : 'I Agree to All Terms')
               : (lang === 'sw' ? 'Nakubaliana / I Agree' : 'Nakubaliana / I Agree')
           }
         </button>

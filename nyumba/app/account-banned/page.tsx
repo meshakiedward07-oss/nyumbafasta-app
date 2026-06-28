@@ -18,7 +18,7 @@ export default function AccountBannedPage() {
 
         {/* Icon */}
         <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
-          <span className="text-4xl">🚫</span>
+          <i className="ti ti-ban text-4xl text-red-500" aria-hidden="true" />
         </div>
 
         <h1 className="text-xl font-bold text-gray-900 mb-2">
@@ -49,7 +49,7 @@ export default function AccountBannedPage() {
           rel="noopener noreferrer"
           className="block w-full bg-gray-800 text-white py-3.5 rounded-xl text-sm font-semibold mb-3 hover:bg-gray-700 transition-colors"
         >
-          📝 Omba Rufaa (Appeal)
+          <i className="ti ti-pencil" aria-hidden="true" /> Omba Rufaa (Appeal)
         </a>
 
         <button

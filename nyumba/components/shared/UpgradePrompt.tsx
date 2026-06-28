@@ -12,7 +12,7 @@ export default function UpgradePrompt({ feature, requiredPlan }: Props) {
 
   return (
     <div className="text-center py-8 px-4">
-      <div className="text-4xl mb-3">{plan.emoji}</div>
+      <div className="text-4xl mb-3"><i className={`ti ti-${plan.icon} text-4xl text-primary-400`} aria-hidden="true" /></div>
       <p className="font-bold text-gray-800 mb-1">
         {feature} inahitaji {plan.name}
       </p>

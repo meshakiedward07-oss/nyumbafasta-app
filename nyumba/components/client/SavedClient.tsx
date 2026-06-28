@@ -56,9 +56,9 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
       <div className="px-4 pt-4">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="text-6xl mb-4">❤️</div>
+            <div className="text-6xl mb-4 flex justify-center"><i className="ti ti-heart text-gray-300 text-6xl" aria-hidden="true" /></div>
             <p className="text-gray-600 font-semibold mb-1">Bado hujahifadhi listings</p>
-            <p className="text-gray-400 text-sm mb-6">Bonyeza ❤️ kwenye listing yoyote kuihifadhi hapa</p>
+            <p className="text-gray-400 text-sm mb-6">Bonyeza kwenye listing yoyote kuihifadhi hapa</p>
             <Link
               href="/"
               className="bg-primary-500 text-white px-6 py-3 rounded-2xl text-sm font-semibold"
@@ -76,7 +76,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                 }`}>
                   {listing.status === 'taken' && (
                     <div className="bg-amber-50 px-3 py-2 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-amber-700">🔴 Nyumba hii imeshapangishwa</span>
+                      <span className="text-xs font-semibold text-amber-700 flex items-center gap-1"><i className="ti ti-circle-dot text-red-500" aria-hidden="true" />Nyumba hii imeshapangishwa</span>
                       <Link href={`/?region=${listing.region}`}
                         className="text-xs text-primary-600 font-medium underline">
                         Tafuta nyingine →
@@ -88,11 +88,11 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                       {listing.images?.[0] ? (
                         <Image fill src={listing.images[0]} alt="" className="object-cover" sizes="100vw" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-4xl">🏠</div>
+                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-4xl"><i className="ti ti-home" aria-hidden="true" /></div>
                       )}
                       {listing.is_boosted && listing.status !== 'taken' && (
                         <div className="absolute top-2 left-2 bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full">
-                          ⚡ Boosted
+                          <i className="ti ti-bolt" aria-hidden="true" /> Boosted
                         </div>
                       )}
                       <div className={`absolute top-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -115,14 +115,14 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                           {formatPrice(listing.price_monthly)}/mwezi
                         </p>
                       </div>
-                      <p className="text-xs text-gray-400 mb-2">📍 {listing.district}, {listing.region}</p>
+                      <p className="text-xs text-gray-400 mb-2 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" />{listing.district}, {listing.region}</p>
                       {profile && (
                         <div className="flex items-center gap-1.5">
                           <div className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold">
                             {listing.dalali?.full_name?.[0] ?? 'D'}
                           </div>
                           <span className="text-xs text-gray-500">{listing.dalali?.full_name}</span>
-                          {profile.is_premium_verified && <span className="text-primary-500 text-xs">✓</span>}
+                          {profile.is_premium_verified && <i className="ti ti-circle-check text-primary-500 text-xs" aria-hidden="true" />}
                         </div>
                       )}
                     </div>
@@ -152,7 +152,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                         onClick={() => setConfirmingRemove(listing.id)}
                         className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors"
                       >
-                        <span>🗑</span>
+                        <i className="ti ti-trash" aria-hidden="true" />
                         Ondoa
                       </button>
                     )}

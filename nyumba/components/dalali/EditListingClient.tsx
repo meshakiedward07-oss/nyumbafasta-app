@@ -33,28 +33,28 @@ type ListingData = {
 }
 
 const LISTING_TYPES = [
-  { value: 'chumba' as ListingType,    label: 'Chumba',    icon: '🚪' },
-  { value: 'apartment' as ListingType, label: 'Apartment', icon: '🏢' },
-  { value: 'nyumba' as ListingType,    label: 'Nyumba',    icon: '🏠' },
-  { value: 'studio' as ListingType,    label: 'Studio',    icon: '🛋' },
-  { value: 'duka' as ListingType,      label: 'Duka',      icon: '🏪' },
+  { value: 'chumba' as ListingType,    label: 'Chumba',    icon: 'door' },
+  { value: 'apartment' as ListingType, label: 'Apartment', icon: 'building' },
+  { value: 'nyumba' as ListingType,    label: 'Nyumba',    icon: 'home' },
+  { value: 'studio' as ListingType,    label: 'Studio',    icon: 'sofa' },
+  { value: 'duka' as ListingType,      label: 'Duka',      icon: 'building-store' },
 ]
 
 const REGIONS = TANZANIA_REGIONS.map(r => r.name)
 
 const AMENITIES = [
-  { value: 'umeme', label: 'Umeme', icon: '⚡' },
-  { value: 'maji', label: 'Maji', icon: '💧' },
-  { value: 'wifi', label: 'WiFi', icon: '📶' },
-  { value: 'parking', label: 'Parking', icon: '🚗' },
-  { value: 'choo_ndani', label: 'Choo ndani', icon: '🚿' },
-  { value: 'daladala', label: 'Daladala', icon: '🚌' },
-  { value: 'watchman', label: 'Watchman', icon: '💂' },
-  { value: 'ac', label: 'AC', icon: '❄️' },
-  { value: 'dstv', label: 'DSTV', icon: '📺' },
-  { value: 'solar', label: 'Solar', icon: '☀️' },
-  { value: 'soko', label: 'Soko karibu', icon: '🛒' },
-  { value: 'bustani', label: 'Bustani', icon: '🌿' },
+  { value: 'umeme', label: 'Umeme', icon: 'bolt' },
+  { value: 'maji', label: 'Maji', icon: 'droplet' },
+  { value: 'wifi', label: 'WiFi', icon: 'wifi' },
+  { value: 'parking', label: 'Parking', icon: 'car' },
+  { value: 'choo_ndani', label: 'Choo ndani', icon: 'bath' },
+  { value: 'daladala', label: 'Daladala', icon: 'bus' },
+  { value: 'watchman', label: 'Watchman', icon: 'shield' },
+  { value: 'ac', label: 'AC', icon: 'snowflake' },
+  { value: 'dstv', label: 'DSTV', icon: 'device-tv' },
+  { value: 'solar', label: 'Solar', icon: 'sun' },
+  { value: 'soko', label: 'Soko karibu', icon: 'shopping-cart' },
+  { value: 'bustani', label: 'Bustani', icon: 'leaf' },
 ]
 
 
@@ -152,7 +152,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
           </div>
           {listing.status === 'active' && (
             <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-              ⚠️ Itasubiri idhini tena
+              <i className="ti ti-alert-triangle" aria-hidden="true" /> Itasubiri idhini tena
             </span>
           )}
         </div>
@@ -175,9 +175,9 @@ export default function EditListingClient({ listing }: { listing: ListingData })
                     className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
                       type === t.value ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'
                     } ${i === LISTING_TYPES.length - 1 && LISTING_TYPES.length % 2 !== 0 ? 'col-span-2' : ''}`}>
-                    <span className="text-xl">{t.icon}</span>
+                    <i className={`ti ti-${t.icon} text-xl`} aria-hidden="true" />
                     <span className={`text-sm font-medium ${type === t.value ? 'text-primary-700' : 'text-gray-700'}`}>{t.label}</span>
-                    {type === t.value && <span className="ml-auto text-primary-500 text-sm">✓</span>}
+                    {type === t.value && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
                   </button>
                 ))}
               </div>
@@ -241,7 +241,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
             {/* Satellite location picker */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                📍 Pin ya Ramani (hiari)
+                <i className="ti ti-map-pin" aria-hidden="true" /> Pin ya Ramani (hiari)
               </label>
               <ListingLocationPicker
                 initialLocation={
@@ -269,9 +269,9 @@ export default function EditListingClient({ listing }: { listing: ListingData })
                     className={`flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all ${
                       selected ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'
                     }`}>
-                    <span className="text-lg leading-none">{a.icon}</span>
+                    <i className={`ti ti-${a.icon} text-lg leading-none`} aria-hidden="true" />
                     <span className={`text-xs font-medium flex-1 ${selected ? 'text-primary-700' : 'text-gray-600'}`}>{a.label}</span>
-                    {selected && <span className="text-primary-500 text-xs">✓</span>}
+                    {selected && <i className="ti ti-check text-primary-500 text-xs" aria-hidden="true" />}
                   </button>
                 )
               })}
@@ -298,7 +298,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
 
             {/* Summary */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-2 text-sm">
-              <h3 className="font-bold text-gray-800 mb-2">📋 Muhtasari</h3>
+              <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />Muhtasari</h3>
               {[
                 ['Aina', LISTING_TYPES.find(t => t.value === type)?.label ?? type],
                 ['Bei', `Tsh ${parseInt(price || '0').toLocaleString()} / mwezi`],
@@ -340,7 +340,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Subiri picha zikamilike...
               </span>
-            ) : '💾 Hifadhi Mabadiliko'}
+            ) : 'Hifadhi Mabadiliko'}
           </button>
         )}
       </div>

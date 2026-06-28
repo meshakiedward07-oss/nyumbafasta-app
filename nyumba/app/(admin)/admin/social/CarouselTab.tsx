@@ -88,11 +88,11 @@ export default function CarouselTab() {
       const data = await res.json() as { success?: boolean; slidesCount?: number; error?: string }
 
       if (data.success) {
-        showMsg(`✅ Carousel imechapishwa! (Slides: ${data.slidesCount})`)
+        showMsg(`Carousel imechapishwa! (Slides: ${data.slidesCount})`)
         setSelectedId('')
         fetchCarousels()
       } else {
-        showMsg(`❌ Imeshindwa: ${data.error}`)
+        showMsg(`Imeshindwa: ${data.error}`)
       }
     } finally {
       setPosting(false)
@@ -115,7 +115,7 @@ export default function CarouselTab() {
 
       {/* Post form */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">🖼️ Chapisha Carousel Mpya</h2>
+        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><i className="ti ti-layout-columns" aria-hidden="true" /> Chapisha Carousel Mpya</h2>
         <form onSubmit={handlePost} className="space-y-4">
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1">Chagua Listing</label>
@@ -139,7 +139,7 @@ export default function CarouselTab() {
               <p className="text-xs font-medium text-gray-600 mb-2">
                 Slides: {selected.images?.length ?? 0}
                 {(selected.images?.length ?? 0) < 2 && (
-                  <span className="text-red-500 ml-2">⚠️ Inahitaji angalau 2</span>
+                  <span className="text-red-500 ml-2 flex items-center gap-0.5"><i className="ti ti-alert-triangle" aria-hidden="true" /> Inahitaji angalau 2</span>
                 )}
               </p>
               <div className="flex gap-2 overflow-x-auto pb-1">
@@ -160,7 +160,7 @@ export default function CarouselTab() {
           )}
 
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
-            <p className="font-semibold mb-1">ℹ️ Jinsi carousel inavyofanya kazi:</p>
+<p className="font-semibold mb-1 flex items-center gap-1"><i className="ti ti-info-circle" aria-hidden="true" /> Jinsi carousel inavyofanya kazi:</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>Picha zote za listing zinaonekana kwenye slide moja</li>
               <li>Watermark ya NyumbaFasta inawekwa kwenye kila slide</li>
@@ -175,21 +175,21 @@ export default function CarouselTab() {
             disabled={posting || !selectedId || (selected?.images?.length ?? 0) < 2}
             className="btn-primary w-full py-3"
           >
-            {posting ? '⏳ Inachapisha carousel...' : '🚀 Chapisha Carousel Sasa'}
+            {posting ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha carousel...</> : <><i className="ti ti-rocket" aria-hidden="true" /> Chapisha Carousel Sasa</>}
           </button>
         </form>
       </div>
 
       {/* History */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-3">📋 Historia ya Carousel</h3>
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2"><i className="ti ti-list" aria-hidden="true" /> Historia ya Carousel</h3>
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />)}
           </div>
         ) : carousels.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
-            <div className="text-4xl mb-3">🖼️</div>
+  <div className="text-4xl mb-3"><i className="ti ti-layout-columns" aria-hidden="true" /></div>
             <p>Hakuna carousel zilizochapishwa bado</p>
             <p className="text-sm mt-1">Chagua listing yenye picha 2+ hapo juu</p>
           </div>
@@ -201,10 +201,10 @@ export default function CarouselTab() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor[c.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {c.status === 'posted' ? '✅ Imechapishwa' : c.status === 'failed' ? '❌ Imeshindwa' : '⏳ Inasubiri'}
+                        {c.status === 'posted' ? 'Imechapishwa' : c.status === 'failed' ? 'Imeshindwa' : 'Inasubiri'}
                       </span>
                       {c.slides_count && (
-                        <span className="text-xs text-gray-500">🖼️ {c.slides_count} slides</span>
+<span className="text-xs text-gray-500 flex items-center gap-0.5"><i className="ti ti-layout-columns" aria-hidden="true" /> {c.slides_count} slides</span>
                       )}
                       <span className="text-xs text-gray-400">{timeAgo(c.created_at)}</span>
                     </div>
@@ -236,9 +236,9 @@ export default function CarouselTab() {
                 {/* Metrics */}
                 {c.status === 'posted' && (
                   <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-600">
-                    <span>❤️ {c.likes}</span>
-                    <span>💬 {c.comments}</span>
-                    <span>👁️ {c.reach}</span>
+<span className="flex items-center gap-0.5"><i className="ti ti-heart" aria-hidden="true" /> {c.likes}</span>
+<span className="flex items-center gap-0.5"><i className="ti ti-message-circle" aria-hidden="true" /> {c.comments}</span>
+<span className="flex items-center gap-0.5"><i className="ti ti-eye" aria-hidden="true" /> {c.reach}</span>
                     {c.posted_at && <span className="text-gray-400 ml-auto">{timeAgo(c.posted_at)}</span>}
                   </div>
                 )}

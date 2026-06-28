@@ -155,7 +155,7 @@ export default async function RegionPage({
               <SeoListingGrid listings={listings} />
             ) : (
               <div className="text-center py-14 px-4">
-                <div className="text-5xl mb-4">🏠</div>
+                <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-home text-gray-400" aria-hidden="true" /></div>
                 <h3 className="text-base font-bold text-gray-800 mb-2">
                   Hakuna listings {district ? `za ${district}` : `za ${region}`} kwa sasa
                 </h3>
