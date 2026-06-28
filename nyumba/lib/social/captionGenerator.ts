@@ -1,8 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { Listing } from '@/lib/types/database'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
 const IG_HASHTAGS = `#NyumbaFasta #NyumbaTanzania #ChumbaKwenye #KupataNyumba #HouseForRent #TanzaniaRealEstate #DarEsSalaam #NyumbaZuri #MalikiBora #Dalali`
 
 const SYSTEM_PROMPT = `Wewe ni mtaalamu wa kuandika maandishi ya kuvutia kwenye Instagram na Facebook kwa ajili ya NyumbaFasta — platform ya kupanga nyumba Tanzania.
@@ -23,7 +21,13 @@ export async function generateCaption(
   listing: Listing,
   platform: Platform = 'instagram',
 ): Promise<{ caption: string; hashtags: string }> {
-  const maxLen = platform === 'instagram' ? 2000 : 5000
+  const maxLen   = platform === 'instagram' ? 2000 : 5000
+  const hashtags = platform === 'instagram' ? buildHashtags(listing) : buildFBHashtags(listing)
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn('[Caption] ANTHROPIC_API_KEY haijawekwa — inatumia caption ya msingi')
+    return { caption: buildFallbackCaption(listing, maxLen), hashtags }
+  }
 
   const amenitiesStr = listing.amenities?.length
     ? listing.amenities.slice(0, 6).join(', ')
@@ -50,20 +54,46 @@ Mwisho wa caption ongeza: "📍 Link kwenye bio | 📲 Wasiliana nasi WhatsApp"
 Hashtags zitakuja tofauti, USIWEKE kwenye caption.
 Jibu kwa caption TU, bila maelezo mengine.`
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: prompt }],
-  })
+  try {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const response  = await anthropic.messages.create({
+      model:      'claude-sonnet-4-6',
+      max_tokens: 1024,
+      system:     SYSTEM_PROMPT,
+      messages:   [{ role: 'user', content: prompt }],
+    })
 
-  const block = response.content[0]
-  const rawCaption = (block?.type === 'text' ? block.text : '').trim()
-  const caption = rawCaption.slice(0, maxLen)
+    const block      = response.content[0]
+    const rawCaption = (block?.type === 'text' ? block.text : '').trim()
+    const caption    = rawCaption.slice(0, maxLen)
 
-  const hashtags = platform === 'instagram' ? buildHashtags(listing) : buildFBHashtags(listing)
+    return { caption, hashtags }
+  } catch (err) {
+    console.error('[Caption] AI generation failed — inatumia caption ya msingi:', err)
+    return { caption: buildFallbackCaption(listing, maxLen), hashtags }
+  }
+}
 
-  return { caption, hashtags }
+function buildFallbackCaption(listing: Listing, maxLen: number): string {
+  const price     = listing.price_monthly?.toLocaleString('sw-TZ') ?? '0'
+  const typeMap: Record<string, string> = {
+    chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio',
+  }
+  const type      = typeMap[listing.type] ?? 'Nyumba'
+  const furnished = listing.furnished === 'furnished' ? 'Furnished ✅' : listing.furnished === 'semi' ? 'Semi-furnished 🔸' : 'Empty 📦'
+
+  return [
+    `🏠 ${type.toUpperCase()} ya kupanga inapatikana!`,
+    '',
+    `📍 ${listing.district}, ${listing.region}`,
+    `💰 Tsh ${price}/mwezi`,
+    `🪑 ${furnished}`,
+    listing.bedrooms ? `🛏️ Vyumba ${listing.bedrooms}` : '',
+    '',
+    listing.description ? listing.description.slice(0, 200) : '',
+    '',
+    '📍 Link kwenye bio | 📲 Wasiliana nasi WhatsApp',
+  ].filter(l => l !== undefined).join('\n').trim().slice(0, maxLen)
 }
 
 function buildHashtags(listing: Listing): string {
@@ -128,7 +158,8 @@ Facebook (caption tu — hashtags 2-3 tu):
 Jibu kwa JSON tu, bila markdown wala maelezo mengine:
 {"instagram":"caption + hashtags hapa","facebook":"caption hapa"}`
 
-  const response = await anthropic.messages.create({
+  const anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const response = await anthropicClient.messages.create({
     model:      'claude-haiku-4-5-20251001',
     max_tokens: 1200,
     messages:   [{ role: 'user', content: prompt }],

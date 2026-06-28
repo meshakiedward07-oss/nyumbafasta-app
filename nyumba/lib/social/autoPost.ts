@@ -57,7 +57,7 @@ export async function postListingToSocialMedia(
     .select('id')
     .eq('listing_id', listingId)
     .eq('status', 'published')
-    .gte('created_at', since24h)
+    .gte('published_at', since24h)
     .limit(1)
     .maybeSingle()
   if (recentPost) {
@@ -75,21 +75,21 @@ export async function postListingToSocialMedia(
   const rawImageUrl = l.images?.[0] ?? null
   const rawVideoUrl = l.video_url ?? null
 
-  // Apply watermarks — mandatory before any post. Fail if watermark cannot be applied.
+  // Apply watermarks — best-effort. If watermark fails, continue with the original URL.
   let imageUrl = rawImageUrl
   let videoUrl = rawVideoUrl
 
   if (rawImageUrl) {
     imageUrl = await watermarkImage(rawImageUrl)
     if (imageUrl === rawImageUrl) {
-      throw new Error('[Watermark] Watermark ya picha haikuweza kutumika — kuchapisha kumesimamishwa')
+      console.warn('[Watermark] Picha haijawekwa alama — inatumia picha ya asili')
     }
   }
 
   if (rawVideoUrl) {
     videoUrl = watermarkVideo(rawVideoUrl)
     if (videoUrl === rawVideoUrl) {
-      throw new Error('[Watermark] Watermark ya video haikuweza kutumika — kuchapisha kumesimamishwa')
+      console.warn('[Watermark] Video haijawekwa alama — inatumia video ya asili')
     }
   }
 

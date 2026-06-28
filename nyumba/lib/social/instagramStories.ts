@@ -2,7 +2,7 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { isCloudinaryUrl } from '@/lib/media/watermark'
 import type { Listing } from '@/lib/types/database'
 
-const GRAPH      = 'https://graph.facebook.com/v18.0'
+const GRAPH      = 'https://graph.facebook.com/v21.0'
 const igToken    = () => process.env.INSTAGRAM_ACCESS_TOKEN ?? ''
 const igUserId   = () => process.env.INSTAGRAM_USER_ID      ?? ''
 const fbToken    = () => process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''

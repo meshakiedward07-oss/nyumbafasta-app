@@ -239,11 +239,13 @@ export async function postToFacebook(
   imageUrl?: string,
 ): Promise<string> {
   const endpoint = imageUrl ? `${GRAPH}/${fbPageId()}/photos` : `${GRAPH}/${fbPageId()}/feed`
-  const body: Record<string, string> = {
-    message,
-    access_token: fbToken(),
+  const body: Record<string, string> = { access_token: fbToken() }
+  if (imageUrl) {
+    body.url = imageUrl
+    body.caption = message   // /photos endpoint uses 'caption', not 'message'
+  } else {
+    body.message = message   // /feed endpoint uses 'message'
   }
-  if (imageUrl) body.url = imageUrl
 
   const res = await fetch(endpoint, {
     method: 'POST',

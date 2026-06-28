@@ -86,22 +86,15 @@ export async function postListingCarousel(listing: Listing): Promise<CarouselRes
 
   console.log('[Carousel] Processing', images.length, 'images for listing', listing.id)
 
-  // Watermark every slide (mandatory)
-  const rawSlides  = images.slice(0, 10)
+  // Watermark every slide — best-effort. watermarkImage returns original URL on failure.
+  const rawSlides   = images.slice(0, 10)
   const watermarked = await watermarkImages(rawSlides, 'bottom-right')
-
-  // Verify watermarks were actually applied (URLs must differ from originals)
-  const verifiedUrls = watermarked.filter((url, i) => url !== rawSlides[i])
-  if (verifiedUrls.length < 2) {
-    const err = 'Watermark haiwezi kutumika — kuchapisha carousel kumesimamishwa'
-    console.error('[Carousel]', err)
-    await supabaseAdmin.from('carousel_posts').insert({
-      listing_id:    listing.id,
-      status:        'failed',
-      error_message: err,
-    })
-    return { success: false, error: err }
+  const unwatermarked = watermarked.filter((url, i) => url === rawSlides[i]).length
+  if (unwatermarked > 0) {
+    console.warn(`[Carousel] ${unwatermarked} picha hazikuwekwa alama — inatumia picha za asili`)
   }
+
+  const slideUrls = watermarked
 
   // Generate caption via existing captionGenerator, add carousel-specific opener
   const { caption, hashtags } = await generateCaption(listing, 'instagram')
@@ -110,7 +103,7 @@ export async function postListingCarousel(listing: Listing): Promise<CarouselRes
   let result: CarouselResult
   try {
     result = await postInstagramCarousel({
-      imageUrls: verifiedUrls,
+      imageUrls: slideUrls,
       caption:   carouselCaption,
     })
   } catch (err) {
@@ -122,9 +115,9 @@ export async function postListingCarousel(listing: Listing): Promise<CarouselRes
   await supabaseAdmin.from('carousel_posts').insert({
     listing_id:    listing.id,
     post_id:       result.postId ?? null,
-    media_urls:    verifiedUrls,
+    media_urls:    slideUrls,
     caption:       carouselCaption,
-    slides_count:  result.slidesCount ?? verifiedUrls.length,
+    slides_count:  result.slidesCount ?? slideUrls.length,
     status:        result.success ? 'posted' : 'failed',
     error_message: result.error ?? null,
     posted_at:     result.success ? new Date().toISOString() : null,
