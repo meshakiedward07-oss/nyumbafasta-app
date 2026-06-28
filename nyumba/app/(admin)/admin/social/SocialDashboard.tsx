@@ -403,7 +403,7 @@ export default function SocialDashboard() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex min-h-full" style={{ background: '#f4f4f0' }}>
+    <div className="h-full flex overflow-hidden" style={{ background: '#f4f4f0' }}>
 
       {/* Toast */}
       {toast && (
@@ -414,10 +414,10 @@ export default function SocialDashboard() {
 
       {/* ── Desktop sidebar nav ─────────────────────────────────────────── */}
       <aside
-        className="hidden lg:flex flex-col w-[185px] flex-shrink-0 sticky top-0 self-start bg-white border-r"
-        style={{ borderColor: '#e5e5e0', maxHeight: '100vh' }}
+        className="hidden lg:flex flex-col w-[185px] flex-shrink-0 h-full overflow-y-auto bg-white border-r"
+        style={{ borderColor: '#e5e5e0' }}
       >
-        {/* Brand */}
+        {/* Brand + back link */}
         <div className="px-4 py-4 border-b flex-shrink-0" style={{ borderColor: '#e5e5e0' }}>
           <div className="flex items-center gap-2.5">
             <div
@@ -431,6 +431,14 @@ export default function SocialDashboard() {
               <p className="text-[10px] leading-tight" style={{ color: '#999992' }}>NyumbaFasta</p>
             </div>
           </div>
+          <a
+            href="/admin"
+            className="mt-3 flex items-center gap-1.5 text-[11px] font-medium rounded-lg px-2 py-1.5 transition-all hover:bg-gray-100"
+            style={{ color: '#666660' }}
+          >
+            <i className="ti ti-arrow-left text-xs" aria-hidden="true" />
+            Admin Panel
+          </a>
         </div>
 
         {/* Nav groups */}
@@ -487,27 +495,38 @@ export default function SocialDashboard() {
       </aside>
 
       {/* ── Main content ───────────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* Topbar */}
         <div
-          className="bg-white border-b px-6 py-4 flex items-center justify-between flex-shrink-0"
+          className="bg-white border-b px-4 lg:px-6 py-3 lg:py-4 flex items-center gap-3 justify-between flex-shrink-0"
           style={{ borderColor: '#e5e5e0' }}
         >
-          <div>
-            <h1 className="text-base font-bold leading-tight" style={{ color: '#1a1a18' }}>
-              {activeTabInfo ? activeTabInfo.label : 'Social Media'}
-            </h1>
-            <p className="text-xs mt-0.5" style={{ color: '#999992' }}>
-              TikTok, Instagram + Facebook automation — NyumbaFasta
-            </p>
+          {/* Mobile: back link + title */}
+          <div className="flex items-center gap-2 min-w-0">
+            <a
+              href="/admin"
+              className="lg:hidden flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100"
+              style={{ color: '#666660' }}
+              aria-label="Rudi Admin"
+            >
+              <i className="ti ti-arrow-left" aria-hidden="true" />
+            </a>
+            <div className="min-w-0">
+              <h1 className="text-sm lg:text-base font-bold leading-tight truncate" style={{ color: '#1a1a18' }}>
+                {activeTabInfo ? activeTabInfo.label : 'Social Media'}
+              </h1>
+              <p className="text-xs mt-0.5 hidden sm:block" style={{ color: '#999992' }}>
+                TikTok, Instagram + Facebook automation — NyumbaFasta
+              </p>
+            </div>
           </div>
           {/* Mobile nav selector */}
-          <div className="lg:hidden">
+          <div className="lg:hidden flex-shrink-0">
             <select
               value={activeTab}
               onChange={e => setActiveTab(e.target.value as Tab)}
-              className="text-sm rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="text-xs rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
             >
               {ALL_NAV_ITEMS.map(item => (
@@ -517,8 +536,8 @@ export default function SocialDashboard() {
           </div>
         </div>
 
-        {/* Page content */}
-        <div className="flex-1 p-6">
+        {/* Page content — only this area scrolls */}
+        <div className="flex-1 overflow-y-auto p-6">
 
           {/* ── PLATFORMS ZOTE (unified) ── */}
           {activeTab === 'yote' && (
