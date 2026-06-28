@@ -309,6 +309,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   const isStaff = userRole === 'staff'
 
+  // Social dashboard manages its own full-width layout with an inner sidebar
+  if (pathname.startsWith('/admin/social')) {
+    return <div className="min-h-screen bg-[#f4f4f0]">{children}</div>
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* ── Desktop sidebar (lg+) ── */}
