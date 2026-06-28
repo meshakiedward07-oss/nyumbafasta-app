@@ -30,7 +30,7 @@ export default function PrivacyPage() {
 
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
           <p className="text-sm text-blue-800 leading-relaxed">
-            NyumbaFasta ("we", "us", "our") is committed to protecting your personal information.
+            NyumbaFasta (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) is committed to protecting your personal information.
             This Privacy Policy explains what data we collect, how we use it, and your rights.
             It applies to all users of <strong>nyumbafasta.co</strong> and our mobile application.
           </p>
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
               <li>• <strong>Scopes used:</strong> <code className="bg-gray-100 px-1 rounded text-xs">video.publish</code>, <code className="bg-gray-100 px-1 rounded text-xs">video.upload</code></li>
             </ul>
             <p className="text-xs text-gray-400 mt-2">
-              TikTok's Privacy Policy: <a href="https://www.tiktok.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">tiktok.com/legal/privacy-policy</a>
+              TikTok&apos;s Privacy Policy: <a href="https://www.tiktok.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">tiktok.com/legal/privacy-policy</a>
             </p>
           </div>
 
@@ -111,7 +111,7 @@ export default function PrivacyPage() {
               <h3 className="text-sm font-semibold text-gray-900">Facebook Graph API (Meta)</h3>
             </div>
             <ul className="text-sm text-gray-600 space-y-1.5 leading-relaxed">
-              <li>• <strong>Purpose:</strong> Post property listings to NyumbaFasta's Facebook Page and groups</li>
+              <li>• <strong>Purpose:</strong> Post property listings to NyumbaFasta&apos;s Facebook Page and groups</li>
               <li>• <strong>Data accessed:</strong> Our own Facebook Page and linked catalog</li>
               <li>• <strong>User data shared:</strong> None</li>
             </ul>

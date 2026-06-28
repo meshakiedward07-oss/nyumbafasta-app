@@ -59,7 +59,7 @@ export default function TermsPage() {
           <h2 className="text-sm font-bold text-gray-900 mb-1">3. Payments & Fees</h2>
           <p className="text-xs text-gray-500 italic mb-3">Malipo</p>
           <ul className="text-sm text-gray-600 space-y-2 leading-relaxed">
-            <li>• Unlocking a dalali's contact costs <strong>Tsh 2,000</strong> per listing.</li>
+            <li>• Unlocking a dalali&apos;s contact costs <strong>Tsh 2,000</strong> per listing.</li>
             <li>• Basic subscription is <strong>Tsh 10,000/month</strong> (up to 5 listings).</li>
             <li>• Premium subscription is <strong>Tsh 25,000/month</strong> (up to 20 listings + boost + verified badge).</li>
             <li>• All payments are processed via Selcom (M-Pesa, Airtel Money, Tigo Pesa).</li>
@@ -91,7 +91,7 @@ export default function TermsPage() {
             <li>• <strong>Facebook Graph API</strong> — used to post listings to the official NyumbaFasta Facebook Page and relevant groups.</li>
           </ul>
           <p className="text-sm text-gray-600 leading-relaxed mt-3">
-            These integrations are used exclusively for marketing the platform's own listings.
+            These integrations are used exclusively for marketing the platform&apos;s own listings.
             User personal data (names, phone numbers, payment details) is never shared with these
             social media platforms.
           </p>
@@ -102,7 +102,7 @@ export default function TermsPage() {
           <p className="text-xs text-gray-500 italic mb-3">Faragha ya Data</p>
           <p className="text-sm text-gray-600 leading-relaxed">
             We protect your personal information and do not share it with third parties without your
-            consent. A dalali's phone number is only revealed to clients who have completed payment.
+            consent. A dalali&apos;s phone number is only revealed to clients who have completed payment.
             See our full <Link href="/privacy" className="text-primary-600 underline">Privacy Policy</Link> for details.
           </p>
         </div>
