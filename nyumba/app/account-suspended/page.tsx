@@ -18,7 +18,7 @@ export default function AccountSuspendedPage() {
 
         {/* Icon */}
         <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-5">
-          <span className="text-4xl">⏸️</span>
+          <i className="ti ti-player-pause text-4xl text-orange-400" aria-hidden="true" />
         </div>
 
         <h1 className="text-xl font-bold text-gray-900 mb-2">

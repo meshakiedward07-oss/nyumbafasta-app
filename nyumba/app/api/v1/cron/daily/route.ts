@@ -69,8 +69,8 @@ async function runDailyTasks() {
   try {
     const { data: expiredBoosts } = await admin
       .from('listings')
-      .update({ is_boosted: false, boost_expires_at: null })
-      .lt('boost_expires_at', now)
+      .update({ is_boosted: false, boosted_until: null })
+      .lt('boosted_until', now)
       .eq('is_boosted', true)
       .select('id')
     results.push(`✅ Boosts zilizokwisha: ${expiredBoosts?.length ?? 0}`)

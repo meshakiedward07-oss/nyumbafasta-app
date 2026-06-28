@@ -149,7 +149,7 @@ export default function StaffLeadsClient(props: {
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
                   {isFollowup && (
-                    <p className="text-xs text-amber-600 font-medium mb-1">⏰ Follow-up inahitajika</p>
+                    <p className="text-xs text-amber-600 font-medium mb-1"><i className="ti ti-clock" aria-hidden="true" /> Follow-up inahitajika</p>
                   )}
                   <p className="font-semibold text-gray-900">{lead.business_name || '—'}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
