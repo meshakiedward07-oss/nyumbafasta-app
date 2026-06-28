@@ -178,7 +178,7 @@ export default async function DalaliProfilePage({
                   <p className="text-sm text-gray-500 mt-0.5">Dalali wa NyumbaFasta · Tanzania</p>
                   {rating > 0 && (
                     <p className="flex items-center gap-1 mt-1 text-sm">
-                      <span className="text-amber-400">⭐</span>
+                      <i className="ti ti-star-filled text-amber-400" aria-hidden="true" />
                       <span className="font-medium text-gray-700">{rating.toFixed(1)}</span>
                       <span className="text-gray-400">({ratingCount} maoni)</span>
                     </p>

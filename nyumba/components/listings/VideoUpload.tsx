@@ -239,7 +239,7 @@ export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Pr
           <span className={`flex items-center gap-1 ${
             !isCompressing ? 'text-blue-600 font-medium' : 'text-blue-200'
           }`}>
-            {!isCompressing ? '⏳' : '○'} Pakia
+            {!isCompressing ? <i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> : <span className="inline-block w-2 h-2 rounded-full border border-current align-middle" />} Pakia
           </span>
         </div>
 

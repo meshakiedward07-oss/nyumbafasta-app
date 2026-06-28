@@ -513,7 +513,7 @@ export default function SubscriptionClient({
                 {plan.id === 'premium' && (
                   <div className="text-center py-1.5 text-white text-xs font-bold"
                     style={{ backgroundColor: plan.color }}>
-                    ⭐ INAPENDELEWA ZAIDI
+                    <i className="ti ti-star-filled mr-1" aria-hidden="true" />INAPENDELEWA ZAIDI
                   </div>
                 )}
 

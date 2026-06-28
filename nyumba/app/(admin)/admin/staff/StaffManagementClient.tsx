@@ -238,7 +238,7 @@ export default function StaffManagementClient() {
                       : 'bg-green-50 text-green-600 border border-green-200'
                   }`}
                 >
-                  {s.staff_active ? '⏸ Zimwa' : '▶ Washa'}
+                  {s.staff_active ? <><i className="ti ti-player-pause" aria-hidden="true" /> Zimwa</> : <><i className="ti ti-player-play" aria-hidden="true" /> Washa</>}
                 </button>
               </div>
               <button

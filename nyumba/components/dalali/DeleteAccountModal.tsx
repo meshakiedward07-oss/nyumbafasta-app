@@ -126,7 +126,7 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
                   <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
                     reason === r ? 'border-red-500 bg-red-500' : 'border-gray-300'
                   }`}>
-                    {reason === r && <span className="text-white text-[8px]">●</span>}
+                    {reason === r && <span className="w-2 h-2 rounded-full bg-white" />}
                   </div>
                   <span className="text-sm text-gray-700">{r}</span>
                 </button>

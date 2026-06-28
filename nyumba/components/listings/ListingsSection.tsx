@@ -351,7 +351,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
       {viewMode === 'grid' && !loading && boosted.length > 0 && (
         <div className="mb-2">
           <div className="px-4 flex items-center gap-2 mb-2">
-            <span className="text-base">⭐</span>
+            <i className="ti ti-star-filled text-amber-400 text-base" aria-hidden="true" />
             <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
               Zinashauriwa na NyumbaFasta
             </p>

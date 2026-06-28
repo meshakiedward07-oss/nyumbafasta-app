@@ -132,7 +132,7 @@ function ListingPicker({
         <span className={selected ? 'text-gray-900 font-medium' : 'text-gray-400'}>
           {selected ? `${selected.title} — ${selected.district}` : 'Chagua listing yenye video...'}
         </span>
-        <span className="text-gray-400 text-xs">{open ? '▲' : '▼'}</span>
+        <i className={`ti ti-chevron-${open ? 'up' : 'down'} text-gray-400 text-xs`} aria-hidden="true" />
       </button>
 
       {open && (

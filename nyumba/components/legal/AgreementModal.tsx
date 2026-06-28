@@ -168,7 +168,7 @@ export default function AgreementModal({
         <ul className="space-y-1 max-w-lg mx-auto">
           {boxes.map(b => (
             <li key={b.id} className="flex items-start gap-2 text-xs text-primary-700">
-              <span className="text-primary-400 flex-shrink-0 mt-0.5">○</span>
+              <i className="ti ti-circle text-primary-400 flex-shrink-0 mt-0.5 text-xs" aria-hidden="true" />
               {lang === 'sw' ? b.sw : b.en}
             </li>
           ))}

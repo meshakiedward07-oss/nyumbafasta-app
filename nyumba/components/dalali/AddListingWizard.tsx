@@ -877,7 +877,7 @@ export default function AddListingWizard() {
               {/* Option 2 — Upgrade */}
               {limitInfo?.plan === 'basic' && !extraDone && (
                 <div className="border border-amber-200 rounded-2xl p-4 bg-amber-50">
-                  <p className="font-semibold text-amber-800 mb-0.5">⭐ Upgrade kwenda Premium</p>
+                  <p className="font-semibold text-amber-800 mb-0.5"><i className="ti ti-star-filled mr-1" aria-hidden="true" />Upgrade kwenda Premium</p>
                   <p className="text-sm text-amber-600 mb-1">Listings 20 + boost + verified badge + analytics</p>
                   <p className="font-bold text-amber-700">Tsh 25,000/mwezi</p>
                   <button onClick={() => router.push('/dashboard/subscription')}

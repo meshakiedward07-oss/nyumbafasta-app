@@ -96,7 +96,7 @@ export default function ReportDalaliModal({ listingId, dalaliName, onClose }: Pr
                   <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
                     reason === r.value ? 'border-red-500 bg-red-500' : 'border-gray-300'
                   }`}>
-                    {reason === r.value && <span className="text-white text-[8px]">●</span>}
+                    {reason === r.value && <span className="w-2 h-2 rounded-full bg-white" />}
                   </div>
                   <i className={`ti ti-${r.icon} text-sm`} aria-hidden="true" />
                   <span className="text-sm text-gray-700">{r.value}</span>

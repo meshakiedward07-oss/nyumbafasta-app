@@ -215,7 +215,7 @@ export default function SimilarListings({
                 <p className="text-gray-400 text-xs line-clamp-1"><i className="ti ti-map-pin" aria-hidden="true" /> {listing.district}</p>
                 {listing.dalali?.dalali_profiles?.rating_avg && (
                   <p className="text-gray-400 text-xs mt-0.5">
-                    ⭐ {listing.dalali.dalali_profiles.rating_avg}
+                    <i className="ti ti-star-filled text-amber-400 mr-0.5" aria-hidden="true" />{listing.dalali.dalali_profiles.rating_avg}
                     {listing.dalali.dalali_profiles.is_premium_verified && (
                       <i className="ti ti-circle-check text-primary-500 ml-1" aria-hidden="true" />
                     )}

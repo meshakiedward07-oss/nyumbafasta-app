@@ -108,7 +108,7 @@ export default function DalaliReviewsClient({ reviews: initial, ratingAvg, ratin
           </div>
           <div className="bg-white rounded-2xl p-3 text-center border border-gray-100 shadow-sm">
             <p className="text-lg font-bold text-amber-500">{fiveStar}</p>
-            <p className="text-xs text-gray-400">⭐⭐⭐⭐⭐</p>
+            <p className="text-xs text-amber-400 flex items-center justify-center gap-px">{Array.from({length:5},(_,i)=><i key={i} className="ti ti-star-filled text-[10px]" aria-hidden="true"/>)}</p>
           </div>
           <div className="bg-white rounded-2xl p-3 text-center border border-gray-100 shadow-sm">
             <p className="text-lg font-bold text-primary-500">{reviews.filter(r => !r.response).length}</p>
@@ -119,7 +119,7 @@ export default function DalaliReviewsClient({ reviews: initial, ratingAvg, ratin
         {/* Reviews list */}
         {reviews.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center shadow-sm">
-            <div className="text-4xl mb-3">⭐</div>
+            <div className="text-4xl mb-3"><i className="ti ti-star-filled text-amber-400" aria-hidden="true" /></div>
             <p className="text-sm font-semibold text-gray-600 mb-1">Hakuna maoni bado</p>
             <p className="text-xs text-gray-400">Wateja wataandika maoni baada ya kufungua contact yako</p>
           </div>
