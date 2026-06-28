@@ -202,15 +202,15 @@ export default function SocialDashboard() {
       const [statsResult, connResult, listingsResult] = await Promise.allSettled([
         fetch(`/api/v1/social/stats?period=${period}`),
         fetch('/api/v1/social/connections'),
-        fetch('/api/v1/listings?status=active&limit=50'),
+        fetch('/api/v1/social/listings'),
       ])
       if (statsResult.status === 'fulfilled') {
         const statsData = await statsResult.value.json() as { platforms: UnifiedPlatformStat[]; totals: UnifiedTotals; recentPosts: UnifiedRecentPost[] }
         setUnifiedStats(statsData)
       }
       if (connResult.status === 'fulfilled') {
-        const connData = await connResult.value.json() as { platforms: PlatformConnection[] }
-        setConnections(connData.platforms ?? [])
+        const connData = await connResult.value.json() as { platforms?: PlatformConnection[] }
+        if (connData.platforms) setConnections(connData.platforms)
       }
       if (listingsResult.status === 'fulfilled') {
         const listData = await listingsResult.value.json() as { listings?: Listing[] }
@@ -255,7 +255,7 @@ export default function SocialDashboard() {
         setSchedule(data.schedule ?? [])
         setTotal(data.total ?? 0)
       } else if (tab === 'postnow') {
-        const res = await fetch('/api/v1/listings?status=active&limit=50')
+        const res = await fetch('/api/v1/social/listings')
         const data = await res.json() as { listings?: Listing[] }
         setListings(data.listings ?? [])
       }
@@ -265,6 +265,14 @@ export default function SocialDashboard() {
       setLoading(false)
     }
   }, [fetchUnified, unifiedPeriod])
+
+  // Fetch platform connection status once on mount — independent of active tab
+  useEffect(() => {
+    fetch('/api/v1/social/connections')
+      .then(r => r.json())
+      .then((d: { platforms?: PlatformConnection[] }) => { if (d.platforms) setConnections(d.platforms) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetchData(activeTab)
