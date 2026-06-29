@@ -3,11 +3,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const ITEMS = [
-  { href: '/dashboard',              icon: 'chart-bar', label: 'Nyumbani'    },
-  { href: '/dashboard/listings',     icon: 'home',      label: 'Matangazo'  },
-  { href: '/dashboard/listings/new', icon: 'plus',      label: 'Ongeza'     },
-  { href: '/dashboard/reviews',      icon: 'star',      label: 'Maoni'      },
-  { href: '/dashboard/profile',      icon: 'user',      label: 'Akaunti'    },
+  { href: '/dashboard',              icon: 'chart-bar',    iconActive: 'chart-bar',     label: 'Nyumbani'   },
+  { href: '/dashboard/listings',     icon: 'home',         iconActive: 'home-filled',   label: 'Matangazo'  },
+  { href: '/dashboard/listings/new', icon: 'plus',         iconActive: 'plus',          label: 'Ongeza'     },
+  { href: '/dashboard/reviews',      icon: 'star',         iconActive: 'star-filled',   label: 'Maoni'      },
+  { href: '/dashboard/profile',      icon: 'user',         iconActive: 'user-filled',   label: 'Akaunti'    },
 ]
 
 export default function DalaliBottomNav() {
@@ -15,27 +15,53 @@ export default function DalaliBottomNav() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 pt-2 z-40 tap-highlight-none"
+      className="fixed bottom-0 left-0 right-0 z-40 tap-highlight-none"
       style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}
     >
-      <div className="flex justify-around max-w-sm mx-auto">
-        {ITEMS.map(({ href, icon, label }) => {
+      {/* Glass blur backdrop */}
+      <div className="absolute inset-0 bg-white/90 backdrop-blur-md border-t border-gray-100/80" />
+
+      <div className="relative flex justify-around max-w-sm mx-auto px-1 pt-1">
+        {ITEMS.map(({ href, icon, iconActive, label }) => {
           const active =
             href === '/dashboard'
               ? pathname === '/dashboard'
               : pathname === href || pathname.startsWith(href + '/')
+
+          const isAdd = href === '/dashboard/listings/new'
+
           return (
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-0.5 py-1 px-2 min-h-[48px] min-w-[48px] justify-center rounded-xl transition-all duration-150
-                ${active ? 'text-primary-600' : 'text-gray-400 active:scale-90 md:hover:text-primary-600 md:hover:bg-primary-50'}`}
+              className="flex flex-col items-center gap-0.5 py-1 px-1 min-h-[52px] min-w-[48px] justify-center transition-all duration-150 active:scale-90"
             >
-              <i aria-hidden="true" className={`ti ti-${icon} text-xl transition-transform duration-150 ${active ? 'scale-110' : ''}`} />
-              <span className={`text-xs ${active ? 'font-semibold' : ''}`}>{label}</span>
-              {active && (
-                <span className="w-1 h-1 rounded-full bg-primary-500 mt-0.5" />
+              {/* Icon bubble — special treatment for the Add button */}
+              {isAdd ? (
+                <div className="w-11 h-11 flex items-center justify-center rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 shadow-[0_4px_16px_rgba(29,158,117,0.4)] -mt-3 transition-transform duration-150 active:scale-95">
+                  <i className="ti ti-plus text-xl font-bold text-white" aria-hidden="true" />
+                </div>
+              ) : (
+                <div className={`w-10 h-10 flex items-center justify-center rounded-2xl transition-all duration-200
+                  ${active
+                    ? 'bg-primary-500 shadow-[0_4px_12px_rgba(29,158,117,0.35)] scale-105'
+                    : 'bg-transparent'
+                  }`}
+                >
+                  <i
+                    aria-hidden="true"
+                    className={`ti ti-${active ? iconActive : icon} text-xl transition-colors duration-150
+                      ${active ? 'text-white' : 'text-gray-400'}`}
+                  />
+                </div>
               )}
+
+              {/* Label */}
+              <span className={`text-[10px] font-medium leading-none transition-colors duration-150
+                ${active ? 'text-primary-600' : isAdd ? 'text-primary-500' : 'text-gray-400'}`}
+              >
+                {label}
+              </span>
             </Link>
           )
         })}

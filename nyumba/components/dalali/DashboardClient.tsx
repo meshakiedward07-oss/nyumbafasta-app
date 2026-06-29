@@ -101,52 +101,60 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
     <div className="min-h-screen bg-gray-50 pb-24 animate-fadeIn">
 
       {/* ── Header ── */}
-      <div className="bg-primary-500 px-4 pt-10 pb-6">
-        <div className="flex justify-between items-start mb-4">
+      <div className="relative px-4 pt-10 pb-6 overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #27AE72 0%, #1D9E75 50%, #117652 100%)' }}>
+        {/* Decorative circles for depth */}
+        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/[0.06] pointer-events-none" />
+        <div className="absolute top-4 right-16 w-20 h-20 rounded-full bg-white/[0.05] pointer-events-none" />
+        <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-black/[0.05] pointer-events-none" />
+
+        <div className="relative flex justify-between items-start mb-5">
           <div>
-            <p className="text-green-100 text-xs mb-0.5">Karibu,</p>
-            <h1 className="text-white text-xl font-bold">{dalaliName}</h1>
+            <p className="text-green-100 text-xs mb-0.5 opacity-80">Karibu,</p>
+            <h1 className="text-white text-xl font-bold drop-shadow-sm">{dalaliName}</h1>
             {profile?.is_premium_verified && (
-              <span className="inline-flex items-center gap-1 bg-white/20 text-white text-xs px-2 py-0.5 rounded-full mt-1">
-                <i className="ti ti-check" aria-hidden="true" /> Imethibitishwa
+              <span className="inline-flex items-center gap-1 bg-white/25 text-white text-xs px-2.5 py-0.5 rounded-full mt-1.5 border border-white/20 backdrop-blur-sm">
+                <i className="ti ti-rosette-discount-check text-amber-300" aria-hidden="true" /> Premium
               </span>
             )}
             {profile?.whatsapp_number ? (
-              <p className="text-green-100/80 text-xs mt-1">
-                <i className="ti ti-phone" aria-hidden="true" /> +{profile.whatsapp_number}
+              <p className="text-green-100/70 text-xs mt-1.5 flex items-center gap-1">
+                <i className="ti ti-phone-filled text-xs" aria-hidden="true" /> +{profile.whatsapp_number}
               </p>
             ) : (
-              <a href="/dashboard/profile" className="text-amber-200 text-xs mt-1 inline-block underline">
-                + Weka WhatsApp yako
+              <a href="/dashboard/profile" className="text-amber-200 text-xs mt-1.5 inline-flex items-center gap-1 underline">
+                <i className="ti ti-plus text-xs" aria-hidden="true" /> Weka WhatsApp yako
               </a>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <NotificationBell className="text-white/80 hover:text-white transition-colors" />
             <button
               onClick={() => setShowLogoutConfirm(true)}
               disabled={loggingOut}
-              className="text-white/70 text-xs hover:text-white transition-colors flex items-center gap-1 disabled:opacity-50 min-h-[44px] px-1"
+              className="bg-white/15 hover:bg-white/25 text-white/80 hover:text-white text-xs transition-all flex items-center gap-1.5 disabled:opacity-50 min-h-[36px] px-3 py-1.5 rounded-xl border border-white/10 backdrop-blur-sm"
             >
               {loggingOut && (
                 <span className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
               )}
+              <i className="ti ti-logout text-sm" aria-hidden="true" />
               {loggingOut ? 'Inatoka...' : 'Toka'}
             </button>
           </div>
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* Stats row — individual colored glass cards */}
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
-            { label: 'Matangazo', value: stats.totalListings },
-            { label: 'Zinafanya kazi', value: stats.activeCount },
-            { label: 'Waliotazama', value: stats.totalViews },
-            { label: 'Ombi', value: stats.totalLeads },
+            { label: 'Matangazo',    value: stats.totalListings, icon: 'ti-home-2',    accent: 'bg-white/10' },
+            { label: 'Zinafanya kazi', value: stats.activeCount,  icon: 'ti-circle-check', accent: 'bg-white/10' },
+            { label: 'Waliotazama',  value: stats.totalViews,    icon: 'ti-eye',       accent: 'bg-white/10' },
+            { label: 'Maombi',       value: stats.totalLeads,    icon: 'ti-users',     accent: 'bg-white/10' },
           ].map(s => (
-            <div key={s.label} className="bg-white/15 rounded-xl p-2.5 text-center">
-              <p className="text-white font-bold text-lg leading-none">{s.value}</p>
-              <p className="text-green-100 text-xs mt-0.5 leading-tight">{s.label}</p>
+            <div key={s.label} className={`${s.accent} rounded-2xl p-3 border border-white/15 backdrop-blur-sm`}>
+              <i className={`ti ${s.icon} text-white/60 text-sm`} aria-hidden="true" />
+              <p className="text-white font-bold text-xl leading-none mt-0.5">{s.value}</p>
+              <p className="text-green-100/70 text-[10px] mt-0.5 leading-tight">{s.label}</p>
             </div>
           ))}
         </div>
