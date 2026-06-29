@@ -109,7 +109,7 @@ export default async function ListingDetailPage({
         dalali:dalali_id (
           id, full_name, phone, avatar_url,
           dalali_profiles (
-            id, whatsapp_number, bio,
+            id, bio,
             rating_avg, rating_count, is_premium_verified
           )
         )
@@ -176,6 +176,19 @@ export default async function ListingDetailPage({
   }
 
   const listing = data as unknown as ListingFull
+
+  // Fetch dalali WhatsApp number — ONLY for users who have already paid.
+  // Never included in the main listing query so it is never in the server-rendered HTML.
+  let dalaliWhatsapp: string | null = null
+  if (hasUnlocked) {
+    const admin = createAdminClient()
+    const { data: dp } = await admin
+      .from('dalali_profiles')
+      .select('whatsapp_number')
+      .eq('id', data.dalali_id)
+      .single()
+    dalaliWhatsapp = (dp as { whatsapp_number?: string | null } | null)?.whatsapp_number ?? null
+  }
 
   // Fetch reviews + similar listings in parallel
   const [reviewsRes, similarRes] = await Promise.all([
@@ -254,6 +267,7 @@ export default async function ListingDetailPage({
         unlockCreatedAt={unlockCreatedAt}
         reviews={(reviewsRes.data ?? []) as unknown as ReviewWithReviewer[]}
         similarListings={(similarRes.data ?? []) as unknown as ListingFull[]}
+        whatsappNumber={dalaliWhatsapp}
       />
       {/* Internal link to region SEO landing page (AI/SEO discoverability) */}
       <nav aria-label="Nyumba zaidi" className="px-4 pb-28 text-center">

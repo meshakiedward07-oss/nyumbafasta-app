@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { getSocialStats, updateAllPostMetrics } from '@/lib/social/metricsTracker'
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 export const maxDuration = 60
 
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
-
 // GET /api/v1/social/posts?tab=posts|comments|dms|schedule|stats&limit=20&offset=0
 export async function GET(req: NextRequest) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
@@ -73,7 +64,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/v1/social/posts — trigger metrics refresh
 export async function POST(req: NextRequest) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { action } = await req.json() as { action?: string }

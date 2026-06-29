@@ -3,6 +3,26 @@ import { createClient } from '@/lib/supabase/server'
 
 type AuthResult = { ok: true; role: string } | { ok: false; response: NextResponse }
 
+export type AdminUser = { id: string; full_name: string | null }
+
+/**
+ * Lightweight drop-in replacement for the inline getAdminUser() pattern.
+ * Returns { id, full_name } when the caller is an admin, null otherwise.
+ * Never throws — callers should check for null and return 403.
+ */
+export async function requireAdminUser(): Promise<AdminUser | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data } = await supabase
+    .from('users')
+    .select('role, full_name')
+    .eq('id', user.id)
+    .single()
+  if (data?.role !== 'admin') return null
+  return { id: user.id, full_name: (data?.full_name as string | null) ?? null }
+}
+
 /**
  * Verifies the current request has an authenticated admin session.
  * Returns { ok: true, role } or a ready-to-return 401/403 NextResponse.

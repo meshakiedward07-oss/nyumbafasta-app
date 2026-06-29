@@ -1,25 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { postToAllGroups, postToFacebookGroup, getAllGroups } from '@/lib/social/facebookGroups'
 import { watermarkImage } from '@/lib/media/watermark'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import type { Listing } from '@/lib/types/database'
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 export const maxDuration = 60
-
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
 
 // POST /api/v1/social/groups/post
 // Body: { listingId, groupIds? }  — omit groupIds to post to all active groups
 export async function POST(req: NextRequest) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { listingId, groupIds } = await req.json() as {

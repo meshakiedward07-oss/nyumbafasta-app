@@ -1,21 +1,13 @@
-import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse, NextRequest } from 'next/server'
 import { auditLog } from '@/lib/security/auditLog'
 import { getClientIp } from '@/lib/security/rateLimit'
-
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 // PATCH — suspend au activate user
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const admin = await getAdminUser()
+    const admin = await requireAdminUser()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const { action } = await req.json()
@@ -53,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 // DELETE — futa user kabisa kwa admin
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const admin = await getAdminUser()
+    const admin = await requireAdminUser()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     if (params.id === admin.id) {

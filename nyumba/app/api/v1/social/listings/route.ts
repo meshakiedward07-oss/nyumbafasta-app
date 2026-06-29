@@ -1,20 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 // GET /api/v1/social/listings
 // Returns all active listings joined with their most recent social post per platform.
 export async function GET() {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   // Fetch active listings

@@ -28,9 +28,21 @@ type Props = {
   listingPrice: number
   listingLocation: string
   listingBedrooms?: number
-  whatsappNumber: string
   onClose: () => void
-  onUnlocked: () => void
+  onUnlocked: (whatsappNumber: string) => void
+}
+
+// Fetch the dalali number only after the server confirms a completed unlock.
+// Returns empty string on any error so callers never see an exception.
+async function getContactNumber(listingId: string): Promise<string> {
+  try {
+    const res = await fetch(`/api/v1/listings/${listingId}/contact`)
+    if (!res.ok) return ''
+    const json = await res.json() as { whatsapp_number?: string | null }
+    return json.whatsapp_number ?? ''
+  } catch {
+    return ''
+  }
 }
 
 const POLL_INTERVAL_MS = 3000
@@ -48,28 +60,27 @@ function normalisePhone(raw: string): { normalized: string; valid: boolean } {
 
 export default function UnlockModal({
   listingId, dalaliName, listingTitle, listingPrice, listingLocation, listingBedrooms,
-  whatsappNumber, onClose, onUnlocked,
+  onClose, onUnlocked,
 }: Props) {
   const supabase = createClient()
 
-  const [step, setStep]           = useState<ModalStep>('select')
-  const [provider, setProvider]   = useState<PaymentProvider>('Mpesa')
-  const [phone, setPhone]         = useState('')
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState('')
+  const [step, setStep]               = useState<ModalStep>('select')
+  const [provider, setProvider]       = useState<PaymentProvider>('Mpesa')
+  const [phone, setPhone]             = useState('')
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState('')
   const [secondsLeft, setSecondsLeft] = useState(TIMEOUT_SECS)
+  const [contactPhone, setContactPhone] = useState<string | null>(null)
   const userChoseProvider = useRef(false)
 
   const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Normalise the dalali's WhatsApp number once for all links
-  const waPhone = whatsappNumber.replace(/\D/g, '').replace(/^0/, '255')
-
-  // Pre-filled WhatsApp message with listing details
+  // Derived only after payment confirmed — null until then
+  const waPhone = contactPhone?.replace(/\D/g, '').replace(/^0/, '255') ?? null
   const bedroomLine = listingBedrooms ? `\n🛏️ Vyumba ${listingBedrooms}` : ''
   const waMessage = `Habari ${dalaliName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${listingTitle}*\n📍 ${listingLocation}${bedroomLine}\n💰 TZS ${listingPrice.toLocaleString()}/mwezi\n\n🔗 https://nyumbafasta.co/listings/${listingId}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
-  const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}`
+  const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
 
   // ── Block Android back-gesture during payment ─────────────
   useEffect(() => {
@@ -116,15 +127,17 @@ export default function UnlockModal({
 
       if (data?.status === 'completed') {
         stopPolling()
+        const number = await getContactNumber(listingId)
+        setContactPhone(number || null)
+        onUnlocked(number)
         setStep('success')
-        onUnlocked()
       } else if (data?.status === 'failed') {
         stopPolling()
         setStep('failed')
         setError('Malipo hayakufanikiwa. Jaribu tena.')
       }
     }, POLL_INTERVAL_MS)
-  }, [supabase, stopPolling, onUnlocked])
+  }, [supabase, stopPolling, listingId, onUnlocked])
 
   useEffect(() => { return () => stopPolling() }, [stopPolling])
 
@@ -153,11 +166,23 @@ export default function UnlockModal({
       const data = await res.json()
 
       if (!res.ok) {
-        if (data.already_unlocked) { setStep('success'); onUnlocked(); return }
+        if (data.already_unlocked) {
+          const number = await getContactNumber(listingId)
+          setContactPhone(number || null)
+          onUnlocked(number)
+          setStep('success')
+          return
+        }
         throw new Error(data.error ?? 'Imeshindwa kuanzisha malipo')
       }
 
-      if (data.mock) { setStep('success'); onUnlocked(); return }
+      if (data.mock) {
+        const number = await getContactNumber(listingId)
+        setContactPhone(number || null)
+        onUnlocked(number)
+        setStep('success')
+        return
+      }
 
       setSecondsLeft(TIMEOUT_SECS)
       setStep('waiting')
@@ -401,31 +426,40 @@ export default function UnlockModal({
               Sasa unaweza kuwasiliana na{' '}
               <span className="font-semibold text-gray-800">{dalaliName}</span> moja kwa moja.
             </p>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl
-                           bg-green-500 text-white font-semibold text-sm shadow-md
-                           active:scale-[0.97] transition-transform"
-              >
-                <i className="ti ti-brand-whatsapp text-2xl" aria-hidden="true" />
-                <span>WhatsApp</span>
-                <span className="text-xs font-normal opacity-80">Na maelezo ya listing</span>
-              </a>
-              <a
-                href={`tel:+${waPhone}`}
-                className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl
-                           bg-blue-500 text-white font-semibold text-sm shadow-md
-                           active:scale-[0.97] transition-transform"
-              >
-                <i className="ti ti-phone text-2xl" aria-hidden="true" />
-                <span>Piga Simu</span>
-                <span className="text-xs font-normal opacity-80">Zungumza moja kwa moja</span>
-              </a>
-            </div>
-            <p className="text-xs text-gray-400 mb-3">Namba moja inatumika kwa njia zote mbili</p>
+            {waPhone ? (
+              <>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <a
+                    href={waUrl ?? '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl
+                               bg-green-500 text-white font-semibold text-sm shadow-md
+                               active:scale-[0.97] transition-transform"
+                  >
+                    <i className="ti ti-brand-whatsapp text-2xl" aria-hidden="true" />
+                    <span>WhatsApp</span>
+                    <span className="text-xs font-normal opacity-80">Na maelezo ya listing</span>
+                  </a>
+                  <a
+                    href={`tel:+${waPhone}`}
+                    className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl
+                               bg-blue-500 text-white font-semibold text-sm shadow-md
+                               active:scale-[0.97] transition-transform"
+                  >
+                    <i className="ti ti-phone text-2xl" aria-hidden="true" />
+                    <span>Piga Simu</span>
+                    <span className="text-xs font-normal opacity-80">Zungumza moja kwa moja</span>
+                  </a>
+                </div>
+                <p className="text-xs text-gray-400 mb-3">Namba moja inatumika kwa njia zote mbili</p>
+              </>
+            ) : (
+              <div className="flex justify-center items-center gap-2 mb-5 text-sm text-gray-400">
+                <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+                <span>Inapakia mawasiliano...</span>
+              </div>
+            )}
             <button onClick={onClose} className="w-full py-3 min-h-[44px] text-sm text-gray-400">
               Funga
             </button>

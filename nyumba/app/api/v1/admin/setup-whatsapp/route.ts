@@ -4,17 +4,8 @@
  * GET /api/v1/admin/setup-whatsapp   (admin auth required)
  */
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 // Each statement as a separate string so we can run them one by one
 const STATEMENTS = [
@@ -84,7 +75,7 @@ const STATEMENTS = [
 ]
 
 export async function GET() {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const results: { stmt: string; ok: boolean; error?: string }[] = []

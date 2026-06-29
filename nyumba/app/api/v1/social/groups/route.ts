@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { getAllGroups, addGroup } from '@/lib/social/facebookGroups'
-
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 // GET /api/v1/social/groups — list all groups
 export async function GET() {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
@@ -27,7 +18,7 @@ export async function GET() {
 
 // POST /api/v1/social/groups — add new group
 export async function POST(req: NextRequest) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { groupId, groupName, groupUrl, membersCount, category } = await req.json() as {

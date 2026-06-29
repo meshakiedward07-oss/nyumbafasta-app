@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { postListingStoryAllPlatforms, postPromoStory, getRecentStories } from '@/lib/social/instagramStories'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import type { Listing } from '@/lib/types/database'
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 export const maxDuration = 60
 
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
-
 // GET /api/v1/social/stories — list recent stories
 export async function GET() {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
@@ -32,7 +23,7 @@ export async function GET() {
 // POST /api/v1/social/stories
 // Body: { storyType: 'listing'|'promotion', listingId?, imageUrl?, linkUrl? }
 export async function POST(req: NextRequest) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { storyType = 'listing', listingId, imageUrl, linkUrl } = await req.json() as {

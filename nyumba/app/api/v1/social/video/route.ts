@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 export const dynamic = 'force-dynamic'
-
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
 
 // POST /api/v1/social/video
 // Body: { videoUrl, title, description?, videoType?, fileSize? }
 // Called after client-side Cloudinary upload completes
 export async function POST(req: NextRequest) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json() as {
@@ -63,7 +54,7 @@ export async function POST(req: NextRequest) {
 
 // GET /api/v1/social/video — list uploads for current admin
 export async function GET() {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { data, error } = await supabaseAdmin

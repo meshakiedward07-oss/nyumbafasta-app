@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 // GET /api/v1/social/spam/keywords
 export async function GET() {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { data: keywords } = await supabaseAdmin
@@ -26,7 +17,7 @@ export async function GET() {
 
 // POST /api/v1/social/spam/keywords — add keyword
 export async function POST(req: NextRequest) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { keyword, category } = await req.json() as { keyword: string; category?: string }
@@ -57,7 +48,7 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/v1/social/spam/keywords — toggle active
 export async function PATCH(req: NextRequest) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id, isActive } = await req.json() as { id: string; isActive: boolean }
@@ -73,7 +64,7 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/v1/social/spam/keywords — remove keyword
 export async function DELETE(req: NextRequest) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id } = await req.json() as { id: string }

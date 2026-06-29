@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { getMarketplaceStats, postListingToMarketplace } from '@/lib/social/facebookMarketplace'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 export const maxDuration = 60
-
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
 
 // GET /api/v1/social/marketplace — stats + recent listings
 export async function GET() {
   try {
-    const admin = await getAdminUser()
+    const admin = await requireAdminUser()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const catalogConfigured = !!process.env.FACEBOOK_CATALOG_ID
@@ -33,7 +24,7 @@ export async function GET() {
 
 // POST /api/v1/social/marketplace — post single listing
 export async function POST(req: NextRequest) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { listingId } = await req.json() as { listingId: string }

@@ -94,9 +94,10 @@ type Props = {
   hasReviewed: boolean
   reviews: ReviewWithReviewer[]
   similarListings?: ListingFull[]
+  whatsappNumber?: string | null
 }
 
-export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlockId, unlockCreatedAt, hasReviewed, reviews }: Props) {
+export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlockId, unlockCreatedAt, hasReviewed, reviews, whatsappNumber: initialWhatsappNumber }: Props) {
   const router = useRouter()
   const [activeImg, setActiveImg] = useState(0)
 
@@ -115,6 +116,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const [showUnlockModal, setShowUnlockModal]   = useState(false)
   const [showReportModal, setShowReportModal]   = useState(false)
   const [localUnlocked, setLocalUnlocked] = useState(hasUnlocked)
+  const [contactNumber, setContactNumber] = useState<string | null>(initialWhatsappNumber ?? null)
   const [reviewed, setReviewed] = useState(hasReviewed)
   const [touchStartX, setTouchStartX] = useState(0)
 
@@ -137,9 +139,8 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const isVerified = profile?.is_premium_verified ?? false
   const rating = profile?.rating_avg ?? 0
   const ratingCount = profile?.rating_count ?? 0
-  const whatsappNumber = profile?.whatsapp_number
-  // Normalised number for links (guaranteed digits-only starting with 255, or empty string)
-  const waPhone = (whatsappNumber ?? '').replace(/\D/g, '').replace(/^0/, '255') || null
+  // waPhone is only set after payment is confirmed (or for already-unlocked users)
+  const waPhone = contactNumber ? (contactNumber.replace(/\D/g, '').replace(/^0/, '255') || null) : null
 
   // Pre-filled WhatsApp message — includes listing title, location, price, link
   const dalaliDisplayName = listing.dalali?.full_name ?? 'Dalali'
@@ -617,9 +618,9 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           listingPrice={listing.price_monthly}
           listingLocation={locationDisplay}
           listingBedrooms={listing.bedrooms ?? undefined}
-          whatsappNumber={whatsappNumber ?? ''}
           onClose={() => setShowUnlockModal(false)}
-          onUnlocked={() => {
+          onUnlocked={(number) => {
+            setContactNumber(number || null)
             setLocalUnlocked(true)
             setShowUnlockModal(false)
           }}

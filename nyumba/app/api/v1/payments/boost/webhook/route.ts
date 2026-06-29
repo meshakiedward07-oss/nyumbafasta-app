@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { isWebhookSuccess, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
+import { isWebhookSuccess, isAmountValid, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
 
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     const { data: bp } = await admin
       .from('boost_payments')
-      .select('id, listing_id, dalali_id, weeks, boosted_until, status')
+      .select('id, listing_id, dalali_id, weeks, boosted_until, status, amount')
       .eq('payment_ref', externalId)
       .eq('status', 'pending')
       .maybeSingle()
@@ -32,6 +32,11 @@ export async function POST(req: NextRequest) {
     console.log('[Boost Webhook] Found boost_payment:', bp ? `id=${bp.id}` : 'NOT FOUND')
 
     if (!bp) return NextResponse.json({ received: true })
+
+    if (succeeded && bp.amount && !isAmountValid(payload, bp.amount as number)) {
+      console.warn('[Boost Webhook] Amount mismatch — expected', bp.amount, 'got:', payload.amount)
+      return NextResponse.json({ received: true })
+    }
 
     const newStatus = succeeded ? 'completed' : 'failed'
     await admin.from('boost_payments').update({ status: newStatus }).eq('id', bp.id)

@@ -1,21 +1,12 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { syncAllListingsToMarketplace } from '@/lib/social/facebookMarketplace'
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 export const maxDuration = 300
 
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
-
 // POST /api/v1/social/marketplace/sync — bulk sync all unposted listings
 export async function POST() {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   if (!process.env.FACEBOOK_CATALOG_ID) {

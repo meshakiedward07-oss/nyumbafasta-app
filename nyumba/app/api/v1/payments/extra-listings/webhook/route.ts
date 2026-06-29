@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { isWebhookSuccess, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
+import { isWebhookSuccess, isAmountValid, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
 
 // externalId format: EX-{subscription_uuid}-{count}
 // e.g. EX-be7353b5-5b5b-4a77-9e4e-e76b8bc02cfa-3
@@ -43,8 +43,14 @@ export async function POST(req: NextRequest) {
 
     if (!sub) return NextResponse.json({ received: true })
 
+    const expectedAmount = count * 2_000
+    if (succeeded && !isAmountValid(payload, expectedAmount)) {
+      console.warn('[ExtraListings Webhook] Amount mismatch — expected', expectedAmount, 'got:', payload.amount)
+      return NextResponse.json({ received: true })
+    }
+
     if (succeeded) {
-      const amount = count * 2_000
+      const amount = expectedAmount
 
       await admin
         .from('subscriptions')

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import {
   createIGVideoContainer,
@@ -8,19 +7,11 @@ import {
   uploadFacebookVideoUrl,
 } from '@/lib/social/metaClient'
 import { watermarkVideo } from '@/lib/media/videoWatermark'
+import { requireAdminUser } from '@/lib/security/adminAuth'
 
 // Instagram video polling can take 60-120s — requires Vercel Pro (300s limit)
 export const maxDuration = 300
 export const dynamic     = 'force-dynamic'
-
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (data?.role !== 'admin') return null
-  return user
-}
 
 // POST /api/v1/social/video/{id}/publish
 // Body: { platforms, captionIg, captionFb, scheduledAt? }
@@ -28,7 +19,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const admin = await getAdminUser()
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const videoId = params.id

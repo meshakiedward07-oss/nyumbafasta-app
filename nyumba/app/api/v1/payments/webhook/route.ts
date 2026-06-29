@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { isWebhookSuccess, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
+import { isWebhookSuccess, isAmountValid, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
 
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
@@ -17,6 +17,11 @@ export async function POST(req: NextRequest) {
 
     if (!externalId) {
       console.warn('[Unlock Webhook] No externalId in payload — ignoring')
+      return NextResponse.json({ received: true })
+    }
+
+    if (succeeded && !isAmountValid(payload, 2_000)) {
+      console.warn('[Unlock Webhook] Amount mismatch — expected 2000, got:', payload.amount)
       return NextResponse.json({ received: true })
     }
 

@@ -184,6 +184,15 @@ export function isWebhookSuccess(payload: WebhookPayload): boolean {
   return status === 'success' || status === 'successful'
 }
 
+// Validates webhook amount against the expected value (within 1 TZS tolerance).
+// Returns true when payload.amount is absent — older sandbox callbacks omit it.
+export function isAmountValid(payload: WebhookPayload, expectedAmount: number): boolean {
+  if (!payload.amount) return true
+  const received = parseFloat(payload.amount)
+  if (isNaN(received)) return true
+  return Math.abs(received - expectedAmount) <= 1
+}
+
 export function getExternalId(payload: WebhookPayload): string {
   return payload.externalreference ?? payload.reference ?? ''
 }
