@@ -197,11 +197,11 @@ export default async function ListingDetailPage({
       .select('id, rating, comment, created_at, is_verified, helpful_count, response, response_at, reviewer:reviewer_id ( full_name )')
       .eq('dalali_id', listing.dalali_id)
       .order('created_at', { ascending: false })
-      .limit(50),
+      .limit(15),
 
     supabase
       .from('listings')
-      .select('id, title, type, price_monthly, district, region, images, is_boosted, view_count, lead_count, status, dalali_id, furnished, amenities, description, bedrooms, deposit_months, street, boost_expires_at, rejection_reason, expires_at, approved_at, created_at, dalali:dalali_id ( id, full_name, avatar_url, dalali_profiles ( rating_avg, is_premium_verified ) )')
+      .select('id, title, type, price_monthly, district, region, images, is_boosted, view_count, lead_count, status, dalali_id, furnished, amenities, description, bedrooms, street, dalali:dalali_id ( id, full_name, avatar_url, dalali_profiles ( rating_avg, is_premium_verified ) )')
       .eq('region', listing.region)
       .eq('status', 'active')
       .neq('id', listing.id)

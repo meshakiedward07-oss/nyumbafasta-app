@@ -28,8 +28,9 @@ export async function getAdminData(): Promise<AdminPageData> {
   const admin = createAdminClient()
 
   const [
-    pendingListingsRes,
     allListingsRes,
+    totalListingsCountRes,
+    activeListingsCountRes,
     clientCountRes,
     dalaliCountRes,
     totalUsersCountRes,
@@ -37,6 +38,7 @@ export async function getAdminData(): Promise<AdminPageData> {
     trialSubsRes,
     reportsRes,
   ] = await Promise.all([
+    // Full listing rows (for admin display + region stats) — capped at 100
     admin
       .from('listings')
       .select(`
@@ -49,13 +51,15 @@ export async function getAdminData(): Promise<AdminPageData> {
         )
       `)
       .order('created_at', { ascending: false })
-      .limit(300),
+      .limit(100),
 
-    admin.from('listings').select('status'),
+    // Count queries — no rows transferred, pure metadata
+    admin.from('listings').select('id', { count: 'exact', head: true }),
+    admin.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'active'),
 
-    admin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'client'),
-    admin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'dalali'),
-    admin.from('users').select('*', { count: 'exact', head: true }),
+    admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'client'),
+    admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'dalali'),
+    admin.from('users').select('id', { count: 'exact', head: true }),
 
     admin
       .from('dalali_profiles')
@@ -83,12 +87,11 @@ export async function getAdminData(): Promise<AdminPageData> {
         listing:listing_id ( id, title, type, district )
       `)
       .order('created_at', { ascending: false })
-      .limit(200),
+      .limit(50),
   ])
 
-  const allAdminListings     = (pendingListingsRes.data ?? []) as unknown as AdminListing[]
+  const allAdminListings     = (allListingsRes.data ?? []) as unknown as AdminListing[]
   const pendingListings      = allAdminListings.filter(l => l.status === 'pending')
-  const allListings          = allListingsRes.data ?? []
   const pendingVerifications = (verificationRes.data ?? []) as unknown as AdminVerification[]
   const trialSubs            = (trialSubsRes?.data ?? []) as { id: string; status: string; trial_converted_at: string | null }[]
   const reports              = (reportsRes?.data ?? []) as unknown[]
@@ -106,11 +109,6 @@ export async function getAdminData(): Promise<AdminPageData> {
       }, {})
   ).sort((a, b) => b[1] - a[1]).slice(0, 10)
 
-  const statusCounts = allListings.reduce<Record<string, number>>((acc, l) => {
-    acc[(l as { status: string }).status] = (acc[(l as { status: string }).status] ?? 0) + 1
-    return acc
-  }, {})
-
   return {
     pendingListings,
     allListings:        allAdminListings,
@@ -119,8 +117,8 @@ export async function getAdminData(): Promise<AdminPageData> {
     regionStats,
     stats: {
       pendingCount:    pendingListings.length,
-      activeCount:     statusCounts['active'] ?? 0,
-      totalListings:   allListings.length,
+      activeCount:     activeListingsCountRes.count ?? 0,
+      totalListings:   totalListingsCountRes.count ?? 0,
       totalUsers,
       clientCount,
       dalaliCount,
