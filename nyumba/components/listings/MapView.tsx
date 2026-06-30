@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Map, AdvancedMarker, InfoWindow, useMap } from '@vis.gl/react-google-maps'
 import Link from 'next/link'
-import { MapProvider } from '@/components/maps/MapProvider'
+import { MapProvider, GOOGLE_MAP_ID } from '@/components/maps/MapProvider'
 import { createClient } from '@/lib/supabase/client'
 import type { ListingWithDalali } from '@/lib/types/database'
 
@@ -191,7 +191,7 @@ export default function MapView({ listings, className = '' }: Props) {
             mapTypeId={mapType}
             gestureHandling="greedy"
             disableDefaultUI={false}
-            mapId="nyumbafasta-map"
+            mapId={GOOGLE_MAP_ID}
             style={{ width: '100%', height: '100%' }}
           >
             <MapContent listings={allListings} />

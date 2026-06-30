@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps'
-import { MapProvider } from '@/components/maps/MapProvider'
+import { MapProvider, GOOGLE_MAP_ID } from '@/components/maps/MapProvider'
 
 type Props = {
   latitude:  number
@@ -26,6 +26,7 @@ export default function SingleListingMap({ latitude, longitude, district, region
             defaultCenter={{ lat: latitude, lng: longitude }}
             defaultZoom={16}
             mapTypeId={mapType}
+            mapId={GOOGLE_MAP_ID}
             disableDefaultUI
             gestureHandling="cooperative"
             style={{ width: '100%', height: '100%' }}

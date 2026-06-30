@@ -4,6 +4,10 @@ import type { ReactNode } from 'react'
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
+// Real Map ID from Google Cloud Console (Maps → Map management).
+// Falls back to DEMO_MAP_ID so AdvancedMarker works even before a real ID is configured.
+export const GOOGLE_MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID ?? 'DEMO_MAP_ID'
+
 export function MapProvider({ children }: { children: ReactNode }) {
   if (!MAP_API_KEY) {
     return (
@@ -12,5 +16,14 @@ export function MapProvider({ children }: { children: ReactNode }) {
       </div>
     )
   }
-  return <APIProvider apiKey={MAP_API_KEY}>{children}</APIProvider>
+  return (
+    <APIProvider
+      apiKey={MAP_API_KEY}
+      version="weekly"
+      region="TZ"
+      language="sw"
+    >
+      {children}
+    </APIProvider>
+  )
 }

@@ -8,7 +8,7 @@ import {
   useMapsLibrary,
   useMap,
 } from '@vis.gl/react-google-maps'
-import { MapProvider } from '@/components/maps/MapProvider'
+import { MapProvider, GOOGLE_MAP_ID } from '@/components/maps/MapProvider'
 
 export interface LocationData {
   latitude: number
@@ -225,7 +225,7 @@ function PickerContent({ initialLocation, onLocationChange }: Props) {
           gestureHandling="greedy"
           disableDefaultUI
           onClick={handleMapClick}
-          mapId="nyumbafasta-location-picker"
+          mapId={GOOGLE_MAP_ID}
           style={{ width: '100%', height: '100%' }}
         >
           {/* Pan map when target changes */}
