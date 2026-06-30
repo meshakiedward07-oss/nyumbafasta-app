@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { PlatformLogo } from '@/components/shared/PlatformLogo'
 import type {
   AdminListing,
   AdminVerification,
@@ -308,14 +309,14 @@ export default function AdminDashboard({
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <i className="ti ti-brand-facebook" aria-hidden="true" /><span>Vikundi FB</span>
+              <PlatformLogo platform="facebook" size={16} /><span>Vikundi FB</span>
             </Link>
             <Link
               href="/admin/instagram-profiles"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <i className="ti ti-brand-instagram" aria-hidden="true" /><span>Wasifu IG</span>
+              <PlatformLogo platform="instagram" size={16} /><span>Wasifu IG</span>
             </Link>
             <Link
               href="/admin/accounting"

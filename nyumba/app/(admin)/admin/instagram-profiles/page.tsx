@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { PlatformLogo } from "@/components/shared/PlatformLogo"
 
 type IgProfile = {
   id: string
@@ -81,7 +82,7 @@ export default function InstagramProfilesPage() {
       <div className="hidden lg:block p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-brand-instagram" aria-hidden="true" />Instagram Profiles</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><PlatformLogo platform="instagram" size={24} />Instagram Profiles</h1>
             <p className="text-gray-500 text-sm mt-0.5">
               Profiles: {profiles.length} · Active: {activeCount}
             </p>
@@ -193,7 +194,7 @@ export default function InstagramProfilesPage() {
               {profiles.length === 0 && (
                 <tr>
                   <td colSpan={8} className="text-center py-16 text-gray-400">
-                    <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-brand-instagram text-gray-400" aria-hidden="true" /></div>
+                    <div className="text-4xl mb-3 flex justify-center"><PlatformLogo platform="instagram" size={40} /></div>
                     <p className="font-medium">Hakuna profiles bado</p>
                     <p className="text-sm mt-1">Ongeza profile ya kwanza hapo juu</p>
                   </td>
@@ -211,7 +212,7 @@ export default function InstagramProfilesPage() {
       <div className="lg:hidden">
         {/* Header */}
         <header className="bg-primary-500 px-4 py-4 sticky top-0 z-10 shadow">
-          <h1 className="text-white font-bold text-lg flex items-center gap-2"><i className="ti ti-brand-instagram" aria-hidden="true" />Instagram Profiles</h1>
+          <h1 className="text-white font-bold text-lg flex items-center gap-2"><PlatformLogo platform="instagram" size={24} />Instagram Profiles</h1>
           <p className="text-green-100 text-xs">
             Profiles: {profiles.length} | Active: {activeCount}
           </p>
@@ -285,7 +286,7 @@ export default function InstagramProfilesPage() {
           ))}
           {profiles.length === 0 && (
             <div className="text-center py-16">
-              <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-brand-instagram text-gray-400" aria-hidden="true" /></div>
+              <div className="text-5xl mb-3 flex justify-center"><PlatformLogo platform="instagram" size={40} /></div>
               <p className="text-gray-500 font-medium">Hakuna profiles bado</p>
               <p className="text-gray-400 text-sm mt-1">Ongeza profile ya kwanza hapo juu!</p>
             </div>

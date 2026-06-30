@@ -707,10 +707,10 @@ export default function VideoUploadTab() {
             <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-2">
               <p className="text-sm font-semibold text-green-800 flex items-center gap-1.5"><i className="ti ti-check" aria-hidden="true" /> Video imechapishwa!</p>
               {platformStatus.instagram === 'done' && (
-                <p className="text-xs text-green-700 flex items-center gap-1"><i className="ti ti-brand-instagram" aria-hidden="true" /> Instagram Reel: imefanikiwa</p>
+                <p className="text-xs text-green-700 flex items-center gap-1"><PlatformLogo platform="instagram" size={13} /> Instagram Reel: imefanikiwa</p>
               )}
               {platformStatus.facebook === 'done' && (
-                <p className="text-xs text-green-700 flex items-center gap-1"><i className="ti ti-brand-facebook" aria-hidden="true" /> Facebook Video: imefanikiwa</p>
+                <p className="text-xs text-green-700 flex items-center gap-1"><PlatformLogo platform="facebook" size={13} /> Facebook Video: imefanikiwa</p>
               )}
             </div>
           )}

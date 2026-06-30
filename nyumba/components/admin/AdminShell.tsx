@@ -5,6 +5,9 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { STAFF_PERMISSIONS } from '@/lib/staff/permissions'
 import type { PermissionKey } from '@/lib/staff/permissions'
+import { PlatformLogo } from '@/components/shared/PlatformLogo'
+
+const BRAND_PLATFORMS = new Set(['whatsapp', 'instagram', 'facebook', 'tiktok'])
 
 // Polls every 30s — avoids Supabase realtime channel conflicts across mounts
 function PendingBadge() {
@@ -247,7 +250,9 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
                       ? 'bg-primary-500 text-white'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}>
-<i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
+{item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
+                      ? <PlatformLogo platform={item.icon.replace('brand-', '')} size={16} className="flex-shrink-0" />
+                      : <i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />}
                     <span>{item.label}</span>
                     {('badge' in item && item.badge) && !isActive(item.href, item.exact) && (
                       <PendingBadge />
@@ -364,7 +369,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                   isActive(item.href, item.exact) ? 'text-primary-500' : 'text-gray-400'
                 }`}>
                   <div className="relative">
-<i className={`ti ti-${item.icon} text-xl`} aria-hidden="true" />
+{item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
+                      ? <PlatformLogo platform={item.icon.replace('brand-', '')} size={22} />
+                      : <i className={`ti ti-${item.icon} text-xl`} aria-hidden="true" />}
                     {item.href === '/admin/whatsapp' && (
                       <span className="absolute -top-1.5 -right-2 scale-75 origin-top-right">
                         <PendingBadge />

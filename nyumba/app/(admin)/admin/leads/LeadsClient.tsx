@@ -2,6 +2,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react'
 import { TANZANIA_REGIONS } from '@/lib/agent/regions'
+import { PlatformLogo } from '@/components/shared/PlatformLogo'
+
+const BRAND_PLATFORMS = new Set(['whatsapp', 'instagram', 'facebook', 'tiktok'])
 
 type Lead = {
   id: string
@@ -701,7 +704,9 @@ export default function LeadsClient() {
                           }}
                           className="hidden"
                         />
-                        <i className={`ti ti-${source?.icon ?? 'pin'} text-lg`} aria-hidden="true" />
+                        {source?.icon?.startsWith('brand-') && BRAND_PLATFORMS.has(source.icon.replace('brand-', ''))
+                          ? <PlatformLogo platform={source.icon.replace('brand-', '')} size={20} />
+                          : <i className={`ti ti-${source?.icon ?? 'pin'} text-lg`} aria-hidden="true" />}
                         <span className="text-xs font-medium text-gray-700">{source.label}</span>
                         {runSources.includes(source.id) && (
                           <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />
@@ -874,19 +879,19 @@ export default function LeadsClient() {
                 {selectedLead.facebook_url && (
                   <a href={selectedLead.facebook_url} target="_blank" rel="noopener noreferrer"
                     className="bg-blue-600 text-white text-xs px-3 py-2 rounded-xl text-center font-medium">
-                    <i className="ti ti-brand-facebook" aria-hidden="true" /> Facebook
+                    <PlatformLogo platform="facebook" size={14} /> Facebook
                   </a>
                 )}
                 {selectedLead.instagram_url && (
                   <a href={selectedLead.instagram_url} target="_blank" rel="noopener noreferrer"
                     className="bg-pink-500 text-white text-xs px-3 py-2 rounded-xl text-center font-medium">
-                    <i className="ti ti-brand-instagram" aria-hidden="true" /> Instagram
+                    <PlatformLogo platform="instagram" size={14} /> Instagram
                   </a>
                 )}
                 {selectedLead.tiktok_url && (
                   <a href={selectedLead.tiktok_url} target="_blank" rel="noopener noreferrer"
                     className="bg-black text-white text-xs px-3 py-2 rounded-xl text-center font-medium">
-                    <i className="ti ti-brand-tiktok" aria-hidden="true" /> TikTok
+                    <PlatformLogo platform="tiktok" size={14} /> TikTok
                   </a>
                 )}
                 {selectedLead.source_url && (
