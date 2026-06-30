@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getConnectedPlatforms } from '@/lib/social/unifiedPost'
+import { getConnectedPlatforms } from '@/lib/social/platformConnections'
 
 const PLATFORM_LABELS: Record<string, string> = {
   instagram: 'Instagram',

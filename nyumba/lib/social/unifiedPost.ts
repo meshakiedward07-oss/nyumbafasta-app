@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { postListingToSocialMedia } from './autoPost'
 import { postVideoToTikTok, generateTikTokCaption } from './tiktok'
 import type { Listing } from '@/lib/types/database'
+import { getConnectedPlatforms } from './platformConnections'
 
 export type UnifiedPlatform = 'instagram' | 'facebook' | 'tiktok'
 
@@ -150,27 +151,7 @@ export async function postListingToAllPlatforms(opts: UnifiedPostOptions): Promi
 }
 
 // ── Return which platforms are currently connected ───────────────────────────
-export async function getConnectedPlatforms(): Promise<UnifiedPlatform[]> {
-  const platforms: UnifiedPlatform[] = []
-
-  if (process.env.INSTAGRAM_USER_ID && process.env.INSTAGRAM_ACCESS_TOKEN)
-    platforms.push('instagram')
-
-  if (process.env.FACEBOOK_PAGE_ID &&
-      (process.env.FACEBOOK_PAGE_ACCESS_TOKEN || process.env.FACEBOOK_ACCESS_TOKEN))
-    platforms.push('facebook')
-
-  const { data: tt } = await supabaseAdmin
-    .from('tiktok_connections')
-    .select('id')
-    .eq('is_active', true)
-    .limit(1)
-    .maybeSingle()
-
-  if (tt) platforms.push('tiktok')
-
-  return platforms
-}
+export { getConnectedPlatforms }
 
 // ── Unified stats aggregated from social_posts + tiktok_posts ────────────────
 export async function getUnifiedStats(period: 'today' | 'week' | 'month' | 'all' = 'month') {
