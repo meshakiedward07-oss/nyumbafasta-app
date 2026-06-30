@@ -346,7 +346,7 @@ ${l.description ? `\n${l.description}` : ''}
 🌐 Maelezo kamili: nyumbafasta.co/listings/${l.id}
 📲 Wasiliana nasi kwa WhatsApp kwa maelezo zaidi
 
-NyumbaFasta — Haraka & Kwa Uhakika 🏡`.trim().slice(0, 5000)
+NyumbaFasta — Haraka & Kwa Uhakika 🏠`.trim().slice(0, 5000)
 }
 
 function mapPropertyType(type: string): string {

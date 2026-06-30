@@ -29,7 +29,7 @@ export async function runInstagram(
     return { total: 0, saved: 0, duplicates: 0, low_score: 0, errors: 0, analyzed: 0, leads: [] }
   }
 
-  console.log(`\n📸 Instagram Scraper`)
+  console.log(`\n📷 Instagram Scraper`)
   console.log(`📍 Region: ${region}`)
   console.log(`📋 Profiles: ${dbProfiles.length}`)
   console.log('='.repeat(40))

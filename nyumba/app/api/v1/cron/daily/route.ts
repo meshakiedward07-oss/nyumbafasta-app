@@ -343,7 +343,7 @@ async function runDailyTasks() {
       await admin.from('notifications').insert({
         user_id: listing.dalali_id,
         type: 'listing_expiring_today',
-        title: '🔴 Leo ni Siku ya Mwisho!',
+        title: '⚠️ Leo ni Siku ya Mwisho!',
         body: `Listing yako "${listing.title}" itaisha LEO. Huisha sasa hivi!`,
         is_read: false,
         ref_id: listing.id,

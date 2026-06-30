@@ -186,8 +186,8 @@ export async function notifyOwnerPersonalMessage(
     const ownerPhone = formatPhoneNumber(rawOwnerPhone)
 
     const platformEmoji: Record<string, string> = {
-      whatsapp:  '📱',
-      instagram: '📸',
+      whatsapp:  '💬',
+      instagram: '📷',
       facebook:  '👥',
       tiktok:    '🎵',
     }

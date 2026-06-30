@@ -35,7 +35,7 @@ async function runScheduled() {
 
   // Jumanne saa 8 AM — Instagram priority regions
   if (dayOfWeek === 2 && hour === 8) {
-    console.log('📸 Tuesday — Instagram priority regions')
+    console.log('📷 Tuesday — Instagram priority regions')
     for (const region of PRIORITY_REGIONS) {
       await runScraper(region, ['instagram'])
       await new Promise(r => setTimeout(r, 60000))

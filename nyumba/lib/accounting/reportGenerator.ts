@@ -152,7 +152,7 @@ export async function generatePDFReport(params: {
   </div>
 </div>
 
-<h2>📈 Mapato kwa Chanzo</h2>
+<h2>📊 Mapato kwa Chanzo</h2>
 <table>
   <thead><tr><th>Chanzo</th><th style="text-align:right">Kiasi (TZS)</th><th style="text-align:right">%</th></tr></thead>
   <tbody>
@@ -162,7 +162,7 @@ export async function generatePDFReport(params: {
 </table>
 <p style="font-size:11px;color:#6b7280">* Ada ya AzamPay (1%): ${fmtTZS(summary.income.platformFees)} &nbsp;|&nbsp; Mapato halisi: ${fmtTZS(summary.income.netIncome)}</p>
 
-<h2>📉 Matumizi kwa Aina</h2>
+<h2>📊 Matumizi kwa Aina</h2>
 <table>
   <thead><tr><th>Aina</th><th style="text-align:right">Kiasi (TZS)</th><th style="text-align:right">%</th></tr></thead>
   <tbody>

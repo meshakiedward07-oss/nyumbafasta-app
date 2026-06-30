@@ -489,7 +489,7 @@ Mfano: "Inapangishwa na samani, maji na umeme, parking, karibu na barabara kuu"`
       })
       return `✅ Maelezo yamehifadhiwa!
 
-📸 Sasa tuma picha za nyumba
+🖼️ Sasa tuma picha za nyumba
 (Tuma picha 3-10 — zitatumika kwenye listing)
 
 Tuma picha moja kwa moja au zote kwa wakati mmoja`
@@ -512,9 +512,9 @@ Au andika "tayari" kuendelea`
         }
 
         await updateSession(session.id, { flow_step: 'ask_video' })
-        return `✅ Picha ${updatedImages.length} zimepokelewa! Nzuri sana! 📸
+        return `✅ Picha ${updatedImages.length} zimepokelewa! Nzuri sana! 🖼️
 
-🎥 Una video ya nyumba? (Optional)
+🎬 Una video ya nyumba? (Optional)
 Tuma video au andika "hapana" kuruka`
       }
 
@@ -522,11 +522,11 @@ Tuma video au andika "hapana" kuruka`
         await updateSession(session.id, { flow_step: 'ask_video' })
         return `✅ Picha ${images.length} zimepokelewa!
 
-🎥 Una video ya nyumba? (Optional)
+🎬 Una video ya nyumba? (Optional)
 Tuma video au andika "hapana" kuruka`
       }
 
-      return `📸 Tuma picha za nyumba yako.
+      return `🖼️ Tuma picha za nyumba yako.
 Unahitaji angalau picha 3.
 Picha zilizopo: ${images.length}`
     }
@@ -552,8 +552,8 @@ Picha zilizopo: ${images.length}`
 📍 Eneo: ${loc}
 💰 Bei: Tsh ${Number(data.price ?? 0).toLocaleString()}/mwezi
 🛏️ Vyumba: ${data.bedrooms}
-📸 Picha: ${(data.images as string[] | undefined)?.length ?? 0}
-🎥 Video: ${videoUrl ? '✅' : '❌'}
+🖼️ Picha: ${(data.images as string[] | undefined)?.length ?? 0}
+🎬 Video: ${videoUrl ? '✅' : '❌'}
 
 📝 ${data.description}
 
@@ -580,7 +580,7 @@ Au "badilisha" kubadilisha kitu.`
 4️⃣ Villa/Jumba
 5️⃣ Ofisi`
       }
-      return `Andika *"chapisha"* kupost listing yako! 🚀`
+      return `Andika *"chapisha"* kupost listing yako! 📤`
     }
 
     default:
