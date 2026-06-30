@@ -14,6 +14,7 @@ import ReviewForm from '@/components/listings/ReviewForm'
 import ReportDalaliModal from '@/components/listings/ReportDalaliModal'
 import NeighborhoodInfo from '@/components/listings/NeighborhoodInfo'
 import { VideoPlayer } from '@/components/listings/VideoPlayer'
+import { getFullLocation, getShortLocation } from '@/lib/listings/formatLocation'
 
 const SimilarListings = dynamic(
   () => import('@/components/listings/SimilarListings'),
@@ -145,8 +146,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   // Pre-filled WhatsApp message — includes listing title, location, price, link
   const dalaliDisplayName = listing.dalali?.full_name ?? 'Dalali'
   const displayTitle = listing.title || `${typeLabel[listing.type] || listing.type} – ${listing.district}`
-  const locationDisplay = listing.location_display
-    || [listing.mtaa, listing.ward, listing.district, listing.region].filter(Boolean).join(', ')
+  const locationDisplay = getFullLocation(listing)
   const bedroomLine = listing.bedrooms ? `\n🛏️ Vyumba ${listing.bedrooms}` : ''
   const waMessage = `Habari ${dalaliDisplayName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${displayTitle}*\n📍 ${locationDisplay}${bedroomLine}\n💰 TZS ${listing.price_monthly.toLocaleString()}/mwezi\n\n🔗 https://nyumbafasta.co/listings/${listing.id}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
   const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
@@ -174,7 +174,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           ←
         </button>
         <h1 className="flex-1 text-sm font-semibold text-gray-800 truncate">
-          {typeLabel[listing.type] || listing.type} – {listing.district}
+          {displayTitle}
         </h1>
         <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadge.cls}`}>
           {statusBadge.label}
@@ -202,6 +202,19 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
             <i className="ti ti-home text-5xl text-gray-300" aria-hidden="true" />
             <span className="text-sm">Hakuna picha</span>
+          </div>
+        )}
+
+        {/* Title + short location overlay */}
+        {images.length > 0 && !imgError && (
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/65 to-transparent pointer-events-none flex flex-col justify-end px-3 pb-8">
+            <p className="text-white text-sm font-semibold leading-tight truncate drop-shadow">
+              {displayTitle}
+            </p>
+            <p className="text-white/75 text-xs mt-0.5 flex items-center gap-1 truncate">
+              <i className="ti ti-map-pin text-[9px]" aria-hidden="true" />
+              {getShortLocation(listing)}
+            </p>
           </div>
         )}
 
@@ -308,11 +321,10 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         <section className="card p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5"><i className="ti ti-map-pin" aria-hidden="true" /> Mahali</h3>
 
-          {/* Summary line — location_display or fallback chain */}
+          {/* Summary line — full location */}
           {(() => {
-            const summary = listing.location_display
-              || [listing.mtaa, listing.ward, listing.district, listing.region].filter(Boolean).join(', ')
-            return summary ? (
+            const summary = getFullLocation(listing)
+            return summary !== 'Mahali haijabainishwa' ? (
               <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 mb-3">
                 <p className="text-sm font-semibold text-gray-800">{summary}</p>
               </div>

@@ -6,6 +6,7 @@ import Avatar from '@/components/shared/Avatar'
 import SaveButton from '@/components/shared/SaveButton'
 import ShareButton from '@/components/shared/ShareButton'
 import type { ListingWithDalali } from '@/lib/types/database'
+import { getShortLocation } from '@/lib/listings/formatLocation'
 
 // ── Property-type visual styles ───────────────────────────────────────────────
 const TYPE_STYLE: Record<string, { icon: string; pillBg: string; pillText: string; label: string }> = {
@@ -250,7 +251,6 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
             <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${typeStyle.pillBg} ${typeStyle.pillText}`}>
               <i className={`ti ${typeStyle.icon} text-xs`} aria-hidden="true" />
               {typeStyle.label}
-              {listing.district && <span className="opacity-60">· {listing.district}</span>}
             </div>
             <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-sm">
               {formatPrice(listing.price_monthly)}
@@ -268,13 +268,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
               <i className="ti ti-map-pin text-[9px] text-gray-500" aria-hidden="true" />
             </span>
             <span className="truncate">
-              {(listing as { location_display?: string | null }).location_display
-                || [
-                    (listing as { mtaa?: string | null }).mtaa,
-                    (listing as { ward?: string | null }).ward,
-                    listing.district,
-                    listing.region,
-                  ].filter(Boolean).join(', ')}
+              {getShortLocation(listing)}
             </span>
           </p>
 
