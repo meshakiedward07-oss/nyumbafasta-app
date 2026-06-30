@@ -1,5 +1,5 @@
-export type UserRole = 'client' | 'dalali' | 'admin'
-export type ListingStatus = 'pending' | 'active' | 'taken' | 'expired' | 'rejected'
+export type UserRole = 'client' | 'dalali' | 'admin' | 'staff'
+export type ListingStatus = 'pending' | 'active' | 'taken' | 'expired' | 'rejected' | 'deleted'
 export type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio' | 'duka'
 export type FurnishedStatus = 'furnished' | 'semi' | 'empty'
 export type SubscriptionPlan = 'basic' | 'premium' | 'enterprise'
