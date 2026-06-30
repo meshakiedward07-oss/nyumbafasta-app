@@ -4,7 +4,7 @@ export default function SiteFooter() {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="border-t border-gray-100 bg-white py-6 px-4 mt-4">
+    <footer className="border-t border-gray-100 bg-white py-6 px-4 mt-4 pb-24">
       <div className="max-w-2xl mx-auto">
         {/* Legal links — required to be visible from homepage for TikTok / Meta app review */}
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
