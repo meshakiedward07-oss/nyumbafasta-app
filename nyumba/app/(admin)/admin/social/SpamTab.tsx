@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { PlatformLogo } from '@/components/shared/PlatformLogo'
 
 type SpamStats = {
   totalDeleted: number
@@ -51,9 +52,7 @@ function ActionBadge({ action }: { action: string }) {
 }
 
 function PlatformIcon({ platform }: { platform: string }) {
-  return platform === 'instagram'
-    ? <i className="ti ti-brand-instagram" style={{color:'#c13584'}} aria-hidden="true" />
-    : <i className="ti ti-brand-facebook" style={{color:'#1877f2'}} aria-hidden="true" />
+  return <PlatformLogo platform={platform} size={14} />
 }
 
 function fmtDate(iso: string) {

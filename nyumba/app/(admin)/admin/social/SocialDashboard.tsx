@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { PlatformLogo } from '@/components/shared/PlatformLogo'
 import VideoUploadTab from './VideoUploadTab'
 import GroupsTab from './GroupsTab'
 import StoriesTab from './StoriesTab'
@@ -99,10 +100,12 @@ function CommentTypeBadge({ type }: { type: string }) {
   return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{type}</span>
 }
 
+const PLATFORM_LOGO_KEYS = new Set(['instagram', 'facebook', 'tiktok', 'whatsapp'])
+
 function PlatformIcon({ platform }: { platform: string }) {
-  if (platform === 'instagram') return <i className="ti ti-brand-instagram" style={{ color: '#c13584' }} aria-hidden="true" />
-  if (platform === 'facebook')  return <i className="ti ti-brand-facebook" style={{ color: '#1877f2' }} aria-hidden="true" />
-  if (platform === 'tiktok')    return <i className="ti ti-brand-tiktok" style={{ color: '#1a1a18' }} aria-hidden="true" />
+  if (PLATFORM_LOGO_KEYS.has(platform.toLowerCase())) {
+    return <PlatformLogo platform={platform} size={16} />
+  }
   return <i className="ti ti-world" aria-hidden="true" />
 }
 
@@ -131,7 +134,7 @@ const SIDEBAR_GROUPS: { title: string; items: { id: Tab; label: string; icon: st
     items: [
       { id: 'posts',    label: 'Machapisho', icon: 'camera' },
       { id: 'schedule', label: 'Ratiba',     icon: 'calendar' },
-      { id: 'tiktok',   label: 'TikTok',     icon: 'brand-tiktok' },
+      { id: 'tiktok',   label: 'TikTok',     icon: '' },
     ],
   },
   {
@@ -470,7 +473,9 @@ export default function SocialDashboard() {
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
-                    <i className={`ti ti-${item.icon} text-sm w-4 flex-shrink-0 text-center`} aria-hidden="true" />
+                    {item.id === 'tiktok'
+                      ? <PlatformLogo platform="tiktok" size={16} className="w-4 flex-shrink-0" />
+                      : <i className={`ti ti-${item.icon} text-sm w-4 flex-shrink-0 text-center`} aria-hidden="true" />}
                     <span className="text-xs truncate">{item.label}</span>
                     {activeTab === item.id && (
                       <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
@@ -566,7 +571,7 @@ export default function SocialDashboard() {
                       borderColor: c.is_connected ? '#b6d99a' : '#e5e5e0',
                     }}
                   >
-                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${c.is_connected ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <PlatformLogo platform={c.platform} size={24} />
                     <div>
                       <p className="text-sm font-semibold" style={{ color: '#1a1a18' }}>{c.label}</p>
                       <p className="text-xs" style={{ color: c.is_connected ? '#3b6d11' : '#999992' }}>
@@ -1071,8 +1076,8 @@ export default function SocialDashboard() {
                     <div className="flex flex-wrap gap-2">
                       {([
                         { key: 'all',       label: 'Zote (IG + FB + TikTok)', icon: 'world' },
-                        { key: 'instagram', label: 'Instagram',                icon: 'brand-instagram' },
-                        { key: 'facebook',  label: 'Facebook',                 icon: 'brand-facebook' },
+                        { key: 'instagram', label: 'Instagram',                icon: '' },
+                        { key: 'facebook',  label: 'Facebook',                 icon: '' },
                         { key: 'both',      label: 'IG + FB',                  icon: 'share' },
                       ] as const).map(p => (
                         <button
@@ -1084,7 +1089,10 @@ export default function SocialDashboard() {
                               : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          <i className={`ti ti-${p.icon}`} aria-hidden="true" /> {p.label}
+                          {PLATFORM_LOGO_KEYS.has(p.key)
+                            ? <PlatformLogo platform={p.key} size={16} />
+                            : <i className={`ti ti-${p.icon}`} aria-hidden="true" />}
+                          {p.label}
                         </button>
                       ))}
                     </div>

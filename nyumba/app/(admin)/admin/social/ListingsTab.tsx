@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
+import { PlatformLogo } from '@/components/shared/PlatformLogo'
 
 type SocialStatus = { instagram: string | null; facebook: string | null; tiktok: string | null }
 
@@ -36,7 +37,7 @@ function timeAgo(iso: string | null): string {
   return `wiki ${Math.floor(days / 7)}`
 }
 
-function PlatformBadge({ label, icon, posted, date }: { label: string; icon: string; posted: boolean; date: string | null }) {
+function PlatformBadge({ label, platform, posted, date }: { label: string; platform: string; posted: boolean; date: string | null }) {
   return (
     <span
       title={posted ? `Mwisho: ${timeAgo(date)} iliyopita` : `Haijachapishwa ${label}`}
@@ -46,7 +47,7 @@ function PlatformBadge({ label, icon, posted, date }: { label: string; icon: str
           : 'bg-gray-50 text-gray-400 border-gray-200'
       }`}
     >
-      <i className={`ti ti-${icon}`} aria-hidden="true" />
+      <PlatformLogo platform={platform} size={11} />
       {posted ? timeAgo(date) : '—'}
     </span>
   )
@@ -261,9 +262,9 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
 
                   {/* Platform status badges */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <PlatformBadge label="Instagram" icon="brand-instagram" posted={!!listing.social.instagram} date={listing.social.instagram} />
-                    <PlatformBadge label="Facebook"  icon="brand-facebook"  posted={!!listing.social.facebook}  date={listing.social.facebook}  />
-                    <PlatformBadge label="TikTok"    icon="brand-tiktok"    posted={!!listing.social.tiktok}    date={listing.social.tiktok}    />
+                    <PlatformBadge label="Instagram" platform="instagram" posted={!!listing.social.instagram} date={listing.social.instagram} />
+                    <PlatformBadge label="Facebook"  platform="facebook"  posted={!!listing.social.facebook}  date={listing.social.facebook}  />
+                    <PlatformBadge label="TikTok"    platform="tiktok"    posted={!!listing.social.tiktok}    date={listing.social.tiktok}    />
                   </div>
 
                   {/* Action buttons */}
@@ -288,7 +289,7 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
                     >
                       {isPending && posting?.platform === 'instagram'
                         ? <i className="ti ti-loader-2 animate-spin" aria-hidden="true" />
-                        : <i className="ti ti-brand-instagram" aria-hidden="true" />}
+                        : <PlatformLogo platform="instagram" size={14} />}
                     </button>
 
                     {/* FB */}
@@ -300,7 +301,7 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
                     >
                       {isPending && posting?.platform === 'facebook'
                         ? <i className="ti ti-loader-2 animate-spin" aria-hidden="true" />
-                        : <i className="ti ti-brand-facebook" aria-hidden="true" />}
+                        : <PlatformLogo platform="facebook" size={14} />}
                     </button>
 
                     {/* Story */}

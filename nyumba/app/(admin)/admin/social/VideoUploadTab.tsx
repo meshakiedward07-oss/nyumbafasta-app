@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { VideoPlayer } from '@/components/listings/VideoPlayer'
+import { PlatformLogo } from '@/components/shared/PlatformLogo'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -558,7 +559,7 @@ export default function VideoUploadTab() {
                   disabled={isPosting}
                   className="w-4 h-4 accent-primary-500"
                 />
-                <span className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><i className="ti ti-brand-instagram" style={{color:'#c13584'}} aria-hidden="true" /> Instagram Reels</span>
+                <span className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><PlatformLogo platform="instagram" size={16} /> Instagram Reels</span>
                 {platformStatus.instagram !== 'idle' && (
                   <PlatStatusChip status={platformStatus.instagram} />
                 )}
@@ -571,7 +572,7 @@ export default function VideoUploadTab() {
                   disabled={isPosting}
                   className="w-4 h-4 accent-primary-500"
                 />
-                <span className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><i className="ti ti-brand-facebook" style={{color:'#1877f2'}} aria-hidden="true" /> Facebook Video</span>
+                <span className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><PlatformLogo platform="facebook" size={16} /> Facebook Video</span>
                 {platformStatus.facebook !== 'idle' && (
                   <PlatStatusChip status={platformStatus.facebook} />
                 )}
@@ -602,7 +603,7 @@ export default function VideoUploadTab() {
             {igEnabled && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1"><i className="ti ti-brand-instagram" aria-hidden="true" /> Instagram</label>
+                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1"><PlatformLogo platform="instagram" size={14} /> Instagram</label>
                   <span className={`text-xs font-medium ${
                     captionIg.length > 2090 ? 'text-red-500' : captionIg.length > 1760 ? 'text-amber-500' : 'text-gray-400'
                   }`}>{captionIg.length}/2200</span>
@@ -623,7 +624,7 @@ export default function VideoUploadTab() {
             {fbEnabled && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1"><i className="ti ti-brand-facebook" aria-hidden="true" /> Facebook</label>
+                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1"><PlatformLogo platform="facebook" size={14} /> Facebook</label>
                   <span className={`text-xs font-medium ${
                     captionFb.length > 4750 ? 'text-red-500' : captionFb.length > 4000 ? 'text-amber-500' : 'text-gray-400'
                   }`}>{captionFb.length}/5000</span>

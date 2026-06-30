@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { VideoPlayer } from '@/components/listings/VideoPlayer'
+import { PlatformLogo } from '@/components/shared/PlatformLogo'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -332,7 +333,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
           <div className="flex items-center gap-4">
             {/* Logo */}
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${connection ? 'bg-white/10' : 'bg-gray-100'}`}>
-              <i className={`ti ti-brand-tiktok text-3xl ${connection ? 'text-white' : 'text-gray-700'}`} aria-hidden="true" />
+              <PlatformLogo platform="tiktok" size={36} />
             </div>
 
             <div>
@@ -376,7 +377,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
               onClick={handleConnect}
               className="flex items-center gap-2 bg-white text-black font-bold px-5 py-3 rounded-2xl hover:bg-gray-100 transition-colors text-sm"
             >
-              <i className="ti ti-brand-tiktok" aria-hidden="true" /> Unganisha TikTok
+              <PlatformLogo platform="tiktok" size={16} /> Unganisha TikTok
             </button>
           )}
         </div>
@@ -490,7 +491,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
                     Inachapisha TikTok...
                   </>
                 ) : (
-                  <><i className="ti ti-brand-tiktok" aria-hidden="true" /> Chapisha kwenye TikTok</>
+                  <><PlatformLogo platform="tiktok" size={16} /> Chapisha kwenye TikTok</>
                 )}
               </button>
             </>
@@ -526,7 +527,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
             </div>
           ) : posts.length === 0 ? (
             <div className="py-12 text-center">
-<p className="text-5xl mb-3"><i className="ti ti-brand-tiktok" aria-hidden="true" /></p>
+<p className="mb-3 flex justify-center"><PlatformLogo platform="tiktok" size={48} /></p>
               <p className="text-gray-400 text-sm">Hakuna machapisho bado</p>
             </div>
           ) : (

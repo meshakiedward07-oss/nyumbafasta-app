@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { PlatformLogo } from '@/components/shared/PlatformLogo'
 
 type Recommendation = {
   best_hours?:          number[]
@@ -189,7 +190,7 @@ export default function BestTimeTab() {
                   : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
               }`}
             >
-{p === 'instagram' ? <><i className="ti ti-brand-instagram" aria-hidden="true" /> Instagram</> : <><i className="ti ti-brand-facebook" aria-hidden="true" /> Facebook</>}
+{p === 'instagram' ? <><PlatformLogo platform="instagram" size={16} /> Instagram</> : <><PlatformLogo platform="facebook" size={16} /> Facebook</>}
             </button>
           ))}
         </div>
