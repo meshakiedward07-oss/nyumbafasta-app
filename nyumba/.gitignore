@@ -43,3 +43,4 @@ lib/scraper/config/ig-cookies.json
 lib/scraper/config/tt-cookies.json
 lib/config/instagram.json
 lib/config/ticktock.json
+.claude/worktrees/
