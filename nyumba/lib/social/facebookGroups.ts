@@ -128,7 +128,7 @@ function buildGroupMessage(listing: Listing): string {
   const typeLabel = typeMap[listing.type] ?? listing.type.toUpperCase()
   const furnished = listing.furnished === 'furnished'
     ? '✅ Furnished' : listing.furnished === 'semi'
-    ? '🔸 Semi-furnished' : '📦 Empty'
+    ? '🛋️ Semi-furnished' : '📦 Empty'
 
   const amenities = listing.amenities?.slice(0, 4).join(' • ') ?? ''
   const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
@@ -138,11 +138,11 @@ function buildGroupMessage(listing: Listing): string {
     '',
     `💰 Bei: Tsh ${price}/mwezi`,
     listing.bedrooms ? `🛏️ Vyumba: ${listing.bedrooms}` : '',
-    `🪑 Samani: ${furnished}`,
+    `🛋️ Samani: ${furnished}`,
     amenities ? `✨ ${amenities}` : '',
     listing.description ? `\n${listing.description.slice(0, 200)}` : '',
     '',
-    `📲 Angalia picha zaidi na wasiliana na dalali:`,
+    `📸 Angalia picha zaidi na wasiliana na dalali:`,
     `🌐 ${appUrl}/listings/${listing.id}`,
     '',
     `#NyumbaFasta #Nyumba${listing.district.replace(/\s/g, '')} #NyumbaTanzania #${listing.region.replace(/\s/g, '')}`,

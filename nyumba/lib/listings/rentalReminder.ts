@@ -53,7 +53,7 @@ export async function notifyDalaliNewUnlock(params: {
     `Mteja amefungua namba yako kupitia listing:\n` +
     `🏠 *${params.listingLabel}*\n\n` +
     `Anaweza kukupigia simu au kukutumia WhatsApp sasa hivi.\n\n` +
-    `Jibu haraka ili usipoteze mteja! 🏃‍♂️\n\n` +
+    `Jibu haraka ili usipoteze mteja! ⚡\n\n` +
     `Angalia: ${APP_URL}/dashboard/listings`
   ).catch(err => console.error('[RentalReminder] notifyDalaliNewUnlock failed:', err))
 }
@@ -123,7 +123,7 @@ export async function sendRentalReminders(): Promise<{
 
       const sent = await sendTextMessage(
         formatPhoneNumber(rawPhone),
-        `⏰ Ukumbusho — NyumbaFasta\n\n` +
+        `🔔 Ukumbusho — NyumbaFasta\n\n` +
         `Habari ${dalali.full_name}!\n\n` +
         `Jana mteja alifungua mawasiliano ya listing yako:\n` +
         `🏠 *${listingLabel}*\n\n` +

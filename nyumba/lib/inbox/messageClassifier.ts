@@ -187,7 +187,7 @@ export async function notifyOwnerPersonalMessage(
 
     const platformEmoji: Record<string, string> = {
       whatsapp:  '💬',
-      instagram: '📷',
+      instagram: '📸',
       facebook:  '👥',
       tiktok:    '🎵',
     }

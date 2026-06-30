@@ -3,9 +3,9 @@ import { useState } from 'react'
 
 // ── Helpers ───────────────────────────────────────────────
 const amenityEmoji: Record<string, string> = {
-  umeme: '⚡ Umeme', maji: '💧 Maji', wifi: '📶 WiFi', parking: '🚗 Parking',
-  choo_ndani: '🚿 Choo ndani', daladala: '🚌 Daladala', watchman: '💂 Watchman',
-  ac: '❄️ AC', dstv: '📺 DSTV', solar: '☀️ Solar', soko: '🛒 Soko', bustani: '🌿 Bustani',
+  umeme: '⚡ Umeme', maji: '💧 Maji', wifi: '🌐 WiFi', parking: '🅿️ Parking',
+  choo_ndani: '🛁 Choo ndani', daladala: '🚌 Daladala', watchman: '🛡️ Watchman',
+  ac: '❄️ AC', dstv: '📡 DSTV', solar: '☀️ Solar', soko: '🏪 Soko', bustani: '🌳 Bustani',
 }
 const furnishedLabel: Record<string, string> = {
   furnished: 'Ina Samani', semi: 'Nusu Samani', empty: 'Bila Samani',
@@ -57,7 +57,7 @@ function buildMessage(listing: ShareListing): string {
     lines.push(amenities)
   }
   lines.push('')
-  lines.push(`👀 Angalia picha na maelezo zaidi:`)
+  lines.push(`📸 Angalia picha na maelezo zaidi:`)
   lines.push(url)
   lines.push('')
   lines.push(`_NyumbaFasta — Haraka & Kwa Uhakika_ 🏠`)

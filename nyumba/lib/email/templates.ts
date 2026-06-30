@@ -128,7 +128,7 @@ export function welcomeEmail(name: string, role: string) {
       </div>
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr><td align="center">
-          <a href="${APP_URL}/dashboard" style="${styles.btn}">📤 Anza Kupost Listing →</a>
+          <a href="${APP_URL}/dashboard" style="${styles.btn}">🚀 Anza Kupost Listing →</a>
         </td></tr>
       </table>
       ` : `
@@ -152,7 +152,7 @@ export function welcomeEmail(name: string, role: string) {
 
 export function passwordResetEmail(name: string, resetUrl: string) {
   return {
-    subject: '🔐 Reset Password — NyumbaFasta',
+    subject: '🔑 Reset Password — NyumbaFasta',
     html: emailBase(`
       <span style="${styles.greeting}">Habari ${name}!</span>
       <span style="${styles.text}">Tumepokea ombi la kubadilisha password ya akaunti yako kwenye NyumbaFasta.</span>
@@ -160,7 +160,7 @@ export function passwordResetEmail(name: string, resetUrl: string) {
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td align="center">
-            <a href="${resetUrl}" style="${styles.btn}">🔐 Badilisha Password →</a>
+            <a href="${resetUrl}" style="${styles.btn}">🔑 Badilisha Password →</a>
           </td>
         </tr>
       </table>
@@ -220,7 +220,7 @@ export function contactUnlockEmail(dalaliName: string, clientName: string, listi
 
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr><td align="center">
-          <a href="${APP_URL}/dashboard" style="${styles.btn}">📞 Angalia Mawasiliano →</a>
+          <a href="${APP_URL}/dashboard" style="${styles.btn}">📲 Angalia Mawasiliano →</a>
         </td></tr>
       </table>
 

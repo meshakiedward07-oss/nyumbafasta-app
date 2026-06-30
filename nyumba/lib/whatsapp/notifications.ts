@@ -122,7 +122,7 @@ export async function notifyBoostActivated(
 ): Promise<boolean> {
   const to = formatPhoneNumber(dalaliPhone)
   const message =
-    `Boost Imewashwa! 🚀\n\n` +
+    `Boost Imewashwa! ⚡\n\n` +
     `Listing yako *"${listingTitle}"* sasa ipo juu ya matokeo kwa wiki *${weeks}*!\n\n` +
     `Wateja zaidi wataona listing yako. 🎉`
   return sendTextMessage(to, message)

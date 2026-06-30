@@ -137,7 +137,7 @@ export async function GET(req: NextRequest) {
     for (const dalali of uniqueDalali.values()) {
       await sendEmail(
         dalali.email,
-        '💪 Una Leads Zinaokusubiri!',
+        '📈 Una Leads Zinaokusubiri!',
         `<h2>Habari ${dalali.full_name}!</h2>
          <p>Una leads ambazo bado haujafuatilia wiki nzima.</p>
          <p>Wasiliana nao leo — wateja wanakusubiri! 🏠</p>

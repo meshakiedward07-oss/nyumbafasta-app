@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
         // Send WhatsApp reminder to assigned dalali if they have a phone
         if (lead.phone) {
-          const waMsg = `⏰ *Kumbuka Lead!*\n\nLead imekaa siku 3+ bila mawasiliano:\n\n👤 *${lead.business_name || 'Lead yako'}*\n📞 ${lead.phone}\n\nWasiliana nao leo! 💪\n\n🔗 ${process.env.NEXT_PUBLIC_APP_URL ?? ''}/admin/crm`
+          const waMsg = `🔔 *Kumbuka Lead!*\n\nLead imekaa siku 3+ bila mawasiliano:\n\n👤 *${lead.business_name || 'Lead yako'}*\n📞 ${lead.phone}\n\nWasiliana nao leo! 📈\n\n🔗 ${process.env.NEXT_PUBLIC_APP_URL ?? ''}/admin/crm`
           await sendTextMessage(formatPhoneNumber(lead.phone), waMsg)
         }
 

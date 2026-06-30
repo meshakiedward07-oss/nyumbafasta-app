@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
 
       await admin.from('notifications').insert({
         user_id:  listing.dalali_id,
-        title:    '📞 Lead Mpya!',
+        title:    '📲 Lead Mpya!',
         body:     leadBody,
         type:     'new_lead',
         is_read:  false,

@@ -86,16 +86,16 @@ function buildCaption(listing: Listing): string {
   const bedroomLine = listing.bedrooms ? `🛏️ Vyumba ${listing.bedrooms}\n` : ''
   const furnishedLine =
     listing.furnished === 'furnished' ? '✨ Imejengwa (Furnished)\n'
-    : listing.furnished === 'semi'    ? '🪑 Semi-furnished\n'
+    : listing.furnished === 'semi'    ? '🛋️ Semi-furnished\n'
     : ''
 
-  return `🏠 ${type} inapatikana!
+  return `🏡 ${type} inapatikana!
 
 📍 ${location}
 💰 TZS ${price}/mwezi
 ${bedroomLine}${furnishedLine}
 ✅ Imeidhinishwa na NyumbaFasta
-📱 nyumbafasta.co
+🌐 nyumbafasta.co
 
 #NyumbaFasta #NyumbaZaKupanga #Tanzania #DarEsSalaam #RealEstate #MaliIsiyohamia`.trim()
 }

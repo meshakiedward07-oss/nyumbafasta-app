@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         boost_count: (listing.boost_count ?? 0) + 1,
       }).eq('id', listing_id)
       await admin.from('notifications').insert({
-        user_id: user.id, title: '🚀 Listing Imeboostwa!',
+        user_id: user.id, title: '⚡ Listing Imeboostwa!',
         body: `Listing yako itaonekana juu ya wote kwa wiki ${weeks}.`,
         type: 'boost_activated', is_read: false, data: { listing_id },
       })

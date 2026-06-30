@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
       await admin.from('notifications').insert({
         user_id:  bp.dalali_id,
-        title:    '🚀 Listing Imeboostwa!',
+        title:    '⚡ Listing Imeboostwa!',
         body:     `Listing yako itaonekana juu ya wote kwa wiki ${bp.weeks}.`,
         type:     'boost_activated',
         is_read:  false,

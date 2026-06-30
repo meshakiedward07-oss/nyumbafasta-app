@@ -339,12 +339,12 @@ function formatDescription(l: Listing): string {
 💰 Bei: TZS ${price}${suffix}
 🛏️ Vyumba: ${l.bedrooms ?? 'N/A'}
 ${l.furnished === 'furnished' ? '✅ Samani zote ziko' : l.furnished === 'semi' ? '✅ Semi-furnished' : ''}
-${amenities ? `🔌 ${amenities}` : ''}
+${amenities ? `✨ ${amenities}` : ''}
 ${l.description ? `\n${l.description}` : ''}
 
 ✅ Orodha hii imethibitishwa na NyumbaFasta
 🌐 Maelezo kamili: nyumbafasta.co/listings/${l.id}
-📲 Wasiliana nasi kwa WhatsApp kwa maelezo zaidi
+💬 Wasiliana nasi kwa WhatsApp kwa maelezo zaidi
 
 NyumbaFasta — Haraka & Kwa Uhakika 🏠`.trim().slice(0, 5000)
 }

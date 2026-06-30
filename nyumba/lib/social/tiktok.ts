@@ -244,13 +244,13 @@ function buildStaticTikTokCaption(listing: Listing): string {
       ? '🪑 Semi-furnished\n'
       : ''
 
-  return `🏠 ${type} inapatikana!
+  return `🏡 ${type} inapatikana!
 
 📍 ${location}
 💰 TZS ${price}/mwezi
 ${bedroomLine}${furnishedLine}
 ✅ Imeidhinishwa na NyumbaFasta
-📱 Tafuta zaidi: nyumbafasta.co
+🌐 Tafuta zaidi: nyumbafasta.co
 
 #NyumbaFasta #NyumbaZaKupanga #Tanzania #DarEsSalaam #RealEstate #MaliIsiyohamia #NyumbaTanzania #HouseForRent`.trim()
 }

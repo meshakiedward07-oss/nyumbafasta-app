@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(vercel inspect *)",
+      "Bash(vercel ls *)",
+      "Bash(vercel list *)",
+      "Bash(vercel whoami)",
+      "Bash(npx tsc --noEmit *)",
+      "Bash(./node_modules/.bin/tsc --noEmit *)",
+      "Bash(vercel env ls *)",
+      "Bash(vercel logs *)",
+      "Bash(./node_modules/.bin/next lint *)",
+      "Bash(vercel domains ls *)"
+    ]
+  }
+}

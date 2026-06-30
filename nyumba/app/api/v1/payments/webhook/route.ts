@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         await admin.from('notifications').insert([
           {
             user_id: unlock.dalali_id,
-            title:   '📞 Lead Mpya!',
+            title:   '📲 Lead Mpya!',
             body:    `Mteja amepata nambari yako kupitia listing ya ${listingLabel}.`,
             type:    'new_lead',
             is_read: false,
