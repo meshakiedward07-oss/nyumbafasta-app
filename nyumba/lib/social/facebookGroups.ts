@@ -120,7 +120,7 @@ export async function postToAllGroups(
 
 // ── Build message for group posts ─────────────────────────────────────────────
 
-function buildGroupMessage(listing: Listing): string {
+export function buildGroupMessage(listing: Listing): string {
   const price    = listing.price_monthly?.toLocaleString('sw-TZ') ?? '0'
   const typeMap: Record<string, string> = {
     chumba: 'CHUMBA', apartment: 'APARTMENT', nyumba: 'NYUMBA', studio: 'STUDIO',

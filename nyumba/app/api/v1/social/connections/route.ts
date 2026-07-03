@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminUser } from '@/lib/security/adminAuth'
 import { getConnectedPlatforms } from '@/lib/social/platformConnections'
+
+export const maxDuration = 15
 
 const PLATFORM_LABELS: Record<string, string> = {
   instagram: 'Instagram',
@@ -9,13 +11,10 @@ const PLATFORM_LABELS: Record<string, string> = {
 }
 
 export async function GET() {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
-    }
+  const admin = await requireAdminUser()
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  try {
     const connected = await getConnectedPlatforms()
 
     const allPlatforms = (['instagram', 'facebook', 'tiktok'] as const).map(p => ({

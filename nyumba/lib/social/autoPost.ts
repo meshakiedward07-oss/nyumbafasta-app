@@ -234,14 +234,14 @@ export async function postListingToSocialMedia(
     }
   }
 
-  // ── Instagram Story (optional, non-blocking) ──────────────────────────────
+  // ── Story — all platforms (IG + FB + TikTok if video) ───────────────────────
   let storyPosted = false
   if (options?.postToStories) {
     try {
-      const { postListingStory } = await import('./instagramStories')
-      const storyResult = await postListingStory(l)
-      storyPosted = storyResult.success
-      console.log(`[AutoPost] Story: ${storyPosted ? '✅' : '❌'}`, storyResult.error ?? '')
+      const { postListingStoryAllPlatforms } = await import('./instagramStories')
+      const storyResult = await postListingStoryAllPlatforms(l)
+      storyPosted = storyResult.successCount > 0
+      console.log(`[AutoPost] Story: ${storyResult.successCount}/${storyResult.results.length} platforms ✅`)
     } catch (err) {
       console.error('[AutoPost] Story posting error (non-fatal):', err)
     }

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminUser } from '@/lib/security/adminAuth'
 import { getUnifiedStats } from '@/lib/social/unifiedPost'
 
-export async function GET(req: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
-    }
+export const maxDuration = 30
 
+export async function GET(req: NextRequest) {
+  const admin = await requireAdminUser()
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  try {
     const { searchParams } = new URL(req.url)
     const period = (searchParams.get('period') ?? 'month') as 'today' | 'week' | 'month' | 'all'
 

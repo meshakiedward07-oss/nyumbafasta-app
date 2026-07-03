@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { postToAllGroups, postToFacebookGroup, getAllGroups } from '@/lib/social/facebookGroups'
+import { postToAllGroups, postToFacebookGroup, getAllGroups, buildGroupMessage } from '@/lib/social/facebookGroups'
 import { watermarkImage } from '@/lib/media/watermark'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import type { Listing } from '@/lib/types/database'
@@ -61,20 +61,4 @@ export async function POST(req: NextRequest) {
     console.error('[Groups/post]', message)
     return NextResponse.json({ error: message }, { status: 500 })
   }
-}
-
-function buildGroupMessage(listing: Listing): string {
-  const price    = listing.price_monthly?.toLocaleString('sw-TZ') ?? '0'
-  const typeMap: Record<string, string> = {
-    chumba: 'CHUMBA', apartment: 'APARTMENT', nyumba: 'NYUMBA', studio: 'STUDIO',
-  }
-  const typeLabel = typeMap[listing.type] ?? listing.type.toUpperCase()
-  const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
-  return [
-    `🏠 ${typeLabel} INAPANGISHWA — ${listing.district}, ${listing.region}`,
-    `💰 Bei: Tsh ${price}/mwezi`,
-    listing.description ? `\n${listing.description.slice(0, 200)}` : '',
-    `\n🌐 ${appUrl}/listings/${listing.id}`,
-    `#NyumbaFasta #${listing.district.replace(/\s/g, '')} #NyumbaTanzania`,
-  ].join('\n').trim()
 }

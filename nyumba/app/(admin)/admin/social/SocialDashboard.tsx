@@ -175,16 +175,8 @@ export default function SocialDashboard() {
   const [postAllListing, setPostAllListing] = useState('')
   const [postAllLoading, setPostAllLoading] = useState(false)
 
-  // Post Now state
-  const [listings, setListings]                   = useState<Listing[]>([])
-  const [selectedListing, setSelectedListing]     = useState('')
-  const [selectedPlatform, setSelectedPlatform]   = useState<'instagram' | 'facebook' | 'both' | 'all'>('all')
-  const [postMode, setPostMode]                   = useState<'single' | 'carousel' | 'story'>('single')
-  const [generatedCaption, setGeneratedCaption]   = useState('')
-  const [generatedHashtags, setGeneratedHashtags] = useState('')
-  const [captionLoading, setCaptionLoading]       = useState(false)
-  const [postLoading, setPostLoading]             = useState(false)
-  const [scheduledAt, setScheduledAt]             = useState('')
+  // Listings for the "Chapisha Kwenye Platforms Zote" quick-post in the overview tab
+  const [listings, setListings] = useState<Listing[]>([])
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -249,10 +241,6 @@ export default function SocialDashboard() {
         const data = await res.json() as { schedule: unknown[]; total: number }
         setSchedule(data.schedule ?? [])
         setTotal(data.total ?? 0)
-      } else if (tab === 'postnow') {
-        const res = await fetch('/api/v1/social/listings')
-        const data = await res.json() as { listings?: Listing[] }
-        setListings(data.listings ?? [])
       }
     } catch (err) {
       console.error(err)
@@ -277,94 +265,6 @@ export default function SocialDashboard() {
     if (activeTab === 'yote') fetchUnified(unifiedPeriod)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unifiedPeriod])
-
-  async function handleGenerateCaption() {
-    if (!selectedListing) { showToast('Chagua listing kwanza'); return }
-    setCaptionLoading(true)
-    try {
-      const res = await fetch('/api/v1/social/caption', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId: selectedListing, platform: selectedPlatform === 'both' ? 'instagram' : selectedPlatform }),
-      })
-      const data = await res.json() as { caption?: string; hashtags?: string; error?: string }
-      if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-      setGeneratedCaption(data.caption ?? '')
-      setGeneratedHashtags(data.hashtags ?? '')
-    } finally {
-      setCaptionLoading(false)
-    }
-  }
-
-  async function handlePost() {
-    if (!selectedListing) { showToast('Chagua listing kwanza'); return }
-    setPostLoading(true)
-    try {
-      if (postMode === 'story') {
-        const res = await fetch('/api/v1/social/stories', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storyType: 'listing', listingId: selectedListing }),
-        })
-        type PlatformR = { platform: string; success: boolean; storyId?: string; error?: string }
-        const data = await res.json() as { ok?: boolean; successCount?: number; results?: PlatformR[]; error?: string }
-        if (data.error && !data.ok) { showToast(`Hitilafu: ${data.error}`); return }
-        if (data.ok || (data.successCount ?? 0) > 0) {
-          const platforms = (data.results ?? []).filter(r => r.success).map(r => r.platform.toUpperCase()).join(' + ')
-          showToast(`Story imechapishwa kwenye ${platforms}! (${data.successCount}/${data.results?.length ?? 1})`)
-        } else {
-          const errs = (data.results ?? []).filter(r => !r.success).map(r => `${r.platform}: ${r.error}`).join(', ')
-          showToast(`Imeshindwa: ${errs || data.error}`)
-        }
-        setSelectedListing('')
-        return
-      }
-
-      if (postMode === 'carousel') {
-        const res = await fetch('/api/v1/social/carousel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ listingId: selectedListing }),
-        })
-        const data = await res.json() as { success?: boolean; slidesCount?: number; error?: string }
-        if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-        showToast(data.success ? `Carousel imechapishwa! (Slides: ${data.slidesCount})` : 'Imeshindwa kuchapisha')
-        setSelectedListing('')
-        return
-      }
-
-      if (selectedPlatform === 'all') {
-        const res = await fetch('/api/v1/social/post-all', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ listingId: selectedListing }),
-        })
-        const data = await res.json() as { successCount?: number; failedCount?: number; error?: string }
-        if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-        showToast(`${data.successCount ?? 0} platform zilipita${data.failedCount ? `, ${data.failedCount} zilishindwa` : ''}`)
-      } else {
-        const body: Record<string, unknown> = {
-          listingId: selectedListing,
-          platform: selectedPlatform,
-        }
-        if (scheduledAt) body.scheduledAt = scheduledAt
-        const res = await fetch('/api/v1/social/post', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
-        const data = await res.json() as { ok?: boolean; status?: string; scheduled?: boolean; error?: string }
-        if (data.error) { showToast(`Hitilafu: ${data.error}`); return }
-        showToast(data.scheduled ? 'Post imepangwa!' : data.status === 'published' ? 'Imechapishwa!' : 'Imeshindwa')
-      }
-
-      setGeneratedCaption('')
-      setGeneratedHashtags('')
-      setSelectedListing('')
-    } finally {
-      setPostLoading(false)
-    }
-  }
 
   async function handlePostAll() {
     if (!postAllListing) { showToast('Chagua listing kwanza'); return }
@@ -988,193 +888,6 @@ export default function SocialDashboard() {
             </div>
           )}
 
-          {/* ── POST NOW ── */}
-          {activeTab === 'postnow' && (
-            <div className="max-w-2xl">
-              <div className="bg-white rounded-xl border p-6 space-y-5" style={{ borderColor: '#e5e5e0' }}>
-                <h2 className="font-semibold text-lg" style={{ color: '#1a1a18' }}>Chapisha Listing</h2>
-
-                {/* Listing selector */}
-                <div>
-                  <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>
-                    Chagua Listing
-                    {listings.length > 0 && <span className="ml-1.5 text-xs font-normal text-gray-400">({listings.length} hai)</span>}
-                  </label>
-                  {loading ? (
-                    <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
-                  ) : listings.length === 0 ? (
-                    <div className="text-center py-5 rounded-lg" style={{ background: '#fafafa', border: '1px dashed #e5e5e0' }}>
-                      <i className="ti ti-home-off text-2xl text-gray-300" aria-hidden="true" />
-                      <p className="text-sm text-gray-500 mt-2">Hakuna listings hai</p>
-                      <a href="/admin/listings" className="text-xs text-primary-500 font-medium hover:underline mt-1 inline-block">
-                        Idhini listings → /admin/listings
-                      </a>
-                    </div>
-                  ) : (
-                    <select
-                      value={selectedListing}
-                      onChange={(e) => { setSelectedListing(e.target.value); setGeneratedCaption('') }}
-                      className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
-                    >
-                      <option value="">-- Chagua listing --</option>
-                      {listings.map(l => (
-                        <option key={l.id} value={l.id}>
-                          {l.title} — {l.district}, {l.region}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                {/* Post mode */}
-                <div>
-                  <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>Aina ya Post</label>
-                  <div className="flex flex-wrap gap-2">
-                    {([
-                      { key: 'single',   label: 'Picha/Video', icon: 'camera' },
-                      { key: 'carousel', label: 'Carousel',    icon: 'layout-columns' },
-                      { key: 'story',    label: 'Story',       icon: 'circle-dot' },
-                    ] as const).map(m => (
-                      <button
-                        key={m.key}
-                        onClick={() => setPostMode(m.key)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-1.5 ${
-                          postMode === m.key
-                            ? 'bg-primary-500 text-white border-primary-500'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <i className={`ti ti-${m.icon}`} aria-hidden="true" /> {m.label}
-                      </button>
-                    ))}
-                  </div>
-                  {postMode === 'carousel' && (
-                    <p className="text-xs mt-1" style={{ color: '#999992' }}>
-                      Picha zote kama slides — inahitaji picha 2+ (Instagram tu)
-                    </p>
-                  )}
-                  {postMode === 'story' && (
-                    <p className="text-xs mt-1" style={{ color: '#999992' }}>
-                      Picha ya kwanza ya listing kama Story. Inaisha baada ya saa 24.
-                    </p>
-                  )}
-                </div>
-
-                {/* Platform — only for single post mode */}
-                {postMode === 'single' && (
-                  <div>
-                    <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>Jukwaa</label>
-                    <div className="flex flex-wrap gap-2">
-                      {([
-                        { key: 'all',       label: 'Zote (IG + FB + TikTok)', icon: 'world' },
-                        { key: 'instagram', label: 'Instagram',                icon: '' },
-                        { key: 'facebook',  label: 'Facebook',                 icon: '' },
-                        { key: 'both',      label: 'IG + FB',                  icon: 'share' },
-                      ] as const).map(p => (
-                        <button
-                          key={p.key}
-                          onClick={() => setSelectedPlatform(p.key)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-1.5 ${
-                            selectedPlatform === p.key
-                              ? 'bg-primary-500 text-white border-primary-500'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          {PLATFORM_LOGO_KEYS.has(p.key)
-                            ? <PlatformLogo platform={p.key} size={16} />
-                            : <i className={`ti ti-${p.icon}`} aria-hidden="true" />}
-                          {p.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Caption + Schedule — only for single post mode */}
-                {postMode === 'single' && (
-                  <>
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-sm font-medium" style={{ color: '#1a1a18' }}>Caption</label>
-                        <button
-                          onClick={handleGenerateCaption}
-                          disabled={captionLoading || !selectedListing}
-                          className="text-xs px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
-                        >
-{captionLoading ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inaandika...</> : <><i className="ti ti-sparkles" aria-hidden="true" /> Tengeneza kwa AI</>}
-                        </button>
-                      </div>
-                      <textarea
-                        value={generatedCaption}
-                        onChange={(e) => setGeneratedCaption(e.target.value)}
-                        rows={6}
-                        placeholder="Caption itaonekana hapa baada ya kugeneratea, au andika mwenyewe..."
-                        className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                        style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
-                      />
-                      {generatedHashtags && (
-                        <p className="text-xs mt-1" style={{ color: '#999992' }}>Hashtags: {generatedHashtags}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium block mb-1.5" style={{ color: '#1a1a18' }}>Panga Muda (hiari)</label>
-                      <input
-                        type="datetime-local"
-                        value={scheduledAt}
-                        onChange={(e) => setScheduledAt(e.target.value)}
-                        className="w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
-                      />
-                      <p className="text-xs mt-1" style={{ color: '#999992' }}>Acha wazi kwa kuchapisha sasa hivi</p>
-                    </div>
-                  </>
-                )}
-
-                {/* Info boxes */}
-                {postMode === 'carousel' && (
-                  <div className="rounded-xl p-3 text-xs" style={{ background: '#faeeda', border: '1px solid #f5d5a0', color: '#854f0b' }}>
-                    Caption ya AI itazalishwa kiotomatiki. Watermark itawekwa kwenye kila slide.
-                    Mchakato huchukua dakika 1-2 — usifunge dirisha.
-                  </div>
-                )}
-                {postMode === 'story' && (
-                  <div className="rounded-xl p-3 text-xs" style={{ background: '#e6f1fb', border: '1px solid #b3d0f5', color: '#185fa5' }}>
-                    Picha ya kwanza ya listing itatumika kama Story kwenye IG Story + FB Story.
-                    Kama listing ina video, TikTok pia itachapishwa. Inaisha baada ya saa 24.
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={handlePost}
-                    disabled={postLoading || !selectedListing}
-                    className="btn-primary flex-1 py-3"
-                  >
-                    {postLoading
-                      ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha...</>
-                      : postMode === 'carousel'
-                      ? <><i className="ti ti-layout-columns" aria-hidden="true" /> Chapisha Carousel</>
-                      : postMode === 'story'
-                      ? <><i className="ti ti-circle-dot" aria-hidden="true" /> Chapisha Story</>
-                      : selectedPlatform === 'all'
-                      ? <><i className="ti ti-world" aria-hidden="true" /> Chapisha Zote (IG + FB + TikTok)</>
-                      : scheduledAt ? <><i className="ti ti-calendar" aria-hidden="true" /> Panga</> : <><i className="ti ti-rocket" aria-hidden="true" /> Chapisha Sasa</>}
-                  </button>
-                  <button
-                    onClick={() => { setGeneratedCaption(''); setGeneratedHashtags(''); setSelectedListing(''); setScheduledAt('') }}
-                    className="px-5 py-3 rounded-xl hover:bg-gray-50 transition-all text-sm"
-                    style={{ border: '1px solid #e5e5e0', color: '#666660' }}
-                  >
-                    Futa
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* ── SCHEDULE ── */}
           {activeTab === 'schedule' && (
             <div>
@@ -1210,7 +923,7 @@ export default function SocialDashboard() {
             </div>
           )}
 
-          {loading && ['posts', 'comments', 'dms', 'postnow', 'schedule'].includes(activeTab) && (
+          {loading && ['posts', 'comments', 'dms', 'schedule'].includes(activeTab) && (
             <div className="flex justify-center py-12">
               <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
             </div>

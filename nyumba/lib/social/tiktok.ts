@@ -130,6 +130,22 @@ export async function postVideoToTikTok(params: {
   const accessToken = await getValidToken()
   if (!accessToken) return { success: false, error: 'TikTok account haijaunganishwa' }
 
+  // Dedup: skip if same listing was posted to TikTok within the last 24h
+  if (params.listingId) {
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data: recent } = await supabaseAdmin
+      .from('tiktok_posts')
+      .select('id')
+      .eq('listing_id', params.listingId)
+      .in('status', ['published', 'processing', 'uploading'])
+      .gte('created_at', since24h)
+      .limit(1)
+      .maybeSingle()
+    if (recent) {
+      return { success: false, error: '[Dedup] Listing hii tayari ilichapishwa TikTok saa 24 zilizopita' }
+    }
+  }
+
   const { data: post } = await supabaseAdmin
     .from('tiktok_posts')
     .insert({
