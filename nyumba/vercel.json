@@ -14,16 +14,23 @@
     }
   ],
   "functions": {
-    "app/api/v1/whatsapp/webhook/route.ts": { "maxDuration": 30 },
-    "app/api/v1/meta/webhook/route.ts":     { "maxDuration": 30 },
-    "app/api/v1/payments/webhook/route.ts": { "maxDuration": 30 },
-    "app/api/v1/social/video/[id]/publish/route.ts": { "maxDuration": 300 },
+    "app/api/v1/whatsapp/webhook/route.ts":          { "maxDuration": 30 },
+    "app/api/v1/whatsapp/broadcast/route.ts":         { "maxDuration": 60 },
+    "app/api/v1/meta/webhook/route.ts":               { "maxDuration": 30 },
+    "app/api/v1/payments/webhook/route.ts":           { "maxDuration": 30 },
+    "app/api/v1/social/video/[id]/publish/route.ts":  { "maxDuration": 300 },
     "app/api/v1/social/marketplace/sync/route.ts":    { "maxDuration": 300 },
-    "app/api/v1/social/post/route.ts":      { "maxDuration": 60 },
-    "app/api/v1/social/best-time/route.ts": { "maxDuration": 60 },
-    "app/api/v1/agent/run/route.ts":        { "maxDuration": 60 },
-    "app/api/v1/cron/daily/route.ts":       { "maxDuration": 300 },
-    "app/api/v1/cron/weekly/route.ts":      { "maxDuration": 60 },
-    "app/api/v1/cron/hourly/route.ts":      { "maxDuration": 30 }
+    "app/api/v1/social/post/route.ts":                { "maxDuration": 60 },
+    "app/api/v1/social/post-all/route.ts":            { "maxDuration": 120 },
+    "app/api/v1/social/carousel/route.ts":            { "maxDuration": 60 },
+    "app/api/v1/social/stories/route.ts":             { "maxDuration": 60 },
+    "app/api/v1/social/video/route.ts":               { "maxDuration": 60 },
+    "app/api/v1/social/tiktok/post/route.ts":         { "maxDuration": 120 },
+    "app/api/v1/social/best-time/route.ts":           { "maxDuration": 60 },
+    "app/api/v1/social/caption/route.ts":             { "maxDuration": 30 },
+    "app/api/v1/agent/run/route.ts":                  { "maxDuration": 60 },
+    "app/api/v1/cron/daily/route.ts":                 { "maxDuration": 300 },
+    "app/api/v1/cron/weekly/route.ts":                { "maxDuration": 60 },
+    "app/api/v1/cron/hourly/route.ts":                { "maxDuration": 30 }
   }
 }

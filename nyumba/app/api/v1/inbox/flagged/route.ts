@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from('message_classifications')
-    .select('*')
+    .select('id, phone_number, platform, message_text, category, action, confidence, created_at, responded_at, response_text')
     .order('created_at', { ascending: false })
     .limit(50)
 

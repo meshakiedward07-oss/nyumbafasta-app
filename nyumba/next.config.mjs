@@ -18,7 +18,7 @@ const nextConfig = {
 
   experimental: {
     // Tree-shake these packages so only used icons/functions are bundled
-    optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],
+    optimizePackageImports: ['lucide-react', '@tabler/icons-react', '@supabase/supabase-js'],
   },
 
   async headers() {

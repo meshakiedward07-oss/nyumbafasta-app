@@ -9,7 +9,7 @@ export async function GET() {
 
   const { data: keywords } = await supabaseAdmin
     .from('spam_keywords')
-    .select('*')
+    .select('id, keyword, category, is_active, match_count, created_at')
     .order('match_count', { ascending: false })
 
   return NextResponse.json({ keywords: keywords ?? [] })

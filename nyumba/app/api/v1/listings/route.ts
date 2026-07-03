@@ -2,6 +2,76 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rateLimit'
 import { validateListing } from '@/lib/security/validate'
+import { cached, TTL } from '@/lib/cache/memoryCache'
+
+// Public listing fields — NEVER include whatsapp_number here
+const PUBLIC_LISTING_FIELDS = `
+  id, title, type, status, price_monthly,
+  district, region, ward, furnished, amenities,
+  images, is_boosted, boosted_until,
+  view_count, lead_count, share_count, latitude, longitude,
+  created_at,
+  dalali:dalali_id (
+    id, full_name, avatar_url,
+    dalali_profiles ( rating_avg, is_premium_verified )
+  )
+`
+
+// GET /api/v1/listings — public search with server-side caching
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const region   = searchParams.get('region')    ?? ''
+  const type     = searchParams.get('type')      ?? ''
+  const furnished = searchParams.get('furnished') ?? ''
+  const minPrice = searchParams.get('min_price') ?? ''
+  const maxPrice = searchParams.get('max_price') ?? ''
+  const search   = searchParams.get('search')    ?? ''
+  const page     = Math.max(0, parseInt(searchParams.get('page') ?? '0'))
+  const limit    = Math.min(Math.max(1, parseInt(searchParams.get('limit') ?? '10')), 50)
+  const from     = page * limit
+
+  // Rate limit: 120 requests per minute per IP
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'anon'
+  const rl = rateLimit(`listings-get:${ip}`, 120, 60_000)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
+  // Cache key — unique per filter combination
+  const cacheKey = `listings:${region}:${type}:${furnished}:${minPrice}:${maxPrice}:${search}:${page}:${limit}`
+
+  const data = await cached(cacheKey, TTL.LISTINGS_PAGE, async () => {
+    const admin = createAdminClient()
+    let query = admin
+      .from('listings')
+      .select(PUBLIC_LISTING_FIELDS, { count: 'exact' })
+      .eq('status', 'active')
+      .order('is_boosted', { ascending: false })
+      .order('boosted_until', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .range(from, from + limit - 1)
+
+    if (region)    query = query.eq('region', region)
+    if (type)      query = query.eq('type', type)
+    if (furnished) query = query.eq('furnished', furnished === 'true')
+    if (minPrice)  query = query.gte('price_monthly', parseInt(minPrice))
+    if (maxPrice)  query = query.lte('price_monthly', parseInt(maxPrice))
+    if (search) {
+      const term = search.replace(/[%_]/g, '\\$&')
+      query = query.or(`title.ilike.%${term}%,district.ilike.%${term}%,ward.ilike.%${term}%,mtaa.ilike.%${term}%`)
+    }
+
+    const { data: listings, count, error } = await query
+    if (error) throw error
+    return { listings: listings ?? [], total: count ?? 0, page, limit }
+  })
+
+  return NextResponse.json(data, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+    },
+  })
+}
 
 const PLAN_LIMITS: Record<string, number> = {
   free:       2,
