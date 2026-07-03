@@ -45,6 +45,7 @@ CREATE TRIGGER trg_update_last_listing
   EXECUTE FUNCTION update_dalali_last_listing();
 
 -- 4. Admin view: dalali listing activity
+DROP VIEW IF EXISTS dalali_listing_activity;
 CREATE OR REPLACE VIEW dalali_listing_activity AS
 SELECT
   u.id,
