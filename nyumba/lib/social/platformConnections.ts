@@ -23,11 +23,13 @@ export async function getConnectedPlatforms(): Promise<UnifiedPlatform[]> {
   const platforms: UnifiedPlatform[] = []
 
   // ── Instagram ──────────────────────────────────────────────────────────────
+  // Must use graph.facebook.com (Business Graph API) — not graph.instagram.com
+  // graph.instagram.com is Basic Display API (personal accounts, different token type)
   const igUserId = process.env.INSTAGRAM_USER_ID
   const igToken  = process.env.INSTAGRAM_ACCESS_TOKEN
   if (igUserId && igToken) {
     const valid = await validateMetaToken(
-      `https://graph.instagram.com/${igUserId}?fields=id&access_token=${igToken}`,
+      `https://graph.facebook.com/v21.0/${igUserId}?fields=id&access_token=${igToken}`,
     )
     if (valid) platforms.push('instagram')
   }
