@@ -25,7 +25,6 @@ type BatchItem = {
 
 type Props = {
   showToast: (msg: string) => void
-  onOpenFull: (listingId: string) => void
 }
 
 function timeAgo(iso: string | null): string {
@@ -127,7 +126,7 @@ function BatchModal({
 // ── Main Component ────────────────────────────────────────────────────────────
 type Filter = 'all' | 'unposted' | 'posted'
 
-export default function ListingsTab({ showToast, onOpenFull }: Props) {
+export default function ListingsTab({ showToast }: Props) {
   const [listings,  setListings]  = useState<SocialListing[]>([])
   const [loading,   setLoading]   = useState(true)
   const [filter,    setFilter]    = useState<Filter>('all')
@@ -381,23 +380,13 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
                     <PlatformBadge platform="tiktok"    posted={!!listing.social.tiktok}    date={listing.social.tiktok}    />
                   </div>
 
-                  {/* Actions — show only when NOT in batch select or individual card */}
-                  <div className="flex gap-1.5 mt-auto pt-1">
-                    {/* Main: open editor */}
+                  {/* Actions */}
+                  <div className="mt-auto pt-1">
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditor({ listing, platform: 'both' }) }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 transition-all active:scale-95"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 transition-all active:scale-95"
                     >
                       <i className="ti ti-edit text-sm" aria-hidden="true" /> Hariri &amp; Chapisha
-                    </button>
-
-                    {/* More options */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onOpenFull(listing.id) }}
-                      title="Chaguo zaidi"
-                      className="px-2.5 py-2 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all"
-                    >
-                      <i className="ti ti-dots" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
