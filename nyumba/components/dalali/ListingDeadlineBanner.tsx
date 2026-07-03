@@ -17,7 +17,9 @@ export function ListingDeadlineBanner() {
   useEffect(() => {
     fetch('/api/v1/dalali/listing-status')
       .then(r => r.json())
-      .then((data: Status) => setStatus(data))
+      .then((data: Status) => {
+        if (typeof data?.daysRemaining === 'number') setStatus(data)
+      })
       .catch(() => null)
   }, [])
 

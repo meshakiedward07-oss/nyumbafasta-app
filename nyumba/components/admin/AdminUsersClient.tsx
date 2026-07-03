@@ -1391,7 +1391,7 @@ function DalaliActivityRow({ dalali, onExtend }: { dalali: DalaliActivity; onExt
         <p className="text-xs text-gray-600 whitespace-nowrap">
           {new Date(dalali.registered_at).toLocaleDateString('sw-TZ')}
         </p>
-        <p className="text-xs text-gray-400">Siku {dalali.days_since_registration} zilizopita</p>
+        <p className="text-xs text-gray-400">Siku {dalali.days_since_registration ?? 0} zilizopita</p>
       </td>
       <td className="px-3 py-3">
         {dalali.total_listings_ever > 0 ? (

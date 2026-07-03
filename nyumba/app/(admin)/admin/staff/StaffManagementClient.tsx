@@ -648,9 +648,9 @@ function DalaliActivityView() {
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">{row.phone} · {row.email}</p>
                   <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                    <span><i className="ti ti-calendar" aria-hidden="true" /> Siku {row.days_since_registration} tangu usajili</span>
+                    <span><i className="ti ti-calendar" aria-hidden="true" /> Siku {row.days_since_registration ?? 0} tangu usajili</span>
                     <span><i className="ti ti-home" aria-hidden="true" /> Listings: {row.total_listings_ever}</span>
-                    {row.days_before_deletion !== null && (
+                    {row.days_before_deletion != null && (
                       <span className={row.days_before_deletion <= 7 ? 'text-red-600 font-semibold' : row.days_before_deletion <= 14 ? 'text-amber-600' : ''}>
                         ⏳ Siku {row.days_before_deletion} kabla ya kufutwa
                       </span>
