@@ -97,18 +97,30 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const data = await res.json() as { ok?: boolean; success?: boolean; error?: string; successCount?: number }
 
-      if (res.ok) {
+      let data: { ok?: boolean; success?: boolean; error?: string; successCount?: number; status?: string } = {}
+      try {
+        data = await res.json()
+      } catch {
+        const text = await res.text().catch(() => `HTTP ${res.status}`)
+        showToast(`Hitilafu: ${text.slice(0, 120)}`)
+        return
+      }
+
+      if (res.ok && (data.ok || data.success || data.successCount)) {
         const label = platform === 'all' ? 'Zote (IG+FB+TikTok)' : platform
         showToast(`Imechapishwa kwenye ${label}!`)
         // Refresh to update post badges
         await fetchListings()
+      } else if (data.error) {
+        showToast(`Hitilafu: ${data.error}`)
+      } else if (res.ok && data.status === 'failed') {
+        showToast('Imeshindwa — angalia env vars za Meta (IG/FB)')
       } else {
-        showToast(data.error ?? 'Imeshindwa kuchapisha')
+        showToast('Imeshindwa kuchapisha')
       }
-    } catch {
-      showToast('Hitilafu ya mtandao')
+    } catch (err) {
+      showToast(`Hitilafu: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setPosting(null)
     }

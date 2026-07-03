@@ -19,6 +19,8 @@ const nextConfig = {
   experimental: {
     // Tree-shake these packages so only used icons/functions are bundled
     optimizePackageImports: ['lucide-react', '@tabler/icons-react', '@supabase/supabase-js'],
+    // Mark native packages as external so they're not bundled — required for sharp to work on Vercel
+    serverComponentsExternalPackages: ['sharp'],
   },
 
   async headers() {
