@@ -49,17 +49,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Dalali tu anaweza kupata profile URL' }, { status: 403 })
   }
 
-  // Check dalali is premium-verified
-  const { data: profile } = await admin
-    .from('dalali_profiles')
-    .select('is_premium_verified')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  if (!profile?.is_premium_verified) {
-    return NextResponse.json({ error: 'Profile URL inapatikana kwa dalali walioidhibitiwa tu' }, { status: 403 })
-  }
-
   // Enforce 30-day cooldown on username changes
   if (me.username && me.username !== clean && me.username_changed_at) {
     const daysSince = (Date.now() - new Date(me.username_changed_at).getTime()) / (1000 * 60 * 60 * 24)

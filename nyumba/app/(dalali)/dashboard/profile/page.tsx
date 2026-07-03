@@ -6,7 +6,7 @@ export default async function DashboardProfilePage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   const [userRes, profileRes] = await Promise.all([
-    supabase.from('users').select('full_name, phone, avatar_url').eq('id', user!.id).single(),
+    supabase.from('users').select('full_name, phone, avatar_url, username').eq('id', user!.id).single(),
     supabase.from('dalali_profiles')
       .select('whatsapp_number, bio, rating_avg, rating_count, is_premium_verified')
       .eq('user_id', user!.id)
@@ -23,6 +23,7 @@ export default async function DashboardProfilePage() {
       ratingCount={profileRes.data?.rating_count ?? 0}
       isVerified={profileRes.data?.is_premium_verified ?? false}
       avatarUrl={userRes.data?.avatar_url ?? null}
+      username={userRes.data?.username ?? null}
     />
   )
 }

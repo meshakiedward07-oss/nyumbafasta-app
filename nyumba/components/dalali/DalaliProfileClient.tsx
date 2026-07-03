@@ -1,8 +1,10 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Avatar from '@/components/shared/Avatar'
 import DeleteAccountModal from '@/components/dalali/DeleteAccountModal'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 
 async function uploadAvatar(file: File): Promise<string> {
   if (file.size > 2 * 1024 * 1024) throw new Error('Picha ni kubwa sana (max 2MB)')
@@ -28,10 +30,12 @@ type Props = {
   ratingCount: number
   isVerified: boolean
   avatarUrl?: string | null
+  username?: string | null
 }
 
 export default function DalaliProfileClient({
   fullName, phone, whatsappNumber, bio, ratingAvg, ratingCount, isVerified, avatarUrl,
+  username: initialUsername,
 }: Props) {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -45,6 +49,31 @@ export default function DalaliProfileClient({
   const [error, setError]           = useState('')
   const [success, setSuccess]       = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+
+  const [username, setUsername]       = useState<string | null>(initialUsername ?? null)
+  const [generatingUrl, setGeneratingUrl] = useState(false)
+  const [copied, setCopied]           = useState(false)
+
+  const profileUrl = username ? `${APP_URL}/agent/${username}` : null
+
+  // Auto-generate username on first load if dalali doesn't have one
+  useEffect(() => {
+    if (initialUsername) return
+    setGeneratingUrl(true)
+    fetch('/api/v1/profile/username/auto-generate', { method: 'POST' })
+      .then(r => r.json())
+      .then(d => { if (d.username) setUsername(d.username) })
+      .catch(() => null)
+      .finally(() => setGeneratingUrl(false))
+  }, [initialUsername])
+
+  function copyLink() {
+    if (!profileUrl) return
+    navigator.clipboard.writeText(profileUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   async function handleAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -171,6 +200,68 @@ export default function DalaliProfileClient({
             <p className="text-xs text-gray-400">{ratingCount} maoni kutoka kwa wateja</p>
           </div>
         )}
+
+        {/* ── Profile URL card ── */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <i className="ti ti-link text-primary-500" aria-hidden="true" />
+            Kiungo cha Wasifu Wako
+          </p>
+
+          {generatingUrl ? (
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <span className="w-4 h-4 border-2 border-primary-300 border-t-transparent rounded-full animate-spin block flex-shrink-0" />
+              Inaunda kiungo chako...
+            </div>
+          ) : profileUrl ? (
+            <div className="space-y-3">
+              {/* URL display */}
+              <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-200">
+                <span className="text-xs text-primary-600 font-medium flex-1 truncate">
+                  {APP_URL}/agent/<span className="font-bold">{username}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="flex-shrink-0 flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg
+                             bg-primary-500 text-white font-medium active:scale-95 transition-all"
+                >
+                  <i className={`ti ${copied ? 'ti-check' : 'ti-copy'}`} aria-hidden="true" />
+                  {copied ? 'Imenakiliwa!' : 'Nakili'}
+                </button>
+              </div>
+
+              {/* Action row */}
+              <div className="flex items-center gap-2">
+                <a
+                  href={profileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2 rounded-xl
+                             border border-primary-200 text-primary-600 hover:bg-primary-50 transition-all"
+                >
+                  <i className="ti ti-external-link" aria-hidden="true" />
+                  Angalia Ukurasa Wako
+                </a>
+                <a
+                  href="/dashboard/profile/username"
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2 rounded-xl
+                             border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all"
+                >
+                  <i className="ti ti-edit" aria-hidden="true" />
+                  Badilisha Username
+                </a>
+              </div>
+
+              <p className="text-[10px] text-gray-400 leading-relaxed">
+                Shiriki kiungo hiki kwa wateja — wataona listings zako zote na wasiliana nawe.
+                Username inaweza kubadilishwa mara moja kila siku 30.
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">Kiungo hakikuweza kuundwa — jaribu upya.</p>
+          )}
+        </div>
 
         {/* Editable fields */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-4">
