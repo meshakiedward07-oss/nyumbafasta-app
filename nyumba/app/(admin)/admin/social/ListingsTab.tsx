@@ -98,12 +98,13 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
         body: JSON.stringify(body),
       })
 
+      // Read body as text first — prevents body-consumed error when JSON.parse fails
+      const rawBody = await res.text().catch(() => '')
       let data: { ok?: boolean; success?: boolean; error?: string; successCount?: number; status?: string } = {}
       try {
-        data = await res.json()
+        data = JSON.parse(rawBody)
       } catch {
-        const text = await res.text().catch(() => `HTTP ${res.status}`)
-        showToast(`Hitilafu: ${text.slice(0, 120)}`)
+        showToast(`Hitilafu (${res.status}): ${rawBody.slice(0, 150) || 'Jibu si sahihi kutoka seva'}`)
         return
       }
 

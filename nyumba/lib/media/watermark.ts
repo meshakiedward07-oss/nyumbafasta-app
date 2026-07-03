@@ -7,7 +7,6 @@
  *  - All other URLs   → fetch → sharp composite SVG pill → re-upload to Supabase
  */
 
-import sharp from 'sharp'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 
 // ─── Watermark text ───────────────────────────────────────────────────────────
@@ -115,6 +114,9 @@ async function addSharpWatermark(
   const fetchRes = await fetch(imageUrl)
   if (!fetchRes.ok) throw new Error(`[Watermark] Failed to fetch image: ${imageUrl}`)
   const original = Buffer.from(await fetchRes.arrayBuffer())
+
+  // Lazy-load sharp — dynamic import so the module loads fine even if sharp binary is missing
+  const sharp = (await import('sharp')).default
 
   // 2. Get image dimensions
   const meta  = await sharp(original).metadata()
