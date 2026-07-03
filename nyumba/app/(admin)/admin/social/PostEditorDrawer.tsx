@@ -146,7 +146,7 @@ export default function PostEditorDrawer({ listing, defaultPlatform, onClose, on
   }
 
   function togglePlatform(p: Platform) {
-    setPlatforms(prev => { const n = new Set(prev); n.has(p) ? n.delete(p) : n.add(p); return n })
+    setPlatforms(prev => { const n = new Set(prev); if (n.has(p)) { n.delete(p) } else { n.add(p) }; return n })
   }
 
   function buildPreviewImage(): string {
@@ -356,7 +356,7 @@ export default function PostEditorDrawer({ listing, defaultPlatform, onClose, on
               )}
 
               <p className="text-[11px] text-gray-400 leading-relaxed">
-                Pakia MP3 kwenye Supabase Storage → bucket "music" na majina: upbeat.mp3, chill.mp3, bongo.mp3, corporate.mp3
+                Pakia MP3 kwenye Supabase Storage → bucket &quot;music&quot; na majina: upbeat.mp3, chill.mp3, bongo.mp3, corporate.mp3
               </p>
             </div>
           </div>
