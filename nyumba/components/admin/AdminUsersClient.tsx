@@ -29,6 +29,10 @@ type UserRow = {
   avatar_url: string | null
   is_active: boolean | null
   created_at: string
+  username: string | null
+  profile_views_total: number | null
+  profile_views_today: number | null
+  profile_views_month: number | null
   dalali_profiles: {
     whatsapp_number: string | null
     verification_status: string | null
@@ -36,6 +40,27 @@ type UserRow = {
     rating_avg: number | null
   } | null
   subscriptions: { plan: string; status: string; expires_at: string | null }[]
+}
+
+type MicrositeStats = {
+  dalali: {
+    id: string
+    name: string
+    username: string | null
+    isActive: boolean
+    profileUrl: string | null
+  }
+  analytics: {
+    viewsToday: number
+    viewsWeek: number
+    viewsMonth: number
+    viewsTotal: number
+    whatsappClicks: number
+    shareCount: number
+    sources: Record<string, number>
+    clicks: Record<string, number>
+  }
+  listings: { total: number; boosted: number }
 }
 
 type Counts = { all: number; client: number; dalali: number; staff: number }
@@ -203,6 +228,31 @@ export default function AdminUsersClient() {
 
   const [summary, setSummary]           = useState<SummaryStats | null>(null)
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null)
+
+  // Microsite monitoring state
+  const [micrositeStats, setMicrositeStats]     = useState<MicrositeStats | null>(null)
+  const [loadingMicrosite, setLoadingMicrosite] = useState(false)
+
+  const loadMicrositeStats = async (userId: string) => {
+    setLoadingMicrosite(true)
+    setMicrositeStats(null)
+    try {
+      const res  = await fetch(`/api/v1/admin/users/${userId}/microsite`)
+      const data = await res.json() as MicrositeStats & { error?: string }
+      if (!data.error) setMicrositeStats(data)
+    } finally {
+      setLoadingMicrosite(false)
+    }
+  }
+
+  // Auto-load microsite stats when a dalali is selected
+  useEffect(() => {
+    if (selectedUser?.role === 'dalali') {
+      loadMicrositeStats(selectedUser.id)
+    } else {
+      setMicrositeStats(null)
+    }
+  }, [selectedUser?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Action state
   const [actionLoading, setActionLoading]       = useState<string | null>(null)
@@ -533,6 +583,7 @@ export default function AdminUsersClient() {
                       <>
                         <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500">Uthibitisho</th>
                         <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500">Subscription</th>
+                        <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500">Microsite</th>
                       </>
                     ) : null}
                     <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500">Alijiunga</th>
@@ -578,6 +629,33 @@ export default function AdminUsersClient() {
                           </td>
                           <td className="px-3 py-3 text-center">
                             {u.role === 'dalali' ? <SubBadge subscriptions={u.subscriptions ?? []} /> : <span className="text-xs text-gray-300">—</span>}
+                          </td>
+                          <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                            {u.role === 'dalali' ? (
+                              u.username ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1 text-xs text-gray-500">
+                                    <i className="ti ti-eye text-xs" aria-hidden="true" />
+                                    {(u.profile_views_total ?? 0).toLocaleString()}
+                                  </span>
+                                  <a
+                                    href={`/agent/${u.username}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={`nyumbafasta.co/agent/${u.username}`}
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 transition-all whitespace-nowrap"
+                                  >
+                                    <i className="ti ti-external-link text-xs" aria-hidden="true" />
+                                    /agent/{u.username}
+                                  </a>
+                                </div>
+                              ) : (
+                                <span className="flex items-center gap-1 text-xs text-gray-400 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg">
+                                  <i className="ti ti-link-off text-xs" aria-hidden="true" />
+                                  Hana username
+                                </span>
+                              )
+                            ) : <span className="text-xs text-gray-300">—</span>}
                           </td>
                         </>
                       ) : null}
@@ -640,6 +718,25 @@ export default function AdminUsersClient() {
                           <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white flex-shrink-0"><path d={WA_PATH}/></svg>
                           +{waNum(u.dalali_profiles.whatsapp_number)}
                         </a>
+                      )}
+                      {u.role === 'dalali' && (
+                        u.username ? (
+                          <a
+                            href={`/agent/${u.username}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 text-[10px] px-2 py-0.5 rounded-md mt-1"
+                          >
+                            <i className="ti ti-external-link text-[10px]" aria-hidden="true" />
+                            /agent/{u.username}
+                            {u.profile_views_total ? <span className="text-blue-400">· {u.profile_views_total}</span> : null}
+                          </a>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 text-gray-400 text-[10px] px-2 py-0.5 rounded-md mt-1">
+                            <i className="ti ti-link-off text-[10px]" aria-hidden="true" />
+                            Hana username
+                          </span>
+                        )
                       )}
                     </div>
                     <p className="text-[10px] text-gray-300 flex-shrink-0" suppressHydrationWarning>{timeAgo(u.created_at)}</p>
@@ -782,6 +879,9 @@ export default function AdminUsersClient() {
           onSuspend={() => { handleSuspendActivate(selectedUser.id, selectedUser.is_active === false ? 'activate' : 'suspend'); setSelectedUser(null) }}
           onBan={() => { handleBan(selectedUser.id); setSelectedUser(null) }}
           onDelete={() => { setConfirmDeleteId(selectedUser.id); setSelectedUser(null) }}
+          micrositeStats={micrositeStats}
+          loadingMicrosite={loadingMicrosite}
+          onRefreshMicrosite={() => loadMicrositeStats(selectedUser.id)}
         />
       )}
     </div>
@@ -790,14 +890,30 @@ export default function AdminUsersClient() {
 
 // ── User Detail Modal ─────────────────────────────────────────────────────────
 
+const SOURCE_ICONS: Record<string, string> = {
+  whatsapp: 'ti-brand-whatsapp', facebook: 'ti-brand-facebook',
+  instagram: 'ti-brand-instagram', tiktok: 'ti-brand-tiktok',
+  twitter: 'ti-brand-twitter', google: 'ti-search',
+  direct: 'ti-link', other: 'ti-world',
+}
+const SOURCE_LABELS: Record<string, string> = {
+  whatsapp: 'WhatsApp', facebook: 'Facebook', instagram: 'Instagram',
+  tiktok: 'TikTok', twitter: 'Twitter/X', google: 'Google',
+  direct: 'Moja kwa moja', other: 'Nyingine',
+}
+
 function UserDetailModal({
   user, onClose, onSuspend, onBan, onDelete,
+  micrositeStats, loadingMicrosite, onRefreshMicrosite,
 }: {
   user: UserRow
   onClose: () => void
   onSuspend: () => void
   onBan: () => void
   onDelete: () => void
+  micrositeStats: MicrositeStats | null
+  loadingMicrosite: boolean
+  onRefreshMicrosite: () => void
 }) {
   const ROLE_COLOR: Record<string, string> = {
     admin:  'bg-red-100 text-red-700',
@@ -889,6 +1005,155 @@ function UserDetailModal({
             </>
           )}
         </div>
+
+        {/* Microsite section — dalali only */}
+        {user.role === 'dalali' && (
+          <div className="border-t border-gray-100 pt-4 mt-2 mb-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <i className="ti ti-world text-base text-gray-400" aria-hidden="true" />
+                Microsite ya dalali
+              </span>
+              {loadingMicrosite && (
+                <i className="ti ti-loader-2 animate-spin text-sm text-gray-400" aria-hidden="true" />
+              )}
+            </h3>
+
+            {!loadingMicrosite && micrositeStats ? (
+              micrositeStats.dalali.username ? (
+                <div className="space-y-3">
+                  {/* Profile URL */}
+                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
+                    <i className="ti ti-link text-sm text-gray-400 flex-shrink-0" aria-hidden="true" />
+                    <span className="text-xs font-mono text-gray-800 flex-1 truncate">
+                      nyumbafasta.co/agent/{micrositeStats.dalali.username}
+                    </span>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(`https://nyumbafasta.co/agent/${micrositeStats.dalali.username}`).catch(() => {})}
+                      className="text-xs text-gray-500 hover:text-gray-700 flex-shrink-0 flex items-center gap-1"
+                    >
+                      <i className="ti ti-copy text-xs" aria-hidden="true" />
+                      Nakili
+                    </button>
+                  </div>
+
+                  {/* Views grid */}
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { label: 'Leo',   value: micrositeStats.analytics.viewsToday,  icon: 'ti-eye',        bg: 'bg-blue-50',   text: 'text-blue-600'   },
+                      { label: 'Wiki',  value: micrositeStats.analytics.viewsWeek,   icon: 'ti-chart-line', bg: 'bg-green-50',  text: 'text-green-600'  },
+                      { label: 'Mwezi', value: micrositeStats.analytics.viewsMonth,  icon: 'ti-calendar',   bg: 'bg-amber-50',  text: 'text-amber-600'  },
+                      { label: 'Jumla', value: micrositeStats.analytics.viewsTotal,  icon: 'ti-chart-bar',  bg: 'bg-purple-50', text: 'text-purple-600' },
+                    ].map(s => (
+                      <div key={s.label} className={`${s.bg} rounded-xl p-2.5 text-center border border-gray-100`}>
+                        <i className={`ti ${s.icon} text-base ${s.text} block mb-1`} aria-hidden="true" />
+                        <p className="text-base font-bold text-gray-900">{s.value.toLocaleString()}</p>
+                        <p className="text-[10px] text-gray-500">{s.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Engagement */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { label: 'WhatsApp clicks', value: micrositeStats.analytics.whatsappClicks, icon: 'ti-brand-whatsapp', color: 'text-green-600' },
+                      { label: 'Walioshare',       value: micrositeStats.analytics.shareCount,     icon: 'ti-share',          color: 'text-gray-600'  },
+                    ].map(s => (
+                      <div key={s.label} className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <i className={`ti ${s.icon} text-sm ${s.color}`} aria-hidden="true" />
+                          <span className="text-[10px] text-gray-500">{s.label}</span>
+                        </div>
+                        <p className="text-lg font-bold text-gray-900">{s.value.toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Traffic sources */}
+                  {Object.keys(micrositeStats.analytics.sources).length > 0 && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Chanzo cha wageni (mwezi huu)</p>
+                      <div className="space-y-2">
+                        {Object.entries(micrositeStats.analytics.sources)
+                          .sort(([, a], [, b]) => b - a)
+                          .map(([source, count]) => {
+                            const total = micrositeStats.analytics.viewsMonth || 1
+                            const pct   = Math.round((count / total) * 100)
+                            return (
+                              <div key={source}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                                    <i className={`ti ${SOURCE_ICONS[source] ?? 'ti-world'} text-sm`} aria-hidden="true" />
+                                    {SOURCE_LABELS[source] ?? source}
+                                  </div>
+                                  <span className="text-xs font-medium text-gray-900">{count} ({pct}%)</span>
+                                </div>
+                                <div className="bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                  <div className="h-full bg-gray-600 rounded-full" style={{ width: `${pct}%` }} />
+                                </div>
+                              </div>
+                            )
+                          })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Listings summary */}
+                  <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
+                    <i className="ti ti-home-2 text-base text-gray-400" aria-hidden="true" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        {micrositeStats.listings.total} listings zinaonyeshwa
+                      </p>
+                      {micrositeStats.listings.boosted > 0 && (
+                        <p className="text-xs text-amber-600 mt-0.5 flex items-center gap-1">
+                          <i className="ti ti-rocket text-xs" aria-hidden="true" />
+                          {micrositeStats.listings.boosted} zimeBoost
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <a
+                      href={`/agent/${micrositeStats.dalali.username}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-gray-900 text-white text-xs font-semibold rounded-xl hover:bg-gray-800 transition-all"
+                    >
+                      <i className="ti ti-external-link text-xs" aria-hidden="true" />
+                      Fungua microsite
+                    </a>
+                    <button
+                      onClick={onRefreshMicrosite}
+                      className="px-4 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-600 hover:bg-gray-50 flex items-center gap-1.5"
+                    >
+                      <i className="ti ti-refresh text-xs" aria-hidden="true" />
+                      Sasisha
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                  <div className="flex items-start gap-2.5">
+                    <i className="ti ti-alert-circle text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">Dalali hana username bado</p>
+                      <p className="text-xs text-amber-600 mt-1">
+                        Hawezi kushare profile link. Waambie aweke username kwenye dashboard yake.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            ) : !loadingMicrosite ? null : (
+              <div className="space-y-2">
+                {[1, 2].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         {user.role !== 'admin' && (

@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
       .from('users')
       .select(`
         id, full_name, phone, role, avatar_url, is_active, created_at,
+        username, profile_views_total, profile_views_today, profile_views_month,
         dalali_profiles ( whatsapp_number, verification_status, is_premium_verified, rating_avg ),
         subscriptions ( plan, status, expires_at )
       `, { count: 'exact' })
