@@ -102,8 +102,13 @@ export const metadata: Metadata = {
     images: ['/transparent_logo_nyumbafasta.png'],
   },
   icons: {
-    icon: '/transparent_logo_nyumbafasta.png',
-    apple: '/transparent_logo_nyumbafasta.png',
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png',   sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png',   sizes: '512x512', type: 'image/png' },
+    ],
+    apple: { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    shortcut: '/favicon-32.png',
   },
   manifest: '/manifest.json',
   verification: {
