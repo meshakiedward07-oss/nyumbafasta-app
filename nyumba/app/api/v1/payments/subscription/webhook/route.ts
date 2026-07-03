@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    const PLAN_AMOUNTS: Record<string, number> = { basic: 10_000, premium: 25_000 }
+    const PLAN_AMOUNTS: Record<string, number> = { basic: 10_000, premium: 25_000, enterprise: 50_000 }
     const expectedAmount = PLAN_AMOUNTS[subscription.plan] ?? 0
     if (succeeded && expectedAmount > 0 && !isAmountValid(payload, expectedAmount)) {
       console.warn('[Sub Webhook] Amount mismatch — expected', expectedAmount, 'got:', payload.amount)

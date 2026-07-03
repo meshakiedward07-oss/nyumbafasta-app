@@ -1,30 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
+import { requireAdminUser } from '@/lib/security/adminAuth'
 import { sendPushToUser } from '@/lib/notifications/send'
 import { auditLog } from '@/lib/security/auditLog'
 import { getClientIp } from '@/lib/security/rateLimit'
+
+// Social posting on approval can take 30-60s per platform across 3 platforms
+export const maxDuration = 120
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Verify admin
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profile?.role !== 'admin') {
-      return NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 })
-    }
+    const adminUser = await requireAdminUser()
+    if (!adminUser) return NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 })
+    const user = adminUser
 
     const { action } = await req.json()
     if (!['approve', 'reject'].includes(action)) {

@@ -185,11 +185,11 @@ export function isWebhookSuccess(payload: WebhookPayload): boolean {
 }
 
 // Validates webhook amount against the expected value (within 1 TZS tolerance).
-// Returns true when payload.amount is absent — older sandbox callbacks omit it.
+// Rejects missing or unparseable amounts — never assume payment is valid without a real figure.
 export function isAmountValid(payload: WebhookPayload, expectedAmount: number): boolean {
-  if (!payload.amount) return true
+  if (!payload.amount) return false
   const received = parseFloat(payload.amount)
-  if (isNaN(received)) return true
+  if (isNaN(received)) return false
   return Math.abs(received - expectedAmount) <= 1
 }
 
@@ -254,8 +254,13 @@ export function buildCallbackUrl(origin: string, path: string): string {
 }
 
 // Call this at the top of every webhook handler to reject unauthenticated requests.
+// Uses constant-time comparison to prevent timing-attack secret brute-force.
 export function verifyWebhookSecret(req: { nextUrl: { searchParams: { get: (k: string) => string | null } } }): boolean {
   const expected = process.env.WEBHOOK_SECRET
   const received = req.nextUrl.searchParams.get('whsec')
-  return !!expected && received === expected
+  if (!expected || !received) return false
+  const a = Buffer.from(expected)
+  const b = Buffer.from(received)
+  if (a.length !== b.length) return false
+  return require('crypto').timingSafeEqual(a, b)
 }

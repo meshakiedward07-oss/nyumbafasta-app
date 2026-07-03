@@ -3,6 +3,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, buildCallbackUrl, type MobileProvider } from '@/lib/payments/azampay'
 import { rateLimit } from '@/lib/security/rateLimit'
 
+export const maxDuration = 30
+
 const PLAN_PRICES: Record<string, number> = { basic: 10_000, premium: 25_000, enterprise: 50_000 }
 const PLAN_DURATION_DAYS = 30
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'

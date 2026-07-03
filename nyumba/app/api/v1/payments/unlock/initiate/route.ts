@@ -4,6 +4,8 @@ import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, bui
 import { sendPushToUser } from '@/lib/notifications/send'
 import { rateLimit } from '@/lib/security/rateLimit'
 
+export const maxDuration = 30
+
 const UNLOCK_AMOUNT = 2000
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
