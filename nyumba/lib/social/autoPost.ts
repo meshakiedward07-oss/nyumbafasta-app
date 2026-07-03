@@ -34,9 +34,12 @@ export async function postListingToSocialMedia(
   platform:      Platform = 'both',
   createdBy?:    string,
   options?: {
-    postToGroups?:   boolean  // also post to all active Facebook Groups
-    postToStories?:  boolean  // also post as Instagram Story
-    postToCarousel?: boolean  // also post as Instagram Carousel (requires 2+ images)
+    postToGroups?:   boolean
+    postToStories?:  boolean
+    postToCarousel?: boolean
+    imageOverride?:  string   // use this image URL instead of listing.images[0]
+    videoOverride?:  string   // use this video URL (e.g. client-side mixed with music)
+    captionOverride?: string  // use this caption instead of AI-generated
   },
 ): Promise<PostResult> {
   // Fetch listing with all fields
@@ -50,30 +53,50 @@ export async function postListingToSocialMedia(
     throw new Error(`Listing haipatikani: ${listingId}`)
   }
 
-  // Dedup guard — skip if a successful post exists for this listing in the last 24h
+  // Dedup guard — per-platform check so IG and FB are independent
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { data: recentPost } = await supabaseAdmin
-    .from('social_posts')
-    .select('id')
-    .eq('listing_id', listingId)
-    .eq('status', 'published')
-    .gte('published_at', since24h)
-    .limit(1)
-    .maybeSingle()
-  if (recentPost) {
-    throw new Error(`[Dedup] Listing ${listingId} tayari ilichapishwa saa 24 zilizopita — skip`)
+  const skipPlatforms = new Set<string>()
+  const platformsToCheck = platform === 'both' ? ['instagram', 'facebook'] : [platform]
+  for (const p of platformsToCheck) {
+    const { data: recent } = await supabaseAdmin
+      .from('social_posts')
+      .select('id')
+      .eq('listing_id', listingId)
+      .in('platform', [p, 'both'])
+      .eq('status', 'published')
+      .gte('published_at', since24h)
+      .limit(1)
+      .maybeSingle()
+    if (recent) {
+      if (platform !== 'both') {
+        throw new Error(`[Dedup] ${p} tayari ilichapishwa saa 24 zilizopita`)
+      }
+      skipPlatforms.add(p)
+      console.log(`[Dedup] Will skip ${p} — posted within 24h`)
+    }
+  }
+  // If 'both' platforms are already posted, bail early
+  if (platform === 'both' && skipPlatforms.size === 2) {
+    throw new Error(`[Dedup] Instagram na Facebook zote tayari zimechapishwa saa 24 zilizopita`)
   }
 
   const l = listing as Listing
 
-  // Generate caption for the primary platform
+  // Generate caption (or use override)
   const primaryPlatform = platform === 'both' ? 'instagram' : platform
-  const { caption, hashtags } = await generateCaption(l, primaryPlatform)
-  const fullCaption = `${caption}\n\n${hashtags}`
+  let caption: string
+  let hashtags: string
+  if (options?.captionOverride) {
+    caption  = options.captionOverride
+    hashtags = ''
+  } else {
+    ;({ caption, hashtags } = await generateCaption(l, primaryPlatform))
+  }
+  const fullCaption = hashtags ? `${caption}\n\n${hashtags}` : caption
 
-  // Choose best media
-  const rawImageUrl = l.images?.[0] ?? null
-  const rawVideoUrl = l.video_url ?? null
+  // Choose best media (honour editor overrides)
+  const rawImageUrl = options?.imageOverride ?? l.images?.[0] ?? null
+  const rawVideoUrl = options?.videoOverride ?? l.video_url ?? null
 
   // Apply watermarks — best-effort. If watermark fails, continue with the original URL.
   let imageUrl = rawImageUrl
@@ -117,7 +140,7 @@ export async function postListingToSocialMedia(
   let lastError: string | null = null
 
   // ── Instagram ─────────────────────────────────────────────────────────────
-  if (platform === 'instagram' || platform === 'both') {
+  if ((platform === 'instagram' || platform === 'both') && !skipPlatforms.has('instagram')) {
     try {
       if (!process.env.INSTAGRAM_USER_ID || !process.env.INSTAGRAM_ACCESS_TOKEN) {
         throw new Error('INSTAGRAM_USER_ID au INSTAGRAM_ACCESS_TOKEN hazijakonfigurwa')
@@ -148,15 +171,20 @@ export async function postListingToSocialMedia(
   }
 
   // ── Facebook ──────────────────────────────────────────────────────────────
-  if (platform === 'facebook' || platform === 'both') {
+  if ((platform === 'facebook' || platform === 'both') && !skipPlatforms.has('facebook')) {
     try {
       if (!process.env.FACEBOOK_PAGE_ID || (!process.env.FACEBOOK_PAGE_ACCESS_TOKEN && !process.env.FACEBOOK_ACCESS_TOKEN)) {
         throw new Error('FACEBOOK_PAGE_ID au FACEBOOK_PAGE_ACCESS_TOKEN hazijakonfigurwa')
       }
 
-      // Generate slightly different caption for FB (allow longer)
-      const { caption: fbCaption, hashtags: fbHashtags } = await generateCaption(l, 'facebook')
-      const fbFullCaption = `${fbCaption}\n\n${fbHashtags}`
+      // Use override if provided; otherwise generate FB-specific caption (can be longer)
+      let fbFullCaption: string
+      if (options?.captionOverride) {
+        fbFullCaption = options.captionOverride
+      } else {
+        const { caption: fbCaption, hashtags: fbHashtags } = await generateCaption(l, 'facebook')
+        fbFullCaption = `${fbCaption}\n\n${fbHashtags}`
+      }
 
       if (videoUrl) {
         // Post video (Reel) to Facebook when video is available

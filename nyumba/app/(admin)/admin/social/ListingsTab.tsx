@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { PlatformLogo } from '@/components/shared/PlatformLogo'
+import PostEditorDrawer from './PostEditorDrawer'
 
 type SocialStatus = { instagram: string | null; facebook: string | null; tiktok: string | null }
 
@@ -22,10 +23,11 @@ type SocialListing = {
 }
 
 type PostingListing = { id: string; platform: string } | null
+type EditorState    = { listing: SocialListing; platform: string } | null
 
 type Props = {
   showToast: (msg: string) => void
-  onOpenFull: (listingId: string) => void   // switch to postnow tab with listing pre-selected
+  onOpenFull: (listingId: string) => void
 }
 
 function timeAgo(iso: string | null): string {
@@ -61,6 +63,11 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
   const [filter, setFilter]           = useState<Filter>('all')
   const [posting, setPosting]         = useState<PostingListing>(null)
   const [search, setSearch]           = useState('')
+  const [editor, setEditor]           = useState<EditorState>(null)
+
+  function openEditor(listing: SocialListing, platform: string) {
+    setEditor({ listing, platform })
+  }
 
   const fetchListings = useCallback(async () => {
     setLoading(true)
@@ -100,7 +107,7 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
 
       // Read body as text first — prevents body-consumed error when JSON.parse fails
       const rawBody = await res.text().catch(() => '')
-      let data: { ok?: boolean; success?: boolean; error?: string; successCount?: number; status?: string } = {}
+      let data: { ok?: boolean; status?: string; error?: string; successCount?: number } = {}
       try {
         data = JSON.parse(rawBody)
       } catch {
@@ -108,17 +115,16 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
         return
       }
 
-      if (res.ok && (data.ok || data.success || data.successCount)) {
+      if (res.ok && data.status === 'published') {
         const label = platform === 'all' ? 'Zote (IG+FB+TikTok)' : platform
         showToast(`Imechapishwa kwenye ${label}!`)
-        // Refresh to update post badges
         await fetchListings()
       } else if (data.error) {
         showToast(`Hitilafu: ${data.error}`)
-      } else if (res.ok && data.status === 'failed') {
-        showToast('Imeshindwa — angalia env vars za Meta (IG/FB)')
+      } else if (!res.ok || data.status === 'failed') {
+        showToast('Imeshindwa — angalia env vars za Meta kwenye Vercel')
       } else {
-        showToast('Imeshindwa kuchapisha')
+        showToast('Jibu lisilotarajiwa kutoka seva')
       }
     } catch (err) {
       showToast(`Hitilafu: ${err instanceof Error ? err.message : String(err)}`)
@@ -144,6 +150,7 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
   const unpostedCount = listings.filter(l => !l.social.instagram && !l.social.facebook && !l.social.tiktok).length
 
   return (
+    <>
     <div className="space-y-4">
 
       {/* Header bar */}
@@ -282,22 +289,20 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
 
                   {/* Action buttons */}
                   <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
-                    {/* Post All */}
+                    {/* Open PostEditor — main CTA */}
                     <button
-                      onClick={() => postListing(listing.id, 'all')}
+                      onClick={() => openEditor(listing, 'both')}
                       disabled={!!posting}
                       className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 transition-all active:scale-95"
                     >
-                      {isPending && posting?.platform === 'all'
-                        ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha...</>
-                        : <><i className="ti ti-world" aria-hidden="true" /> Zote</>}
+                      <i className="ti ti-edit" aria-hidden="true" /> Hariri & Chapisha
                     </button>
 
-                    {/* IG */}
+                    {/* Quick-post IG (no editor) */}
                     <button
                       onClick={() => postListing(listing.id, 'instagram')}
                       disabled={!!posting}
-                      title="Post to Instagram"
+                      title="Chapisha Instagram mara moja"
                       className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-pink-200 text-pink-600 hover:bg-pink-50 disabled:opacity-50 transition-all active:scale-95"
                     >
                       {isPending && posting?.platform === 'instagram'
@@ -305,11 +310,11 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
                         : <PlatformLogo platform="instagram" size={14} />}
                     </button>
 
-                    {/* FB */}
+                    {/* Quick-post FB (no editor) */}
                     <button
                       onClick={() => postListing(listing.id, 'facebook')}
                       disabled={!!posting}
-                      title="Post to Facebook"
+                      title="Chapisha Facebook mara moja"
                       className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-50 transition-all active:scale-95"
                     >
                       {isPending && posting?.platform === 'facebook'
@@ -317,19 +322,7 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
                         : <PlatformLogo platform="facebook" size={14} />}
                     </button>
 
-                    {/* Story */}
-                    <button
-                      onClick={() => postListing(listing.id, 'story')}
-                      disabled={!!posting}
-                      title="Post as Story"
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-purple-200 text-purple-600 hover:bg-purple-50 disabled:opacity-50 transition-all active:scale-95"
-                    >
-                      {isPending && posting?.platform === 'story'
-                        ? <i className="ti ti-loader-2 animate-spin" aria-hidden="true" />
-                        : <i className="ti ti-circle-dot" aria-hidden="true" />}
-                    </button>
-
-                    {/* More options — open full postnow panel */}
+                    {/* More options — schedule, carousel */}
                     <button
                       onClick={() => onOpenFull(listing.id)}
                       title="Chaguo zaidi (schedule, caption, carousel)"
@@ -345,5 +338,16 @@ export default function ListingsTab({ showToast, onOpenFull }: Props) {
         </div>
       )}
     </div>
+
+    {editor && (
+      <PostEditorDrawer
+        listing={editor.listing}
+        defaultPlatform={editor.platform}
+        onClose={() => setEditor(null)}
+        onPosted={fetchListings}
+        showToast={showToast}
+      />
+    )}
+    </>
   )
 }

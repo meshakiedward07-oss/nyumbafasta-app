@@ -10,10 +10,13 @@ export async function POST(req: NextRequest) {
   const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { listingId, platform = 'both', scheduledAt } = await req.json() as {
-    listingId:   string
-    platform?:   'instagram' | 'facebook' | 'both'
-    scheduledAt?: string
+  const { listingId, platform = 'both', scheduledAt, imageOverride, videoOverride, captionOverride } = await req.json() as {
+    listingId:       string
+    platform?:       'instagram' | 'facebook' | 'both'
+    scheduledAt?:    string
+    imageOverride?:  string
+    videoOverride?:  string
+    captionOverride?: string
   }
 
   if (!listingId) {
@@ -31,7 +34,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, scheduled: true, scheduleId })
     }
 
-    const result = await postListingToSocialMedia(listingId, platform, admin.id)
+    const result = await postListingToSocialMedia(listingId, platform, admin.id, {
+      imageOverride,
+      videoOverride,
+      captionOverride,
+    })
     return NextResponse.json({ ok: true, ...result })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Hitilafu isiyojulikana'
