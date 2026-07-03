@@ -573,7 +573,8 @@ export default function AdminUsersClient() {
           <>
             {/* Desktop table */}
             <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[800px]">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Mtumiaji</th>
@@ -680,6 +681,7 @@ export default function AdminUsersClient() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
 
             {/* Mobile cards */}
@@ -1006,6 +1008,43 @@ function UserDetailModal({
           )}
         </div>
 
+        {/* Actions */}
+        {user.role !== 'admin' && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {user.role === 'dalali' && (
+              <Link
+                href={`/admin/users/${user.id}`}
+                onClick={onClose}
+                className="flex-1 text-center py-2.5 rounded-xl text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-100"
+              >
+                Profaili →
+              </Link>
+            )}
+            <button
+              onClick={onSuspend}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-semibold ${
+                user.is_active === false ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+              }`}
+            >
+              {user.is_active === false ? 'Washa' : 'Simamisha'}
+            </button>
+            {user.is_active !== false && (
+              <button
+                onClick={onBan}
+                className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700"
+              >
+                <i className="ti ti-ban" aria-hidden="true" /> Ban
+              </button>
+            )}
+            <button
+              onClick={onDelete}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600"
+            >
+              <i className="ti ti-trash" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+
         {/* Microsite section — dalali only */}
         {user.role === 'dalali' && (
           <div className="border-t border-gray-100 pt-4 mt-2 mb-4">
@@ -1155,42 +1194,6 @@ function UserDetailModal({
           </div>
         )}
 
-        {/* Actions */}
-        {user.role !== 'admin' && (
-          <div className="flex flex-wrap gap-2">
-            {user.role === 'dalali' && (
-              <Link
-                href={`/admin/users/${user.id}`}
-                onClick={onClose}
-                className="flex-1 text-center py-2.5 rounded-xl text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-100"
-              >
-                Profaili →
-              </Link>
-            )}
-            <button
-              onClick={onSuspend}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-semibold ${
-                user.is_active === false ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-              }`}
-            >
-              {user.is_active === false ? 'Washa' : 'Simamisha'}
-            </button>
-            {user.is_active !== false && (
-              <button
-                onClick={onBan}
-                className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700"
-              >
-                <i className="ti ti-ban" aria-hidden="true" /> Ban
-              </button>
-            )}
-            <button
-              onClick={onDelete}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600"
-            >
-              <i className="ti ti-trash" aria-hidden="true" />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   )

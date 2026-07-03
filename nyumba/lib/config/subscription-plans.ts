@@ -35,7 +35,7 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
     bgColor: '#F9FAFB',
     borderColor: '#E5E7EB',
     icon: 'home',
-    description: 'Anza bila malipo — daima bure',
+    description: 'Anza bila malipo — bure kwa siku 90',
     listings: 2,
     photos: 2,
     extraListingPrice: 0,
