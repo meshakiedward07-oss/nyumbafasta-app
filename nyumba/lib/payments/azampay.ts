@@ -1,4 +1,5 @@
 // AzamPay Tanzania payment gateway integration
+import { timingSafeEqual } from 'crypto'
 
 // ── Lazy config — evaluated at call time, not module load time ────────────────
 // Module-level throws break Next.js build ("collect page data" step) when vars
@@ -262,5 +263,5 @@ export function verifyWebhookSecret(req: { nextUrl: { searchParams: { get: (k: s
   const a = Buffer.from(expected)
   const b = Buffer.from(received)
   if (a.length !== b.length) return false
-  return require('crypto').timingSafeEqual(a, b)
+  return timingSafeEqual(a, b)
 }
