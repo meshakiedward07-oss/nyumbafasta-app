@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 export interface DalaliProfile {
   fullName: string
@@ -16,22 +15,9 @@ let cachedProfile: DalaliProfile | null = null
 let fetchPromise: Promise<DalaliProfile | null> | null = null
 
 async function fetchProfile(): Promise<DalaliProfile | null> {
-  const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.user) return null
-
-  const [userRes, profileRes] = await Promise.all([
-    supabase.from('users').select('full_name, phone, avatar_url').eq('id', session.user.id).single(),
-    supabase.from('dalali_profiles').select('whatsapp_number, bio').eq('user_id', session.user.id).maybeSingle(),
-  ])
-
-  return {
-    fullName:       userRes.data?.full_name ?? '',
-    whatsappNumber: profileRes.data?.whatsapp_number ?? '',
-    phone:          userRes.data?.phone ?? null,
-    avatarUrl:      userRes.data?.avatar_url ?? null,
-    bio:            profileRes.data?.bio ?? null,
-  }
+  const res = await fetch('/api/v1/dalali/profile')
+  if (!res.ok) return null
+  return res.json()
 }
 
 export function useDalaliProfile() {

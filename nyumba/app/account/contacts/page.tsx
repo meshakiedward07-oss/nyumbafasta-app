@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import ContactHistoryClient from '@/components/client/ContactHistoryClient'
 
 export default async function ContactHistoryPage() {
@@ -7,7 +7,7 @@ export default async function ContactHistoryPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login?redirect=/account/contacts')
 
-  const { data: contacts } = await supabase
+  const { data: contacts } = await createAdminClient()
     .from('contact_unlocks')
     .select(`
       id, created_at, amount_paid, client_notes,

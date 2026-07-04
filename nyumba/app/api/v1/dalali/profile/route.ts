@@ -2,6 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { validateProfile } from '@/lib/security/validate'
 
+export async function GET() {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+    }
+
+    const admin = createAdminClient()
+    const [userRes, profileRes] = await Promise.all([
+      admin.from('users').select('full_name, phone, avatar_url').eq('id', user.id).single(),
+      admin.from('dalali_profiles').select('whatsapp_number, bio').eq('user_id', user.id).maybeSingle(),
+    ])
+
+    return NextResponse.json({
+      fullName:       userRes.data?.full_name ?? '',
+      whatsappNumber: profileRes.data?.whatsapp_number ?? '',
+      phone:          userRes.data?.phone ?? null,
+      avatarUrl:      userRes.data?.avatar_url ?? null,
+      bio:            profileRes.data?.bio ?? null,
+    })
+  } catch {
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
+}
+
 export async function PATCH(req: NextRequest) {
   try {
     const supabase = await createClient()

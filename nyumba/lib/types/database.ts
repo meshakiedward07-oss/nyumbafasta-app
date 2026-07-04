@@ -2,7 +2,7 @@ export type UserRole = 'client' | 'dalali' | 'admin' | 'staff'
 export type ListingStatus = 'pending' | 'active' | 'taken' | 'expired' | 'rejected' | 'deleted'
 export type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio' | 'duka'
 export type FurnishedStatus = 'furnished' | 'semi' | 'empty'
-export type SubscriptionPlan = 'basic' | 'premium' | 'enterprise'
+export type SubscriptionPlan = 'basic' | 'premium'
 
 export type Listing = {
   id: string
@@ -68,7 +68,7 @@ export type User = {
   last_seen_at: string | null
 }
 
-export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected'
+export type VerificationStatus = 'unverified' | 'pending' | 'approved' | 'rejected'
 
 export type DalaliProfile = {
   id: string

@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import SubscriptionClient from '@/components/dalali/SubscriptionClient'
 
 export default async function DashboardSubscriptionPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login?redirect=/dashboard/subscription')
+  const admin = createAdminClient()
 
   const [subscriptionRes, historyRes, profileRes] = await Promise.all([
     // Subscription ya sasa (active, grace_period, au trial_expired)
@@ -27,7 +28,7 @@ export default async function DashboardSubscriptionPage() {
       .limit(12),
 
     // WhatsApp number for auto-filling payment phone
-    supabase
+    admin
       .from('dalali_profiles')
       .select('whatsapp_number')
       .eq('user_id', user.id)
