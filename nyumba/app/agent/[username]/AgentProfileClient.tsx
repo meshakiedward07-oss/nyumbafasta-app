@@ -52,8 +52,29 @@ function fmtPrice(n: number) {
   return String(n)
 }
 
+const PRICE_RANGES = [
+  { key: 'yote',   label: 'Yote',        min: 0,       max: Infinity },
+  { key: 'low',    label: '< 100k',       min: 0,       max: 100_000  },
+  { key: 'mid',    label: '100k – 300k',  min: 100_000, max: 300_000  },
+  { key: 'high',   label: '300k – 600k',  min: 300_000, max: 600_000  },
+  { key: 'top',    label: '600k+',        min: 600_000, max: Infinity },
+] as const
+type PriceKey = typeof PRICE_RANGES[number]['key']
+
+const BED_OPTIONS = [
+  { key: 'yote', label: 'Yote' },
+  { key: '1',    label: '1'    },
+  { key: '2',    label: '2'    },
+  { key: '3',    label: '3'    },
+  { key: '4+',   label: '4+'   },
+] as const
+type BedKey = typeof BED_OPTIONS[number]['key']
+
 export default function AgentProfileClient({ dalali, listings, reviews }: Props) {
-  const [filter, setFilter]       = useState<string>('zote')
+  const [typeFilter, setTypeFilter]   = useState<string>('zote')
+  const [priceFilter, setPriceFilter] = useState<PriceKey>('yote')
+  const [bedFilter, setBedFilter]     = useState<BedKey>('yote')
+  const [districtFilter, setDistrictFilter] = useState<string>('yote')
   const [query, setQuery]         = useState('')
   const [copied, setCopied]       = useState(false)
   const [showContact, setShowContact] = useState(false)
@@ -67,16 +88,34 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
     }).catch(() => {})
   }, [dalali.id])
 
-  // Derive unique listing types for filter tabs
-  const types = ['zote', ...Array.from(new Set(listings.map(l => l.type)))]
+  // Derive unique values for filter chips
+  const types     = ['zote', ...Array.from(new Set(listings.map(l => l.type)))]
+  const districts = ['yote', ...Array.from(new Set(listings.map(l => l.district))).sort()]
+
+  const priceRange = PRICE_RANGES.find(r => r.key === priceFilter) ?? PRICE_RANGES[0]
 
   const filtered = listings.filter(l => {
-    const matchType  = filter === 'zote' || l.type === filter
-    const matchQuery = !query ||
+    const matchType     = typeFilter === 'zote'    || l.type === typeFilter
+    const matchPrice    = l.price_monthly >= priceRange.min && l.price_monthly < priceRange.max
+    const matchBed      = bedFilter === 'yote'     ||
+      (bedFilter === '4+' ? (l.bedrooms ?? 0) >= 4 : String(l.bedrooms) === bedFilter)
+    const matchDistrict = districtFilter === 'yote' || l.district === districtFilter
+    const matchQuery    = !query ||
       (l.title ?? '').toLowerCase().includes(query.toLowerCase()) ||
       l.district.toLowerCase().includes(query.toLowerCase())
-    return matchType && matchQuery
+    return matchType && matchPrice && matchBed && matchDistrict && matchQuery
   })
+
+  const activeFilterCount = [
+    typeFilter !== 'zote', priceFilter !== 'yote',
+    bedFilter !== 'yote',  districtFilter !== 'yote',
+    !!query,
+  ].filter(Boolean).length
+
+  function clearFilters() {
+    setTypeFilter('zote'); setPriceFilter('yote')
+    setBedFilter('yote');  setDistrictFilter('yote'); setQuery('')
+  }
 
   function handleShare() {
     const url = window.location.href
@@ -216,37 +255,121 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
             Listings za {dalali.name.split(' ')[0]}
           </h2>
 
-          {/* Search */}
-          {listings.length > 3 && (
-            <div className="relative mb-3">
-              <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
-              <input
-                type="text"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Tafuta ndani ya listings..."
-                className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400"
-              />
+          {/* Search + clear */}
+          {listings.length > 2 && (
+            <div className="flex gap-2 mb-3">
+              <div className="relative flex-1">
+                <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Tafuta listing..."
+                  className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400"
+                />
+              </div>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-medium"
+                >
+                  <i className="ti ti-x text-xs" aria-hidden="true" />
+                  Futa ({activeFilterCount})
+                </button>
+              )}
             </div>
           )}
 
-          {/* Type filter tabs */}
-          {types.length > 2 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
-              {types.map(t => (
-                <button
-                  key={t}
-                  onClick={() => setFilter(t)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
-                    filter === t
-                      ? 'bg-gray-900 text-white border-gray-900'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {t === 'zote' ? 'Zote' : (TYPE_LABELS[t] ?? t)}
-                </button>
-              ))}
+          {/* ── Mini filters ── */}
+          {listings.length > 2 && (
+            <div className="space-y-2 mb-3">
+
+              {/* Aina */}
+              {types.length > 2 && (
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+                  <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">Aina</span>
+                  {types.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setTypeFilter(t)}
+                      className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                        typeFilter === t
+                          ? 'bg-gray-900 text-white border-gray-900'
+                          : 'bg-white text-gray-600 border-gray-200'
+                      }`}
+                    >
+                      {t === 'zote' ? 'Zote' : (TYPE_LABELS[t] ?? t)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Bei */}
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+                <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">Bei</span>
+                {PRICE_RANGES.map(r => (
+                  <button
+                    key={r.key}
+                    onClick={() => setPriceFilter(r.key)}
+                    className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                      priceFilter === r.key
+                        ? 'bg-primary-500 text-white border-primary-500'
+                        : 'bg-white text-gray-600 border-gray-200'
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Vyumba */}
+              {listings.some(l => l.bedrooms !== null) && (
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+                  <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">Vyumba</span>
+                  {BED_OPTIONS.map(b => (
+                    <button
+                      key={b.key}
+                      onClick={() => setBedFilter(b.key)}
+                      className={`flex-shrink-0 w-9 py-1 rounded-lg text-xs font-medium border transition-all ${
+                        bedFilter === b.key
+                          ? 'bg-primary-500 text-white border-primary-500'
+                          : 'bg-white text-gray-600 border-gray-200'
+                      }`}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Eneo */}
+              {districts.length > 2 && (
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+                  <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">Eneo</span>
+                  {districts.map(d => (
+                    <button
+                      key={d}
+                      onClick={() => setDistrictFilter(d)}
+                      className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                        districtFilter === d
+                          ? 'bg-amber-500 text-white border-amber-500'
+                          : 'bg-white text-gray-600 border-gray-200'
+                      }`}
+                    >
+                      {d === 'yote' ? 'Yote' : d}
+                    </button>
+                  ))}
+                </div>
+              )}
+
             </div>
+          )}
+
+          {/* Active filter summary */}
+          {activeFilterCount > 0 && (
+            <p className="text-xs text-gray-400 mb-2">
+              Inaonyesha <span className="font-semibold text-gray-700">{filtered.length}</span> kati ya {listings.length} listings
+            </p>
           )}
 
           {filtered.length === 0 ? (
