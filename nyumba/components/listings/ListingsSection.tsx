@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import ListingCard from '@/components/listings/ListingCard'
+import { ListingGridSkeleton } from '@/components/shared/ListingCardSkeleton'
 import BottomNav from '@/components/shared/BottomNav'
 import { TANZANIA_REGIONS, PRIORITY_REGIONS, shortName } from '@/lib/data/tanzania-locations'
 import type { ListingWithDalali } from '@/lib/types/database'
@@ -278,7 +279,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
               <select
                 value={filters?.region ?? ''}
                 onChange={e => applyFilter('region', e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5
+                className="w-full text-base border border-gray-200 rounded-xl px-3 py-2.5
                            focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
               >
                 <option value="">Mikoa Yote Tanzania</option>
@@ -377,29 +378,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
       {viewMode === 'grid' && (
         <div className="px-4 grid gap-4">
           {loading ? (
-            [1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse border border-gray-100">
-                <div className="h-44 bg-gray-200" />
-                <div className="p-3 space-y-2">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/5" />
-                    <div className="h-4 bg-gray-200 rounded w-1/5" />
-                  </div>
-                  <div className="h-3 bg-gray-200 rounded w-2/5" />
-                  <div className="flex gap-1.5 mt-1">
-                    <div className="h-5 w-16 bg-gray-100 rounded-full" />
-                    <div className="h-5 w-12 bg-gray-100 rounded-full" />
-                  </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 rounded-full bg-gray-200" />
-                      <div className="h-3 w-20 bg-gray-200 rounded" />
-                    </div>
-                    <div className="h-3 w-8 bg-gray-100 rounded" />
-                  </div>
-                </div>
-              </div>
-            ))
+            <ListingGridSkeleton count={6} />
           ) : listings.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-map text-gray-400" aria-hidden="true" /></div>

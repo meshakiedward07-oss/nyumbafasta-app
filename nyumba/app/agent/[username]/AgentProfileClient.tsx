@@ -1,8 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+import { BOOSTED_LABEL } from '@/lib/config/listing-status'
+
+const UnlockModal = dynamic(() => import('@/components/payments/UnlockModal'), { ssr: false })
 
 interface Dalali {
   id: string
@@ -39,6 +43,8 @@ interface Props {
   dalali: Dalali
   listings: Listing[]
   reviews: Review[]
+  primaryRegion: string | null
+  primaryDistrict: string | null
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -70,14 +76,50 @@ const BED_OPTIONS = [
 ] as const
 type BedKey = typeof BED_OPTIONS[number]['key']
 
-export default function AgentProfileClient({ dalali, listings, reviews }: Props) {
+export default function AgentProfileClient({ dalali, listings, reviews, primaryRegion, primaryDistrict }: Props) {
   const [typeFilter, setTypeFilter]   = useState<string>('zote')
   const [priceFilter, setPriceFilter] = useState<PriceKey>('yote')
   const [bedFilter, setBedFilter]     = useState<BedKey>('yote')
   const [districtFilter, setDistrictFilter] = useState<string>('yote')
   const [query, setQuery]         = useState('')
-  const [copied, setCopied]       = useState(false)
+  const [copied, setCopied]         = useState(false)
   const [showContact, setShowContact] = useState(false)
+  const [showUnlockModal, setShowUnlockModal] = useState(false)
+  const [unlockedPhone, setUnlockedPhone] = useState<string | null>(null)
+  const [activeSection, setActiveSection] = useState<'listings' | 'reviews'>('listings')
+
+  const listingsSectionRef = useRef<HTMLElement>(null)
+  const reviewsSectionRef  = useRef<HTMLElement>(null)
+
+  // Track active section via IntersectionObserver
+  useEffect(() => {
+    if (!reviews.length) return
+    const opts = { rootMargin: '-30% 0px -60% 0px', threshold: 0 }
+    const obs = new IntersectionObserver(entries => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          setActiveSection(e.target.id === 'section-reviews' ? 'reviews' : 'listings')
+        }
+      }
+    }, opts)
+    if (listingsSectionRef.current)  obs.observe(listingsSectionRef.current)
+    if (reviewsSectionRef.current)   obs.observe(reviewsSectionRef.current)
+    return () => obs.disconnect()
+  }, [reviews.length])
+
+  function scrollTo(section: 'listings' | 'reviews') {
+    const el = section === 'listings' ? listingsSectionRef.current : reviewsSectionRef.current
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setActiveSection(section)
+  }
+
+  // Build location-aware CTA
+  const regionSlug     = primaryRegion    ? primaryRegion.toLowerCase().replace(/\s+/g, '-') : null
+  const locationLabel  = primaryDistrict  ? primaryDistrict : (primaryRegion ?? null)
+  const exploreHref    = regionSlug       ? `/mali/${regionSlug}` : '/'
+  const exploreLabel   = locationLabel
+    ? `Angalia nyumba zote ${locationLabel}`
+    : 'Angalia nyumba zote Tanzania'
 
   // Track profile view once on mount
   useEffect(() => {
@@ -134,14 +176,18 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
     }).catch(() => {})
   }
 
-  function handleContactClick() {
+  const handleContactClick = useCallback(() => {
     fetch('/api/v1/profile/track-click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dalaliId: dalali.id, eventType: 'whatsapp_click' }),
     }).catch(() => {})
-    setShowContact(true)
-  }
+    if (listings[0]) {
+      setShowUnlockModal(true)
+    } else {
+      setShowContact(true)
+    }
+  }, [dalali.id, listings]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The best listing to send the client to (for the unlock flow)
   const contactListing = listings[0]
@@ -249,16 +295,52 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
           </p>
         </section>
 
+        {/* ── Section nav tabs ────────────────────────────────── */}
+        <div className="sticky top-[52px] z-20 bg-gray-50 pb-2 -mx-4 px-4">
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => scrollTo('listings')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                activeSection === 'listings'
+                  ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <i className="ti ti-home text-sm" aria-hidden="true" />
+              Listings
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                activeSection === 'listings' ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
+              }`}>{listings.length}</span>
+            </button>
+            {reviews.length > 0 && (
+              <button
+                onClick={() => scrollTo('reviews')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  activeSection === 'reviews'
+                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <i className="ti ti-star text-sm" aria-hidden="true" />
+                Maoni
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                  activeSection === 'reviews' ? 'bg-amber-400 text-white' : 'bg-gray-200 text-gray-500'
+                }`}>{reviews.length}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* ── Listings section ────────────────────────────────── */}
-        <section>
+        <section id="section-listings" ref={listingsSectionRef}>
           <h2 className="text-sm font-semibold text-gray-700 mb-3">
             Listings za {dalali.name.split(' ')[0]}
           </h2>
 
-          {/* Search + clear */}
+          {/* Search */}
           {listings.length > 2 && (
-            <div className="flex gap-2 mb-3">
-              <div className="relative flex-1">
+            <div className="mb-3">
+              <div className="relative">
                 <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
                 <input
                   type="text"
@@ -268,15 +350,6 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
                   className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400"
                 />
               </div>
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={clearFilters}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-medium"
-                >
-                  <i className="ti ti-x text-xs" aria-hidden="true" />
-                  Futa ({activeFilterCount})
-                </button>
-              )}
             </div>
           )}
 
@@ -294,7 +367,7 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
                       onClick={() => setTypeFilter(t)}
                       className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
                         typeFilter === t
-                          ? 'bg-gray-900 text-white border-gray-900'
+                          ? 'bg-primary-500 text-white border-primary-500'
                           : 'bg-white text-gray-600 border-gray-200'
                       }`}
                     >
@@ -352,7 +425,7 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
                       onClick={() => setDistrictFilter(d)}
                       className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
                         districtFilter === d
-                          ? 'bg-amber-500 text-white border-amber-500'
+                          ? 'bg-primary-500 text-white border-primary-500'
                           : 'bg-white text-gray-600 border-gray-200'
                       }`}
                     >
@@ -365,14 +438,31 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
             </div>
           )}
 
-          {/* Active filter summary */}
-          {activeFilterCount > 0 && (
-            <p className="text-xs text-gray-400 mb-2">
-              Inaonyesha <span className="font-semibold text-gray-700">{filtered.length}</span> kati ya {listings.length} listings
+          {/* Listing count bar — always visible */}
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-500">
+              {activeFilterCount > 0
+                ? <><span className="font-semibold text-gray-800">{filtered.length}</span> kati ya {listings.length} listings</>
+                : <><span className="font-semibold text-gray-800">{listings.length}</span> listing{listings.length !== 1 ? 's' : ''} hai</>
+              }
             </p>
-          )}
+            {activeFilterCount > 0 && (
+              <button onClick={clearFilters} className="text-xs text-primary-600 font-medium">
+                Futa filters
+              </button>
+            )}
+          </div>
 
-          {filtered.length === 0 ? (
+          {listings.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 py-14 text-center text-gray-400 px-6">
+              <i className="ti ti-home-off text-4xl block mb-3 text-gray-300" aria-hidden="true" />
+              <p className="text-sm font-semibold text-gray-600 mb-1">Hakuna listings hai sasa hivi</p>
+              <p className="text-xs text-gray-400 mb-4">{dalali.name.split(' ')[0]} hana matangazo ya sasa.</p>
+              <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-primary-600 font-medium underline">
+                <i className="ti ti-search text-xs" aria-hidden="true" /> Tafuta kwenye NyumbaFasta
+              </Link>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 py-12 text-center text-gray-400">
               <i className="ti ti-home-off text-3xl block mb-2" aria-hidden="true" />
               <p className="text-sm">Hakuna listings zinazolingana</p>
@@ -408,7 +498,7 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
                     {listing.is_boosted && (
                       <div className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
                         <i className="ti ti-rocket text-[10px]" aria-hidden="true" />
-                        Featured
+                        {BOOSTED_LABEL}
                       </div>
                     )}
                   </div>
@@ -425,7 +515,7 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
                       {listing.district}
                     </p>
                     <p className="text-sm font-bold text-gray-900">
-                      TZS {fmtPrice(listing.price_monthly)}
+                      Tsh {fmtPrice(listing.price_monthly)}
                       <span className="text-xs font-normal text-gray-400">/mwezi</span>
                     </p>
                     {listing.bedrooms && (
@@ -443,7 +533,7 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
 
         {/* ── Reviews ─────────────────────────────────────────── */}
         {reviews.length > 0 && (
-          <section className="mt-6">
+          <section id="section-reviews" ref={reviewsSectionRef} className="mt-6">
             <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <i className="ti ti-star text-amber-400" aria-hidden="true" />
               Maoni ya wateja ({reviews.length})
@@ -473,11 +563,11 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
         )}
       </main>
 
-      {/* ── Sticky bottom CTA — drive traffic back to NyumbaFasta ── */}
+      {/* ── Sticky bottom CTA — location-aware ── */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 px-4 py-3 z-20"
            style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
         <Link
-          href="/"
+          href={exploreHref}
           onClick={() => fetch('/api/v1/profile/track-click', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -485,15 +575,18 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
           }).catch(() => {})}
           className="flex items-center justify-center gap-2 w-full py-3 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 active:scale-[0.98] transition-all"
         >
-          <i className="ti ti-home-2 text-base" aria-hidden="true" />
-          Tafuta nyumba zote Tanzania — NyumbaFasta
+          <i className="ti ti-map-pin text-base" aria-hidden="true" />
+          {exploreLabel}
           <i className="ti ti-arrow-right text-sm" aria-hidden="true" />
         </Link>
       </div>
 
-      {/* ── Contact modal — redirect to listing unlock flow ── */}
-      {showContact && (
+      {/* ── No-listing contact fallback ── */}
+      {showContact && !contactListing && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mawasiliano hayapatikani"
           className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
           onClick={() => setShowContact(false)}
         >
@@ -501,54 +594,48 @@ export default function AgentProfileClient({ dalali, listings, reviews }: Props)
             className="bg-white rounded-t-3xl w-full max-w-lg p-6 pb-8"
             onClick={e => e.stopPropagation()}
           >
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <i className="ti ti-lock-open text-2xl text-primary-500" aria-hidden="true" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-gray-900">Fungua mawasiliano</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Lipa Tsh 2,000 mara moja upate namba ya {dalali.name.split(' ')[0]}</p>
-              </div>
+            <div className="flex justify-end mb-1">
+              <button onClick={() => setShowContact(false)} aria-label="Funga" className="text-gray-300 text-xl p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">×</button>
             </div>
-
-            {contactListing ? (
-              <>
-                <div className="bg-gray-50 rounded-xl p-3 mb-4 flex items-center gap-3">
-                  {contactListing.images?.[0] && (
-                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 relative">
-                      <Image src={contactListing.images[0]} alt="" fill className="object-cover" sizes="48px" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-800 line-clamp-1">
-                      {contactListing.title ?? contactListing.type}
-                    </p>
-                    <p className="text-xs text-gray-500">{contactListing.district} · TZS {fmtPrice(contactListing.price_monthly)}/mwezi</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowContact(false)}
-                    className="flex-1 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 font-medium"
-                  >
-                    Ghairi
-                  </button>
-                  <Link
-                    href={`/listings/${contactListing.id}`}
-                    className="flex-1 py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl text-center"
-                  >
-                    Endelea kufungua
-                  </Link>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-4">
-                {dalali.name.split(' ')[0]} hana listings hai sasa hivi.
-              </p>
-            )}
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+            <p className="text-sm text-gray-500 text-center py-4">
+              {dalali.name.split(' ')[0]} hana listings hai sasa hivi.
+            </p>
+            <Link href="/" className="flex items-center justify-center gap-2 w-full py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl">
+              <i className="ti ti-search" aria-hidden="true" /> Tafuta Madalali Wengine
+            </Link>
           </div>
+        </div>
+      )}
+
+      {/* ── Unlock modal — shown directly from profile (U026) ── */}
+      {showUnlockModal && contactListing && (
+        <UnlockModal
+          listingId={contactListing.id}
+          dalaliName={dalali.name}
+          listingTitle={contactListing.title ?? `${TYPE_LABELS[contactListing.type] ?? contactListing.type} – ${contactListing.district}`}
+          listingPrice={contactListing.price_monthly}
+          listingLocation={`${contactListing.district}, ${contactListing.region}`}
+          listingBedrooms={contactListing.bedrooms ?? undefined}
+          onClose={() => setShowUnlockModal(false)}
+          onUnlocked={(number) => {
+            setUnlockedPhone(number || null)
+            setShowUnlockModal(false)
+          }}
+        />
+      )}
+
+      {/* ── Post-unlock WA banner ── */}
+      {unlockedPhone && (
+        <div className="fixed bottom-20 left-0 right-0 z-30 px-4">
+          <a
+            href={`https://wa.me/${unlockedPhone.replace(/\D/g, '').replace(/^0/, '255')}?text=${encodeURIComponent(`Habari ${dalali.name.split(' ')[0]}! 👋 Nimepata mawasiliano yako kwenye NyumbaFasta.`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-4 bg-green-500 text-white font-bold text-sm rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
+          >
+            <i className="ti ti-brand-whatsapp text-lg" aria-hidden="true" /> Zungumza na {dalali.name.split(' ')[0]} kwenye WhatsApp
+          </a>
         </div>
       )}
     </div>

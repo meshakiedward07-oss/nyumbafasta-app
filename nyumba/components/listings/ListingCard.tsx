@@ -7,6 +7,7 @@ import SaveButton from '@/components/shared/SaveButton'
 import ShareButton from '@/components/shared/ShareButton'
 import type { ListingWithDalali } from '@/lib/types/database'
 import { getShortLocation } from '@/lib/listings/formatLocation'
+import { BOOSTED_LABEL, STATUS_LABELS } from '@/lib/config/listing-status'
 
 // ── Property-type visual styles ───────────────────────────────────────────────
 const TYPE_STYLE: Record<string, { icon: string; pillBg: string; pillText: string; label: string }> = {
@@ -183,7 +184,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
         {listing.is_boosted && (
           <div className="bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 text-white text-xs font-bold px-3 py-1.5 text-center tracking-wide flex items-center justify-center gap-1.5">
             <i className="ti ti-rocket text-sm" aria-hidden="true" />
-            Inashauriwa na NyumbaFasta
+            {BOOSTED_LABEL} na NyumbaFasta
             <i className="ti ti-rocket text-sm" aria-hidden="true" />
           </div>
         )}
@@ -227,12 +228,12 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
           {isActive ? (
             <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm text-primary-700 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm border border-primary-100">
               <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
-              Inapatikana
+              {STATUS_LABELS.active.label}
             </div>
           ) : (
             <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-gray-500 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm border border-gray-200">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-              Imepangishwa
+              {STATUS_LABELS[listing.status]?.label ?? STATUS_LABELS.taken.label}
             </div>
           )}
 

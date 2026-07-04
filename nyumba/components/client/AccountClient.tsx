@@ -73,7 +73,8 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
       <div className="bg-primary-500 px-4 pt-10 pb-8">
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => router.back()}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 text-white text-lg">
+            aria-label="Rudi nyuma"
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white text-lg">
             ←
           </button>
           <h1 className="text-white text-lg font-bold">Akaunti Yangu</h1>

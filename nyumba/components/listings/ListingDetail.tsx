@@ -15,6 +15,7 @@ import ReportDalaliModal from '@/components/listings/ReportDalaliModal'
 import NeighborhoodInfo from '@/components/listings/NeighborhoodInfo'
 import { VideoPlayer } from '@/components/listings/VideoPlayer'
 import { getFullLocation, getShortLocation } from '@/lib/listings/formatLocation'
+import { BOOSTED_LABEL, STATUS_LABELS } from '@/lib/config/listing-status'
 
 const SimilarListings = dynamic(
   () => import('@/components/listings/SimilarListings'),
@@ -153,29 +154,26 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
   const isTaken = listing.status === 'taken'
 
-  const statusBadge = listing.status === 'active'
-    ? { label: 'Inapatikana', cls: 'bg-primary-50 text-primary-700' }
-    : listing.status === 'taken'
-    ? { label: 'Imepangishwa', cls: 'bg-amber-50 text-amber-700' }
-    : { label: listing.status, cls: 'bg-gray-100 text-gray-500' }
+  const statusBadge = STATUS_LABELS[listing.status] ?? { label: listing.status, cls: 'bg-gray-100 text-gray-500' }
 
   const images    = listing.images ?? []
   const videoUrl  = (listing as Listing & { video_url?: string | null }).video_url ?? null
 
   return (
-    <article className="min-h-screen bg-gray-50 pb-28">
+    <article className="min-h-screen bg-gray-50 pb-40">
 
       {/* ── Header ── */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 flex items-center gap-3 px-4 py-3">
         <button
           onClick={() => router.back()}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"
+          aria-label="Rudi nyuma"
+          className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"
         >
           ←
         </button>
-        <h1 className="flex-1 text-sm font-semibold text-gray-800 truncate">
+        <p aria-hidden="true" className="flex-1 text-sm font-semibold text-gray-800 truncate">
           {displayTitle}
-        </h1>
+        </p>
         <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadge.cls}`}>
           {statusBadge.label}
         </span>
@@ -192,7 +190,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           <Image
             fill
             src={images[activeImg]}
-            alt={listing.title}
+            alt={listing.title ?? `${typeLabel[listing.type] || listing.type} huko ${listing.district}`}
             className="object-cover"
             onError={() => setImgError(true)}
             sizes="100vw"
@@ -221,7 +219,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Boosted badge */}
         {listing.is_boosted && (
           <div className="absolute top-3 left-3 bg-primary-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-            <><i className="ti ti-bolt" aria-hidden="true" /> Inaoneshwa Zaidi</>
+            <i className="ti ti-bolt" aria-hidden="true" /> {BOOSTED_LABEL}
           </div>
         )}
 
@@ -231,6 +229,8 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             {images.map((_, i) => (
               <button
                 key={i}
+                aria-label={`Picha ${i + 1} ya ${images.length}`}
+                aria-current={i === activeImg ? 'true' : undefined}
                 onClick={() => { setActiveImg(i); setImgError(false) }}
                 className={`rounded-full transition-all ${i === activeImg ? 'w-4 h-2 bg-white' : 'w-2 h-2 bg-white/50'}`}
               />
@@ -252,12 +252,13 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           {images.map((src, i) => (
             <button
               key={i}
+              aria-label={`Angalia picha ${i + 1}`}
               onClick={() => { setActiveImg(i); setImgError(false) }}
               className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
                 activeImg === i ? 'border-primary-500' : 'border-transparent'
               }`}
             >
-              <Image fill src={src} alt="" className="object-cover" sizes="56px" />
+              <Image fill src={src} alt={`Picha ${i + 1}`} className="object-cover" sizes="56px" />
             </button>
           ))}
         </div>

@@ -75,36 +75,38 @@ function PaymentIcon({ iconSrc, iconAlt }: { iconSrc: string; iconAlt: string })
   )
 }
 
+function ProviderButton({
+  m, selected, onSelect,
+}: { m: typeof PAYMENT_METHODS[number]; selected: PaymentMethod | null; onSelect: (id: PaymentMethod) => void }) {
+  const isSelected = selected === m.id
+  return (
+    <button
+      role="radio"
+      aria-checked={isSelected}
+      onClick={() => onSelect(m.id)}
+      className="relative flex flex-col items-center justify-center gap-1.5 p-3
+                 rounded-2xl border-2 transition-all duration-150 min-h-[80px] active:scale-[0.97]"
+      style={{
+        borderColor:     isSelected ? m.color   : '#E5E7EB',
+        backgroundColor: isSelected ? m.bgColor : '#FFFFFF',
+      }}
+    >
+      {isSelected && (
+        <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full
+                         flex items-center justify-center text-white text-[10px] font-bold"
+          style={{ backgroundColor: m.color }}><i className="ti ti-check" aria-hidden="true" /></span>
+      )}
+      <div className="h-10 flex items-center justify-center">
+        <PaymentIcon iconSrc={m.iconSrc} iconAlt={m.iconAlt} />
+      </div>
+      <p className="text-xs font-semibold text-gray-700 text-center leading-tight">{m.name}</p>
+      <p className="text-[9px] text-gray-400">{m.company}</p>
+    </button>
+  )
+}
+
 export default function PaymentMethodSelector({ selected, onSelect, amount, onPay }: Props) {
   const selectedInfo = PAYMENT_METHODS.find(m => m.id === selected)
-
-  function ProviderButton({ m }: { m: typeof PAYMENT_METHODS[number] }) {
-    const isSelected = selected === m.id
-    return (
-      <button
-        role="radio"
-        aria-checked={isSelected}
-        onClick={() => onSelect(m.id)}
-        className="relative flex flex-col items-center justify-center gap-1.5 p-3
-                   rounded-2xl border-2 transition-all duration-150 min-h-[80px] active:scale-[0.97]"
-        style={{
-          borderColor:     isSelected ? m.color   : '#E5E7EB',
-          backgroundColor: isSelected ? m.bgColor : '#FFFFFF',
-        }}
-      >
-        {isSelected && (
-          <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full
-                           flex items-center justify-center text-white text-[10px] font-bold"
-            style={{ backgroundColor: m.color }}><i className="ti ti-check" aria-hidden="true" /></span>
-        )}
-        <div className="h-10 flex items-center justify-center">
-          <PaymentIcon iconSrc={m.iconSrc} iconAlt={m.iconAlt} />
-        </div>
-        <p className="text-xs font-semibold text-gray-700 text-center leading-tight">{m.name}</p>
-        <p className="text-[9px] text-gray-400">{m.company}</p>
-      </button>
-    )
-  }
 
   return (
     <div className="space-y-4">
@@ -115,7 +117,7 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
           <i className="ti ti-device-mobile" aria-hidden="true" /> Mobile Money
         </p>
         <div className="grid grid-cols-2 gap-2">
-          {MOBILE.map(m => <ProviderButton key={m.id} m={m} />)}
+          {MOBILE.map(m => <ProviderButton key={m.id} m={m} selected={selected} onSelect={onSelect} />)}
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import type { Listing } from '@/lib/types/database'
 import NotificationBell from '@/components/shared/NotificationBell'
 import { PLAN_BADGES, getListingLimit, getPlan } from '@/lib/config/subscription-plans'
+import { STATUS_LABELS } from '@/lib/config/listing-status'
 import { ListingDeadlineBanner } from '@/components/dalali/ListingDeadlineBanner'
 
 type DalaliProfile = {
@@ -48,13 +49,6 @@ const typeLabel: Record<string, string> = {
   chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
 }
 
-const statusConfig: Record<string, { label: string; cls: string }> = {
-  active:   { label: 'Inapatikana', cls: 'bg-primary-50 text-primary-700' },
-  pending:  { label: 'Inasubiri',   cls: 'bg-amber-50 text-amber-700' },
-  taken:    { label: 'Imechukuliwa', cls: 'bg-gray-100 text-gray-500' },
-  expired:  { label: 'Imeisha',     cls: 'bg-red-50 text-red-500' },
-  rejected: { label: 'Ilikataliwa', cls: 'bg-red-50 text-red-600' },
-}
 
 function formatPrice(amount: number): string {
   if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`
@@ -65,7 +59,14 @@ function formatPrice(amount: number): string {
 export default function DashboardClient({ dalaliName, profile, subscription, listings, stats }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const showWelcome = searchParams.get('welcome') === 'true'
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false)
+  const showWelcome = searchParams.get('welcome') === 'true' && !welcomeDismissed
+
+  function dismissWelcome() {
+    setWelcomeDismissed(true)
+    router.replace('/dashboard')
+  }
+
   const supabase = createClient()
   const [loggingOut, setLoggingOut] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
@@ -101,8 +102,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
     <div className="min-h-screen bg-gray-50 pb-24 animate-fadeIn">
 
       {/* ── Header ── */}
-      <div className="relative px-4 pt-10 pb-6 overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #27AE72 0%, #1D9E75 50%, #117652 100%)' }}>
+      <div className="relative px-4 pt-10 pb-6 overflow-hidden gradient-primary">
         {/* Decorative circles for depth */}
         <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/[0.06] pointer-events-none" />
         <div className="absolute top-4 right-16 w-20 h-20 rounded-full bg-white/[0.05] pointer-events-none" />
@@ -504,8 +504,8 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                         <p className="text-sm font-semibold text-gray-900 truncate">
                           {typeLabel[listing.type] || listing.type} – {listing.district}
                         </p>
-                        <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full ${statusConfig[listing.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>
-                          {statusConfig[listing.status]?.label ?? listing.status}
+                        <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full ${STATUS_LABELS[listing.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>
+                          {STATUS_LABELS[listing.status]?.label ?? listing.status}
                         </span>
                       </div>
                       <p className="text-primary-600 font-bold text-xs mb-1.5">
@@ -590,8 +590,17 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
 
       {/* Welcome Modal — inaonekana baada ya kuthibitisha email */}
       {showWelcome && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Karibu NyumbaFasta"
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
+          onClick={dismissWelcome}
+        >
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-end mb-1">
+              <button onClick={dismissWelcome} aria-label="Funga" className="text-gray-300 text-xl leading-none p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">×</button>
+            </div>
             <div className="text-5xl mb-3"><i className="ti ti-confetti text-5xl text-primary-400" aria-hidden="true" /></div>
             <h2 className="font-bold text-xl mb-2 text-gray-900">Karibu NyumbaFasta!</h2>
             <p className="text-gray-500 text-sm mb-2 leading-relaxed">
@@ -601,7 +610,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
               Anza kuongeza listings zako na upate wateja wako wa kwanza!
             </p>
             <button
-              onClick={() => router.replace('/dashboard')}
+              onClick={dismissWelcome}
               className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
             >
               Anza Kutumia →

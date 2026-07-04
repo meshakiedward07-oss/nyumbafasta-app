@@ -6,6 +6,7 @@ const ITEMS = [
   { href: '/dashboard',              icon: 'chart-bar',    iconActive: 'chart-bar',     label: 'Nyumbani'   },
   { href: '/dashboard/listings',     icon: 'home',         iconActive: 'home-filled',   label: 'Matangazo'  },
   { href: '/dashboard/listings/new', icon: 'plus',         iconActive: 'plus',          label: 'Ongeza'     },
+  { href: '/dashboard/hesabu',       icon: 'coins',        iconActive: 'coins',         label: 'Hesabu'     },
   { href: '/dashboard/reviews',      icon: 'star',         iconActive: 'star-filled',   label: 'Maoni'      },
   { href: '/dashboard/profile',      icon: 'user',         iconActive: 'user-filled',   label: 'Akaunti'    },
 ]
@@ -21,11 +22,13 @@ export default function DalaliBottomNav() {
       {/* Glass blur backdrop */}
       <div className="absolute inset-0 bg-white/90 backdrop-blur-md border-t border-gray-100/80" />
 
-      <div className="relative flex justify-around max-w-sm mx-auto px-1 pt-1">
+      <div className="relative flex justify-around max-w-lg mx-auto px-1 pt-1">
         {ITEMS.map(({ href, icon, iconActive, label }) => {
           const active =
             href === '/dashboard'
               ? pathname === '/dashboard'
+              : href === '/dashboard/listings'
+              ? pathname === '/dashboard/listings' || (pathname.startsWith('/dashboard/listings/') && !pathname.startsWith('/dashboard/listings/new'))
               : pathname === href || pathname.startsWith(href + '/')
 
           const isAdd = href === '/dashboard/listings/new'
@@ -34,7 +37,7 @@ export default function DalaliBottomNav() {
             <Link
               key={href}
               href={href}
-              className="flex flex-col items-center gap-0.5 py-1 px-1 min-h-[52px] min-w-[48px] justify-center transition-all duration-150 active:scale-90"
+              className="flex flex-col items-center gap-0.5 py-1 px-0.5 min-h-[52px] min-w-0 flex-1 justify-center transition-all duration-150 active:scale-90"
             >
               {/* Icon bubble — special treatment for the Add button */}
               {isAdd ? (
@@ -57,7 +60,7 @@ export default function DalaliBottomNav() {
               )}
 
               {/* Label */}
-              <span className={`text-[10px] font-medium leading-none transition-colors duration-150
+              <span className={`text-[11px] font-medium leading-none transition-colors duration-150
                 ${active ? 'text-primary-600' : isAdd ? 'text-primary-500' : 'text-gray-400'}`}
               >
                 {label}

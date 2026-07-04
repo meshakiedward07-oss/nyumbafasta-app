@@ -57,8 +57,8 @@ export default function HomeClient({ initialListings, initialTotal }: Props) {
               sizes="(max-width: 640px) 55vw, 45vw"
             />
           </div>
-          <Link href="/account">
-            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+          <Link href="/account" aria-label="Akaunti yangu">
+            <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center">
               <i className="ti ti-user text-white text-lg" aria-hidden="true" />
             </div>
           </Link>

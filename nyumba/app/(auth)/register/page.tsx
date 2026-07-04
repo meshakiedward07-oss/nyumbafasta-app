@@ -3,6 +3,7 @@ import { useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import ResendEmailButton from '@/components/auth/ResendEmailButton'
 import AgreementModal from '@/components/legal/AgreementModal'
 
@@ -96,7 +97,7 @@ function RegisterForm() {
   if (step === 'check_email') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
-        <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-sm">
+        <div role="status" aria-live="polite" className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-sm">
           <div className="w-20 h-20 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="ti ti-mail text-4xl" aria-hidden="true" />
           </div>
@@ -164,12 +165,16 @@ function RegisterForm() {
 
       {/* Header */}
       <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center items-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/transparent_logo_nyumbafasta.png"
-          alt="NyumbaFasta"
-          className="h-20 sm:h-24 w-auto object-contain"
-        />
+        <div className="relative h-20 sm:h-24 w-48 sm:w-56">
+          <Image
+            src="/transparent_logo_nyumbafasta.png"
+            alt="NyumbaFasta"
+            fill
+            priority
+            className="object-contain"
+            sizes="224px"
+          />
+        </div>
       </div>
 
       <div className="flex-1 px-4 -mt-4 pb-8">
@@ -234,7 +239,8 @@ function RegisterForm() {
             <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-50">
               <button
                 onClick={() => { setStep('role'); setError('') }}
-                className="text-gray-400 text-lg leading-none"
+                aria-label="Rudi nyuma"
+                className="text-gray-400 text-lg leading-none min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 ←
               </button>
@@ -317,18 +323,28 @@ function RegisterForm() {
                       {showPass ? <i className="ti ti-eye-off" aria-hidden="true" /> : <i className="ti ti-eye" aria-hidden="true" />}
                     </button>
                   </div>
-                  {password.length > 0 && (
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <div className="flex gap-1 flex-1">
-                        <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 1 ? 'bg-red-400' : 'bg-gray-200'}`} />
-                        <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 8 ? 'bg-amber-400' : 'bg-gray-200'}`} />
-                        <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 12 && /[0-9!@#$%^&*]/.test(password) ? 'bg-primary-500' : 'bg-gray-200'}`} />
+                  {password.length > 0 && (() => {
+                    const strength = password.length < 8 ? 33 : password.length < 12 ? 66 : 100
+                    const label = password.length < 8 ? 'Dhaifu' : password.length < 12 ? 'Wastani' : 'Nguvu'
+                    return (
+                      <div
+                        role="progressbar"
+                        aria-valuenow={strength}
+                        aria-valuemax={100}
+                        aria-valuetext={`Nguvu ya nenosiri: ${label}`}
+                        className="mt-1.5 flex items-center gap-2"
+                      >
+                        <div className="flex gap-1 flex-1">
+                          <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 1 ? 'bg-red-400' : 'bg-gray-200'}`} />
+                          <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 8 ? 'bg-amber-400' : 'bg-gray-200'}`} />
+                          <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 12 && /[0-9!@#$%^&*]/.test(password) ? 'bg-primary-500' : 'bg-gray-200'}`} />
+                        </div>
+                        <span className={`text-[10px] font-medium ${password.length < 8 ? 'text-red-400' : password.length < 12 ? 'text-amber-500' : 'text-primary-600'}`}>
+                          {label}
+                        </span>
                       </div>
-                      <span className={`text-[10px] font-medium ${password.length < 8 ? 'text-red-400' : password.length < 12 ? 'text-amber-500' : 'text-primary-600'}`}>
-                        {password.length < 8 ? 'Dhaifu' : password.length < 12 ? 'Wastani' : 'Nguvu'}
-                      </span>
-                    </div>
-                  )}
+                    )
+                  })()}
                 </div>
 
                 {/* WhatsApp — dalali only */}
@@ -349,7 +365,7 @@ function RegisterForm() {
                         placeholder="712 345 678"
                         value={whatsapp}
                         onChange={e => setWhatsapp(e.target.value)}
-                        className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm
+                        className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base
                                    focus:outline-none focus:ring-2 focus:ring-primary-300"
                       />
                     </div>

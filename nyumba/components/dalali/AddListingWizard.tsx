@@ -257,7 +257,8 @@ export default function AddListingWizard() {
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={() => step === 0 ? router.back() : setStep(s => s - 1)}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"
+            aria-label="Rudi nyuma"
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"
           >
             ←
           </button>
@@ -327,6 +328,9 @@ export default function AddListingWizard() {
                                focus:outline-none focus:ring-2 focus:ring-primary-300"
                   />
                 </div>
+                {form.price_monthly && parseInt(form.price_monthly) <= 0 && (
+                  <p className="text-xs text-red-500 mt-1">Bei lazima iwe zaidi ya 0</p>
+                )}
               </div>
 
               {form.type !== 'duka' && (

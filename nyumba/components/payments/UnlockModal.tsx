@@ -45,9 +45,10 @@ async function getContactNumber(listingId: string): Promise<string> {
   }
 }
 
-const POLL_INTERVAL_MS = 3000
-const TIMEOUT_SECS     = 120
-const UNLOCK_AMOUNT    = 2000
+const POLL_INTERVAL_MS      = 3000
+const TIMEOUT_SECS          = 240
+const CONTACT_FETCH_TIMEOUT = 10_000
+const UNLOCK_AMOUNT         = 2000
 
 // Normalise any phone input → 255XXXXXXXXX (9 subscriber digits)
 function normalisePhone(raw: string): { normalized: string; valid: boolean } {
@@ -67,10 +68,11 @@ export default function UnlockModal({
   const [step, setStep]               = useState<ModalStep>('select')
   const [provider, setProvider]       = useState<PaymentProvider>('Mpesa')
   const [phone, setPhone]             = useState('')
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState('')
-  const [secondsLeft, setSecondsLeft] = useState(TIMEOUT_SECS)
-  const [contactPhone, setContactPhone] = useState<string | null>(null)
+  const [loading, setLoading]               = useState(false)
+  const [error, setError]                   = useState('')
+  const [secondsLeft, setSecondsLeft]       = useState(TIMEOUT_SECS)
+  const [contactPhone, setContactPhone]     = useState<string | null>(null)
+  const [contactTimedOut, setContactTimedOut] = useState(false)
   const userChoseProvider = useRef(false)
 
   const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -81,6 +83,13 @@ export default function UnlockModal({
   const bedroomLine = listingBedrooms ? `\n🛏️ Vyumba ${listingBedrooms}` : ''
   const waMessage = `Habari ${dalaliName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${listingTitle}*\n📍 ${listingLocation}${bedroomLine}\n💰 TZS ${listingPrice.toLocaleString()}/mwezi\n\n🔗 https://nyumbafasta.co/listings/${listingId}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
   const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
+
+  // ── Timeout fallback when contact fetch hangs after success ─
+  useEffect(() => {
+    if (step !== 'success' || contactPhone !== null) return
+    const t = setTimeout(() => setContactTimedOut(true), CONTACT_FETCH_TIMEOUT)
+    return () => clearTimeout(t)
+  }, [step, contactPhone])
 
   // ── Block Android back-gesture during payment ─────────────
   useEffect(() => {
@@ -230,8 +239,9 @@ export default function UnlockModal({
       onClick={step === 'waiting' ? undefined : onClose}
     >
       <div
-        className="bg-white rounded-t-3xl w-full max-w-md pb-10 overflow-hidden
+        className="bg-white rounded-t-3xl w-full max-w-md overflow-hidden
                    animate-in slide-in-from-bottom duration-300"
+        style={{ paddingBottom: 'max(40px, env(safe-area-inset-bottom))' }}
         onClick={e => e.stopPropagation()}
         onTouchEnd={e => e.stopPropagation()}
       >
@@ -390,7 +400,11 @@ export default function UnlockModal({
                 style={{ width: `${progressPct}%`, backgroundColor: pInfo.btnColor }}
               />
             </div>
-            <p className="text-xs text-gray-400 mb-5">Inasubiri uthibitisho... ({secondsLeft}s)</p>
+            <p className="text-xs text-gray-400 mb-5">
+              {secondsLeft < TIMEOUT_SECS * 0.4
+                ? `Bado inashughulikiwa... (${secondsLeft}s)`
+                : `Inasubiri uthibitisho... (${secondsLeft}s)`}
+            </p>
 
             <div className="flex justify-center mb-5">
               <div
@@ -454,6 +468,15 @@ export default function UnlockModal({
                 </div>
                 <p className="text-xs text-gray-400 mb-3">Namba moja inatumika kwa njia zote mbili</p>
               </>
+            ) : contactTimedOut ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 text-sm text-amber-700 text-left">
+                <p className="font-semibold mb-1">Mawasiliano hayakupakia</p>
+                <p className="text-xs mb-2">Malipo yamefanikiwa. Piga simu support kwa usaidizi:</p>
+                <a href="https://wa.me/255000000000" target="_blank" rel="noopener noreferrer"
+                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 underline">
+                  <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp Support
+                </a>
+              </div>
             ) : (
               <div className="flex justify-center items-center gap-2 mb-5 text-sm text-gray-400">
                 <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
@@ -474,7 +497,8 @@ export default function UnlockModal({
             <p className="text-sm text-red-500 mb-5">{error}</p>
             <button
               onClick={handleRetry}
-              className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold mb-3"
+              className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold mb-3
+                         min-h-[48px] active:scale-[0.98] transition-transform shadow-md"
             >
               Jaribu Tena
             </button>

@@ -58,6 +58,8 @@ async function getAgentData(username: string): Promise<{
   dalali: ProfileRow
   listings: ListingRow[]
   reviews: ReviewRow[]
+  primaryRegion: string | null
+  primaryDistrict: string | null
 } | null> {
   const admin = createAdminClient()
 
@@ -96,10 +98,24 @@ async function getAgentData(username: string): Promise<{
       .limit(10),
   ])
 
+  const listingData = (listingsRes.data ?? []) as ListingRow[]
+
+  // Derive dalali's primary location from their active listings
+  const regionCounts: Record<string, number> = {}
+  for (const l of listingData) regionCounts[l.region] = (regionCounts[l.region] ?? 0) + 1
+  const primaryRegion = Object.entries(regionCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+
+  const districtCounts: Record<string, number> = {}
+  for (const l of listingData.filter(l => l.region === primaryRegion))
+    districtCounts[l.district] = (districtCounts[l.district] ?? 0) + 1
+  const primaryDistrict = Object.entries(districtCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+
   return {
     dalali: dalali as unknown as ProfileRow,
-    listings: (listingsRes.data ?? []) as ListingRow[],
+    listings: listingData,
     reviews: (reviewsRes.data ?? []) as ReviewRow[],
+    primaryRegion,
+    primaryDistrict,
   }
 }
 
@@ -133,7 +149,7 @@ export default async function AgentProfilePage({ params }: { params: { username:
   const result = await getAgentData(username)
   if (!result) notFound()
 
-  const { dalali, listings, reviews } = result
+  const { dalali, listings, reviews, primaryRegion, primaryDistrict } = result
   const profile = pickProfile(dalali.dalali_profiles)
 
   // JSON-LD: Person + RealEstateAgent
@@ -166,6 +182,8 @@ export default async function AgentProfilePage({ params }: { params: { username:
         }}
         listings={listings}
         reviews={reviews}
+        primaryRegion={primaryRegion}
+        primaryDistrict={primaryDistrict}
       />
     </>
   )

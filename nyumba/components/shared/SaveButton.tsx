@@ -69,7 +69,7 @@ export default function SaveButton({ listingId, className = '', size = 'md' }: P
   }
 
   const sz = size === 'sm'
-    ? 'w-8 h-8 text-base'
+    ? 'w-10 h-10 text-base'
     : 'w-10 h-10 text-xl'
 
   return (

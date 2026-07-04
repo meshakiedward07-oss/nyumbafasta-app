@@ -42,7 +42,8 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 text-white"
+            aria-label="Rudi nyuma"
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white"
           >
             ←
           </button>

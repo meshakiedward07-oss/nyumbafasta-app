@@ -3,6 +3,7 @@ import { useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import ResendEmailButton from '@/components/auth/ResendEmailButton'
 
 function LoginForm() {
@@ -135,12 +136,16 @@ function LoginForm() {
 
       {/* Header */}
       <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center items-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/transparent_logo_nyumbafasta.png"
-          alt="NyumbaFasta"
-          className="h-20 sm:h-24 w-auto object-contain"
-        />
+        <div className="relative h-20 sm:h-24 w-48 sm:w-56">
+          <Image
+            src="/transparent_logo_nyumbafasta.png"
+            alt="NyumbaFasta"
+            fill
+            priority
+            className="object-contain"
+            sizes="224px"
+          />
+        </div>
       </div>
 
       <div className="flex-1 px-4 -mt-4 pb-8">

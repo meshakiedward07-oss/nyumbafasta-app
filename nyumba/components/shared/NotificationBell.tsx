@@ -11,7 +11,6 @@ interface Props {
 
 export default function NotificationBell({ className = '', asLink = true }: Props) {
   const [unread, setUnread] = useState(0)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const channelRef  = useRef<any>(null)
 
@@ -26,10 +25,7 @@ export default function NotificationBell({ className = '', asLink = true }: Prop
     // 1. Initial fetch
     fetchCount()
 
-    // 2. Poll every 30 seconds (backup — always works)
-    intervalRef.current = setInterval(fetchCount, 30_000)
-
-    // 3. Refresh when tab regains focus
+    // 2. Refresh when tab regains focus
     const onVisibility = () => {
       if (document.visibilityState === 'visible') fetchCount()
     }
@@ -60,7 +56,6 @@ export default function NotificationBell({ className = '', asLink = true }: Prop
     })
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('focus', onFocus)
       if (channelRef.current) {

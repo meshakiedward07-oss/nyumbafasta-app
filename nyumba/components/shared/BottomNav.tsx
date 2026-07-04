@@ -38,7 +38,7 @@ export default function BottomNav({ role = 'client' }: { role?: Role }) {
       {/* Glass blur backdrop */}
       <div className="absolute inset-0 bg-white/90 backdrop-blur-md border-t border-gray-100/80" />
 
-      <div className="relative flex justify-around max-w-sm mx-auto px-2 pt-1">
+      <div className="relative flex justify-around max-w-lg mx-auto px-2 pt-1">
         {items.map(({ href, icon, label }) => {
           const active = pathname === href || (href !== '/' && pathname.startsWith(href))
           const iconKey = icon ?? 'search'

@@ -75,6 +75,10 @@
     box-shadow: 0 4px 14px rgba(239, 68, 68, 0.40);
   }
 
+  .gradient-primary {
+    background: linear-gradient(135deg, #27AE72 0%, #1D9E75 50%, #117652 100%);
+  }
+
   /* ── Cards ── */
   .card {
     @apply bg-white rounded-2xl border border-gray-100 overflow-hidden;
