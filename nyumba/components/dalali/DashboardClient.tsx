@@ -401,15 +401,15 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           )
         })()}
 
-        {/* ── CRM Banner ── */}
+        {/* ── Stats / Growth Banner ── */}
         <Link
           href="/dashboard/crm"
-          className="flex items-center gap-3 p-4 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl text-white"
+          className="flex items-center gap-3 p-4 bg-gradient-to-r from-primary-600 to-primary-500 rounded-2xl text-white"
         >
-          <i className="ti ti-target text-3xl flex-shrink-0" aria-hidden="true" />
+          <i className="ti ti-chart-bar text-3xl flex-shrink-0" aria-hidden="true" />
           <div className="flex-1 min-w-0">
-            <p className="font-bold">Leads Zangu</p>
-            <p className="text-green-100 text-xs">Simamia leads na deals zako</p>
+            <p className="font-bold">Takwimu Zangu</p>
+            <p className="text-green-100 text-xs">Maoni, ukuaji na contacts za microsite yako</p>
           </div>
           <span className="flex-shrink-0 text-green-100">→</span>
         </Link>
