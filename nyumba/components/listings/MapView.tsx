@@ -1,26 +1,20 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Map, AdvancedMarker, InfoWindow, useMap } from '@vis.gl/react-google-maps'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { MapProvider, GOOGLE_MAP_ID } from '@/components/maps/MapProvider'
 import { createClient } from '@/lib/supabase/client'
 import type { ListingWithDalali } from '@/lib/types/database'
 
 type MapListing = ListingWithDalali & {
-  latitude?: number | null
+  latitude?:  number | null
   longitude?: number | null
 }
 
 type Props = {
-  listings: MapListing[]   // initial listings (current page)
+  listings:  MapListing[]
   className?: string
 }
 
-function fmtPrice(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${Math.round(n / 1_000)}k`
-  return `${n}`
-}
+const ICON_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images'
 
 const LISTING_FIELDS = `
   id, title, type, price_monthly, district, region,
@@ -28,136 +22,26 @@ const LISTING_FIELDS = `
   dalali:dalali_id ( dalali_profiles ( is_premium_verified ) )
 `
 
-// ── Price badge marker ────────────────────────────────────────────────────
-function PriceBadge({ price, selected, boosted }: { price: number; selected: boolean; boosted: boolean }) {
-  return (
-    <div
-      style={{
-        background:   selected ? '#085041' : boosted ? '#EF9F27' : '#1D9E75',
-        color:        '#fff',
-        fontWeight:   700,
-        fontSize:     11,
-        padding:      '4px 8px',
-        borderRadius: 20,
-        whiteSpace:   'nowrap',
-        boxShadow:    selected
-          ? '0 4px 12px rgba(8,80,65,0.5)'
-          : '0 2px 6px rgba(0,0,0,0.25)',
-        border:       selected ? '2px solid #fff' : '2px solid rgba(255,255,255,0.6)',
-        transform:    selected ? 'scale(1.15)' : 'scale(1)',
-        transition:   'transform 0.15s, box-shadow 0.15s',
-        cursor:       'pointer',
-        userSelect:   'none',
-      }}
-    >
-      {boosted && !selected && <i className="ti ti-star-filled" aria-hidden="true" style={{ fontSize: 9, marginRight: 3 }} />}Tsh {fmtPrice(price)}
-    </div>
-  )
+function fmtPrice(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`
+  return `${n}`
 }
 
-// ── Inner map content (needs useMap) ──────────────────────────────────────
-function MapContent({ listings }: { listings: MapListing[] }) {
-  const map = useMap()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-
-  const withCoords = listings.filter(
-    l => typeof l.latitude === 'number' && typeof l.longitude === 'number'
-  )
-
-  // Auto-fit bounds when listings change
-  useEffect(() => {
-    if (!map || withCoords.length === 0) return
-    if (typeof google === 'undefined') return
-    const bounds = new google.maps.LatLngBounds()
-    withCoords.forEach(l => bounds.extend({ lat: l.latitude as number, lng: l.longitude as number }))
-    map.fitBounds(bounds, withCoords.length === 1 ? 80 : 60)
-  }, [map, withCoords.length]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const selected = withCoords.find(l => l.id === selectedId)
-
-  return (
-    <>
-      {withCoords.map(l => (
-        <AdvancedMarker
-          key={l.id}
-          position={{ lat: l.latitude as number, lng: l.longitude as number }}
-          onClick={() => setSelectedId(prev => prev === l.id ? null : l.id)}
-          zIndex={selectedId === l.id ? 10 : l.is_boosted ? 5 : 1}
-        >
-          <PriceBadge
-            price={l.price_monthly}
-            selected={selectedId === l.id}
-            boosted={!!l.is_boosted}
-          />
-        </AdvancedMarker>
-      ))}
-
-      {selected && (
-        <InfoWindow
-          position={{ lat: selected.latitude as number, lng: selected.longitude as number }}
-          onCloseClick={() => setSelectedId(null)}
-          pixelOffset={[0, -36]}
-          maxWidth={220}
-        >
-          <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2px 2px 0' }}>
-            {/* Image */}
-            {selected.images?.[0] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={selected.images[0]}
-                alt={selected.district}
-                style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 8, marginBottom: 8, display: 'block' }}
-              />
-            ) : (
-              <div style={{ width: '100%', height: 70, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontSize: 28, background: '#f3f4f6',
-                borderRadius: 8, marginBottom: 8 }}>
-                <i className="ti ti-home" aria-hidden="true" />
-              </div>
-            )}
-
-            {/* Title */}
-            <p style={{ fontWeight: 700, margin: '0 0 3px', lineHeight: 1.3, color: '#111827', fontSize: 13 }}>
-              {selected.title || `${selected.type} – ${selected.district}`}
-            </p>
-
-            {/* Price */}
-            <p style={{ color: '#1D9E75', fontWeight: 700, margin: '0 0 2px', fontSize: 13 }}>
-              Tsh {fmtPrice(selected.price_monthly)}<span style={{ color: '#6b7280', fontWeight: 400, fontSize: 11 }}>/mwezi</span>
-            </p>
-
-            {/* Location */}
-            <p style={{ color: '#6b7280', fontSize: 11, margin: '0 0 8px' }}>
-              {selected.district}, {selected.region}
-            </p>
-
-            {/* CTA */}
-            <Link
-              href={`/listings/${selected.id}`}
-              style={{
-                display: 'block', background: '#1D9E75', color: '#fff',
-                textAlign: 'center', padding: '7px', borderRadius: 8,
-                textDecoration: 'none', fontSize: 12, fontWeight: 700,
-              }}
-            >
-              Angalia Nyumba →
-            </Link>
-          </div>
-        </InfoWindow>
-      )}
-    </>
-  )
-}
-
-// ── Main MapView ──────────────────────────────────────────────────────────
-const DAR_CENTER = { lat: -6.7924, lng: 39.2083 }
+type MapView = 'satellite' | 'street'
 
 export default function MapView({ listings, className = '' }: Props) {
-  const [allListings, setAllListings] = useState<MapListing[]>(listings)
-  const [loadingAll, setLoadingAll]   = useState(false)
-  const [mapType, setMapType]         = useState<'hybrid' | 'roadmap'>('hybrid')
+  const containerRef  = useRef<HTMLDivElement>(null)
+  const mapRef        = useRef<any>(null)
+  const tileRef       = useRef<any>(null)
+  const overlayRef    = useRef<any>(null)
+  const markersRef    = useRef<any[]>([])
 
-  // On mount, fetch ALL listings with coordinates (not just current page)
+  const [allListings, setAllListings] = useState<MapListing[]>(listings)
+  const [loadingAll,  setLoadingAll]  = useState(false)
+  const [mapType,     setMapType]     = useState<MapView>('satellite')
+
+  // On mount, fetch all listings with coordinates (not just current page)
   useEffect(() => {
     const existing = listings.filter(l => l.latitude && l.longitude)
     if (existing.length > 0) setAllListings(listings)
@@ -177,91 +61,210 @@ export default function MapView({ listings, className = '' }: Props) {
       })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Initialize Leaflet map once
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return
+
+    ;(async () => {
+      const L = (await import('leaflet')).default
+
+      // @ts-expect-error Leaflet internal
+      delete L.Icon.Default.prototype._getIconUrl
+      L.Icon.Default.mergeOptions({
+        iconUrl:       `${ICON_BASE}/marker-icon.png`,
+        iconRetinaUrl: `${ICON_BASE}/marker-icon-2x.png`,
+        shadowUrl:     `${ICON_BASE}/marker-shadow.png`,
+      })
+
+      const map = L.map(containerRef.current!, {
+        center: [-6.7924, 39.2083],
+        zoom: 11,
+        zoomControl: true,
+      })
+
+      mapRef.current = map
+
+      const applyTiles = (v: MapView) => {
+        if (tileRef.current)    map.removeLayer(tileRef.current)
+        if (overlayRef.current) map.removeLayer(overlayRef.current)
+
+        if (v === 'satellite') {
+          tileRef.current = L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            { maxZoom: 20, attribution: '&copy; Esri — Esri, DigitalGlobe, GeoEye' }
+          ).addTo(map)
+          overlayRef.current = L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+            { maxZoom: 20, opacity: 0.75 }
+          ).addTo(map)
+        } else {
+          tileRef.current = L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }
+          ).addTo(map)
+        }
+      }
+
+      applyTiles('satellite')
+      ;(map as any)._applyTiles = applyTiles
+    })()
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
+    }
+  }, [])
+
+  // Sync markers whenever allListings changes
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    ;(async () => {
+      const L = (await import('leaflet')).default
+      const map = mapRef.current
+
+      // Clear old markers
+      markersRef.current.forEach(m => map.removeLayer(m))
+      markersRef.current = []
+
+      const withCoords = allListings.filter(l => l.latitude && l.longitude)
+      if (withCoords.length === 0) return
+
+      withCoords.forEach(listing => {
+        const lat = listing.latitude as number
+        const lng = listing.longitude as number
+        const boosted  = !!listing.is_boosted
+        const bg       = boosted ? '#EF9F27' : '#1D9E75'
+        const border   = boosted ? '#d18a1e' : '#085041'
+        const price    = fmtPrice(listing.price_monthly)
+        const star     = boosted ? '<span style="font-size:9px;margin-right:3px">★</span>' : ''
+
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="
+            background:${bg};color:#fff;font-weight:700;font-size:11px;
+            padding:4px 8px;border-radius:20px;white-space:nowrap;
+            box-shadow:0 2px 6px rgba(0,0,0,.25);
+            border:2px solid ${border};cursor:pointer;user-select:none;
+          ">${star}Tsh ${price}</div>`,
+          iconSize: undefined as any,
+          iconAnchor: [30, 16],
+          popupAnchor: [0, -20],
+        })
+
+        const marker = L.marker([lat, lng], { icon }).addTo(map)
+
+        const imgHtml = listing.images?.[0]
+          ? `<img src="${listing.images[0]}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;display:block" />`
+          : `<div style="height:70px;display:flex;align-items:center;justify-content:center;font-size:28px;background:#f3f4f6;border-radius:8px;margin-bottom:8px">🏠</div>`
+
+        const popupContent = `
+          <div style="font-family:system-ui,sans-serif;padding:2px 2px 0;min-width:180px">
+            ${imgHtml}
+            <p style="font-weight:700;margin:0 0 3px;line-height:1.3;color:#111827;font-size:13px">
+              ${listing.title || `${listing.type} – ${listing.district}`}
+            </p>
+            <p style="color:#1D9E75;font-weight:700;margin:0 0 2px;font-size:13px">
+              Tsh ${price}<span style="color:#6b7280;font-weight:400;font-size:11px">/mwezi</span>
+            </p>
+            <p style="color:#6b7280;font-size:11px;margin:0 0 8px">${listing.district}, ${listing.region}</p>
+            <a href="/listings/${listing.id}"
+               style="display:block;background:#1D9E75;color:#fff;text-align:center;
+                      padding:7px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700">
+              Angalia Nyumba →
+            </a>
+          </div>`
+
+        marker.bindPopup(popupContent, { closeButton: false, maxWidth: 220 })
+        markersRef.current.push(marker)
+      })
+
+      // Fit bounds to show all markers
+      if (withCoords.length > 0) {
+        const bounds = L.latLngBounds(withCoords.map(l => [l.latitude as number, l.longitude as number]))
+        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13 })
+      }
+    })()
+  }, [allListings])
+
+  function handleViewToggle(v: MapView) {
+    setMapType(v)
+    if (mapRef.current) {
+      ;(mapRef.current as any)._applyTiles(v)
+    }
+  }
+
   const withCoords = allListings.filter(l => l.latitude && l.longitude)
 
   return (
     <div className={`relative w-full px-4 ${className}`}>
-      <div className="relative rounded-2xl overflow-hidden border border-gray-100 shadow-sm"
-           style={{ height: '70vh', minHeight: 400 }}>
-
-        <MapProvider>
-          <Map
-            defaultCenter={DAR_CENTER}
-            defaultZoom={11}
-            mapTypeId={mapType}
-            gestureHandling="greedy"
-            disableDefaultUI={false}
-            mapId={GOOGLE_MAP_ID}
-            style={{ width: '100%', height: '100%' }}
-          >
-            <MapContent listings={allListings} />
-          </Map>
-        </MapProvider>
+      <div
+        className="relative rounded-2xl overflow-hidden border border-gray-100 shadow-sm"
+        style={{ height: '70vh', minHeight: 400 }}
+      >
+        <div ref={containerRef} className="w-full h-full" />
 
         {/* Count badge */}
         {withCoords.length > 0 && (
-          <div className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur-sm
+          <div className="absolute top-3 left-3 z-[999] bg-white/90 backdrop-blur-sm
                           px-3 py-1.5 rounded-full shadow-md text-xs font-semibold text-gray-700
-                          flex items-center gap-1.5">
+                          flex items-center gap-1.5 pointer-events-none">
             <span className="w-2 h-2 bg-primary-500 rounded-full" />
             {loadingAll ? 'Inapakia...' : `${withCoords.length} listings`}
           </div>
         )}
 
         {/* Map type toggle */}
-        <div className="absolute top-3 right-3 z-10 flex rounded-lg overflow-hidden shadow border border-gray-200">
+        <div className="absolute top-3 right-3 z-[999] flex rounded-lg overflow-hidden shadow border border-gray-200">
           <button
             type="button"
-            onClick={() => setMapType('hybrid')}
+            onClick={() => handleViewToggle('satellite')}
             className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-              mapType === 'hybrid'
-                ? 'bg-gray-900 text-white'
-                : 'bg-white/90 text-gray-600 hover:bg-gray-100'
+              mapType === 'satellite' ? 'bg-gray-900 text-white' : 'bg-white/90 text-gray-600 hover:bg-gray-100'
             }`}
           >
             Setilaiti
           </button>
           <button
             type="button"
-            onClick={() => setMapType('roadmap')}
+            onClick={() => handleViewToggle('street')}
             className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-              mapType === 'roadmap'
-                ? 'bg-gray-900 text-white'
-                : 'bg-white/90 text-gray-600 hover:bg-gray-100'
+              mapType === 'street' ? 'bg-gray-900 text-white' : 'bg-white/90 text-gray-600 hover:bg-gray-100'
             }`}
           >
             Ramani
           </button>
         </div>
 
-        {/* Hint badge */}
+        {/* Tap hint */}
         {withCoords.length > 0 && (
-          <div className="absolute bottom-3 left-3 right-3 z-10 flex justify-center pointer-events-none">
+          <div className="absolute bottom-3 left-3 right-3 z-[999] flex justify-center pointer-events-none">
             <div className="bg-black/50 text-white text-xs px-3 py-1.5 rounded-full">
               Bonyeza bei kwenye ramani kuona maelezo
             </div>
           </div>
         )}
 
-        {/* Count badge — show hidden count when some listings lack coordinates */}
+        {/* Some without coords notice */}
         {!loadingAll && withCoords.length > 0 && withCoords.length < allListings.length && (
-          <div className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-sm
-                          px-3 py-1.5 rounded-full shadow-md text-xs text-gray-500">
+          <div className="absolute top-3 right-[140px] z-[999] bg-white/90 backdrop-blur-sm
+                          px-3 py-1.5 rounded-full shadow-md text-xs text-gray-500 pointer-events-none">
             {allListings.length - withCoords.length} bila mahali
           </div>
         )}
 
         {/* Empty state */}
         {!loadingAll && withCoords.length === 0 && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center
-                          bg-gray-50 z-10 pointer-events-none">
-            <div className="text-5xl mb-3"><i className="ti ti-map text-5xl text-gray-400" aria-hidden="true" /></div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-[999] pointer-events-none">
+            <i className="ti ti-map text-5xl text-gray-400 mb-3" aria-hidden="true" />
             <p className="text-sm font-semibold text-gray-600 mb-1">
               Ramani hazionyeshi listings bado
             </p>
             <p className="text-xs text-gray-400 text-center px-8">
               {allListings.length > 0
-                ? `Listings ${allListings.length} zipo lakini hazina coordinates. Madalali waweke mahali kwenye fomu.`
+                ? `Listings ${allListings.length} zipo lakini hazina coordinates.`
                 : 'Hakuna listings kwa sasa. Rudi baadaye.'}
             </p>
           </div>

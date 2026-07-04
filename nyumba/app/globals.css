@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import 'leaflet/dist/leaflet.css';
 @import '@tabler/icons-webfont/dist/tabler-icons.min.css';
 
 @layer base {
