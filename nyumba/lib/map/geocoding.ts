@@ -24,7 +24,24 @@ export interface AutocompleteResult {
   region?: string
 }
 
-function parseFeature(f: any, overrideLat?: number, overrideLng?: number): GeocodeResult {
+// Minimal type for Geoapify GeoJSON feature properties we actually use
+type GeoProps = {
+  formatted?: string
+  city?: string
+  county?: string
+  district?: string
+  state?: string
+  country?: string
+  place_id?: string
+  address_line1?: string
+}
+
+type GeoFeature = {
+  geometry: { coordinates: [number, number] }
+  properties: GeoProps
+}
+
+function parseFeature(f: GeoFeature, overrideLat?: number, overrideLng?: number): GeocodeResult {
   const p = f.properties
   const [lng, lat] = f.geometry.coordinates
   return {
@@ -44,7 +61,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<GeocodeR
   try {
     const url = `${BASE}/reverse?lat=${lat}&lon=${lng}&lang=en&apiKey=${key}`
     const res = await fetch(url)
-    const data = await res.json()
+    const data = (await res.json()) as { features?: GeoFeature[] }
     if (!data.features?.length) return null
     return parseFeature(data.features[0], lat, lng)
   } catch {
@@ -56,15 +73,9 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult | n
   const key = apiKey()
   if (!key) return null
   try {
-    const params = new URLSearchParams({
-      text: address,
-      filter: 'countrycode:tz',
-      lang: 'en',
-      limit: '1',
-      apiKey: key,
-    })
+    const params = new URLSearchParams({ text: address, filter: 'countrycode:tz', lang: 'en', limit: '1', apiKey: key })
     const res = await fetch(`${BASE}/search?${params}`)
-    const data = await res.json()
+    const data = (await res.json()) as { features?: GeoFeature[] }
     if (!data.features?.length) return null
     return parseFeature(data.features[0])
   } catch {
@@ -88,8 +99,8 @@ export async function autocompleteAddress(
       apiKey: key,
     })
     const res = await fetch(`${BASE}/autocomplete?${params}`, { signal })
-    const data = await res.json()
-    return (data.features ?? []).map((f: any): AutocompleteResult => ({
+    const data = (await res.json()) as { features?: GeoFeature[] }
+    return (data.features ?? []).map((f): AutocompleteResult => ({
       placeId: f.properties.place_id ?? '',
       displayName: f.properties.formatted ?? '',
       shortName: f.properties.address_line1 ?? f.properties.city ?? f.properties.formatted ?? '',
@@ -99,8 +110,8 @@ export async function autocompleteAddress(
       district: f.properties.county,
       region: f.properties.state,
     }))
-  } catch (err: any) {
-    if (err?.name === 'AbortError') return []
+  } catch (err) {
+    if ((err as { name?: string }).name === 'AbortError') return []
     return []
   }
 }
