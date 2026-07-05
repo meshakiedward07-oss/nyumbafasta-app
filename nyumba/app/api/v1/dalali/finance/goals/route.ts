@@ -21,19 +21,45 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient()
 
-  // Upsert — one goal per month per dalali
-  const { data, error } = await admin
+  const parsedMonth = parseInt(String(month))
+  const parsedYear  = parseInt(String(year))
+
+  // Check if goal already exists — update only title/target_amount to preserve current_amount
+  const { data: existing } = await admin
     .from('dalali_goals')
-    .upsert({
-      dalali_id:     user.id,
-      title,
-      target_amount: parseInt(String(target_amount)),
-      month:         parseInt(String(month)),
-      year:          parseInt(String(year)),
-      current_amount: 0,
-    }, { onConflict: 'dalali_id,month,year' })
-    .select()
-    .single()
+    .select('id')
+    .eq('dalali_id', user.id)
+    .eq('month', parsedMonth)
+    .eq('year', parsedYear)
+    .maybeSingle()
+
+  let data, error
+
+  if (existing) {
+    const result = await admin
+      .from('dalali_goals')
+      .update({ title, target_amount: parseInt(String(target_amount)) })
+      .eq('id', existing.id)
+      .select()
+      .single()
+    data  = result.data
+    error = result.error
+  } else {
+    const result = await admin
+      .from('dalali_goals')
+      .insert({
+        dalali_id:      user.id,
+        title,
+        target_amount:  parseInt(String(target_amount)),
+        month:          parsedMonth,
+        year:           parsedYear,
+        current_amount: 0,
+      })
+      .select()
+      .single()
+    data  = result.data
+    error = result.error
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true, goal: data })

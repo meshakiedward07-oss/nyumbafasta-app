@@ -61,9 +61,24 @@ export async function PATCH(req: NextRequest) {
   if (!body?.id) return NextResponse.json({ error: 'id inahitajika' }, { status: 400 })
 
   const admin = createAdminClient()
+
+  // Fetch existing to determine if paid_amount >= expected_amount
+  const { data: existing } = await admin
+    .from('dalali_commissions')
+    .select('expected_amount')
+    .eq('id', body.id)
+    .eq('dalali_id', user.id)
+    .maybeSingle()
+
   const update: Record<string, unknown> = {}
-  if (body.paid_amount !== undefined) update.paid_amount = parseInt(String(body.paid_amount))
-  if (body.notes       !== undefined) update.notes       = body.notes
+  if (body.paid_amount !== undefined) {
+    const paidAmount = parseInt(String(body.paid_amount))
+    update.paid_amount = paidAmount
+    if (existing && paidAmount >= existing.expected_amount) {
+      update.status = 'paid'
+    }
+  }
+  if (body.notes !== undefined) update.notes = body.notes
 
   const { data, error } = await admin
     .from('dalali_commissions')

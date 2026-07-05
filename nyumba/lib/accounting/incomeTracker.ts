@@ -70,9 +70,8 @@ export async function recordIncomeFromSubscription(subscriptionId: string): Prom
     return
   }
 
-  // Fallback: derive amount from plan if amount_paid is null
   const PLAN_PRICES: Record<string, number> = { basic: 10_000, premium: 25_000, enterprise: 50_000 }
-  const amount     = Number(sub.amount_paid) || PLAN_PRICES[sub.plan] || 10_000
+  const amount     = sub.amount_paid != null ? Number(sub.amount_paid) : (PLAN_PRICES[sub.plan] ?? 10_000)
   const fee        = amount * AZAMPAY_FEE_PERCENT
   const txDate     = new Date(sub.created_at)
   const planLabel  = sub.plan === 'premium' ? 'Premium' : sub.plan === 'enterprise' ? 'Enterprise' : 'Basic'

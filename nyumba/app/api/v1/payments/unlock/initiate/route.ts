@@ -78,6 +78,9 @@ export async function POST(req: NextRequest) {
 
     // ── Dev / mock mode: complete immediately for ALL providers ──
     if (IS_MOCK) {
+      const mockExpiresAt = new Date()
+      mockExpiresAt.setFullYear(mockExpiresAt.getFullYear() + 1)
+
       const { data: unlock, error: insertError } = await admin
         .from('contact_unlocks')
         .insert({
@@ -88,6 +91,7 @@ export async function POST(req: NextRequest) {
           payment_method: provider,
           payment_ref,
           status:         'completed',
+          expires_at:     mockExpiresAt.toISOString(),
         })
         .select('id')
         .single()
@@ -154,6 +158,9 @@ export async function POST(req: NextRequest) {
     const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
     const callbackUrl   = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/webhook')
 
+    const expiresAt = new Date()
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1)
+
     const { data: unlock, error: insertError } = await admin
       .from('contact_unlocks')
       .insert({
@@ -164,6 +171,7 @@ export async function POST(req: NextRequest) {
         payment_method: provider,
         payment_ref,
         status:         'pending',
+        expires_at:     expiresAt.toISOString(),
       })
       .select('id')
       .single()

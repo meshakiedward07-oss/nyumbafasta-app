@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    const newStatus = succeeded ? 'active' : 'cancelled'
+    const newStatus = succeeded ? 'active' : 'failed'
     console.log('[Sub Webhook] Updating subscription status to:', newStatus)
 
     await admin
