@@ -130,7 +130,9 @@ export default function WhatsAppPanel() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'chat' | 'controls'>('chat')
 
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const bottomRef    = useRef<HTMLDivElement>(null)
+  const messagesRef  = useRef<HTMLDivElement>(null)
+  const atBottomRef  = useRef(true)
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -167,16 +169,19 @@ export default function WhatsAppPanel() {
 
   useEffect(() => {
     if (!selected) return
+    atBottomRef.current = true  // new conversation — start scrolled to bottom
     fetchMessages(selected.phone_number)
     fetchInstructions(selected.phone_number)
   }, [selected, fetchMessages, fetchInstructions])
 
-  // Scroll to bottom when messages change
+  // Auto-scroll only if admin is already near the bottom (within 120px)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (atBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages])
 
-  // ── Real-time subscriptions ────────────────────────────────────────────────
+  // ── Real-time subscriptions + polling fallback ─────────────────────────────
 
   useEffect(() => {
     const supabase = createClient()
@@ -184,19 +189,24 @@ export default function WhatsAppPanel() {
 
     let sessionChannel: ReturnType<typeof supabase.channel> | null = null
     let msgChannel: ReturnType<typeof supabase.channel> | null = null
+    let realtimeOk = false
 
     try {
       sessionChannel = supabase
         .channel(`wa-sessions-${suffix}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_sessions' }, () => {
+          realtimeOk = true
           fetchSessions()
           if (selected) fetchMessages(selected.phone_number)
         })
-        .subscribe()
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') realtimeOk = true
+        })
 
       msgChannel = supabase
         .channel(`wa-messages-${suffix}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' }, (payload) => {
+          realtimeOk = true
           const newMsg = payload.new as WAMessage
           if (newMsg.phone_number === selected?.phone_number) {
             setMessages(prev => [...prev, newMsg])
@@ -205,10 +215,19 @@ export default function WhatsAppPanel() {
         })
         .subscribe()
     } catch {
-      // realtime not available or table missing — polling fallback is fine
+      // realtime not available — polling fallback below covers this
     }
 
+    // Polling fallback: refresh every 30s in case realtime is unavailable
+    const poll = setInterval(() => {
+      if (!realtimeOk) {
+        fetchSessions()
+        if (selected) fetchMessages(selected.phone_number)
+      }
+    }, 30_000)
+
     return () => {
+      clearInterval(poll)
       if (sessionChannel) supabase.removeChannel(sessionChannel)
       if (msgChannel)     supabase.removeChannel(msgChannel)
     }
@@ -286,7 +305,8 @@ export default function WhatsAppPanel() {
   const filtered = sessions.filter(s => {
     if (search) {
       const q = search.toLowerCase()
-      return s.phone_number.includes(search) || (s.escalation_reason ?? '').toLowerCase().includes(q)
+      return s.phone_number.toLowerCase().includes(q) ||
+             (s.escalation_reason ?? '').toLowerCase().includes(q)
     }
     return true
   })
@@ -430,7 +450,15 @@ export default function WhatsAppPanel() {
             </div>
 
             {/* Messages */}
-            <div className={`flex-1 overflow-y-auto p-4 space-y-1 ${activeTab !== 'chat' ? 'hidden lg:block' : ''}`}>
+            <div
+              ref={messagesRef}
+              onScroll={() => {
+                const el = messagesRef.current
+                if (!el) return
+                atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120
+              }}
+              className={`flex-1 overflow-y-auto p-4 space-y-1 ${activeTab !== 'chat' ? 'hidden lg:block' : ''}`}
+            >
               {messages.length === 0 ? (
                 <div className="text-center text-xs text-gray-400 mt-8">
                   Hakuna ujumbe bado

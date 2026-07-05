@@ -149,14 +149,17 @@ export function splitMessage(text: string, maxLen = 4000): string[] {
   return parts
 }
 
-export async function sendMultipartMessage(to: string, text: string): Promise<void> {
+export async function sendMultipartMessage(to: string, text: string): Promise<boolean> {
   const parts = splitMessage(text)
+  let allOk = true
   for (let i = 0; i < parts.length; i++) {
-    await sendTextMessage(to, parts[i])
+    const ok = await sendTextMessage(to, parts[i])
+    if (!ok) allOk = false
     if (i < parts.length - 1) {
       await new Promise(r => setTimeout(r, 600))
     }
   }
+  return allOk
 }
 
 // ── WhatsApp markdown sanitiser ────────────────────────────────────────────

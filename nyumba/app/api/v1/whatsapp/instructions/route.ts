@@ -10,20 +10,40 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const phone = searchParams.get('phone')
 
-  let query = supabaseAdmin
-    .from('amina_instructions')
-    .select('id, instruction, scope, phone_number, active, created_at')
-    .eq('active', true)
-    .order('created_at', { ascending: false })
+  // Two separate parameterised queries instead of raw string interpolation in .or()
+  // which was an injection surface when phone came from user input.
+  let rows: Record<string, unknown>[] = []
 
   if (phone) {
-    query = query.or(`scope.eq.global,and(scope.eq.phone_specific,phone_number.eq.${phone})`)
+    const [globalRes, specificRes] = await Promise.all([
+      supabaseAdmin
+        .from('amina_instructions')
+        .select('id, instruction, scope, phone_number, active, created_at')
+        .eq('active', true)
+        .eq('scope', 'global')
+        .order('created_at', { ascending: false }),
+      supabaseAdmin
+        .from('amina_instructions')
+        .select('id, instruction, scope, phone_number, active, created_at')
+        .eq('active', true)
+        .eq('scope', 'phone_specific')
+        .eq('phone_number', phone)
+        .order('created_at', { ascending: false }),
+    ])
+    if (globalRes.error)   return NextResponse.json({ error: globalRes.error.message },   { status: 500 })
+    if (specificRes.error) return NextResponse.json({ error: specificRes.error.message }, { status: 500 })
+    rows = [...(globalRes.data ?? []), ...(specificRes.data ?? [])] as Record<string, unknown>[]
+  } else {
+    const { data, error } = await supabaseAdmin
+      .from('amina_instructions')
+      .select('id, instruction, scope, phone_number, active, created_at')
+      .eq('active', true)
+      .order('created_at', { ascending: false })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    rows = (data ?? []) as Record<string, unknown>[]
   }
 
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json({ instructions: data ?? [] })
+  return NextResponse.json({ instructions: rows })
 }
 
 // POST /api/v1/whatsapp/instructions — add an instruction

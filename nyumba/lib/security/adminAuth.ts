@@ -91,3 +91,34 @@ export async function requireStaffAuth(): Promise<AuthResult> {
 
   return { ok: true, role: profile?.role ?? 'staff' }
 }
+
+/**
+ * Allows admin OR staff with whatsapp_support permission.
+ * Used by all WhatsApp session action routes (takeover, send, handback, resolve).
+ */
+export async function requireWhatsAppSupportUser(): Promise<(AdminUser & { role: string }) | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data } = await supabase
+    .from('users')
+    .select('role, full_name, staff_active')
+    .eq('id', user.id)
+    .single()
+
+  if (!['admin', 'staff'].includes(data?.role ?? '')) return null
+
+  if (data?.role === 'staff') {
+    if (data?.staff_active === false) return null
+    const { hasPermission } = await import('@/lib/staff/checkPermission')
+    const allowed = await hasPermission(user.id, 'whatsapp_support')
+    if (!allowed) return null
+  }
+
+  return {
+    id: user.id,
+    full_name: (data?.full_name as string | null) ?? null,
+    role: data?.role as string,
+  }
+}

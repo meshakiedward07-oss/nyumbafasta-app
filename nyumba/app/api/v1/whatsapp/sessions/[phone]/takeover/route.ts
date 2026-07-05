@@ -1,28 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { updateWASession, saveWAMessage, getOrCreateWASession } from '@/lib/whatsapp/sessionManager'
-import { hasPermission, logStaffActivity } from '@/lib/staff/checkPermission'
-
-async function getAuthorisedUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase.from('users').select('role, staff_active, full_name').eq('id', user.id).single()
-  if (!['admin', 'staff'].includes(data?.role ?? '')) return null
-  if (data?.role === 'staff') {
-    if (data?.staff_active === false) return null
-    const allowed = await hasPermission(user.id, 'whatsapp_support')
-    if (!allowed) return null
-  }
-  return { ...user, full_name: data?.full_name as string, role: data?.role as string }
-}
+import { requireWhatsAppSupportUser } from '@/lib/security/adminAuth'
+import { logStaffActivity } from '@/lib/staff/checkPermission'
 
 // POST /api/v1/whatsapp/sessions/[phone]/takeover
 export async function POST(
   _req: NextRequest,
   { params }: { params: { phone: string } },
 ) {
-  const actor = await getAuthorisedUser()
+  const actor = await requireWhatsAppSupportUser()
   if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const phone = decodeURIComponent(params.phone)
@@ -40,7 +26,6 @@ export async function POST(
     `${actor.full_name ?? 'Staff'} amechukua mazungumzo haya.`,
   )
 
-  // Log activity for accountability
   logStaffActivity({
     staffId:      actor.id,
     actionType:   'whatsapp_takeover',

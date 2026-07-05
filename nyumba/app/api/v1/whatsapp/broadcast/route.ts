@@ -84,6 +84,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Hakuna wapokeaji walioonekana' }, { status: 400 })
   }
 
+  // Safety cap: 200ms delay × 200 recipients = 40s (within maxDuration=60 budget)
+  if (recipients.length > 200) {
+    return NextResponse.json(
+      { error: `Wapokeaji ni wengi sana (${recipients.length}). Kiwango cha juu ni 200 kwa broadcast moja ili kuepuka timeout. Tumia vikundi vidogo.` },
+      { status: 400 },
+    )
+  }
+
   // ── Create broadcast record ───────────────────────────────────────────────
 
   const { data: broadcast, error: bErr } = await supabaseAdmin
@@ -133,8 +141,8 @@ export async function POST(req: NextRequest) {
       failedCount++
     }
 
-    // Rate limit: 500ms between sends to avoid Meta throttling
-    await new Promise((r) => setTimeout(r, 500))
+    // Rate limit: 200ms between sends (Meta allows ~5 msg/s; 200ms = ~5/s stays safe)
+    await new Promise((r) => setTimeout(r, 200))
   }
 
   // ── Update broadcast record ───────────────────────────────────────────────

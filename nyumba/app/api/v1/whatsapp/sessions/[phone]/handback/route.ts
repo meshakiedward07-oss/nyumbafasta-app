@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { updateWASession, saveWAMessage } from '@/lib/whatsapp/sessionManager'
-import { requireAdminUser } from '@/lib/security/adminAuth'
+import { requireWhatsAppSupportUser } from '@/lib/security/adminAuth'
 
 // POST /api/v1/whatsapp/sessions/[phone]/handback
 // Body: { note?: string }   — optional instruction for Amina
@@ -9,7 +9,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { phone: string } },
 ) {
-  const admin = await requireAdminUser()
+  const admin = await requireWhatsAppSupportUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const phone = decodeURIComponent(params.phone)
