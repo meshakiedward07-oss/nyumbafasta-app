@@ -30,6 +30,15 @@ function fmtPrice(n: number): string {
   return `${n}`
 }
 
+function escHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export default function MapView({ listings, className = '' }: Props) {
   const containerRef  = useRef<HTMLDivElement>(null)
   const mapRef        = useRef<LMap | null>(null)
@@ -156,20 +165,25 @@ export default function MapView({ listings, className = '' }: Props) {
 
         const marker = L.marker([lat, lng], { icon }).addTo(map)
 
-        const imgHtml = listing.images?.[0]
-          ? `<img src="${listing.images[0]}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;display:block" />`
+        const safeImg = listing.images?.[0] ? escHtml(listing.images[0]) : ''
+        const imgHtml = safeImg
+          ? `<img src="${safeImg}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;display:block" />`
           : `<div style="height:70px;display:flex;align-items:center;justify-content:center;font-size:28px;background:#f3f4f6;border-radius:8px;margin-bottom:8px">🏠</div>`
+
+        const safeTitle = escHtml(listing.title || `${listing.type} – ${listing.district}`)
+        const safeDistrict = escHtml(listing.district ?? '')
+        const safeRegion   = escHtml(listing.region ?? '')
 
         marker.bindPopup(
           `<div style="font-family:system-ui,sans-serif;padding:2px 2px 0;min-width:180px">
             ${imgHtml}
             <p style="font-weight:700;margin:0 0 3px;line-height:1.3;color:#111827;font-size:13px">
-              ${listing.title || `${listing.type} – ${listing.district}`}
+              ${safeTitle}
             </p>
             <p style="color:#1D9E75;font-weight:700;margin:0 0 2px;font-size:13px">
               Tsh ${price}<span style="color:#6b7280;font-weight:400;font-size:11px">/mwezi</span>
             </p>
-            <p style="color:#6b7280;font-size:11px;margin:0 0 8px">${listing.district}, ${listing.region}</p>
+            <p style="color:#6b7280;font-size:11px;margin:0 0 8px">${safeDistrict}, ${safeRegion}</p>
             <a href="/listings/${listing.id}"
                style="display:block;background:#1D9E75;color:#fff;text-align:center;
                       padding:7px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700">
@@ -214,13 +228,13 @@ export default function MapView({ listings, className = '' }: Props) {
 
         <div className="absolute top-3 right-3 z-[999] flex rounded-lg overflow-hidden shadow border border-gray-200">
           <button type="button" onClick={() => handleViewToggle('satellite')}
-            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors min-h-[44px] ${
               mapType === 'satellite' ? 'bg-gray-900 text-white' : 'bg-white/90 text-gray-600 hover:bg-gray-100'
             }`}>
             Setilaiti
           </button>
           <button type="button" onClick={() => handleViewToggle('street')}
-            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+            className={`px-2.5 py-1.5 text-xs font-semibold transition-colors min-h-[44px] ${
               mapType === 'street' ? 'bg-gray-900 text-white' : 'bg-white/90 text-gray-600 hover:bg-gray-100'
             }`}>
             Ramani

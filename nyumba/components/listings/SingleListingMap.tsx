@@ -21,7 +21,8 @@ export default function SingleListingMap({ latitude, longitude, district, region
   const overlayRef    = useRef<TileLayer | null>(null)
   const markerRef     = useRef<Marker | null>(null)
   const applyViewRef  = useRef<((v: View) => void) | null>(null)
-  const [view, setView] = useState<View>('satellite')
+  const [view, setView]       = useState<View>('satellite')
+  const [mapReady, setMapReady] = useState(false)
 
   const gmUrl = `https://www.google.com/maps?q=${latitude},${longitude}`
 
@@ -50,6 +51,7 @@ export default function SingleListingMap({ latitude, longitude, district, region
       })
 
       mapRef.current = map
+      setMapReady(true)
 
       const applyView = (v: View) => {
         if (tileRef.current)   map.removeLayer(tileRef.current)
@@ -119,15 +121,21 @@ export default function SingleListingMap({ latitude, longitude, district, region
       >
         <div ref={containerRef} className="w-full h-full" />
 
+        {!mapReady && (
+          <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center z-[1000]">
+            <i className="ti ti-map text-3xl text-gray-300" aria-hidden="true" />
+          </div>
+        )}
+
         <div className="absolute top-2 right-2 z-[999] flex rounded-lg overflow-hidden shadow border border-gray-200">
           <button type="button" onClick={() => handleViewToggle('satellite')}
-            className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
+            className={`px-2.5 py-1 text-xs font-semibold transition-colors min-h-[44px] ${
               view === 'satellite' ? 'bg-gray-900 text-white' : 'bg-white/90 text-gray-600 hover:bg-gray-100'
             }`}>
             Setilaiti
           </button>
           <button type="button" onClick={() => handleViewToggle('street')}
-            className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
+            className={`px-2.5 py-1 text-xs font-semibold transition-colors min-h-[44px] ${
               view === 'street' ? 'bg-gray-900 text-white' : 'bg-white/90 text-gray-600 hover:bg-gray-100'
             }`}>
             Ramani

@@ -345,6 +345,7 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
             onChange={e => handleSearchInput(e.target.value)}
             onFocus={() => { if (suggestions.length > 0) setShowSugg(true) }}
             placeholder="Andika mtaa, wilaya au mji... (e.g. Mbezi Beach)"
+            aria-label="Tafuta mtaa au wilaya"
             className="flex-1 py-3 text-sm text-gray-900 outline-none bg-transparent"
             autoComplete="off"
           />
@@ -375,13 +376,13 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
 
         <div className="absolute top-2 right-2 z-[999] flex rounded-lg overflow-hidden shadow border border-gray-200">
           <button type="button" onClick={() => handleViewToggle('satellite')}
-            className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
+            className={`px-2.5 py-1 text-xs font-semibold transition-colors min-h-[44px] ${
               mapView === 'satellite' ? 'bg-gray-900 text-white' : 'bg-white/90 text-gray-600 hover:bg-gray-100'
             }`}>
             Setilaiti
           </button>
           <button type="button" onClick={() => handleViewToggle('street')}
-            className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
+            className={`px-2.5 py-1 text-xs font-semibold transition-colors min-h-[44px] ${
               mapView === 'street' ? 'bg-gray-900 text-white' : 'bg-white/90 text-gray-600 hover:bg-gray-100'
             }`}>
             Ramani
