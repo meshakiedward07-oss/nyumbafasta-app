@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 
 type CarouselPost = {
   id:            string
@@ -148,8 +149,7 @@ export default function CarouselTab() {
                     key={i}
                     className="relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-gray-200"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                    <Image fill src={img} alt={`Slide ${i + 1}`} className="object-cover" sizes="64px" />
                     <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] px-1 rounded-tl">
                       {i + 1}
                     </span>
@@ -219,9 +219,8 @@ export default function CarouselTab() {
                   {c.media_urls && c.media_urls.length > 0 && (
                     <div className="flex gap-1 flex-shrink-0">
                       {c.media_urls.slice(0, 3).map((url, i) => (
-                        <div key={i} className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        <div key={i} className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100">
+                          <Image fill src={url} alt="" className="object-cover" sizes="40px" />
                         </div>
                       ))}
                       {c.media_urls.length > 3 && (

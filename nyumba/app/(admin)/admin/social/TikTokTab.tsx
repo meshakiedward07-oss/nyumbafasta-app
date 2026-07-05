@@ -1,7 +1,6 @@
 'use client'
-/* eslint-disable @next/next/no-img-element */
-
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { VideoPlayer } from '@/components/listings/VideoPlayer'
 import { PlatformLogo } from '@/components/shared/PlatformLogo'
 
@@ -154,7 +153,7 @@ function ListingPicker({
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b last:border-b-0"
               >
                 {l.images?.[0] && (
-                  <img src={l.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                  <Image src={l.images[0]} alt="" width={48} height={48} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{l.title}</p>
@@ -182,7 +181,7 @@ function PostRow({ post }: { post: TikTokPost }) {
       {/* Thumbnail */}
       <div className="w-16 h-16 bg-gray-900 rounded-xl overflow-hidden flex-shrink-0 relative">
         {post.listings?.images?.[0] ? (
-          <img src={post.listings.images[0]} alt="" className="w-full h-full object-cover opacity-80" />
+          <Image fill src={post.listings.images[0]} alt="" className="object-cover opacity-80" sizes="64px" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white text-xl"><i className="ti ti-movie" aria-hidden="true" /></div>
         )}
@@ -374,7 +373,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
           {connection ? (
             <div className="flex items-center gap-3">
               {connection.avatar_url && (
-                <img src={connection.avatar_url} alt={connection.display_name}
+                <Image src={connection.avatar_url} alt={connection.display_name} width={40} height={40} unoptimized
                   className="w-10 h-10 rounded-full border-2 border-gray-700 object-cover" />
               )}
               <button

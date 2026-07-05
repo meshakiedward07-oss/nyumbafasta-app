@@ -16,6 +16,7 @@ import NeighborhoodInfo from '@/components/listings/NeighborhoodInfo'
 import { VideoPlayer } from '@/components/listings/VideoPlayer'
 import { getFullLocation, getShortLocation } from '@/lib/listings/formatLocation'
 import { BOOSTED_LABEL, STATUS_LABELS } from '@/lib/config/listing-status'
+import { buildContactWhatsAppMessage } from '@/lib/utils/whatsappTemplates'
 
 const SimilarListings = dynamic(
   () => import('@/components/listings/SimilarListings'),
@@ -149,9 +150,14 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const dalaliDisplayName = listing.dalali?.full_name ?? 'Dalali'
   const displayTitle = listing.title || `${typeLabel[listing.type] || listing.type} – ${listing.district}`
   const locationDisplay = getFullLocation(listing)
-  const bedroomLine = listing.bedrooms ? `\n🛏️ Vyumba ${listing.bedrooms}` : ''
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
-  const waMessage = `Habari ${dalaliDisplayName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${displayTitle}*\n📍 ${locationDisplay}${bedroomLine}\n💰 TZS ${listing.price_monthly.toLocaleString()}/mwezi\n\n🔗 ${appUrl}/listings/${listing.id}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
+  const waMessage = buildContactWhatsAppMessage({
+    dalaliName: dalaliDisplayName,
+    listingTitle: displayTitle,
+    listingLocation: locationDisplay,
+    listingPrice: listing.price_monthly,
+    listingId: listing.id,
+    bedrooms: listing.bedrooms,
+  })
   const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
 
   const isTaken = listing.status === 'taken'

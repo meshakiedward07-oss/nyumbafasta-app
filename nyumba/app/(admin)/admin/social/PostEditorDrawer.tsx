@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 
 // ── Preset tracks from Supabase Storage bucket "music" ───────────────────────
 // Upload MP3 files there to enable them: upbeat.mp3, chill.mp3, bongo.mp3, corporate.mp3
@@ -340,11 +341,13 @@ export default function PostEditorDrawer({ listing, defaultPlatform, onClose, on
         {mediaType === 'image' && (
           <div className="px-4 space-y-4">
             {images[selImage] && (
-              <div className="w-full aspect-square rounded-2xl overflow-hidden bg-gray-100">
-                <img
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gray-100">
+                <Image
+                  fill
                   src={buildPreviewImage()}
                   alt="preview"
-                  className="w-full h-full object-cover"
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, 500px"
                   style={{ filter: `brightness(${1 + brightness/100}) contrast(${1 + contrast/100}) saturate(${1 + saturation/100})` }}
                 />
               </div>
@@ -354,9 +357,9 @@ export default function PostEditorDrawer({ listing, defaultPlatform, onClose, on
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {images.map((img, i) => (
                   <button key={i} onClick={() => setSelImage(i)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${selImage === i ? 'border-primary-500' : 'border-transparent opacity-60'}`}
+                    className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${selImage === i ? 'border-primary-500' : 'border-transparent opacity-60'}`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <Image fill src={img} alt="" className="object-cover" sizes="64px" />
                   </button>
                 ))}
               </div>

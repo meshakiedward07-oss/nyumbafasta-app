@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
 import { detectProvider } from '@/lib/payments/azampay'
 import type { PaymentMethod as PaymentProvider } from '@/components/payments/PaymentMethodSelector'
+import { buildContactWhatsAppMessage } from '@/lib/utils/whatsappTemplates'
 
 // ── Provider config (keyed for quick lookup) ──────────────
 const PROVIDERS = Object.fromEntries(
@@ -81,9 +82,14 @@ export default function UnlockModal({
 
   // Derived only after payment confirmed — null until then
   const waPhone = contactPhone?.replace(/\D/g, '').replace(/^0/, '255') ?? null
-  const bedroomLine = listingBedrooms ? `\n🛏️ Vyumba ${listingBedrooms}` : ''
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
-  const waMessage = `Habari ${dalaliName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${listingTitle}*\n📍 ${listingLocation}${bedroomLine}\n💰 TZS ${listingPrice.toLocaleString()}/mwezi\n\n🔗 ${appUrl}/listings/${listingId}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
+  const waMessage = buildContactWhatsAppMessage({
+    dalaliName,
+    listingTitle,
+    listingLocation,
+    listingPrice,
+    listingId,
+    bedrooms: listingBedrooms,
+  })
   const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
 
   // ── Timeout fallback when contact fetch hangs after success ─
