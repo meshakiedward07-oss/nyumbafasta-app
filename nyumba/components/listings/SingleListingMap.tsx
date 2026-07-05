@@ -21,17 +21,20 @@ export default function SingleListingMap({ latitude, longitude, district, region
   const overlayRef    = useRef<TileLayer | null>(null)
   const markerRef     = useRef<Marker | null>(null)
   const applyViewRef  = useRef<((v: View) => void) | null>(null)
-  const [view, setView]       = useState<View>('satellite')
+  const [view, setView]         = useState<View>('satellite')
   const [mapReady, setMapReady] = useState(false)
 
+  // Google Maps deep-link — no API key required, just coords in the URL
   const gmUrl = `https://www.google.com/maps?q=${latitude},${longitude}`
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
+    let mounted = true
 
-    let map: LMap
     ;(async () => {
       const L = (await import('leaflet')).default
+      // Guard: component may have unmounted while import was in-flight
+      if (!mounted || !containerRef.current) return
 
       // @ts-expect-error Leaflet internal removed by webpack
       delete L.Icon.Default.prototype._getIconUrl
@@ -41,7 +44,7 @@ export default function SingleListingMap({ latitude, longitude, district, region
         shadowUrl:     `${ICON_BASE}/marker-shadow.png`,
       })
 
-      map = L.map(containerRef.current!, {
+      const map = L.map(containerRef.current, {
         center: [latitude, longitude],
         zoom: 16,
         zoomControl: false,
@@ -51,11 +54,12 @@ export default function SingleListingMap({ latitude, longitude, district, region
       })
 
       mapRef.current = map
-      setMapReady(true)
+      if (mounted) setMapReady(true)
 
       const applyView = (v: View) => {
-        if (tileRef.current)   map.removeLayer(tileRef.current)
-        if (overlayRef.current) map.removeLayer(overlayRef.current)
+        // Always remove + null both refs before adding new layers
+        if (tileRef.current)    { map.removeLayer(tileRef.current);    tileRef.current    = null }
+        if (overlayRef.current) { map.removeLayer(overlayRef.current); overlayRef.current = null }
 
         if (v === 'satellite') {
           tileRef.current = L.tileLayer(
@@ -71,6 +75,7 @@ export default function SingleListingMap({ latitude, longitude, district, region
             'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }
           ).addTo(map)
+          // overlayRef stays null in street mode
         }
       }
 
@@ -100,9 +105,15 @@ export default function SingleListingMap({ latitude, longitude, district, region
     })()
 
     return () => {
+      mounted = false
+      setMapReady(false)
+      // Null stale layer refs so re-init doesn't attempt removeLayer on a destroyed map
+      tileRef.current    = null
+      overlayRef.current = null
+      markerRef.current  = null
       if (mapRef.current) {
         mapRef.current.remove()
-        mapRef.current = null
+        mapRef.current     = null
         applyViewRef.current = null
       }
     }

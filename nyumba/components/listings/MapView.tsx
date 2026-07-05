@@ -46,10 +46,13 @@ export default function MapView({ listings, className = '' }: Props) {
   const overlayRef    = useRef<TileLayer | null>(null)
   const markersRef    = useRef<Marker[]>([])
   const applyTilesRef = useRef<((v: MapView) => void) | null>(null)
+  // Ref tracks the intended view so async init applies the right tiles
+  const mapTypeRef    = useRef<MapView>('satellite')
 
   const [allListings, setAllListings] = useState<MapListing[]>(listings)
   const [loadingAll,  setLoadingAll]  = useState(false)
   const [mapType,     setMapType]     = useState<MapView>('satellite')
+  const [mapReady,    setMapReady]    = useState(false)
 
   // Fetch all listings with coordinates on mount
   useEffect(() => {
@@ -74,9 +77,12 @@ export default function MapView({ listings, className = '' }: Props) {
   // Initialize Leaflet map once
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
+    let mounted = true
 
     ;(async () => {
       const L = (await import('leaflet')).default
+      // Guard: component may have unmounted while import was in-flight
+      if (!mounted || !containerRef.current) return
 
       // @ts-expect-error Leaflet internal removed by webpack
       delete L.Icon.Default.prototype._getIconUrl
@@ -86,7 +92,7 @@ export default function MapView({ listings, className = '' }: Props) {
         shadowUrl:     `${ICON_BASE}/marker-shadow.png`,
       })
 
-      const map = L.map(containerRef.current!, {
+      const map = L.map(containerRef.current, {
         center: [-6.7924, 39.2083],
         zoom: 11,
         zoomControl: true,
@@ -95,8 +101,9 @@ export default function MapView({ listings, className = '' }: Props) {
       mapRef.current = map
 
       const applyTiles = (v: MapView) => {
-        if (tileRef.current)    map.removeLayer(tileRef.current)
-        if (overlayRef.current) map.removeLayer(overlayRef.current)
+        // Always remove + null both refs before adding new layers
+        if (tileRef.current)    { map.removeLayer(tileRef.current);    tileRef.current    = null }
+        if (overlayRef.current) { map.removeLayer(overlayRef.current); overlayRef.current = null }
 
         if (v === 'satellite') {
           tileRef.current = L.tileLayer(
@@ -112,17 +119,23 @@ export default function MapView({ listings, className = '' }: Props) {
             'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }
           ).addTo(map)
+          // overlayRef stays null in street mode
         }
       }
 
       applyTilesRef.current = applyTiles
-      applyTiles('satellite')
+      // Apply whichever view the user already toggled during async load
+      applyTiles(mapTypeRef.current)
+      if (mounted) setMapReady(true)
     })()
 
     return () => {
+      mounted = false
+      tileRef.current    = null
+      overlayRef.current = null
       if (mapRef.current) {
         mapRef.current.remove()
-        mapRef.current = null
+        mapRef.current       = null
         applyTilesRef.current = null
       }
     }
@@ -131,10 +144,13 @@ export default function MapView({ listings, className = '' }: Props) {
   // Sync markers whenever allListings changes
   useEffect(() => {
     if (!mapRef.current) return
+    let mounted = true
 
     ;(async () => {
       const L = (await import('leaflet')).default
-      const map = mapRef.current!
+      // Re-check after await — map may have been destroyed between the null-check and now
+      if (!mounted || !mapRef.current) return
+      const map = mapRef.current
 
       markersRef.current.forEach(m => map.removeLayer(m))
       markersRef.current = []
@@ -165,12 +181,11 @@ export default function MapView({ listings, className = '' }: Props) {
 
         const marker = L.marker([lat, lng], { icon }).addTo(map)
 
-        const safeImg = listing.images?.[0] ? escHtml(listing.images[0]) : ''
-        const imgHtml = safeImg
+        const safeImg      = listing.images?.[0] ? escHtml(listing.images[0]) : ''
+        const imgHtml      = safeImg
           ? `<img src="${safeImg}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;display:block" />`
           : `<div style="height:70px;display:flex;align-items:center;justify-content:center;font-size:28px;background:#f3f4f6;border-radius:8px;margin-bottom:8px">🏠</div>`
-
-        const safeTitle = escHtml(listing.title || `${listing.type} – ${listing.district}`)
+        const safeTitle    = escHtml(listing.title || `${listing.type} – ${listing.district}`)
         const safeDistrict = escHtml(listing.district ?? '')
         const safeRegion   = escHtml(listing.region ?? '')
 
@@ -200,10 +215,13 @@ export default function MapView({ listings, className = '' }: Props) {
       const bounds = L.latLngBounds(withCoords.map(l => [l.latitude as number, l.longitude as number]))
       map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13 })
     })()
+
+    return () => { mounted = false }
   }, [allListings])
 
   function handleViewToggle(v: MapView) {
     setMapType(v)
+    mapTypeRef.current = v  // keep ref in sync for async-init path
     applyTilesRef.current?.(v)
   }
 
@@ -216,6 +234,12 @@ export default function MapView({ listings, className = '' }: Props) {
         style={{ height: '70vh', minHeight: 400 }}
       >
         <div ref={containerRef} className="w-full h-full" />
+
+        {!mapReady && (
+          <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center z-[1000]">
+            <i className="ti ti-map text-4xl text-gray-300" aria-hidden="true" />
+          </div>
+        )}
 
         {withCoords.length > 0 && (
           <div className="absolute top-3 left-3 z-[999] bg-white/90 backdrop-blur-sm

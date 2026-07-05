@@ -47,6 +47,8 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
   const overlayRef    = useRef<TileLayer | null>(null)
   const applyTilesRef = useRef<((v: ViewMode) => void) | null>(null)
   const abortRef      = useRef<AbortController | null>(null)
+  // Tracks whether the component is still mounted — prevents stale geocode callbacks
+  const mountedRef    = useRef(true)
 
   const [mapView,     setMapView]     = useState<ViewMode>('satellite')
   const [position,    setPosition]    = useState<{ lat: number; lng: number } | null>(
@@ -61,17 +63,28 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
   const [locating,    setLocating]    = useState(false)
   const [gpsError,    setGpsError]    = useState('')
 
+  // Cleanup: cancel any in-flight requests and mark unmounted
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      abortRef.current?.abort()
+    }
+  }, [])
+
   const handleCoordChange = useCallback(async (lat: number, lng: number) => {
     setReversing(true)
     setPosition({ lat, lng })
     try {
       const result = await reverseGeocode(lat, lng)
+      // Guard: don't update state if component unmounted during the async call
+      if (!mountedRef.current) return
       const addr = result?.displayName ?? `${lat.toFixed(6)}, ${lng.toFixed(6)}`
       setAddress(addr)
       setSearchQuery(addr)
       onLocationChange({ latitude: lat, longitude: lng, address_full: addr })
     } finally {
-      setReversing(false)
+      if (mountedRef.current) setReversing(false)
     }
   }, [onLocationChange])
 
@@ -89,9 +102,12 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
   // Initialize Leaflet map
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
+    let mounted = true
 
     ;(async () => {
       const L = (await import('leaflet')).default
+      // Guard: component may have unmounted while import was in-flight
+      if (!mounted || !containerRef.current) return
 
       // @ts-expect-error Leaflet internal removed by webpack
       delete L.Icon.Default.prototype._getIconUrl
@@ -105,7 +121,7 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
       const initLng  = initialLocation?.longitude ?? DAR_CENTER.lng
       const initZoom = initialLocation ? 17 : 12
 
-      const map = L.map(containerRef.current!, {
+      const map = L.map(containerRef.current, {
         center: [initLat, initLng],
         zoom: initZoom,
         zoomControl: true,
@@ -114,8 +130,9 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
       mapRef.current = map
 
       const applyTiles = (v: ViewMode) => {
-        if (tileRef.current)    map.removeLayer(tileRef.current)
-        if (overlayRef.current) map.removeLayer(overlayRef.current)
+        // Always remove + null both refs before adding new layers
+        if (tileRef.current)    { map.removeLayer(tileRef.current);    tileRef.current    = null }
+        if (overlayRef.current) { map.removeLayer(overlayRef.current); overlayRef.current = null }
 
         if (v === 'satellite') {
           tileRef.current = L.tileLayer(
@@ -131,6 +148,7 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
             'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }
           ).addTo(map)
+          // overlayRef stays null in street mode
         }
       }
 
@@ -179,10 +197,13 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
     })()
 
     return () => {
+      mounted = false
+      tileRef.current    = null
+      overlayRef.current = null
+      markerRef.current  = null
       if (mapRef.current) {
         mapRef.current.remove()
-        mapRef.current = null
-        markerRef.current = null
+        mapRef.current        = null
         applyTilesRef.current = null
       }
     }
@@ -199,12 +220,14 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
     }
 
     const L = (await import('leaflet')).default
+    if (!mountedRef.current || !mapRef.current) return
+
     const pinIcon = L.divIcon({
       className: '',
       html: PIN_HTML,
       iconSize: [36, 44], iconAnchor: [18, 44], popupAnchor: [0, -46],
     })
-    const marker = L.marker([lat, lng], { icon: pinIcon, draggable: true }).addTo(map)
+    const marker = L.marker([lat, lng], { icon: pinIcon, draggable: true }).addTo(mapRef.current)
     markerRef.current = marker
 
     marker.on('dragend', (e: LeafletEvent) => {
@@ -226,10 +249,11 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
     setSearching(true)
     try {
       const results = await autocompleteAddress(query, abortRef.current.signal)
+      if (!mountedRef.current) return
       setSuggestions(results)
       setShowSugg(results.length > 0)
     } finally {
-      setSearching(false)
+      if (mountedRef.current) setSearching(false)
     }
   }, [])
 
@@ -250,6 +274,7 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
     setGpsError('')
     navigator.geolocation.getCurrentPosition(
       async pos => {
+        if (!mountedRef.current) return
         setLocating(false)
         const lat = pos.coords.latitude
         const lng = pos.coords.longitude
@@ -263,6 +288,7 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
         setSearchQuery('')
       },
       err => {
+        if (!mountedRef.current) return
         setLocating(false)
         if (err.code === 1)      setGpsError('Ruhusu GPS kwenye simu yako kisha jaribu tena')
         else if (err.code === 2) setGpsError('GPS haiwezi kupata mahali. Jaribu tena')
