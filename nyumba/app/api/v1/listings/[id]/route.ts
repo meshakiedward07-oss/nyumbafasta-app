@@ -55,7 +55,6 @@ export async function PATCH(
                 .from('marketplace_listings')
                 .update({ status: 'sold', availability: 'OUT_OF_STOCK', updated_at: new Date().toISOString() })
                 .eq('listing_id', params.id)
-              console.log(`[Listing] Marketplace marked OUT_OF_STOCK for listing ${params.id}`)
             }
           } catch (err) {
             console.error('[Listing] Marketplace taken sync failed (non-fatal):', err)
@@ -151,7 +150,6 @@ export async function DELETE(
             .from('marketplace_listings')
             .update({ status: 'deleted', availability: 'OUT_OF_STOCK', updated_at: new Date().toISOString() })
             .eq('listing_id', params.id)
-          console.log(`[Listing] Marketplace item deleted for listing ${params.id}`)
         }
       } catch (err) {
         console.error('[Listing] Marketplace delete sync failed (non-fatal):', err)

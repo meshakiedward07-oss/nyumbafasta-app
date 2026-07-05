@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
 import type { PaymentMethod } from '@/components/payments/PaymentMethodSelector'
 
@@ -312,8 +313,7 @@ export default function BoostModal({
 
             <div className="flex items-center gap-2 mb-4">
               {providerInfo && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={providerInfo.iconSrc} alt={providerInfo.iconAlt} className="h-6 w-auto object-contain" />
+                <Image src={providerInfo.iconSrc} alt={providerInfo.iconAlt} width={48} height={24} className="h-6 w-auto object-contain" />
               )}
               <div>
                 <h3 className="font-bold text-base text-gray-900 flex items-center gap-1"><i className="ti ti-device-mobile" aria-hidden="true" />Nambari ya Simu</h3>

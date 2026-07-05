@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
@@ -11,8 +12,7 @@ interface Props {
 
 export default function NotificationBell({ className = '', asLink = true }: Props) {
   const [unread, setUnread] = useState(0)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const channelRef  = useRef<any>(null)
+  const channelRef = useRef<RealtimeChannel | null>(null)
 
   const fetchCount = useCallback(() => {
     fetch('/api/v1/notifications?count=true')
@@ -37,8 +37,7 @@ export default function NotificationBell({ className = '', asLink = true }: Prop
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ch = supabase.channel('notif-bell') as any
+      const ch = supabase.channel('notif-bell')
       ch.on(
         'postgres_changes',
         {

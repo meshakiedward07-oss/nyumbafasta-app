@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
 import { detectProvider } from '@/lib/payments/azampay'
@@ -81,7 +82,8 @@ export default function UnlockModal({
   // Derived only after payment confirmed — null until then
   const waPhone = contactPhone?.replace(/\D/g, '').replace(/^0/, '255') ?? null
   const bedroomLine = listingBedrooms ? `\n🛏️ Vyumba ${listingBedrooms}` : ''
-  const waMessage = `Habari ${dalaliName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${listingTitle}*\n📍 ${listingLocation}${bedroomLine}\n💰 TZS ${listingPrice.toLocaleString()}/mwezi\n\n🔗 https://nyumbafasta.co/listings/${listingId}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const waMessage = `Habari ${dalaliName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${listingTitle}*\n📍 ${listingLocation}${bedroomLine}\n💰 TZS ${listingPrice.toLocaleString()}/mwezi\n\n🔗 ${appUrl}/listings/${listingId}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
   const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
 
   // ── Timeout fallback when contact fetch hangs after success ─
@@ -305,8 +307,7 @@ export default function UnlockModal({
                 ←
               </button>
               <div className="flex items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={pInfo.iconSrc} alt={pInfo.iconAlt} className="h-5 w-auto object-contain" />
+                <Image src={pInfo.iconSrc} alt={pInfo.iconAlt} width={40} height={20} className="h-5 w-auto object-contain" />
                 <span className="text-sm font-semibold text-gray-800">{pInfo.name}</span>
                 <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{pInfo.badge}</span>
               </div>
@@ -320,7 +321,7 @@ export default function UnlockModal({
 
             <form onSubmit={handleMobilePay} className="space-y-4">
               <div>
-                <label className="text-xs text-gray-500 mb-1.5 block">
+                <label htmlFor="unlock-phone" className="text-xs text-gray-500 mb-1.5 block">
                   Nambari ya {pInfo.name}
                 </label>
                 <div className="flex gap-2">
@@ -328,6 +329,7 @@ export default function UnlockModal({
                     +255
                   </div>
                   <input
+                    id="unlock-phone"
                     type="tel"
                     inputMode="numeric"
                     required

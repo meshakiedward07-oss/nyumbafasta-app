@@ -101,8 +101,6 @@ export async function POST(req: NextRequest) {
 
     const callbackUrl = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/boost/webhook')
 
-    console.log('[Boost/initiate] Calling mobileCheckout — boost:', boostPayment.id, 'ref:', payment_ref)
-
     const result = await mobileCheckout({
       accountNumber,
       amount,
@@ -117,7 +115,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.message }, { status: 502 })
     }
 
-    console.log('[Boost/initiate] Payment initiated ✓ boost:', boostPayment.id, '→ waiting for webhook')
     return NextResponse.json({
       success:          true,
       boost_payment_id: boostPayment.id,

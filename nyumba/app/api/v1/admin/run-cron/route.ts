@@ -14,6 +14,11 @@ export async function POST(req: NextRequest) {
 
     const { cron = 'daily' } = await req.json().catch(() => ({ cron: 'daily' }))
 
+    const ALLOWED_CRONS = ['daily', 'hourly', 'weekly']
+    if (!ALLOWED_CRONS.includes(cron)) {
+      return NextResponse.json({ error: 'Invalid cron job name' }, { status: 400 })
+    }
+
     // Call the cron endpoint server-side with the secret
     const secret  = process.env.CRON_SECRET
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin

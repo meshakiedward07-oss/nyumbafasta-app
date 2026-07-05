@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -200,6 +201,7 @@ type Tab = 'all' | 'active' | 'expired'
 
 // ── Main component ────────────────────────────────────────
 export default function MyListingsClient({ listings: initial }: { listings: Listing[] }) {
+  const router = useRouter()
   const [listings, setListings] = useState(initial)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [dialog, setDialog] = useState<Dialog | null>(null)
@@ -251,7 +253,7 @@ export default function MyListingsClient({ listings: initial }: { listings: List
   }
 
   function refreshListings() {
-    window.location.reload()
+    router.refresh()
   }
 
   const activeCount  = listings.filter(l => l.status === 'active').length

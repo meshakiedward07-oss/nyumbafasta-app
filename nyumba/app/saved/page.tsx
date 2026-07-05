@@ -25,7 +25,7 @@ export default async function SavedPage() {
     .eq('client_id', user.id)
     .order('created_at', { ascending: false })
 
-  if (error) console.error('Saved fetch error:', error.message)
+  if (error) throw new Error(error.message)
 
   const { data: userRow } = await supabase
     .from('users')

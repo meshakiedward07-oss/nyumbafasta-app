@@ -41,9 +41,10 @@ export async function POST(req: NextRequest) {
     .select('username')
     .eq('id', l.dalali_id)
     .maybeSingle()
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
   const micrositeUrl = (dalaliUser?.username as string | null | undefined)
-    ? `https://nyumbafasta.co/agent/${dalaliUser!.username}`
-    : `https://nyumbafasta.co/listings/${l.id}`
+    ? `${base}/agent/${dalaliUser!.username}`
+    : `${base}/listings/${l.id}`
 
   try {
     let results

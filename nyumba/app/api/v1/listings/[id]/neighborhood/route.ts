@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getNeighborhoodInfo } from '@/lib/listings/neighborhoodInfo'
 
 export const dynamic = 'force-dynamic'
@@ -9,12 +9,13 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   try {
-    const admin = createAdminClient()
+    const supabase = await createClient()
 
-    const { data: listing, error } = await admin
+    const { data: listing, error } = await supabase
       .from('listings')
       .select('latitude, longitude, region')
       .eq('id', params.id)
+      .eq('status', 'active')
       .maybeSingle()
 
     if (error || !listing) {

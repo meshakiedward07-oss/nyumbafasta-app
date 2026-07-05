@@ -117,8 +117,6 @@ export async function POST(req: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log('[Sub/initiate] Calling mobileCheckout — sub:', subscription.id, 'ref:', payment_ref)
-
     const result = await mobileCheckout({
       accountNumber,
       amount,
@@ -148,7 +146,6 @@ export async function POST(req: NextRequest) {
       if (error) console.warn('[Sub/initiate] payments table insert failed (non-fatal):', error.message)
     })
 
-    console.log('[Sub/initiate] Payment initiated ✓ sub:', subscription.id, '→ "Subiri USSD popup kwenye simu yako"')
     return NextResponse.json({
       success:         true,
       subscription_id: subscription.id,

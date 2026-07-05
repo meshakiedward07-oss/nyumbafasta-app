@@ -85,7 +85,7 @@ export async function PATCH(
           // Facebook Marketplace
           const { postListingToMarketplace } = await import('@/lib/social/facebookMarketplace')
           const mResult = await postListingToMarketplace(fullListing)
-          console.log(`[Approval] Marketplace: ${mResult.success ? '✅ ' + mResult.itemId : '❌ ' + mResult.error}`)
+          if (!mResult.success) console.error('[Approval] Marketplace failed:', mResult.error)
 
           // Instagram + Facebook + TikTok via unified orchestrator (video)
           const { postListingToAllPlatforms, getConnectedPlatforms } = await import('@/lib/social/unifiedPost')
@@ -96,9 +96,8 @@ export async function PATCH(
               platforms: connectedPlatforms,
               createdBy: user.id,
             })
-            console.log(`[Approval] Social: ${uResult.successCount}/${uResult.results.length} platforms ✅`)
             for (const r of uResult.results) {
-              if (!r.success) console.warn(`[Approval] ${r.platform} failed: ${r.error}`)
+              if (!r.success) console.error(`[Approval] ${r.platform} failed: ${r.error}`)
             }
           }
 
@@ -108,7 +107,7 @@ export async function PATCH(
             try {
               const { postListingCarousel } = await import('@/lib/social/carouselPost')
               const cResult = await postListingCarousel(fullListing)
-              console.log(`[Approval] Carousel: ${cResult.success ? '✅ ' + cResult.postId : '❌ ' + cResult.error}`)
+              if (!cResult.success) console.error('[Approval] Carousel failed:', cResult.error)
             } catch (cErr) {
               console.error('[Approval] Carousel failed (non-fatal):', cErr)
             }
@@ -119,8 +118,7 @@ export async function PATCH(
             await new Promise(r => setTimeout(r, 2000))
             try {
               const { postListingStoryAllPlatforms } = await import('@/lib/social/instagramStories')
-              const sResult = await postListingStoryAllPlatforms(fullListing)
-              console.log(`[Approval] Stories: ${sResult.successCount}/${sResult.results.length} platforms ✅`)
+              await postListingStoryAllPlatforms(fullListing)
             } catch (sErr) {
               console.error('[Approval] Story failed (non-fatal):', sErr)
             }

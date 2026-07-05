@@ -109,8 +109,6 @@ export async function POST(req: NextRequest) {
 
     const callbackUrl = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/subscription/webhook')
 
-    console.log('[Renew] Calling mobileCheckout — sub:', newSub.id, 'ref:', payment_ref)
-
     const result = await mobileCheckout({
       accountNumber,
       amount:      finalPrice,
@@ -125,7 +123,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.message }, { status: 502 })
     }
 
-    console.log('[Renew] Payment initiated ✓ sub:', newSub.id)
     return NextResponse.json({
       success:         true,
       subscription_id: newSub.id,

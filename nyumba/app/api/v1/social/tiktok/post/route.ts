@@ -40,9 +40,10 @@ export async function POST(req: NextRequest) {
         .select('username')
         .eq('id', (listing as Listing).dalali_id)
         .maybeSingle()
+      const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
       const micrositeUrl = dalaliUser?.username
-        ? `https://nyumbafasta.co/agent/${dalaliUser.username}`
-        : `https://nyumbafasta.co/listings/${listingId}`
+        ? `${base}/agent/${dalaliUser.username}`
+        : `${base}/listings/${listingId}`
       caption = await generateTikTokCaption(listing as Listing, micrositeUrl)
     }
   }

@@ -150,7 +150,8 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const displayTitle = listing.title || `${typeLabel[listing.type] || listing.type} – ${listing.district}`
   const locationDisplay = getFullLocation(listing)
   const bedroomLine = listing.bedrooms ? `\n🛏️ Vyumba ${listing.bedrooms}` : ''
-  const waMessage = `Habari ${dalaliDisplayName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${displayTitle}*\n📍 ${locationDisplay}${bedroomLine}\n💰 TZS ${listing.price_monthly.toLocaleString()}/mwezi\n\n🔗 https://nyumbafasta.co/listings/${listing.id}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const waMessage = `Habari ${dalaliDisplayName}! 👋\n\nNimefungua mawasiliano yako kwenye NyumbaFasta na ninapenda kujua zaidi kuhusu:\n\n🏠 *${displayTitle}*\n📍 ${locationDisplay}${bedroomLine}\n💰 TZS ${listing.price_monthly.toLocaleString()}/mwezi\n\n🔗 ${appUrl}/listings/${listing.id}\n\nJe, nyumba hii bado inapatikana? Ningependa kuitembelea.`
   const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
 
   const isTaken = listing.status === 'taken'
