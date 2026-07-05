@@ -287,8 +287,8 @@ export default function MyListingsClient({ listings: initial }: { listings: List
         {/* Tabs */}
         <div className="flex gap-2">
           {([
-            { key: 'all', label: `Zote (${listings.length})` },
-            { key: 'active', label: `Zinafanya kazi (${activeCount + pendingCount})` },
+            { key: 'all',     label: `Zote (${listings.length})` },
+            { key: 'active',  label: `Zinaendelea (${listings.filter(l => l.status !== 'expired').length})` },
             { key: 'expired', label: `Zilizokwisha (${expiredCount})` },
           ] as { key: Tab; label: string }[]).map(t => (
             <button

@@ -332,7 +332,7 @@ export default function DalaliProfileClient({
       </form>
 
       {/* ── Danger Zone ── */}
-      <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-4 mt-4">
+      <div className="mx-4 bg-white rounded-2xl border border-red-100 shadow-sm p-4 mt-4 mb-6">
         <h3 className="text-sm font-bold text-red-600 mb-1 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />Hatua za Hatari</h3>
         <p className="text-xs text-gray-400 mb-3 leading-relaxed">
           Ukifuta akaunti — listings, subscription na data yako yote itafutwa kabisa na haiwezi kurejeshwa.

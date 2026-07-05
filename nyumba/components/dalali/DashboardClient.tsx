@@ -120,7 +120,8 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
             )}
             {profile?.whatsapp_number ? (
               <p className="text-green-100/70 text-xs mt-1.5 flex items-center gap-1">
-                <i className="ti ti-phone-filled text-xs" aria-hidden="true" /> +{profile.whatsapp_number}
+                <i className="ti ti-phone-filled text-xs" aria-hidden="true" />
+                +255 ••• •••{profile.whatsapp_number.slice(-3)}
               </p>
             ) : (
               <a href="/dashboard/profile" className="text-amber-200 text-xs mt-1.5 inline-flex items-center gap-1 underline">
@@ -147,13 +148,13 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
         {/* Stats row — individual colored glass cards */}
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
-            { label: 'Matangazo',    value: stats.totalListings, icon: 'ti-home-2',    accent: 'bg-white/10' },
-            { label: 'Zinafanya kazi', value: stats.activeCount,  icon: 'ti-circle-check', accent: 'bg-white/10' },
-            { label: 'Waliotazama',  value: stats.totalViews,    icon: 'ti-eye',       accent: 'bg-white/10' },
-            { label: 'Maombi',       value: stats.totalLeads,    icon: 'ti-users',     accent: 'bg-white/10' },
+            { label: 'Matangazo',      value: stats.totalListings, icon: 'ti-home-2',        accent: 'bg-white/10'        },
+            { label: 'Zinafanya kazi', value: stats.activeCount,   icon: 'ti-circle-check',  accent: 'bg-emerald-400/25'  },
+            { label: 'Waliotazama',    value: stats.totalViews,    icon: 'ti-eye',           accent: 'bg-blue-400/20'     },
+            { label: 'Maombi',         value: stats.totalLeads,    icon: 'ti-users',         accent: 'bg-amber-400/20'    },
           ].map(s => (
             <div key={s.label} className={`${s.accent} rounded-2xl p-3 border border-white/15 backdrop-blur-sm`}>
-              <i className={`ti ${s.icon} text-white/60 text-sm`} aria-hidden="true" />
+              <i className={`ti ${s.icon} text-white/70 text-sm`} aria-hidden="true" />
               <p className="text-white font-bold text-xl leading-none mt-0.5">{s.value}</p>
               <p className="text-green-100/70 text-[10px] mt-0.5 leading-tight">{s.label}</p>
             </div>
@@ -469,21 +470,24 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
         </Link>
 
         {/* ── Quick actions ── */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            href="/dashboard/listings/new"
-            className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-3 shadow-sm"
-          >
-            <i className="ti ti-circle-plus text-2xl text-gray-400" aria-hidden="true" />
-            <span className="text-xs text-gray-600 font-medium text-center leading-tight">Ongeza Listing</span>
-          </Link>
-          <Link
-            href="/dashboard/profile"
-            className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-3 shadow-sm"
-          >
-            <i className="ti ti-settings text-2xl text-gray-400" aria-hidden="true" />
-            <span className="text-xs text-gray-600 font-medium text-center leading-tight">Wasifu Wangu</span>
-          </Link>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { href: '/dashboard/listings/new', icon: 'ti-circle-plus', label: 'Ongeza',  bg: 'bg-primary-50', color: 'text-primary-500' },
+            { href: '/dashboard/hesabu',       icon: 'ti-coins',       label: 'Hesabu',  bg: 'bg-blue-50',    color: 'text-blue-500'    },
+            { href: '/dashboard/reviews',      icon: 'ti-star',        label: 'Maoni',   bg: 'bg-amber-50',   color: 'text-amber-500'   },
+            { href: '/dashboard/profile',      icon: 'ti-settings',    label: 'Akaunti', bg: 'bg-gray-50',    color: 'text-gray-500'    },
+          ].map(a => (
+            <Link
+              key={a.href}
+              href={a.href}
+              className="flex flex-col items-center gap-1.5 bg-white border border-gray-100 rounded-2xl py-3 shadow-sm active:scale-95 transition-all"
+            >
+              <div className={`w-10 h-10 rounded-xl ${a.bg} flex items-center justify-center`}>
+                <i className={`ti ${a.icon} text-xl ${a.color}`} aria-hidden="true" />
+              </div>
+              <span className="text-[10px] text-gray-600 font-medium text-center leading-tight">{a.label}</span>
+            </Link>
+          ))}
         </div>
 
         {/* ── Listings section ── */}
@@ -544,11 +548,11 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
                 <div key={listing.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="flex gap-3 p-3">
                     {/* Thumbnail */}
-                    <div className="relative w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                    <div className="relative w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                       {listing.images?.[0] ? (
-                        <Image fill src={listing.images[0]} alt="" className="object-cover" sizes="64px" />
+                        <Image fill src={listing.images[0]} alt="" className="object-cover" sizes="80px" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-xl"><i className="ti ti-home" aria-hidden="true" /></div>
+                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-2xl"><i className="ti ti-home" aria-hidden="true" /></div>
                       )}
                     </div>
 
@@ -558,17 +562,21 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
                         <p className="text-sm font-semibold text-gray-900 truncate">
                           {typeLabel[listing.type] || listing.type} – {listing.district}
                         </p>
-                        <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full ${STATUS_LABELS[listing.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>
+                        <span className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_LABELS[listing.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>
                           {STATUS_LABELS[listing.status]?.label ?? listing.status}
                         </span>
                       </div>
-                      <p className="text-primary-600 font-bold text-xs mb-1.5">
-                        Tsh {formatPrice(listing.price_monthly)} / mwezi
+                      <p className="text-primary-600 font-bold text-sm mb-1.5">
+                        Tsh {formatPrice(listing.price_monthly)}<span className="text-xs font-normal text-gray-400"> /mwezi</span>
                       </p>
                       <div className="flex items-center gap-3 text-xs text-gray-400">
-                        <span className="flex items-center gap-0.5"><i className="ti ti-eye" aria-hidden="true" /> {listing.view_count}</span>
-                        <span className="flex items-center gap-0.5"><i className="ti ti-phone" aria-hidden="true" /> {listing.lead_count}</span>
-                        {listing.is_boosted && <span className="text-primary-500 font-medium flex items-center gap-0.5"><i className="ti ti-bolt" aria-hidden="true" /> Imeimarishwa</span>}
+                        <span className="flex items-center gap-0.5"><i className="ti ti-eye text-xs" aria-hidden="true" /> {listing.view_count ?? 0}</span>
+                        <span className="flex items-center gap-0.5"><i className="ti ti-phone text-xs" aria-hidden="true" /> {listing.lead_count ?? 0}</span>
+                        {listing.is_boosted && (
+                          <span className="text-amber-500 font-semibold flex items-center gap-0.5">
+                            <i className="ti ti-rocket text-xs" aria-hidden="true" /> Boosted
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -577,16 +585,23 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
                   <div className="flex border-t border-gray-50">
                     <Link
                       href={`/listings/${listing.id}`}
-                      className="flex-1 text-center py-3 text-xs text-gray-500 hover:text-gray-700 min-h-[44px] flex items-center justify-center"
+                      className="flex-1 text-center py-2.5 text-xs text-gray-500 min-h-[44px] flex items-center justify-center gap-1 active:bg-gray-50"
                     >
-                      Angalia
+                      <i className="ti ti-eye text-xs" aria-hidden="true" /> Angalia
                     </Link>
                     <div className="w-px bg-gray-50" />
                     <Link
                       href={`/listings/${listing.id}/edit`}
-                      className="flex-1 text-center py-3 text-xs text-primary-600 font-medium min-h-[44px] flex items-center justify-center"
+                      className="flex-1 text-center py-2.5 text-xs text-primary-600 font-medium min-h-[44px] flex items-center justify-center gap-1 active:bg-primary-50"
                     >
-                      Hariri
+                      <i className="ti ti-pencil text-xs" aria-hidden="true" /> Hariri
+                    </Link>
+                    <div className="w-px bg-gray-50" />
+                    <Link
+                      href="/dashboard/listings"
+                      className="flex-1 text-center py-2.5 text-xs text-amber-600 font-medium min-h-[44px] flex items-center justify-center gap-1 active:bg-amber-50"
+                    >
+                      <i className="ti ti-dots-vertical text-xs" aria-hidden="true" /> Zaidi
                     </Link>
                   </div>
                 </div>

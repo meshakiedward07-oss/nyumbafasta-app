@@ -95,6 +95,7 @@ export default function HesabuPage() {
   const [advice,  setAdvice]  = useState('')
   const [advLoading, setAdvLoading] = useState(false)
   const [modal, setModal] = useState<null | 'income' | 'expense' | 'commission' | 'goal'>()
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; type: 'income' | 'expense' | 'commission'; label: string } | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [commPaying, setCommPaying] = useState<string | null>(null)
   const [commPayAmount, setCommPayAmount] = useState('')
@@ -128,18 +129,18 @@ export default function HesabuPage() {
   }
 
   async function deleteIncome(id: string) {
-    if (!confirm('Futa rekodi hii?')) return
     setDeleting(id)
     await fetch(`/api/v1/dalali/finance/income?id=${id}`, { method: 'DELETE' })
     setDeleting(null)
+    setDeleteConfirm(null)
     loadStats()
   }
 
   async function deleteExpense(id: string) {
-    if (!confirm('Futa rekodi hii?')) return
     setDeleting(id)
     await fetch(`/api/v1/dalali/finance/expenses?id=${id}`, { method: 'DELETE' })
     setDeleting(null)
+    setDeleteConfirm(null)
     loadStats()
   }
 
@@ -157,8 +158,10 @@ export default function HesabuPage() {
   }
 
   async function deleteCommission(id: string) {
-    if (!confirm('Futa commission hii?')) return
+    setDeleting(id)
     await fetch(`/api/v1/dalali/finance/commissions?id=${id}`, { method: 'DELETE' })
+    setDeleting(null)
+    setDeleteConfirm(null)
     loadStats()
   }
 
@@ -375,7 +378,9 @@ export default function HesabuPage() {
                       </p>
                       {row.description && <p className="text-xs text-gray-400 truncate">{row.description}</p>}
                     </div>
-                    <button onClick={() => deleteIncome(row.id)} disabled={deleting === row.id}
+                    <button
+                      onClick={() => setDeleteConfirm({ id: row.id, type: 'income', label: CATEGORY_LABELS[row.category] ?? row.category })}
+                      disabled={deleting === row.id}
                       className="w-7 h-7 flex items-center justify-center rounded-xl hover:bg-red-50 shrink-0">
                       <i className={`ti ${deleting === row.id ? 'ti-loader animate-spin' : 'ti-trash'} text-red-400 text-xs`} aria-hidden="true" />
                     </button>
@@ -431,7 +436,9 @@ export default function HesabuPage() {
                       </p>
                       {row.description && <p className="text-xs text-gray-400 truncate">{row.description}</p>}
                     </div>
-                    <button onClick={() => deleteExpense(row.id)} disabled={deleting === row.id}
+                    <button
+                      onClick={() => setDeleteConfirm({ id: row.id, type: 'expense', label: CATEGORY_LABELS[row.category] ?? row.category })}
+                      disabled={deleting === row.id}
                       className="w-7 h-7 flex items-center justify-center rounded-xl hover:bg-red-50 shrink-0">
                       <i className={`ti ${deleting === row.id ? 'ti-loader animate-spin' : 'ti-trash'} text-red-400 text-xs`} aria-hidden="true" />
                     </button>
@@ -519,9 +526,11 @@ export default function HesabuPage() {
                               Rekodi malipo
                             </button>
                           )}
-                          <button onClick={() => deleteCommission(c.id)}
+                          <button
+                            onClick={() => setDeleteConfirm({ id: c.id, type: 'commission', label: c.client_name })}
+                            disabled={deleting === c.id}
                             className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-red-50 border border-gray-100">
-                            <i className="ti ti-trash text-red-400 text-sm" aria-hidden="true" />
+                            <i className={`ti ${deleting === c.id ? 'ti-loader animate-spin' : 'ti-trash'} text-red-400 text-sm`} aria-hidden="true" />
                           </button>
                         </div>
                       )}
@@ -607,6 +616,41 @@ export default function HesabuPage() {
           onClose={() => setModal(null)}
           onSuccess={() => { setModal(null); loadStats() }}
         />
+      )}
+
+      {/* ─── Delete confirmation dialog ──────────────────────────────── */}
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
+          onClick={() => setDeleteConfirm(null)}
+        >
+          <div className="bg-white rounded-2xl p-6 w-full max-w-xs text-center shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="text-4xl mb-3 flex justify-center">
+              <i className="ti ti-trash text-red-400" aria-hidden="true" />
+            </div>
+            <h3 className="font-bold text-gray-900 mb-1">Futa rekodi?</h3>
+            <p className="text-sm text-gray-500 mb-5 truncate">{deleteConfirm.label}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold"
+              >
+                Hapana
+              </button>
+              <button
+                onClick={() => {
+                  if (deleteConfirm.type === 'income') deleteIncome(deleteConfirm.id)
+                  else if (deleteConfirm.type === 'expense') deleteExpense(deleteConfirm.id)
+                  else deleteCommission(deleteConfirm.id)
+                }}
+                disabled={!!deleting}
+                className="py-3 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50"
+              >
+                {deleting ? 'Inafuta...' : 'Ndiyo, futa'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

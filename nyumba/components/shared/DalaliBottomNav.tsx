@@ -3,12 +3,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const ITEMS = [
-  { href: '/dashboard',              icon: 'chart-bar',    iconActive: 'chart-bar',     label: 'Nyumbani'   },
-  { href: '/dashboard/listings',     icon: 'home',         iconActive: 'home-filled',   label: 'Matangazo'  },
-  { href: '/dashboard/listings/new', icon: 'plus',         iconActive: 'plus',          label: 'Ongeza'     },
-  { href: '/dashboard/hesabu',       icon: 'coins',        iconActive: 'coins',         label: 'Hesabu'     },
-  { href: '/dashboard/reviews',      icon: 'star',         iconActive: 'star-filled',   label: 'Maoni'      },
-  { href: '/dashboard/profile',      icon: 'user',         iconActive: 'user-filled',   label: 'Akaunti'    },
+  { href: '/dashboard',              icon: 'layout-dashboard', iconActive: 'layout-dashboard', label: 'Nyumbani'  },
+  { href: '/dashboard/listings',     icon: 'home',             iconActive: 'home-filled',      label: 'Matangazo' },
+  { href: '/dashboard/listings/new', icon: 'plus',             iconActive: 'plus',             label: 'Ongeza'    },
+  { href: '/dashboard/hesabu',       icon: 'coins',            iconActive: 'coins',            label: 'Hesabu'    },
+  { href: '/dashboard/profile',      icon: 'user',             iconActive: 'user-filled',      label: 'Akaunti'   },
 ]
 
 export default function DalaliBottomNav() {
