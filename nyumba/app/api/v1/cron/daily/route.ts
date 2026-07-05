@@ -293,20 +293,22 @@ async function runDailyTasks() {
       .lte('expires_at', new Date(nowDate.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString())
       .is('expiry_reminded_at', null)
 
-    for (const listing of expiring14 || []) {
-      await admin.from('notifications').insert({
-        user_id: listing.dalali_id,
-        type: 'listing_expiring_14days',
-        title: '⏰ Listing Karibu Kuisha',
-        body: `Listing yako "${listing.title}" itaisha siku 14. Huisha sasa ili iendelee kuonekana.`,
-        is_read: false,
-        ref_id: listing.id,
-        data: { listing_id: listing.id },
-      })
+    if (expiring14?.length) {
+      await admin.from('notifications').insert(
+        expiring14.map(listing => ({
+          user_id: listing.dalali_id,
+          type: 'listing_expiring_14days',
+          title: '⏰ Listing Karibu Kuisha',
+          body: `Listing yako "${listing.title}" itaisha siku 14. Huisha sasa ili iendelee kuonekana.`,
+          is_read: false,
+          ref_id: listing.id,
+          data: { listing_id: listing.id },
+        }))
+      )
       await admin
         .from('listings')
         .update({ expiry_reminded_at: nowDate.toISOString() })
-        .eq('id', listing.id)
+        .in('id', expiring14.map(l => l.id))
     }
     results.push(`✅ Expiry reminders 14 days: ${expiring14?.length ?? 0}`)
 
@@ -318,16 +320,18 @@ async function runDailyTasks() {
       .gte('expires_at', new Date(nowDate.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString())
       .lte('expires_at', new Date(nowDate.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString())
 
-    for (const listing of expiring7 || []) {
-      await admin.from('notifications').insert({
-        user_id: listing.dalali_id,
-        type: 'listing_expiring_7days',
-        title: '🚨 Siku 7 tu Zimebaki!',
-        body: `Listing yako "${listing.title}" itaisha siku 7. Huisha haraka!`,
-        is_read: false,
-        ref_id: listing.id,
-        data: { listing_id: listing.id },
-      })
+    if (expiring7?.length) {
+      await admin.from('notifications').insert(
+        expiring7.map(listing => ({
+          user_id: listing.dalali_id,
+          type: 'listing_expiring_7days',
+          title: '🚨 Siku 7 tu Zimebaki!',
+          body: `Listing yako "${listing.title}" itaisha siku 7. Huisha haraka!`,
+          is_read: false,
+          ref_id: listing.id,
+          data: { listing_id: listing.id },
+        }))
+      )
     }
     results.push(`✅ Expiry reminders 7 days: ${expiring7?.length ?? 0}`)
 
@@ -339,16 +343,18 @@ async function runDailyTasks() {
       .gte('expires_at', nowDate.toISOString())
       .lte('expires_at', new Date(nowDate.getTime() + 24 * 60 * 60 * 1000).toISOString())
 
-    for (const listing of expiring1 || []) {
-      await admin.from('notifications').insert({
-        user_id: listing.dalali_id,
-        type: 'listing_expiring_today',
-        title: '⚠️ Leo ni Siku ya Mwisho!',
-        body: `Listing yako "${listing.title}" itaisha LEO. Huisha sasa hivi!`,
-        is_read: false,
-        ref_id: listing.id,
-        data: { listing_id: listing.id },
-      })
+    if (expiring1?.length) {
+      await admin.from('notifications').insert(
+        expiring1.map(listing => ({
+          user_id: listing.dalali_id,
+          type: 'listing_expiring_today',
+          title: '⚠️ Leo ni Siku ya Mwisho!',
+          body: `Listing yako "${listing.title}" itaisha LEO. Huisha sasa hivi!`,
+          is_read: false,
+          ref_id: listing.id,
+          data: { listing_id: listing.id },
+        }))
+      )
     }
     results.push(`✅ Expiry reminders today: ${expiring1?.length ?? 0}`)
   } catch (e) {

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     // Max 3 violation reports per user per hour
     const ip = getClientIp(req)
-    const rl = rateLimit(`violation:${ip}`, 3, 60 * 60 * 1000)
+    const rl = await rateLimit(`violation:${ip}`, 3, 60 * 60 * 1000)
     if (!rl.allowed) {
       return NextResponse.json({ error: 'Maombi mengi sana. Jaribu tena baadaye.' }, { status: 429 })
     }

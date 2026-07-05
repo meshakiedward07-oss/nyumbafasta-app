@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+function isAllowedImageBytes(buf: Buffer): boolean {
+  if (buf.length < 4) return false
+  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return true
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return true
+  if (buf.length >= 12 &&
+      buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return true
+  return false
+}
+
 const CLOUD  = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!
 const PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_PROFILE_PRESET!
 
@@ -18,14 +29,18 @@ export async function POST(req: NextRequest) {
     if (file.size > 2 * 1024 * 1024) {
       return NextResponse.json({ error: 'Picha ni kubwa sana (max 2MB)' }, { status: 400 })
     }
-    // MIME allowlist — no SVG/PDF/executables
+    // MIME allowlist checked against both declared type and magic bytes
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json({ error: 'Aina ya faili hairuhusiwi. Tumia JPEG, PNG, WebP au GIF' }, { status: 400 })
     }
+    const fileBuffer = Buffer.from(await file.arrayBuffer())
+    if (!isAllowedImageBytes(fileBuffer)) {
+      return NextResponse.json({ error: 'Faili si picha halisi. Tumia JPEG, PNG, WebP au GIF' }, { status: 400 })
+    }
 
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', new Blob([fileBuffer], { type: file.type }), file.name)
     fd.append('upload_preset', PRESET)
     fd.append('folder', 'nyumba/profiles')
 

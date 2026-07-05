@@ -11,9 +11,6 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-const CLOUDINARY_CLOUD  = 'daw8jlbbd'
-const CLOUDINARY_PRESET = 'nyumba_listings'
-
 type PhotoStatus = 'pending' | 'compressing' | 'uploading' | 'done' | 'error'
 
 interface PhotoItem {
@@ -46,16 +43,11 @@ async function compressAndUpload(
   onProgress(52)
   const fd = new FormData()
   fd.append('file', compressed, file.name)
-  fd.append('upload_preset', CLOUDINARY_PRESET)
-  fd.append('folder', 'nyumba/listings')
-  const res  = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
-    { method: 'POST', body: fd },
-  )
+  const res = await fetch('/api/v1/upload/listing', { method: 'POST', body: fd })
   onProgress(96)
-  const data = await res.json() as { secure_url?: string; error?: { message?: string } }
-  if (!data.secure_url) throw new Error(data.error?.message ?? 'Upload ilishindwa')
-  return data.secure_url
+  const data = await res.json() as { url?: string; error?: string }
+  if (!data.url) throw new Error(data.error ?? 'Upload ilishindwa')
+  return data.url
 }
 
 export function BulkPhotoUpload({

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
 
-    const rl = rateLimit(`sub-initiate:${user.id}`, 5, 10 * 60 * 1000)
+    const rl = await rateLimit(`sub-initiate:${user.id}`, 5, 10 * 60 * 1000)
     if (!rl.allowed) {
       return NextResponse.json({ error: 'Maombi mengi sana — subiri dakika 10' }, { status: 429 })
     }

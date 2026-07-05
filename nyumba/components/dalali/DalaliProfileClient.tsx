@@ -10,15 +10,10 @@ async function uploadAvatar(file: File): Promise<string> {
   if (file.size > 2 * 1024 * 1024) throw new Error('Picha ni kubwa sana (max 2MB)')
   const fd = new FormData()
   fd.append('file', file)
-  fd.append('upload_preset', 'nyumba_profiles')  // unsigned preset
-  fd.append('folder', 'nyumba/profiles')
-  const res = await fetch('https://api.cloudinary.com/v1_1/daw8jlbbd/image/upload', {
-    method: 'POST',
-    body: fd,
-  })
+  const res = await fetch('/api/v1/upload/avatar', { method: 'POST', body: fd })
   const data = await res.json()
-  if (!data.secure_url) throw new Error(data.error?.message ?? 'Upload ilishindwa')
-  return data.secure_url as string
+  if (!data.url) throw new Error(data.error ?? 'Upload ilishindwa')
+  return data.url as string
 }
 
 type Props = {

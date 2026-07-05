@@ -47,6 +47,20 @@ export async function POST(req: NextRequest) {
   if (!amount || !category || !date)
     return NextResponse.json({ error: 'amount, category, date zinahitajika' }, { status: 400 })
 
+  const VALID_INCOME_CATEGORIES = [
+    'kamisheni', 'kodi', 'ushauri', 'nyingine',
+    'commission', 'rental', 'consultation', 'other',
+    'referral', 'management', 'viewing_fee',
+  ]
+  const VALID_PAYMENT_METHODS = ['cash', 'mpesa', 'airtel', 'tigo', 'halopesa', 'bank', 'transfer', 'other']
+
+  if (!VALID_INCOME_CATEGORIES.includes(String(category))) {
+    return NextResponse.json({ error: 'Aina ya mapato si sahihi' }, { status: 400 })
+  }
+  const safePaymentMethod = VALID_PAYMENT_METHODS.includes(String(payment_method))
+    ? String(payment_method)
+    : 'cash'
+
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('dalali_income')
@@ -55,10 +69,10 @@ export async function POST(req: NextRequest) {
       amount: parseInt(String(amount)),
       category,
       date,
-      description:    description    || null,
-      client_name:    client_name    || null,
-      listing_title:  listing_title  || null,
-      payment_method: payment_method || 'cash',
+      description:    typeof description === 'string'   ? description.slice(0, 500) : null,
+      client_name:    typeof client_name === 'string'   ? client_name.slice(0, 100) : null,
+      listing_title:  typeof listing_title === 'string' ? listing_title.slice(0, 200) : null,
+      payment_method: safePaymentMethod,
     })
     .select()
     .single()

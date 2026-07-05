@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -78,8 +79,16 @@ export default function ChangePasswordPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/transparent_logo_nyumbafasta.png" alt="NyumbaFasta" className="h-16 w-auto object-contain" />
+        <div className="relative h-16 w-40">
+          <Image
+            src="/transparent_logo_nyumbafasta.png"
+            alt="NyumbaFasta"
+            fill
+            priority
+            className="object-contain"
+            sizes="160px"
+          />
+        </div>
       </div>
 
       <div className="flex-1 px-4 -mt-4 pb-8">

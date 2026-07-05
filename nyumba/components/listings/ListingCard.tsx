@@ -160,7 +160,7 @@ function PlaceholderHouse() {
   )
 }
 
-export default function ListingCard({ listing, hasUnlocked = false }: { listing: ListingWithDalali; hasUnlocked?: boolean }) {
+export default function ListingCard({ listing, hasUnlocked = false, priority = false }: { listing: ListingWithDalali; hasUnlocked?: boolean; priority?: boolean }) {
   const [imgError, setImgError] = useState(false)
 
   const profile    = listing.dalali?.dalali_profiles
@@ -200,6 +200,7 @@ export default function ListingCard({ listing, hasUnlocked = false }: { listing:
                 className="object-cover"
                 onError={() => setImgError(true)}
                 sizes="(max-width: 640px) 100vw, 50vw"
+                priority={priority}
               />
               {/* Gradient overlay for bottom text readability */}
               <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />

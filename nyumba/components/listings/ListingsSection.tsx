@@ -407,8 +407,8 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
               )}
             </div>
           ) : (
-            listings.map(listing => (
-              <ListingCard key={listing.id} listing={listing} hasUnlocked={unlockedIds.includes(listing.id)} />
+            listings.map((listing, idx) => (
+              <ListingCard key={listing.id} listing={listing} hasUnlocked={unlockedIds.includes(listing.id)} priority={idx < 3} />
             ))
           )}
 

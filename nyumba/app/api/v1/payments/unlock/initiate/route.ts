@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 10 unlock attempts per 10 minutes per user
-    const rl = rateLimit(`unlock:${user.id}`, 10, 10 * 60 * 1000)
+    const rl = await rateLimit(`unlock:${user.id}`, 10, 10 * 60 * 1000)
     if (!rl.allowed) {
       return NextResponse.json({ error: 'Maombi mengi sana. Subiri dakika chache.' }, { status: 429 })
     }

@@ -6,14 +6,10 @@ import type { Listing } from '@/lib/types/database'
 async function uploadToCloudinary(file: File): Promise<string> {
   const fd = new FormData()
   fd.append('file', file)
-  fd.append('upload_preset', 'nyumba_listings')
-  fd.append('folder', 'nyumba/listings')
-  const res  = await fetch('https://api.cloudinary.com/v1_1/daw8jlbbd/image/upload', {
-    method: 'POST', body: fd,
-  })
+  const res = await fetch('/api/v1/upload/listing', { method: 'POST', body: fd })
   const data = await res.json()
-  if (!data.secure_url) throw new Error(data.error?.message ?? 'Upload ilishindwa')
-  return data.secure_url as string
+  if (!data.url) throw new Error(data.error ?? 'Upload ilishindwa')
+  return data.url as string
 }
 
 interface Props {

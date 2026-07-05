@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
   // Rate limit: 120 requests per minute per IP
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'anon'
-  const rl = rateLimit(`listings-get:${ip}`, 120, 60_000)
+  const rl = await rateLimit(`listings-get:${ip}`, 120, 60_000)
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 20 listings per hour per user
-    const rl = rateLimit(`create-listing:${user.id}`, 20, 60 * 60 * 1000)
+    const rl = await rateLimit(`create-listing:${user.id}`, 20, 60 * 60 * 1000)
     if (!rl.allowed) {
       return NextResponse.json({ error: 'Umefika kikomo cha kuunda listings.' }, { status: 403 })
     }

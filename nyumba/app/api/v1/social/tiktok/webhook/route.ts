@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
 function verifyTikTokSignature(rawBody: string, signature: string | null): boolean {
   const secret = process.env.TIKTOK_WEBHOOK_SECRET
   if (!secret) {
-    console.warn('[TikTok Webhook] TIKTOK_WEBHOOK_SECRET not set — skipping verification')
-    return true
+    console.error('[TikTok Webhook] TIKTOK_WEBHOOK_SECRET not set — rejecting all requests')
+    return false
   }
   if (!signature) return false
 

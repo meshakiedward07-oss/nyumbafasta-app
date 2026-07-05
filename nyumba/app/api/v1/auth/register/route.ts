@@ -12,7 +12,7 @@ interface AgreementPayload {
 export async function POST(req: NextRequest) {
   try {
     // 5 registrations per hour per IP
-    const rl = rateLimit(`register:${getClientIp(req)}`, 5, 60 * 60 * 1000)
+    const rl = await rateLimit(`register:${getClientIp(req)}`, 5, 60 * 60 * 1000)
     if (!rl.allowed) {
       return NextResponse.json({ error: 'Maombi mengi sana. Jaribu tena baadaye.' }, { status: 429 })
     }

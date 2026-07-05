@@ -47,6 +47,20 @@ export async function POST(req: NextRequest) {
   if (!amount || !category || !date)
     return NextResponse.json({ error: 'amount, category, date zinahitajika' }, { status: 400 })
 
+  const VALID_EXPENSE_CATEGORIES = [
+    'usafiri', 'masoko', 'simu', 'intaneti', 'ofisi', 'nyingine',
+    'transport', 'marketing', 'phone', 'internet', 'office', 'printing',
+    'fuel', 'utilities', 'software', 'other',
+  ]
+  const VALID_PAYMENT_METHODS = ['cash', 'mpesa', 'airtel', 'tigo', 'halopesa', 'bank', 'transfer', 'other']
+
+  if (!VALID_EXPENSE_CATEGORIES.includes(String(category))) {
+    return NextResponse.json({ error: 'Aina ya gharama si sahihi' }, { status: 400 })
+  }
+  const safePaymentMethod = VALID_PAYMENT_METHODS.includes(String(payment_method))
+    ? String(payment_method)
+    : 'cash'
+
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('dalali_expenses')
@@ -55,8 +69,8 @@ export async function POST(req: NextRequest) {
       amount: parseInt(String(amount)),
       category,
       date,
-      description:    description    || null,
-      payment_method: payment_method || 'cash',
+      description:    typeof description === 'string' ? description.slice(0, 500) : null,
+      payment_method: safePaymentMethod,
     })
     .select()
     .single()
