@@ -130,8 +130,18 @@ export async function postListingToAllPlatforms(opts: UnifiedPostOptions): Promi
       if (!listing?.video_url) {
         results.push({ platform: 'tiktok', success: false, error: 'Listing haina video' })
       } else {
-        const caption  = await generateTikTokCaption(listing as Listing)
-        const ttResult = await postVideoToTikTok({ videoUrl: listing.video_url, caption, listingId })
+        // Resolve dalali microsite URL for caption
+        const { data: dalaliUser } = await supabaseAdmin
+          .from('users')
+          .select('username')
+          .eq('id', (listing as Listing).dalali_id)
+          .maybeSingle()
+        const micrositeUrl = dalaliUser?.username
+          ? `https://nyumbafasta.co/agent/${dalaliUser.username}`
+          : `https://nyumbafasta.co/listings/${listingId}`
+
+        const caption  = await generateTikTokCaption(listing as Listing, micrositeUrl)
+        const ttResult = await postVideoToTikTok({ videoUrl: listing.video_url as string, caption, listingId })
         results.push({
           platform: 'tiktok',
           success:  ttResult.success,

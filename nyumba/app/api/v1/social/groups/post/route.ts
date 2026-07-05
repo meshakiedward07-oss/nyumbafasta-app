@@ -36,13 +36,22 @@ export async function POST(req: NextRequest) {
   const rawImage = l.images?.[0] ?? null
   const imageUrl = rawImage ? await watermarkImage(rawImage) : undefined
 
+  const { data: dalaliUser } = await supabaseAdmin
+    .from('users')
+    .select('username')
+    .eq('id', l.dalali_id)
+    .maybeSingle()
+  const micrositeUrl = (dalaliUser?.username as string | null | undefined)
+    ? `https://nyumbafasta.co/agent/${dalaliUser!.username}`
+    : `https://nyumbafasta.co/listings/${l.id}`
+
   try {
     let results
 
     if (groupIds && groupIds.length > 0) {
       const allGroups = await getAllGroups()
       const targets   = allGroups.filter(g => groupIds.includes(g.group_id as string))
-      const message   = buildGroupMessage(l)
+      const message   = buildGroupMessage(l, micrositeUrl)
 
       results = []
       for (const g of targets) {

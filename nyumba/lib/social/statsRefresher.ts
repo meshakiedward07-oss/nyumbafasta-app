@@ -38,7 +38,7 @@ async function refreshInstagramStats(): Promise<number> {
   for (const post of posts ?? []) {
     try {
       const res = await fetch(
-        `https://graph.facebook.com/v18.0/${post.instagram_post_id}?fields=like_count,comments_count,reach,saved,video_views&access_token=${token}`,
+        `https://graph.facebook.com/v21.0/${post.instagram_post_id}?fields=like_count,comments_count,reach,saved,video_views&access_token=${token}`,
       )
       const data = await res.json() as Record<string, unknown>
       if (data.error) continue
@@ -80,7 +80,7 @@ async function refreshFacebookStats(): Promise<number> {
   for (const post of posts ?? []) {
     try {
       const res = await fetch(
-        `https://graph.facebook.com/v18.0/${post.facebook_post_id}?fields=reactions.summary(total_count),comments.summary(total_count),shares,video_views&access_token=${token}`,
+        `https://graph.facebook.com/v21.0/${post.facebook_post_id}?fields=reactions.summary(total_count),comments.summary(total_count),shares,video_views&access_token=${token}`,
       )
       const data = await res.json() as Record<string, unknown>
       if (data.error) continue

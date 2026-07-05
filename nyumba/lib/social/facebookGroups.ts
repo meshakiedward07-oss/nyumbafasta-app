@@ -74,7 +74,17 @@ export async function postToAllGroups(
   }
 
   console.log('[FB Groups] Posting to', groups.length, 'groups for listing', listing.id)
-  const message = buildGroupMessage(listing)
+
+  const { data: dalaliUser } = await supabaseAdmin
+    .from('users')
+    .select('username')
+    .eq('id', listing.dalali_id)
+    .maybeSingle()
+  const micrositeUrl = dalaliUser?.username
+    ? `https://nyumbafasta.co/agent/${dalaliUser.username}`
+    : `https://nyumbafasta.co/listings/${listing.id}`
+
+  const message = buildGroupMessage(listing, micrositeUrl)
   const results: GroupPostResult[] = []
 
   for (const group of groups) {
@@ -120,7 +130,7 @@ export async function postToAllGroups(
 
 // ── Build message for group posts ─────────────────────────────────────────────
 
-export function buildGroupMessage(listing: Listing): string {
+export function buildGroupMessage(listing: Listing, micrositeUrl?: string): string {
   const price    = listing.price_monthly?.toLocaleString('sw-TZ') ?? '0'
   const typeMap: Record<string, string> = {
     chumba: 'CHUMBA', apartment: 'APARTMENT', nyumba: 'NYUMBA', studio: 'STUDIO',
@@ -132,6 +142,7 @@ export function buildGroupMessage(listing: Listing): string {
 
   const amenities = listing.amenities?.slice(0, 4).join(' • ') ?? ''
   const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const linkUrl   = micrositeUrl ?? `${appUrl}/listings/${listing.id}`
 
   return [
     `🏠 ${typeLabel} INAPANGISHWA — ${listing.district}, ${listing.region}`,
@@ -143,7 +154,7 @@ export function buildGroupMessage(listing: Listing): string {
     listing.description ? `\n${listing.description.slice(0, 200)}` : '',
     '',
     `📸 Angalia picha zaidi na wasiliana na dalali:`,
-    `🌐 ${appUrl}/listings/${listing.id}`,
+    `🔗 ${linkUrl}`,
     '',
     `#NyumbaFasta #Nyumba${listing.district.replace(/\s/g, '')} #NyumbaTanzania #${listing.region.replace(/\s/g, '')}`,
   ].filter(l => l !== undefined).join('\n').trim()

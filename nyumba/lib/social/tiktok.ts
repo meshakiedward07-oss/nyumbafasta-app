@@ -146,7 +146,7 @@ export async function postVideoToTikTok(params: {
     }
   }
 
-  const { data: post } = await supabaseAdmin
+  const { data: post, error: insertErr } = await supabaseAdmin
     .from('tiktok_posts')
     .insert({
       listing_id: params.listingId ?? null,
@@ -161,6 +161,11 @@ export async function postVideoToTikTok(params: {
     .select('id')
     .single()
 
+  if (insertErr || !post?.id) {
+    console.error('[TikTok] DB insert failed:', insertErr?.message)
+    return { success: false, error: 'Hifadhidata haikuweza kurekodi post' }
+  }
+
   try {
     const initRes = await fetch(`${TIKTOK_API_BASE}/post/publish/video/init/`, {
       method: 'POST',
@@ -170,7 +175,7 @@ export async function postVideoToTikTok(params: {
       },
       body: JSON.stringify({
         post_info: {
-          title: params.caption.slice(0, 150),
+          title: params.caption.slice(0, 2200),
           privacy_level: params.privacyLevel ?? 'PUBLIC_TO_EVERYONE',
           disable_comment: params.disableComment ?? false,
           disable_duet: params.disableDuet ?? false,
@@ -239,9 +244,10 @@ export async function checkTikTokPostStatus(
 
 // ── Caption Generator ─────────────────────────────────────────────────────
 
-function buildStaticTikTokCaption(listing: Listing): string {
+function buildStaticTikTokCaption(listing: Listing, micrositeUrl?: string | null): string {
   const price = listing.price_monthly.toLocaleString('sw-TZ')
   const location = listing.location_display ?? `${listing.district}, ${listing.region}`
+  const linkUrl  = micrositeUrl ?? `https://nyumbafasta.co/listings/${listing.id}`
 
   const typeMap: Record<string, string> = {
     chumba: 'Chumba',
@@ -266,19 +272,23 @@ function buildStaticTikTokCaption(listing: Listing): string {
 💰 TZS ${price}/mwezi
 ${bedroomLine}${furnishedLine}
 ✅ Imeidhinishwa na NyumbaFasta
-🌐 Tafuta zaidi: nyumbafasta.co
+🔗 ${linkUrl}
 
 #NyumbaFasta #NyumbaZaKupanga #Tanzania #DarEsSalaam #RealEstate #MaliIsiyohamia #NyumbaTanzania #HouseForRent`.trim()
 }
 
 // AI-powered TikTok caption using Claude — falls back to static on error
-export async function generateTikTokCaption(listing: Listing): Promise<string> {
+export async function generateTikTokCaption(
+  listing: Listing,
+  micrositeUrl?: string | null,
+): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    return buildStaticTikTokCaption(listing)
+    return buildStaticTikTokCaption(listing, micrositeUrl)
   }
 
   const price    = listing.price_monthly.toLocaleString('sw-TZ')
   const location = listing.location_display ?? `${listing.district}, ${listing.region}`
+  const linkUrl  = micrositeUrl ?? `https://nyumbafasta.co/listings/${listing.id}`
   const typeMap: Record<string, string> = {
     chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
   }
@@ -308,7 +318,7 @@ Mahitaji:
 - Anza na emoji inayovutia na sentensi ya kuchekesha/ya kuvutia
 - Tumia lugha ya mitaani ya Dar es Salaam (sawa, poa, noma, bro)
 - Jumuisha bei, mahali, na kama ina vyumba
-- Ongeza link: nyumbafasta.co
+- MUHIMU: Weka URL hii moja kwa moja kwenye caption (mstari wake mwenyewe): ${linkUrl}
 - Mwisho ongeza hashtags: #NyumbaFasta #NyumbaZaKupanga #Tanzania #DarEsSalaam #fyp #nyumba #househunting
 - Usiwe rasmi — andika kama TikTok creator wa Tanzania
 - Max maneno 100, max hashtags 8
@@ -321,9 +331,9 @@ Andika caption TU bila maelezo mengine.`,
       ? response.content[0].text.trim()
       : ''
 
-    return aiCaption || buildStaticTikTokCaption(listing)
+    return aiCaption || buildStaticTikTokCaption(listing, micrositeUrl)
   } catch (err) {
     console.error('[TikTok] AI caption failed, using static:', err instanceof Error ? err.message : err)
-    return buildStaticTikTokCaption(listing)
+    return buildStaticTikTokCaption(listing, micrositeUrl)
   }
 }

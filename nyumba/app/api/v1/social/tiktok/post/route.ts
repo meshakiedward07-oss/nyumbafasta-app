@@ -34,7 +34,17 @@ export async function POST(req: NextRequest) {
       .select('*')
       .eq('id', listingId)
       .single()
-    if (listing) caption = await generateTikTokCaption(listing as Listing)
+    if (listing) {
+      const { data: dalaliUser } = await supabaseAdmin
+        .from('users')
+        .select('username')
+        .eq('id', (listing as Listing).dalali_id)
+        .maybeSingle()
+      const micrositeUrl = dalaliUser?.username
+        ? `https://nyumbafasta.co/agent/${dalaliUser.username}`
+        : `https://nyumbafasta.co/listings/${listingId}`
+      caption = await generateTikTokCaption(listing as Listing, micrositeUrl)
+    }
   }
 
   if (!caption) caption = '🏠 Nyumba inapatikana Tanzania! nyumbafasta.co #NyumbaFasta'

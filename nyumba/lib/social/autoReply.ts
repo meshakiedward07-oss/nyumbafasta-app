@@ -50,7 +50,7 @@ const REPLY_TEMPLATES: Record<CommentType, string | null> = {
   interest: `Shwari sana! 🙌 Nyumba hii bado inapatikana. Tuma DM upate maelezo zaidi au angalia link kwenye bio yetu.`,
   negative: `Pole sana kwa hilo. 🙏 Tuma DM yako ili tuweze kukusaidia haraka zaidi. Tutaangalia tatizo lako moja kwa moja.`,
   spam:     null, // Never reply to spam
-  question: `Maswali yako ni mazuri! 😊 Tuma DM yetu au tembelea nyumbafasta.co.tz kwa maelezo zaidi kuhusu nyumba zinazobpatikana.`,
+  question: `Maswali yako ni mazuri! 😊 Tuma DM yetu au tembelea nyumbafasta.co kwa maelezo zaidi kuhusu nyumba zinazopatikana.`,
   praise:   `Asante sana! 🙏❤️ Tunafurahi kusikia hivyo. Kama unatafuta nyumba, tuma DM yetu au angalia listings kwenye bio.`,
   unknown:  null, // Don't reply to unclear comments
 }

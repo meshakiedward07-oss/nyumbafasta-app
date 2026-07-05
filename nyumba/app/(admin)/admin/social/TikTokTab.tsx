@@ -78,6 +78,7 @@ function fmtDate(iso: string) {
 function buildCaption(listing: Listing): string {
   const price = listing.price_monthly.toLocaleString('sw-TZ')
   const location = listing.location_display ?? `${listing.district}, ${listing.region}`
+  const listingUrl = `nyumbafasta.co/listings/${listing.id}`
   const typeMap: Record<string, string> = {
     chumba: 'Chumba', apartment: 'Apartment',
     nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
@@ -95,7 +96,7 @@ function buildCaption(listing: Listing): string {
 💰 TZS ${price}/mwezi
 ${bedroomLine}${furnishedLine}
 ✅ Imeidhinishwa na NyumbaFasta
-🌐 nyumbafasta.co
+🔗 ${listingUrl}
 
 #NyumbaFasta #NyumbaZaKupanga #Tanzania #DarEsSalaam #RealEstate #MaliIsiyohamia`.trim()
 }
@@ -323,6 +324,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
   const publishedCount   = posts.filter(p => p.status === 'published').length
   const processingCount  = posts.filter(p => p.status === 'processing').length
   const failedCount      = posts.filter(p => p.status === 'failed').length
+  const isExpired        = !!connection && new Date(connection.token_expires_at) < new Date()
 
   return (
     <div className="space-y-5">
@@ -339,9 +341,19 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
             <div>
               {connection ? (
                 <>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
-                    <p className="font-bold text-white text-lg">Imeunganishwa</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {new Date(connection.token_expires_at) < new Date() ? (
+                      <>
+                        <span className="w-2.5 h-2.5 bg-amber-400 rounded-full flex-shrink-0" />
+                        <p className="font-bold text-amber-400 text-lg">Token Imekwisha</p>
+                        <span className="text-[11px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">Kataa muunganiko na uunganishe tena</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse flex-shrink-0" />
+                        <p className="font-bold text-white text-lg">Imeunganishwa</p>
+                      </>
+                    )}
                   </div>
                   <p className="text-gray-400 text-sm mt-0.5">@{connection.display_name || connection.open_id}</p>
                   {connection.follower_count > 0 && (
@@ -412,7 +424,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
       </div>
 
       {/* ── Post Video Form ────────────────────────────────────────────── */}
-      {connection && (
+      {connection && !isExpired && (
         <div className="bg-white rounded-2xl border p-5 space-y-4">
           <h3 className="font-bold text-gray-900 text-base flex items-center gap-2"><i className="ti ti-upload" aria-hidden="true" /> Chapisha Video ya Listing</h3>
 

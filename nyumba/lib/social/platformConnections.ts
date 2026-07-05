@@ -48,11 +48,12 @@ export async function getConnectedPlatforms(): Promise<UnifiedPlatform[]> {
   try {
     const { data: tt } = await supabaseAdmin
       .from('tiktok_connections')
-      .select('id')
+      .select('id, token_expires_at')
       .eq('is_active', true)
+      .order('connected_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    if (tt) platforms.push('tiktok')
+    if (tt && new Date(tt.token_expires_at as string) > new Date()) platforms.push('tiktok')
   } catch {
     // table may not exist yet — treat as disconnected
   }

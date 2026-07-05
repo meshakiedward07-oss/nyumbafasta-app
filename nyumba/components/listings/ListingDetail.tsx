@@ -97,9 +97,10 @@ type Props = {
   reviews: ReviewWithReviewer[]
   similarListings?: ListingFull[]
   whatsappNumber?: string | null
+  agentProfileUrl?: string | null
 }
 
-export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlockId, unlockCreatedAt, hasReviewed, reviews, whatsappNumber: initialWhatsappNumber }: Props) {
+export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlockId, unlockCreatedAt, hasReviewed, reviews, whatsappNumber: initialWhatsappNumber, agentProfileUrl }: Props) {
   const router = useRouter()
   const [activeImg, setActiveImg] = useState(0)
 
@@ -499,6 +500,19 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             </div>
           </div>
         </div>
+
+        {/* Agent microsite link — shown for verified dalali who have a public page */}
+        {isVerified && agentProfileUrl && (
+          <div className="mt-3">
+            <a
+              href={agentProfileUrl}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary-200 bg-primary-50 text-primary-700 text-xs font-semibold active:scale-[0.97] transition-all"
+            >
+              <i className="ti ti-user-circle text-sm" aria-hidden="true" />
+              Angalia listings zote za {listing.dalali?.full_name ?? 'dalali huyu'} →
+            </a>
+          </div>
+        )}
 
         {/* Report dalali link — only for logged-in non-dalali users */}
         {isLoggedIn && (

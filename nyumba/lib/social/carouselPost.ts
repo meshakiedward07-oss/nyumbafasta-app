@@ -86,6 +86,16 @@ export async function postListingCarousel(listing: Listing): Promise<CarouselRes
 
   console.log('[Carousel] Processing', images.length, 'images for listing', listing.id)
 
+  // Resolve dalali microsite URL for caption
+  const { data: dalaliUser } = await supabaseAdmin
+    .from('users')
+    .select('username')
+    .eq('id', listing.dalali_id)
+    .maybeSingle()
+  const micrositeUrl = dalaliUser?.username
+    ? `https://nyumbafasta.co/agent/${dalaliUser.username}`
+    : `https://nyumbafasta.co/listings/${listing.id}`
+
   // Watermark every slide — best-effort. watermarkImage returns original URL on failure.
   const rawSlides   = images.slice(0, 10)
   const watermarked = await watermarkImages(rawSlides, 'bottom-right')
@@ -97,7 +107,7 @@ export async function postListingCarousel(listing: Listing): Promise<CarouselRes
   const slideUrls = watermarked
 
   // Generate caption via existing captionGenerator, add carousel-specific opener
-  const { caption, hashtags } = await generateCaption(listing, 'instagram')
+  const { caption, hashtags } = await generateCaption(listing, 'instagram', { micrositeUrl })
   const carouselCaption = `Swipe kuona picha zote ➡️\n\n${caption}\n\n${hashtags}`
 
   let result: CarouselResult

@@ -161,18 +161,41 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
 
   function handleShare() {
     const url = window.location.href
-    if (navigator.share) {
-      navigator.share({ title: `${dalali.name} | NyumbaFasta`, url }).catch(() => {})
-    } else {
-      navigator.clipboard.writeText(url).then(() => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      }).catch(() => {})
+
+    const copyToClipboard = () => {
+      const finish = () => { setCopied(true); setTimeout(() => setCopied(false), 2000) }
+      const textareaCopy = () => {
+        try {
+          const ta = document.createElement('textarea')
+          ta.value = url
+          ta.style.position = 'fixed'
+          ta.style.opacity = '0'
+          document.body.appendChild(ta)
+          ta.focus()
+          ta.select()
+          document.execCommand('copy')
+          document.body.removeChild(ta)
+        } catch {}
+        finish()
+      }
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(finish).catch(textareaCopy)
+      } else {
+        textareaCopy()
+      }
     }
+
+    if (navigator.share) {
+      navigator.share({ title: `${dalali.name} | NyumbaFasta`, url })
+        .catch(() => copyToClipboard())
+    } else {
+      copyToClipboard()
+    }
+
     fetch('/api/v1/profile/track-click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dalaliId: dalali.id, eventType: 'share_click' }),
+      body: JSON.stringify({ dalaliId: dalali.id, eventType: 'share' }),
     }).catch(() => {})
   }
 
@@ -287,6 +310,17 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                 : <i className="ti ti-share text-base" aria-hidden="true" />
               }
             </button>
+
+            {/* WhatsApp share */}
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`Angalia dalali huyu kwenye NyumbaFasta:\nhttps://nyumbafasta.co/agent/${dalali.username}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Share via WhatsApp"
+              className="px-4 py-3 border border-green-200 bg-green-50 rounded-xl text-green-600 hover:bg-green-100 transition-all"
+            >
+              <i className="ti ti-brand-whatsapp text-base" aria-hidden="true" />
+            </a>
           </div>
 
           <p className="text-[11px] text-gray-400 text-center mt-2 flex items-center justify-center gap-1">

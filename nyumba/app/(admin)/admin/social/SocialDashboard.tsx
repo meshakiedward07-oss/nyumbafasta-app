@@ -426,30 +426,41 @@ export default function SocialDashboard() {
               </p>
             </div>
           </div>
-          {/* Mobile nav selector */}
-          <div className="lg:hidden flex-shrink-0">
-            <select
-              value={activeTab}
-              onChange={e => setActiveTab(e.target.value as Tab)}
-              className="text-xs rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-              style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
-            >
-              {ALL_NAV_ITEMS.map(item => (
-                <option key={item.id} value={item.id}>{item.label}</option>
-              ))}
-            </select>
+        </div>
+
+        {/* Mobile scrollable tab nav */}
+        <div
+          className="lg:hidden flex-shrink-0 border-b overflow-x-auto bg-white"
+          style={{ borderColor: '#e5e5e0', scrollbarWidth: 'none' }}
+        >
+          <div className="flex gap-1.5 px-3 py-2.5 min-w-max">
+            {ALL_NAV_ITEMS.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
+                  activeTab === item.id ? 'text-white' : 'text-gray-600'
+                }`}
+                style={{ background: activeTab === item.id ? '#1D9E75' : '#f4f4f0' }}
+              >
+                {item.id === 'tiktok'
+                  ? <PlatformLogo platform="tiktok" size={12} className="flex-shrink-0" />
+                  : <i className={`ti ti-${item.icon} text-[11px] flex-shrink-0`} aria-hidden="true" />}
+                {item.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Page content — only this area scrolls */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6">
 
           {/* ── PLATFORMS ZOTE (unified) ── */}
           {activeTab === 'yote' && (
             <div className="space-y-5">
 
               {/* Connection status row */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 {(connections.length > 0 ? connections : [
                   { platform: 'instagram', label: 'Instagram', is_connected: false },
                   { platform: 'facebook',  label: 'Facebook',  is_connected: false },
@@ -476,7 +487,7 @@ export default function SocialDashboard() {
 
               {/* Period selector + Totals */}
               <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e5e0' }}>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <h3 className="font-semibold" style={{ color: '#1a1a18' }}>Takwimu za Pamoja</h3>
                   <div className="flex gap-1 rounded-lg p-0.5" style={{ background: '#f4f4f0' }}>
                     {(['today', 'week', 'month', 'all'] as const).map(p => (
@@ -496,13 +507,13 @@ export default function SocialDashboard() {
                 </div>
 
                 {loading ? (
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
                     ))}
                   </div>
                 ) : unifiedStats ? (
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                     {[
                       { label: 'Machapisho', value: unifiedStats.totals.posts,    icon: 'camera' },
                       { label: 'Maoni',      value: unifiedStats.totals.comments, icon: 'message-circle' },
@@ -522,7 +533,7 @@ export default function SocialDashboard() {
 
               {/* Per-platform breakdown */}
               {unifiedStats && (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {unifiedStats.platforms.map(p => {
                     const colors: Record<string, string> = { instagram: '#c13584', facebook: '#1877f2', tiktok: '#1a1a18' }
                     return (
@@ -586,11 +597,11 @@ export default function SocialDashboard() {
                     </a>
                   </div>
                 ) : (
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <select
                       value={postAllListing}
                       onChange={e => setPostAllListing(e.target.value)}
-                      className="flex-1 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full sm:flex-1 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                       style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
                     >
                       <option value="">-- Chagua listing ({listings.length}) --</option>
@@ -688,7 +699,7 @@ export default function SocialDashboard() {
                   <i className="ti ti-video" aria-hidden="true" /> Pakia Video Mpya
                 </button>
                 <button
-                  onClick={() => setActiveTab('postnow')}
+                  onClick={() => setActiveTab('listings')}
                   className="flex items-center gap-2 px-4 py-2.5 bg-white text-sm font-medium rounded-xl hover:bg-gray-50 transition-all"
                   style={{ border: '1px solid #e5e5e0', color: '#1a1a18' }}
                 >
@@ -766,7 +777,7 @@ export default function SocialDashboard() {
                     <p className="font-medium" style={{ color: '#666660' }}>Hakuna machapisho katika kipindi hiki</p>
                     <p className="text-sm mt-1">
                       Jaribu kubadilisha kipindi cha muda, au{' '}
-                      <button onClick={() => setActiveTab('postnow')} className="text-primary-500 hover:underline">
+                      <button onClick={() => setActiveTab('listings')} className="text-primary-500 hover:underline">
                         chapisha listing ya kwanza
                       </button>
                     </p>

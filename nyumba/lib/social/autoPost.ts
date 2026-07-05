@@ -82,6 +82,16 @@ export async function postListingToSocialMedia(
 
   const l = listing as Listing
 
+  // Resolve dalali's microsite URL for embedding in captions
+  const { data: dalaliUser } = await supabaseAdmin
+    .from('users')
+    .select('username')
+    .eq('id', l.dalali_id)
+    .maybeSingle()
+  const micrositeUrl = dalaliUser?.username
+    ? `https://nyumbafasta.co/agent/${dalaliUser.username}`
+    : `https://nyumbafasta.co/listings/${l.id}`
+
   // Generate caption (or use override)
   const primaryPlatform = platform === 'both' ? 'instagram' : platform
   let caption: string
@@ -90,7 +100,7 @@ export async function postListingToSocialMedia(
     caption  = options.captionOverride
     hashtags = ''
   } else {
-    ;({ caption, hashtags } = await generateCaption(l, primaryPlatform))
+    ;({ caption, hashtags } = await generateCaption(l, primaryPlatform, { micrositeUrl }))
   }
   const fullCaption = hashtags ? `${caption}\n\n${hashtags}` : caption
 
@@ -182,7 +192,7 @@ export async function postListingToSocialMedia(
       if (options?.captionOverride) {
         fbFullCaption = options.captionOverride
       } else {
-        const { caption: fbCaption, hashtags: fbHashtags } = await generateCaption(l, 'facebook')
+        const { caption: fbCaption, hashtags: fbHashtags } = await generateCaption(l, 'facebook', { micrositeUrl })
         fbFullCaption = `${fbCaption}\n\n${fbHashtags}`
       }
 

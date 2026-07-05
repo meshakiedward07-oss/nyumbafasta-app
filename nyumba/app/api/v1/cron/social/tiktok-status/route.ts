@@ -23,18 +23,36 @@ export async function POST(req: NextRequest) {
   const errors:  string[] = []
 
   try {
-    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const cutoff       = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    // Posts stuck in processing/uploading for more than 2 hours are marked failed
+    const stuckCutoff  = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+
+    // Timeout stuck posts (no API call needed — just DB update)
+    const { data: stuckPosts } = await supabaseAdmin
+      .from('tiktok_posts')
+      .select('id')
+      .in('status', ['processing', 'uploading'])
+      .lt('created_at', stuckCutoff)
+
+    if (stuckPosts?.length) {
+      await supabaseAdmin
+        .from('tiktok_posts')
+        .update({ status: 'failed', error_message: 'Muda umekwisha — TikTok haikujibu (timeout)', updated_at: new Date().toISOString() })
+        .in('id', stuckPosts.map(p => p.id))
+      results.push(`${stuckPosts.length} stuck posts timed out`)
+    }
 
     const { data: processingPosts } = await supabaseAdmin
       .from('tiktok_posts')
       .select('id, publish_id')
       .eq('status', 'processing')
       .gte('created_at', cutoff)
+      .gte('created_at', stuckCutoff)
       .not('publish_id', 'is', null)
       .limit(30)
 
     if (!processingPosts?.length) {
-      return Response.json({ success: true, message: 'Hakuna posts za processing', timestamp: new Date().toISOString() })
+      return Response.json({ success: true, message: 'Hakuna posts za processing', results, timestamp: new Date().toISOString() })
     }
 
     const token = await getValidToken()
@@ -51,10 +69,11 @@ export async function POST(req: NextRequest) {
           await supabaseAdmin
             .from('tiktok_posts')
             .update({
-              status:       'published',
-              video_id:     st.videoId ?? null,
-              published_at: new Date().toISOString(),
-              updated_at:   new Date().toISOString(),
+              status:            'published',
+              video_id:          st.videoId ?? null,
+              tiktok_video_url:  st.shareUrl ?? null,
+              published_at:      new Date().toISOString(),
+              updated_at:        new Date().toISOString(),
             })
             .eq('id', post.id)
           updated++

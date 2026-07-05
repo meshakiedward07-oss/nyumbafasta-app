@@ -1,6 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendPushToUser } from '@/lib/notifications/send'
+
+// Inline the same username-generation logic used by /api/v1/profile/username/auto-generate
+function nameToSlug(fullName: string): string {
+  return fullName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '_').slice(0, 16) || 'dalali'
+}
+function randomSuffix(): string {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789'
+  return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
+async function ensureUsername(admin: ReturnType<typeof createAdminClient>, userId: string, fullName: string): Promise<string | null> {
+  const { data: existing } = await admin.from('users').select('username').eq('id', userId).single()
+  if (existing?.username) return existing.username as string
+
+  const base = nameToSlug(fullName ?? '')
+  const { data: reserved } = await admin.from('reserved_usernames').select('username')
+  const reservedSet = new Set((reserved ?? []).map((r: { username: string }) => r.username))
+
+  for (let i = 0; i < 10; i++) {
+    const candidate = `${base}_${randomSuffix()}`
+    if (reservedSet.has(candidate)) continue
+    const { data: taken } = await admin.from('users').select('id').eq('username', candidate).maybeSingle()
+    if (taken) continue
+    const { error } = await admin.from('users').update({ username: candidate, username_changed_at: new Date().toISOString() }).eq('id', userId)
+    if (!error) return candidate
+  }
+  return null
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,6 +52,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'approve') {
+      // Fetch dalali name and ensure they have a username before approval
+      const { data: dalaliUser } = await admin.from('users').select('full_name, username').eq('id', dalali_user_id).single()
+      const username = dalaliUser?.username
+        ?? await ensureUsername(admin, dalali_user_id, (dalaliUser as { full_name?: string } | null)?.full_name ?? '')
+
+      const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const micrositeUrl = username ? `${APP_URL}/agent/${username}` : null
+
       await admin.from('dalali_profiles').update({
         verification_status: 'approved',
         is_premium_verified: true,
@@ -30,19 +67,26 @@ export async function POST(req: NextRequest) {
         verification_rejected_reason: null,
       }).eq('user_id', dalali_user_id)
 
+      const notifBody = micrositeUrl
+        ? `Hongera! Akaunti yako imethibitishwa. Ukurasa wako wa umma uko tayari: ${micrositeUrl}`
+        : 'Hongera! Akaunti yako imethibitishwa. Badge ya Verified imeongezwa kwenye wasifu wako.'
+
       await admin.from('notifications').insert({
         user_id: dalali_user_id,
         title: '🎉 Umeidhibitishwa!',
-        body: 'Hongera! Akaunti yako imethibitishwa. Badge ya Verified imeongezwa kwenye wasifu wako.',
+        body: notifBody,
         type: 'verification_approved',
         is_read: false,
       })
       await sendPushToUser(
         dalali_user_id,
         '🎉 Umeidhibitishwa!',
-        'Hongera! Akaunti yako imethibitishwa. Badge ya Verified imeongezwa.',
-        '/dashboard/profile'
+        micrositeUrl ? `Ukurasa wako uko tayari: ${micrositeUrl}` : 'Hongera! Akaunti yako imethibitishwa.',
+        '/dashboard'
       )
+
+      // Purge ISR cache so the microsite is immediately accessible
+      if (username) revalidatePath(`/agent/${username}`)
     } else {
       if (!reason?.trim()) {
         return NextResponse.json({ error: 'Sababu ya kukataa inahitajika' }, { status: 400 })

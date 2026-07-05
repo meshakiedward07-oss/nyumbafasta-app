@@ -9,7 +9,7 @@ export default async function DalaliDashboardPage() {
 
   // Fetch in parallel
   const [userRes, profileRes, subscriptionRes, listingsRes, leadsRes] = await Promise.all([
-    supabase.from('users').select('full_name, phone').eq('id', user!.id).single(),
+    supabase.from('users').select('full_name, phone, username').eq('id', user!.id).single(),
 
     admin.from('dalali_profiles')
       .select('whatsapp_number, bio, rating_avg, rating_count, is_premium_verified, verification_status, verification_rejected_reason')
@@ -48,6 +48,7 @@ export default async function DalaliDashboardPage() {
   return (
     <DashboardClient
       dalaliName={dalaliUser?.full_name ?? 'Dalali'}
+      username={(dalaliUser as { username?: string | null } | null)?.username ?? null}
       profile={dalaliProfile}
       subscription={subscription}
       listings={listings}

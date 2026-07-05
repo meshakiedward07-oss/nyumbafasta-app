@@ -10,6 +10,7 @@ import type { Listing, User, DalaliProfile, Review } from '@/lib/types/database'
 
 export type ListingFull = Listing & {
   dalali: (User & {
+    username?: string | null
     dalali_profiles: DalaliProfile | null
   }) | null
 }
@@ -107,7 +108,7 @@ export default async function ListingDetailPage({
         latitude, longitude,
         created_at, dalali_id,
         dalali:dalali_id (
-          id, full_name, phone, avatar_url,
+          id, full_name, phone, avatar_url, username,
           dalali_profiles (
             id, bio,
             rating_avg, rating_count, is_premium_verified
@@ -211,6 +212,8 @@ export default async function ListingDetailPage({
 
   // ── JSON-LD Structured Data ───────────────────────────
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const dalaliUsername = (listing.dalali as (typeof listing.dalali & { username?: string | null }) | null)?.username ?? null
+  const agentProfileUrl = dalaliUsername ? `${APP_URL}/agent/${dalaliUsername}` : null
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'RealEstateListing',
@@ -238,6 +241,7 @@ export default async function ListingDetailPage({
     provider: {
       '@type': 'Person',
       name: listing.dalali?.full_name ?? 'Dalali',
+      ...(agentProfileUrl ? { url: agentProfileUrl } : {}),
     },
   }
 
@@ -268,6 +272,7 @@ export default async function ListingDetailPage({
         reviews={(reviewsRes.data ?? []) as unknown as ReviewWithReviewer[]}
         similarListings={(similarRes.data ?? []) as unknown as ListingFull[]}
         whatsappNumber={dalaliWhatsapp}
+        agentProfileUrl={agentProfileUrl}
       />
       {/* Internal link to region SEO landing page (AI/SEO discoverability) */}
       <nav aria-label="Nyumba zaidi" className="px-4 pb-28 text-center">

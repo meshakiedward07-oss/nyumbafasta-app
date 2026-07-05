@@ -253,13 +253,14 @@ export default function PostEditorDrawer({ listing, defaultPlatform, onClose, on
             setMixProgress(97)
 
             const fname = `mixed/${listing.id}_${Date.now()}.webm`
-            const { supabaseAdmin } = await import('@/lib/agent/supabaseAdmin')
-            const { error: upErr } = await supabaseAdmin.storage
+            const { createClient } = await import('@/lib/supabase/client')
+            const supabaseBrowser  = createClient()
+            const { error: upErr } = await supabaseBrowser.storage
               .from('listing-images')
               .upload(fname, blob, { contentType: 'video/webm', upsert: true })
 
             if (!upErr) {
-              const { data: { publicUrl } } = supabaseAdmin.storage
+              const { data: { publicUrl } } = supabaseBrowser.storage
                 .from('listing-images').getPublicUrl(fname)
               videoOverride = publicUrl
             } else {

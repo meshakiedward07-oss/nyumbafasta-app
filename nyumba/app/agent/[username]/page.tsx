@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/server'
 import AgentProfileClient from './AgentProfileClient'
 
@@ -19,12 +20,14 @@ type ProfileRow = {
     rating_avg: number
     rating_count: number
     is_premium_verified: boolean
+    verification_status: string | null
     // whatsapp_number intentionally NOT fetched — must never reach the client
   } | Array<{
     bio: string | null
     rating_avg: number
     rating_count: number
     is_premium_verified: boolean
+    verification_status: string | null
   }> | null
 }
 
@@ -60,6 +63,8 @@ async function getAgentData(username: string): Promise<{
   reviews: ReviewRow[]
   primaryRegion: string | null
   primaryDistrict: string | null
+  verified: boolean
+  verificationStatus: string | null
 } | null> {
   const admin = createAdminClient()
 
@@ -67,7 +72,7 @@ async function getAgentData(username: string): Promise<{
     .from('users')
     .select(`
       id, full_name, username, avatar_url, is_active, role,
-      dalali_profiles ( bio, rating_avg, rating_count, is_premium_verified )
+      dalali_profiles ( bio, rating_avg, rating_count, is_premium_verified, verification_status )
     `)
     .eq('username', username)
     .eq('role', 'dalali')
@@ -77,8 +82,19 @@ async function getAgentData(username: string): Promise<{
   if (!dalali) return null
 
   const profile = pickProfile((dalali as unknown as ProfileRow).dalali_profiles)
-  // Only verified dalali have public agent profiles
-  if (!profile?.is_premium_verified) return null
+
+  // Unverified dalali: return minimal info so we can show a pending page instead of 404
+  if (!profile?.is_premium_verified) {
+    return {
+      dalali: dalali as unknown as ProfileRow,
+      listings: [],
+      reviews: [],
+      primaryRegion: null,
+      primaryDistrict: null,
+      verified: false,
+      verificationStatus: profile?.verification_status ?? null,
+    }
+  }
 
   const [listingsRes, reviewsRes] = await Promise.all([
     admin
@@ -116,12 +132,22 @@ async function getAgentData(username: string): Promise<{
     reviews: (reviewsRes.data ?? []) as ReviewRow[],
     primaryRegion,
     primaryDistrict,
+    verified: true,
+    verificationStatus: 'approved',
   }
 }
 
 export async function generateMetadata({ params }: { params: { username: string } }): Promise<Metadata> {
   const result = await getAgentData(params.username.toLowerCase())
   if (!result) return { title: 'Dalali Hapatikani | NyumbaFasta' }
+
+  // Unverified: tell crawlers not to index the pending page
+  if (!result.verified) {
+    return {
+      title: `${result.dalali.full_name} | NyumbaFasta`,
+      robots: 'noindex, nofollow',
+    }
+  }
 
   const { dalali } = result
   const title = `${dalali.full_name} — Dalali wa Nyumba | NyumbaFasta`
@@ -131,6 +157,7 @@ export async function generateMetadata({ params }: { params: { username: string 
   return {
     title,
     description,
+    robots: 'index, follow',
     alternates: { canonical: url },
     openGraph: {
       title,
@@ -149,15 +176,40 @@ export default async function AgentProfilePage({ params }: { params: { username:
   const result = await getAgentData(username)
   if (!result) notFound()
 
-  const { dalali, listings, reviews, primaryRegion, primaryDistrict } = result
+  const { dalali, listings, reviews, primaryRegion, primaryDistrict, verified } = result
   const profile = pickProfile(dalali.dalali_profiles)
 
+  // Unverified dalali: show a helpful "pending" page instead of 404
+  if (!verified) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-sm w-full text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+            <i className="ti ti-clock text-3xl text-amber-500" aria-hidden="true" />
+          </div>
+          <h1 className="text-lg font-bold text-gray-800 mb-2">Ukurasa unasubiri uthibitisho</h1>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+            Dalali <strong>{dalali.full_name}</strong> bado hajathibitishwa. Ukurasa wake wa umma utakuwa wazi baada ya uthibitisho kukamilika.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 bg-primary-500 text-white text-sm font-semibold px-5 py-2.5 rounded-xl"
+          >
+            <i className="ti ti-home" aria-hidden="true" /> Tafuta Nyumba
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const agentUrl = `${APP_URL}/agent/${username}`
+
   // JSON-LD: Person + RealEstateAgent
-  const schema = {
+  const agentSchema = {
     '@context': 'https://schema.org',
     '@type': ['Person', 'RealEstateAgent'],
     name: dalali.full_name,
-    url: `${APP_URL}/agent/${username}`,
+    url: agentUrl,
     image: dalali.avatar_url ?? undefined,
     worksFor: { '@type': 'Organization', name: 'NyumbaFasta', url: APP_URL },
     areaServed: { '@type': 'Country', name: 'Tanzania' },
@@ -166,9 +218,27 @@ export default async function AgentProfilePage({ params }: { params: { username:
       : {}),
   }
 
+  // JSON-LD: ItemList of active listings
+  const itemListSchema = listings.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `Listings za ${dalali.full_name}`,
+    url: agentUrl,
+    numberOfItems: listings.length,
+    itemListElement: listings.slice(0, 10).map((l, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `${APP_URL}/listings/${l.id}`,
+      name: l.title ?? `${l.type} – ${l.district}`,
+    })),
+  } : null
+
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(agentSchema) }} />
+      {itemListSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
+      )}
       <AgentProfileClient
         dalali={{
           id: dalali.id,

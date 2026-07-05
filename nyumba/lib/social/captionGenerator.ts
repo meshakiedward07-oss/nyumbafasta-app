@@ -20,13 +20,15 @@ type Platform = 'instagram' | 'facebook'
 export async function generateCaption(
   listing: Listing,
   platform: Platform = 'instagram',
+  urls?: { micrositeUrl?: string | null },
 ): Promise<{ caption: string; hashtags: string }> {
   const maxLen   = platform === 'instagram' ? 2000 : 5000
   const hashtags = platform === 'instagram' ? buildHashtags(listing) : buildFBHashtags(listing)
+  const linkUrl  = urls?.micrositeUrl ?? `https://nyumbafasta.co/listings/${listing.id}`
 
   if (!process.env.ANTHROPIC_API_KEY) {
     console.warn('[Caption] ANTHROPIC_API_KEY haijawekwa — inatumia caption ya msingi')
-    return { caption: buildFallbackCaption(listing, maxLen), hashtags }
+    return { caption: buildFallbackCaption(listing, maxLen, linkUrl), hashtags }
   }
 
   const amenitiesStr = listing.amenities?.length
@@ -50,7 +52,9 @@ ${listing.deposit_months ? `**Deposit:** Miezi ${listing.deposit_months}` : ''}
 ${listing.description ? `**Maelezo ya Ziada:** ${listing.description}` : ''}
 
 Tengeneza caption ya ${platform === 'instagram' ? 'Instagram (max 2000 herufi)' : 'Facebook (max 4000 herufi)'} inayovutia.
-Mwisho wa caption ongeza: "📍 Link kwenye bio | 📲 Wasiliana nasi WhatsApp"
+MUHIMU: Mwisho wa caption weka mstari huu BILA mabadiliko (URL lazima isionekane kama "link kwenye bio" — weka URL yenyewe moja kwa moja ili watu waione haraka):
+🔗 ${linkUrl}
+📲 Wasiliana nasi WhatsApp
 Hashtags zitakuja tofauti, USIWEKE kwenye caption.
 Jibu kwa caption TU, bila maelezo mengine.`
 
@@ -70,11 +74,11 @@ Jibu kwa caption TU, bila maelezo mengine.`
     return { caption, hashtags }
   } catch (err) {
     console.error('[Caption] AI generation failed — inatumia caption ya msingi:', err)
-    return { caption: buildFallbackCaption(listing, maxLen), hashtags }
+    return { caption: buildFallbackCaption(listing, maxLen, linkUrl), hashtags }
   }
 }
 
-function buildFallbackCaption(listing: Listing, maxLen: number): string {
+function buildFallbackCaption(listing: Listing, maxLen: number, linkUrl: string): string {
   const price     = listing.price_monthly?.toLocaleString('sw-TZ') ?? '0'
   const typeMap: Record<string, string> = {
     chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio',
@@ -92,7 +96,8 @@ function buildFallbackCaption(listing: Listing, maxLen: number): string {
     '',
     listing.description ? listing.description.slice(0, 200) : '',
     '',
-    '📍 Link kwenye bio | 📲 Wasiliana nasi WhatsApp',
+    `🔗 ${linkUrl}`,
+    '📲 Wasiliana nasi WhatsApp',
   ].filter(l => l !== undefined).join('\n').trim().slice(0, maxLen)
 }
 

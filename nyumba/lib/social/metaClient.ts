@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
 
@@ -17,8 +17,10 @@ export function verifyMetaSignature(
 ): boolean {
   const [algo, sig] = signatureHeader.split('=')
   if (algo !== 'sha256' || !sig) return false
-  const expected = createHmac('sha256', appSecret).update(rawBody).digest('hex')
-  return expected === sig
+  const expected = createHmac('sha256', appSecret).update(rawBody).digest()
+  const actual   = Buffer.from(sig, 'hex')
+  if (expected.length !== actual.length) return false
+  return timingSafeEqual(expected, actual)
 }
 
 // ── Instagram Container API ────────────────────────────────────────────────
@@ -214,7 +216,7 @@ export async function getIGPostMetrics(igMediaId: string): Promise<IGMetrics> {
 
     // Insights endpoint for reach/impressions/saved
     const insRes = await fetch(
-      `${GRAPH}/${igMediaId}/insights?metric=reach,impressions,saved&access_token=${igToken()}`,
+      `${GRAPH}/${igMediaId}/insights?metric=reach,impressions,saved&period=lifetime&access_token=${igToken()}`,
     )
     const insData = await insRes.json() as { data?: { name: string; values: { value: number }[] }[] }
     const ins: Record<string, number> = {}
