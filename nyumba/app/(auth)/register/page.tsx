@@ -85,9 +85,16 @@ function RegisterForm() {
   // Step: details → agreement (validate form first)
   function proceedToAgreement(method: 'email' | 'google' = 'email') {
     setError('')
-    if (role === 'dalali' && !whatsapp.trim()) {
-      setError('Nambari ya WhatsApp inahitajika kwa madalali.')
-      return
+    if (role === 'dalali') {
+      const digits = whatsapp.replace(/\D/g, '').replace(/^0/, '')
+      if (!digits) {
+        setError('Nambari ya WhatsApp inahitajika kwa madalali.')
+        return
+      }
+      if (digits.length !== 9) {
+        setError('Nambari ya WhatsApp lazima iwe na tarakimu 9 (mfano: 712 345 678).')
+        return
+      }
     }
     setSignupMethod(method)
     setStep('agreement')
@@ -307,8 +314,8 @@ function RegisterForm() {
                     <input
                       type={showPass ? 'text' : 'password'}
                       required
-                      minLength={6}
-                      placeholder="Angalau herufi 6"
+                      minLength={8}
+                      placeholder="Angalau herufi 8"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-base
@@ -324,8 +331,11 @@ function RegisterForm() {
                     </button>
                   </div>
                   {password.length > 0 && (() => {
-                    const strength = password.length < 8 ? 33 : password.length < 12 ? 66 : 100
-                    const label = password.length < 8 ? 'Dhaifu' : password.length < 12 ? 'Wastani' : 'Nguvu'
+                    const weak = password.length < 8
+                    const strong = password.length >= 12 && /[0-9!@#$%^&*]/.test(password)
+                    const mid = !weak && !strong
+                    const strength = weak ? 33 : mid ? 66 : 100
+                    const label = weak ? 'Dhaifu' : mid ? 'Wastani' : 'Nguvu'
                     return (
                       <div
                         role="progressbar"
@@ -335,11 +345,11 @@ function RegisterForm() {
                         className="mt-1.5 flex items-center gap-2"
                       >
                         <div className="flex gap-1 flex-1">
-                          <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 1 ? 'bg-red-400' : 'bg-gray-200'}`} />
-                          <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 8 ? 'bg-amber-400' : 'bg-gray-200'}`} />
-                          <div className={`h-1 flex-1 rounded-full transition-colors ${password.length >= 12 && /[0-9!@#$%^&*]/.test(password) ? 'bg-primary-500' : 'bg-gray-200'}`} />
+                          <div className={`h-1 flex-1 rounded-full transition-colors ${!weak || strong ? 'bg-red-400' : password.length >= 1 ? 'bg-red-400' : 'bg-gray-200'}`} />
+                          <div className={`h-1 flex-1 rounded-full transition-colors ${mid || strong ? 'bg-amber-400' : 'bg-gray-200'}`} />
+                          <div className={`h-1 flex-1 rounded-full transition-colors ${strong ? 'bg-primary-500' : 'bg-gray-200'}`} />
                         </div>
-                        <span className={`text-[10px] font-medium ${password.length < 8 ? 'text-red-400' : password.length < 12 ? 'text-amber-500' : 'text-primary-600'}`}>
+                        <span className={`text-[10px] font-medium ${weak ? 'text-red-400' : mid ? 'text-amber-500' : 'text-primary-600'}`}>
                           {label}
                         </span>
                       </div>

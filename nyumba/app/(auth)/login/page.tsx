@@ -120,7 +120,7 @@ function LoginForm() {
     setLoading(true)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/auth/callback?redirect=/account/reset-password`,
+        redirectTo: `${window.location.origin}/auth/callback?redirect=/account/change-password`,
       })
       if (error) throw error
       setResetSent(true)

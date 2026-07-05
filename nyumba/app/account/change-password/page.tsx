@@ -1,12 +1,35 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function ChangePasswordPage() {
+function ChangePasswordForm() {
   const supabase = createClient()
   const router   = useRouter()
+  const searchParams = useSearchParams()
+
+  // 'reset' = arrived from password-reset email link; 'forced' = staff first login
+  const [flowType, setFlowType] = useState<'reset' | 'forced' | 'unknown'>('unknown')
+
+  useEffect(() => {
+    // Supabase sets the session type to 'recovery' after a password reset code exchange
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        supabase.from('users').select('must_change_password, role').eq('id', data.session.user.id).single()
+          .then(({ data: u }) => {
+            if (u?.must_change_password && u?.role === 'staff') setFlowType('forced')
+            else setFlowType('reset')
+          })
+      } else {
+        setFlowType('reset')
+      }
+    })
+    // Also honour explicit ?flow= param from the redirect
+    const flow = searchParams.get('flow')
+    if (flow === 'reset') setFlowType('reset')
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [password,     setPassword]     = useState('')
   const [confirm,      setConfirm]      = useState('')
@@ -95,9 +118,13 @@ export default function ChangePasswordPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 max-w-sm mx-auto">
           <div className="text-center mb-5">
             <div className="text-3xl mb-2 flex justify-center"><i className="ti ti-key text-gray-600" aria-hidden="true" /></div>
-            <h2 className="font-bold text-gray-900">Badilisha Password</h2>
+            <h2 className="font-bold text-gray-900">
+              {flowType === 'forced' ? 'Weka Password Mpya' : 'Badilisha Nenosiri'}
+            </h2>
             <p className="text-xs text-gray-400 mt-1">
-              Lazima ubadilishe password ya muda kabla ya kuendelea
+              {flowType === 'forced'
+                ? 'Lazima ubadilishe password ya muda kabla ya kuendelea'
+                : 'Weka nenosiri jipya la akaunti yako'}
             </p>
           </div>
 
@@ -164,5 +191,17 @@ export default function ChangePasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ChangePasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <ChangePasswordForm />
+    </Suspense>
   )
 }

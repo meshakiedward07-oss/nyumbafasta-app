@@ -81,15 +81,25 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Send welcome email (fire-and-forget — don't block redirect)
+      // Send welcome email only for new signups (account created within last 60 seconds)
       if (process.env.RESEND_API_KEY) {
-        const userEmail = profile?.email ?? data.user.email
-        const userName = profile?.full_name ?? (data.user.user_metadata?.full_name as string) ?? 'Mtumiaji'
-        if (userEmail) {
-          const { subject, html } = welcomeEmail(userName, role)
-          new Resend(process.env.RESEND_API_KEY).emails
-            .send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: userEmail, subject, html })
-            .catch(() => { /* ignore — don't block auth flow */ })
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('created_at, email, full_name')
+          .eq('id', data.user.id)
+          .single()
+        const isNewUser = userRow?.created_at
+          ? Date.now() - new Date(userRow.created_at as string).getTime() < 60_000
+          : false
+        if (isNewUser) {
+          const userEmail = (userRow?.email as string | null) ?? data.user.email
+          const userName = (userRow?.full_name as string | null) ?? (data.user.user_metadata?.full_name as string) ?? 'Mtumiaji'
+          if (userEmail) {
+            const { subject, html } = welcomeEmail(userName, role)
+            new Resend(process.env.RESEND_API_KEY).emails
+              .send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: userEmail, subject, html })
+              .catch(() => { /* ignore — don't block auth flow */ })
+          }
         }
       }
 

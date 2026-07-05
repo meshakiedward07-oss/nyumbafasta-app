@@ -61,10 +61,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Email verification guard — dashboard na payments zinahitaji email iliyothibitishwa
-  // Google/OAuth users wana email_confirmed_at tayari
-  if (user && !user.email_confirmed_at) {
-    if (path.startsWith('/dashboard') || path.startsWith('/api/v1/payments')) {
+  // Email verification guard — all protected routes zinahitaji email iliyothibitishwa
+  // Google/OAuth users wana email_confirmed_at tayari; change-password exempt (recovery session)
+  if (user && !user.email_confirmed_at && isProtected) {
+    if (!path.startsWith('/account/change-password')) {
       const url = request.nextUrl.clone()
       url.pathname = '/verify-email'
       url.searchParams.set('email', user.email ?? '')
