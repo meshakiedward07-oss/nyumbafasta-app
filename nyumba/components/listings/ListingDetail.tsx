@@ -183,7 +183,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
       {/* ── Image gallery ── */}
       <div
-        className="relative bg-gray-200 h-64 touch-pan-y select-none"
+        className="relative bg-gray-200 h-72 touch-pan-y select-none"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -224,18 +224,21 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           </div>
         )}
 
-        {/* Dot indicators */}
+        {/* Dot indicators + photo count */}
         {images.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-            {images.map((_, i) => (
-              <button
-                key={i}
-                aria-label={`Picha ${i + 1} ya ${images.length}`}
-                aria-current={i === activeImg ? 'true' : undefined}
-                onClick={() => { setActiveImg(i); setImgError(false) }}
-                className={`rounded-full transition-all ${i === activeImg ? 'w-4 h-2 bg-white' : 'w-2 h-2 bg-white/50'}`}
-              />
-            ))}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+            <div className="flex gap-1.5 items-center bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  aria-label={`Picha ${i + 1} ya ${images.length}`}
+                  aria-current={i === activeImg ? 'true' : undefined}
+                  onClick={() => { setActiveImg(i); setImgError(false) }}
+                  className={`rounded-full transition-all touch-manipulation ${i === activeImg ? 'w-4 h-2 bg-white' : 'w-2 h-2 bg-white/50'}`}
+                />
+              ))}
+              <span className="text-white/80 text-[10px] font-medium ml-1">{activeImg + 1}/{images.length}</span>
+            </div>
           </div>
         )}
 

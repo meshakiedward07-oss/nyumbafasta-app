@@ -231,7 +231,7 @@ export default function DalaliCRMClient() {
         <div className="grid grid-cols-2 gap-2.5">
           <StatTile
             icon="ti-eye"
-            label="Maoni ya Microsite"
+            label="Waliotazama Microsite"
             value={fmtNum(microsite?.viewsMonth ?? 0)}
             sub="mwezi huu"
           />
@@ -398,7 +398,7 @@ export default function DalaliCRMClient() {
                 <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
                   <p className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
                     <i className="ti ti-eye text-primary-500" aria-hidden="true" />
-                    Maoni ya Ukurasa Wako
+                    Waliotazama Ukurasa Wako
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     <ViewTile label="Leo"       value={microsite.viewsToday}  accent="blue"    />

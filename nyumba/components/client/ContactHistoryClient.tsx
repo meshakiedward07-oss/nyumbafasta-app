@@ -54,7 +54,7 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
       <div className="bg-primary-500 px-4 pt-10 pb-6">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => router.back()}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 text-white">
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white active:scale-90 transition-transform">
             ←
           </button>
           <h1 className="text-white text-lg font-bold">Historia ya Mawasiliano</h1>
@@ -66,7 +66,7 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
           </div>
           <div className="bg-white/10 rounded-2xl p-3 text-center">
             <p className="text-white text-xl font-bold">Tsh {totalSpent.toLocaleString()}</p>
-            <p className="text-white/70 text-xs">Uliozidi</p>
+            <p className="text-white/70 text-xs">Uliotumia</p>
           </div>
         </div>
       </div>

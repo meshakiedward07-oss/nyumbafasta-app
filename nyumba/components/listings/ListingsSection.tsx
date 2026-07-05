@@ -203,10 +203,10 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
       </div>
 
       {/* ── Region tabs ── */}
-      <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-none">
+      <div className="flex gap-2 px-4 py-2.5 overflow-x-auto scrollbar-none">
         <button
           onClick={() => applyFilter('region', '')}
-          className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150
+          className={`flex-shrink-0 px-3.5 min-h-[36px] rounded-full text-xs font-medium transition-all duration-150
             ${(filters?.region ?? '') === '' ? 'bg-primary-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'}`}
         >
           <i className="ti ti-map" aria-hidden="true" /> Zote
@@ -216,7 +216,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           <button
             key={r}
             onClick={() => applyFilter('region', r)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150
+            className={`flex-shrink-0 px-3.5 min-h-[36px] rounded-full text-xs font-medium transition-all duration-150
               ${(filters?.region ?? '') === r ? 'bg-primary-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'}`}
           >
             {shortName(r)}
@@ -226,7 +226,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
         <select
           value={PRIORITY_REGIONS.includes(filters?.region ?? '') ? '' : (filters?.region ?? '')}
           onChange={e => { if (e.target.value) applyFilter('region', e.target.value) }}
-          className={`flex-shrink-0 text-xs border rounded-full px-3 py-1.5
+          className={`flex-shrink-0 text-xs border rounded-full px-3.5 min-h-[36px]
             focus:outline-none cursor-pointer
             ${!PRIORITY_REGIONS.includes(filters?.region ?? '') && filters?.region
               ? 'bg-primary-500 text-white border-primary-500'
@@ -245,27 +245,27 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           value={filters?.type ?? ''}
           onChange={e => applyFilter('type', e.target.value)}
           className="flex-shrink-0 text-xs bg-white border border-gray-200
-                     rounded-full px-3 py-1.5 text-gray-600 focus:outline-none"
+                     rounded-full px-3.5 min-h-[36px] text-gray-600 focus:outline-none"
         >
           {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
 
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full border
-            transition-all duration-150 flex items-center gap-1
+          className={`flex-shrink-0 text-xs px-3.5 min-h-[36px] rounded-full border
+            transition-all duration-150 flex items-center gap-1.5
             ${showFilters ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-200'}`}
         >
-          <i className="ti ti-adjustments" aria-hidden="true" /> Filters zaidi
-          {hasExtraFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 ml-0.5" />}
+          <i className="ti ti-adjustments" aria-hidden="true" /> Filters
+          {hasExtraFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
         </button>
 
         {(hasExtraFilters || filters?.region || filters?.type) && (
           <button
             onClick={clearFilters}
-            className="flex-shrink-0 text-xs bg-red-50 text-red-500 border border-red-100 rounded-full px-3 py-1.5"
+            className="flex-shrink-0 text-xs bg-red-50 text-red-500 border border-red-100 rounded-full px-3.5 min-h-[36px] flex items-center gap-1"
           >
-            <i className="ti ti-x" aria-hidden="true" /> Futa filters
+            <i className="ti ti-x" aria-hidden="true" /> Futa
           </button>
         )}
       </div>
@@ -416,10 +416,11 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           {!loading && total > listings.length && (
             <button
               onClick={() => setPage(p => p + 1)}
-              className="w-full py-3 rounded-xl border border-primary-200
-                         text-primary-600 text-sm font-medium bg-primary-50
-                         hover:bg-primary-100 transition-colors"
+              className="w-full min-h-[48px] py-3 rounded-2xl border border-primary-200
+                         text-primary-600 text-sm font-semibold bg-primary-50
+                         active:bg-primary-100 transition-colors flex items-center justify-center gap-2"
             >
+              <i className="ti ti-chevrons-down text-base" aria-hidden="true" />
               Onyesha zaidi ({total - listings.length} zimebaki)
             </button>
           )}

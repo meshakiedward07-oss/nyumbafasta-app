@@ -388,9 +388,9 @@ export default function MyListingsClient({ listings: initial }: { listings: List
 
                 {/* Card body */}
                 <div className="flex gap-3 p-3">
-                  <div className="relative w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                  <div className="relative w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                     {listing.images?.[0] ? (
-                      <Image fill src={listing.images[0]} alt="" className="object-cover" sizes="64px" />
+                      <Image fill src={listing.images[0]} alt="" className="object-cover" sizes="80px" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-2xl text-gray-300"><i className="ti ti-home" aria-hidden="true" /></div>
                     )}
@@ -410,26 +410,26 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                       <div className="relative flex-shrink-0" ref={openMenu === listing.id ? menuRef : undefined}>
                         <button
                           onClick={() => setOpenMenu(openMenu === listing.id ? null : listing.id)}
-                          className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors"
+                          className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 active:bg-gray-100 active:scale-90 transition-all"
                         >
                           ⋮
                         </button>
 
                         {openMenu === listing.id && (
-                          <div className="absolute right-0 top-8 z-30 bg-white rounded-2xl shadow-lg border border-gray-100 py-1 min-w-[180px]">
+                          <div className="absolute right-0 top-10 z-30 bg-white rounded-2xl shadow-xl border border-gray-100 py-1 min-w-[196px]">
                             <Link
                               href={`/listings/${listing.id}`}
                               onClick={() => setOpenMenu(null)}
-                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex items-center gap-3 px-4 py-3.5 text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-50"
                             >
-                              <i className="ti ti-eye" aria-hidden="true" /> Angalia
+                              <i className="ti ti-eye text-base text-gray-400" aria-hidden="true" /> Angalia Listing
                             </Link>
                             <Link
                               href={`/listings/${listing.id}/edit`}
                               onClick={() => setOpenMenu(null)}
-                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex items-center gap-3 px-4 py-3.5 text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-50"
                             >
-                              <i className="ti ti-pencil" aria-hidden="true" /> Hariri
+                              <i className="ti ti-pencil text-base text-gray-400" aria-hidden="true" /> Hariri Listing
                             </Link>
 
                             {listing.status === 'active' && (
@@ -438,9 +438,9 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                                   setOpenMenu(null)
                                   setDialog({ type: 'taken', listingId: listing.id, title: `${TYPE[listing.type]} — ${listing.district}` })
                                 }}
-                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-amber-700 hover:bg-amber-50 w-full text-left"
+                                className="flex items-center gap-3 px-4 py-3.5 text-sm text-amber-700 hover:bg-amber-50 active:bg-amber-50 w-full text-left"
                               >
-                                <i className="ti ti-circle-dot" aria-hidden="true" /> Imepangishwa
+                                <i className="ti ti-circle-dot text-base text-amber-500" aria-hidden="true" /> Imepangishwa
                               </button>
                             )}
 
@@ -450,21 +450,21 @@ export default function MyListingsClient({ listings: initial }: { listings: List
                                   setOpenMenu(null)
                                   setDialog({ type: 'available', listingId: listing.id, title: `${TYPE[listing.type]} — ${listing.district}` })
                                 }}
-                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-primary-700 hover:bg-primary-50 w-full text-left"
+                                className="flex items-center gap-3 px-4 py-3.5 text-sm text-primary-700 hover:bg-primary-50 active:bg-primary-50 w-full text-left"
                               >
-                                <i className="ti ti-circle-check" aria-hidden="true" /> Inapatikana tena
+                                <i className="ti ti-circle-check text-base text-primary-500" aria-hidden="true" /> Inapatikana tena
                               </button>
                             )}
 
-                            <div className="border-t border-gray-50 mt-1 pt-1">
+                            <div className="border-t border-gray-100 mt-1 pt-1">
                               <button
                                 onClick={() => {
                                   setOpenMenu(null)
                                   setDialog({ type: 'delete', listingId: listing.id, title: `${TYPE[listing.type]} — ${listing.district}` })
                                 }}
-                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 w-full text-left"
+                                className="flex items-center gap-3 px-4 py-3.5 text-sm text-red-500 hover:bg-red-50 active:bg-red-50 w-full text-left"
                               >
-                                <i className="ti ti-trash" aria-hidden="true" /> Futa
+                                <i className="ti ti-trash text-base" aria-hidden="true" /> Futa Listing
                               </button>
                             </div>
                           </div>
@@ -502,54 +502,53 @@ export default function MyListingsClient({ listings: initial }: { listings: List
 
                 {/* Quick action row */}
                 {(listing.status === 'active' || listing.status === 'taken') && (
-                  <div className="flex border-t border-gray-50">
+                  <div className="flex border-t border-gray-100">
                     {listing.status === 'active' ? (
                       <button
                         onClick={() => setDialog({ type: 'taken', listingId: listing.id, title: `${TYPE[listing.type]} — ${listing.district}` })}
                         disabled={isLoading}
-                        className="flex-1 py-2.5 text-xs font-medium text-amber-700 active:bg-amber-50 transition-colors"
+                        className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-amber-700 active:bg-amber-50 transition-colors"
                       >
-                        <i className="ti ti-circle-dot" aria-hidden="true" /> Imepangishwa
+                        <i className="ti ti-circle-dot text-base" aria-hidden="true" />
+                        Imepangishwa
                       </button>
                     ) : (
                       <button
                         onClick={() => setDialog({ type: 'available', listingId: listing.id, title: `${TYPE[listing.type]} — ${listing.district}` })}
                         disabled={isLoading}
-                        className="flex-1 py-2.5 text-xs font-medium text-primary-600 active:bg-primary-50 transition-colors"
+                        className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-primary-600 active:bg-primary-50 transition-colors"
                       >
-                        <i className="ti ti-circle-check" aria-hidden="true" /> Inapatikana tena
+                        <i className="ti ti-circle-check text-base" aria-hidden="true" />
+                        Inapatikana
                       </button>
                     )}
-                    <div className="w-px bg-gray-50" />
+                    <div className="w-px bg-gray-100" />
                     <button
                       onClick={() => setBoostListing(listing)}
-                      className="flex-1 py-2.5 text-xs font-semibold text-yellow-500 active:bg-yellow-50 transition-colors"
+                      className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-yellow-600 active:bg-yellow-50 transition-colors"
                     >
-                      <i className="ti ti-rocket" aria-hidden="true" /> Boost
+                      <i className="ti ti-rocket text-base" aria-hidden="true" />
+                      Boost
                     </button>
-                    <div className="w-px bg-gray-50" />
-                    <ShareButton
-                      listing={listing}
-                      variant="dashboard"
-                      className="flex-1 justify-center rounded-none bg-transparent hover:bg-green-50 py-2.5 px-0"
-                    />
-                    <div className="w-px bg-gray-50" />
+                    <div className="w-px bg-gray-100" />
                     <button
                       onClick={() => setExpandedAnalytics(expandedAnalytics === listing.id ? null : listing.id)}
-                      className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
+                      className={`flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
                         expandedAnalytics === listing.id
                           ? 'text-primary-600 bg-primary-50'
                           : 'text-gray-500 active:bg-gray-50'
                       }`}
                     >
-                      <i className="ti ti-chart-bar" aria-hidden="true" /> Takwimu
+                      <i className="ti ti-chart-bar text-base" aria-hidden="true" />
+                      Takwimu
                     </button>
-                    <div className="w-px bg-gray-50" />
+                    <div className="w-px bg-gray-100" />
                     <button
                       onClick={() => setEditListing(listing)}
-                      className="flex-1 py-2.5 text-xs font-semibold text-primary-700 active:bg-primary-50 transition-colors"
+                      className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-primary-700 active:bg-primary-50 transition-colors"
                     >
-                      <i className="ti ti-bolt" aria-hidden="true" /> Sasisha
+                      <i className="ti ti-bolt text-base" aria-hidden="true" />
+                      Sasisha
                     </button>
                   </div>
                 )}

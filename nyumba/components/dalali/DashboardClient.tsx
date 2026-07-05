@@ -464,7 +464,7 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
           <i className="ti ti-chart-bar text-3xl flex-shrink-0" aria-hidden="true" />
           <div className="flex-1 min-w-0">
             <p className="font-bold">Takwimu Zangu</p>
-            <p className="text-green-100 text-xs">Maoni, ukuaji na contacts za microsite yako</p>
+            <p className="text-green-100 text-xs">Mwonekano, ukuaji na contacts za microsite yako</p>
           </div>
           <span className="flex-shrink-0 text-green-100">→</span>
         </Link>

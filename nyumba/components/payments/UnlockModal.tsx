@@ -472,7 +472,7 @@ export default function UnlockModal({
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 text-sm text-amber-700 text-left">
                 <p className="font-semibold mb-1">Mawasiliano hayakupakia</p>
                 <p className="text-xs mb-2">Malipo yamefanikiwa. Piga simu support kwa usaidizi:</p>
-                <a href="https://wa.me/255000000000" target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/255665831694" target="_blank" rel="noopener noreferrer"
                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 underline">
                   <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp Support
                 </a>

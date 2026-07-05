@@ -110,7 +110,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={() => router.back()}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 active:scale-90 transition-transform">
+          className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 active:scale-90 transition-transform">
           ←
         </button>
         <h1 className="text-base font-bold text-gray-900 flex-1">Arifa</h1>

@@ -232,7 +232,7 @@ export default function SubscriptionClient({
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3 px-4 py-3">
         <button onClick={() => step === 'overview' ? router.back() : setStep('overview')}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600">
+          className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 active:scale-90 transition-transform">
           ←
         </button>
         <h1 className="text-sm font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-credit-card" aria-hidden="true" />Subscription</h1>
