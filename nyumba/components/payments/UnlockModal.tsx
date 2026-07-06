@@ -15,13 +15,14 @@ const PROVIDERS = Object.fromEntries(
     hint:     m.hint,
     iconSrc:  m.iconSrc,
     iconAlt:  m.iconAlt,
+    iconChar: m.iconChar,
     btnColor: m.color,
     type:     m.type,
   }])
-) as Record<PaymentProvider, { name: string; badge: string; hint: string; iconSrc: string; iconAlt: string; btnColor: string; type: 'mobile' }>
+) as Record<PaymentProvider, { name: string; badge: string; hint: string; iconSrc: string; iconAlt: string; iconChar?: string; btnColor: string; type: 'mobile' }>
 
 // ── Types ─────────────────────────────────────────────────
-type ModalStep = 'select' | 'phone' | 'waiting' | 'success' | 'failed'
+type ModalStep = 'select' | 'phone' | 'waiting' | 'wallet-confirm' | 'success' | 'failed'
 
 type Props = {
   listingId: string
@@ -75,6 +76,7 @@ export default function UnlockModal({
   const [secondsLeft, setSecondsLeft]       = useState(TIMEOUT_SECS)
   const [contactPhone, setContactPhone]     = useState<string | null>(null)
   const [contactTimedOut, setContactTimedOut] = useState(false)
+  const [walletBalance, setWalletBalance]   = useState<number | null>(null)
   const userChoseProvider = useRef(false)
 
   const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -115,6 +117,49 @@ export default function UnlockModal({
     if (pollRef.current)  clearInterval(pollRef.current)
     if (timerRef.current) clearInterval(timerRef.current)
   }, [])
+
+  // ── Fetch wallet balance on mount ────────────────────────
+  useEffect(() => {
+    fetch('/api/v1/wallet')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.balance != null) setWalletBalance(d.balance) })
+      .catch(() => {})
+  }, [])
+
+  // ── Wallet payment (instant — no USSD) ───────────────────
+  async function handleWalletPay() {
+    setError('')
+    setLoading(true)
+    try {
+      const res  = await fetch('/api/v1/wallet/pay', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ type: 'unlock', listing_id: listingId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (data.already_unlocked) {
+          const number = await getContactNumber(listingId)
+          setContactPhone(number || null)
+          onUnlocked(number)
+          setStep('success')
+          return
+        }
+        throw new Error(data.error ?? 'Imeshindwa kulipa kwa wallet')
+      }
+      // Update local balance
+      if (data.wallet_balance != null) setWalletBalance(data.wallet_balance)
+      const number = await getContactNumber(listingId)
+      setContactPhone(number || null)
+      onUnlocked(number)
+      setStep('success')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
+      setStep('failed')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // ── Countdown timer ──────────────────────────────────────
   useEffect(() => {
@@ -279,6 +324,47 @@ export default function UnlockModal({
               <p className="text-primary-600 font-bold text-sm flex-shrink-0">Tsh 2,000</p>
             </div>
 
+            {/* ── Wallet option ── */}
+            {walletBalance !== null && (
+              <div className="mb-4">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                  <i className="ti ti-wallet" aria-hidden="true" /> NyumbaFasta Wallet
+                </p>
+                {walletBalance >= UNLOCK_AMOUNT ? (
+                  <button
+                    onClick={() => setStep('wallet-confirm')}
+                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-primary-400 bg-primary-50 active:scale-[0.97] transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white">
+                        <i className="ti ti-wallet text-sm" aria-hidden="true" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-primary-800">Lipa kwa Wallet</p>
+                        <p className="text-xs text-primary-500">Salio: Tsh {walletBalance.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs bg-primary-500 text-white px-2.5 py-1 rounded-full font-semibold">Haraka ⚡</span>
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-between px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                        <i className="ti ti-wallet text-sm" aria-hidden="true" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Wallet (Tsh {walletBalance.toLocaleString()})</p>
+                        <p className="text-xs text-gray-400">Salio halitoshi — weka Tsh {(UNLOCK_AMOUNT - walletBalance).toLocaleString()} zaidi</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 my-4">
+                  <div className="flex-1 h-px bg-gray-200" /><span className="text-[10px] text-gray-400 font-medium">AU LIPA KWA MOBILE</span><div className="flex-1 h-px bg-gray-200" />
+                </div>
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-50 border border-red-100 text-red-600 text-xs px-3 py-2.5 rounded-xl mb-4">
                 {error}
@@ -301,6 +387,57 @@ export default function UnlockModal({
           </div>
         )}
 
+        {/* ── STEP: Wallet confirm ── */}
+        {step === 'wallet-confirm' && (
+          <div className="px-5 pt-2 pb-2">
+            <div className="flex items-center gap-2 mb-5">
+              <button onClick={() => { setStep('select'); setError('') }} aria-label="Rudi nyuma" className="text-gray-400 text-lg p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">←</button>
+              <h2 className="text-base font-bold text-gray-900">Thibitisha Malipo</h2>
+            </div>
+
+            <div className="bg-primary-50 rounded-2xl p-4 mb-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white text-xl">
+                  <i className="ti ti-wallet" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-primary-800">NyumbaFasta Wallet</p>
+                  <p className="text-xs text-primary-500">Salio: Tsh {(walletBalance ?? 0).toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Kiasi cha kulipa</span>
+                <span className="font-bold text-gray-900">Tsh {UNLOCK_AMOUNT.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm mt-1">
+                <span className="text-gray-600">Salio baada ya kulipa</span>
+                <span className="font-semibold text-gray-700">Tsh {((walletBalance ?? 0) - UNLOCK_AMOUNT).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-5">
+              <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm flex-shrink-0">
+                {dalaliName[0]}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-800 truncate">{dalaliName}</p>
+                <p className="text-xs text-gray-400 truncate">{listingTitle}</p>
+              </div>
+            </div>
+
+            {error && <div className="bg-red-50 border border-red-100 text-red-600 text-xs px-3 py-2.5 rounded-xl mb-4">{error}</div>}
+
+            <button
+              onClick={handleWalletPay}
+              disabled={loading}
+              className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-2xl text-sm font-semibold mb-2 disabled:opacity-50 active:scale-[0.97] transition-transform shadow-md"
+            >
+              {loading ? 'Inashughulikia...' : `Thibitisha — Lipa Tsh ${UNLOCK_AMOUNT.toLocaleString()}`}
+            </button>
+            <button onClick={() => setStep('select')} className="w-full py-3 min-h-[44px] text-sm text-gray-400 text-center">Ghairi</button>
+          </div>
+        )}
+
         {/* ── STEP: Phone input ── */}
         {step === 'phone' && (
           <div className="px-5 pt-2">
@@ -313,7 +450,11 @@ export default function UnlockModal({
                 ←
               </button>
               <div className="flex items-center gap-2">
-                <Image src={pInfo.iconSrc} alt={pInfo.iconAlt} width={40} height={20} className="h-5 w-auto object-contain" />
+                {pInfo.iconSrc ? (
+                  <Image src={pInfo.iconSrc} alt={pInfo.iconAlt} width={40} height={20} className="h-5 w-auto object-contain" />
+                ) : pInfo.iconChar ? (
+                  <span className="inline-flex items-center justify-center rounded px-2 h-5 text-xs font-extrabold text-white" style={{ backgroundColor: pInfo.btnColor }}>{pInfo.iconChar}</span>
+                ) : null}
                 <span className="text-sm font-semibold text-gray-800">{pInfo.name}</span>
                 <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{pInfo.badge}</span>
               </div>
