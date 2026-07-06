@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, buildCallbackUrl, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, type MobileProvider } from '@/lib/payments/azampay'
 
 export const maxDuration = 30
 
@@ -9,8 +9,9 @@ const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
 function toAzamProvider(p: string): MobileProvider {
   const map: Record<string, MobileProvider> = {
-    mpesa: 'Mpesa', airtel: 'AirtelMoney', tigopesa: 'Tigopesa', halopesa: 'Halopesa',
-    Mpesa: 'Mpesa', AirtelMoney: 'AirtelMoney', Tigopesa: 'Tigopesa', Halopesa: 'Halopesa',
+    mpesa: 'Mpesa', airtel: 'Airtel', tigo: 'Tigo', tigopesa: 'Tigo', halopesa: 'Halopesa', azampesa: 'Azampesa',
+    Mpesa: 'Mpesa', Airtel: 'Airtel', Tigo: 'Tigo', Halopesa: 'Halopesa', Azampesa: 'Azampesa',
+    AirtelMoney: 'Airtel', Tigopesa: 'Tigo',
   }
   return map[p] ?? 'Mpesa'
 }
@@ -70,7 +71,6 @@ export async function POST(req: NextRequest) {
     // Encode sub_id + count into externalId so webhook can decode without schema changes
     // Format: EX-{subscription_uuid}-{count} → 7 dash-separated segments
     const payment_ref   = `EX-${sub.id}-${count}`
-    const callbackUrl   = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/extra-listings/webhook')
     const accountNumber = normalizePhone(msisdn)
     const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
 
@@ -97,7 +97,6 @@ export async function POST(req: NextRequest) {
       amount,
       externalId:  payment_ref,
       provider:    azamProvider,
-      callbackUrl,
     })
 
     if (!result.ok) {

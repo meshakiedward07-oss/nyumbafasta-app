@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, buildCallbackUrl, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
 import { sendPushToUser } from '@/lib/notifications/send'
 import { rateLimit } from '@/lib/security/rateLimit'
 
@@ -11,8 +11,9 @@ const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
 function toAzamProvider(p: string): MobileProvider {
   const map: Record<string, MobileProvider> = {
-    mpesa: 'Mpesa', airtel: 'AirtelMoney', tigopesa: 'Tigopesa', halopesa: 'Halopesa',
-    Mpesa: 'Mpesa', AirtelMoney: 'AirtelMoney', Tigopesa: 'Tigopesa', Halopesa: 'Halopesa',
+    mpesa: 'Mpesa', airtel: 'Airtel', tigo: 'Tigo', tigopesa: 'Tigo', halopesa: 'Halopesa', azampesa: 'Azampesa',
+    Mpesa: 'Mpesa', Airtel: 'Airtel', Tigo: 'Tigo', Halopesa: 'Halopesa', Azampesa: 'Azampesa',
+    AirtelMoney: 'Airtel', Tigopesa: 'Tigo',
   }
   return map[p] ?? 'Mpesa'
 }
@@ -156,7 +157,6 @@ export async function POST(req: NextRequest) {
     // ── Production path: AzamPay mobile checkout ──────────
     const accountNumber = normalized  // already validated above
     const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
-    const callbackUrl   = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/webhook')
 
     const expiresAt = new Date()
     expiresAt.setFullYear(expiresAt.getFullYear() + 1)
@@ -185,7 +185,6 @@ export async function POST(req: NextRequest) {
       amount:      UNLOCK_AMOUNT,
       externalId:  payment_ref,
       provider:    azamProvider,
-      callbackUrl,
     })
 
     if (!result.ok) {

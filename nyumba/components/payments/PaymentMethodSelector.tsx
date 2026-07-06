@@ -4,52 +4,75 @@ import Image from 'next/image'
 // PaymentMethodSelector — shows AzamPay mobile money provider grid.
 // For mobile: shows "Lipa" button → calls onPay(method) → parent shows phone input
 
-export type PaymentMethod = 'Mpesa' | 'AirtelMoney' | 'Tigopesa' | 'Halopesa'
+export type PaymentMethod = 'Mpesa' | 'Airtel' | 'Tigo' | 'Halopesa' | 'Azampesa'
 
-export const PAYMENT_METHODS = [
+export const PAYMENT_METHODS: Array<{
+  id:       PaymentMethod
+  name:     string
+  company:  string
+  color:    string
+  bgColor:  string
+  type:     'mobile'
+  hint:     string
+  iconSrc:  string
+  iconAlt:  string
+  iconChar?: string
+}> = [
   {
-    id:      'Mpesa'       as PaymentMethod,
+    id:      'Mpesa',
     name:    'M-Pesa',
     company: 'Vodacom',
     color:   '#E40000',
     bgColor: '#FFF5F5',
-    type:    'mobile' as const,
+    type:    'mobile',
     hint:    '074/075/076 XXX XXXX',
     iconSrc: '/payment_icons/mpesa.png',
     iconAlt: 'M-Pesa',
   },
   {
-    id:      'Tigopesa'    as PaymentMethod,
+    id:      'Tigo',
     name:    'Tigo Pesa',
     company: 'Tigo/MIC Tanzania',
     color:   '#0068B3',
     bgColor: '#EFF6FF',
-    type:    'mobile' as const,
+    type:    'mobile',
     hint:    '065/067/071 XXX XXXX',
-    iconSrc: '/payment_icons/tigopesa.png',
+    iconSrc: '/payment_icons/mixx.png',
     iconAlt: 'Tigo Pesa',
   },
   {
-    id:      'AirtelMoney' as PaymentMethod,
+    id:      'Airtel',
     name:    'Airtel Money',
     company: 'Airtel',
     color:   '#FF0000',
     bgColor: '#FFF5F5',
-    type:    'mobile' as const,
-    hint:    '078 XXX XXXX',
+    type:    'mobile',
+    hint:    '068/069/078 XXX XXXX',
     iconSrc: '/payment_icons/airtel.png',
     iconAlt: 'Airtel Money',
   },
   {
-    id:      'Halopesa'    as PaymentMethod,
+    id:      'Halopesa',
     name:    'HaloPesa',
     company: 'TTCL',
     color:   '#F15A22',
     bgColor: '#FFF5F0',
-    type:    'mobile' as const,
+    type:    'mobile',
     hint:    '062 XXX XXXX',
     iconSrc: '/payment_icons/halopesa.png',
     iconAlt: 'HaloPesa',
+  },
+  {
+    id:       'Azampesa',
+    name:     'AzamPesa',
+    company:  'AzamPay',
+    color:    '#7C3AED',
+    bgColor:  '#F5F3FF',
+    type:     'mobile',
+    hint:     '06x XXX XXXX',
+    iconSrc:  '',
+    iconAlt:  'AzamPesa',
+    iconChar: 'AZ',
   },
 ]
 
@@ -62,7 +85,20 @@ type Props = {
   onPay:    (method: PaymentMethod) => void
 }
 
-function PaymentIcon({ iconSrc, iconAlt }: { iconSrc: string; iconAlt: string }) {
+function PaymentIcon({ iconSrc, iconAlt, iconChar, color }: {
+  iconSrc: string; iconAlt: string; iconChar?: string; color?: string
+}) {
+  if (!iconSrc && iconChar) {
+    return (
+      <span
+        className="inline-flex items-center justify-center rounded-lg px-2 h-9 text-sm font-extrabold text-white tracking-tight"
+        style={{ backgroundColor: color ?? '#7C3AED' }}
+        aria-label={iconAlt}
+      >
+        {iconChar}
+      </span>
+    )
+  }
   return (
     <Image
       src={iconSrc}
@@ -97,7 +133,7 @@ function ProviderButton({
           style={{ backgroundColor: m.color }}><i className="ti ti-check" aria-hidden="true" /></span>
       )}
       <div className="h-10 flex items-center justify-center">
-        <PaymentIcon iconSrc={m.iconSrc} iconAlt={m.iconAlt} />
+        <PaymentIcon iconSrc={m.iconSrc} iconAlt={m.iconAlt} iconChar={m.iconChar} color={m.color} />
       </div>
       <p className="text-xs font-semibold text-gray-700 text-center leading-tight">{m.name}</p>
       <p className="text-[9px] text-gray-400">{m.company}</p>
@@ -126,7 +162,7 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
         <div className="pt-1">
           <div className="flex items-center justify-center gap-2 mb-3">
             <div className="h-7 flex items-center">
-              <PaymentIcon iconSrc={selectedInfo.iconSrc} iconAlt={selectedInfo.iconAlt} />
+              <PaymentIcon iconSrc={selectedInfo.iconSrc} iconAlt={selectedInfo.iconAlt} iconChar={selectedInfo.iconChar} color={selectedInfo.color} />
             </div>
             <span className="text-xs text-gray-500">
               Utalipa kupitia <strong>{selectedInfo.name}</strong>

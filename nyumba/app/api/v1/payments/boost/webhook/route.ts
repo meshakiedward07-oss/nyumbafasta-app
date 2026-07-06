@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { isWebhookSuccess, isAmountValid, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
+import { isWebhookSuccess, isAmountValid, getExternalId, verifyWebhookSecret, verifyAzamPaySignature, type WebhookPayload } from '@/lib/payments/azampay'
 
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
@@ -10,6 +10,12 @@ export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text()
     const payload: WebhookPayload = JSON.parse(rawBody)
+
+    if (!(await verifyAzamPaySignature(payload))) {
+      console.warn('[Boost Webhook] RSA signature invalid — rejecting')
+      return NextResponse.json({ received: true })
+    }
+
     const externalId = getExternalId(payload)
     const succeeded  = isWebhookSuccess(payload)
 

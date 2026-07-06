@@ -1,9 +1,7 @@
 // AzamPay Tanzania payment gateway integration
-import { timingSafeEqual } from 'crypto'
+import { timingSafeEqual, createVerify } from 'crypto'
 
-// ── Lazy config — evaluated at call time, not module load time ────────────────
-// Module-level throws break Next.js build ("collect page data" step) when vars
-// aren't set in the build environment (only present at runtime).
+// ── Lazy config — evaluated at call time, not module load time ─────────────
 interface AzamConfig {
   appName:      string
   clientId:     string
@@ -31,16 +29,15 @@ function getConfig(): AzamConfig {
   return { appName: appName!, clientId: clientId!, clientSecret: clientSecret!, apiKey: apiKey!, environment }
 }
 
-export type MobileProvider = 'Mpesa' | 'AirtelMoney' | 'Tigopesa' | 'Halopesa'
+// Provider enum must match AzamPay API exactly (see schema.Provider)
+export type MobileProvider = 'Mpesa' | 'Airtel' | 'Tigo' | 'Halopesa' | 'Azampesa'
 
-// Token cache — valid ~55 min to avoid re-fetching on every request
+// ── Token cache ────────────────────────────────────────────────────────────
 let cachedToken: string | null = null
 let tokenExpiresAt = 0
 
 async function getAuthToken(): Promise<string> {
-  if (cachedToken && Date.now() < tokenExpiresAt) {
-    return cachedToken
-  }
+  if (cachedToken && Date.now() < tokenExpiresAt) return cachedToken
 
   const cfg = getConfig()
   const IS_SANDBOX = cfg.environment !== 'production'
@@ -48,20 +45,13 @@ async function getAuthToken(): Promise<string> {
     ? 'https://authenticator-sandbox.azampay.co.tz'
     : 'https://authenticator.azampay.co.tz'
 
-  const clientId     = cfg.clientId
-  const clientSecret = cfg.clientSecret
-  const appName      = cfg.appName ?? 'NyumbaFasta'
-
-  const authUrl = `${AUTH_URL}/AppRegistration/GenerateToken`
-
-  const res = await fetch(authUrl, {
-    method: 'POST',
+  const res = await fetch(`${AUTH_URL}/AppRegistration/GenerateToken`, {
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ appName, clientId, clientSecret }),
+    body:    JSON.stringify({ appName: cfg.appName, clientId: cfg.clientId, clientSecret: cfg.clientSecret }),
   })
 
   const rawText = await res.text()
-
   if (!res.ok) {
     console.error('[AzamPay] Token request failed:', res.status, rawText.slice(0, 200))
     throw new Error(`AzamPay auth imeshindwa: ${res.status} ${rawText}`)
@@ -73,52 +63,99 @@ async function getAuthToken(): Promise<string> {
   }
 
   const token = (data?.data as Record<string, unknown>)?.accessToken as string ?? data?.accessToken as string
-  if (!token) {
-    console.error('[AzamPay] Token request failed: hakuna accessToken katika jibu')
-    throw new Error('AzamPay: hakuna token katika jibu la auth')
-  }
+  if (!token) throw new Error('AzamPay: hakuna token katika jibu la auth')
 
-  cachedToken = token
+  cachedToken    = token
   tokenExpiresAt = Date.now() + 55 * 60 * 1000
   return token
 }
 
+// ── Public key cache for callback signature verification ───────────────────
+let cachedPublicKey: string | null = null
+let publicKeyFetchedAt = 0
+const PUBLIC_KEY_TTL = 24 * 60 * 60 * 1000 // 24 hours
+
+async function getAzamPayPublicKey(): Promise<string | null> {
+  if (cachedPublicKey && Date.now() - publicKeyFetchedAt < PUBLIC_KEY_TTL) return cachedPublicKey
+  try {
+    const cfg = getConfig()
+    const IS_SANDBOX = cfg.environment !== 'production'
+    const base = IS_SANDBOX ? 'https://sandbox.azampay.co.tz' : 'https://checkout.azampay.co.tz'
+    const token = await getAuthToken()
+    const res = await fetch(`${base}/azampay/v1/public-key?format=Pem`, {
+      headers: { Authorization: `Bearer ${token}`, 'X-API-KEY': cfg.apiKey },
+    })
+    if (!res.ok) return null
+    const json = await res.json() as { success?: boolean; publicKey?: string }
+    if (json.success && json.publicKey) {
+      cachedPublicKey    = json.publicKey
+      publicKeyFetchedAt = Date.now()
+      return cachedPublicKey
+    }
+  } catch (e) {
+    console.warn('[AzamPay] Could not fetch public key:', e)
+  }
+  return null
+}
+
+// ── Callback signature verification ───────────────────────────────────────
+// Signed data = {utilityref}{externalreference}{transactionstatus}{operator}
+// Algorithm: SHA-256 + RSA PKCS#1 v1.5
+export async function verifyAzamPaySignature(payload: WebhookPayload): Promise<boolean> {
+  if (!payload.signature) return true  // not signed (sandbox); allow but log
+  try {
+    const publicKeyPem = await getAzamPayPublicKey()
+    if (!publicKeyPem) {
+      console.warn('[AzamPay] No public key — skipping signature verification')
+      return true
+    }
+    const dataToVerify = `${payload.utilityref ?? ''}${payload.externalreference ?? ''}${payload.transactionstatus ?? ''}${payload.operator ?? ''}`
+    const verifier = createVerify('SHA256')
+    verifier.update(dataToVerify, 'utf8')
+    return verifier.verify(publicKeyPem, payload.signature, 'base64')
+  } catch (e) {
+    console.error('[AzamPay] Signature verification error:', e)
+    return false
+  }
+}
+
 export interface MobileCheckoutParams {
   accountNumber: string   // 255XXXXXXXXX
-  amount: number
-  currency?: string
-  externalId: string
-  provider: MobileProvider
-  callbackUrl?: string
+  amount:        number
+  currency?:     string
+  externalId:    string
+  provider:      MobileProvider
 }
 
 export interface AzamPayResult {
-  ok: boolean
-  transactionId?: string
-  message: string
-  raw?: unknown
+  ok:              boolean
+  transactionId?:  string
+  message:         string
+  raw?:            unknown
 }
 
 export async function mobileCheckout(params: MobileCheckoutParams): Promise<AzamPayResult> {
   try {
     const cfg = getConfig()
-    const IS_SANDBOX = cfg.environment !== 'production'
-    const CHECKOUT_BASE = IS_SANDBOX ? 'https://sandbox.azampay.co.tz' : 'https://checkout.azampay.co.tz'
-    const CHECKOUT_URL = `${CHECKOUT_BASE}/api/v1/Partner/PostMobileCheckout`
+    const IS_SANDBOX  = cfg.environment !== 'production'
+    // Correct MNO checkout endpoint per AzamPay OpenAPI spec
+    const CHECKOUT_URL = IS_SANDBOX
+      ? 'https://sandbox.azampay.co.tz/azampay/mno/checkout'
+      : 'https://checkout.azampay.co.tz/azampay/mno/checkout'
 
     const token = await getAuthToken()
 
+    // Fields must match AzamPay CheckoutRequest schema exactly
     const checkoutPayload = {
       accountNumber: params.accountNumber,
-      amount:        String(params.amount),
+      amount:        params.amount,
       currency:      params.currency ?? 'TZS',
       externalId:    params.externalId,
       provider:      params.provider,
-      ...(params.callbackUrl ? { callbackUrl: params.callbackUrl } : {}),
     }
 
     const res = await fetch(CHECKOUT_URL, {
-      method: 'POST',
+      method:  'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization:  `Bearer ${token}`,
@@ -127,14 +164,11 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
       body: JSON.stringify(checkoutPayload),
     })
 
-    // Sandbox returns HTTP 200 and immediately closes connection (ECONNRESET on body)
-    // Any 2xx = request accepted; body parse failure is normal
     if (res.ok) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let data: any = {}
-      let rawBody = ''
       try {
-        rawBody = await res.text()
+        const rawBody = await res.text()
         if (rawBody) data = JSON.parse(rawBody)
       } catch { /* empty body or parse error is normal for this gateway */ }
 
@@ -151,14 +185,14 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
       }
     }
 
-    let rawErr = ''
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let errData: any = {}
     try {
-      rawErr = await res.text()
+      const rawErr = await res.text()
       if (rawErr) errData = JSON.parse(rawErr)
+      console.error('[AzamPay] Checkout failed:', res.status, rawErr.slice(0, 200))
     } catch { /* ignore */ }
-    console.error('[AzamPay] Checkout failed:', res.status, rawErr.slice(0, 200))
+
     return {
       ok:      false,
       message: String(errData?.message ?? `AzamPay ilikataa: ${res.status}`),
@@ -170,14 +204,17 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
   }
 }
 
+// ── Webhook payload ────────────────────────────────────────────────────────
 export interface WebhookPayload {
   transactionstatus:  string
+  utilityref?:        string   // our externalId (partner's reference)
+  externalreference?: string   // AzamPay's reference for the transaction
   operator?:          string
   reference?:         string
-  externalreference?: string
   amount?:            string
   transid?:           string
   msisdn?:            string
+  signature?:         string   // RSA signature (see verifyAzamPaySignature)
 }
 
 export function isWebhookSuccess(payload: WebhookPayload): boolean {
@@ -185,8 +222,7 @@ export function isWebhookSuccess(payload: WebhookPayload): boolean {
   return status === 'success' || status === 'successful'
 }
 
-// Validates webhook amount against the expected value (within 1 TZS tolerance).
-// Rejects missing or unparseable amounts — never assume payment is valid without a real figure.
+// Check amount within 1 TZS tolerance; reject missing/unparseable amounts.
 export function isAmountValid(payload: WebhookPayload, expectedAmount: number): boolean {
   if (!payload.amount) return false
   const received = parseFloat(payload.amount)
@@ -194,13 +230,13 @@ export function isAmountValid(payload: WebhookPayload, expectedAmount: number): 
   return Math.abs(received - expectedAmount) <= 1
 }
 
+// utilityref = our externalId (AzamPay's field for the partner's reference)
 export function getExternalId(payload: WebhookPayload): string {
-  return payload.externalreference ?? payload.reference ?? ''
+  return payload.utilityref ?? payload.externalreference ?? payload.reference ?? ''
 }
 
-// ── Tanzania phone number utilities ─────────────────────────────────────────
+// ── Tanzania phone number utilities ───────────────────────────────────────
 
-// Normalize to 255XXXXXXXXX format
 export function normalizePhone(phone: string): string {
   const p = phone.trim()
   if (p.startsWith('+'))   return p.slice(1)
@@ -209,33 +245,43 @@ export function normalizePhone(phone: string): string {
   return `255${p}`
 }
 
-// Detect mobile network from Tanzania phone prefix
+// Detect MNO from Tanzania phone prefix → returns AzamPay-compatible provider value
 export function detectProvider(phone: string): MobileProvider {
   const normalized = normalizePhone(phone)
-  const prefix = normalized.slice(3, 6)  // e.g. "255744..." → "744"
+  const prefix3 = normalized.slice(3, 6)  // e.g. "255744..." → "744"
 
   // Vodacom M-Pesa: 074x, 075x, 076x
-  const MPESA    = ['740','741','742','743','744','745','746','747','748','749',
-                    '750','751','752','753','754','755','756','757','758','759',
-                    '760','761','762','763','764','765','766','767','768','769']
+  const MPESA_PFX = [
+    '740','741','742','743','744','745','746','747','748','749',
+    '750','751','752','753','754','755','756','757','758','759',
+    '760','761','762','763','764','765','766','767','768','769',
+  ]
 
-  // Airtel Money: 078x
-  const AIRTEL   = ['780','781','782','783','784','785','786','787','788','789']
+  // Airtel Money: 068x, 069x, 078x
+  const AIRTEL_PFX = [
+    '680','681','682','683','684','685','686','687','688','689',
+    '690','691','692','693','694','695','696','697','698','699',
+    '780','781','782','783','784','785','786','787','788','789',
+  ]
 
-  // MiXx by YAS / Tigopesa: 065x, 071x
-  const TIGOPESA = ['650','651','652','653','654','655','656','657','658','659',
-                    '710','711','712','713','714','715','716','717','718','719']
+  // Tigo Pesa / MiXx: 065x, 067x, 071x
+  const TIGO_PFX = [
+    '650','651','652','653','654','655','656','657','658','659',
+    '670','671','672','673','674','675','676','677','678','679',
+    '710','711','712','713','714','715','716','717','718','719',
+  ]
 
-  // Halopesa (TTCL): 061x, 062x
-  const HALOPESA = ['610','611','612','613','614','615','616','617','618','619',
-                    '621','622','623','624','625','626','627','628','629']
+  // Halopesa (TTCL): 062x
+  const HALO_PFX = [
+    '620','621','622','623','624','625','626','627','628','629',
+  ]
 
-  if (MPESA.includes(prefix))    return 'Mpesa'
-  if (AIRTEL.includes(prefix))   return 'AirtelMoney'
-  if (TIGOPESA.includes(prefix)) return 'Tigopesa'
-  if (HALOPESA.includes(prefix)) return 'Halopesa'
+  if (MPESA_PFX.includes(prefix3))  return 'Mpesa'
+  if (AIRTEL_PFX.includes(prefix3)) return 'Airtel'
+  if (TIGO_PFX.includes(prefix3))   return 'Tigo'
+  if (HALO_PFX.includes(prefix3))   return 'Halopesa'
 
-  return 'Mpesa'
+  return 'Mpesa'  // safe default
 }
 
 export function generateExternalId(prefix = 'NYF'): string {
@@ -246,16 +292,13 @@ export function formatTZS(amount: number): string {
   return `TZS ${amount.toLocaleString('en-TZ')}`
 }
 
-// Builds a callback URL with an embedded secret so webhooks can be authenticated.
-// Usage: buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/subscription/webhook')
+// Internal webhook authentication via URL secret (guards our endpoints from arbitrary POSTs)
 export function buildCallbackUrl(origin: string, path: string): string {
   const secret = process.env.WEBHOOK_SECRET
   if (!secret) throw new Error('WEBHOOK_SECRET haipo kwenye mazingira')
   return `${process.env.NEXT_PUBLIC_APP_URL ?? origin}${path}?whsec=${encodeURIComponent(secret)}`
 }
 
-// Call this at the top of every webhook handler to reject unauthenticated requests.
-// Uses constant-time comparison to prevent timing-attack secret brute-force.
 export function verifyWebhookSecret(req: { nextUrl: { searchParams: { get: (k: string) => string | null } } }): boolean {
   const expected = process.env.WEBHOOK_SECRET
   const received = req.nextUrl.searchParams.get('whsec')

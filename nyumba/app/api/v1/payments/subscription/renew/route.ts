@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import {
   mobileCheckout, normalizePhone, detectProvider,
-  buildCallbackUrl, generateExternalId, type MobileProvider,
+  generateExternalId, type MobileProvider,
 } from '@/lib/payments/azampay'
 
 const PLAN_PRICES: Record<string, number> = { basic: 10_000, premium: 25_000, enterprise: 50_000 }
@@ -20,8 +20,9 @@ function applyDiscount(price: number, pct: number): number {
 
 function toAzamProvider(p: string): MobileProvider {
   const map: Record<string, MobileProvider> = {
-    mpesa: 'Mpesa', airtel: 'AirtelMoney', tigopesa: 'Tigopesa', halopesa: 'Halopesa',
-    Mpesa: 'Mpesa', AirtelMoney: 'AirtelMoney', Tigopesa: 'Tigopesa', Halopesa: 'Halopesa',
+    mpesa: 'Mpesa', airtel: 'Airtel', tigo: 'Tigo', tigopesa: 'Tigo', halopesa: 'Halopesa', azampesa: 'Azampesa',
+    Mpesa: 'Mpesa', Airtel: 'Airtel', Tigo: 'Tigo', Halopesa: 'Halopesa', Azampesa: 'Azampesa',
+    AirtelMoney: 'Airtel', Tigopesa: 'Tigo',
   }
   return map[p] ?? 'Mpesa'
 }
@@ -107,14 +108,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertError?.message ?? 'Imeshindwa kuanzisha upya' }, { status: 500 })
     }
 
-    const callbackUrl = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/subscription/webhook')
-
     const result = await mobileCheckout({
       accountNumber,
       amount:      finalPrice,
       externalId:  payment_ref,
       provider:    azamProvider,
-      callbackUrl,
     })
 
     if (!result.ok) {

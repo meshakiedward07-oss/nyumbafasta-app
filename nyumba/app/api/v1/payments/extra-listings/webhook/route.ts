@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { isWebhookSuccess, isAmountValid, getExternalId, verifyWebhookSecret, type WebhookPayload } from '@/lib/payments/azampay'
+import { isWebhookSuccess, isAmountValid, getExternalId, verifyWebhookSecret, verifyAzamPaySignature, type WebhookPayload } from '@/lib/payments/azampay'
 
 // externalId format: EX-{subscription_uuid}-{count}
 // e.g. EX-be7353b5-5b5b-4a77-9e4e-e76b8bc02cfa-3
@@ -24,6 +24,12 @@ export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text()
     const payload: WebhookPayload = JSON.parse(rawBody)
+
+    if (!(await verifyAzamPaySignature(payload))) {
+      console.warn('[ExtraListings Webhook] RSA signature invalid — rejecting')
+      return NextResponse.json({ received: true })
+    }
+
     const externalId = getExternalId(payload)
     const succeeded  = isWebhookSuccess(payload)
 
