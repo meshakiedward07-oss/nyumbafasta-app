@@ -105,6 +105,7 @@ export async function POST(req: NextRequest) {
       amount,
       externalId:  payment_ref,
       provider:    azamProvider,
+      description: `Boost listing wiki ${weeks} — NyumbaFasta`,
     })
 
     if (!result.ok) {

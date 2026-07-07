@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
       amount:      finalPrice,
       externalId:  payment_ref,
       provider:    azamProvider,
+      description: `Renew subscription ${plan} — NyumbaFasta`,
     })
 
     if (!result.ok) {

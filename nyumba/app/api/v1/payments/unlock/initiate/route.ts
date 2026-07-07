@@ -185,6 +185,7 @@ export async function POST(req: NextRequest) {
       amount:      UNLOCK_AMOUNT,
       externalId:  payment_ref,
       provider:    azamProvider,
+      description: 'Fungua contact ya dalali — NyumbaFasta',
     })
 
     if (!result.ok) {

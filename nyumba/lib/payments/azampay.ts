@@ -125,6 +125,7 @@ export interface MobileCheckoutParams {
   currency?:     string
   externalId:    string
   provider:      MobileProvider
+  description?:  string  // shown in USSD push message to customer
 }
 
 export interface AzamPayResult {
@@ -145,13 +146,18 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
 
     const token = await getAuthToken()
 
-    // Fields must match AzamPay CheckoutRequest schema exactly
+    // Fields per AzamPay CheckoutRequest schema.
+    // additionalProperties lets AzamPay show merchant name in the USSD push prompt.
     const checkoutPayload = {
       accountNumber: params.accountNumber,
       amount:        params.amount,
       currency:      params.currency ?? 'TZS',
       externalId:    params.externalId,
       provider:      params.provider,
+      additionalProperties: {
+        productName:        'NyumbaFasta',
+        productDescription: params.description ?? 'Malipo ya NyumbaFasta',
+      },
     }
 
     const res = await fetch(CHECKOUT_URL, {

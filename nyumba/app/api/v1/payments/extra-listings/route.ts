@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
       amount,
       externalId:  payment_ref,
       provider:    azamProvider,
+      description: `Listings za ziada x${count} — NyumbaFasta`,
     })
 
     if (!result.ok) {
