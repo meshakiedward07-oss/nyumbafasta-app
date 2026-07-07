@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { mobileCheckout, normalizePhone, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
 import { rateLimit } from '@/lib/security/rateLimit'
+import { getPricing } from '@/lib/config/pricing'
 
 export const maxDuration = 30
 
-const PRICES: Record<number, number> = { 1: 5_000, 2: 9_000, 4: 16_000 }
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
 function toAzamProvider(p: string): MobileProvider {
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
 
     const { listing_id, weeks, msisdn, provider = 'mpesa' } = await req.json()
 
+    const PRICES = (await getPricing()).boost as Record<number, number>
     if (!listing_id) return NextResponse.json({ error: 'listing_id inahitajika' }, { status: 400 })
     if (!PRICES[weeks]) return NextResponse.json({ error: 'Wiki si sahihi (1, 2, au 4)' }, { status: 400 })
     if (!msisdn) return NextResponse.json({ error: 'msisdn inahitajika' }, { status: 400 })

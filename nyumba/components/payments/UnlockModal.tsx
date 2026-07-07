@@ -37,7 +37,6 @@ type Props = {
 
 const TIMEOUT_SECS          = 240
 const CONTACT_FETCH_TIMEOUT = 10_000
-const UNLOCK_AMOUNT         = 2000
 const RESEND_AFTER_SECS     = 70  // show resend button after 70s
 
 async function getContactNumber(listingId: string): Promise<string> {
@@ -103,6 +102,11 @@ export default function UnlockModal({
   onClose, onUnlocked,
 }: Props) {
   const supabase = createClient()
+
+  const [UNLOCK_AMOUNT, setUnlockAmount] = useState(2000)
+  useEffect(() => {
+    fetch('/api/v1/pricing').then(r => r.json()).then(p => setUnlockAmount(p.unlock ?? 2000)).catch(() => {})
+  }, [])
 
   const [step, setStep]           = useState<ModalStep>('select')
   const [provider, setProvider]   = useState<PaymentProvider>('Mpesa')
@@ -288,7 +292,7 @@ export default function UnlockModal({
                 <p className="text-xs font-semibold text-gray-800 truncate">{dalaliName}</p>
                 <p className="text-xs text-gray-400 truncate">{listingTitle}</p>
               </div>
-              <p className="text-primary-600 font-bold text-sm flex-shrink-0">Tsh 2,000</p>
+              <p className="text-primary-600 font-bold text-sm flex-shrink-0">Tsh {UNLOCK_AMOUNT.toLocaleString()}</p>
             </div>
 
             {error && (

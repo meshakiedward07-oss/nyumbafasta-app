@@ -4,8 +4,7 @@ import {
   mobileCheckout, normalizePhone, detectProvider,
   generateExternalId, type MobileProvider,
 } from '@/lib/payments/azampay'
-
-const PLAN_PRICES: Record<string, number> = { basic: 10_000, premium: 25_000, enterprise: 50_000 }
+import { getPricing } from '@/lib/config/pricing'
 
 function getLoyaltyDiscount(months: number): number {
   if (months >= 12) return 20
@@ -59,7 +58,9 @@ export async function POST(req: NextRequest) {
       .in('status', ['active', 'expired', 'grace_period'])
 
     const discount   = getLoyaltyDiscount(completedMonths ?? 0)
-    const basePrice  = PLAN_PRICES[plan]
+    const planPrices = (await getPricing()).subscription
+    const basePrice  = (planPrices as Record<string, number>)[plan]
+    if (!basePrice) return NextResponse.json({ error: 'Plan haijulikani' }, { status: 400 })
     const finalPrice = applyDiscount(basePrice, discount)
 
     // Get current subscription to calculate correct start date

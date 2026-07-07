@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { mobileCheckout, normalizePhone, detectProvider, type MobileProvider } from '@/lib/payments/azampay'
+import { getPricing } from '@/lib/config/pricing'
 
 export const maxDuration = 30
 
-const PRICE_PER_EXTRA = 2_000
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
 function toAzamProvider(p: string): MobileProvider {
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { count, msisdn, provider = 'mpesa' } = await req.json()
+    const PRICE_PER_EXTRA = (await getPricing()).extraListing
     if (!count || count < 1 || count > 20) {
       return NextResponse.json({ error: 'count lazima iwe kati ya 1 na 20' }, { status: 400 })
     }

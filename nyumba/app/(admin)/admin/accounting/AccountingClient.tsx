@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import PricingSettings from '@/components/admin/PricingSettings'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function getCurrentMonth() {
@@ -316,7 +317,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
 export default function AccountingClient() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth())
   const [monthOptions,  setMonthOptions]  = useState<{ value: string; label: string }[]>([])
-  const [tab,       setTab]       = useState<'overview' | 'mapato' | 'matumizi' | 'miamala'>('overview')
+  const [tab,       setTab]       = useState<'overview' | 'mapato' | 'matumizi' | 'miamala' | 'bei'>('overview')
   const [summary,   setSummary]   = useState<FinancialSummary | null>(null)
   const [incRecords, setIncRecords] = useState<IncomeRecord[]>([])
   const [expRecords, setExpRecords] = useState<ExpenseRecord[]>([])
@@ -675,6 +676,7 @@ ON CONFLICT DO NOTHING;`}</pre>
           { key: 'mapato',    label: 'Mapato',    icon: 'trending-up' },
           { key: 'matumizi',  label: 'Matumizi',  icon: 'trending-down' },
           { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
+          { key: 'bei',       label: 'Bei',        icon: 'tag' },
         ] as { key: typeof tab; label: string; icon: string }[]).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
@@ -1050,6 +1052,10 @@ ON CONFLICT DO NOTHING;`}</pre>
             )}
           </>
         )}
+
+        {/* ══ TAB: BEI (Pricing Settings) ═══════════════════════════════ */}
+        {tab === 'bei' && <PricingSettings />}
+
       </div>
 
       {/* ── Add Expense Modal ── */}

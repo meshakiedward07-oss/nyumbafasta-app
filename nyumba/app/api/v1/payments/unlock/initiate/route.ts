@@ -3,10 +3,9 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
 import { sendPushToUser } from '@/lib/notifications/send'
 import { rateLimit } from '@/lib/security/rateLimit'
+import { getPricing } from '@/lib/config/pricing'
 
 export const maxDuration = 30
-
-const UNLOCK_AMOUNT = 2000
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
 function toAzamProvider(p: string): MobileProvider {
@@ -21,6 +20,7 @@ function toAzamProvider(p: string): MobileProvider {
 export async function POST(req: NextRequest) {
   try {
     const { listing_id, msisdn, provider = 'mpesa' } = await req.json()
+    const UNLOCK_AMOUNT = (await getPricing()).unlock
 
     if (!listing_id) {
       return NextResponse.json({ error: 'listing_id inahitajika' }, { status: 400 })

@@ -104,6 +104,10 @@ type Props = {
 export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlockId, unlockCreatedAt, hasReviewed, reviews, whatsappNumber: initialWhatsappNumber, agentProfileUrl }: Props) {
   const router = useRouter()
   const [activeImg, setActiveImg] = useState(0)
+  const [unlockPrice, setUnlockPrice] = useState(2000)
+  useEffect(() => {
+    fetch('/api/v1/pricing').then(r => r.json()).then(p => setUnlockPrice(p.unlock ?? 2000)).catch(() => {})
+  }, [])
 
   // Track in localStorage for guests
   useEffect(() => {
@@ -628,7 +632,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               }}
               className="btn-primary w-full py-3.5 text-sm"
             >
-              <i className="ti ti-lock-open" aria-hidden="true" /> Pata Nambari ya WhatsApp – Tsh 2,000
+              <i className="ti ti-lock-open" aria-hidden="true" /> Pata Nambari ya WhatsApp – Tsh {unlockPrice.toLocaleString()}
             </button>
             <p className="text-center text-xs text-gray-400 mt-1.5">
               Lipa mara moja kupata nambari ya dalali

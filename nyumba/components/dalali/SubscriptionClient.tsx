@@ -56,6 +56,23 @@ export default function SubscriptionClient({
 }: Props) {
   const router = useRouter()
 
+  // Live pricing from DB — overrides static defaults when available
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({
+    basic: 10_000, premium: 25_000, enterprise: 50_000,
+  })
+  useEffect(() => {
+    fetch('/api/v1/pricing').then(r => r.json()).then(p => {
+      if (p?.subscription) setLivePrices(p.subscription as Record<string, number>)
+    }).catch(() => {})
+  }, [])
+
+  // Override plan.price with live prices before rendering
+  const plans = SUBSCRIPTION_PLANS.map(p => ({
+    ...p,
+    price:             livePrices[p.id] ?? p.price,
+    extraListingPrice: livePrices.extraListing ?? p.extraListingPrice,
+  }))
+
   const [selectedPlan, setSelectedPlan] = useState<PlanType>(
     (currentPlan as PlanType) ?? 'basic'
   )
@@ -139,7 +156,7 @@ export default function SubscriptionClient({
   const isOnTrial     = !!(isTrial && isActive)
   const currentPlanData = getPlan(currentPlan)
   const renewPrice  = currentPlan && !isFree
-    ? applyDiscount(currentPlanData.price, discount)
+    ? applyDiscount(livePrices[currentPlan] ?? currentPlanData.price, discount)
     : 0
 
   // Open phone-collection step for renewal (replaces old one-tap mock renewal)
@@ -488,7 +505,7 @@ export default function SubscriptionClient({
 
           <p className="text-sm font-bold text-gray-800">Chagua Plan Yako</p>
 
-          {SUBSCRIPTION_PLANS.map(plan => {
+          {plans.map(plan => {
             const isCurrent = currentPlan === plan.id
             const isPaid    = plan.price > 0
             const isSelected = selectedPlan === plan.id
@@ -637,7 +654,7 @@ export default function SubscriptionClient({
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-700">
             <p className="font-semibold mb-1 flex items-center gap-1"><i className="ti ti-bulb" aria-hidden="true" />Unajua?</p>
             <p className="text-xs">
-              Madalali wa Premium wanapata leads mara 3 zaidi kuliko Free tier. Jaribu Basic kwanza — Tsh 10,000/mwezi tu.
+              Madalali wa Premium wanapata leads mara 3 zaidi kuliko Free tier. Jaribu Basic kwanza — Tsh {livePrices.basic?.toLocaleString() ?? '10,000'}/mwezi tu.
             </p>
           </div>
 
@@ -720,7 +737,7 @@ export default function SubscriptionClient({
                 onClick={() => { setSelectedPlan('basic'); setStep('new_plan') }}
                 className="w-full py-3 rounded-2xl text-sm font-semibold active:scale-[0.97] transition-all text-white bg-green-600"
               >
-                <i className="ti ti-rocket" aria-hidden="true" /> Upgrade Sasa — Tangu Tsh 10,000/mwezi
+                <i className="ti ti-rocket" aria-hidden="true" /> Upgrade Sasa — Tangu Tsh {livePrices.basic?.toLocaleString() ?? '10,000'}/mwezi
               </button>
             </div>
           )}
@@ -837,7 +854,7 @@ export default function SubscriptionClient({
                   <i className="ti ti-rocket text-xl" aria-hidden="true" />
                   <div className="text-left">
                     <p className="text-sm font-semibold text-gray-900">Panda Daraja — Basic</p>
-                    <p className="text-xs text-gray-500">Tsh 10,000/mwezi — listings 5</p>
+                    <p className="text-xs text-gray-500">Tsh {livePrices.basic?.toLocaleString() ?? '10,000'}/mwezi — listings 5</p>
                   </div>
                 </div>
                 <span className="text-primary-500 font-bold">→</span>
@@ -851,7 +868,7 @@ export default function SubscriptionClient({
                   <span className="text-xl">⬆️</span>
                   <div className="text-left">
                     <p className="text-sm font-semibold text-gray-900">Panda Daraja — Enterprise</p>
-                    <p className="text-xs text-gray-500">Tsh {fmt(applyDiscount(50_000, discount))}/mwezi — listings 50{discount > 0 ? ` (-${discount}%)` : ''}</p>
+                    <p className="text-xs text-gray-500">Tsh {fmt(applyDiscount(livePrices.enterprise ?? 50_000, discount))}/mwezi — listings 50{discount > 0 ? ` (-${discount}%)` : ''}</p>
                   </div>
                 </div>
                 <span className="text-purple-500 font-bold">→</span>
@@ -865,7 +882,7 @@ export default function SubscriptionClient({
                   <span className="text-xl">⬆️</span>
                   <div className="text-left">
                     <p className="text-sm font-semibold text-gray-900">Panda Daraja — Premium</p>
-                    <p className="text-xs text-gray-500">Tsh {fmt(applyDiscount(25_000, discount))}/mwezi{discount > 0 ? ` (-${discount}%)` : ''}</p>
+                    <p className="text-xs text-gray-500">Tsh {fmt(applyDiscount(livePrices.premium ?? 25_000, discount))}/mwezi{discount > 0 ? ` (-${discount}%)` : ''}</p>
                   </div>
                 </div>
                 <span className="text-amber-500 font-bold">→</span>

@@ -60,6 +60,11 @@ function formatPrice(amount: number): string {
 export default function DashboardClient({ dalaliName, username, profile, subscription, listings, stats }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [basicPrice, setBasicPrice] = useState(10_000)
+  useEffect(() => {
+    fetch('/api/v1/pricing').then(r => r.json()).then(p => setBasicPrice(p?.subscription?.basic ?? 10_000)).catch(() => {})
+  }, [])
+
   const [welcomeDismissed, setWelcomeDismissed] = useState(false)
   const showWelcome = searchParams.get('welcome') === 'true' && !welcomeDismissed
 
@@ -208,7 +213,7 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
                              bg-white text-primary-600 font-bold text-sm active:scale-[0.97] transition-all"
                 >
-                  <i className="ti ti-credit-card" aria-hidden="true" /> Endelea na Subscription — Tsh 10,000/mwezi
+                  <i className="ti ti-credit-card" aria-hidden="true" /> Endelea na Subscription — Tsh {basicPrice.toLocaleString()}/mwezi
                 </Link>
               </div>
             )
@@ -309,7 +314,7 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
                     </p>
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-bold">
-                      <i className="ti ti-rocket" aria-hidden="true" /> Upgrade Sasa — Tsh 10,000/mwezi
+                      <i className="ti ti-rocket" aria-hidden="true" /> Upgrade Sasa — Tsh {basicPrice.toLocaleString()}/mwezi
                     </Link>
                   </div>
                 )}
@@ -326,7 +331,7 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-xs font-bold"
                       style={{ backgroundColor: planData.color }}>
-                      <i className="ti ti-star-filled" aria-hidden="true" /> Upgrade kwenda Basic — Tsh 10,000/mwezi
+                      <i className="ti ti-star-filled" aria-hidden="true" /> Upgrade kwenda Basic — Tsh {basicPrice.toLocaleString()}/mwezi
                     </Link>
                   </div>
                 )}

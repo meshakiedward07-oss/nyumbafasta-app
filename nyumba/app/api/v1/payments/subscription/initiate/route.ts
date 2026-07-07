@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
 import { rateLimit } from '@/lib/security/rateLimit'
+import { getPricing } from '@/lib/config/pricing'
 
 export const maxDuration = 30
 
-const PLAN_PRICES: Record<string, number> = { basic: 10_000, premium: 25_000, enterprise: 50_000 }
 const PLAN_DURATION_DAYS = 30
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
@@ -43,13 +43,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Plan si sahihi' }, { status: 400 })
     }
 
-    const amount  = PLAN_PRICES[plan]
+    const planPrices = (await getPricing()).subscription
+    const amount     = (planPrices as Record<string, number>)[plan]
+    if (!amount) return NextResponse.json({ error: 'Plan haijulikani' }, { status: 400 })
     const admin   = createAdminClient()
     const payment_ref = generateExternalId('SUB')
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + PLAN_DURATION_DAYS)
 
     // ── Dev / mock mode: activate immediately ─────────────
+    // (amount already resolved from live pricing above)
     if (IS_MOCK) {
       const { data: subscription, error: insertError } = await admin
         .from('subscriptions')
