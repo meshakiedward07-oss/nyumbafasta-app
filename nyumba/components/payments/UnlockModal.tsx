@@ -7,7 +7,7 @@ import { detectProvider } from '@/lib/payments/azampay'
 import type { PaymentMethod as PaymentProvider } from '@/components/payments/PaymentMethodSelector'
 import { buildContactWhatsAppMessage } from '@/lib/utils/whatsappTemplates'
 
-// ── Provider config (keyed for quick lookup) ──────────────
+// ── Provider config ────────────────────────────────────────
 const PROVIDERS = Object.fromEntries(
   PAYMENT_METHODS.map(m => [m.id, {
     name:     m.name,
@@ -19,47 +19,56 @@ const PROVIDERS = Object.fromEntries(
     btnColor: m.color,
     type:     m.type,
   }])
-) as Record<PaymentProvider, { name: string; badge: string; hint: string; iconSrc: string; iconAlt: string; iconChar?: string; btnColor: string; type: 'mobile' }>
+) as Record<PaymentProvider, {
+  name: string; badge: string; hint: string; iconSrc: string;
+  iconAlt: string; iconChar?: string; btnColor: string; type: 'mobile'
+}>
 
-// ── Types ─────────────────────────────────────────────────
-type ModalStep = 'select' | 'phone' | 'waiting' | 'wallet-confirm' | 'success' | 'failed'
-
-type Props = {
-  listingId: string
-  dalaliName: string
-  listingTitle: string
-  listingPrice: number
-  listingLocation: string
-  listingBedrooms?: number
-  onClose: () => void
-  onUnlocked: (whatsappNumber: string) => void
+// USSD codes shown in "how to confirm" section per provider
+const USSD_CODES: Record<PaymentProvider, string> = {
+  Mpesa:    '*150*00#',
+  Airtel:   '*100#',
+  Tigo:     '*150*00#',
+  Halopesa: '*160*00#',
+  Azampesa: '*150*00#',
 }
 
-// Fetch the dalali number only after the server confirms a completed unlock.
-// Returns empty string on any error so callers never see an exception.
+// ── Types ─────────────────────────────────────────────────
+type ModalStep = 'select' | 'phone' | 'waiting' | 'success' | 'failed'
+
+// 3-stage progress during USSD wait
+type UssdStage = 'sent' | 'confirm' | 'processing'
+
+type Props = {
+  listingId:        string
+  dalaliName:       string
+  listingTitle:     string
+  listingPrice:     number
+  listingLocation:  string
+  listingBedrooms?: number
+  onClose:          () => void
+  onUnlocked:       (whatsappNumber: string) => void
+}
+
 async function getContactNumber(listingId: string): Promise<string> {
   try {
     const res = await fetch(`/api/v1/listings/${listingId}/contact`)
     if (!res.ok) return ''
     const json = await res.json() as { whatsapp_number?: string | null }
     return json.whatsapp_number ?? ''
-  } catch {
-    return ''
-  }
+  } catch { return '' }
 }
 
-const POLL_INTERVAL_MS      = 3000
 const TIMEOUT_SECS          = 240
 const CONTACT_FETCH_TIMEOUT = 10_000
 const UNLOCK_AMOUNT         = 2000
+// Seconds after which "Sikupata ombi" resend button appears
+const RESEND_AFTER_SECS     = 60
 
-// Normalise any phone input → 255XXXXXXXXX (9 subscriber digits)
 function normalisePhone(raw: string): { normalized: string; valid: boolean } {
-  const digits = raw.replace(/\D/g, '')
-  // Strip any leading country code (255) or leading zero
+  const digits   = raw.replace(/\D/g, '')
   const stripped = digits.replace(/^(255|0)/, '')
-  const normalized = `255${stripped}`
-  return { normalized, valid: stripped.length === 9 }
+  return { normalized: `255${stripped}`, valid: stripped.length === 9 }
 }
 
 export default function UnlockModal({
@@ -68,192 +77,166 @@ export default function UnlockModal({
 }: Props) {
   const supabase = createClient()
 
-  const [step, setStep]               = useState<ModalStep>('select')
-  const [provider, setProvider]       = useState<PaymentProvider>('Mpesa')
-  const [phone, setPhone]             = useState('')
-  const [loading, setLoading]               = useState(false)
-  const [error, setError]                   = useState('')
+  const [step, setStep]           = useState<ModalStep>('select')
+  const [provider, setProvider]   = useState<PaymentProvider>('Mpesa')
+  const [phone, setPhone]         = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
   const [secondsLeft, setSecondsLeft]       = useState(TIMEOUT_SECS)
-  const [contactPhone, setContactPhone]     = useState<string | null>(null)
+  const [secondsSinceSent, setSecondsSinceSent] = useState(0)
+  const [ussdStage, setUssdStage] = useState<UssdStage>('sent')
+  const [contactPhone, setContactPhone]       = useState<string | null>(null)
   const [contactTimedOut, setContactTimedOut] = useState(false)
-  const [walletBalance, setWalletBalance]   = useState<number | null>(null)
   const userChoseProvider = useRef(false)
 
-  const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const timerRef    = useRef<ReturnType<typeof setInterval> | null>(null)
+  const sentTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Supabase realtime channel
+  const channelRef  = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
-  // Derived only after payment confirmed — null until then
   const waPhone = contactPhone?.replace(/\D/g, '').replace(/^0/, '255') ?? null
   const waMessage = buildContactWhatsAppMessage({
-    dalaliName,
-    listingTitle,
-    listingLocation,
-    listingPrice,
-    listingId,
+    dalaliName, listingTitle, listingLocation, listingPrice, listingId,
     bedrooms: listingBedrooms,
   })
   const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
 
-  // ── Timeout fallback when contact fetch hangs after success ─
+  // ── Contact fetch timeout (shown after success if number slow) ─
   useEffect(() => {
     if (step !== 'success' || contactPhone !== null) return
     const t = setTimeout(() => setContactTimedOut(true), CONTACT_FETCH_TIMEOUT)
     return () => clearTimeout(t)
   }, [step, contactPhone])
 
-  // ── Block Android back-gesture during payment ─────────────
+  // ── Block Android back gesture during payment ──────────────
   useEffect(() => {
     if (step !== 'waiting') return
     history.pushState(null, '', window.location.href)
-    function handlePop() {
-      history.pushState(null, '', window.location.href)
-    }
-    window.addEventListener('popstate', handlePop)
-    return () => window.removeEventListener('popstate', handlePop)
+    const handle = () => history.pushState(null, '', window.location.href)
+    window.addEventListener('popstate', handle)
+    return () => window.removeEventListener('popstate', handle)
   }, [step])
 
-  // ── Stop timers ──────────────────────────────────────────
-  const stopPolling = useCallback(() => {
-    if (pollRef.current)  clearInterval(pollRef.current)
-    if (timerRef.current) clearInterval(timerRef.current)
+  // ── Cleanup timers + channel on unmount ───────────────────
+  const stopAll = useCallback(() => {
+    if (timerRef.current)     clearInterval(timerRef.current)
+    if (sentTimerRef.current) clearInterval(sentTimerRef.current)
+    if (channelRef.current) {
+      channelRef.current.unsubscribe()
+      channelRef.current = null
+    }
   }, [])
+  useEffect(() => () => stopAll(), [stopAll])
 
-  // ── Fetch wallet balance on mount ────────────────────────
+  // ── Handle unlock confirmed / failed ──────────────────────
+  const handleConfirmed = useCallback(async () => {
+    stopAll()
+    const number = await getContactNumber(listingId)
+    setContactPhone(number || null)
+    onUnlocked(number)
+    setStep('success')
+  }, [stopAll, listingId, onUnlocked])
+
+  const handleFailed = useCallback((msg: string) => {
+    stopAll()
+    setError(msg)
+    setStep('failed')
+  }, [stopAll])
+
+  // ── Countdown + USSD stage progression ──────────────────
   useEffect(() => {
-    fetch('/api/v1/wallet')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.balance != null) setWalletBalance(d.balance) })
-      .catch(() => {})
-  }, [])
+    if (step !== 'waiting') return
 
-  // ── Wallet payment (instant — no USSD) ───────────────────
-  async function handleWalletPay() {
+    // Main countdown
+    timerRef.current = setInterval(() => {
+      setSecondsLeft(s => {
+        if (s <= 1) { handleFailed('Muda umeisha. Jaribu tena.'); return 0 }
+        return s - 1
+      })
+    }, 1000)
+
+    // Seconds since sent (for resend button + stage progression)
+    sentTimerRef.current = setInterval(() => {
+      setSecondsSinceSent(s => {
+        const next = s + 1
+        // Stage: 0–20s = sent, 20–80s = confirm, 80s+ = processing
+        if (next === 20) setUssdStage('confirm')
+        if (next === 80) setUssdStage('processing')
+        return next
+      })
+    }, 1000)
+
+    return () => {
+      if (timerRef.current)     clearInterval(timerRef.current)
+      if (sentTimerRef.current) clearInterval(sentTimerRef.current)
+    }
+  }, [step, handleFailed])
+
+  // ── Supabase Realtime subscription for unlock status ──────
+  const subscribeRealtime = useCallback((id: string) => {
+    channelRef.current = supabase
+      .channel(`unlock:${id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'contact_unlocks', filter: `id=eq.${id}` },
+        payload => {
+          const status = (payload.new as { status?: string }).status
+          if (status === 'completed') handleConfirmed()
+          else if (status === 'failed') handleFailed('Malipo hayakufanikiwa. Jaribu tena.')
+        },
+      )
+      .subscribe()
+  }, [supabase, handleConfirmed, handleFailed])
+
+  // ── Initiate USSD push ────────────────────────────────────
+  async function handleMobilePay(e: React.FormEvent) {
+    e.preventDefault()
     setError('')
+    const { normalized, valid } = normalisePhone(phone)
+    if (!valid) { setError('Namba ya simu si sahihi. Mfano: 0744 123 456'); return }
+
     setLoading(true)
     try {
-      const res  = await fetch('/api/v1/wallet/pay', {
+      const res = await fetch('/api/v1/payments/unlock/initiate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ type: 'unlock', listing_id: listingId }),
+        body:    JSON.stringify({ listing_id: listingId, msisdn: normalized, provider }),
       })
       const data = await res.json()
+
       if (!res.ok) {
-        if (data.already_unlocked) {
-          const number = await getContactNumber(listingId)
-          setContactPhone(number || null)
-          onUnlocked(number)
-          setStep('success')
-          return
-        }
-        throw new Error(data.error ?? 'Imeshindwa kulipa kwa wallet')
+        if (data.already_unlocked) { await handleConfirmed(); return }
+        throw new Error(data.error ?? 'Imeshindwa kuanzisha malipo')
       }
-      // Update local balance
-      if (data.wallet_balance != null) setWalletBalance(data.wallet_balance)
-      const number = await getContactNumber(listingId)
-      setContactPhone(number || null)
-      onUnlocked(number)
-      setStep('success')
+
+      if (data.mock) { await handleConfirmed(); return }
+
+      setSecondsSinceSent(0)
+      setUssdStage('sent')
+      setSecondsLeft(TIMEOUT_SECS)
+      setStep('waiting')
+      subscribeRealtime(data.unlock_id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
-      setStep('failed')
     } finally {
       setLoading(false)
     }
   }
 
-  // ── Countdown timer ──────────────────────────────────────
-  useEffect(() => {
-    if (step !== 'waiting') return
-    timerRef.current = setInterval(() => {
-      setSecondsLeft(s => {
-        if (s <= 1) {
-          stopPolling()
-          setStep('failed')
-          setError('Muda umeisha. Jaribu tena.')
-          return 0
-        }
-        return s - 1
-      })
-    }, 1000)
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [step, stopPolling])
+  // ── Resend: re-initiate same listing with same phone ──────
+  async function handleResend() {
+    if (!phone) return
+    setSecondsSinceSent(0)
+    setUssdStage('sent')
 
-  // ── Poll Supabase for unlock status ──────────────────────
-  const startPolling = useCallback((id: string) => {
-    pollRef.current = setInterval(async () => {
-      const { data } = await supabase
-        .from('contact_unlocks')
-        .select('status')
-        .eq('id', id)
-        .single()
-
-      if (data?.status === 'completed') {
-        stopPolling()
-        const number = await getContactNumber(listingId)
-        setContactPhone(number || null)
-        onUnlocked(number)
-        setStep('success')
-      } else if (data?.status === 'failed') {
-        stopPolling()
-        setStep('failed')
-        setError('Malipo hayakufanikiwa. Jaribu tena.')
-      }
-    }, POLL_INTERVAL_MS)
-  }, [supabase, stopPolling, listingId, onUnlocked])
-
-  useEffect(() => { return () => stopPolling() }, [stopPolling])
-
-  // ── Initiate mobile payment ───────────────────────────────
-  async function handleMobilePay(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-
-    const { normalized, valid } = normalisePhone(phone)
-    if (!valid) {
-      setError('Namba ya simu si sahihi. Mfano: 0744 123 456')
-      return
-    }
-
-    setLoading(true)
+    const { normalized } = normalisePhone(phone)
     try {
-      const res = await fetch('/api/v1/payments/unlock/initiate', {
-        method: 'POST',
+      await fetch('/api/v1/payments/unlock/initiate', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          listing_id: listingId,
-          msisdn: normalized,
-          provider,
-        }),
+        body:    JSON.stringify({ listing_id: listingId, msisdn: normalized, provider }),
       })
-      const data = await res.json()
-
-      if (!res.ok) {
-        if (data.already_unlocked) {
-          const number = await getContactNumber(listingId)
-          setContactPhone(number || null)
-          onUnlocked(number)
-          setStep('success')
-          return
-        }
-        throw new Error(data.error ?? 'Imeshindwa kuanzisha malipo')
-      }
-
-      if (data.mock) {
-        const number = await getContactNumber(listingId)
-        setContactPhone(number || null)
-        onUnlocked(number)
-        setStep('success')
-        return
-      }
-
-      setSecondsLeft(TIMEOUT_SECS)
-      setStep('waiting')
-      startPolling(data.unlock_id)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
-    } finally {
-      setLoading(false)
-    }
+    } catch { /* ignore — old channel still polling */ }
   }
 
   function handleSelectorPay(method: PaymentProvider) {
@@ -272,19 +255,26 @@ export default function UnlockModal({
   }
 
   function handleRetry() {
+    stopAll()
     userChoseProvider.current = false
     setStep('select')
     setError('')
     setPhone('')
     setSecondsLeft(TIMEOUT_SECS)
-    stopPolling()
+    setSecondsSinceSent(0)
+    setUssdStage('sent')
   }
 
-  const progressPct = ((TIMEOUT_SECS - secondsLeft) / TIMEOUT_SECS) * 100
   const pInfo = PROVIDERS[provider]
-
-  // Display phone in waiting step (strip leading digits to show local form)
   const displayPhone = phone.replace(/^(255|0)/, '').replace(/^/, '0')
+  const progressPct  = ((TIMEOUT_SECS - secondsLeft) / TIMEOUT_SECS) * 100
+
+  const STAGES: { key: UssdStage; label: string }[] = [
+    { key: 'sent',       label: 'Ombi Limetumwa' },
+    { key: 'confirm',    label: 'Ingiza PIN' },
+    { key: 'processing', label: 'Inathibitishwa' },
+  ]
+  const stageIndex = STAGES.findIndex(s => s.key === ussdStage)
 
   return (
     <div
@@ -303,11 +293,11 @@ export default function UnlockModal({
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
         </div>
 
-        {/* ── STEP: Provider selection ── */}
+        {/* ── SELECT ── */}
         {step === 'select' && (
           <div className="px-5 pt-1 pb-2">
             <h2 className="text-base font-bold text-gray-900 text-center mb-0.5">
-              <i className="ti ti-lock-open" aria-hidden="true" /> Fungua Contact ya Dalali
+              Fungua Contact ya Dalali
             </h2>
             <p className="text-xs text-gray-400 text-center mb-4">
               Bei: <span className="font-semibold text-gray-700">Tsh {UNLOCK_AMOUNT.toLocaleString()}</span> · Lipa mara moja tu
@@ -324,47 +314,6 @@ export default function UnlockModal({
               <p className="text-primary-600 font-bold text-sm flex-shrink-0">Tsh 2,000</p>
             </div>
 
-            {/* ── Wallet option ── */}
-            {walletBalance !== null && (
-              <div className="mb-4">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                  <i className="ti ti-wallet" aria-hidden="true" /> NyumbaFasta Wallet
-                </p>
-                {walletBalance >= UNLOCK_AMOUNT ? (
-                  <button
-                    onClick={() => setStep('wallet-confirm')}
-                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-primary-400 bg-primary-50 active:scale-[0.97] transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white">
-                        <i className="ti ti-wallet text-sm" aria-hidden="true" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-sm font-semibold text-primary-800">Lipa kwa Wallet</p>
-                        <p className="text-xs text-primary-500">Salio: Tsh {walletBalance.toLocaleString()}</p>
-                      </div>
-                    </div>
-                    <span className="text-xs bg-primary-500 text-white px-2.5 py-1 rounded-full font-semibold">Haraka ⚡</span>
-                  </button>
-                ) : (
-                  <div className="flex items-center justify-between px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
-                        <i className="ti ti-wallet text-sm" aria-hidden="true" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Wallet (Tsh {walletBalance.toLocaleString()})</p>
-                        <p className="text-xs text-gray-400">Salio halitoshi — weka Tsh {(UNLOCK_AMOUNT - walletBalance).toLocaleString()} zaidi</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 my-4">
-                  <div className="flex-1 h-px bg-gray-200" /><span className="text-[10px] text-gray-400 font-medium">AU LIPA KWA MOBILE</span><div className="flex-1 h-px bg-gray-200" />
-                </div>
-              </div>
-            )}
-
             {error && (
               <div className="bg-red-50 border border-red-100 text-red-600 text-xs px-3 py-2.5 rounded-xl mb-4">
                 {error}
@@ -378,77 +327,21 @@ export default function UnlockModal({
               onPay={handleSelectorPay}
             />
 
-            <button
-              onClick={onClose}
-              className="w-full py-3 mt-3 min-h-[44px] text-sm text-gray-400 text-center"
-            >
+            <button onClick={onClose} className="w-full py-3 mt-3 min-h-[44px] text-sm text-gray-400 text-center">
               Ghairi
             </button>
           </div>
         )}
 
-        {/* ── STEP: Wallet confirm ── */}
-        {step === 'wallet-confirm' && (
-          <div className="px-5 pt-2 pb-2">
-            <div className="flex items-center gap-2 mb-5">
-              <button onClick={() => { setStep('select'); setError('') }} aria-label="Rudi nyuma" className="text-gray-400 text-lg p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">←</button>
-              <h2 className="text-base font-bold text-gray-900">Thibitisha Malipo</h2>
-            </div>
-
-            <div className="bg-primary-50 rounded-2xl p-4 mb-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white text-xl">
-                  <i className="ti ti-wallet" aria-hidden="true" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-primary-800">NyumbaFasta Wallet</p>
-                  <p className="text-xs text-primary-500">Salio: Tsh {(walletBalance ?? 0).toLocaleString()}</p>
-                </div>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Kiasi cha kulipa</span>
-                <span className="font-bold text-gray-900">Tsh {UNLOCK_AMOUNT.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm mt-1">
-                <span className="text-gray-600">Salio baada ya kulipa</span>
-                <span className="font-semibold text-gray-700">Tsh {((walletBalance ?? 0) - UNLOCK_AMOUNT).toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-5">
-              <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm flex-shrink-0">
-                {dalaliName[0]}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-800 truncate">{dalaliName}</p>
-                <p className="text-xs text-gray-400 truncate">{listingTitle}</p>
-              </div>
-            </div>
-
-            {error && <div className="bg-red-50 border border-red-100 text-red-600 text-xs px-3 py-2.5 rounded-xl mb-4">{error}</div>}
-
-            <button
-              onClick={handleWalletPay}
-              disabled={loading}
-              className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-2xl text-sm font-semibold mb-2 disabled:opacity-50 active:scale-[0.97] transition-transform shadow-md"
-            >
-              {loading ? 'Inashughulikia...' : `Thibitisha — Lipa Tsh ${UNLOCK_AMOUNT.toLocaleString()}`}
-            </button>
-            <button onClick={() => setStep('select')} className="w-full py-3 min-h-[44px] text-sm text-gray-400 text-center">Ghairi</button>
-          </div>
-        )}
-
-        {/* ── STEP: Phone input ── */}
+        {/* ── PHONE INPUT ── */}
         {step === 'phone' && (
           <div className="px-5 pt-2">
             <div className="flex items-center gap-2 mb-4">
               <button
-                onClick={() => setStep('select')}
+                onClick={() => { setStep('select'); setError('') }}
                 aria-label="Rudi nyuma"
                 className="text-gray-400 text-lg p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
-              >
-                ←
-              </button>
+              >←</button>
               <div className="flex items-center gap-2">
                 {pInfo.iconSrc ? (
                   <Image src={pInfo.iconSrc} alt={pInfo.iconAlt} width={40} height={20} className="h-5 w-auto object-contain" />
@@ -469,7 +362,7 @@ export default function UnlockModal({
             <form onSubmit={handleMobilePay} className="space-y-4">
               <div>
                 <label htmlFor="unlock-phone" className="text-xs text-gray-500 mb-1.5 block">
-                  Nambari ya {pInfo.name}
+                  Namba ya simu ya {pInfo.name}
                 </label>
                 <div className="flex gap-2">
                   <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
@@ -480,6 +373,7 @@ export default function UnlockModal({
                     type="tel"
                     inputMode="numeric"
                     required
+                    autoFocus
                     placeholder={pInfo.hint.split(' ')[0] + ' XXX XXXX'}
                     value={phone}
                     onChange={e => handlePhoneChange(e.target.value)}
@@ -493,102 +387,137 @@ export default function UnlockModal({
                 )}
               </div>
 
+              {/* Per-provider USSD info */}
+              <div className="bg-gray-50 rounded-xl px-3 py-2.5 text-xs text-gray-500 flex items-center gap-2">
+                <i className="ti ti-info-circle text-primary-400 flex-shrink-0" aria-hidden="true" />
+                <span>
+                  Utapata prompt ya USSD <strong>{USSD_CODES[provider]}</strong> kwenye simu.
+                  Ingiza PIN yako ya {pInfo.name} kuthibitisha.
+                </span>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading || normalisePhone(phone).normalized.length !== 12}
                 className="w-full text-white py-3.5 min-h-[48px] rounded-2xl text-sm font-semibold
                            disabled:opacity-50 transition-all active:scale-[0.98]"
                 style={{
-                  backgroundColor: loading || normalisePhone(phone).normalized.length !== 12
-                    ? '#9CA3AF'
-                    : pInfo.btnColor,
+                  backgroundColor:
+                    loading || normalisePhone(phone).normalized.length !== 12
+                      ? '#9CA3AF' : pInfo.btnColor,
                 }}
               >
-                {loading ? 'Inaanzisha...' : `Lipa Tsh ${UNLOCK_AMOUNT.toLocaleString()} na ${pInfo.name}`}
+                {loading
+                  ? 'Inatuma ombi...'
+                  : `Tuma Ombi la USSD — Tsh ${UNLOCK_AMOUNT.toLocaleString()}`}
               </button>
             </form>
 
-            <p className="text-center text-xs text-gray-400 mt-3 mb-1">
-              Utapata ombi la PIN kwenye simu yako
-            </p>
-            <button
-              onClick={() => setStep('select')}
-              className="w-full py-3 min-h-[44px] text-sm text-gray-400 text-center"
-            >
-              ← Badilisha njia ya kulipa
+            <button onClick={() => { setStep('select'); setError('') }} className="w-full py-3 min-h-[44px] text-sm text-gray-400 text-center mt-1">
+              ← Badilisha mtandao
             </button>
           </div>
         )}
 
-        {/* ── STEP: Waiting ── */}
+        {/* ── WAITING ── */}
         {step === 'waiting' && (
-          <div className="px-5 pt-2 text-center">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4 text-xs text-amber-700 font-medium">
-              <i className="ti ti-alert-triangle" aria-hidden="true" /> Usifunge — malipo yanashughulikiwa
+          <div className="px-5 pt-2 pb-2">
+            {/* Stage stepper */}
+            <div className="flex items-center justify-between mb-5">
+              {STAGES.map((s, i) => {
+                const done    = i < stageIndex
+                const current = i === stageIndex
+                return (
+                  <div key={s.key} className="flex-1 flex flex-col items-center gap-1">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500
+                      ${done    ? 'bg-primary-500 text-white'
+                      : current ? 'bg-primary-100 border-2 border-primary-500 text-primary-600'
+                      :           'bg-gray-100 text-gray-400'}`}
+                    >
+                      {done
+                        ? <i className="ti ti-check text-xs" aria-hidden="true" />
+                        : current
+                          ? <span className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-pulse inline-block" />
+                          : i + 1}
+                    </div>
+                    <span className={`text-[9px] font-medium text-center leading-tight
+                      ${current ? 'text-primary-600' : done ? 'text-primary-400' : 'text-gray-400'}`}
+                    >
+                      {s.label}
+                    </span>
+                    {i < STAGES.length - 1 && (
+                      <div className={`absolute left-0 h-0.5 transition-all duration-500 ${done ? 'bg-primary-400' : 'bg-gray-200'}`}
+                        style={{ display: 'none' }} />
+                    )}
+                  </div>
+                )
+              })}
             </div>
-            <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-device-mobile text-primary-500" aria-hidden="true" /></div>
-            <h2 className="text-base font-bold text-gray-900 mb-2">Angalia Simu Yako!</h2>
-            <p className="text-sm text-gray-500 mb-1">
-              Ombi la malipo limetumwa kwa
-              <span className="font-semibold text-gray-700 ml-1">+255{displayPhone.replace(/^0/, '')}</span>
-            </p>
-            <p className="text-sm text-gray-500 mb-4">
-              Ingiza PIN yako ya <span className="font-semibold">{pInfo.name}</span>
-            </p>
 
-            <button
-              onClick={handleRetry}
-              className="text-sm text-primary-600 font-medium py-2 min-h-[44px] mb-3"
+            {/* Phone animation */}
+            <div className="text-center mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 mb-3">
+                <i className="ti ti-device-mobile text-4xl text-primary-500" aria-hidden="true" />
+              </div>
+              <h2 className="text-base font-bold text-gray-900 mb-1">Angalia Simu Yako!</h2>
+              <p className="text-sm text-gray-500">
+                Ombi la <span className="font-semibold">{pInfo.name}</span> limetumwa kwa
+              </p>
+              <p className="text-sm font-bold text-gray-800">+255{displayPhone.replace(/^0/, '')}</p>
+            </div>
+
+            {/* Step-specific message */}
+            <div className={`rounded-xl px-4 py-3 mb-4 text-sm text-center transition-all duration-500
+              ${ussdStage === 'sent'       ? 'bg-blue-50 text-blue-700'
+              : ussdStage === 'confirm'    ? 'bg-amber-50 text-amber-700'
+              :                             'bg-green-50 text-green-700'}`}
             >
-              ← Badilisha njia ya kulipa
-            </button>
+              {ussdStage === 'sent'    && <>Subiri kidogo — USSD prompt inakuja kwenye simu yako (<strong>{USSD_CODES[provider]}</strong>)</>}
+              {ussdStage === 'confirm' && <>Ingiza PIN yako ya <strong>{pInfo.name}</strong> kwenye simu yako ili kuthibitisha Tsh {UNLOCK_AMOUNT.toLocaleString()}</>}
+              {ussdStage === 'processing' && <>Malipo yanashughulikiwa — usifunge dirisha hili</>}
+            </div>
 
-            <div className="bg-gray-100 rounded-full h-2 mb-1.5 overflow-hidden">
+            {/* Progress bar */}
+            <div className="bg-gray-100 rounded-full h-1.5 mb-2 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-1000"
                 style={{ width: `${progressPct}%`, backgroundColor: pInfo.btnColor }}
               />
             </div>
-            <p className="text-xs text-gray-400 mb-5">
-              {secondsLeft < TIMEOUT_SECS * 0.4
-                ? `Bado inashughulikiwa... (${secondsLeft}s)`
-                : `Inasubiri uthibitisho... (${secondsLeft}s)`}
-            </p>
+            <p className="text-xs text-gray-400 text-center mb-4">{secondsLeft}s iliyobaki</p>
 
-            <div className="flex justify-center mb-5">
-              <div
-                className="w-10 h-10 border-2 border-t-transparent rounded-full animate-spin"
-                style={{ borderColor: `${pInfo.btnColor} transparent ${pInfo.btnColor} ${pInfo.btnColor}` }}
-              />
-            </div>
+            {/* Resend button — appears after 60s */}
+            {secondsSinceSent >= RESEND_AFTER_SECS && (
+              <button
+                onClick={handleResend}
+                className="w-full py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium mb-3 active:scale-[0.98] transition-all"
+              >
+                <i className="ti ti-refresh mr-1.5" aria-hidden="true" />
+                Sijapata ombi — Tuma tena
+              </button>
+            )}
 
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-left mb-4">
-              <p className="text-xs font-semibold text-amber-700 mb-2">Jinsi ya kuthibitisha:</p>
-              <div className="space-y-1.5">
-                {[
-                  `Angalia SMS au ombi la USSD kwenye simu`,
-                  `Ingiza PIN yako ya ${pInfo.name}`,
-                  `Thibitisha Tsh ${UNLOCK_AMOUNT.toLocaleString()}`,
-                ].map((step, i) => (
-                  <div key={i} className="flex gap-2 text-xs text-amber-700">
-                    <span className="flex-shrink-0 font-bold">{i + 1}.</span>
-                    <span>{step}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <button
+              onClick={handleRetry}
+              className="w-full py-2 min-h-[44px] text-xs text-gray-400 text-center"
+            >
+              ← Badilisha mtandao au namba
+            </button>
           </div>
         )}
 
-        {/* ── STEP: Success ── */}
+        {/* ── SUCCESS ── */}
         {step === 'success' && (
           <div className="px-5 pt-2 text-center">
-            <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-confetti text-primary-500" aria-hidden="true" /></div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 mb-3">
+              <i className="ti ti-confetti text-4xl text-primary-500" aria-hidden="true" />
+            </div>
             <h2 className="text-base font-bold text-gray-900 mb-1">Umefanikiwa!</h2>
             <p className="text-sm text-gray-500 mb-5">
               Sasa unaweza kuwasiliana na{' '}
               <span className="font-semibold text-gray-800">{dalaliName}</span> moja kwa moja.
             </p>
+
             {waPhone ? (
               <>
                 <div className="grid grid-cols-2 gap-3 mb-3">
@@ -632,18 +561,24 @@ export default function UnlockModal({
                 <span>Inapakia mawasiliano...</span>
               </div>
             )}
+
             <button onClick={onClose} className="w-full py-3 min-h-[44px] text-sm text-gray-400">
               Funga
             </button>
           </div>
         )}
 
-        {/* ── STEP: Failed ── */}
+        {/* ── FAILED ── */}
         {step === 'failed' && (
           <div className="px-5 pt-2 text-center">
-            <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-circle-x text-red-500" aria-hidden="true" /></div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-3">
+              <i className="ti ti-circle-x text-4xl text-red-500" aria-hidden="true" />
+            </div>
             <h2 className="text-base font-bold text-gray-900 mb-2">Malipo Hayakufanikiwa</h2>
-            <p className="text-sm text-red-500 mb-5">{error}</p>
+            <p className="text-sm text-red-500 mb-1">{error}</p>
+            <p className="text-xs text-gray-400 mb-5">
+              Hakikisha una salio la kutosha na mtandao unafanya kazi, kisha jaribu tena.
+            </p>
             <button
               onClick={handleRetry}
               className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold mb-3

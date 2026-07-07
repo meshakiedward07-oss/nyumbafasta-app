@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/shared/BottomNav'
-import WalletCard from '@/components/payments/WalletCard'
 
 type Props = {
   fullName: string
@@ -253,9 +252,6 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             <span className="text-green-500 font-bold text-lg">→</span>
           </Link>
         )}
-
-        {/* ── Wallet ── */}
-        <WalletCard />
 
         {/* ── AKAUNTI section ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
