@@ -188,7 +188,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
     <div className="bg-gray-50">
 
       {/* ── Sticky top: logo + notification + search ── */}
-      <div className="bg-primary-500 sticky top-0 z-20 shadow-sm">
+      <div className="bg-primary-500 sticky top-0 z-20 shadow-sm pt-[env(safe-area-inset-top,0px)]">
         {/* Brand row */}
         <div className="flex items-center justify-between px-3 pt-2 pb-1">
           <div className="relative h-10 w-[52%] sm:w-[40%]">
@@ -213,7 +213,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
               placeholder="Tafuta mtaa, wilaya..."
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white text-base
+              className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-white text-base
                          text-gray-900 placeholder-gray-400 focus:outline-none
                          focus:ring-2 focus:ring-white/50 shadow-sm"
             />
@@ -327,12 +327,12 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             </div>
             <div className="col-span-2">
               <label className="text-xs text-gray-500 mb-1 block">Hali ya samani</label>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {[{ value: '', label: 'Yote' }, { value: 'furnished', label: 'Ina Samani' }, { value: 'semi', label: 'Nusu Samani' }, { value: 'empty', label: 'Bila Samani' }].map(f => (
                   <button
                     key={f.value}
                     onClick={() => applyFilter('furnished', f.value)}
-                    className={`flex-1 text-xs py-1.5 rounded-lg border transition-all
+                    className={`text-xs min-h-[44px] rounded-lg border transition-all flex items-center justify-center
                       ${(filters?.furnished ?? '') === f.value ? 'bg-primary-500 text-white border-primary-500' : 'bg-gray-50 text-gray-600 border-gray-200'}`}
                   >
                     {f.label}
@@ -346,12 +346,12 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
 
       {/* ── Count + view toggle ── */}
       <div className="px-4 mb-3 flex justify-between items-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 truncate min-w-0 mr-2">
           {loading
             ? 'Inatafuta...'
             : `${total} listing${total !== 1 ? 's' : ''}${filters?.region ? ` – ${filters.region}` : ''}`}
         </p>
-        <div className="flex bg-gray-100 rounded-xl p-0.5 gap-0.5">
+        <div className="flex-shrink-0 flex bg-gray-100 rounded-xl p-0.5 gap-0.5">
           <button
             onClick={() => setViewMode('grid')}
             aria-pressed={viewMode === 'grid'}

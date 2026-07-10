@@ -295,7 +295,7 @@ function SortablePhoto({
         transform:   CSS.Transform.toString(transform),
         transition,
         opacity:     isDragging ? 0.45 : 1,
-        touchAction: 'none',
+        touchAction: isDragging ? 'none' : 'manipulation',
       }}
       className="relative aspect-square rounded-xl overflow-hidden bg-gray-100
                  border-2 border-transparent group cursor-grab active:cursor-grabbing"
@@ -341,14 +341,15 @@ function SortablePhoto({
         </div>
       )}
 
-      {/* Remove button */}
+      {/* Remove button — always visible on touch, hover-only on desktop */}
       {photo.status !== 'compressing' && photo.status !== 'uploading' && (
         <button
           type="button"
           onClick={e => { e.stopPropagation(); onRemove() }}
-          className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full
-                     flex items-center justify-center text-white text-[10px]
-                     opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+          className="absolute top-1 right-1 w-7 h-7 bg-black/60 rounded-full
+                     flex items-center justify-center text-white text-xs
+                     opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity"
+          aria-label="Ondoa picha"
         >
           <i className="ti ti-x" aria-hidden="true" />
         </button>

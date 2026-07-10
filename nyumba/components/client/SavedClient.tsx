@@ -137,13 +137,13 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                         <button
                           onClick={() => { handleUnsave(listing.id); setConfirmingRemove(null) }}
                           disabled={removing === listing.id}
-                          className="text-xs text-white bg-red-500 px-3 py-1 rounded-lg font-medium disabled:opacity-50"
+                          className="text-xs text-white bg-red-500 px-4 py-2.5 min-h-[44px] rounded-xl font-medium disabled:opacity-50 flex items-center"
                         >
                           {removing === listing.id ? '...' : 'Ondoa'}
                         </button>
                         <button
                           onClick={() => setConfirmingRemove(null)}
-                          className="text-xs text-gray-400 px-2 py-1"
+                          className="text-xs text-gray-400 px-3 py-2.5 min-h-[44px] flex items-center"
                         >
                           Ghairi
                         </button>

@@ -297,7 +297,7 @@ export default function AddListingWizard() {
   const stepTitles = ['Maelezo', 'Mahali', 'Huduma', 'Picha & Kagua']
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
+    <div className="min-h-screen bg-gray-50 pb-28">
 
       {/* Draft restored banner */}
       {draftRestored && (

@@ -128,15 +128,19 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const [contactNumber, setContactNumber] = useState<string | null>(initialWhatsappNumber ?? null)
   const [reviewed, setReviewed] = useState(hasReviewed)
   const [touchStartX, setTouchStartX] = useState(0)
+  const [touchStartY, setTouchStartY] = useState(0)
 
   function handleTouchStart(e: React.TouchEvent) {
     setTouchStartX(e.touches[0].clientX)
+    setTouchStartY(e.touches[0].clientY)
   }
 
   function handleTouchEnd(e: React.TouchEvent) {
-    const diff = touchStartX - e.changedTouches[0].clientX
-    if (Math.abs(diff) < 40) return
-    if (diff > 0) {
+    const dx = touchStartX - e.changedTouches[0].clientX
+    const dy = e.changedTouches[0].clientY - touchStartY
+    // Require at least 60px horizontal movement, and the gesture must be more horizontal than vertical
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.75) return
+    if (dx > 0) {
       setActiveImg(prev => Math.min(prev + 1, images.length - 1))
     } else {
       setActiveImg(prev => Math.max(prev - 1, 0))
@@ -174,12 +178,12 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const videoUrl  = (listing as Listing & { video_url?: string | null }).video_url ?? null
 
   return (
-    <article className="min-h-screen bg-gray-50 pb-40">
+    <article className="min-h-screen bg-gray-50 pb-28">
 
       {/* ── Header ── */}
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 flex items-center gap-3 px-4 py-3">
         <button
-          onClick={() => router.back()}
+          onClick={() => window.history.length > 2 ? router.back() : router.push('/')}
           aria-label="Rudi nyuma"
           className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"
         >
@@ -196,7 +200,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
       {/* ── Image gallery ── */}
       <div
-        className="relative bg-gray-200 h-72 touch-pan-y select-none"
+        className="relative bg-gray-200 aspect-[4/3] max-h-[360px] touch-pan-y select-none"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -584,7 +588,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           <div className="flex justify-end">
             <button
               onClick={() => setShowReportModal(true)}
-              className="text-xs text-gray-400 flex items-center gap-1 py-1 hover:text-red-500 transition-colors"
+              className="text-xs text-gray-400 flex items-center gap-1 min-h-[44px] px-2 hover:text-red-500 transition-colors"
             >
               <i className="ti ti-alert-triangle" aria-hidden="true" />
               <span>Ripoti dalali huyu</span>
@@ -633,7 +637,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
       {/* ── Fixed bottom CTA ── */}
       <div
-        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg"
+        className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg"
         style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
       >
         {isTaken ? (

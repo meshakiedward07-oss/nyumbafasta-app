@@ -175,7 +175,7 @@ function LoginForm() {
 
             {/* Error */}
             {error && (
-              <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
+              <div role="alert" className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
                 {error}
               </div>
             )}
@@ -224,6 +224,8 @@ function LoginForm() {
                     <input
                       type="email"
                       required
+                      autoComplete="email"
+                      enterKeyHint="go"
                       placeholder="jina@gmail.com"
                       value={resetEmail}
                       onChange={e => setResetEmail(e.target.value)}
@@ -242,7 +244,7 @@ function LoginForm() {
                   <button
                     type="button"
                     onClick={() => { setForgotMode(false); setError('') }}
-                    className="w-full text-sm text-gray-400 py-2"
+                    className="w-full text-sm text-gray-400 py-3 min-h-[44px]"
                   >
                     ← Rudi
                   </button>
@@ -296,7 +298,7 @@ function LoginForm() {
                     <button
                       type="button"
                       onClick={() => { setForgotMode(true); setResetEmail(email); setError('') }}
-                      className="text-xs text-primary-500 font-medium"
+                      className="text-xs text-primary-500 font-medium min-h-[44px] px-2 inline-flex items-center active:opacity-70"
                     >
                       Umesahau nenosiri?
                     </button>

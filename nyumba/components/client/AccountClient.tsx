@@ -177,7 +177,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 min-h-[44px] text-sm
                              focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               ) : (

@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Avatar from '@/components/shared/Avatar'
 import SaveButton from '@/components/shared/SaveButton'
@@ -168,6 +168,7 @@ function PlaceholderHouse() {
 }
 
 export default function ListingCard({ listing, hasUnlocked = false, priority = false }: { listing: ListingWithDalali; hasUnlocked?: boolean; priority?: boolean }) {
+  const router = useRouter()
   const [imgError, setImgError] = useState(false)
 
   const profile           = listing.dalali?.dalali_profiles
@@ -180,7 +181,11 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
   const isActive = listing.status === 'active'
 
   return (
-    <Link href={`/listings/${listing.id}`} className="block animate-fadeIn">
+    <div
+      className="block animate-fadeIn cursor-pointer"
+      onClick={() => router.push(`/listings/${listing.id}`)}
+      role="article"
+    >
       <div
         className={`bg-white rounded-2xl overflow-hidden transition-all duration-200 active:scale-[0.98]
           ${listing.is_boosted
@@ -247,8 +252,8 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
             </div>
           )}
 
-          {/* Save + Share */}
-          <div className="absolute top-2 right-2 flex gap-1.5">
+          {/* Save + Share — stop click from bubbling to the card nav handler */}
+          <div className="absolute top-2 right-2 flex gap-1.5" onClick={e => e.stopPropagation()}>
             <ShareButton listing={listing} variant="card" />
             <SaveButton listingId={listing.id} size="sm" />
           </div>
@@ -263,7 +268,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
               <i className={`ti ${typeStyle.icon} text-xs`} aria-hidden="true" />
               {typeStyle.label}
             </div>
-            <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-sm">
+            <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-sm whitespace-nowrap flex-shrink-0">
               {formatPrice(listing.price_monthly)}
             </div>
           </div>
@@ -274,7 +279,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
           </p>
 
           {/* Location */}
-          <p className="text-gray-400 text-xs mb-2.5 flex items-center gap-1">
+          <p className="text-gray-400 text-sm mb-2.5 flex items-center gap-1">
             <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-100 flex-shrink-0">
               <i className="ti ti-map-pin text-[9px] text-gray-500" aria-hidden="true" />
             </span>
@@ -394,7 +399,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
 
         </div>
       </div>
-    </Link>
+    </div>
   )
 }
 

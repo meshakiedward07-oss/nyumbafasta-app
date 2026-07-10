@@ -148,7 +148,7 @@ function RegisterForm() {
           </p>
           <button
             onClick={() => router.push('/login')}
-            className="mt-4 text-primary-500 text-sm underline"
+            className="mt-4 min-h-[44px] px-4 text-primary-500 text-sm underline flex items-center mx-auto"
           >
             Rudi Login →
           </button>
@@ -274,7 +274,7 @@ function RegisterForm() {
 
             <div className="p-5">
               {error && (
-                <div className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
+                <div role="alert" className="mb-4 bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
                   {error}
                 </div>
               )}
@@ -282,18 +282,18 @@ function RegisterForm() {
               {/* Step indicator */}
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-[10px] flex items-center justify-center font-bold">1</span>
-                  <span className="text-[10px] text-primary-600 font-medium">Maelezo</span>
+                  <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center font-bold">1</span>
+                  <span className="text-xs text-primary-600 font-medium">Maelezo</span>
                 </div>
                 <div className="flex-1 h-px bg-gray-200" />
                 <div className="flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-400 text-[10px] flex items-center justify-center font-bold">2</span>
-                  <span className="text-[10px] text-gray-400">Makubaliano</span>
+                  <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-400 text-xs flex items-center justify-center font-bold">2</span>
+                  <span className="text-xs text-gray-400">Makubaliano</span>
                 </div>
                 <div className="flex-1 h-px bg-gray-200" />
                 <div className="flex items-center gap-1.5">
-                  <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-400 text-[10px] flex items-center justify-center font-bold">3</span>
-                  <span className="text-[10px] text-gray-400">Thibitisha</span>
+                  <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-400 text-xs flex items-center justify-center font-bold">3</span>
+                  <span className="text-xs text-gray-400">Thibitisha</span>
                 </div>
               </div>
 
@@ -368,7 +368,7 @@ function RegisterForm() {
                           <div className={`h-1 flex-1 rounded-full transition-colors ${mid || strong ? 'bg-amber-400' : 'bg-gray-200'}`} />
                           <div className={`h-1 flex-1 rounded-full transition-colors ${strong ? 'bg-primary-500' : 'bg-gray-200'}`} />
                         </div>
-                        <span className={`text-[10px] font-medium ${weak ? 'text-red-400' : mid ? 'text-amber-500' : 'text-primary-600'}`}>
+                        <span className={`text-xs font-medium ${weak ? 'text-red-400' : mid ? 'text-amber-500' : 'text-primary-600'}`}>
                           {label}
                         </span>
                       </div>

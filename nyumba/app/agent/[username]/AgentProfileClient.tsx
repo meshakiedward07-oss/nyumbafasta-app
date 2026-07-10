@@ -341,7 +341,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => scrollTo('listings')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-3 min-h-[44px] rounded-xl text-sm font-semibold transition-all ${
                 activeSection === 'listings'
                   ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
                   : 'text-gray-500 hover:text-gray-700'
@@ -356,7 +356,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
             {reviews.length > 0 && (
               <button
                 onClick={() => scrollTo('reviews')}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-4 py-3 min-h-[44px] rounded-xl text-sm font-semibold transition-all ${
                   activeSection === 'reviews'
                     ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
                     : 'text-gray-500 hover:text-gray-700'
@@ -406,7 +406,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                     <button
                       key={t}
                       onClick={() => setTypeFilter(t)}
-                      className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                      className={`flex-shrink-0 px-2.5 py-2 min-h-[36px] rounded-lg text-xs font-medium border transition-all ${
                         typeFilter === t
                           ? 'bg-primary-500 text-white border-primary-500'
                           : 'bg-white text-gray-600 border-gray-200'
@@ -425,7 +425,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                   <button
                     key={r.key}
                     onClick={() => setPriceFilter(r.key)}
-                    className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                    className={`flex-shrink-0 px-2.5 py-2 min-h-[36px] rounded-lg text-xs font-medium border transition-all ${
                       priceFilter === r.key
                         ? 'bg-primary-500 text-white border-primary-500'
                         : 'bg-white text-gray-600 border-gray-200'
@@ -444,7 +444,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                     <button
                       key={b.key}
                       onClick={() => setBedFilter(b.key)}
-                      className={`flex-shrink-0 w-9 py-1 rounded-lg text-xs font-medium border transition-all ${
+                      className={`flex-shrink-0 w-9 py-2 min-h-[36px] rounded-lg text-xs font-medium border transition-all ${
                         bedFilter === b.key
                           ? 'bg-primary-500 text-white border-primary-500'
                           : 'bg-white text-gray-600 border-gray-200'
@@ -464,7 +464,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                     <button
                       key={d}
                       onClick={() => setDistrictFilter(d)}
-                      className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                      className={`flex-shrink-0 px-2.5 py-2 min-h-[36px] rounded-lg text-xs font-medium border transition-all ${
                         districtFilter === d
                           ? 'bg-primary-500 text-white border-primary-500'
                           : 'bg-white text-gray-600 border-gray-200'
@@ -488,7 +488,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
               }
             </p>
             {activeFilterCount > 0 && (
-              <button onClick={clearFilters} className="text-xs text-primary-600 font-medium">
+              <button onClick={clearFilters} className="text-xs text-primary-600 font-medium min-h-[44px] px-2 inline-flex items-center">
                 Futa filters
               </button>
             )}
@@ -509,7 +509,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
               <p className="text-sm">Hakuna listings zinazolingana</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
               {filtered.map(listing => (
                 <Link
                   key={listing.id}

@@ -446,7 +446,7 @@ export default function ListingLocationPicker({ initialLocation, onLocationChang
         <button
           type="button"
           onClick={handleClear}
-          className="text-xs text-red-500 underline w-full text-center py-1"
+          className="text-xs text-red-500 underline w-full text-center min-h-[44px] flex items-center justify-center"
         >
           Futa mahali
         </button>

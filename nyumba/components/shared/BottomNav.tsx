@@ -48,6 +48,7 @@ export default function BottomNav({ role = 'client' }: { role?: Role }) {
             <Link
               key={href}
               href={href}
+              aria-current={active ? 'page' : undefined}
               className="flex flex-col items-center gap-1 py-1 px-3 min-w-[56px] justify-center transition-all duration-200 active:scale-90 tap-highlight-none"
             >
               {/* Pill indicator + icon */}

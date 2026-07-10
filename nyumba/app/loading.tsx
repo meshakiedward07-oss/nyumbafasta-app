@@ -3,7 +3,7 @@ import BottomNav from '@/components/shared/BottomNav'
 
 export default function HomeLoading() {
   return (
-    <div className="min-h-screen bg-gray-50 pb-4">
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header skeleton */}
       <div className="bg-primary-500 px-4 pt-5 pb-5">
         <div className="flex justify-between items-center mb-3">

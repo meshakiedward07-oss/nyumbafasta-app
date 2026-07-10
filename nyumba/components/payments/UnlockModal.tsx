@@ -269,7 +269,7 @@ export default function UnlockModal({
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60"
-      onClick={step === 'waiting' ? undefined : onClose}
+      onClick={step === 'waiting' || step === 'phone' ? undefined : onClose}
     >
       <div
         className="bg-white rounded-t-3xl w-full max-w-md overflow-y-auto max-h-[92vh]
@@ -357,7 +357,7 @@ export default function UnlockModal({
                   <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">+255</div>
                   <input
                     id="unlock-phone"
-                    type="tel" inputMode="numeric" required autoFocus
+                    type="tel" inputMode="numeric" required
                     placeholder={pInfo.hint.split(' ')[0] + ' XXX XXXX'}
                     value={phone}
                     onChange={e => handlePhoneChange(e.target.value)}
