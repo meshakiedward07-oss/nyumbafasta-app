@@ -9,6 +9,7 @@ interface CacheEntry<T> {
   value: T
   expiresAt: number
   lastUsed: number
+  tags?: string[]
 }
 
 class MemoryCache {
@@ -31,9 +32,9 @@ class MemoryCache {
     return entry.value
   }
 
-  set<T>(key: string, value: T, ttlMs: number): void {
+  set<T>(key: string, value: T, ttlMs: number, tags?: string[]): void {
     if (this.store.size >= this.maxSize) this.evictLRU()
-    this.store.set(key, { value, expiresAt: Date.now() + ttlMs, lastUsed: Date.now() })
+    this.store.set(key, { value, expiresAt: Date.now() + ttlMs, lastUsed: Date.now(), tags })
   }
 
   delete(key: string): void {
@@ -44,6 +45,13 @@ class MemoryCache {
   invalidatePrefix(prefix: string): void {
     for (const key of this.store.keys()) {
       if (key.startsWith(prefix)) this.store.delete(key)
+    }
+  }
+
+  /** Invalidate all keys that carry a given tag */
+  invalidateByTag(tag: string): void {
+    for (const [key, entry] of this.store.entries()) {
+      if (entry.tags?.includes(tag)) this.store.delete(key)
     }
   }
 
@@ -78,12 +86,20 @@ class MemoryCache {
 export const cache = new MemoryCache(500)
 cache.startSweep(60_000)
 
-/** Cache TTL constants */
+/** Cache TTL constants (milliseconds) */
 export const TTL = {
-  LISTINGS_PAGE:   30_000,   // 30s — active listings browse pages
-  LISTING_DETAIL:  60_000,   // 60s — individual listing detail
-  STATS:          300_000,   // 5m  — dashboard/admin stats
-  REGIONS:      3_600_000,   // 1h  — region/district lists (static-ish)
+  LISTINGS_PAGE:   30_000,   // 30s  — active listings browse pages
+  LISTING_DETAIL:  60_000,   // 60s  — individual listing detail
+  STATS:          300_000,   // 5m   — dashboard/admin stats
+  REGIONS:      3_600_000,   // 1h   — region/district lists (static-ish)
+  FINANCE_STATS:  120_000,   // 2m   — per-user finance dashboard (private)
+  DALALI_STATS:   300_000,   // 5m   — dalali profile analytics
+  SOCIAL_STATS:  1_800_000,  // 30m  — social media stats
+  ADMIN_STATS:    300_000,   // 5m   — admin overview stats
+  EMAIL_MAP:      120_000,   // 2m   — auth user email map in admin panel
+  NOTIFICATIONS:   15_000,   // 15s  — notification count badge
+  SOCIAL_POSTS:   300_000,   // 5m   — social post list
+  PRICING:      3_600_000,   // 1h   — pricing config (rarely changes)
 } as const
 
 /**

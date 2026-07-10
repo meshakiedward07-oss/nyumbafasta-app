@@ -1,5 +1,6 @@
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { NextResponse, NextRequest } from 'next/server'
+import { cache, TTL } from '@/lib/cache/memoryCache'
 
 async function verifyAdmin() {
   const supabase = await createClient()
@@ -62,20 +63,29 @@ export async function GET(req: NextRequest) {
       query = query.eq('is_active', false)
     }
 
-    // Fetch auth users early so we can search by email and also merge emails in display
+    // Fetch auth users to merge emails — cached 2 minutes to avoid repeating the
+    // potentially slow listUsers pagination on every admin panel request
     let emailMap: Map<string, string | null> = new Map()
     let emailMatchIds: string[] = []
     try {
-      const allAuthUsers: Array<{ id: string; email?: string | null }> = []
-      let authPage = 1
-      while (allAuthUsers.length < 10000) {
-        const { data: pageData } = await db.auth.admin.listUsers({ page: authPage, perPage: 1000 })
-        const batch = pageData?.users ?? []
-        allAuthUsers.push(...batch)
-        if (batch.length < 1000) break
-        authPage++
+      const EMAIL_MAP_CACHE_KEY = 'admin:email-map'
+      let allAuthUsers = cache.get<Array<{ id: string; email: string | null }>>(EMAIL_MAP_CACHE_KEY)
+
+      if (!allAuthUsers) {
+        const fetched: Array<{ id: string; email: string | null }> = []
+        let authPage = 1
+        while (fetched.length < 10000) {
+          const { data: pageData } = await db.auth.admin.listUsers({ page: authPage, perPage: 1000 })
+          const batch = pageData?.users ?? []
+          fetched.push(...batch.map(u => ({ id: u.id, email: u.email ?? null })))
+          if (batch.length < 1000) break
+          authPage++
+        }
+        cache.set(EMAIL_MAP_CACHE_KEY, fetched, TTL.EMAIL_MAP, ['admin-email-map'])
+        allAuthUsers = fetched
       }
-      emailMap = new Map(allAuthUsers.map(u => [u.id, u.email ?? null]))
+
+      emailMap = new Map(allAuthUsers.map(u => [u.id, u.email]))
       if (q) {
         emailMatchIds = allAuthUsers
           .filter(u => u.email?.toLowerCase().includes(q.toLowerCase()))
