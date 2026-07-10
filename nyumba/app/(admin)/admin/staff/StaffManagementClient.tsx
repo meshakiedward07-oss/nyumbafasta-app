@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import PermissionManagerModal from '@/components/admin/PermissionManagerModal'
 
-type RoleFilter = 'staff' | 'dalali_activity'
+type RoleFilter = 'staff' | 'performance' | 'dalali_activity'
 
 type DalaliRow = {
   id: string
@@ -40,8 +40,9 @@ export default function StaffManagementClient() {
   const [showAdd, setShowAdd]             = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<StaffMember | null>(null)
   const [editMember, setEditMember]       = useState<StaffMember | null>(null)
-  const [managingPerms, setManagingPerms] = useState<StaffMember | null>(null)
-  const [activityStaff, setActivityStaff] = useState<StaffMember | null>(null)
+  const [managingPerms,   setManagingPerms]   = useState<StaffMember | null>(null)
+  const [activityStaff,   setActivityStaff]   = useState<StaffMember | null>(null)
+  const [performanceStaff, setPerformanceStaff] = useState<StaffMember | null>(null)
 
   const loadStaff = useCallback(async () => {
     setLoading(true)
@@ -96,6 +97,7 @@ export default function StaffManagementClient() {
       <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3">
         {([
           { key: 'staff',           label: 'Wafanyakazi' },
+          { key: 'performance',     label: 'Ubora wa Timu' },
           { key: 'dalali_activity', label: 'Hatari (Madalali)' },
         ] as { key: RoleFilter; label: string }[]).map(tab => (
           <button
@@ -115,8 +117,11 @@ export default function StaffManagementClient() {
       {/* Dalali activity view */}
       {roleFilter === 'dalali_activity' && <DalaliActivityView />}
 
-      {/* Staff section — hidden when dalali_activity tab active */}
-      {roleFilter === 'dalali_activity' ? null : <>
+      {/* Team performance leaderboard */}
+      {roleFilter === 'performance' && <TeamPerformanceView staff={staff} onSelect={setPerformanceStaff} />}
+
+      {/* Staff section — hidden when other tabs active */}
+      {roleFilter !== 'staff' ? null : <>
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
@@ -213,6 +218,12 @@ export default function StaffManagementClient() {
               {/* Actions */}
               <div className="grid grid-cols-2 gap-2 mt-3">
                 <button
+                  onClick={() => setPerformanceStaff(s)}
+                  className="bg-purple-50 text-purple-700 text-xs py-2 rounded-xl font-medium border border-purple-100 col-span-2"
+                >
+                  <i className="ti ti-chart-bar" aria-hidden="true" /> Angalia Utendaji
+                </button>
+                <button
                   onClick={() => setManagingPerms(s)}
                   className="bg-blue-50 text-blue-700 text-xs py-2 rounded-xl font-medium border border-blue-100"
                 >
@@ -286,6 +297,14 @@ export default function StaffManagementClient() {
         <ActivityFeedModal
           staff={activityStaff}
           onClose={() => setActivityStaff(null)}
+        />
+      )}
+
+      {/* Performance modal */}
+      {performanceStaff && (
+        <PerformanceModal
+          staff={performanceStaff}
+          onClose={() => setPerformanceStaff(null)}
         />
       )}
 
@@ -777,6 +796,13 @@ function ExtendDeadlineModal({
   )
 }
 
+const GRADE_STYLE: Record<string, string> = {
+  A: 'bg-green-100 text-green-700 border-green-200',
+  B: 'bg-blue-100 text-blue-700 border-blue-200',
+  C: 'bg-amber-100 text-amber-700 border-amber-200',
+  D: 'bg-red-100 text-red-600 border-red-200',
+}
+
 // ─── Edit Staff Modal ─────────────────────────────────────────────────────────
 function EditStaffModal({
   member,
@@ -897,6 +923,309 @@ function EditStaffModal({
           </div>
         </form>
       </div>
+    </div>
+  )
+}
+
+// ─── Performance Modal ────────────────────────────────────────────────────────
+type PerfData = {
+  period: number
+  summary: {
+    total_assigned: number
+    all_time_assigned: number
+    converted: number
+    lost: number
+    contacted: number
+    conversion_rate: number
+    activity_count: number
+    avg_daily_activity: number
+  }
+  pipeline: { stage: string; label: string; count: number; pct: number }[]
+  daily_activity: { date: string; count: number }[]
+  team_avg_rate: number
+  vs_team: number
+  grade: string
+}
+
+const STAGE_COLORS: Record<string, string> = {
+  mpya:            'bg-gray-400',
+  mawasiliano:     'bg-blue-400',
+  anajisajili:     'bg-amber-400',
+  ameweka_listing: 'bg-purple-400',
+  amefanikiwa:     'bg-green-500',
+  amepotea:        'bg-red-400',
+}
+
+function PerformanceModal({ staff, onClose }: { staff: StaffMember; onClose: () => void }) {
+  const [period,  setPeriod]  = useState<7 | 30 | 90>(30)
+  const [data,    setData]    = useState<PerfData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    setData(null)
+    fetch(`/api/v1/admin/staff/${staff.id}/performance?period=${period}`)
+      .then(r => r.json())
+      .then(d => setData(d))
+      .finally(() => setLoading(false))
+  }, [staff.id, period])
+
+  const maxActivity = data ? Math.max(...data.daily_activity.map(d => d.count), 1) : 1
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[92vh] flex flex-col">
+
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 flex-shrink-0">
+          <div>
+            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+              <i className="ti ti-chart-bar text-purple-500" aria-hidden="true" />
+              Utendaji — {staff.full_name}
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">{staff.staff_title}</p>
+          </div>
+          <button aria-label="Funga" onClick={onClose}
+            className="text-gray-400 w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100">
+            <i className="ti ti-x text-lg" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Period selector */}
+        <div className="flex gap-2 px-5 pt-4 flex-shrink-0">
+          {([7, 30, 90] as const).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`flex-1 text-xs py-2 rounded-xl font-medium border transition-all ${
+                period === p
+                  ? 'bg-purple-500 text-white border-purple-500'
+                  : 'text-gray-500 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {p === 7 ? 'Wiki' : p === 30 ? 'Mwezi' : 'Miezi 3'}
+            </button>
+          ))}
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 p-5 space-y-5">
+          {loading ? (
+            <div className="py-16 text-center">
+              <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm text-gray-500">Inapakia takwimu...</p>
+            </div>
+          ) : !data ? null : (
+            <>
+              {/* KPI tiles */}
+              <div className="grid grid-cols-2 gap-2">
+                {/* Conversion rate card */}
+                <div className="bg-purple-50 border border-purple-100 rounded-2xl p-3 col-span-2 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-purple-600 font-medium">Kiwango cha Ubadilishaji</p>
+                    <p className="text-3xl font-bold text-purple-700 mt-0.5">{data.summary.conversion_rate}%</p>
+                    <p className="text-[10px] text-purple-500 mt-1">
+                      {data.summary.converted} kati ya {data.summary.total_assigned} (siku {period})
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-2xl font-black px-4 py-2 rounded-xl border ${GRADE_STYLE[data.grade] ?? GRADE_STYLE.D}`}>
+                      {data.grade}
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Timu: {data.team_avg_rate}%
+                      <span className={`ml-1 font-medium ${data.vs_team >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        ({data.vs_team >= 0 ? '+' : ''}{data.vs_team}%)
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                {[
+                  { label: 'Leads (kipindi)', value: data.summary.total_assigned, icon: 'users',        color: 'text-blue-600 bg-blue-50' },
+                  { label: 'Wamefanikiwa',   value: data.summary.converted,      icon: 'circle-check', color: 'text-green-600 bg-green-50' },
+                  { label: 'Wamepotea',      value: data.summary.lost,           icon: 'circle-x',     color: 'text-red-500 bg-red-50' },
+                  { label: 'Walipigiwa',     value: data.summary.contacted,      icon: 'phone',        color: 'text-amber-600 bg-amber-50' },
+                  { label: 'Shughuli Zote',  value: data.summary.activity_count, icon: 'bolt',         color: 'text-purple-600 bg-purple-50' },
+                  { label: 'Wastani/Siku',   value: data.summary.avg_daily_activity, icon: 'trending-up', color: 'text-indigo-600 bg-indigo-50' },
+                ].map((kpi, i) => (
+                  <div key={i} className={`${kpi.color} rounded-xl p-3`}>
+                    <i className={`ti ti-${kpi.icon} text-lg`} aria-hidden="true" />
+                    <p className="text-xl font-bold mt-1">{kpi.value}</p>
+                    <p className="text-[10px] opacity-80 mt-0.5">{kpi.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pipeline funnel */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1">
+                  <i className="ti ti-filter" aria-hidden="true" /> Hatua za Pipeline (Jumla)
+                </p>
+                <div className="space-y-2.5">
+                  {data.pipeline.map(s => (
+                    <div key={s.stage}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="font-medium text-gray-700">{s.label}</span>
+                        <span className="text-gray-400">{s.count} ({s.pct}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${STAGE_COLORS[s.stage] ?? 'bg-gray-300'}`}
+                          style={{ width: `${Math.min(100, s.pct)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Daily activity chart */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1">
+                  <i className="ti ti-chart-histogram" aria-hidden="true" /> Shughuli za Kila Siku
+                </p>
+                <div className="flex items-end gap-0.5 h-16 bg-gray-50 rounded-xl px-3 py-2">
+                  {data.daily_activity.map((d, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center justify-end h-full relative group">
+                      <div
+                        className="w-full bg-purple-400 rounded-sm min-h-[2px] transition-all"
+                        style={{ height: `${Math.round((d.count / maxActivity) * 100)}%` }}
+                      />
+                      <div className="absolute bottom-full mb-1 bg-gray-800 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10">
+                        {d.date.slice(5)}: {d.count}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between text-[9px] text-gray-300 mt-1 px-1">
+                  <span>{data.daily_activity[0]?.date.slice(5)}</span>
+                  <span>{data.daily_activity[Math.floor(data.daily_activity.length / 2)]?.date.slice(5)}</span>
+                  <span>{data.daily_activity[data.daily_activity.length - 1]?.date.slice(5)}</span>
+                </div>
+              </div>
+
+              {/* All-time context */}
+              <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-500 flex items-center justify-between">
+                <span><i className="ti ti-database" aria-hidden="true" /> Leads zote za historia</span>
+                <span className="font-bold text-gray-700">{data.summary.all_time_assigned}</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Team Performance Leaderboard ─────────────────────────────────────────────
+function TeamPerformanceView({
+  staff,
+  onSelect,
+}: {
+  staff: StaffMember[]
+  onSelect: (s: StaffMember) => void
+}) {
+  const ranked = [...staff]
+    .map(s => {
+      const total = s.activeLeads + s.totalConverted
+      const rate  = total > 0 ? Math.round((s.totalConverted / total) * 1000) / 10 : 0
+      return { ...s, total, rate }
+    })
+    .sort((a, b) => b.rate - a.rate)
+
+  const maxConverted = Math.max(...ranked.map(s => s.totalConverted), 1)
+  const gradeOf = (rate: number) =>
+    rate >= 20 ? 'A' : rate >= 12 ? 'B' : rate >= 6 ? 'C' : 'D'
+
+  if (staff.length === 0) {
+    return (
+      <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+        <div className="text-4xl mb-2 flex justify-center"><i className="ti ti-chart-bar text-gray-300" aria-hidden="true" /></div>
+        <p className="font-semibold text-gray-600">Hakuna wafanyakazi bado</p>
+        <p className="text-sm text-gray-400 mt-1">Ongeza wafanyakazi kwenye tab ya &quot;Wafanyakazi&quot;</p>
+      </div>
+    )
+  }
+
+  const avgRate = ranked.length > 0
+    ? Math.round(ranked.reduce((a, s) => a + s.rate, 0) / ranked.length * 10) / 10
+    : 0
+
+  return (
+    <div className="space-y-3">
+      {/* Team summary */}
+      <div className="grid grid-cols-3 gap-2 mb-2">
+        {[
+          { label: 'Wastani wa Timu',  value: `${avgRate}%`,                                  icon: 'chart-bar',    color: 'text-purple-600 bg-purple-50' },
+          { label: 'Jumla Walisajili', value: ranked.reduce((a, s) => a + s.totalConverted, 0), icon: 'circle-check', color: 'text-green-600 bg-green-50' },
+          { label: 'Bora Zaidi',       value: ranked[0]?.full_name.split(' ')[0] ?? '—',      icon: 'trophy',       color: 'text-amber-600 bg-amber-50' },
+        ].map((s, i) => (
+          <div key={i} className={`${s.color} rounded-xl p-2.5 text-center`}>
+            <i className={`ti ti-${s.icon} text-lg`} aria-hidden="true" />
+            <p className="font-bold text-sm mt-0.5">{s.value}</p>
+            <p className="text-[9px] opacity-70">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Ranked list */}
+      {ranked.map((s, i) => {
+        const grade = gradeOf(s.rate)
+        return (
+          <div
+            key={s.id}
+            className="bg-white rounded-2xl border border-gray-100 p-4 cursor-pointer hover:shadow-sm transition-shadow"
+            onClick={() => onSelect(s)}
+          >
+            <div className="flex items-center gap-3">
+              {/* Rank badge */}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
+                i === 0 ? 'bg-amber-100 text-amber-700' :
+                i === 1 ? 'bg-gray-100 text-gray-600'   :
+                i === 2 ? 'bg-orange-50 text-orange-600' : 'bg-gray-50 text-gray-400'
+              }`}>
+                {i === 0 ? <i className="ti ti-trophy text-sm" aria-hidden="true" /> : i + 1}
+              </div>
+
+              {/* Avatar */}
+              <div className="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center font-bold text-primary-500 flex-shrink-0">
+                {s.full_name.charAt(0).toUpperCase()}
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-gray-900 text-sm truncate">{s.full_name}</p>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-bold flex-shrink-0 ${GRADE_STYLE[grade]}`}>
+                    {grade}
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-400">{s.staff_title}</p>
+              </div>
+
+              {/* Rate */}
+              <div className="text-right flex-shrink-0">
+                <p className="font-bold text-gray-900 text-sm">{s.rate}%</p>
+                <p className="text-[10px] text-gray-400">{s.totalConverted}/{s.total}</p>
+              </div>
+            </div>
+
+            {/* Conversion bar */}
+            <div className="mt-3">
+              <div className="w-full bg-gray-100 rounded-full h-1.5">
+                <div
+                  className="h-1.5 rounded-full bg-green-400 transition-all"
+                  style={{ width: `${Math.round((s.totalConverted / maxConverted) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1.5 text-right">
+              <i className="ti ti-info-circle" aria-hidden="true" /> Bonyeza kuona kwa undani
+            </p>
+          </div>
+        )
+      })}
     </div>
   )
 }
