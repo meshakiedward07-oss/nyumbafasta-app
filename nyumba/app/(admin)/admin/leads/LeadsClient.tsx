@@ -82,6 +82,14 @@ export default function LeadsClient() {
     region: 'Dar es Salaam', notes: ''
   })
 
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{
+    imported: number; skipped: number; errors: { row: number; reason: string }[]
+  } | null>(null)
+  const [importError, setImportError] = useState('')
+
   const [lastRun, setLastRun] = useState<string | null>(null)
   const [leadsToday, setLeadsToday] = useState(0)
 
@@ -183,6 +191,36 @@ export default function LeadsClient() {
     } catch (err) { console.error(err) }
   }
 
+  async function handleImport() {
+    if (!importFile) return
+    setImporting(true)
+    setImportError('')
+    setImportResult(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', importFile)
+      const res = await fetch('/api/v1/agent/leads/bulk', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) {
+        setImportError(data.error || 'Imeshindwa kuingiza leads')
+      } else {
+        setImportResult(data)
+        fetchLeads()
+        fetchStats()
+      }
+    } catch {
+      setImportError('Hitilafu ya mtandao. Jaribu tena.')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  function resetImport() {
+    setImportFile(null)
+    setImportResult(null)
+    setImportError('')
+  }
+
   function getScoreColor(score: number) {
     if (score >= 80) return 'text-green-600 bg-green-100'
     if (score >= 60) return 'text-yellow-600 bg-yellow-100'
@@ -234,6 +272,12 @@ export default function LeadsClient() {
               className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 bg-white"
             >
               <i className="ti ti-plus" aria-hidden="true" /> Ongeza Lead
+            </button>
+            <button
+              onClick={() => { resetImport(); setShowImportModal(true) }}
+              className="px-4 py-2 border border-primary-200 text-primary-600 bg-primary-50 rounded-xl text-sm font-medium hover:bg-primary-100"
+            >
+              <i className="ti ti-table-import" aria-hidden="true" /> Import Excel
             </button>
             <button
               onClick={() => setShowRunModal(true)}
@@ -428,6 +472,12 @@ export default function LeadsClient() {
               className="bg-white/20 text-white text-xs px-3 py-2 rounded-lg font-medium"
             >
               <i className="ti ti-plus" aria-hidden="true" /> Ongeza
+            </button>
+            <button
+              onClick={() => { resetImport(); setShowImportModal(true) }}
+              className="bg-white/20 text-white text-xs px-3 py-2 rounded-lg font-medium"
+            >
+              <i className="ti ti-table-import" aria-hidden="true" /> Excel
             </button>
             <button
               onClick={() => setShowRunModal(true)}
@@ -940,6 +990,172 @@ export default function LeadsClient() {
                 </a>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Import Excel Modal ── */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+          <div className="bg-white w-full max-w-lg rounded-t-2xl p-5 max-h-[85vh] overflow-y-auto">
+
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <i className="ti ti-table-import text-primary-500" aria-hidden="true" />
+                Import Leads kutoka Excel
+              </h3>
+              <button
+                onClick={() => { setShowImportModal(false); resetImport() }}
+                aria-label="Funga"
+                className="text-gray-400 text-xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100"
+              >
+                <i className="ti ti-x" aria-hidden="true" />
+              </button>
+            </div>
+
+            {importResult ? (
+              /* ── Success/summary screen ── */
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
+                  <i className="ti ti-circle-check text-green-500 text-4xl block mb-2" aria-hidden="true" />
+                  <p className="font-bold text-green-700 text-lg">Imekamilika!</p>
+                  <p className="text-green-600 text-sm mt-1">
+                    <span className="font-bold text-2xl">{importResult.imported}</span> leads zimeingizwa kwenye mfumo
+                  </p>
+                  {importResult.skipped > 0 && (
+                    <p className="text-amber-600 text-sm mt-1">
+                      Safu {importResult.skipped} zimepitwa (hazikuwa na jina au kosa)
+                    </p>
+                  )}
+                </div>
+
+                {importResult.errors.length > 0 && (
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                    <p className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1">
+                      <i className="ti ti-alert-triangle" aria-hidden="true" /> Safu zenye makosa:
+                    </p>
+                    {importResult.errors.map((e, i) => (
+                      <p key={i} className="text-xs text-amber-700">Safu {e.row}: {e.reason}</p>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => { resetImport() }}
+                    className="py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-600"
+                  >
+                    Import Nyingine
+                  </button>
+                  <button
+                    onClick={() => { setShowImportModal(false); resetImport() }}
+                    className="py-3 bg-primary-500 text-white rounded-xl text-sm font-bold"
+                  >
+                    Ona Leads →
+                  </button>
+                </div>
+              </div>
+            ) : importing ? (
+              /* ── Loading ── */
+              <div className="py-12 text-center">
+                <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="font-semibold text-gray-700">Inaingiza leads...</p>
+                <p className="text-sm text-gray-400 mt-1">Tafadhali subiri</p>
+              </div>
+            ) : (
+              /* ── File picker ── */
+              <div className="space-y-4">
+                {/* Format guide */}
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-1">
+                    <i className="ti ti-info-circle" aria-hidden="true" /> Muundo unaohitajika
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="text-xs text-blue-700 w-full">
+                      <thead>
+                        <tr className="border-b border-blue-200">
+                          {['business_name *', 'phone', 'email', 'region', 'notes', 'whatsapp'].map(h => (
+                            <th key={h} className="pr-3 pb-1 text-left font-semibold whitespace-nowrap">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="pr-3 py-1 whitespace-nowrap">Nyumba Bora Agency</td>
+                          <td className="pr-3 whitespace-nowrap">0712345678</td>
+                          <td className="pr-3 whitespace-nowrap">info@nyumba.co.tz</td>
+                          <td className="pr-3">Dar es Salaam</td>
+                          <td className="pr-3">Mkubwa</td>
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <a
+                    href="/api/v1/agent/leads/bulk"
+                    download="leads_template.csv"
+                    className="mt-2 text-xs text-blue-600 font-medium underline flex items-center gap-1"
+                  >
+                    <i className="ti ti-download" aria-hidden="true" /> Pakua template (CSV)
+                  </a>
+                </div>
+
+                {/* Drop zone */}
+                <label
+                  htmlFor="excel-upload"
+                  className={`flex flex-col items-center justify-center w-full min-h-[140px]
+                    border-2 border-dashed rounded-2xl cursor-pointer transition-colors
+                    ${importFile
+                      ? 'border-primary-400 bg-primary-50'
+                      : 'border-gray-300 bg-gray-50 hover:border-primary-400 hover:bg-primary-50'
+                    }`}
+                >
+                  {importFile ? (
+                    <div className="text-center px-4">
+                      <i className="ti ti-file-spreadsheet text-primary-500 text-4xl block mb-2" aria-hidden="true" />
+                      <p className="font-semibold text-primary-700 text-sm truncate max-w-[250px]">{importFile.name}</p>
+                      <p className="text-xs text-primary-500 mt-1">
+                        {(importFile.size / 1024).toFixed(1)} KB · Tayari kuingiza
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center px-4">
+                      <i className="ti ti-cloud-upload text-gray-400 text-4xl block mb-2" aria-hidden="true" />
+                      <p className="font-semibold text-gray-600 text-sm">Gusa hapa kuchagua faili</p>
+                      <p className="text-xs text-gray-400 mt-1">Excel (.xlsx, .xls) au CSV (.csv)</p>
+                    </div>
+                  )}
+                  <input
+                    id="excel-upload"
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="sr-only"
+                    onChange={e => {
+                      const f = e.target.files?.[0] ?? null
+                      setImportFile(f)
+                      setImportError('')
+                    }}
+                  />
+                </label>
+
+                {importError && (
+                  <div role="alert" className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+                    <i className="ti ti-alert-triangle flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <span>{importError}</span>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleImport}
+                  disabled={!importFile || importing}
+                  className="w-full bg-primary-500 text-white py-4 rounded-2xl font-bold text-base disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  <i className="ti ti-table-import" aria-hidden="true" />
+                  {importFile ? `Ingiza Leads kutoka "${importFile.name}"` : 'Chagua faili kwanza'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
