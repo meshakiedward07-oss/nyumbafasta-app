@@ -1,3 +1,25 @@
+// v3 — clears all old caches so stale pages are never served again
+
+self.addEventListener('install', function () {
+  // Activate this SW immediately — don't wait for old tabs to close
+  self.skipWaiting()
+})
+
+self.addEventListener('activate', function (event) {
+  // Delete every cache the old SW created (old emoji UI, etc.)
+  event.waitUntil(
+    caches
+      .keys()
+      .then(function (names) {
+        return Promise.all(names.map(function (n) { return caches.delete(n) }))
+      })
+      .then(function () {
+        // Take control of all open pages right now
+        return self.clients.claim()
+      })
+  )
+})
+
 self.addEventListener('push', function (event) {
   const data = event.data ? event.data.json() : {}
   const title = data.title || 'NyumbaFasta'
