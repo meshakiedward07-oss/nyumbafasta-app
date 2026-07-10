@@ -39,10 +39,16 @@ function RegisterForm() {
     setError('')
     setLoading(true)
 
+    // Normalise whatsapp to +255XXXXXXXXX before storage — the UI shows the prefix
+    // but the state variable holds only the local 9-digit digits.
+    const normalizedWhatsapp = role === 'dalali' && whatsapp
+      ? `+255${whatsapp.replace(/\D/g, '').replace(/^0/, '')}`
+      : null
+
     localStorage.setItem('pending_register', JSON.stringify({
       full_name: fullName,
       role,
-      whatsapp_number: whatsapp,
+      whatsapp_number: normalizedWhatsapp,
     }))
     localStorage.setItem('pending_agreement', JSON.stringify(agreementData))
 

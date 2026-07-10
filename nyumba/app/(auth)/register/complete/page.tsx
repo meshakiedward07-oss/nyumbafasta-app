@@ -2,23 +2,46 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+function clearPendingStorage() {
+  try { localStorage.removeItem('pending_register') } catch {}
+  try { localStorage.removeItem('pending_agreement') } catch {}
+}
+
 export default function RegisterCompletePage() {
   const router = useRouter()
   const [error, setError] = useState('')
 
   useEffect(() => {
     async function finish() {
+      let raw: string | null = null
+      let pending: { full_name: string; role: string; whatsapp_number?: string } | null = null
+
+      // Guard: missing pending_register → user opened this URL directly or storage
+      // was cleared. Send them back to the start rather than creating a broken row.
       try {
-        const raw = localStorage.getItem('pending_register')
-        if (!raw) {
-          router.replace('/')
-          return
-        }
+        raw = localStorage.getItem('pending_register')
+        if (!raw) { router.replace('/register'); return }
+        pending = JSON.parse(raw)
+      } catch {
+        // Corrupted storage — clear it and restart cleanly
+        clearPendingStorage()
+        router.replace('/register')
+        return
+      }
 
-        const { full_name, role, whatsapp_number } = JSON.parse(raw)
+      const { full_name, role, whatsapp_number } = pending!
+
+      // Safe parse of agreement — corrupted JSON must not lock the user out
+      let agreement: unknown = null
+      try {
         const agreementRaw = localStorage.getItem('pending_agreement')
-        const agreement = agreementRaw ? JSON.parse(agreementRaw) : null
+        if (agreementRaw) agreement = JSON.parse(agreementRaw)
+      } catch {
+        // Clear the bad key but continue — the API accepts agreement:null
+        try { localStorage.removeItem('pending_agreement') } catch {}
+      }
 
+      try {
         const res = await fetch('/api/v1/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -30,9 +53,7 @@ export default function RegisterCompletePage() {
           throw new Error(data.error || 'Imeshindwa kuunda akaunti')
         }
 
-        // Only remove pending data after successful registration
-        localStorage.removeItem('pending_register')
-        localStorage.removeItem('pending_agreement')
+        clearPendingStorage()
 
         if (role === 'dalali') {
           router.replace('/dashboard?welcome=true')
@@ -50,7 +71,9 @@ export default function RegisterCompletePage() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <div className="text-4xl mb-4 flex justify-center"><i className="ti ti-alert-triangle text-amber-500" aria-hidden="true" /></div>
+        <div className="text-4xl mb-4 flex justify-center">
+          <i className="ti ti-alert-triangle text-amber-500" aria-hidden="true" />
+        </div>
         <p className="text-gray-700 font-medium mb-2">Hitilafu imetokea</p>
         <p className="text-sm text-red-500 text-center mb-6">{error}</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
@@ -61,7 +84,11 @@ export default function RegisterCompletePage() {
             Jaribu Tena
           </button>
           <button
-            onClick={() => router.replace('/register')}
+            onClick={() => {
+              // Clear storage so a fresh reload of /register doesn't re-read stale data
+              clearPendingStorage()
+              router.replace('/register')
+            }}
             className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl text-sm font-semibold"
           >
             Rudi Usajili

@@ -73,7 +73,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect kwenda role-appropriate page kama tayari ameingia
-  if (user && AUTH_ROUTES.some(r => path.startsWith(r))) {
+  // Use exact match — startsWith would incorrectly intercept /register/complete
+  if (user && AUTH_ROUTES.includes(path)) {
     const { data: me } = await supabase
       .from('users')
       .select('role')

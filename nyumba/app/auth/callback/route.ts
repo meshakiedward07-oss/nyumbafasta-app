@@ -24,8 +24,25 @@ export async function GET(request: NextRequest) {
         severity: 'info',
       })
 
-      // Caller specified a redirect (Google OAuth, password reset) — honour it
+      // Caller specified a redirect (Google OAuth, password reset) — honour it,
+      // BUT skip /register/complete for already-registered users to prevent
+      // overwriting their existing role and profile data.
       if (redirect && redirect !== '/') {
+        if (redirect.startsWith('/register/complete')) {
+          const { data: existingUser } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', data.user.id)
+            .maybeSingle()
+          if (existingUser?.role) {
+            // Already registered — send them home, not back to the register flow
+            const dest = existingUser.role === 'admin'  ? `${origin}/admin`
+                       : existingUser.role === 'staff'  ? `${origin}/admin/staff-leads`
+                       : existingUser.role === 'dalali' ? `${origin}/dashboard`
+                       : `${origin}/`
+            return NextResponse.redirect(dest)
+          }
+        }
         return NextResponse.redirect(`${origin}${redirect}`)
       }
 
