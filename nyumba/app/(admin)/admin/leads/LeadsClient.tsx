@@ -94,6 +94,19 @@ export default function LeadsClient() {
   } | null>(null)
   const [importError, setImportError] = useState('')
 
+  // ── Broadcast state ───────────────────────────────────────────────────────
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false)
+  const [broadcastMessage, setBroadcastMessage]     = useState('')
+  const [broadcastTone, setBroadcastTone]           = useState('personal')
+  const [broadcastRegion, setBroadcastRegion]       = useState('')
+  const [broadcastStatus, setBroadcastStatus]       = useState('')
+  const [broadcastCount, setBroadcastCount]         = useState<number | null>(null)
+  const [broadcasting, setBroadcasting]             = useState(false)
+  const [broadcastResult, setBroadcastResult]       = useState<{
+    total: number; sent: number; failed: number
+  } | null>(null)
+  const [broadcastError, setBroadcastError]         = useState('')
+
   const [lastRun, setLastRun] = useState<string | null>(null)
   const [leadsToday, setLeadsToday] = useState(0)
 
@@ -225,6 +238,52 @@ export default function LeadsClient() {
     setImportError('')
   }
 
+  // ── Broadcast helpers ─────────────────────────────────────────────────────
+  async function fetchBroadcastCount(region: string, status: string) {
+    setBroadcastCount(null)
+    const params = new URLSearchParams()
+    if (region) params.set('region', region)
+    if (status) params.set('status', status)
+    try {
+      const res = await fetch(`/api/v1/agent/leads/broadcast?${params}`)
+      const data = await res.json()
+      setBroadcastCount(data.count ?? 0)
+    } catch { setBroadcastCount(0) }
+  }
+
+  async function handleBroadcast() {
+    if (!broadcastMessage.trim()) { setBroadcastError('Andika ujumbe kwanza'); return }
+    setBroadcasting(true)
+    setBroadcastError('')
+    setBroadcastResult(null)
+    try {
+      const res = await fetch('/api/v1/agent/leads/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: broadcastMessage,
+          tone:    broadcastTone,
+          region:  broadcastRegion,
+          status:  broadcastStatus,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) setBroadcastError(data.error || 'Imeshindwa kutuma')
+      else setBroadcastResult(data)
+    } catch { setBroadcastError('Hitilafu ya mtandao. Jaribu tena.') }
+    finally { setBroadcasting(false) }
+  }
+
+  function resetBroadcast() {
+    setBroadcastMessage('')
+    setBroadcastTone('personal')
+    setBroadcastRegion('')
+    setBroadcastStatus('')
+    setBroadcastCount(null)
+    setBroadcastResult(null)
+    setBroadcastError('')
+  }
+
   function getScoreColor(score: number) {
     if (score >= 80) return 'text-green-600 bg-green-100'
     if (score >= 60) return 'text-yellow-600 bg-yellow-100'
@@ -282,6 +341,12 @@ export default function LeadsClient() {
               className="px-4 py-2 border border-primary-200 text-primary-600 bg-primary-50 rounded-xl text-sm font-medium hover:bg-primary-100"
             >
               <i className="ti ti-table-import" aria-hidden="true" /> Import Excel
+            </button>
+            <button
+              onClick={() => { resetBroadcast(); setShowBroadcastModal(true); fetchBroadcastCount('', '') }}
+              className="px-4 py-2 bg-[#25D366] text-white rounded-xl text-sm font-bold hover:bg-green-600"
+            >
+              <i className="ti ti-brand-whatsapp" aria-hidden="true" /> Broadcast WA
             </button>
             <button
               onClick={() => setShowRunModal(true)}
@@ -370,7 +435,37 @@ export default function LeadsClient() {
                       {renderSourceIcon(lead.source)}
                       <div>
                         <p className="font-medium text-sm text-gray-900">{lead.business_name}</p>
-                        {lead.email && <p className="text-xs text-gray-400">{lead.email}</p>}
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {lead.facebook_url && (
+                            <a href={lead.facebook_url} target="_blank" rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="text-blue-600 hover:text-blue-800" title="Facebook">
+                              <i className="ti ti-brand-facebook text-xs" aria-hidden="true" />
+                            </a>
+                          )}
+                          {lead.instagram_url && (
+                            <a href={lead.instagram_url} target="_blank" rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="text-pink-500 hover:text-pink-700" title="Instagram">
+                              <i className="ti ti-brand-instagram text-xs" aria-hidden="true" />
+                            </a>
+                          )}
+                          {lead.tiktok_url && (
+                            <a href={lead.tiktok_url} target="_blank" rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="text-gray-800 hover:text-black" title="TikTok">
+                              <i className="ti ti-brand-tiktok text-xs" aria-hidden="true" />
+                            </a>
+                          )}
+                          {lead.website_url && (
+                            <a href={lead.website_url} target="_blank" rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="text-gray-500 hover:text-gray-700" title="Website">
+                              <i className="ti ti-world text-xs" aria-hidden="true" />
+                            </a>
+                          )}
+                          {lead.email && <p className="text-xs text-gray-400">{lead.email}</p>}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -470,24 +565,30 @@ export default function LeadsClient() {
               </p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-white/20 text-white text-xs px-3 py-2 rounded-lg font-medium"
+              className="bg-white/20 text-white text-xs px-2.5 py-2 rounded-lg font-medium"
             >
-              <i className="ti ti-plus" aria-hidden="true" /> Ongeza
+              <i className="ti ti-plus" aria-hidden="true" />
             </button>
             <button
               onClick={() => { resetImport(); setShowImportModal(true) }}
-              className="bg-white/20 text-white text-xs px-3 py-2 rounded-lg font-medium"
+              className="bg-white/20 text-white text-xs px-2.5 py-2 rounded-lg font-medium"
             >
               <i className="ti ti-table-import" aria-hidden="true" /> Excel
             </button>
             <button
-              onClick={() => setShowRunModal(true)}
-              className="bg-white text-primary-500 text-xs px-3 py-2 rounded-lg font-bold"
+              onClick={() => { resetBroadcast(); setShowBroadcastModal(true); fetchBroadcastCount('', '') }}
+              className="bg-[#25D366] text-white text-xs px-2.5 py-2 rounded-lg font-bold"
             >
-              <i className="ti ti-robot" aria-hidden="true" /> Run Agent
+              <i className="ti ti-brand-whatsapp" aria-hidden="true" /> Broadcast
+            </button>
+            <button
+              onClick={() => setShowRunModal(true)}
+              className="bg-white text-primary-500 text-xs px-2.5 py-2 rounded-lg font-bold"
+            >
+              <i className="ti ti-robot" aria-hidden="true" /> Run
             </button>
           </div>
         </div>
@@ -666,6 +767,36 @@ export default function LeadsClient() {
                 <span className="text-xs text-gray-400">{timeAgo(lead.created_at)}</span>
               </div>
             </div>
+
+            {/* Social media quick links */}
+            {(lead.facebook_url || lead.instagram_url || lead.tiktok_url || lead.website_url) && (
+              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-50" onClick={e => e.stopPropagation()}>
+                {lead.facebook_url && (
+                  <a href={lead.facebook_url} target="_blank" rel="noopener noreferrer"
+                    className="bg-blue-50 text-blue-600 px-2 py-1 rounded-lg text-xs flex items-center gap-1">
+                    <i className="ti ti-brand-facebook" aria-hidden="true" /> FB
+                  </a>
+                )}
+                {lead.instagram_url && (
+                  <a href={lead.instagram_url} target="_blank" rel="noopener noreferrer"
+                    className="bg-pink-50 text-pink-600 px-2 py-1 rounded-lg text-xs flex items-center gap-1">
+                    <i className="ti ti-brand-instagram" aria-hidden="true" /> IG
+                  </a>
+                )}
+                {lead.tiktok_url && (
+                  <a href={lead.tiktok_url} target="_blank" rel="noopener noreferrer"
+                    className="bg-gray-100 text-gray-700 px-2 py-1 rounded-lg text-xs flex items-center gap-1">
+                    <i className="ti ti-brand-tiktok" aria-hidden="true" /> TT
+                  </a>
+                )}
+                {lead.website_url && (
+                  <a href={lead.website_url} target="_blank" rel="noopener noreferrer"
+                    className="bg-gray-50 text-gray-500 px-2 py-1 rounded-lg text-xs flex items-center gap-1">
+                    <i className="ti ti-world" aria-hidden="true" /> Web
+                  </a>
+                )}
+              </div>
+            )}
 
             {lead.ai_notes && (
               <p className="text-xs text-gray-400 mt-2 line-clamp-1 flex items-center gap-1"><i className="ti ti-robot" aria-hidden="true" />{lead.ai_notes}</p>
@@ -998,6 +1129,182 @@ export default function LeadsClient() {
         </div>
       )}
 
+      {/* ── WhatsApp Broadcast Modal ── */}
+      {showBroadcastModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+          <div className="bg-white w-full max-w-lg rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto">
+
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <i className="ti ti-brand-whatsapp text-[#25D366] text-xl" aria-hidden="true" />
+                Broadcast WhatsApp kwa Leads
+              </h3>
+              <button onClick={() => { setShowBroadcastModal(false); resetBroadcast() }}
+                aria-label="Funga"
+                className="text-gray-400 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100">
+                <i className="ti ti-x text-xl" aria-hidden="true" />
+              </button>
+            </div>
+
+            {broadcastResult ? (
+              /* ── Result screen ── */
+              <div className="space-y-4">
+                <div className={`rounded-2xl p-5 text-center ${broadcastResult.failed === broadcastResult.total ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
+                  <i className={`ti ${broadcastResult.failed === broadcastResult.total ? 'ti-alert-circle text-red-500' : 'ti-circle-check text-green-500'} text-4xl block mb-2`} aria-hidden="true" />
+                  <p className="font-bold text-lg text-gray-800">Imekamilika!</p>
+                  <p className="text-gray-600 text-sm mt-1">Jumla ya wapokeaji: {broadcastResult.total}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-green-600">{broadcastResult.sent}</p>
+                    <p className="text-xs text-green-700 mt-0.5">Imetumwa</p>
+                  </div>
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-red-500">{broadcastResult.failed}</p>
+                    <p className="text-xs text-red-600 mt-0.5">Imeshindwa</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  <button onClick={() => resetBroadcast()}
+                    className="py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-600">
+                    Tuma Nyingine
+                  </button>
+                  <button onClick={() => { setShowBroadcastModal(false); resetBroadcast() }}
+                    className="py-3 bg-primary-500 text-white rounded-xl text-sm font-bold">
+                    Funga
+                  </button>
+                </div>
+              </div>
+            ) : broadcasting ? (
+              /* ── Sending ── */
+              <div className="py-12 text-center">
+                <div className="w-12 h-12 border-4 border-[#25D366] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="font-semibold text-gray-700">Inatuma ujumbe...</p>
+                <p className="text-sm text-gray-400 mt-1">Tafadhali subiri — huchukua muda</p>
+              </div>
+            ) : (
+              /* ── Compose screen ── */
+              <div className="space-y-4">
+
+                {/* Filters */}
+                <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                    <i className="ti ti-filter" aria-hidden="true" /> Chagua Wapokeaji
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">Mkoa</label>
+                      <select
+                        value={broadcastRegion}
+                        onChange={e => { setBroadcastRegion(e.target.value); fetchBroadcastCount(e.target.value, broadcastStatus) }}
+                        className="w-full text-sm bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-400"
+                      >
+                        <option value="">Mikoa Yote</option>
+                        {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">Hali ya Lead</label>
+                      <select
+                        value={broadcastStatus}
+                        onChange={e => { setBroadcastStatus(e.target.value); fetchBroadcastCount(broadcastRegion, e.target.value) }}
+                        className="w-full text-sm bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-400"
+                      >
+                        <option value="">Status Zote</option>
+                        {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Recipient count badge */}
+                  <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2.5 border border-gray-100">
+                    <i className="ti ti-users text-[#25D366]" aria-hidden="true" />
+                    {broadcastCount === null ? (
+                      <span className="text-sm text-gray-400">Inahesabu...</span>
+                    ) : (
+                      <span className="text-sm font-medium text-gray-700">
+                        Wapokeaji:&nbsp;
+                        <span className={`font-bold ${broadcastCount === 0 ? 'text-red-500' : 'text-[#25D366]'}`}>
+                          {broadcastCount}
+                        </span>
+                        &nbsp;leads wenye WhatsApp
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tone selector */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1">
+                    <i className="ti ti-mood-smile" aria-hidden="true" /> Mtindo wa Ujumbe
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'personal', label: 'Urafiki', icon: 'mood-smile' },
+                      { id: 'formal',   label: 'Rasmi',   icon: 'tie' },
+                      { id: 'urgent',   label: 'Dharura', icon: 'alert-triangle' },
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setBroadcastTone(t.id)}
+                        className={`py-2.5 rounded-xl text-xs font-medium border transition-all flex items-center justify-center gap-1
+                          ${broadcastTone === t.id
+                            ? 'bg-[#25D366] text-white border-[#25D366]'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-green-300'}`}
+                      >
+                        <i className={`ti ti-${t.icon}`} aria-hidden="true" /> {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Message */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block flex items-center gap-1">
+                    <i className="ti ti-message" aria-hidden="true" /> Ujumbe
+                  </label>
+                  <textarea
+                    rows={5}
+                    value={broadcastMessage}
+                    onChange={e => setBroadcastMessage(e.target.value)}
+                    placeholder={`Andika ujumbe hapa...\n\nUnaweza kutumia {jina} ili mfumo ubadilishe jina la biashara kiotomatiki.\n\nMfano: Karibu {jina}! Tungependa kukuomba ujisajili kwenye NyumbaFasta Tanzania.`}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Tumia <code className="bg-gray-100 px-1 rounded">{'{jina}'}</code> — itabadilishwa na jina la biashara
+                  </p>
+                </div>
+
+                {broadcastError && (
+                  <div role="alert" className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+                    <i className="ti ti-alert-triangle flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <span>{broadcastError}</span>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleBroadcast}
+                  disabled={!broadcastMessage.trim() || broadcasting || broadcastCount === 0}
+                  className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-bold text-base disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  <i className="ti ti-send" aria-hidden="true" />
+                  {broadcastCount !== null && broadcastCount > 0
+                    ? `Tuma kwa leads ${broadcastCount} wenye WhatsApp`
+                    : broadcastCount === 0
+                    ? 'Hakuna wapokeaji waliochaguliwa'
+                    : 'Tuma Broadcast'}
+                </button>
+
+                <p className="text-xs text-center text-gray-400">
+                  <i className="ti ti-info-circle" aria-hidden="true" /> Ujumbe utatumwa kwa leads wote wenye namba ya WhatsApp kwenye mfumo
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Import Excel Modal ── */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
@@ -1108,7 +1415,7 @@ export default function LeadsClient() {
                     <table className="text-xs text-blue-700 w-full">
                       <thead>
                         <tr className="border-b border-blue-200">
-                          {['business_name *', 'phone', 'email', 'region', 'notes', 'whatsapp'].map(h => (
+                          {['business_name *', 'phone', 'whatsapp', 'facebook_url', 'instagram_url', 'tiktok_url', 'confidence', 'region', 'notes'].map(h => (
                             <th key={h} className="pr-3 pb-1 text-left font-semibold whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
@@ -1117,14 +1424,21 @@ export default function LeadsClient() {
                         <tr>
                           <td className="pr-3 py-1 whitespace-nowrap">Nyumba Bora Agency</td>
                           <td className="pr-3 whitespace-nowrap">0712345678</td>
-                          <td className="pr-3 whitespace-nowrap">info@nyumba.co.tz</td>
+                          <td className="pr-3 whitespace-nowrap">0712345678</td>
+                          <td className="pr-3 whitespace-nowrap text-blue-400">fb.com/nyumba</td>
+                          <td className="pr-3 text-blue-400">ig.com/nyumba</td>
+                          <td className="pr-3 text-blue-400">tiktok.com/@n</td>
+                          <td className="pr-3">85</td>
                           <td className="pr-3">Dar es Salaam</td>
-                          <td className="pr-3">Mkubwa</td>
                           <td></td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
+                  <p className="text-xs text-blue-500 mt-2">
+                    * Lead bila simu na bila akaunti yoyote ya kijamii itapitwa.<br/>
+                    * <code className="bg-blue-100 px-1 rounded">confidence</code> = nambari 0–100 (au 0–1). Default: 50.
+                  </p>
                   <a
                     href="/api/v1/agent/leads/bulk"
                     download="leads_template.csv"
