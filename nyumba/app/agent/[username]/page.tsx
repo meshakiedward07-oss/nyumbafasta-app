@@ -20,6 +20,7 @@ type ProfileRow = {
     rating_avg: number
     rating_count: number
     is_premium_verified: boolean
+    is_transparent_agent: boolean
     verification_status: string | null
     // whatsapp_number intentionally NOT fetched — must never reach the client
   } | Array<{
@@ -27,6 +28,7 @@ type ProfileRow = {
     rating_avg: number
     rating_count: number
     is_premium_verified: boolean
+    is_transparent_agent: boolean
     verification_status: string | null
   }> | null
 }
@@ -72,7 +74,7 @@ async function getAgentData(username: string): Promise<{
     .from('users')
     .select(`
       id, full_name, username, avatar_url, is_active, role,
-      dalali_profiles ( bio, rating_avg, rating_count, is_premium_verified, verification_status )
+      dalali_profiles ( bio, rating_avg, rating_count, is_premium_verified, is_transparent_agent, verification_status )
     `)
     .eq('username', username)
     .eq('role', 'dalali')
@@ -246,6 +248,7 @@ export default async function AgentProfilePage({ params }: { params: { username:
           username,
           avatarUrl: dalali.avatar_url,
           isVerified: profile?.is_premium_verified ?? false,
+          isTransparentAgent: profile?.is_transparent_agent ?? false,
           bio: profile?.bio ?? null,
           ratingAvg: profile?.rating_avg ?? 0,
           ratingCount: profile?.rating_count ?? 0,

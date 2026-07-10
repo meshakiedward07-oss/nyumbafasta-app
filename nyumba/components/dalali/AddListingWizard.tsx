@@ -9,6 +9,8 @@ import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
 import { getListingLimit } from '@/lib/config/subscription-plans'
 import { VideoUpload } from '@/components/listings/VideoUpload'
 import { useDalaliProfile } from '@/lib/hooks/useDalaliProfile'
+import CommissionField, { type CommissionState } from '@/components/listings/CommissionField'
+import { formatCommission } from '@/lib/listings/commission'
 
 const ListingLocationPicker = dynamic(
   () => import('@/components/maps/ListingLocationPicker'),
@@ -190,6 +192,10 @@ export default function AddListingWizard() {
     auto_deactivate_on_full: true,
   })
 
+  const [commission, setCommission] = useState<CommissionState>({
+    enabled: false, type: null, value: '', notes: '',
+  })
+
   const supabase = createClient()
   const [draftKey, setDraftKey] = useState<string | null>(null)
   const [draftRestored, setDraftRestored] = useState(false)
@@ -207,23 +213,25 @@ export default function AddListingWizard() {
     try {
       const saved = localStorage.getItem(draftKey)
       if (saved) {
-        const parsed = JSON.parse(saved) as Partial<Omit<FormData, 'images'>>
-        setForm(prev => ({ ...prev, ...parsed, images: prev.images }))
+        const parsed = JSON.parse(saved) as Partial<Omit<FormData, 'images'>> & { _commission?: CommissionState }
+        const { _commission, ...formData } = parsed
+        setForm(prev => ({ ...prev, ...formData, images: prev.images }))
+        if (_commission) setCommission(_commission)
         setDraftRestored(true)
       }
     } catch {}
   }, [draftKey])
 
-  // Save draft to localStorage whenever form changes (debounced 500ms)
+  // Save draft to localStorage whenever form or commission changes (debounced 500ms)
   useEffect(() => {
     if (!draftKey) return
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { images: _images, ...formWithoutImages } = form
     const t = setTimeout(() => {
-      try { localStorage.setItem(draftKey, JSON.stringify(formWithoutImages)) } catch {}
+      try { localStorage.setItem(draftKey, JSON.stringify({ ...formWithoutImages, _commission: commission })) } catch {}
     }, 500)
     return () => clearTimeout(t)
-  }, [form, draftKey])
+  }, [form, commission, draftKey])
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -262,6 +270,9 @@ export default function AddListingWizard() {
           listing_unit_type: form.listing_unit_type,
           total_capacity: form.listing_unit_type === 'single' ? 1 : parseInt(form.total_capacity) || 1,
           auto_deactivate_on_full: form.auto_deactivate_on_full,
+          commission_type: commission.enabled && commission.type ? commission.type : null,
+          commission_value: commission.enabled && commission.type && commission.value ? parseFloat(commission.value) : null,
+          commission_notes: commission.enabled && commission.notes.trim() ? commission.notes.trim() : null,
         }),
       })
       const data = await res.json()
@@ -297,6 +308,7 @@ export default function AddListingWizard() {
           <button
             onClick={() => {
               setForm({ type: 'chumba', price_monthly: '', bedrooms: '', furnished: 'empty', description: '', region: '', district: '', ward: '', mtaa: '', amenities: [], images: [], video_url: null, latitude: null, longitude: null, address_full: '', place_id: '', shop_size_sqm: '', floor_level: '', commercial_use: '', listing_unit_type: 'single', total_capacity: '', auto_deactivate_on_full: true })
+              setCommission({ enabled: false, type: null, value: '', notes: '' })
               try { if (draftKey) localStorage.removeItem(draftKey) } catch {}
               setDraftRestored(false)
             }}
@@ -572,6 +584,11 @@ export default function AddListingWizard() {
                 {form.description.length}/500
               </p>
             </div>
+
+            {/* Commission */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+              <CommissionField value={commission} onChange={setCommission} />
+            </div>
           </>
         )}
 
@@ -800,6 +817,9 @@ export default function AddListingWizard() {
                 )}
                 <Row label="Picha" value={`${form.images.length} picha`} />
                 {form.video_url && <Row label="Video" value="Imepakiwa" />}
+                {commission.enabled && commission.type && (
+                  <Row label="Komisho" value={formatCommission(commission.type, parseFloat(commission.value) || null)} />
+                )}
               </div>
 
               {/* WhatsApp ya mawasiliano — read-only */}

@@ -109,6 +109,20 @@ export async function PATCH(
     }
     if (bedrooms !== undefined) updatePayload.bedrooms = bedrooms ?? null
 
+    // Commission fields — optional; null clears them
+    const VALID_COMMISSION_TYPES = ['one_month', 'percentage', 'fixed', 'negotiable']
+    if ('commission_type' in body) {
+      updatePayload.commission_type = VALID_COMMISSION_TYPES.includes(body.commission_type)
+        ? body.commission_type
+        : null
+      updatePayload.commission_value = typeof body.commission_value === 'number'
+        ? body.commission_value
+        : null
+      updatePayload.commission_notes = typeof body.commission_notes === 'string'
+        ? body.commission_notes.trim() || null
+        : null
+    }
+
     const { error } = await admin.from('listings').update(updatePayload).eq('id', params.id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

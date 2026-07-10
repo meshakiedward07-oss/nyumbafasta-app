@@ -1,4 +1,5 @@
 export type UserRole = 'client' | 'dalali' | 'admin' | 'staff'
+export type CommissionType = 'one_month' | 'percentage' | 'fixed' | 'negotiable'
 export type ListingStatus = 'pending' | 'active' | 'taken' | 'expired' | 'rejected' | 'deleted'
 export type ListingType = 'chumba' | 'apartment' | 'nyumba' | 'studio' | 'duka'
 export type FurnishedStatus = 'furnished' | 'semi' | 'empty'
@@ -53,6 +54,9 @@ export type Listing = {
   auto_deactivate_on_full: boolean
   occupancy_last_updated: string | null
   auto_deactivated_at: string | null
+  commission_type: CommissionType | null
+  commission_value: number | null
+  commission_notes: string | null
 }
 
 export type User = {
@@ -89,6 +93,8 @@ export type DalaliProfile = {
   verification_submitted_at: string | null
   verification_approved_at: string | null
   verification_rejected_reason: string | null
+  is_transparent_agent: boolean
+  commission_listings_count: number
 }
 
 export type Subscription = {
@@ -160,6 +166,6 @@ export type Notification = {
 // Joined type for listing cards
 export type ListingWithDalali = Listing & {
   dalali: (User & {
-    dalali_profiles: Pick<DalaliProfile, 'rating_avg' | 'is_premium_verified' | 'is_favourite_dalali'> | null
+    dalali_profiles: Pick<DalaliProfile, 'rating_avg' | 'is_premium_verified' | 'is_favourite_dalali' | 'is_transparent_agent'> | null
   }) | null
 }

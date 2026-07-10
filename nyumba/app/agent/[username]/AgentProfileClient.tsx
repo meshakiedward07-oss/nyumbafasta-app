@@ -14,6 +14,7 @@ interface Dalali {
   username: string
   avatarUrl: string | null
   isVerified: boolean
+  isTransparentAgent: boolean
   bio: string | null
   ratingAvg: number
   ratingCount: number
@@ -259,6 +260,12 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                   <span className="inline-flex items-center gap-1 bg-primary-500 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">
                     <i className="ti ti-rosette-discount-check text-xs" aria-hidden="true" />
                     Verified
+                  </span>
+                )}
+                {dalali.isTransparentAgent && (
+                  <span className="inline-flex items-center gap-1 bg-green-500 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">
+                    <i className="ti ti-eye text-xs" aria-hidden="true" />
+                    Dalali wa Uwazi
                   </span>
                 )}
               </div>

@@ -17,6 +17,7 @@ import { VideoPlayer } from '@/components/listings/VideoPlayer'
 import { getFullLocation, getShortLocation } from '@/lib/listings/formatLocation'
 import { BOOSTED_LABEL, STATUS_LABELS } from '@/lib/config/listing-status'
 import { buildContactWhatsAppMessage } from '@/lib/utils/whatsappTemplates'
+import { formatCommission, calculateCommissionAmount } from '@/lib/listings/commission'
 
 const SimilarListings = dynamic(
   () => import('@/components/listings/SimilarListings'),
@@ -329,6 +330,54 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             )}
           </div>
         </div>
+
+        {/* Commission — always show type; value/notes only after unlock */}
+        {listing.commission_type && (
+          <section className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+              <i className="ti ti-coins" aria-hidden="true" /> Komisho ya Dalali
+            </h3>
+            {localUnlocked ? (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between py-1 border-b border-gray-50">
+                  <span className="text-sm text-gray-500">Aina</span>
+                  <span className="text-sm font-semibold text-gray-800">
+                    {formatCommission(listing.commission_type, listing.commission_value ?? null)}
+                  </span>
+                </div>
+                {listing.commission_type !== 'negotiable' && listing.commission_type !== 'one_month' && listing.commission_value ? (
+                  <div className="flex items-center justify-between py-1 border-b border-gray-50">
+                    <span className="text-sm text-gray-500">Kiasi</span>
+                    <span className="text-sm font-bold text-primary-700">
+                      Tsh {calculateCommissionAmount(listing.commission_type, listing.commission_value, listing.price_monthly)?.toLocaleString() ?? '—'}
+                    </span>
+                  </div>
+                ) : listing.commission_type === 'one_month' ? (
+                  <div className="flex items-center justify-between py-1 border-b border-gray-50">
+                    <span className="text-sm text-gray-500">Kiasi</span>
+                    <span className="text-sm font-bold text-primary-700">
+                      Tsh {listing.price_monthly.toLocaleString()}
+                    </span>
+                  </div>
+                ) : null}
+                {listing.commission_notes && (
+                  <p className="text-xs text-gray-500 mt-1 pt-1">{listing.commission_notes}</p>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
+                  <i className="ti ti-coins text-xs" aria-hidden="true" />
+                  {formatCommission(listing.commission_type, null)}
+                </span>
+                <span className="text-xs text-gray-400 flex items-center gap-1">
+                  <i className="ti ti-lock text-xs" aria-hidden="true" />
+                  Maelezo baada ya kulipa
+                </span>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Location */}
         <section className="card p-4">

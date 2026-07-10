@@ -5,9 +5,16 @@ import Image from 'next/image'
 import Avatar from '@/components/shared/Avatar'
 import SaveButton from '@/components/shared/SaveButton'
 import ShareButton from '@/components/shared/ShareButton'
-import type { ListingWithDalali } from '@/lib/types/database'
+import type { ListingWithDalali, CommissionType } from '@/lib/types/database'
 import { getShortLocation } from '@/lib/listings/formatLocation'
 import { BOOSTED_LABEL, STATUS_LABELS } from '@/lib/config/listing-status'
+
+const COMMISSION_SHORT: Record<CommissionType, string> = {
+  one_month:  '1 Mwezi',
+  percentage: 'Komisho %',
+  fixed:      'Komisho',
+  negotiable: 'Inajadiliwa',
+}
 
 // ── Property-type visual styles ───────────────────────────────────────────────
 const TYPE_STYLE: Record<string, { icon: string; pillBg: string; pillText: string; label: string }> = {
@@ -163,11 +170,12 @@ function PlaceholderHouse() {
 export default function ListingCard({ listing, hasUnlocked = false, priority = false }: { listing: ListingWithDalali; hasUnlocked?: boolean; priority?: boolean }) {
   const [imgError, setImgError] = useState(false)
 
-  const profile      = listing.dalali?.dalali_profiles
-  const rating       = profile?.rating_avg ?? 0
-  const isVerified   = profile?.is_premium_verified ?? false
-  const isFavourite  = profile?.is_favourite_dalali ?? false
-  const typeStyle  = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
+  const profile           = listing.dalali?.dalali_profiles
+  const rating            = profile?.rating_avg ?? 0
+  const isVerified        = profile?.is_premium_verified ?? false
+  const isFavourite       = profile?.is_favourite_dalali ?? false
+  const isTransparent     = profile?.is_transparent_agent ?? false
+  const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
 
   const isActive = listing.status === 'active'
 
@@ -283,6 +291,12 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
                 Namba Unayo
               </span>
             )}
+            {listing.commission_type && (
+              <span className="inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-full border bg-amber-50 border-amber-200 text-amber-700">
+                <i className="ti ti-coins text-[10px]" aria-hidden="true" />
+                {COMMISSION_SHORT[listing.commission_type]}
+              </span>
+            )}
             {listing.furnished && (
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border bg-amber-50 border-amber-200 text-amber-700">
                 <i className="ti ti-armchair text-xs" aria-hidden="true" />
@@ -349,6 +363,11 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
                   {isFavourite && (
                     <span className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
                       <i className="ti ti-rosette-discount-check" style={{ fontSize: '9px' }} aria-hidden="true" /> Halisi
+                    </span>
+                  )}
+                  {isTransparent && (
+                    <span className="inline-flex items-center gap-0.5 bg-green-100 text-green-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
+                      <i className="ti ti-eye" style={{ fontSize: '9px' }} aria-hidden="true" /> Uwazi
                     </span>
                   )}
                 </div>

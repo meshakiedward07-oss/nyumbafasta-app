@@ -10,10 +10,11 @@ const PUBLIC_LISTING_FIELDS = `
   district, region, ward, furnished, amenities,
   images, is_boosted, boosted_until,
   view_count, lead_count, share_count, latitude, longitude,
+  commission_type,
   created_at,
   dalali:dalali_id (
     id, full_name, avatar_url,
-    dalali_profiles ( rating_avg, is_premium_verified, is_favourite_dalali )
+    dalali_profiles ( rating_avg, is_premium_verified, is_favourite_dalali, is_transparent_agent )
   )
 `
 
@@ -186,6 +187,18 @@ export async function POST(req: NextRequest) {
     if (data.shop_size_sqm !== null) insertPayload.shop_size_sqm = data.shop_size_sqm
     if (data.floor_level !== null) insertPayload.floor_level = data.floor_level
     if (data.commercial_use !== null) insertPayload.commercial_use = data.commercial_use
+
+    // Commission — optional, validated separately from the main listing schema
+    const VALID_COMMISSION_TYPES = ['one_month', 'percentage', 'fixed', 'negotiable']
+    if (body.commission_type && VALID_COMMISSION_TYPES.includes(body.commission_type)) {
+      insertPayload.commission_type = body.commission_type
+      if (body.commission_value != null) {
+        insertPayload.commission_value = Number(body.commission_value) || null
+      }
+      if (typeof body.commission_notes === 'string' && body.commission_notes.trim()) {
+        insertPayload.commission_notes = body.commission_notes.trim()
+      }
+    }
 
     const { data: listing, error: insertError } = await admin
       .from('listings')

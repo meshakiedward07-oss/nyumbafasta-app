@@ -8,7 +8,7 @@ export default async function EditListingPage({ params }: { params: { id: string
 
   const { data: listing } = await supabase
     .from('listings')
-    .select('id, type, status, price_monthly, bedrooms, furnished, description, region, district, amenities, images, latitude, longitude, address_full, place_id')
+    .select('id, type, status, price_monthly, bedrooms, furnished, description, region, district, amenities, images, latitude, longitude, address_full, place_id, commission_type, commission_value, commission_notes')
     .eq('id', params.id)
     .eq('dalali_id', user!.id)
     .single()

@@ -106,12 +106,14 @@ export default async function ListingDetailPage({
         images, video_url, description, bedrooms,
         is_boosted, view_count, lead_count, share_count,
         latitude, longitude,
+        commission_type, commission_value, commission_notes,
         created_at, dalali_id,
         dalali:dalali_id (
           id, full_name, avatar_url, username,
           dalali_profiles (
             bio,
-            rating_avg, rating_count, is_premium_verified, is_favourite_dalali
+            rating_avg, rating_count, is_premium_verified, is_favourite_dalali,
+            is_transparent_agent
           )
         )
       `)

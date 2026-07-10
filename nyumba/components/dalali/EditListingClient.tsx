@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
 import type { LocationData } from '@/components/maps/ListingLocationPicker'
 import { TANZANIA_REGIONS } from '@/lib/data/tanzania-locations'
+import CommissionField, { type CommissionState } from '@/components/listings/CommissionField'
+import { formatCommission } from '@/lib/listings/commission'
 
 const ListingLocationPicker = dynamic(
   () => import('@/components/maps/ListingLocationPicker'),
@@ -30,6 +32,9 @@ type ListingData = {
   longitude: number | null
   address_full: string | null
   place_id: string | null
+  commission_type: string | null
+  commission_value: number | null
+  commission_notes: string | null
 }
 
 const LISTING_TYPES = [
@@ -91,6 +96,12 @@ export default function EditListingClient({ listing }: { listing: ListingData })
   const [longitude, setLongitude] = useState<number | null>(listing.longitude ?? null)
   const [addressFull, setAddressFull] = useState(listing.address_full ?? '')
   const [placeId, setPlaceId] = useState(listing.place_id ?? '')
+  const [commission, setCommission] = useState<CommissionState>(() => {
+    const type = listing.commission_type as CommissionState['type'] | null
+    return type
+      ? { enabled: true, type, value: String(listing.commission_value ?? ''), notes: listing.commission_notes ?? '' }
+      : { enabled: false, type: null, value: '', notes: '' }
+  })
 
   const draftKey = useMemo(() => `edit_listing_draft_${listing.id}`, [listing.id])
 
@@ -108,6 +119,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
       if (d.region)      setRegion(d.region)
       if (d.district)    setDistrict(d.district)
       if (d.amenities)   setAmenities(d.amenities)
+      if (d._commission) setCommission(d._commission)
     } catch {}
   }, [draftKey])
 
@@ -115,11 +127,11 @@ export default function EditListingClient({ listing }: { listing: ListingData })
   useEffect(() => {
     const t = setTimeout(() => {
       try {
-        localStorage.setItem(draftKey, JSON.stringify({ type, price, bedrooms, furnished, description, region, district, amenities }))
+        localStorage.setItem(draftKey, JSON.stringify({ type, price, bedrooms, furnished, description, region, district, amenities, _commission: commission }))
       } catch {}
     }, 500)
     return () => clearTimeout(t)
-  }, [type, price, bedrooms, furnished, description, region, district, amenities, draftKey])
+  }, [type, price, bedrooms, furnished, description, region, district, amenities, commission, draftKey])
 
   function handleLocationChange(loc: LocationData) {
     setLatitude(loc.latitude)
@@ -146,6 +158,9 @@ export default function EditListingClient({ listing }: { listing: ListingData })
           latitude, longitude,
           address_full: addressFull || null,
           place_id: placeId || null,
+          commission_type: commission.enabled && commission.type ? commission.type : null,
+          commission_value: commission.enabled && commission.type && commission.value ? parseFloat(commission.value) : null,
+          commission_notes: commission.enabled && commission.notes.trim() ? commission.notes.trim() : null,
         }),
       })
       const data = await res.json()
@@ -247,6 +262,10 @@ export default function EditListingClient({ listing }: { listing: ListingData })
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
               </div>
             </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+              <CommissionField value={commission} onChange={setCommission} />
+            </div>
           </>
         )}
 
@@ -335,6 +354,9 @@ export default function EditListingClient({ listing }: { listing: ListingData })
                 ['Mahali', `${district}, ${region}`],
                 ['Huduma', `${amenities.length} zilizochaguliwa`],
                 ['Picha', `${images.length} picha`],
+                ...(commission.enabled && commission.type
+                  ? [['Komisho', formatCommission(commission.type, parseFloat(commission.value) || null)]]
+                  : []),
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between border-b border-gray-50 pb-1.5 last:border-0">
                   <span className="text-gray-400 text-xs">{label}</span>
