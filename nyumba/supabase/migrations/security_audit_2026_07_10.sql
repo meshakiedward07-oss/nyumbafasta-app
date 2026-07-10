@@ -32,7 +32,6 @@ AS
 SELECT
   u.id,
   u.full_name                                                  AS name,
-  u.email,                             -- public.users.email — no auth.users join
   u.phone,
   u.created_at                                                 AS registered_at,
   u.last_listing_at,
@@ -74,14 +73,14 @@ LEFT JOIN dalali_profiles dp ON dp.user_id = u.id
 LEFT JOIN LATERAL (
   SELECT plan FROM subscriptions
   WHERE dalali_id = u.id
-    AND status IN ('active', 'grace_period', 'trial')
+    AND status::text IN ('active', 'grace_period')
   ORDER BY created_at DESC
   LIMIT 1
 ) s ON true
 LEFT JOIN listings l ON l.dalali_id = u.id
 WHERE u.role = 'dalali'
 GROUP BY
-  u.id, u.full_name, u.email, u.phone, u.created_at,
+  u.id, u.full_name, u.phone, u.created_at,
   u.last_listing_at, u.listing_warnings_count, u.listing_deadline_days,
   u.account_deletion_scheduled_at, u.is_active,
   dp.whatsapp_number, s.plan;
