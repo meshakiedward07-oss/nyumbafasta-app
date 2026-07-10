@@ -86,7 +86,11 @@ export default function LeadsClient() {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{
-    imported: number; skipped: number; errors: { row: number; reason: string }[]
+    imported: number
+    duplicates_file: number
+    duplicates_db: number
+    skipped: number
+    errors: { row: number; reason: string }[]
   } | null>(null)
   const [importError, setImportError] = useState('')
 
@@ -1017,23 +1021,52 @@ export default function LeadsClient() {
             {importResult ? (
               /* ── Success/summary screen ── */
               <div className="space-y-4">
+                {/* Main counter */}
                 <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
                   <i className="ti ti-circle-check text-green-500 text-4xl block mb-2" aria-hidden="true" />
                   <p className="font-bold text-green-700 text-lg">Imekamilika!</p>
                   <p className="text-green-600 text-sm mt-1">
-                    <span className="font-bold text-2xl">{importResult.imported}</span> leads zimeingizwa kwenye mfumo
+                    <span className="font-bold text-2xl">{importResult.imported}</span> leads mpya zimeingizwa kwenye mfumo
                   </p>
-                  {importResult.skipped > 0 && (
-                    <p className="text-amber-600 text-sm mt-1">
-                      Safu {importResult.skipped} zimepitwa (hazikuwa na jina au kosa)
-                    </p>
-                  )}
                 </div>
 
-                {importResult.errors.length > 0 && (
+                {/* Duplicate breakdown — only show if any */}
+                {(importResult.duplicates_file > 0 || importResult.duplicates_db > 0) && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 space-y-1.5">
+                    <p className="text-xs font-semibold text-blue-700 flex items-center gap-1 mb-2">
+                      <i className="ti ti-copy-off" aria-hidden="true" /> Nakala zilizozuiwa
+                    </p>
+                    {importResult.duplicates_file > 0 && (
+                      <div className="flex items-center justify-between text-xs text-blue-700">
+                        <span className="flex items-center gap-1.5">
+                          <i className="ti ti-files" aria-hidden="true" />
+                          Nakala ndani ya faili hilo hilo
+                        </span>
+                        <span className="font-bold bg-blue-100 px-2 py-0.5 rounded-full">
+                          {importResult.duplicates_file}
+                        </span>
+                      </div>
+                    )}
+                    {importResult.duplicates_db > 0 && (
+                      <div className="flex items-center justify-between text-xs text-blue-700">
+                        <span className="flex items-center gap-1.5">
+                          <i className="ti ti-database" aria-hidden="true" />
+                          Zilizopo tayari kwenye mfumo
+                        </span>
+                        <span className="font-bold bg-blue-100 px-2 py-0.5 rounded-full">
+                          {importResult.duplicates_db}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Parse / insert errors */}
+                {importResult.skipped > 0 && (
                   <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
                     <p className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1">
-                      <i className="ti ti-alert-triangle" aria-hidden="true" /> Safu zenye makosa:
+                      <i className="ti ti-alert-triangle" aria-hidden="true" />
+                      Safu {importResult.skipped} zenye makosa (zimepitwa):
                     </p>
                     {importResult.errors.map((e, i) => (
                       <p key={i} className="text-xs text-amber-700">Safu {e.row}: {e.reason}</p>

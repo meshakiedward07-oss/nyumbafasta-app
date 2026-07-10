@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import ExcelJS from 'exceljs'
-import { Readable } from 'stream'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 
@@ -71,6 +70,19 @@ function parseCSV(text: string): string[][] {
   return rows
 }
 
+// ── Parsed row shape ──────────────────────────────────────────────────────────
+type ParsedRow = {
+  business_name: string
+  phone:         string | null
+  email:         string | null
+  region:        string | null
+  notes:         string | null
+  whatsapp:      string | null
+  source:        'excel_import'
+  ai_score:      number
+  status:        'new'
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const auth = await requireAdminAuth()
@@ -91,88 +103,148 @@ export async function POST(req: NextRequest) {
 
     const arrayBuf = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuf)
-    const toInsert: Record<string, unknown>[] = []
-    const errors: { row: number; reason: string }[] = []
+    const parseErrors: { row: number; reason: string }[] = []
+
+    // ── 1. Parse file into raw rows ───────────────────────────────────────────
+    const rawRows: ParsedRow[] = []
 
     if (ext === 'csv') {
-      // ── CSV path ──────────────────────────────────────────────────────────
       const text   = buffer.toString('utf-8')
       const rows   = parseCSV(text)
       if (rows.length < 2) {
         return NextResponse.json({ error: 'CSV haina data ya kutosha' }, { status: 400 })
       }
-
       const headers = rows[0]
       const colToField: Record<number, string> = {}
       headers.forEach((h, i) => { const f = matchColumn(h); if (f) colToField[i] = f })
-
       if (!Object.values(colToField).includes('business_name')) {
         return NextResponse.json({ error: columnNotFoundError() }, { status: 400 })
       }
-
       for (let r = 1; r < rows.length; r++) {
         const cells = rows[r]
         const rec: Record<string, string | null> = {}
         cells.forEach((val, i) => { if (colToField[i]) rec[colToField[i]] = val || null })
-        addRecord(rec, r + 1, toInsert, errors)
+        addRecord(rec, r + 1, rawRows, parseErrors)
       }
     } else {
-      // ── Excel path ────────────────────────────────────────────────────────
       const workbook = new ExcelJS.Workbook()
       await workbook.xlsx.load(arrayBuf)
-
       const sheet = workbook.worksheets[0]
       if (!sheet || sheet.rowCount < 2) {
         return NextResponse.json({ error: 'Faili haina data ya kutosha' }, { status: 400 })
       }
-
       const headerRow = sheet.getRow(1)
       const colToField: Record<number, string> = {}
       headerRow.eachCell({ includeEmpty: false }, (cell, col) => {
         const f = matchColumn(cellText(cell))
         if (f) colToField[col] = f
       })
-
       if (!Object.values(colToField).includes('business_name')) {
         return NextResponse.json({ error: columnNotFoundError() }, { status: 400 })
       }
-
       sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
         if (rowNumber === 1) return
         const rec: Record<string, string | null> = {}
         row.eachCell({ includeEmpty: true }, (cell, col) => {
           if (colToField[col]) rec[colToField[col]] = cellText(cell) || null
         })
-        addRecord(rec, rowNumber, toInsert, errors)
+        addRecord(rec, rowNumber, rawRows, parseErrors)
       })
     }
 
-    if (toInsert.length === 0) {
+    if (rawRows.length === 0) {
       return NextResponse.json(
-        { error: 'Hakuna leads zilizobainiki kwenye faili', errors },
+        { error: 'Hakuna leads zilizobainiki kwenye faili', errors: parseErrors },
         { status: 400 },
       )
     }
 
-    // ── Bulk insert in 100-row chunks ─────────────────────────────────────
+    // ── 2. Deduplicate within the file ────────────────────────────────────────
+    // Key: normalised phone (preferred) or lower(business_name) as fallback
+    const seenInFile = new Set<string>()
+    const uniqueRows: ParsedRow[] = []
+    let duplicatesInFile = 0
+
+    for (const row of rawRows) {
+      const key = row.phone ?? `name:${row.business_name.toLowerCase()}`
+      if (seenInFile.has(key)) {
+        duplicatesInFile++
+      } else {
+        seenInFile.add(key)
+        uniqueRows.push(row)
+      }
+    }
+
+    // ── 3. Check against existing DB leads ────────────────────────────────────
+    const phones = uniqueRows.map(r => r.phone).filter(Boolean) as string[]
+    const names  = uniqueRows
+      .filter(r => !r.phone)
+      .map(r => r.business_name.toLowerCase())
+
+    // Fetch existing records that match by phone or (no-phone) by name
+    const existingPhones = new Set<string>()
+    const existingNames  = new Set<string>()
+
+    if (phones.length > 0) {
+      const { data } = await supabaseAdmin
+        .from('agent_leads')
+        .select('phone')
+        .in('phone', phones)
+      for (const row of data ?? []) {
+        if (row.phone) existingPhones.add(row.phone)
+      }
+    }
+
+    if (names.length > 0) {
+      // Supabase doesn't support lower() directly in .in(), so fetch and filter
+      const { data } = await supabaseAdmin
+        .from('agent_leads')
+        .select('business_name')
+        .is('phone', null)
+      for (const row of data ?? []) {
+        existingNames.add((row.business_name as string).toLowerCase())
+      }
+    }
+
+    const toInsert: ParsedRow[] = []
+    let duplicatesInDb = 0
+
+    for (const row of uniqueRows) {
+      const key = row.phone
+        ? existingPhones.has(row.phone)
+        : existingNames.has(row.business_name.toLowerCase())
+      if (key) {
+        duplicatesInDb++
+      } else {
+        toInsert.push(row)
+      }
+    }
+
+    // ── 4. Bulk insert in 100-row chunks ──────────────────────────────────────
     let imported = 0
+    const insertErrors: { row: number; reason: string }[] = []
     const CHUNK = 100
+
     for (let i = 0; i < toInsert.length; i += CHUNK) {
       const { error: insertErr } = await supabaseAdmin
         .from('agent_leads')
         .insert(toInsert.slice(i, i + CHUNK))
       if (insertErr) {
-        errors.push({ row: i + 1, reason: insertErr.message })
+        insertErrors.push({ row: i + 1, reason: insertErr.message })
       } else {
         imported += Math.min(CHUNK, toInsert.length - i)
       }
     }
 
+    const allErrors = [...parseErrors, ...insertErrors]
+
     return NextResponse.json({
-      success:  true,
+      success:           true,
       imported,
-      skipped:  errors.length,
-      errors:   errors.slice(0, 20),
+      duplicates_file:   duplicatesInFile,
+      duplicates_db:     duplicatesInDb,
+      skipped:           allErrors.length,
+      errors:            allErrors.slice(0, 20),
     })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
@@ -208,7 +280,7 @@ function columnNotFoundError() {
 function addRecord(
   rec:      Record<string, string | null>,
   rowNum:   number,
-  out:      Record<string, unknown>[],
+  out:      ParsedRow[],
   errors:   { row: number; reason: string }[],
 ) {
   const name = rec.business_name?.trim()
