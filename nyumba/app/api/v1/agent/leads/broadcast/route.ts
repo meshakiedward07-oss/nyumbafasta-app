@@ -49,6 +49,9 @@ export async function POST(req: NextRequest) {
   if (!message?.trim()) {
     return NextResponse.json({ error: 'Ujumbe unahitajika' }, { status: 400 })
   }
+  if (message.trim().length > 4000) {
+    return NextResponse.json({ error: 'Ujumbe ni mrefu sana (kiwango cha juu ni herufi 4000)' }, { status: 400 })
+  }
 
   // ── Fetch recipients ──────────────────────────────────────────────────────
   let q = supabaseAdmin
@@ -97,7 +100,7 @@ export async function POST(req: NextRequest) {
       const phone = formatPhoneNumber(lead.whatsapp as string)
       if (!phone) { failedCount++; continue }
 
-      const text = buildMessage(lead.business_name as string)
+      const text = buildMessage((lead.business_name as string | null) ?? 'Rafiki')
       const ok   = await sendTextMessage(phone, text)
       ok ? sentCount++ : failedCount++
     } catch {

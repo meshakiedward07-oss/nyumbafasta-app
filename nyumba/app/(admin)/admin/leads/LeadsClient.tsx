@@ -183,12 +183,12 @@ export default function LeadsClient() {
 
   async function handleStatusChange(leadId: string, newStatus: string) {
     try {
-      await fetch('/api/v1/agent/leads', {
+      const res = await fetch('/api/v1/agent/leads', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: leadId, status: newStatus })
       })
-      fetchLeads()
+      if (res.ok) fetchLeads()
     } catch (err) { console.error(err) }
   }
 
@@ -502,7 +502,7 @@ export default function LeadsClient() {
                   <td className="px-4 py-3">
                     {(lead.whatsapp || lead.phone) && (
                       <a
-                        href={`https://wa.me/${(lead.whatsapp || lead.phone)?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Habari! Mimi ni kutoka NyumbaFasta Tanzania. Tungependa kukuomba ujisajili kwenye platform yetu ya madalali wa nyumba. Je, una dakika kuzungumza?')}`}
+                        href={`https://wa.me/${(lead.whatsapp || lead.phone)?.replace(/[^0-9]/g, '')}?text=${waMessage(lead.business_name || 'Rafiki')}`}
                         target="_blank" rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
                         className="bg-[#25D366] text-white text-xs px-2.5 py-1.5 rounded-lg font-medium hover:bg-green-600"
@@ -755,7 +755,7 @@ export default function LeadsClient() {
               <div className="flex items-center gap-2">
                 {(lead.whatsapp || lead.phone) && (
                   <a
-                    href={`https://wa.me/${(lead.whatsapp || lead.phone)?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Habari! Mimi ni kutoka NyumbaFasta Tanzania. Tungependa kukuomba ujisajili kwenye platform yetu ya madalali wa nyumba. Je, una dakika kuzungumza?')}`}
+                    href={`https://wa.me/${(lead.whatsapp || lead.phone)?.replace(/[^0-9]/g, '')}?text=${waMessage(lead.business_name || 'Rafiki')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}

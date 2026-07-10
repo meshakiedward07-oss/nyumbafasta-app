@@ -291,7 +291,7 @@ export async function POST(req: NextRequest) {
     const allErrors = [...parseErrors, ...insertErrors]
 
     return NextResponse.json({
-      success:         true,
+      success:         insertErrors.length === 0,
       imported,
       duplicates_file: duplicatesInFile,
       duplicates_db:   duplicatesInDb,
@@ -368,8 +368,8 @@ function addRecord(
 
   const confidence = parseConfidence(rec.confidence)
 
-  // whatsapp field: prefer normalised phone, then phone from URL, then the raw URL value
-  const waNumber = normalizePhone(waUrl) ?? phone
+  // whatsapp field: prefer normalised phone, then extract from a wa.me URL
+  const waNumber = phoneFromWhatsAppUrl(waUrl) ?? phone
 
   out.push({
     business_name: name,

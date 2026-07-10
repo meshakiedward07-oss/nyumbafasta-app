@@ -23,7 +23,7 @@ export async function GET() {
 
   const staffWithStats = await Promise.all(
     (staff || []).map(async (s) => {
-      const [{ count: activeLeads }, { count: totalConverted }] = await Promise.all([
+      const [{ count: activeLeads }, { count: totalConverted }, { count: totalLost }] = await Promise.all([
         admin
           .from('agent_leads')
           .select('id', { count: 'exact', head: true })
@@ -34,8 +34,13 @@ export async function GET() {
           .select('id', { count: 'exact', head: true })
           .eq('assigned_to', s.id)
           .eq('pipeline_stage', 'registered'),
+        admin
+          .from('agent_leads')
+          .select('id', { count: 'exact', head: true })
+          .eq('assigned_to', s.id)
+          .eq('pipeline_stage', 'lost'),
       ])
-      return { ...s, activeLeads: activeLeads ?? 0, totalConverted: totalConverted ?? 0 }
+      return { ...s, activeLeads: activeLeads ?? 0, totalConverted: totalConverted ?? 0, totalLost: totalLost ?? 0 }
     })
   )
 

@@ -24,15 +24,44 @@ export async function GET(
 
   const db = createAdminClient()
   const staffId = params.id
-  const days = parseInt(new URL(req.url).searchParams.get('period') || '30', 10)
+  const rawPeriod = parseInt(new URL(req.url).searchParams.get('period') || '30', 10)
+  const days = [7, 30, 90].includes(rawPeriod) ? rawPeriod : 30
   const periodStart = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
 
-  // ── 1. All-time pipeline breakdown ───────────────────────────────────────
-  const { data: allLeads } = await db
-    .from('agent_leads')
-    .select('pipeline_stage, assigned_at, converted_at, last_contacted_at')
-    .eq('assigned_to', staffId)
+  // ── Existence check ───────────────────────────────────────────────────────
+  const { data: staffUser } = await db
+    .from('users')
+    .select('id')
+    .eq('id', staffId)
+    .single()
+  if (!staffUser) return NextResponse.json({ error: 'Staff not found' }, { status: 404 })
 
+  // ── 1–4. Parallel queries ─────────────────────────────────────────────────
+  const [
+    { data: allLeads },
+    { data: periodLeads },
+    { data: activityRows },
+    { data: teamStats },
+  ] = await Promise.all([
+    db.from('agent_leads')
+      .select('pipeline_stage')
+      .eq('assigned_to', staffId),
+    db.from('agent_leads')
+      .select('pipeline_stage, last_contacted_at')
+      .eq('assigned_to', staffId)
+      .gte('assigned_at', periodStart),
+    db.from('staff_activity_log')
+      .select('created_at')
+      .eq('staff_id', staffId)
+      .gte('created_at', periodStart)
+      .order('created_at', { ascending: true }),
+    db.from('agent_leads')
+      .select('assigned_to, pipeline_stage')
+      .gte('assigned_at', periodStart)
+      .not('assigned_to', 'is', null),
+  ])
+
+  // ── Pipeline counts (all-time) ────────────────────────────────────────────
   const pipelineCounts: Record<string, number> = Object.fromEntries(STAGES.map(s => [s, 0]))
   for (const l of allLeads ?? []) {
     const s = l.pipeline_stage as string
@@ -40,34 +69,19 @@ export async function GET(
   }
   const totalAssigned = (allLeads ?? []).length
 
-  // ── 2. Period-specific KPIs ───────────────────────────────────────────────
-  const { data: periodLeads } = await db
-    .from('agent_leads')
-    .select('pipeline_stage, assigned_at, converted_at, last_contacted_at')
-    .eq('assigned_to', staffId)
-    .gte('assigned_at', periodStart)
-
+  // ── Period KPIs ───────────────────────────────────────────────────────────
   const periodTotal     = (periodLeads ?? []).length
   const periodConverted = (periodLeads ?? []).filter(l => l.pipeline_stage === 'amefanikiwa').length
   const periodLost      = (periodLeads ?? []).filter(l => l.pipeline_stage === 'amepotea').length
   const periodContacted = (periodLeads ?? []).filter(l => l.last_contacted_at != null).length
   const conversionRate  = periodTotal > 0 ? Math.round((periodConverted / periodTotal) * 1000) / 10 : 0
 
-  // ── 3. Daily activity from log ────────────────────────────────────────────
-  const { data: activityRows } = await db
-    .from('staff_activity_log')
-    .select('created_at')
-    .eq('staff_id', staffId)
-    .gte('created_at', periodStart)
-    .order('created_at', { ascending: true })
-
-  // Group by calendar date (YYYY-MM-DD)
+  // ── Daily activity chart (zero-filled) ───────────────────────────────────
   const byDate: Record<string, number> = {}
   for (const a of activityRows ?? []) {
     const d = (a.created_at as string).slice(0, 10)
     byDate[d] = (byDate[d] ?? 0) + 1
   }
-  // Fill every date in the window so chart has no gaps
   const dailyActivity: { date: string; count: number }[] = []
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
@@ -76,12 +90,7 @@ export async function GET(
   const totalActivityCount = (activityRows ?? []).length
   const avgDailyActivity   = Math.round((totalActivityCount / days) * 10) / 10
 
-  // ── 4. Team average conversion rate for comparison ───────────────────────
-  const { data: teamStats } = await db
-    .from('agent_leads')
-    .select('assigned_to, pipeline_stage')
-    .gte('assigned_at', periodStart)
-    .not('assigned_to', 'is', null)
+  // ── Team average conversion rate ──────────────────────────────────────────
 
   const byStaff: Record<string, { total: number; converted: number }> = {}
   for (const l of teamStats ?? []) {

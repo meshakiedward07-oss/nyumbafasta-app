@@ -28,6 +28,7 @@ type StaffMember = {
   max_leads_capacity: number
   activeLeads: number
   totalConverted: number
+  totalLost: number
   created_at: string
 }
 
@@ -1128,7 +1129,7 @@ function TeamPerformanceView({
 }) {
   const ranked = [...staff]
     .map(s => {
-      const total = s.activeLeads + s.totalConverted
+      const total = s.activeLeads + s.totalConverted + s.totalLost
       const rate  = total > 0 ? Math.round((s.totalConverted / total) * 1000) / 10 : 0
       return { ...s, total, rate }
     })
