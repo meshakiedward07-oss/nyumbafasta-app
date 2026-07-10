@@ -104,12 +104,17 @@ export function watermarkVideo(videoUrl: string): string {
   if (!videoUrl) return videoUrl
 
   try {
+    // Idempotency: if the URL already contains the watermark overlay, return as-is.
+    // This happens when the caller stored the Cloudinary eager URL (already transformed).
+    if (videoUrl.includes('l_text') && videoUrl.includes('NyumbaFasta')) {
+      return videoUrl
+    }
+
     if (isCloudinaryVideoUrl(videoUrl)) {
       return addCloudinaryVideoWatermark(videoUrl)
     }
 
     // Non-Cloudinary video — cannot watermark without FFmpeg
-    // Return original and log warning rather than blocking the post
     console.warn(
       '[Watermark] Non-Cloudinary video URL — watermark skipped. Upload via VideoUploadTab to enable watermarking.',
       videoUrl.slice(0, 80),

@@ -86,6 +86,20 @@ export default function BoostModal({
 
   useEffect(() => { return () => stopPolling() }, [stopPolling])
 
+  // Back-navigation lock during waiting step
+  useEffect(() => {
+    if (boostStep !== 'waiting') return
+    window.history.pushState({ __paymentLock: true }, '', window.location.href)
+    const handle = () => window.history.pushState({ __paymentLock: true }, '', window.location.href)
+    window.addEventListener('popstate', handle)
+    return () => {
+      window.removeEventListener('popstate', handle)
+      if ((window.history.state as Record<string, unknown>)?.__paymentLock) {
+        window.history.go(-1)
+      }
+    }
+  }, [boostStep])
+
   const providerInfo = PAYMENT_METHODS.find(m => m.id === selectedMethod)
 
   function validatePhone(phone: string): boolean {
@@ -160,7 +174,7 @@ export default function BoostModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={boostStep === 'waiting' ? undefined : onClose}>
       <div
         className="bg-white w-full rounded-t-3xl px-5 pt-5 pb-10 shadow-xl max-w-lg mx-auto max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
@@ -180,7 +194,7 @@ export default function BoostModal({
                 <h3 className="text-base font-bold text-gray-900">Boost Listing Yako</h3>
                 <p className="text-xs text-gray-500 truncate">{listingTitle}</p>
               </div>
-              <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl leading-none"><i className="ti ti-x" aria-hidden="true" /></button>
+              <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl leading-none min-h-[44px] min-w-[44px] flex items-center justify-center"><i className="ti ti-x" aria-hidden="true" /></button>
             </div>
 
             {isStillBoosted && (
@@ -238,7 +252,7 @@ export default function BoostModal({
                   'Inaonekana JUU ya listings zote',
                   'Badge ya Inashauriwa inayovutia',
                   'Wateja wengi zaidi wanakuona',
-                  'Leads +300% average kwa dalali wanaotumia boost',
+                  'Maombi zaidi kutoka kwa wateja wanaotafuta',
                 ].map(b => (
                   <div key={b} className="flex items-center gap-2">
                     <i className="ti ti-check text-primary-500 text-xs" aria-hidden="true" />

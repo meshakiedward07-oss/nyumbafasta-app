@@ -65,12 +65,20 @@ export async function POST(req: NextRequest) {
     }).eq('external_id', externalId).then(() => {})
 
     if (succeeded) {
+      // Mark is_premium_verified for premium/enterprise plans
+      if (subscription.plan === 'premium' || subscription.plan === 'enterprise') {
+        await admin
+          .from('dalali_profiles')
+          .update({ is_premium_verified: true })
+          .eq('id', subscription.dalali_id)
+      }
+
       // Auto-record income (non-blocking)
       import('@/lib/accounting/incomeTracker')
         .then(m => m.recordIncomeFromSubscription(subscription.id))
         .catch(e => console.error('[Accounting] recordIncomeFromSubscription failed (non-fatal):', e))
 
-      const planName = subscription.plan === 'premium' ? 'Premium ⭐' : 'Basic'
+      const planName = subscription.plan === 'premium' ? 'Premium ⭐' : subscription.plan === 'enterprise' ? 'Enterprise 🏆' : 'Basic'
       await admin.from('notifications').insert({
         user_id: subscription.dalali_id,
         title:   '✅ Subscription Imewashwa!',
@@ -80,6 +88,23 @@ export async function POST(req: NextRequest) {
         data:    { plan: subscription.plan },
       })
       console.log('[Sub Webhook] Subscription activated + notification sent:', subscription.id)
+    }
+
+    // Downgrade is_premium_verified if subscription failed
+    if (!succeeded) {
+      const { count: otherActiveCount } = await admin
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('dalali_id', subscription.dalali_id)
+        .in('plan', ['premium', 'enterprise'])
+        .eq('status', 'active')
+
+      if (otherActiveCount === 0) {
+        await admin
+          .from('dalali_profiles')
+          .update({ is_premium_verified: false })
+          .eq('id', subscription.dalali_id)
+      }
     }
 
     return NextResponse.json({ received: true, success: succeeded })

@@ -13,7 +13,7 @@ const PUBLIC_LISTING_FIELDS = `
   created_at,
   dalali:dalali_id (
     id, full_name, avatar_url,
-    dalali_profiles ( rating_avg, is_premium_verified )
+    dalali_profiles ( rating_avg, is_premium_verified, is_favourite_dalali )
   )
 `
 

@@ -127,7 +127,7 @@ export default function SingleListingMap({ latitude, longitude, district, region
   return (
     <div className="space-y-2">
       <div
-        className="w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm relative"
+        className="w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm relative z-0"
         style={{ height: 220 }}
       >
         <div ref={containerRef} className="w-full h-full" />
@@ -140,12 +140,14 @@ export default function SingleListingMap({ latitude, longitude, district, region
 
         <div className="absolute top-2 right-2 z-[999] flex rounded-lg overflow-hidden shadow border border-gray-200">
           <button type="button" onClick={() => handleViewToggle('satellite')}
+            aria-pressed={view === 'satellite'}
             className={`px-2.5 py-1 text-xs font-semibold transition-colors min-h-[44px] ${
               view === 'satellite' ? 'bg-gray-900 text-white' : 'bg-white/90 text-gray-600 hover:bg-gray-100'
             }`}>
             Setilaiti
           </button>
           <button type="button" onClick={() => handleViewToggle('street')}
+            aria-pressed={view === 'street'}
             className={`px-2.5 py-1 text-xs font-semibold transition-colors min-h-[44px] ${
               view === 'street' ? 'bg-gray-900 text-white' : 'bg-white/90 text-gray-600 hover:bg-gray-100'
             }`}>

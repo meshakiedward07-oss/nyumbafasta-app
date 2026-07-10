@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminUser } from '@/lib/security/adminAuth'
+import { addCloudinaryVideoWatermark, isCloudinaryVideoUrl } from '@/lib/media/videoWatermark'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +48,18 @@ export async function POST(req: NextRequest) {
   if (error) {
     console.error('[VideoUpload] DB insert failed:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Pre-warm the Cloudinary watermark lazy transformation so it's cached before the admin clicks Publish.
+  // This is fire-and-forget — we don't wait, but Cloudinary starts generating the watermarked version.
+  // By the time captions are written and Publish is clicked (usually 2–5 min later), it's ready.
+  if (isCloudinaryVideoUrl(videoUrl)) {
+    const watermarkedUrl = addCloudinaryVideoWatermark(videoUrl)
+    if (watermarkedUrl !== videoUrl) {
+      fetch(watermarkedUrl, { signal: AbortSignal.timeout(8_000) })
+        .then(() => console.log('[VideoUpload] Cloudinary watermark pre-warm triggered'))
+        .catch(() => {})  // Cloudinary keeps processing even after our timeout
+    }
   }
 
   return NextResponse.json({ ok: true, videoId: data.id, videoUrl })

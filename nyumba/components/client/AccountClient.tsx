@@ -67,7 +67,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-28">
+    <div className="min-h-screen bg-gray-50 pb-24">
 
       {/* ── Header ── */}
       <div className="bg-primary-500 px-4 pt-10 pb-8">
@@ -154,15 +154,15 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Taarifa Zangu</p>
             {!editing ? (
               <button onClick={() => setEditing(true)}
-                className="text-xs text-primary-600 font-semibold">
+                className="text-xs text-primary-600 font-semibold min-h-[44px] px-2">
                 <i className="ti ti-pencil" aria-hidden="true" /> Hariri
               </button>
             ) : (
-              <div className="flex gap-3">
+              <div className="flex gap-1">
                 <button onClick={() => { setEditing(false); setName(fullName) }}
-                  className="text-xs text-gray-400 font-medium">Ghairi</button>
+                  className="text-xs text-gray-400 font-medium min-h-[44px] px-3">Ghairi</button>
                 <button onClick={handleSaveName} disabled={saving}
-                  className="text-xs text-primary-600 font-semibold disabled:opacity-50">
+                  className="text-xs text-primary-600 font-semibold min-h-[44px] px-3 disabled:opacity-50">
                   {saving ? 'Inahifadhi...' : 'Hifadhi'}
                 </button>
               </div>

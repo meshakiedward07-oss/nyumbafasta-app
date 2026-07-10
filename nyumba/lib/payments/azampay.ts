@@ -45,11 +45,18 @@ async function getAuthToken(): Promise<string> {
     ? 'https://authenticator-sandbox.azampay.co.tz'
     : 'https://authenticator.azampay.co.tz'
 
-  const res = await fetch(`${AUTH_URL}/AppRegistration/GenerateToken`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ appName: cfg.appName, clientId: cfg.clientId, clientSecret: cfg.clientSecret }),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${AUTH_URL}/AppRegistration/GenerateToken`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ appName: cfg.appName, clientId: cfg.clientId, clientSecret: cfg.clientSecret }),
+      signal:  AbortSignal.timeout(15000),
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    throw new Error(`AzamPay haipatikani: ${msg}`)
+  }
 
   const rawText = await res.text()
   if (!res.ok) {
@@ -167,7 +174,8 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
         Authorization:  `Bearer ${token}`,
         'X-API-KEY':    cfg.apiKey,
       },
-      body: JSON.stringify(checkoutPayload),
+      body:   JSON.stringify(checkoutPayload),
+      signal: AbortSignal.timeout(20000),
     })
 
     if (res.ok) {
@@ -205,8 +213,15 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
       raw:     errData,
     }
   } catch (e) {
-    console.error('[AzamPay] mobileCheckout exception:', e)
-    return { ok: false, message: String(e) }
+    const msg = e instanceof Error ? e.message : String(e)
+    const isNetwork = msg.includes('haipatikani') || msg.includes('fetch') || msg.includes('abort') || msg.includes('timeout')
+    console.error('[AzamPay] mobileCheckout exception:', msg)
+    return {
+      ok:      false,
+      message: isNetwork
+        ? 'Huduma ya malipo haipatikani sasa hivi. Jaribu tena baadaye.'
+        : msg,
+    }
   }
 }
 

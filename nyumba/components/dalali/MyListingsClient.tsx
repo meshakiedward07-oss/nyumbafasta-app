@@ -67,10 +67,10 @@ function ListingExpiryBadge({ expiresAt, status }: { expiresAt: string | null; s
 }
 
 // ── Renew Button ──────────────────────────────────────────
-function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () => void }) {
+function RenewButton({ listing, onRenewed, autoOpen }: { listing: Listing; onRenewed: () => void; autoOpen?: boolean }) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
-  const [showModal, setShowModal] = useState(false)
+  const [showModal, setShowModal] = useState(!!autoOpen)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
   function showToast(msg: string, ok: boolean) {
@@ -80,7 +80,7 @@ function RenewButton({ listing, onRenewed }: { listing: Listing; onRenewed: () =
 
   const days = daysLeft(listing.expires_at)
   const needsRenewal = days <= 14 || listing.status === 'expired'
-  if (!needsRenewal) return null
+  if (!needsRenewal && !autoOpen) return null
 
   async function handleRenew() {
     setLoading(true)
@@ -199,7 +199,7 @@ type Dialog = { type: 'taken' | 'available' | 'delete'; listingId: string; title
 type Tab = 'all' | 'active' | 'expired'
 
 // ── Main component ────────────────────────────────────────
-export default function MyListingsClient({ listings: initial }: { listings: Listing[] }) {
+export default function MyListingsClient({ listings: initial, autoRenewId }: { listings: Listing[]; autoRenewId?: string }) {
   const router = useRouter()
   const [listings, setListings] = useState(initial)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
@@ -210,6 +210,18 @@ export default function MyListingsClient({ listings: initial }: { listings: List
   const [expandedAnalytics, setExpandedAnalytics] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('all')
   const menuRef = useRef<HTMLDivElement>(null)
+
+  // Auto-trigger renewal modal when navigated here from a notification with ?renew=<listingId>
+  const [autoRenewTriggered, setAutoRenewTriggered] = useState(false)
+  const [autoRenewListing, setAutoRenewListing] = useState<Listing | null>(null)
+  useEffect(() => {
+    if (!autoRenewId || autoRenewTriggered) return
+    const target = initial.find(l => l.id === autoRenewId)
+    if (target) {
+      setAutoRenewTriggered(true)
+      setAutoRenewListing(target)
+    }
+  }, [autoRenewId, autoRenewTriggered, initial])
 
   useEffect(() => {
     function handle(e: MouseEvent | TouchEvent) {
@@ -310,6 +322,27 @@ export default function MyListingsClient({ listings: initial }: { listings: List
       <div className="px-4 pt-4 space-y-3">
         {/* Deadline banner — only shown to dalali with 0 listings */}
         {listings.length === 0 && <ListingDeadlineBanner />}
+
+        {/* No active listing warning */}
+        {listings.length > 0 && activeCount === 0 && (
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <i className="ti ti-eye-off text-amber-600 text-lg" aria-hidden="true" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-amber-800 text-sm">Huna listing hai sasa hivi</p>
+              <p className="text-xs text-amber-700 mt-0.5 leading-snug">
+                Wateja hawawezi kukupata. Ongeza listing mpya au subiri idhini ya iliyowasilishwa.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/listings/new"
+              className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 active:scale-[0.97] text-white text-xs font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all"
+            >
+              Ongeza
+            </Link>
+          </div>
+        )}
 
         {/* Performance summary */}
         {listings.filter(l => l.status === 'active').length > 0 && (() => {
@@ -669,6 +702,15 @@ export default function MyListingsClient({ listings: initial }: { listings: List
             ))
             setBoostListing(null)
           }}
+        />
+      )}
+
+      {/* Auto-renewal modal triggered by ?renew= from notification tap */}
+      {autoRenewListing && (
+        <RenewButton
+          listing={autoRenewListing}
+          onRenewed={() => { setAutoRenewListing(null); refreshListings() }}
+          autoOpen
         />
       )}
     </div>

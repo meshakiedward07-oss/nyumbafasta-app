@@ -25,14 +25,15 @@ const PROVIDERS = Object.fromEntries(
 type ModalStep = 'select' | 'phone' | 'waiting' | 'success' | 'failed'
 
 type Props = {
-  listingId:        string
-  dalaliName:       string
-  listingTitle:     string
-  listingPrice:     number
-  listingLocation:  string
-  listingBedrooms?: number
-  onClose:          () => void
-  onUnlocked:       (whatsappNumber: string) => void
+  listingId:           string
+  dalaliName:          string
+  listingTitle:        string
+  listingPrice:        number
+  listingLocation:     string
+  listingBedrooms?:    number
+  initialUnlockAmount?: number
+  onClose:             () => void
+  onUnlocked:          (whatsappNumber: string) => void
 }
 
 const TIMEOUT_SECS          = 240
@@ -99,14 +100,16 @@ function UssdPreview({ amount, provider }: { amount: number; provider: PaymentPr
 
 export default function UnlockModal({
   listingId, dalaliName, listingTitle, listingPrice, listingLocation, listingBedrooms,
+  initialUnlockAmount,
   onClose, onUnlocked,
 }: Props) {
   const supabase = createClient()
 
-  const [UNLOCK_AMOUNT, setUnlockAmount] = useState(2000)
+  const [UNLOCK_AMOUNT, setUnlockAmount] = useState(initialUnlockAmount ?? 2000)
   useEffect(() => {
+    if (initialUnlockAmount != null) return
     fetch('/api/v1/pricing').then(r => r.json()).then(p => setUnlockAmount(p.unlock ?? 2000)).catch(() => {})
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [step, setStep]           = useState<ModalStep>('select')
   const [provider, setProvider]   = useState<PaymentProvider>('Mpesa')
@@ -138,10 +141,15 @@ export default function UnlockModal({
 
   useEffect(() => {
     if (step !== 'waiting') return
-    history.pushState(null, '', window.location.href)
-    const handle = () => history.pushState(null, '', window.location.href)
+    history.pushState({ __paymentLock: true }, '', window.location.href)
+    const handle = () => history.pushState({ __paymentLock: true }, '', window.location.href)
     window.addEventListener('popstate', handle)
-    return () => window.removeEventListener('popstate', handle)
+    return () => {
+      window.removeEventListener('popstate', handle)
+      if ((window.history.state as Record<string, unknown>)?.__paymentLock) {
+        window.history.go(-1)
+      }
+    }
   }, [step])
 
   const stopAll = useCallback(() => {
@@ -260,7 +268,7 @@ export default function UnlockModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+      className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60"
       onClick={step === 'waiting' ? undefined : onClose}
     >
       <div

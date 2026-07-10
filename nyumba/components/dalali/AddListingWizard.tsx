@@ -190,6 +190,41 @@ export default function AddListingWizard() {
     auto_deactivate_on_full: true,
   })
 
+  const supabase = createClient()
+  const [draftKey, setDraftKey] = useState<string | null>(null)
+  const [draftRestored, setDraftRestored] = useState(false)
+
+  // Resolve user-scoped draft key on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setDraftKey(`add_listing_draft_${data.user.id}`)
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Restore draft from localStorage once draftKey is known
+  useEffect(() => {
+    if (!draftKey) return
+    try {
+      const saved = localStorage.getItem(draftKey)
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<Omit<FormData, 'images'>>
+        setForm(prev => ({ ...prev, ...parsed, images: prev.images }))
+        setDraftRestored(true)
+      }
+    } catch {}
+  }, [draftKey])
+
+  // Save draft to localStorage whenever form changes (debounced 500ms)
+  useEffect(() => {
+    if (!draftKey) return
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { images: _images, ...formWithoutImages } = form
+    const t = setTimeout(() => {
+      try { localStorage.setItem(draftKey, JSON.stringify(formWithoutImages)) } catch {}
+    }, 500)
+    return () => clearTimeout(t)
+  }, [form, draftKey])
+
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
@@ -231,6 +266,7 @@ export default function AddListingWizard() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Imeshindwa kuunda listing')
+      try { if (draftKey) localStorage.removeItem(draftKey) } catch {}
       router.push('/dashboard?new=1')
       router.refresh()
     } catch (err: unknown) {
@@ -251,6 +287,25 @@ export default function AddListingWizard() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
+
+      {/* Draft restored banner */}
+      {draftRestored && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-3">
+          <p className="text-xs text-amber-700 flex items-center gap-1.5">
+            <i className="ti ti-file-text" aria-hidden="true" /> Rasimu yako ya awali imerejeshwa
+          </p>
+          <button
+            onClick={() => {
+              setForm({ type: 'chumba', price_monthly: '', bedrooms: '', furnished: 'empty', description: '', region: '', district: '', ward: '', mtaa: '', amenities: [], images: [], video_url: null, latitude: null, longitude: null, address_full: '', place_id: '', shop_size_sqm: '', floor_level: '', commercial_use: '', listing_unit_type: 'single', total_capacity: '', auto_deactivate_on_full: true })
+              try { if (draftKey) localStorage.removeItem(draftKey) } catch {}
+              setDraftRestored(false)
+            }}
+            className="text-xs text-amber-600 font-medium underline"
+          >
+            Anza upya
+          </button>
+        </div>
+      )}
 
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
@@ -479,6 +534,9 @@ export default function AddListingWizard() {
                   </div>
                   <div className="flex items-center gap-3">
                     <button
+                      role="switch"
+                      aria-checked={form.auto_deactivate_on_full}
+                      aria-label="Funga listing automatically inapojaa"
                       onClick={() => set('auto_deactivate_on_full', !form.auto_deactivate_on_full)}
                       className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
                         form.auto_deactivate_on_full ? 'bg-primary-500' : 'bg-gray-200'
@@ -667,6 +725,7 @@ export default function AddListingWizard() {
                   <button
                     key={a.value}
                     onClick={() => toggleAmenity(a.value)}
+                    aria-pressed={selected}
                     className={`flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all ${
                       selected
                         ? 'border-primary-500 bg-primary-50'
@@ -846,10 +905,10 @@ export default function AddListingWizard() {
                   <p className="text-sm text-primary-600 mb-3">Tsh 2,000 kwa listing moja kwa mwezi</p>
                   <div className="flex items-center gap-3 mb-3">
                     <button onClick={() => setExtraCount(c => Math.max(1, c - 1))}
-                      className="w-8 h-8 rounded-full bg-primary-200 text-primary-800 font-bold text-lg flex items-center justify-center">−</button>
+                      className="min-w-[44px] min-h-[44px] rounded-full bg-primary-200 text-primary-800 font-bold text-lg flex items-center justify-center">−</button>
                     <span className="font-bold text-xl text-primary-900 w-6 text-center">{extraCount}</span>
                     <button onClick={() => setExtraCount(c => Math.min(10, c + 1))}
-                      className="w-8 h-8 rounded-full bg-primary-200 text-primary-800 font-bold text-lg flex items-center justify-center">+</button>
+                      className="min-w-[44px] min-h-[44px] rounded-full bg-primary-200 text-primary-800 font-bold text-lg flex items-center justify-center">+</button>
                     <span className="text-sm text-gray-500 ml-1">= Tsh {(extraCount * 2000).toLocaleString()}/mwezi</span>
                   </div>
                   <input

@@ -10,9 +10,9 @@ const catalogId  = () => process.env.FACEBOOK_CATALOG_ID ?? ''
 
 interface MarketplaceItem {
   id:                       string
-  title:                    string
+  name:                     string   // Facebook Home Listings requires 'name', not 'title'
   description:              string
-  price:                    string
+  price:                    number   // integer in TZS
   currency:                 'TZS'
   availability:             'IN_STOCK' | 'OUT_OF_STOCK'
   condition:                'NEW' | 'GOOD'
@@ -137,25 +137,32 @@ export async function postListingToMarketplace(
     return { success: false, error: 'Listing haina picha — Marketplace inahitaji picha' }
   }
 
-  // Watermark primary image — mandatory
-  const watermarkedImage = await watermarkImage(rawImageUrl, 'bottom-right')
-  if (watermarkedImage === rawImageUrl) {
-    return { success: false, error: '[Watermark] Watermark ya picha haikuweza kutumika — kuchapisha kumesimamishwa' }
+  // Watermark primary image — best-effort (proceed even if watermark fails)
+  let finalImageUrl = rawImageUrl
+  try {
+    const watermarked = await watermarkImage(rawImageUrl, 'bottom-right')
+    if (watermarked && watermarked !== rawImageUrl) {
+      finalImageUrl = watermarked
+    } else {
+      console.warn('[Marketplace] Watermark ilikuwa sawa na asili au ilishindwa — inatumia picha asili')
+    }
+  } catch (e) {
+    console.warn('[Marketplace] Watermark ilishindwa — inaendelea na picha asili:', e)
   }
 
-  const retailerId  = `nyf_${listing.id.replace(/-/g, '')}`
-  const isRental    = listing.type !== 'nyumba'  // studios/apartments/chumba are rentals
+  const retailerId   = `nyf_${listing.id.replace(/-/g, '')}`
+  const isRental     = listing.type !== 'nyumba'
   const propertyType = mapPropertyType(listing.type)
 
   const item: MarketplaceItem = {
     id:                     retailerId,
-    title:                  formatTitle(listing),
+    name:                   formatTitle(listing),
     description:            formatDescription(listing),
-    price:                  `${listing.price_monthly} TZS`,
+    price:                  listing.price_monthly,
     currency:               'TZS',
     availability:           'IN_STOCK',
     condition:              isRental ? 'NEW' : 'GOOD',
-    image_url:              watermarkedImage,
+    image_url:              finalImageUrl,
     additional_image_urls:  listing.images.slice(1, 10).filter(Boolean),
     category:               'HOME_LISTINGS',
     url:                    `https://nyumbafasta.co/listings/${listing.id}`,
@@ -183,9 +190,9 @@ export async function postListingToMarketplace(
     status:              result.success ? 'active' : 'failed',
     availability:        'IN_STOCK',
     price_tzs:           listing.price_monthly,
-    title:               item.title,
+    title:               item.name,
     description:         item.description,
-    image_urls:          [watermarkedImage, ...listing.images.slice(1)].filter(Boolean),
+    image_urls:          [finalImageUrl, ...listing.images.slice(1)].filter(Boolean),
     property_type:       propertyType,
     listing_type:        item.listing_type,
     location:            `${listing.district}, ${listing.region}`,
@@ -288,6 +295,58 @@ export async function renewExpiringListings(): Promise<void> {
     }
     await new Promise(r => setTimeout(r, 1000))
   }
+}
+
+// ── Validate Marketplace Token ────────────────────────────────────────────
+
+export async function validateMarketplaceToken(): Promise<{ valid: boolean; error?: string }> {
+  const token = fbToken()
+  const cid   = catalogId()
+  if (!token) return { valid: false, error: 'FACEBOOK_PAGE_ACCESS_TOKEN haijawekwa kwenye Vercel env vars' }
+  if (!cid)   return { valid: false, error: 'FACEBOOK_CATALOG_ID haijawekwa kwenye Vercel env vars' }
+  try {
+    const res  = await fetch(`${GRAPH}/${cid}?fields=id,name&access_token=${token}`)
+    const data = await res.json() as { id?: string; name?: string; error?: { message: string; code?: number } }
+    if (data.error) {
+      return {
+        valid: false,
+        error: `Token imeshindwa: ${data.error.message}. Nenda Meta Business Suite → Settings → System Users, tengeneza token mpya yenye catalog_management permission, kisha weka kwenye Vercel env var FACEBOOK_PAGE_ACCESS_TOKEN.`,
+      }
+    }
+    return { valid: true }
+  } catch (err) {
+    return { valid: false, error: err instanceof Error ? err.message : 'Hitilafu ya mtandao — angalia connection' }
+  }
+}
+
+// ── Repost a Listing (reset + re-post) ────────────────────────────────────
+
+export async function repostListingToMarketplace(
+  listingId: string,
+): Promise<MarketplaceResult> {
+  const { data: listing } = await supabaseAdmin
+    .from('listings')
+    .select('*')
+    .eq('id', listingId)
+    .single()
+
+  if (!listing) return { success: false, error: 'Listing haipatikani' }
+
+  const tokenCheck = await validateMarketplaceToken()
+  if (!tokenCheck.valid) return { success: false, error: tokenCheck.error }
+
+  // Reset the posted flags so postListingToMarketplace treats this as a fresh post
+  await supabaseAdmin
+    .from('listings')
+    .update({ marketplace_posted: false, marketplace_item_id: null, marketplace_posted_at: null })
+    .eq('id', listingId)
+
+  await supabaseAdmin
+    .from('marketplace_listings')
+    .update({ status: 'expired' })
+    .eq('listing_id', listingId)
+
+  return postListingToMarketplace(listing as Listing)
 }
 
 // ── Get Marketplace Stats ──────────────────────────────────────────────────

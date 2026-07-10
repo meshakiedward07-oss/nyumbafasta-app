@@ -108,10 +108,10 @@ export default async function ListingDetailPage({
         latitude, longitude,
         created_at, dalali_id,
         dalali:dalali_id (
-          id, full_name, phone, avatar_url, username,
+          id, full_name, avatar_url, username,
           dalali_profiles (
-            id, bio,
-            rating_avg, rating_count, is_premium_verified
+            bio,
+            rating_avg, rating_count, is_premium_verified, is_favourite_dalali
           )
         )
       `)
@@ -202,7 +202,7 @@ export default async function ListingDetailPage({
 
     supabase
       .from('listings')
-      .select('id, title, type, price_monthly, district, region, images, is_boosted, view_count, lead_count, status, dalali_id, furnished, amenities, description, bedrooms, street, dalali:dalali_id ( id, full_name, avatar_url, dalali_profiles ( rating_avg, is_premium_verified ) )')
+      .select('id, title, type, price_monthly, district, region, images, is_boosted, view_count, lead_count, status, dalali_id, furnished, amenities, description, bedrooms, street, dalali:dalali_id ( id, full_name, avatar_url, dalali_profiles ( rating_avg, is_premium_verified, is_favourite_dalali ) )')
       .eq('region', listing.region)
       .eq('status', 'active')
       .neq('id', listing.id)

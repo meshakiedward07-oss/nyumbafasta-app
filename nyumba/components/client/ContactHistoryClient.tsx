@@ -48,10 +48,10 @@ export default function ContactHistoryClient({ contacts, totalSpent }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-28">
+    <div className="min-h-screen bg-gray-50 pb-24">
 
       {/* Header */}
-      <div className="bg-primary-500 px-4 pt-10 pb-6">
+      <div className="bg-primary-500 px-4 pt-5 pb-6">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => router.back()}
             className="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white active:scale-90 transition-transform">

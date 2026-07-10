@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { syncAllListingsToMarketplace } from '@/lib/social/facebookMarketplace'
+import { syncAllListingsToMarketplace, validateMarketplaceToken } from '@/lib/social/facebookMarketplace'
 import { requireAdminUser } from '@/lib/security/adminAuth'
 
 export const maxDuration = 300
@@ -9,10 +9,10 @@ export async function POST() {
   const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  if (!process.env.FACEBOOK_CATALOG_ID) {
-    return NextResponse.json({
-      error: 'FACEBOOK_CATALOG_ID haijawekwa — Weka kwenye Vercel environment variables',
-    }, { status: 400 })
+  // Validate token before starting the sync — gives a clear error if expired
+  const tokenCheck = await validateMarketplaceToken()
+  if (!tokenCheck.valid) {
+    return NextResponse.json({ error: tokenCheck.error }, { status: 401 })
   }
 
   const result = await syncAllListingsToMarketplace()

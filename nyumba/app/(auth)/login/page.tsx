@@ -87,7 +87,14 @@ function LoginForm() {
       }
       await redirectByRole(data.user.id)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Barua pepe au nenosiri si sahihi')
+      const msg = err instanceof Error ? err.message.toLowerCase() : ''
+      const kiswahili =
+        msg.includes('invalid login credentials') || msg.includes('invalid email or password') ? 'Barua pepe au nenosiri si sahihi' :
+        msg.includes('too many requests')         ? 'Maombi mengi mfululizo. Subiri dakika chache.' :
+        msg.includes('user not found')            ? 'Akaunti haipo. Jisajili kwanza.' :
+        msg.includes('network')                   ? 'Hakuna mtandao. Angalia internet yako.' :
+        'Barua pepe au nenosiri si sahihi'
+      setError(kiswahili)
       setLoading(false)
     }
   }
@@ -251,6 +258,7 @@ function LoginForm() {
                     <input
                       type="email"
                       required
+                      autoComplete="email"
                       placeholder="jina@gmail.com"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
@@ -265,6 +273,7 @@ function LoginForm() {
                       <input
                         type={showPass ? 'text' : 'password'}
                         required
+                        autoComplete="current-password"
                         placeholder="••••••••"
                         value={password}
                         onChange={e => setPassword(e.target.value)}

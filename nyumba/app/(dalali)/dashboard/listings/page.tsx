@@ -2,7 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import type { Listing } from '@/lib/types/database'
 import MyListingsClient from '@/components/dalali/MyListingsClient'
 
-export default async function MyListingsPage() {
+export default async function MyListingsPage({
+  searchParams,
+}: {
+  searchParams: { renew?: string }
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -13,5 +17,10 @@ export default async function MyListingsPage() {
     .order('created_at', { ascending: false })
     .limit(100)
 
-  return <MyListingsClient listings={(data as Listing[]) ?? []} />
+  return (
+    <MyListingsClient
+      listings={(data as Listing[]) ?? []}
+      autoRenewId={searchParams.renew}
+    />
+  )
 }

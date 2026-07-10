@@ -10,8 +10,12 @@ export async function PATCH(
     const { action } = body
     const admin = createAdminClient()
 
-    // ── Helpful vote — no auth required ──────────────────
+    // ── Helpful vote — auth required to prevent inflation ────
     if (action === 'helpful') {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+
       const { data: review } = await admin
         .from('reviews')
         .select('helpful_count')

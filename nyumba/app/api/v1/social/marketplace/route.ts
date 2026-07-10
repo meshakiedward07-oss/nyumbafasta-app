@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getMarketplaceStats, postListingToMarketplace } from '@/lib/social/facebookMarketplace'
+import { getMarketplaceStats, postListingToMarketplace, repostListingToMarketplace } from '@/lib/social/facebookMarketplace'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminUser } from '@/lib/security/adminAuth'
 
@@ -53,5 +53,26 @@ export async function POST(req: NextRequest) {
     success: true,
     itemId: result.itemId,
     message: 'Listing imechapishwa kwenye Facebook Marketplace!',
+  })
+}
+
+// PUT /api/v1/social/marketplace — repost (reset + re-post) a single listing
+export async function PUT(req: NextRequest) {
+  const admin = await requireAdminUser()
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { listingId } = await req.json() as { listingId: string }
+  if (!listingId) return NextResponse.json({ error: 'listingId inahitajika' }, { status: 400 })
+
+  const result = await repostListingToMarketplace(listingId)
+
+  if (!result.success) {
+    return NextResponse.json({ success: false, error: result.error }, { status: 400 })
+  }
+
+  return NextResponse.json({
+    success: true,
+    itemId: result.itemId,
+    message: 'Listing imerepostiwa kwenye Facebook Marketplace!',
   })
 }

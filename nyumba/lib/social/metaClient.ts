@@ -70,14 +70,26 @@ export async function waitForIGContainer(
   const start = Date.now()
   while (Date.now() - start < maxWaitMs) {
     const res = await fetch(
-      `${GRAPH}/${containerId}?fields=status_code&access_token=${igToken()}`,
+      `${GRAPH}/${containerId}?fields=status_code,status&access_token=${igToken()}`,
     )
-    const data = await res.json() as { status_code?: string }
-    if (data.status_code === 'FINISHED') return
-    if (data.status_code === 'ERROR') throw new Error('IG container processing failed')
+    const data = await res.json() as {
+      status_code?: string
+      status?:      string
+      error?:       { message: string; code?: number }
+    }
+
+    if (data.error) throw new Error(`IG API error: ${data.error.message}`)
+
+    // Meta returns status_code in older API versions and status in newer ones
+    const code = data.status_code ?? data.status ?? ''
+    if (code === 'FINISHED') return
+    if (code === 'ERROR' || code === 'EXPIRED') {
+      throw new Error(`IG container ${code.toLowerCase()}: video processing failed. Angalia ubora wa video (H.264, AAC audio, 9:16 au 16:9, max 90s).`)
+    }
+    // IN_PROGRESS or unknown — keep polling
     await new Promise((r) => setTimeout(r, 3000))
   }
-  throw new Error('IG container timed out')
+  throw new Error(`IG container polling timed out baada ya ${Math.round(maxWaitMs / 1000)}s. Video inaweza kuwa kubwa mno au Instagram ina mzigo.`)
 }
 
 export async function publishIGContainer(containerId: string): Promise<string> {

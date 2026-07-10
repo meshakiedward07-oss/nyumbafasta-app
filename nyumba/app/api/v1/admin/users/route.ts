@@ -62,21 +62,45 @@ export async function GET(req: NextRequest) {
       query = query.eq('is_active', false)
     }
 
-    // Search (name, phone — email is in auth.users so not searchable via PostgREST)
+    // Fetch auth users early so we can search by email and also merge emails in display
+    let emailMap: Map<string, string | null> = new Map()
+    let emailMatchIds: string[] = []
+    try {
+      const allAuthUsers: Array<{ id: string; email?: string | null }> = []
+      let authPage = 1
+      while (allAuthUsers.length < 10000) {
+        const { data: pageData } = await db.auth.admin.listUsers({ page: authPage, perPage: 1000 })
+        const batch = pageData?.users ?? []
+        allAuthUsers.push(...batch)
+        if (batch.length < 1000) break
+        authPage++
+      }
+      emailMap = new Map(allAuthUsers.map(u => [u.id, u.email ?? null]))
+      if (q) {
+        emailMatchIds = allAuthUsers
+          .filter(u => u.email?.toLowerCase().includes(q.toLowerCase()))
+          .map(u => u.id)
+      }
+    } catch { /* non-fatal */ }
+
+    // Search: name, phone, username (all in public.users) + email IDs from auth
+    // q is sanitized before interpolation to prevent PostgREST filter injection via comma-separated branches
     if (q) {
-      query = query.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`)
+      const safeQ = q.replace(/[,()]/g, '').slice(0, 200)
+      const orParts = [
+        `full_name.ilike.%${safeQ}%`,
+        `phone.ilike.%${safeQ}%`,
+        `username.ilike.%${safeQ}%`,
+      ]
+      if (emailMatchIds.length > 0) {
+        orParts.push(`id.in.(${emailMatchIds.join(',')})`)
+      }
+      query = query.or(orParts.join(','))
     }
 
     const { data, count, error } = await query
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-    // Merge emails from Supabase Auth (stored in auth.users, not public.users)
-    let emailMap: Map<string, string | null> = new Map()
-    try {
-      const { data: { users: authUsers } } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 })
-      emailMap = new Map(authUsers.map(u => [u.id, u.email ?? null]))
-    } catch { /* non-fatal — email shows as null if auth API fails */ }
     const enriched = (data ?? []).map(u => ({ ...u, email: emailMap.get(u.id) ?? null }))
 
     // Counts per role (for tab badges) — always full counts, no search filter

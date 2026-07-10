@@ -79,6 +79,7 @@ export type DalaliProfile = {
   rating_avg: number
   rating_count: number
   is_premium_verified: boolean
+  is_favourite_dalali: boolean
   total_leads: number
   verification_status: VerificationStatus
   nida_number: string | null
@@ -159,6 +160,6 @@ export type Notification = {
 // Joined type for listing cards
 export type ListingWithDalali = Listing & {
   dalali: (User & {
-    dalali_profiles: Pick<DalaliProfile, 'rating_avg' | 'is_premium_verified'> | null
+    dalali_profiles: Pick<DalaliProfile, 'rating_avg' | 'is_premium_verified' | 'is_favourite_dalali'> | null
   }) | null
 }

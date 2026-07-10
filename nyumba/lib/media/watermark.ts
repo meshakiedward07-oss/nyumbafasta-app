@@ -39,16 +39,17 @@ export function addCloudinaryImageWatermark(imageUrl: string): string {
   const base = imageUrl.slice(0, idx + marker.length)
   const rest = imageUrl.slice(idx + marker.length)
 
-  // Cloudinary overlay: text layer, white on semi-transparent dark pill, bottom-right
+  // Cloudinary overlay: white text on semi-transparent dark rounded pill, bottom-right
+  // bo_ = transparent border used as padding; r_ = corner radius on the background
   const overlay = [
-    `l_text:Arial_28_bold:${encodeURIComponent(WM_TEXT)}`,
+    `l_text:Arial_26_bold:${encodeURIComponent(WM_TEXT)}`,
     'co_white',
-    'b_rgb:000000B3',  // ~70% opacity black background
+    'b_rgb:000000BF',
+    'bo_10px_solid_rgb:00000000',
+    'r_max',
     'g_south_east',
-    'x_20',
-    'y_20',
-    'pa_10',
-    'r_16',
+    'x_16',
+    'y_16',
   ].join(',')
 
   return `${base}${overlay}/${rest}`

@@ -163,9 +163,10 @@ function PlaceholderHouse() {
 export default function ListingCard({ listing, hasUnlocked = false, priority = false }: { listing: ListingWithDalali; hasUnlocked?: boolean; priority?: boolean }) {
   const [imgError, setImgError] = useState(false)
 
-  const profile    = listing.dalali?.dalali_profiles
-  const rating     = profile?.rating_avg ?? 0
-  const isVerified = profile?.is_premium_verified ?? false
+  const profile      = listing.dalali?.dalali_profiles
+  const rating       = profile?.rating_avg ?? 0
+  const isVerified   = profile?.is_premium_verified ?? false
+  const isFavourite  = profile?.is_favourite_dalali ?? false
   const typeStyle  = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
 
   const isActive = listing.status === 'active'
@@ -196,7 +197,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
               <Image
                 fill
                 src={listing.images[0]}
-                alt={listing.title}
+                alt={listing.title ?? `${typeStyle.label} – ${listing.district}`}
                 className="object-cover"
                 onError={() => setImgError(true)}
                 sizes="(max-width: 640px) 100vw, 50vw"
@@ -285,7 +286,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
             {listing.furnished && (
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border bg-amber-50 border-amber-200 text-amber-700">
                 <i className="ti ti-armchair text-xs" aria-hidden="true" />
-                {listing.furnished === 'furnished' ? 'Furnished' : listing.furnished === 'semi' ? 'Semi' : 'Empty'}
+                {listing.furnished === 'furnished' ? 'Imejazwa' : listing.furnished === 'semi' ? 'Nusu Samani' : 'Tupu'}
               </span>
             )}
             {listing.amenities?.slice(0, 3).map(a => {
@@ -343,7 +344,14 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
                 )}
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-700 leading-tight">{listing.dalali?.full_name}</p>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <p className="text-xs font-medium text-gray-700 leading-tight">{listing.dalali?.full_name}</p>
+                  {isFavourite && (
+                    <span className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
+                      <i className="ti ti-rosette-discount-check" style={{ fontSize: '9px' }} aria-hidden="true" /> Halisi
+                    </span>
+                  )}
+                </div>
                 {rating > 0 && (
                   <div className="flex items-center gap-0.5 mt-0.5">
                     {[1,2,3,4,5].map(star => (

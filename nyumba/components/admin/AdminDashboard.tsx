@@ -893,7 +893,14 @@ function VerifyCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
-            <p className="font-semibold text-gray-900 text-sm">{v.user?.full_name ?? 'Dalali'}</p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="font-semibold text-gray-900 text-sm">{v.user?.full_name ?? 'Dalali'}</p>
+              {v.business_license_url && (
+                <span className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  <i className="ti ti-rosette-discount-check" aria-hidden="true" /> Leseni
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-400">{v.user?.phone ?? ''}</p>
             {v.nida_number && (
               <p className="text-xs text-gray-500 mt-0.5">NIDA: <span className="font-mono">{v.nida_number}</span></p>
@@ -908,22 +915,36 @@ function VerifyCard({
         </div>
 
         {expanded && (
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            {[v.nida_image_front, v.nida_image_back, v.selfie_image].map((src, i) => (
-              src ? (
-                <a key={i} href={src} target="_blank" rel="noreferrer"
-                  className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 block">
-                  <Image fill src={src} alt="" className="object-cover" sizes="120px" unoptimized />
-                  <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-0.5">
-                    {['Mbele', 'Nyuma', 'Selfie'][i]}
-                  </span>
-                </a>
-              ) : (
-                <div key={i} className="aspect-square rounded-xl bg-gray-100 flex items-center justify-center text-gray-300 text-xs">
-                  Hakuna
-                </div>
-              )
-            ))}
+          <div className="space-y-2 mb-3">
+            <div className="grid grid-cols-3 gap-2">
+              {[v.nida_image_front, v.nida_image_back, v.selfie_image].map((src, i) => (
+                src ? (
+                  <a key={i} href={src} target="_blank" rel="noreferrer"
+                    className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 block">
+                    <Image fill src={src} alt="" className="object-cover" sizes="120px" unoptimized />
+                    <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-0.5">
+                      {['Mbele', 'Nyuma', 'Selfie'][i]}
+                    </span>
+                  </a>
+                ) : (
+                  <div key={i} className="aspect-square rounded-xl bg-gray-100 flex items-center justify-center text-gray-300 text-xs">
+                    Hakuna
+                  </div>
+                )
+              ))}
+            </div>
+            {v.business_license_url && (
+              <a
+                href={v.business_license_url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-amber-700 active:scale-95 transition-all"
+              >
+                <i className="ti ti-file-type-pdf text-base text-red-500" aria-hidden="true" />
+                <span className="flex-1">Fungua Leseni ya Udalali (PDF)</span>
+                <i className="ti ti-external-link text-amber-400" aria-hidden="true" />
+              </a>
+            )}
           </div>
         )}
 

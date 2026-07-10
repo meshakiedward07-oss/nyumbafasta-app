@@ -75,7 +75,15 @@ function RegisterForm() {
     } catch (err: unknown) {
       localStorage.removeItem('pending_register')
       localStorage.removeItem('pending_agreement')
-      setError(err instanceof Error ? err.message : 'Imeshindwa kusajili. Jaribu tena.')
+      const msg = err instanceof Error ? err.message.toLowerCase() : ''
+      const kiswahili =
+        msg.includes('user already registered') || msg.includes('already been registered') ? 'Barua pepe hii imeshasajiliwa. Jaribu kuingia.' :
+        msg.includes('invalid email')           ? 'Barua pepe si sahihi. Angalia tena.' :
+        msg.includes('password should be at least') || msg.includes('password is too short') ? 'Nenosiri ni fupi sana — angalau herufi 6.' :
+        msg.includes('too many requests')       ? 'Maombi mengi mfululizo. Subiri dakika chache.' :
+        msg.includes('network')                 ? 'Hakuna mtandao. Angalia internet yako.' :
+        'Imeshindwa kusajili. Jaribu tena.'
+      setError(kiswahili)
       setStep('details')
     } finally {
       setLoading(false)
@@ -195,6 +203,7 @@ function RegisterForm() {
             <div className="grid grid-cols-2 gap-3 mb-6">
               <button
                 onClick={() => setRole('client')}
+                aria-pressed={role === 'client'}
                 className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all
                   ${role === 'client' ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'}`}
               >
@@ -210,6 +219,7 @@ function RegisterForm() {
 
               <button
                 onClick={() => setRole('dalali')}
+                aria-pressed={role === 'dalali'}
                 className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all
                   ${role === 'dalali' ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'}`}
               >
@@ -287,6 +297,7 @@ function RegisterForm() {
                   <input
                     type="text"
                     required
+                    autoComplete="name"
                     placeholder="Jina Bingwa"
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
@@ -300,6 +311,7 @@ function RegisterForm() {
                   <input
                     type="email"
                     required
+                    autoComplete="email"
                     placeholder="jina@gmail.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
@@ -315,6 +327,7 @@ function RegisterForm() {
                       type={showPass ? 'text' : 'password'}
                       required
                       minLength={8}
+                      autoComplete="new-password"
                       placeholder="Angalau herufi 8"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
@@ -372,6 +385,7 @@ function RegisterForm() {
                         type="tel"
                         inputMode="numeric"
                         required
+                        autoComplete="tel"
                         placeholder="712 345 678"
                         value={whatsapp}
                         onChange={e => setWhatsapp(e.target.value)}

@@ -161,7 +161,7 @@ export default function DalaliProfileClient({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary-500 text-white rounded-full
+              className="absolute -bottom-2 -right-2 w-10 h-10 bg-primary-500 text-white rounded-full
                          flex items-center justify-center shadow-md text-sm
                          disabled:opacity-60 active:scale-95 transition-all"
               title="Badilisha picha"

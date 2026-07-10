@@ -126,6 +126,19 @@ export default function SubscriptionClient({
 
   useEffect(() => {
     if (step !== 'waiting') return
+    window.history.pushState({ __paymentLock: true }, '', window.location.href)
+    const handle = () => window.history.pushState({ __paymentLock: true }, '', window.location.href)
+    window.addEventListener('popstate', handle)
+    return () => {
+      window.removeEventListener('popstate', handle)
+      if ((window.history.state as Record<string, unknown>)?.__paymentLock) {
+        window.history.go(-1)
+      }
+    }
+  }, [step])
+
+  useEffect(() => {
+    if (step !== 'waiting') return
     setSecondsLeft(120)
     timerRef.current = setInterval(() => {
       setSecondsLeft(s => {
@@ -248,7 +261,7 @@ export default function SubscriptionClient({
     <div className="min-h-screen bg-gray-50 pb-24">
 
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3 px-4 py-3">
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3 px-4 py-3">
         <button onClick={() => step === 'overview' ? router.back() : setStep('overview')}
           className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 active:scale-90 transition-transform">
           ←
@@ -349,7 +362,7 @@ export default function SubscriptionClient({
                   <input type="tel" inputMode="numeric" required placeholder="7XX XXX XXX"
                     value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
                     maxLength={10}
-                    className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300"
                   />
                 </div>
               </div>
@@ -407,7 +420,7 @@ export default function SubscriptionClient({
                   <input type="tel" inputMode="numeric" required placeholder="7XX XXX XXX"
                     value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
                     maxLength={10}
-                    className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300"
                   />
                 </div>
               </div>
@@ -435,7 +448,7 @@ export default function SubscriptionClient({
 
           <p className="text-sm text-gray-500 mb-1">
             Ombi la malipo limetumwa kwa{' '}
-            <span className="font-semibold text-gray-800">+255{phone}</span>
+            <span className="font-semibold text-gray-800">+255{phone.replace(/^0/, '')}</span>
           </p>
           <p className="text-sm text-gray-500 mb-6">
             Ingiza PIN yako ya{' '}
@@ -702,7 +715,7 @@ export default function SubscriptionClient({
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-green-900">Trial ya Bure</p>
                       <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-medium">
-                        Active
+                        Inafanya Kazi
                       </span>
                     </div>
                     <p className="text-xs text-green-700">Basic plan — listings 5 · Bila malipo</p>
@@ -757,7 +770,7 @@ export default function SubscriptionClient({
                       <p className="text-sm font-bold text-gray-900">{currentPlanData.name}</p>
                       <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
                         style={{ backgroundColor: currentPlanData.color }}>
-                        Active
+                        Inafanya Kazi
                       </span>
                     </div>
                   </div>
@@ -922,7 +935,7 @@ export default function SubscriptionClient({
                           h.status === 'grace_period' ? 'bg-yellow-50 text-yellow-700' :
                           'bg-gray-100 text-gray-400'
                         }`}>
-                          {h.status === 'active' ? 'Active' : h.status === 'grace_period' ? 'Grace' : 'Imeisha'}
+                          {h.status === 'active' ? 'Inafanya Kazi' : h.status === 'grace_period' ? 'Grace' : 'Imeisha'}
                         </span>
                       </div>
                     </div>

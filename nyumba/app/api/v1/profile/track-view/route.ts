@@ -17,6 +17,13 @@ export async function POST(req: NextRequest) {
       const { dalaliId, referrer } = await req.json() as { dalaliId?: string; referrer?: string }
       if (!dalaliId || !UUID_RE.test(dalaliId)) return
 
+      // Validate dalali exists before inserting — prevents phantom-UUID spam
+      const { count } = await supabaseAdmin
+        .from('dalali_profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('id', dalaliId)
+      if (!count) return
+
       let source = 'direct'
       if (referrer) {
         if      (referrer.includes('facebook.com'))  source = 'facebook'

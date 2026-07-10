@@ -132,6 +132,7 @@ export default function WhatsAppPanel() {
 
   const bottomRef    = useRef<HTMLDivElement>(null)
   const messagesRef  = useRef<HTMLDivElement>(null)
+  const controlsRef  = useRef<HTMLDivElement>(null)
   const atBottomRef  = useRef(true)
 
   // ── Data fetching ──────────────────────────────────────────────────────────
@@ -170,14 +171,16 @@ export default function WhatsAppPanel() {
   useEffect(() => {
     if (!selected) return
     atBottomRef.current = true  // new conversation — start scrolled to bottom
+    // Scroll controls panel back to top so action buttons are visible
+    if (controlsRef.current) controlsRef.current.scrollTop = 0
     fetchMessages(selected.phone_number)
     fetchInstructions(selected.phone_number)
   }, [selected, fetchMessages, fetchInstructions])
 
-  // Auto-scroll only if admin is already near the bottom (within 120px)
+  // Auto-scroll messages container only (never scrollIntoView which can escape the container)
   useEffect(() => {
-    if (atBottomRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (atBottomRef.current && messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight
     }
   }, [messages])
 
@@ -502,7 +505,7 @@ export default function WhatsAppPanel() {
           </div>
 
           {/* ── RIGHT: Controls ──────────────────────────────────────── */}
-          <div className={`w-72 flex-shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-y-auto ${activeTab !== 'controls' ? 'hidden lg:flex' : 'flex w-full lg:w-72'}`}>
+          <div ref={controlsRef} className={`w-72 flex-shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-y-auto ${activeTab !== 'controls' ? 'hidden lg:flex' : 'flex w-full lg:w-72'}`}>
 
             {/* Session controls */}
             <div className="p-4 border-b border-gray-100">

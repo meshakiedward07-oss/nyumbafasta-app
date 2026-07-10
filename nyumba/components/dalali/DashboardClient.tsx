@@ -139,7 +139,7 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
             <button
               onClick={() => setShowLogoutConfirm(true)}
               disabled={loggingOut}
-              className="bg-white/15 hover:bg-white/25 text-white/80 hover:text-white text-xs transition-all flex items-center gap-1.5 disabled:opacity-50 min-h-[36px] px-3 py-1.5 rounded-xl border border-white/10 backdrop-blur-sm"
+              className="bg-white/15 hover:bg-white/25 text-white/80 hover:text-white text-xs transition-all flex items-center gap-1.5 disabled:opacity-50 min-h-[44px] px-3 py-1.5 rounded-xl border border-white/10 backdrop-blur-sm"
             >
               {loggingOut && (
                 <span className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
@@ -160,7 +160,7 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
           ].map(s => (
             <div key={s.label} className={`${s.accent} rounded-2xl p-3 border border-white/15 backdrop-blur-sm`}>
               <i className={`ti ${s.icon} text-white/70 text-sm`} aria-hidden="true" />
-              <p className="text-white font-bold text-xl leading-none mt-0.5">{s.value}</p>
+              <p className="text-white font-bold text-xl leading-none mt-0.5">{s.value.toLocaleString('sw-TZ')}</p>
               <p className="text-green-100/70 text-[10px] mt-0.5 leading-tight">{s.label}</p>
             </div>
           ))}
@@ -169,8 +169,29 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
 
       <div className="px-4 pt-4 space-y-4">
 
-        {/* ── Listing deadline warning (0 listings) ── */}
+        {/* ── Listing deadline warning (0 listings ever) ── */}
         {stats.totalListings === 0 && <ListingDeadlineBanner />}
+
+        {/* ── No active listing reminder (has listings but none is live) ── */}
+        {stats.totalListings > 0 && stats.activeCount === 0 && (
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <i className="ti ti-eye-off text-amber-600 text-lg" aria-hidden="true" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-amber-800 text-sm">Huna listing hai sasa hivi</p>
+              <p className="text-xs text-amber-700 mt-0.5 leading-snug">
+                Wateja hawawezi kukupata. Ongeza listing mpya au subiri idhini ya listing iliyowasilishwa.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/listings/new"
+              className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 active:scale-[0.97] text-white text-xs font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all"
+            >
+              Ongeza Listing
+            </Link>
+          </div>
+        )}
 
         {/* ── Subscription / Trial banner ── */}
         {(() => {
@@ -449,7 +470,14 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
                 <span className="text-sm font-bold text-gray-800">{current}/{limit}</span>
               </div>
               <div className="bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                <div className={`${barColor} rounded-full h-full transition-all`} style={{ width: `${pct}%` }} />
+                <div
+                  role="progressbar"
+                  aria-valuenow={current}
+                  aria-valuemax={limit}
+                  aria-label="Matumizi ya listings"
+                  className={`${barColor} rounded-full h-full transition-all`}
+                  style={{ width: `${pct}%` }}
+                />
               </div>
               {remaining <= 2 && remaining > 0 && (
                 <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" /> Zimebaki {remaining} tu — ongeza au upgrade plan</p>

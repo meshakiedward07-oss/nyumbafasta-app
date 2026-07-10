@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
@@ -92,6 +92,35 @@ export default function EditListingClient({ listing }: { listing: ListingData })
   const [addressFull, setAddressFull] = useState(listing.address_full ?? '')
   const [placeId, setPlaceId] = useState(listing.place_id ?? '')
 
+  const draftKey = useMemo(() => `edit_listing_draft_${listing.id}`, [listing.id])
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(draftKey)
+      if (!saved) return
+      const d = JSON.parse(saved)
+      if (d.type)        setType(d.type)
+      if (d.price)       setPrice(d.price)
+      if (d.bedrooms !== undefined) setBedrooms(d.bedrooms)
+      if (d.furnished)   setFurnished(d.furnished)
+      if (d.description !== undefined) setDescription(d.description)
+      if (d.region)      setRegion(d.region)
+      if (d.district)    setDistrict(d.district)
+      if (d.amenities)   setAmenities(d.amenities)
+    } catch {}
+  }, [draftKey])
+
+  // Save draft debounced 500ms on any change
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ type, price, bedrooms, furnished, description, region, district, amenities }))
+      } catch {}
+    }, 500)
+    return () => clearTimeout(t)
+  }, [type, price, bedrooms, furnished, description, region, district, amenities, draftKey])
+
   function handleLocationChange(loc: LocationData) {
     setLatitude(loc.latitude)
     setLongitude(loc.longitude)
@@ -121,6 +150,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Imeshindwa kurekebisha')
+      try { localStorage.removeItem(draftKey) } catch {}
       router.push('/dashboard?edited=1')
       router.refresh()
     } catch (err: unknown) {
@@ -145,7 +175,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
         <div className="flex items-center gap-3 px-4 py-3">
           <button onClick={() => step === 0 ? router.back() : setStep(s => s - 1)}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600">←</button>
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600">←</button>
           <div className="flex-1">
             <h1 className="text-sm font-bold text-gray-900">Hariri Listing</h1>
             <p className="text-xs text-gray-400">Hatua {step + 1} ya 4 — {stepTitles[step]}</p>

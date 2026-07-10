@@ -18,7 +18,7 @@ export default async function SavedPage() {
         images, is_boosted, view_count, lead_count,
         dalali:dalali_id (
           id, full_name, avatar_url,
-          dalali_profiles ( rating_avg, is_premium_verified )
+          dalali_profiles ( rating_avg, is_premium_verified, is_favourite_dalali )
         )
       )
     `)

@@ -355,35 +355,35 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           </button>
         </header>
 
-        {/* Page content — rendered ONCE for both desktop and mobile */}
-        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
-          {children}
-        </main>
-
-        {/* Mobile bottom nav */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 px-1 pt-2" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          <div className="flex justify-around">
+        {/* Mobile quick-nav strip — inline between header and content */}
+        <nav className="lg:hidden bg-white border-b border-gray-200 overflow-x-auto flex-shrink-0">
+          <div className="flex justify-around px-1 py-1.5 min-w-max w-full">
             {BOTTOM_NAV.map(item => (
-              <Link key={item.href + item.label} href={item.href}>
-                <div className={`flex flex-col items-center px-2 py-1 rounded-xl transition-all ${
+              <Link key={item.href + item.label} href={item.href} className="flex-1 min-w-[60px]">
+                <div className={`flex flex-col items-center px-1.5 py-1.5 rounded-xl transition-all ${
                   isActive(item.href, item.exact) ? 'text-primary-500' : 'text-gray-400'
                 }`}>
                   <div className="relative">
-{item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
-                      ? <PlatformLogo platform={item.icon.replace('brand-', '')} size={22} />
-                      : <i className={`ti ti-${item.icon} text-xl`} aria-hidden="true" />}
+                    {item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
+                      ? <PlatformLogo platform={item.icon.replace('brand-', '')} size={20} />
+                      : <i className={`ti ti-${item.icon} text-[18px]`} aria-hidden="true" />}
                     {item.href === '/admin/whatsapp' && (
-                      <span className="absolute -top-1.5 -right-2 scale-75 origin-top-right">
+                      <span className="absolute -top-1 -right-1.5 scale-75 origin-top-right">
                         <PendingBadge />
                       </span>
                     )}
                   </div>
-                  <span className="text-xs mt-0.5 font-medium">{item.label}</span>
+                  <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
                 </div>
               </Link>
             ))}
           </div>
         </nav>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
       </div>
 
       {/* Mobile drawer */}

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import PricingSettings from '@/components/admin/PricingSettings'
+import TakwimuTab from '@/components/admin/TakwimuTab'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function getCurrentMonth() {
@@ -317,7 +318,11 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
 export default function AccountingClient() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth())
   const [monthOptions,  setMonthOptions]  = useState<{ value: string; label: string }[]>([])
-  const [tab,       setTab]       = useState<'overview' | 'mapato' | 'matumizi' | 'miamala' | 'bei'>('overview')
+  const [tab,       setTab]       = useState<'overview' | 'mapato' | 'matumizi' | 'miamala' | 'bei' | 'takwimu'>('overview')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [analytics, setAnalytics] = useState<any>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [analyticsError, setAnalyticsError] = useState(false)
   const [summary,   setSummary]   = useState<FinancialSummary | null>(null)
   const [incRecords, setIncRecords] = useState<IncomeRecord[]>([])
   const [expRecords, setExpRecords] = useState<ExpenseRecord[]>([])
@@ -335,6 +340,16 @@ export default function AccountingClient() {
   const date   = `${selectedMonth}-01`
 
   useEffect(() => { setMonthOptions(generateMonthOptions()) }, [])
+
+  useEffect(() => {
+    if (tab !== 'takwimu' || analytics || analyticsError) return
+    setAnalyticsLoading(true)
+    fetch('/api/v1/admin/analytics')
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
+      .then(d => { setAnalytics(d) })
+      .catch(() => setAnalyticsError(true))
+      .finally(() => setAnalyticsLoading(false))
+  }, [tab, analytics, analyticsError])
 
   function showToast(msg: string) {
     setToast(msg)
@@ -673,6 +688,7 @@ ON CONFLICT DO NOTHING;`}</pre>
       <div className="bg-white border-b border-gray-100 flex overflow-x-auto scrollbar-none">
         {([
           { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
+          { key: 'takwimu',   label: 'Takwimu',   icon: 'chart-dots' },
           { key: 'mapato',    label: 'Mapato',    icon: 'trending-up' },
           { key: 'matumizi',  label: 'Matumizi',  icon: 'trending-down' },
           { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
@@ -1051,6 +1067,23 @@ ON CONFLICT DO NOTHING;`}</pre>
               </>
             )}
           </>
+        )}
+
+        {/* ══ TAB: TAKWIMU (Analytics) ══════════════════════════════════ */}
+        {tab === 'takwimu' && (
+          analyticsError ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-center">
+              <p className="text-sm text-red-600">Imeshindwa kupakia takwimu.</p>
+              <button
+                onClick={() => setAnalyticsError(false)}
+                className="text-xs bg-primary-500 text-white px-4 py-2 rounded-lg font-medium"
+              >
+                Jaribu Tena
+              </button>
+            </div>
+          ) : (
+            <TakwimuTab analytics={analytics} loading={analyticsLoading} />
+          )
         )}
 
         {/* ══ TAB: BEI (Pricing Settings) ═══════════════════════════════ */}

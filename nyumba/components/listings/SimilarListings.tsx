@@ -65,7 +65,7 @@ export default function SimilarListings({
           district, region, images, is_boosted,
           dalali:dalali_id (
             full_name,
-            dalali_profiles (rating_avg, is_premium_verified)
+            dalali_profiles (rating_avg, is_premium_verified, is_favourite_dalali)
           )
         `)
         .eq('status', 'active')
@@ -87,7 +87,7 @@ export default function SimilarListings({
           district, region, images, is_boosted,
           dalali:dalali_id (
             full_name,
-            dalali_profiles (rating_avg, is_premium_verified)
+            dalali_profiles (rating_avg, is_premium_verified, is_favourite_dalali)
           )
         `)
         .eq('status', 'active')

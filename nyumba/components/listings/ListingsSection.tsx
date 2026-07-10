@@ -1,10 +1,12 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import ListingCard from '@/components/listings/ListingCard'
 import { ListingGridSkeleton } from '@/components/shared/ListingCardSkeleton'
 import BottomNav from '@/components/shared/BottomNav'
+import NotificationBell from '@/components/shared/NotificationBell'
 import { TANZANIA_REGIONS, PRIORITY_REGIONS, shortName } from '@/lib/data/tanzania-locations'
 import type { ListingWithDalali } from '@/lib/types/database'
 
@@ -183,22 +185,39 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
   const boosted = listings.filter(l => l.is_boosted)
 
   return (
-    <div className="bg-gray-50 pb-20">
+    <div className="bg-gray-50">
 
-      {/* ── Search bar ── */}
-      <div className="bg-primary-500 px-3 pb-3">
-        <div className="relative">
-          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
-          <input
-            type="search"
-            inputMode="search"
-            placeholder="Tafuta mtaa, wilaya..."
-            value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white text-base
-                       text-gray-900 placeholder-gray-400 focus:outline-none
-                       focus:ring-2 focus:ring-white/50 shadow-sm"
-          />
+      {/* ── Sticky top: logo + notification + search ── */}
+      <div className="bg-primary-500 sticky top-0 z-20 shadow-sm">
+        {/* Brand row */}
+        <div className="flex items-center justify-between px-3 pt-2 pb-1">
+          <div className="relative h-10 w-[52%] sm:w-[40%]">
+            <Image
+              src="/transparent_logo_nyumbafasta.png"
+              alt="NyumbaFasta"
+              fill
+              priority
+              className="object-contain object-left"
+              sizes="(max-width: 640px) 52vw, 40vw"
+            />
+          </div>
+          <NotificationBell asLink className="text-white/90 hover:text-white" />
+        </div>
+        {/* Search input */}
+        <div className="px-3 pb-3">
+          <div className="relative">
+            <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
+            <input
+              type="search"
+              inputMode="search"
+              placeholder="Tafuta mtaa, wilaya..."
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white text-base
+                         text-gray-900 placeholder-gray-400 focus:outline-none
+                         focus:ring-2 focus:ring-white/50 shadow-sm"
+            />
+          </div>
         </div>
       </div>
 
@@ -206,7 +225,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
       <div className="flex gap-2 px-4 py-2.5 overflow-x-auto scrollbar-none">
         <button
           onClick={() => applyFilter('region', '')}
-          className={`flex-shrink-0 px-3.5 min-h-[36px] rounded-full text-xs font-medium transition-all duration-150
+          className={`flex-shrink-0 px-3.5 min-h-[44px] rounded-full text-xs font-medium transition-all duration-150
             ${(filters?.region ?? '') === '' ? 'bg-primary-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'}`}
         >
           <i className="ti ti-map" aria-hidden="true" /> Zote
@@ -216,7 +235,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           <button
             key={r}
             onClick={() => applyFilter('region', r)}
-            className={`flex-shrink-0 px-3.5 min-h-[36px] rounded-full text-xs font-medium transition-all duration-150
+            className={`flex-shrink-0 px-3.5 min-h-[44px] rounded-full text-xs font-medium transition-all duration-150
               ${(filters?.region ?? '') === r ? 'bg-primary-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'}`}
           >
             {shortName(r)}
@@ -226,7 +245,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
         <select
           value={PRIORITY_REGIONS.includes(filters?.region ?? '') ? '' : (filters?.region ?? '')}
           onChange={e => { if (e.target.value) applyFilter('region', e.target.value) }}
-          className={`flex-shrink-0 text-xs border rounded-full px-3.5 min-h-[36px]
+          className={`flex-shrink-0 text-xs border rounded-full px-3.5 min-h-[44px]
             focus:outline-none cursor-pointer
             ${!PRIORITY_REGIONS.includes(filters?.region ?? '') && filters?.region
               ? 'bg-primary-500 text-white border-primary-500'
@@ -245,14 +264,14 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           value={filters?.type ?? ''}
           onChange={e => applyFilter('type', e.target.value)}
           className="flex-shrink-0 text-xs bg-white border border-gray-200
-                     rounded-full px-3.5 min-h-[36px] text-gray-600 focus:outline-none"
+                     rounded-full px-3.5 min-h-[44px] text-gray-600 focus:outline-none"
         >
           {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
 
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex-shrink-0 text-xs px-3.5 min-h-[36px] rounded-full border
+          className={`flex-shrink-0 text-xs px-3.5 min-h-[44px] rounded-full border
             transition-all duration-150 flex items-center gap-1.5
             ${showFilters ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-200'}`}
         >
@@ -263,7 +282,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
         {(hasExtraFilters || filters?.region || filters?.type) && (
           <button
             onClick={clearFilters}
-            className="flex-shrink-0 text-xs bg-red-50 text-red-500 border border-red-100 rounded-full px-3.5 min-h-[36px] flex items-center gap-1"
+            className="flex-shrink-0 text-xs bg-red-50 text-red-500 border border-red-100 rounded-full px-3.5 min-h-[44px] flex items-center gap-1"
           >
             <i className="ti ti-x" aria-hidden="true" /> Futa
           </button>
@@ -335,13 +354,15 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
         <div className="flex bg-gray-100 rounded-xl p-0.5 gap-0.5">
           <button
             onClick={() => setViewMode('grid')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+            aria-pressed={viewMode === 'grid'}
+            className={`px-3 min-h-[44px] rounded-lg text-xs font-semibold transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
           >
             <i className="ti ti-layout-grid" aria-hidden="true" /> Grid
           </button>
           <button
             onClick={() => setViewMode('map')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+            aria-pressed={viewMode === 'map'}
+            className={`px-3 min-h-[44px] rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
           >
             <i className="ti ti-map" aria-hidden="true" /> Ramani
           </button>

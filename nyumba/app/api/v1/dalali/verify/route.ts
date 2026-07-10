@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
 
-    const { nida_number, nida_image_front, nida_image_back, selfie_image, whatsapp_number } = await req.json()
+    const { nida_number, nida_image_front, nida_image_back, selfie_image, whatsapp_number, business_license_url } = await req.json()
 
     if (!nida_number?.trim() || !nida_image_front || !nida_image_back || !selfie_image) {
       return NextResponse.json({ error: 'Taarifa zote zinahitajika' }, { status: 400 })
@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
       verification_submitted_at: new Date().toISOString(),
       verification_rejected_reason: null,
     }
+
+    if (business_license_url) upsertData.business_license_url = business_license_url
 
     // Provide whatsapp_number when creating or updating empty one
     if (!existing?.whatsapp_number && whatsapp_number?.trim()) {

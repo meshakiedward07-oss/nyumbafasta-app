@@ -53,7 +53,7 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
           <p className="text-xs text-gray-400 mt-0.5">Je, ulifurahi na huduma ya {dalaliName}?</p>
         </div>
         {onDismiss && (
-          <button aria-label="Funga" onClick={onDismiss} className="text-gray-400 text-xl leading-none w-8 h-8 flex items-center justify-center"><i className="ti ti-x" aria-hidden="true" /></button>
+          <button aria-label="Funga" onClick={onDismiss} className="text-gray-400 text-xl leading-none w-11 h-11 flex items-center justify-center"><i className="ti ti-x" aria-hidden="true" /></button>
         )}
       </div>
 
@@ -66,6 +66,8 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
               <button
                 key={star}
                 type="button"
+                aria-label={`Nyota ${star} — ${ratingLabels[star]}`}
+                aria-pressed={rating === star}
                 onClick={() => setRating(star)}
                 onMouseEnter={() => setHovered(star)}
                 onMouseLeave={() => setHovered(0)}

@@ -18,6 +18,15 @@ async function uploadDoc(file: File): Promise<string> {
   return data.url as string
 }
 
+async function uploadPdf(file: File): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch('/api/v1/upload/document', { method: 'POST', body: fd })
+  const data = await res.json()
+  if (!data.url) throw new Error(data.error ?? 'Upload ilishindwa')
+  return data.url as string
+}
+
 function StepBar({ step, total }: { step: number; total: number }) {
   return (
     <div className="flex gap-1.5 px-4 py-3">
@@ -80,34 +89,36 @@ function UploadBox({
 export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsapp }: Props) {
   const router = useRouter()
 
-  const [step, setStep]             = useState(0)
-  const [nida, setNida]             = useState('')
-  const [whatsapp, setWhatsapp]     = useState('')
-  const [front, setFront]           = useState<string | null>(null)
-  const [back, setBack]             = useState<string | null>(null)
-  const [selfie, setSelfie]         = useState<string | null>(null)
-  const [uploading, setUploading]   = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError]           = useState('')
-  const [done, setDone]             = useState(false)
+  const [step, setStep]               = useState(0)
+  const [nida, setNida]               = useState('')
+  const [whatsapp, setWhatsapp]       = useState('')
+  const [front, setFront]             = useState<string | null>(null)
+  const [back, setBack]               = useState<string | null>(null)
+  const [selfie, setSelfie]           = useState<string | null>(null)
+  const [licenseUrl, setLicenseUrl]   = useState<string | null>(null)
+  const [licenseName, setLicenseName] = useState<string | null>(null)
+  const [uploading, setUploading]     = useState<string | null>(null)
+  const [submitting, setSubmitting]   = useState(false)
+  const [error, setError]             = useState('')
+  const [done, setDone]               = useState(false)
 
-  // Steps: 0=NIDA, [1=WhatsApp if needed], last-2=front, last-1=back, last=selfie
+  // Steps: 0=NIDA, [1=WhatsApp if needed], last-2=front, last-1=back, last=selfie+license
   const steps = hasWhatsapp
-    ? ['Nambari ya NIDA', 'Kitambulisho (Mbele)', 'Kitambulisho (Nyuma)', 'Selfie']
-    : ['Nambari ya NIDA', 'Nambari ya WhatsApp', 'Kitambulisho (Mbele)', 'Kitambulisho (Nyuma)', 'Selfie']
+    ? ['Nambari ya NIDA', 'Kitambulisho (Mbele)', 'Kitambulisho (Nyuma)', 'Selfie + Leseni']
+    : ['Nambari ya NIDA', 'Nambari ya WhatsApp', 'Kitambulisho (Mbele)', 'Kitambulisho (Nyuma)', 'Selfie + Leseni']
 
   const totalSteps = steps.length
 
-  // Map logical step index to content
   const stepContent = hasWhatsapp
     ? ['nida', 'front', 'back', 'selfie']
     : ['nida', 'whatsapp', 'front', 'back', 'selfie']
 
   const currentContent = stepContent[step]
 
-  const frontRef  = useRef<HTMLInputElement>(null)
-  const backRef   = useRef<HTMLInputElement>(null)
-  const selfieRef = useRef<HTMLInputElement>(null)
+  const frontRef   = useRef<HTMLInputElement>(null)
+  const backRef    = useRef<HTMLInputElement>(null)
+  const selfieRef  = useRef<HTMLInputElement>(null)
+  const licenseRef = useRef<HTMLInputElement>(null)
 
   async function handleFilePick(
     e: React.ChangeEvent<HTMLInputElement>,
@@ -130,6 +141,24 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
     }
   }
 
+  async function handleLicensePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setError('PDF ni kubwa sana (max 10MB)'); return }
+    setUploading('license')
+    setError('')
+    try {
+      const url = await uploadPdf(file)
+      setLicenseUrl(url)
+      setLicenseName(file.name)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Upload ya leseni ilishindwa')
+    } finally {
+      setUploading(null)
+      e.target.value = ''
+    }
+  }
+
   async function handleSubmit() {
     setSubmitting(true)
     setError('')
@@ -142,6 +171,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
           nida_image_front: front,
           nida_image_back: back,
           selfie_image: selfie,
+          business_license_url: licenseUrl ?? undefined,
           whatsapp_number: hasWhatsapp ? undefined : `255${whatsapp.replace(/^0/, '')}`,
         }),
       })
@@ -193,7 +223,12 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center max-w-sm w-full">
           <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-confetti text-primary-500" aria-hidden="true" /></div>
           <h2 className="text-lg font-bold text-gray-900 mb-2">Imetumwa!</h2>
-          <p className="text-sm text-gray-500">Hati zako zimetumwa. Utapata jibu ndani ya masaa 24.</p>
+          <p className="text-sm text-gray-500">
+            Hati zako zimetumwa. Utapata jibu ndani ya masaa 24.
+            {licenseUrl && (
+              <> Umejumuisha leseni ya udalali — ukipitishwa utapata badge ya <strong>Dalali Halisi ✦</strong>.</>
+            )}
+          </p>
           <button onClick={() => router.push('/dashboard')}
             className="mt-5 w-full bg-primary-500 text-white py-3 rounded-2xl text-sm font-semibold">
             Rudi Dashboard
@@ -214,7 +249,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
   const isLastStep = step === totalSteps - 1
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
+    <div className="min-h-screen bg-gray-50 pb-28">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
         <div className="flex items-center gap-3 px-4 py-3">
@@ -325,20 +360,98 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
           </div>
         )}
 
-        {/* STEP: Selfie */}
+        {/* STEP: Selfie + optional business license */}
         {currentContent === 'selfie' && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-3">
-            <input ref={selfieRef} type="file" accept="image/*" capture="user" className="hidden"
-              onChange={e => handleFilePick(e, setSelfie, 'selfie')} />
-            <UploadBox
-              label="Selfie — Piga picha ukishikilia kitambulisho chako"
-              value={selfie}
-              onPick={() => selfieRef.current?.click()}
-              loading={uploading === 'selfie'}
-              error={error || undefined}
-            />
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
-              <i className="ti ti-bulb" aria-hidden="true" /> Piga picha ya uso wako ukishikilia kitambulisho — uso na picha ya kitambulisho zinaonekana wazi.
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-3">
+              <input ref={selfieRef} type="file" accept="image/*" capture="user" className="hidden"
+                onChange={e => handleFilePick(e, setSelfie, 'selfie')} />
+              <UploadBox
+                label="Selfie — Piga picha ukishikilia kitambulisho chako"
+                value={selfie}
+                onPick={() => selfieRef.current?.click()}
+                loading={uploading === 'selfie'}
+                error={error || undefined}
+              />
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
+                <i className="ti ti-bulb" aria-hidden="true" /> Piga picha ya uso wako ukishikilia kitambulisho — uso na picha ya kitambulisho zinaonekana wazi.
+              </div>
+            </div>
+
+            {/* Optional business license upload */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Leseni ya Udalali</p>
+                  <p className="text-xs text-gray-400">Si lazima — lakini unapata badge ya <span className="text-amber-600 font-semibold">Dalali Halisi ✦</span></p>
+                </div>
+                <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                  Hiari
+                </span>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 space-y-1">
+                <p className="font-semibold flex items-center gap-1">
+                  <i className="ti ti-rosette-discount-check" aria-hidden="true" /> Faida ya badge ya Dalali Halisi:
+                </p>
+                <ul className="list-disc list-inside space-y-0.5 text-amber-600">
+                  <li>Wateja wanakuamini zaidi</li>
+                  <li>Orodha zako zinaonekana kwanza</li>
+                  <li>Badge ya dhahabu kwenye kadi zako</li>
+                </ul>
+              </div>
+
+              <input
+                ref={licenseRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleLicensePick}
+              />
+
+              {licenseUrl ? (
+                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <i className="ti ti-file-type-pdf text-red-500 text-xl flex-shrink-0" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-gray-800 truncate">{licenseName}</p>
+                      <p className="text-[10px] text-green-600">Imepakiwa ✓</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setLicenseUrl(null); setLicenseName(null) }}
+                    className="text-xs text-gray-400 hover:text-red-400 flex-shrink-0 ml-2"
+                  >
+                    Ondoa
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => licenseRef.current?.click()}
+                  disabled={uploading === 'license'}
+                  className="w-full border-2 border-dashed border-amber-200 bg-amber-50 rounded-xl
+                             py-4 flex flex-col items-center gap-1.5 text-amber-700
+                             disabled:opacity-50 active:scale-95 transition-all"
+                >
+                  {uploading === 'license' ? (
+                    <span className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <i className="ti ti-file-type-pdf text-2xl" aria-hidden="true" />
+                      <span className="text-xs font-medium">Bonyeza kupakia Leseni ya Udalali (PDF)</span>
+                      <span className="text-[10px] text-amber-500">Hadi 10MB</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {error && uploading === null && licenseUrl === null && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <i className="ti ti-alert-triangle" aria-hidden="true" /> {error}
+                </p>
+              )}
             </div>
           </div>
         )}

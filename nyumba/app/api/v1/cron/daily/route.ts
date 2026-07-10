@@ -149,7 +149,7 @@ async function runDailyTasks() {
       .update({ status: 'expired' })
       .lt('grace_period_until', now)
       .eq('status', 'grace_period')
-      .select('id, dalali_id')
+      .select('id, dalali_id, plan')
 
     if (graceEnded?.length) {
       const dalaliIds = graceEnded.map(s => s.dalali_id)
@@ -172,6 +172,24 @@ async function runDailyTasks() {
           data:     {},
         }))
       )
+
+      // Revoke premium badge for dalali whose last premium sub just fully expired
+      const premiumDalaliIds = [...new Set(
+        graceEnded
+          .filter(s => s.plan === 'premium' || s.plan === 'enterprise')
+          .map(s => s.dalali_id)
+      )]
+      for (const dalaliId of premiumDalaliIds) {
+        const { count } = await admin
+          .from('subscriptions')
+          .select('id', { count: 'exact', head: true })
+          .eq('dalali_id', dalaliId)
+          .in('plan', ['premium', 'enterprise'])
+          .eq('status', 'active')
+        if (count === 0) {
+          await admin.from('dalali_profiles').update({ is_premium_verified: false }).eq('id', dalaliId)
+        }
+      }
     }
     results.push(`✅ Grace period ended: ${graceEnded?.length ?? 0}`)
   } catch (e) {

@@ -20,8 +20,8 @@ export default async function DalaliLayout({ children }: { children: React.React
 
   return (
     <>
-      <div className="pb-20">{children}</div>
       <DalaliBottomNav />
+      <div className="pb-20">{children}</div>
     </>
   )
 }

@@ -88,10 +88,11 @@ export default function NotificationsClient({ notifications, role }: Props) {
     }
     // Navigate to the relevant page for action-type notifications
     if (n.ref_id) {
-      if (n.type === 'listing_approved' || n.type === 'listing_rejected' || n.type === 'listing_expired' ||
-          n.type === 'listing_expiring_7days' || n.type === 'listing_expiring_14days' || n.type === 'listing_expiring_today' ||
-          n.type === 'listing_taken') {
-        router.push(`/dashboard/listings`)
+      if (n.type === 'listing_approved' || n.type === 'listing_rejected' || n.type === 'listing_taken') {
+        router.push('/dashboard/listings')
+      } else if (n.type === 'listing_expired' || n.type === 'listing_expiring_7days' ||
+                 n.type === 'listing_expiring_14days' || n.type === 'listing_expiring_today') {
+        router.push(`/dashboard/listings?renew=${n.ref_id}`)
       } else if (n.type === 'new_lead') {
         router.push(`/dashboard/crm`)
       } else if (n.type === 'new_review') {
@@ -108,7 +109,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
     <div className="min-h-screen bg-gray-50 pb-24 animate-fadeIn">
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-30">
         <button onClick={() => router.back()}
           className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 active:scale-90 transition-transform">
           ←
@@ -139,13 +140,14 @@ export default function NotificationsClient({ notifications, role }: Props) {
                   const alreadyReviewed = reviewed.has(n.id)
                   const isTappable = isReview ? !alreadyReviewed : !!n.ref_id
                   return (
-                    <div
+                    <button
                       key={n.id}
+                      type="button"
                       onClick={() => handleNotifTap(n)}
-                      className={`rounded-2xl border p-4 flex gap-3 transition-all
+                      className={`w-full text-left rounded-2xl border p-4 flex gap-3 transition-all
                         ${cfg.color}
                         ${!n.is_read && !alreadyReviewed ? 'shadow-sm' : 'opacity-70'}
-                        ${isTappable ? 'cursor-pointer active:scale-[0.98]' : ''}
+                        ${isTappable ? 'cursor-pointer active:scale-[0.98]' : 'cursor-default'}
                       `}
                     >
                       <i className={`ti ti-${cfg.icon} text-2xl flex-shrink-0 mt-0.5`} aria-hidden="true" />
@@ -163,14 +165,9 @@ export default function NotificationsClient({ notifications, role }: Props) {
                           </span>
                         )}
                         {(n.type === 'listing_expired' || n.type === 'listing_expiring_7days' || n.type === 'listing_expiring_today') && n.ref_id && (
-                          <div className="mt-2">
-                            <button
-                              onClick={() => router.push(`/dashboard/listings?renew=${n.ref_id}`)}
-                              className="text-xs bg-primary-500 text-white px-3 py-1.5 rounded-lg font-medium"
-                            >
-                              <i className="ti ti-refresh" aria-hidden="true" /> Huisha Sasa →
-                            </button>
-                          </div>
+                          <span className="inline-block mt-2 text-xs bg-primary-500 text-white px-3 py-1.5 rounded-lg font-medium">
+                            <i className="ti ti-refresh" aria-hidden="true" /> Huisha Sasa →
+                          </span>
                         )}
                         <p className="text-xs text-gray-400 mt-1.5" suppressHydrationWarning>
                           {new Date(n.created_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
@@ -179,7 +176,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
                       {!n.is_read && !alreadyReviewed && (
                         <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-1" />
                       )}
-                    </div>
+                    </button>
                   )
                 })}
               </div>

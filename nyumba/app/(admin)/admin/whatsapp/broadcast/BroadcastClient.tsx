@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
 type Stage   = 'compose' | 'generating' | 'review' | 'sending' | 'done'
-type Target  = 'all_dalali' | 'active_dalali' | 'new_dalali'
+type Target  = 'all_dalali' | 'active_dalali' | 'new_dalali' | 'all_clients' | 'active_clients'
 type Tone    = 'personal' | 'formal' | 'urgent'
 type BStatus = 'pending' | 'sending' | 'completed' | 'failed'
 
@@ -26,10 +26,12 @@ interface SendResult {
   recipients_count: number
 }
 
-const TARGET_OPTIONS: { value: Target; label: string; desc: string }[] = [
-  { value: 'all_dalali',    label: 'Madalali Wote',             desc: 'Madalali wote waliojisajili' },
-  { value: 'active_dalali', label: 'Subscription Active',       desc: 'Madalali wenye subscription inayoendelea' },
-  { value: 'new_dalali',    label: 'Madalali Wapya (wiki hii)', desc: 'Waliojisajili wiki hii' },
+const TARGET_OPTIONS: { value: Target; label: string; desc: string; group: 'dalali' | 'client' }[] = [
+  { value: 'all_dalali',    label: 'Madalali Wote',             desc: 'Madalali wote waliojisajili',                         group: 'dalali' },
+  { value: 'active_dalali', label: 'Subscription Active',       desc: 'Madalali wenye subscription inayoendelea',             group: 'dalali' },
+  { value: 'new_dalali',    label: 'Madalali Wapya (wiki hii)', desc: 'Waliojisajili wiki hii',                              group: 'dalali' },
+  { value: 'all_clients',   label: 'Wateja Wote',               desc: 'Wateja wote waliojisajili wenye nambari ya simu',     group: 'client' },
+  { value: 'active_clients',label: 'Wateja Waliofungua Contact',desc: 'Waliofanya angalau unlock moja ya dalali',            group: 'client' },
 ]
 
 const TONE_OPTIONS: { value: Tone; label: string; prefix: string }[] = [
@@ -60,6 +62,7 @@ export default function BroadcastClient() {
   const [genError,    setGenError]    = useState('')
   const [counts,      setCounts]      = useState<Record<Target, number | null>>({
     all_dalali: null, active_dalali: null, new_dalali: null,
+    all_clients: null, active_clients: null,
   })
   const [history, setHistory] = useState<BroadcastRecord[]>([])
 
@@ -74,7 +77,7 @@ export default function BroadcastClient() {
   }
 
   async function fetchCounts() {
-    const targets: Target[] = ['all_dalali', 'active_dalali', 'new_dalali']
+    const targets: Target[] = ['all_dalali', 'active_dalali', 'new_dalali', 'all_clients', 'active_clients']
     const results = await Promise.all(
       targets.map(async (t) => {
         const res = await fetch(`/api/v1/whatsapp/broadcast/count?target=${t}`)
@@ -83,7 +86,10 @@ export default function BroadcastClient() {
         return [t, json.count] as const
       })
     )
-    const updated: Record<Target, number | null> = { all_dalali: null, active_dalali: null, new_dalali: null }
+    const updated: Record<Target, number | null> = {
+      all_dalali: null, active_dalali: null, new_dalali: null,
+      all_clients: null, active_clients: null,
+    }
     for (const [t, count] of results) updated[t] = count
     setCounts(updated)
   }
@@ -356,7 +362,7 @@ export default function BroadcastClient() {
         </Link>
         <div>
           <h1 className="font-bold text-gray-900 text-lg">Tuma Ujumbe wa Wingi</h1>
-          <p className="text-xs text-gray-500">Amina ataandika broadcast kwa madalali</p>
+          <p className="text-xs text-gray-500">Amina ataandika broadcast kwa madalali au wateja</p>
         </div>
       </div>
 
@@ -365,8 +371,44 @@ export default function BroadcastClient() {
         {/* Target */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
           <p className="text-sm font-bold text-gray-900 mb-3">Wapokeaji</p>
+
+          {/* Dalali group */}
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Madalali</p>
+          <div className="space-y-2 mb-4">
+            {TARGET_OPTIONS.filter(o => o.group === 'dalali').map(opt => (
+              <label
+                key={opt.value}
+                className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                  target === opt.value ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="target"
+                  value={opt.value}
+                  checked={target === opt.value}
+                  onChange={() => setTarget(opt.value)}
+                  className="mt-0.5 accent-primary-500"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-gray-800">{opt.label}</p>
+                    {counts[opt.value] != null && (
+                      <span className="text-[10px] font-bold text-primary-600 bg-primary-50 border border-primary-200 px-2 py-0.5 rounded-full shrink-0">
+                        {counts[opt.value]} watu
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {/* Client group */}
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Wateja</p>
           <div className="space-y-2">
-            {TARGET_OPTIONS.map(opt => (
+            {TARGET_OPTIONS.filter(o => o.group === 'client').map(opt => (
               <label
                 key={opt.value}
                 className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${

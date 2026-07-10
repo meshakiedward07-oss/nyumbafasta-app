@@ -160,6 +160,18 @@ export function VideoPlayer({
     return () => document.removeEventListener('keydown', handleKey)
   }, [togglePlay])
 
+  // Reload video when src changes (e.g. blob → Cloudinary URL after upload)
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v || !src) return
+    setState('idle')
+    setProgress(0)
+    setCurrentTime(0)
+    setDuration(0)
+    setBuffered(0)
+    v.load()
+  }, [src])
+
   // Cleanup
   useEffect(() => {
     const v = videoRef.current
@@ -201,6 +213,7 @@ export function VideoPlayer({
       {/* Video element */}
       <video
         ref={videoRef}
+        src={src}
         className="absolute inset-0 w-full h-full object-contain"
         poster={poster ?? undefined}
         preload="metadata"
@@ -217,11 +230,7 @@ export function VideoPlayer({
           if (videoRef.current) videoRef.current.currentTime = 0
         }}
         onError={() => setState('error')}
-      >
-        <source src={src} type="video/mp4" />
-        <source src={src} type="video/webm" />
-        Kivinjari chako hakisaidii video.
-      </video>
+      />
 
       {/* Buffering spinner */}
       {(state === 'buffering' || state === 'loading') && (

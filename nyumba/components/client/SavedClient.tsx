@@ -38,7 +38,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
     <div className="min-h-screen bg-gray-50 pb-24">
 
       {/* Header */}
-      <div className="bg-primary-500 px-4 pt-10 pb-5 sticky top-0 z-10">
+      <div className="bg-primary-500 px-4 pt-5 pb-5 sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
@@ -151,7 +151,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                     ) : (
                       <button
                         onClick={() => setConfirmingRemove(listing.id)}
-                        className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors"
+                        className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors min-h-[44px] px-2"
                       >
                         <i className="ti ti-trash" aria-hidden="true" />
                         Ondoa

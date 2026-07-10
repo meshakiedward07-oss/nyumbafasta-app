@@ -24,6 +24,13 @@ export async function POST(req: NextRequest) {
       if (!eventType || !VALID_EVENT_TYPES.includes(eventType)) return
       if (listingId && !UUID_RE.test(listingId)) return
 
+      // Validate dalali exists before inserting — prevents phantom-UUID spam
+      const { count } = await supabaseAdmin
+        .from('dalali_profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('id', dalaliId)
+      if (!count) return
+
       await supabaseAdmin.from('profile_click_events').insert({
         dalali_id:  dalaliId,
         listing_id: listingId ?? null,

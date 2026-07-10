@@ -47,29 +47,59 @@ export async function POST(req: NextRequest) {
   let recipients: Recipient[] = []
 
   if (target === 'specific' && specificPhones?.length) {
-    recipients = specificPhones.map((p) => ({ name: 'Dalali', phone: p }))
+    recipients = specificPhones.map((p) => ({ name: 'Mtumiaji', phone: p }))
+
+  } else if (target === 'all_clients' || target === 'active_clients') {
+    // ── Client targets ────────────────────────────────────────────────────────
+    let clientIds: string[] | null = null
+
+    if (target === 'active_clients') {
+      const { data: unlocks } = await supabaseAdmin
+        .from('contact_unlocks')
+        .select('client_id')
+        .eq('status', 'completed')
+        .limit(5000)
+      clientIds = [...new Set((unlocks ?? []).map((u) => u.client_id as string))]
+      if (clientIds.length === 0) {
+        return NextResponse.json({ error: 'Hakuna wateja waliofanya unlock bado' }, { status: 400 })
+      }
+    }
+
+    let query = supabaseAdmin
+      .from('users')
+      .select('full_name, phone')
+      .eq('role', 'client')
+      .not('phone', 'is', null)
+
+    if (clientIds) query = query.in('id', clientIds)
+
+    const { data } = await query.limit(500)
+    recipients = (data ?? []).map((u) => ({
+      name:  u.full_name ?? 'Mteja',
+      phone: u.phone ?? '',
+    })).filter((r) => r.phone)
 
   } else {
+    // ── Dalali targets ────────────────────────────────────────────────────────
     let query = supabaseAdmin
       .from('users')
       .select('full_name, phone, dalali_profiles(whatsapp_number)')
       .eq('role', 'dalali')
       .eq('is_active', true)
-      .not('phone', 'is', null)
 
     if (target === 'new_dalali') {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
       query = query.gte('created_at', weekAgo)
     } else if (target === 'active_dalali') {
-      // Active subscription
       const { data: activeSubs } = await supabaseAdmin
         .from('subscriptions')
         .select('dalali_id')
         .eq('status', 'active')
       const activeIds = (activeSubs ?? []).map((s) => s.dalali_id)
-      if (activeIds.length > 0) {
-        query = query.in('id', activeIds)
+      if (activeIds.length === 0) {
+        return NextResponse.json({ error: 'Hakuna madalali wenye subscription inayoendelea' }, { status: 400 })
       }
+      query = query.in('id', activeIds)
     }
 
     const { data } = await query.limit(500)

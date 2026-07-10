@@ -63,16 +63,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Huwezi kufungua listing yako mwenyewe' }, { status: 400 })
     }
 
-    const { data: existing } = await admin
+    // Fetch all existing rows — avoids PGRST116 crash when multiple rows exist
+    const { data: existingList } = await admin
       .from('contact_unlocks')
       .select('id, status')
       .eq('client_id', user.id)
       .eq('listing_id', listing_id)
-      .eq('status', 'completed')
-      .maybeSingle()
+      .order('created_at', { ascending: false })
+      .limit(10)
 
-    if (existing) {
+    const completedRecord = (existingList ?? []).find(r => r.status === 'completed')
+    if (completedRecord) {
       return NextResponse.json({ error: 'Tayari umefungua listing hii', already_unlocked: true }, { status: 400 })
+    }
+
+    // Only delete failed records — never touch pending ones that may have an in-flight STK push
+    const staleIds = (existingList ?? [])
+      .filter(r => r.status === 'failed')
+      .map(r => r.id)
+    if (staleIds.length > 0) {
+      await admin.from('contact_unlocks').delete().in('id', staleIds)
     }
 
     const payment_ref = generateExternalId('NYU')
@@ -177,7 +187,11 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertError || !unlock) {
-      return NextResponse.json({ error: 'Imeshindwa kuanzisha malipo' }, { status: 500 })
+      console.error('[Unlock/initiate] DB insert failed:', JSON.stringify({
+        message: insertError?.message, code: insertError?.code,
+        details: insertError?.details, hint: insertError?.hint,
+      }))
+      return NextResponse.json({ error: 'Imeshindwa kuanzisha malipo. Jaribu tena.' }, { status: 500 })
     }
 
     const result = await mobileCheckout({
@@ -189,12 +203,15 @@ export async function POST(req: NextRequest) {
     })
 
     if (!result.ok) {
+      console.error('[Unlock/initiate] mobileCheckout failed:', result.message, result.raw)
       await admin.from('contact_unlocks').delete().eq('id', unlock.id)
       return NextResponse.json({ error: result.message }, { status: 502 })
     }
 
     return NextResponse.json({ unlock_id: unlock.id, payment_ref, amount: UNLOCK_AMOUNT })
-  } catch {
-    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  } catch (err) {
+    console.error('[Unlock/initiate] Unexpected error:', err)
+    const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

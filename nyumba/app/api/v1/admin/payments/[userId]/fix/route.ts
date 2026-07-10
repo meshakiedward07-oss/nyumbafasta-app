@@ -38,6 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: { userId: str
         .from('subscriptions')
         .select('id, status, expires_at')
         .eq('id', record_id)
+        .eq('dalali_id', userId)
         .single()
       if (!sub) return NextResponse.json({ error: 'Subscription haipatikani' }, { status: 404 })
 
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest, { params }: { params: { userId: str
         .from('subscriptions')
         .select('id, expires_at')
         .eq('id', record_id)
+        .eq('dalali_id', userId)
         .single()
       if (!sub) return NextResponse.json({ error: 'Subscription haipatikani' }, { status: 404 })
 
@@ -103,6 +105,7 @@ export async function POST(req: NextRequest, { params }: { params: { userId: str
         .from('contact_unlocks')
         .select('id, client_id, listing_id, dalali_id, status')
         .eq('id', record_id)
+        .eq('client_id', userId)
         .single()
       if (!unlock) return NextResponse.json({ error: 'Unlock haipatikani' }, { status: 404 })
 
@@ -126,11 +129,11 @@ export async function POST(req: NextRequest, { params }: { params: { userId: str
     // ── Mark a stale pending record as failed (so user can retry) ─────────────
     else if (action === 'fail_payment') {
       if (record_type === 'subscription') {
-        await admin.from('subscriptions').update({ status: 'failed' }).eq('id', record_id)
+        await admin.from('subscriptions').update({ status: 'failed' }).eq('id', record_id).eq('dalali_id', userId)
       } else if (record_type === 'contact_unlock') {
-        await admin.from('contact_unlocks').update({ status: 'failed' }).eq('id', record_id)
+        await admin.from('contact_unlocks').update({ status: 'failed' }).eq('id', record_id).eq('client_id', userId)
       } else if (record_type === 'boost_payment') {
-        await admin.from('boost_payments').update({ status: 'failed' }).eq('id', record_id)
+        await admin.from('boost_payments').update({ status: 'failed' }).eq('id', record_id).eq('dalali_id', userId)
       }
       message = 'Malipo yamewekwa kama yameshindwa — mtumiaji anaweza jaribu tena'
     }

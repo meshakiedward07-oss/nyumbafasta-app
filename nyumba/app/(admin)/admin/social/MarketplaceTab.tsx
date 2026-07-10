@@ -186,6 +186,17 @@ export default function MarketplaceTab() {
     if (data.ok) loadStats()
   }
 
+  async function handleRepost(listingId: string) {
+    const res  = await fetch('/api/v1/social/marketplace', {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ listingId }),
+    })
+    const data = await res.json() as { success?: boolean; error?: string; message?: string }
+    showToast(data.success ? (data.message ?? 'Imerepostiwa!') : `Hitilafu: ${data.error}`)
+    if (data.success) loadStats()
+  }
+
   return (
     <div>
       {toast && (
@@ -320,6 +331,14 @@ export default function MarketplaceTab() {
                           className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 whitespace-nowrap"
                         >
                           Imepangwa
+                        </button>
+                      )}
+                      {(item.status === 'failed' || item.status === 'expired') && (
+                        <button
+                          onClick={() => handleRepost(item.listing_id)}
+                          className="text-xs px-2.5 py-1 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 whitespace-nowrap"
+                        >
+                          <i className="ti ti-refresh mr-0.5" aria-hidden="true" />Repost
                         </button>
                       )}
                       {item.marketplace_item_id && (

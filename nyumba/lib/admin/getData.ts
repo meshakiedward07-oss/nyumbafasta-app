@@ -65,6 +65,7 @@ export async function getAdminData(): Promise<AdminPageData> {
       .from('dalali_profiles')
       .select(`
         user_id, nida_number, nida_image_front, nida_image_back, selfie_image,
+        business_license_url,
         verification_status, verification_submitted_at, verification_rejected_reason,
         user:user_id ( id, full_name, phone )
       `)

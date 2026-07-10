@@ -143,9 +143,10 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
     setImgError(false)
   }
 
-  const profile = listing.dalali?.dalali_profiles
-  const isVerified = profile?.is_premium_verified ?? false
-  const rating = profile?.rating_avg ?? 0
+  const profile      = listing.dalali?.dalali_profiles
+  const isVerified   = profile?.is_premium_verified ?? false
+  const isFavourite  = profile?.is_favourite_dalali ?? false
+  const rating       = profile?.rating_avg ?? 0
   const ratingCount = profile?.rating_count ?? 0
   // waPhone is only set after payment is confirmed (or for already-unlocked users)
   const waPhone = contactNumber ? (contactNumber.replace(/\D/g, '').replace(/^0/, '255') || null) : null
@@ -175,7 +176,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
     <article className="min-h-screen bg-gray-50 pb-40">
 
       {/* ── Header ── */}
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 flex items-center gap-3 px-4 py-3">
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 flex items-center gap-3 px-4 py-3">
         <button
           onClick={() => router.back()}
           aria-label="Rudi nyuma"
@@ -245,20 +246,16 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                   aria-label={`Picha ${i + 1} ya ${images.length}`}
                   aria-current={i === activeImg ? 'true' : undefined}
                   onClick={() => { setActiveImg(i); setImgError(false) }}
-                  className={`rounded-full transition-all touch-manipulation ${i === activeImg ? 'w-4 h-2 bg-white' : 'w-2 h-2 bg-white/50'}`}
-                />
+                  className="min-h-[44px] min-w-[24px] flex items-center justify-center touch-manipulation"
+                >
+                  <span className={`block rounded-full transition-all ${i === activeImg ? 'w-4 h-2 bg-white' : 'w-2 h-2 bg-white/50'}`} />
+                </button>
               ))}
               <span className="text-white/80 text-[10px] font-medium ml-1">{activeImg + 1}/{images.length}</span>
             </div>
           </div>
         )}
 
-        {/* Image count */}
-        {images.length > 1 && (
-          <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-            <i className="ti ti-camera" aria-hidden="true" /> {activeImg + 1} / {images.length}
-          </div>
-        )}
       </div>
 
       {/* Thumbnails */}
@@ -500,6 +497,11 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                     <i className="ti ti-check" aria-hidden="true" /> Imethibitishwa
                   </span>
                 )}
+                {isFavourite && (
+                  <span className="bg-amber-400 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5 font-semibold">
+                    <i className="ti ti-rosette-discount-check" aria-hidden="true" /> Dalali Halisi
+                  </span>
+                )}
               </div>
               {rating > 0 && (
                 <div className="flex items-center gap-1 mt-0.5">
@@ -659,6 +661,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           listingPrice={listing.price_monthly}
           listingLocation={locationDisplay}
           listingBedrooms={listing.bedrooms ?? undefined}
+          initialUnlockAmount={unlockPrice}
           onClose={() => setShowUnlockModal(false)}
           onUnlocked={(number) => {
             setContactNumber(number || null)
