@@ -52,6 +52,6 @@ export async function GET() {
     sources,
     clicks,
     whatsappClicks: clicks['whatsapp_click'] ?? 0,
-    shareCount:     clicks['share_click']    ?? 0,
+    shareCount:     clicks['share']          ?? 0,
   })
 }

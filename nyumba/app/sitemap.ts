@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let listings: { id: string; updated_at: string | null }[] = []
-  let dalalis: { id: string }[] = []
+  let dalalis: { username: string }[] = []
 
   try {
     const admin = createAdminClient()
@@ -27,15 +27,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1000),
+      // Only index verified dalalis with a username — these are the canonical microsite URLs
       admin
         .from('users')
-        .select('id')
+        .select('username, dalali_profiles!inner(is_premium_verified)')
         .eq('role', 'dalali')
         .eq('is_active', true)
+        .eq('dalali_profiles.is_premium_verified', true)
+        .not('username', 'is', null)
         .limit(1000),
     ])
     listings = listingsRes.data ?? []
-    dalalis = dalaliRes.data ?? []
+    dalalis = (dalaliRes.data ?? [])
+      .filter(d => !!d.username)
+      .map(d => ({ username: d.username as string }))
   } catch {
     // DB unavailable at build time — return static URLs only
   }
@@ -68,12 +73,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   )
 
-  // ── Dalali profile pages — /dalali/{userId} for active dalali ──
+  // ── Dalali microsite pages — /agent/{username} for verified dalalis only ──
   const dalaliUrls: MetadataRoute.Sitemap = dalalis.map(d => ({
-    url: `${APP_URL}/dalali/${d.id}`,
+    url: `${APP_URL}/agent/${d.username}`,
     lastModified: now,
     changeFrequency: 'weekly',
-    priority: 0.7,
+    priority: 0.75,
   }))
 
   // ── Static pages ──────────────────────────────────────────

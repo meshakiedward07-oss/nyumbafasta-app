@@ -18,10 +18,11 @@ export async function POST(req: NextRequest) {
       if (!dalaliId || !UUID_RE.test(dalaliId)) return
 
       // Validate dalali exists before inserting — prevents phantom-UUID spam
+      // dalaliId is a users.id UUID; dalali_profiles uses user_id as the FK (not its own PK)
       const { count } = await supabaseAdmin
         .from('dalali_profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('id', dalaliId)
+        .eq('user_id', dalaliId)
       if (!count) return
 
       let source = 'direct'
