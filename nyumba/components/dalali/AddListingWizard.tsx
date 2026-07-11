@@ -100,6 +100,7 @@ export default function AddListingWizard() {
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [photosUploading, setPhotosUploading] = useState(false)
+  const [videoUploading, setVideoUploading] = useState(false)
   const [error, setError] = useState('')
 
   // ── Listing limit ─────────────────────────────────────────
@@ -789,6 +790,7 @@ export default function AddListingWizard() {
                 existingVideoUrl={form.video_url}
                 onUploadComplete={(url) => set('video_url', url)}
                 onRemove={() => set('video_url', null)}
+                onUploadStateChange={setVideoUploading}
               />
             </div>
 
@@ -887,7 +889,7 @@ export default function AddListingWizard() {
         ) : (
           <button
             onClick={handleSubmit}
-            disabled={submitting || photosUploading}
+            disabled={submitting || photosUploading || videoUploading}
             className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold
                        disabled:opacity-50 active:scale-95 transition-all"
           >
@@ -895,6 +897,11 @@ export default function AddListingWizard() {
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Inatuma...
+              </span>
+            ) : videoUploading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Subiri video ikamilike...
               </span>
             ) : photosUploading ? (
               <span className="flex items-center justify-center gap-2">

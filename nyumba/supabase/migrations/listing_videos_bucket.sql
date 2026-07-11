@@ -14,6 +14,7 @@ VALUES (
     'video/webm',
     'video/x-msvideo',   -- .avi
     'video/3gpp',        -- .3gp mobile
+    'video/3gpp2',       -- .3g2 mobile
     'video/x-matroska'   -- .mkv
   ]
 )
@@ -22,7 +23,7 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit    = 524288000,
   allowed_mime_types = ARRAY[
     'video/mp4', 'video/quicktime', 'video/webm',
-    'video/x-msvideo', 'video/3gpp', 'video/x-matroska'
+    'video/x-msvideo', 'video/3gpp', 'video/3gpp2', 'video/x-matroska'
   ];
 
 -- ── 2. Drop old broken policies ─────────────────────────────────────────────

@@ -8,6 +8,7 @@ interface Props {
   existingVideoUrl?: string | null
   onUploadComplete: (url: string) => void
   onRemove?: () => void
+  onUploadStateChange?: (uploading: boolean) => void
 }
 
 const ALLOWED_TYPES = [
@@ -34,7 +35,7 @@ function uploadTimeEstimate(bytes: number): string {
   return `~${(seconds / 3600).toFixed(1)}saa`
 }
 
-export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Props) {
+export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove, onUploadStateChange }: Props) {
   const [videoUrl, setVideoUrl]         = useState(existingVideoUrl ?? '')
   const [stage, setStage]               = useState<Stage>(existingVideoUrl ? 'done' : 'idle')
   const [progress, setProgress]         = useState(0)
@@ -50,6 +51,10 @@ export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Pr
   useEffect(() => {
     setIsMobile(/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent))
   }, [])
+
+  useEffect(() => {
+    onUploadStateChange?.(stage === 'compressing' || stage === 'uploading')
+  }, [stage, onUploadStateChange])
 
   const handleFile = useCallback(async (file: File) => {
     setError('')
@@ -178,7 +183,9 @@ export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Pr
 
         xhr.open('POST', `${base}/storage/v1/object/listing-videos/${path}`)
         xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`)
-        xhr.setRequestHeader('Content-Type', fileToUpload.type || 'video/mp4')
+        // Strip codec params (e.g. "video/webm;codecs=vp9,opus" → "video/webm")
+        // Supabase Storage matches exact MIME types in allowed_mime_types
+        xhr.setRequestHeader('Content-Type', (fileToUpload.type || 'video/mp4').split(';')[0])
         xhr.setRequestHeader('x-upsert', 'false')
         xhr.setRequestHeader('cache-control', '31536000')
         xhr.send(fileToUpload)
