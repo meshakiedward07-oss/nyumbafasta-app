@@ -2,10 +2,11 @@
 -- Run once in Supabase SQL Editor
 -- Date: 2026-07-11
 
--- ── 1. Add missing contact + social columns ──────────────────────────────────
+-- ── 1. Add missing contact + social + location columns ───────────────────────
 ALTER TABLE agent_leads
   ADD COLUMN IF NOT EXISTS whatsapp       TEXT,
   ADD COLUMN IF NOT EXISTS notes          TEXT,
+  ADD COLUMN IF NOT EXISTS district       TEXT,
   ADD COLUMN IF NOT EXISTS facebook_url   TEXT,
   ADD COLUMN IF NOT EXISTS instagram_url  TEXT,
   ADD COLUMN IF NOT EXISTS tiktok_url     TEXT,
