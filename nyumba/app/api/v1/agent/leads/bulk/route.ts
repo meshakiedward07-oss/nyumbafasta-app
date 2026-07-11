@@ -162,10 +162,130 @@ type ParsedRow = {
   pipeline_stage: 'mpya'
 }
 
+// ── Batched DB dedup (avoids URL-length limits with large .in() arrays) ────────
+async function batchExistingValues(column: string, values: string[]): Promise<Set<string>> {
+  const result = new Set<string>()
+  const BATCH = 100
+  for (let i = 0; i < values.length; i += BATCH) {
+    const { data } = await supabaseAdmin
+      .from('agent_leads').select(column).in(column, values.slice(i, i + BATCH))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(data ?? [] as any[]).forEach((r: Record<string, unknown>) => { const v = r[column]; if (typeof v === 'string' && v) result.add(v) })
+  }
+  return result
+}
+
+// ── JSON chunk handler (used by browser-side chunked import) ──────────────────
+async function handleJsonChunk(req: NextRequest): Promise<NextResponse> {
+  const body = await req.json() as { rows: Record<string, string>[]; chunkOffset?: number }
+  const { rows, chunkOffset = 0 } = body
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return NextResponse.json({ error: 'Hakuna rows za kuchakata' }, { status: 400 })
+  }
+
+  const parseErrors: { row: number; reason: string }[] = []
+  const rawRows: ParsedRow[] = []
+
+  // Map headers → fields using existing matchColumn/addRecord logic
+  for (let i = 0; i < rows.length; i++) {
+    const rec: Record<string, string | null> = {}
+    for (const [header, value] of Object.entries(rows[i])) {
+      const field = matchColumn(String(header))
+      if (field) rec[field] = mergeFieldValue(rec[field], String(value ?? '').trim() || null)
+    }
+    addRecord(rec, chunkOffset + i + 2, rawRows, parseErrors)
+  }
+
+  if (rawRows.length === 0) {
+    return NextResponse.json({
+      success: parseErrors.length === 0,
+      imported: 0, duplicates_file: 0, duplicates_db: 0,
+      skipped: parseErrors.length, errors: parseErrors.slice(0, 20),
+    })
+  }
+
+  // Dedup against DB (batched to avoid URL length limits)
+  const phones   = rawRows.map(r => r.phone).filter(Boolean) as string[]
+  const fbUrls   = rawRows.map(r => r.facebook_url).filter(Boolean) as string[]
+  const igUrls   = rawRows.map(r => r.instagram_url).filter(Boolean) as string[]
+  const ttUrls   = rawRows.map(r => r.tiktok_url).filter(Boolean) as string[]
+  const nameOnly = rawRows
+    .filter(r => !r.phone && !r.facebook_url && !r.instagram_url && !r.tiktok_url)
+    .map(r => r.business_name.toLowerCase())
+
+  const [existingPhones, existingFb, existingIg, existingTt] = await Promise.all([
+    phones.length  > 0 ? batchExistingValues('phone',         phones)  : Promise.resolve(new Set<string>()),
+    fbUrls.length  > 0 ? batchExistingValues('facebook_url',  fbUrls)  : Promise.resolve(new Set<string>()),
+    igUrls.length  > 0 ? batchExistingValues('instagram_url', igUrls)  : Promise.resolve(new Set<string>()),
+    ttUrls.length  > 0 ? batchExistingValues('tiktok_url',    ttUrls)  : Promise.resolve(new Set<string>()),
+  ])
+
+  const existingNames = new Set<string>()
+  if (nameOnly.length > 0) {
+    const { data } = await supabaseAdmin
+      .from('agent_leads').select('business_name')
+      .is('phone', null).is('facebook_url', null)
+      .is('instagram_url', null).is('tiktok_url', null)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(data ?? [] as any[]).forEach((r: Record<string, unknown>) =>
+      existingNames.add(String(r.business_name ?? '').toLowerCase()))
+  }
+
+  const toInsert: ParsedRow[] = []
+  let duplicatesInDb = 0
+
+  for (const row of rawRows) {
+    const inDb = (row.phone         && existingPhones.has(row.phone))
+              || (row.facebook_url  && existingFb.has(row.facebook_url))
+              || (row.instagram_url && existingIg.has(row.instagram_url))
+              || (row.tiktok_url    && existingTt.has(row.tiktok_url))
+              || (!row.phone && !row.facebook_url && !row.instagram_url && !row.tiktok_url
+                  && existingNames.has(row.business_name.toLowerCase()))
+    if (inDb) duplicatesInDb++
+    else toInsert.push(row)
+  }
+
+  // Bulk insert in 50-row chunks
+  let imported = 0
+  const insertErrors: { row: number; reason: string }[] = []
+  const INSERT_CHUNK = 50
+
+  for (let i = 0; i < toInsert.length; i += INSERT_CHUNK) {
+    const { error: insertErr } = await supabaseAdmin
+      .from('agent_leads')
+      .insert(toInsert.slice(i, i + INSERT_CHUNK))
+    if (insertErr) {
+      insertErrors.push({ row: chunkOffset + i + 2, reason: insertErr.message })
+    } else {
+      imported += Math.min(INSERT_CHUNK, toInsert.length - i)
+    }
+  }
+
+  const allErrors = [...parseErrors, ...insertErrors]
+  return NextResponse.json({
+    success:         insertErrors.length === 0,
+    imported,
+    duplicates_file: 0,
+    duplicates_db:   duplicatesInDb,
+    skipped:         allErrors.length,
+    errors:          allErrors.slice(0, 20),
+  })
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
+
+  // Browser sends JSON chunks; legacy path keeps multipart for small files
+  if ((req.headers.get('content-type') ?? '').includes('application/json')) {
+    try { return await handleJsonChunk(req) }
+    catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
+      return NextResponse.json({ error: msg }, { status: 500 })
+    }
+  }
 
   try {
     const formData = await req.formData()

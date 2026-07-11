@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { TANZANIA_REGIONS } from '@/lib/agent/regions'
 import { PlatformLogo } from '@/components/shared/PlatformLogo'
 
+const IMPORT_CHUNK_SIZE = 500
+
 const BRAND_PLATFORMS = new Set(['whatsapp', 'instagram', 'facebook', 'tiktok'])
 
 type Lead = {
@@ -85,6 +87,12 @@ export default function LeadsClient() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState<{
+    phase: 'reading' | 'processing'
+    currentChunk: number
+    totalChunks: number
+    totalRows: number
+  } | null>(null)
   const [importResult, setImportResult] = useState<{
     success: boolean
     imported: number
@@ -214,22 +222,73 @@ export default function LeadsClient() {
     setImporting(true)
     setImportError('')
     setImportResult(null)
+    setImportProgress({ phase: 'reading', currentChunk: 0, totalChunks: 0, totalRows: 0 })
+
     try {
-      const fd = new FormData()
-      fd.append('file', importFile)
-      const res = await fetch('/api/v1/agent/leads/bulk', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok) {
-        setImportError(data.error || 'Imeshindwa kuingiza leads')
-      } else {
-        setImportResult(data)
-        fetchLeads()
-        fetchStats()
+      // Parse in browser to avoid Vercel 4.5 MB body limit and long timeouts
+      const XLSX = await import('xlsx')
+      const arrayBuf = await importFile.arrayBuffer()
+      const wb = XLSX.read(arrayBuf, { type: 'array', raw: false, cellDates: false })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rawData = XLSX.utils.sheet_to_json<Record<string, string>>(ws, {
+        raw: false,
+        defval: '',
+      })
+
+      if (rawData.length === 0) {
+        setImportError('Faili haina data ya kutosha')
+        return
       }
+
+      // Split into chunks
+      const chunks: Record<string, string>[][] = []
+      for (let i = 0; i < rawData.length; i += IMPORT_CHUNK_SIZE) {
+        chunks.push(rawData.slice(i, i + IMPORT_CHUNK_SIZE))
+      }
+
+      setImportProgress({ phase: 'processing', currentChunk: 0, totalChunks: chunks.length, totalRows: rawData.length })
+
+      const totals = {
+        imported: 0,
+        duplicates_file: 0,
+        duplicates_db: 0,
+        skipped: 0,
+        errors: [] as { row: number; reason: string }[],
+      }
+
+      // Process chunks sequentially
+      for (let ci = 0; ci < chunks.length; ci++) {
+        setImportProgress({ phase: 'processing', currentChunk: ci, totalChunks: chunks.length, totalRows: rawData.length })
+
+        const res = await fetch('/api/v1/agent/leads/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rows: chunks[ci], chunkOffset: ci * IMPORT_CHUNK_SIZE }),
+        })
+        const data = await res.json()
+
+        if (!res.ok) {
+          setImportError(data.error || `Hitilafu kwenye sehemu ${ci + 1}`)
+          return
+        }
+
+        totals.imported        += data.imported        || 0
+        totals.duplicates_file += data.duplicates_file || 0
+        totals.duplicates_db   += data.duplicates_db   || 0
+        totals.skipped         += data.skipped         || 0
+        if (data.errors?.length) totals.errors.push(...data.errors)
+
+        setImportProgress({ phase: 'processing', currentChunk: ci + 1, totalChunks: chunks.length, totalRows: rawData.length })
+      }
+
+      setImportResult({ success: totals.imported > 0 || totals.errors.length === 0, ...totals })
+      fetchLeads()
+      fetchStats()
     } catch {
       setImportError('Hitilafu ya mtandao. Jaribu tena.')
     } finally {
       setImporting(false)
+      setImportProgress(null)
     }
   }
 
@@ -237,6 +296,7 @@ export default function LeadsClient() {
     setImportFile(null)
     setImportResult(null)
     setImportError('')
+    setImportProgress(null)
   }
 
   // ── Broadcast helpers ─────────────────────────────────────────────────────
@@ -1339,7 +1399,48 @@ export default function LeadsClient() {
               </button>
             </div>
 
-            {importResult ? (
+            {importing && importProgress ? (
+              /* ── Progress screen ── */
+              <div className="space-y-5 py-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 relative">
+                    <div className="w-16 h-16 border-4 border-primary-100 rounded-full absolute inset-0" />
+                    <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                  <p className="font-bold text-gray-800 text-lg">
+                    {importProgress.phase === 'reading' ? 'Inasoma faili...' : 'Inachambua leads...'}
+                  </p>
+                  {importProgress.totalChunks > 0 && (
+                    <p className="text-gray-500 text-sm mt-1">
+                      Sehemu {importProgress.currentChunk} / {importProgress.totalChunks}
+                    </p>
+                  )}
+                </div>
+
+                {importProgress.totalChunks > 0 && (
+                  <>
+                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary-500 rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${Math.round((importProgress.currentChunk / importProgress.totalChunks) * 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>
+                        {Math.min(importProgress.currentChunk * IMPORT_CHUNK_SIZE, importProgress.totalRows).toLocaleString()} / {importProgress.totalRows.toLocaleString()} safu
+                      </span>
+                      <span className="font-semibold text-primary-600">
+                        {Math.round((importProgress.currentChunk / importProgress.totalChunks) * 100)}%
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                <p className="text-xs text-center text-gray-400">
+                  Tafadhali subiri — usifunge ukurasa huu
+                </p>
+              </div>
+            ) : importResult ? (
               /* ── Success/summary screen ── */
               <div className="space-y-4">
                 {/* Main counter */}
@@ -1417,13 +1518,6 @@ export default function LeadsClient() {
                     Ona Leads →
                   </button>
                 </div>
-              </div>
-            ) : importing ? (
-              /* ── Loading ── */
-              <div className="py-12 text-center">
-                <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                <p className="font-semibold text-gray-700">Inaingiza leads...</p>
-                <p className="text-sm text-gray-400 mt-1">Tafadhali subiri</p>
               </div>
             ) : (
               /* ── File picker ── */
