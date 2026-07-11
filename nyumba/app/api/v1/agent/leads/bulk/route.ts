@@ -7,13 +7,27 @@ export const dynamic = 'force-dynamic'
 
 // ── Column aliases (case-insensitive) ─────────────────────────────────────────
 const COL_ALIASES: Record<string, string[]> = {
-  business_name: ['business_name', 'jina la biashara', 'jina', 'name', 'biashara', 'kampuni', 'duka', 'title'],
-  phone:         ['phone', 'simu', 'tel', 'nambari', 'contact', 'telephone', 'namba ya simu'],
-  email:         ['email', 'barua pepe', 'e-mail'],
+  business_name: [
+    'business_name', 'business name',
+    'jina la biashara', 'jina', 'name', 'biashara', 'kampuni', 'duka', 'title',
+    'full name', 'full_name', 'agent name', 'broker name',
+  ],
+  phone: [
+    'phone', 'simu', 'tel', 'nambari', 'contact', 'telephone', 'namba ya simu',
+    'public phone',      // covers 'Public Phone Number' via startsWith
+    'phone number', 'contact number', 'mobile',
+  ],
+  email: [
+    'email', 'barua pepe', 'e-mail',
+    'public email', 'email address',
+  ],
   region:        ['region', 'mkoa', 'area', 'eneo', 'location'],
   district:      ['district', 'wilaya', 'street', 'mtaa', 'kata', 'neighbourhood', 'neighborhood', 'area ya karibu', 'barabara'],
   notes:         ['notes', 'maelezo', 'comment', 'description', 'note', 'info'],
-  whatsapp:      ['whatsapp', 'wa', 'whatsapp number', 'namba ya whatsapp', 'whatsapp url', 'whatsapp link'],
+  whatsapp: [
+    'whatsapp', 'wa', 'whatsapp number', 'namba ya whatsapp', 'whatsapp url', 'whatsapp link',
+    'public whatsapp',   // covers 'Public WhatsApp Number' via startsWith
+  ],
   facebook_url:  ['facebook_url', 'facebook', 'fb', 'fb page', 'ukurasa wa facebook', 'facebook page', 'fb url', 'fb link'],
   instagram_url: ['instagram_url', 'instagram', 'ig', 'instagram page', 'ig url', 'ig link'],
   tiktok_url:    ['tiktok_url', 'tiktok', 'tt', 'tiktok page', 'tt url'],
@@ -62,6 +76,25 @@ function normalizeUrl(value: string | null | undefined): string | null {
   if (s.startsWith('http://') || s.startsWith('https://')) return s
   if (s.startsWith('www.') || s.includes('.')) return `https://${s}`
   return null
+}
+
+// Build a social platform URL from either a full URL or a bare username.
+// urlBase should already include any handle prefix (e.g. 'https://www.tiktok.com/@')
+function socialUrl(value: string | null, urlBase: string): string | null {
+  if (!value) return null
+  const s = value.trim()
+  if (!s) return null
+  if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('www.')) return normalizeUrl(s)
+  const handle = s.replace(/^@/, '').replace(/\/$/, '')
+  if (!handle) return null
+  return `${urlBase}${handle}`
+}
+
+// When multiple columns map to the same field, prefer the non-null value that arrives later
+// (so a URL column appearing after a username column wins, but won't wipe it with null)
+function mergeFieldValue(existing: string | null | undefined, incoming: string | null): string | null {
+  if (incoming !== null) return incoming
+  return existing ?? null
 }
 
 // Parse confidence/score from a cell value → integer 0-100
@@ -167,7 +200,9 @@ export async function POST(req: NextRequest) {
       }
       for (let r = 1; r < rows.length; r++) {
         const rec: Record<string, string | null> = {}
-        rows[r].forEach((val, i) => { if (colToField[i]) rec[colToField[i]] = val || null })
+        rows[r].forEach((val, i) => {
+          if (colToField[i]) rec[colToField[i]] = mergeFieldValue(rec[colToField[i]], val?.trim() || null)
+        })
         addRecord(rec, r + 1, rawRows, parseErrors)
       }
     } else {
@@ -190,7 +225,7 @@ export async function POST(req: NextRequest) {
         if (rowNumber === 1) return
         const rec: Record<string, string | null> = {}
         row.eachCell({ includeEmpty: true }, (cell, col) => {
-          if (colToField[col]) rec[colToField[col]] = cellText(cell) || null
+          if (colToField[col]) rec[colToField[col]] = mergeFieldValue(rec[colToField[col]], cellText(cell) || null)
         })
         addRecord(rec, rowNumber, rawRows, parseErrors)
       })
@@ -351,9 +386,11 @@ function addRecord(
   const name = rec.business_name?.trim()
   if (!name) { errors.push({ row: rowNum, reason: 'Jina la biashara halipo' }); return }
 
+  // Facebook name-only values won't resolve to a valid URL — normalizeUrl drops them
   const fbUrl  = normalizeUrl(rec.facebook_url)
-  const igUrl  = normalizeUrl(rec.instagram_url)
-  const ttUrl  = normalizeUrl(rec.tiktok_url)
+  // Instagram/TikTok may be a bare username (e.g. 'dalalikinondoni') — build full URL
+  const igUrl  = socialUrl(rec.instagram_url, 'https://www.instagram.com/')
+  const ttUrl  = socialUrl(rec.tiktok_url,    'https://www.tiktok.com/@')
   const waUrl  = rec.whatsapp?.trim() || null
 
   // Extract phone from whatsapp URL if raw phone is missing
