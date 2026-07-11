@@ -305,7 +305,7 @@ export async function POST(req: NextRequest) {
 }
 
 // ── Template download ─────────────────────────────────────────────────────────
-export async function GET(req: NextRequest) {
+export async function GET() {
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 

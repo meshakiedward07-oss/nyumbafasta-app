@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 
       const text = buildMessage((lead.business_name as string | null) ?? 'Rafiki')
       const ok   = await sendTextMessage(phone, text)
-      ok ? sentCount++ : failedCount++
+      if (ok) { sentCount++ } else { failedCount++ }
     } catch {
       failedCount++
     }

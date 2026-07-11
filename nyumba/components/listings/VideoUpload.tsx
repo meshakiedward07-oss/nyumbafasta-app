@@ -384,7 +384,7 @@ export function VideoUpload({ existingVideoUrl, onUploadComplete, onRemove }: Pr
           </p>
           <button
             type="button"
-            onClick={() => { setError(''); setStage('idle'); isMobile ? cameraInputRef.current?.click() : inputRef.current?.click() }}
+            onClick={() => { setError(''); setStage('idle'); if (isMobile) { cameraInputRef.current?.click() } else { inputRef.current?.click() } }}
             className="mt-2 text-xs text-red-500 underline"
           >
             Jaribu tena

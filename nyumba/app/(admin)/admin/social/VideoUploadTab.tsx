@@ -475,7 +475,7 @@ export default function VideoUploadTab() {
             )}
           </div>
         ) : (
-          <p className="text-xs text-gray-400">Bonyeza "Jaribu Muunganiko" kuthibitisha tokens za Instagram na Facebook.</p>
+          <p className="text-xs text-gray-400">Bonyeza &quot;Jaribu Muunganiko&quot; kuthibitisha tokens za Instagram na Facebook.</p>
         )}
       </div>
 
