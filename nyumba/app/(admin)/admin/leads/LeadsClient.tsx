@@ -360,15 +360,17 @@ export default function LeadsClient() {
         {/* Desktop stats */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Jumla Leads',  value: stats.total,     icon: 'chart-bar', color: 'bg-blue-50 border-blue-200 text-blue-700' },
-            { label: 'Leo',          value: stats.new_today,  icon: 'square-rounded-plus', color: 'bg-green-50 border-green-200 text-green-700' },
-            { label: 'Walipigiwa',   value: stats.contacted,  icon: 'phone', color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
-            { label: 'Walisajili',   value: stats.converted,  icon: 'circle-check', color: 'bg-purple-50 border-purple-200 text-purple-700' },
+            { label: 'Jumla Leads', value: stats.total,    icon: 'chart-bar',           bg: 'bg-blue-50',   border: 'border-blue-100',   icon_c: 'text-blue-500',   val_c: 'text-blue-900',   lbl_c: 'text-blue-500' },
+            { label: 'Leo',         value: stats.new_today, icon: 'square-rounded-plus', bg: 'bg-emerald-50',border: 'border-emerald-100', icon_c: 'text-emerald-500',val_c: 'text-emerald-900',lbl_c: 'text-emerald-500' },
+            { label: 'Walipigiwa',  value: stats.contacted, icon: 'phone',               bg: 'bg-amber-50',  border: 'border-amber-100',  icon_c: 'text-amber-500',  val_c: 'text-amber-900',  lbl_c: 'text-amber-500' },
+            { label: 'Walisajili',  value: stats.converted, icon: 'circle-check',        bg: 'bg-violet-50', border: 'border-violet-100', icon_c: 'text-violet-500', val_c: 'text-violet-900', lbl_c: 'text-violet-500' },
           ].map((s, i) => (
-            <div key={i} className={`${s.color} border rounded-2xl p-4`}>
-              <i className={`ti ti-${s.icon} text-2xl mb-2`} aria-hidden="true" />
-              <p className="text-3xl font-bold">{s.value}</p>
-              <p className="text-sm mt-1 opacity-70">{s.label}</p>
+            <div key={i} className={`${s.bg} border ${s.border} rounded-2xl p-5`}>
+              <div className="flex items-start justify-between mb-3">
+                <i className={`ti ti-${s.icon} text-2xl ${s.icon_c}`} aria-hidden="true" />
+              </div>
+              <p className={`text-3xl font-extrabold tabular-nums ${s.val_c}`}>{s.value}</p>
+              <p className={`text-xs font-semibold mt-1.5 uppercase tracking-wide ${s.lbl_c}`}>{s.label}</p>
             </div>
           ))}
         </div>
@@ -554,41 +556,45 @@ export default function LeadsClient() {
       <div className="lg:hidden">
 
       {/* Header */}
-      <header className="bg-primary-500 sticky top-0 z-10 px-4 py-4">
-        <div className="flex items-center justify-between">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 px-4 pt-4 pb-3">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-white font-bold text-lg flex items-center gap-2"><i className="ti ti-robot" aria-hidden="true" />Leads za Madalali</h1>
-            <p className="text-green-100 text-xs">Jumla: {total} leads</p>
-            {lastRun && (
-              <p className="text-green-100 text-xs">
-                Mwisho: {timeAgo(lastRun)} · Leo: +{leadsToday}
-              </p>
-            )}
+            <h1 className="font-bold text-gray-900 text-base flex items-center gap-1.5">
+              <span className="w-7 h-7 bg-primary-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i className="ti ti-robot text-primary-500 text-sm" aria-hidden="true" />
+              </span>
+              Leads
+            </h1>
+            <p className="text-xs text-gray-400 mt-0.5 pl-8">
+              {total} leads{lastRun ? ` · Mwisho ${timeAgo(lastRun)} · Leo +${leadsToday}` : ''}
+            </p>
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-white/20 text-white text-xs px-2.5 py-2 rounded-lg font-medium"
+              className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center"
+              title="Ongeza Lead"
             >
-              <i className="ti ti-plus" aria-hidden="true" />
+              <i className="ti ti-plus text-gray-600 text-base" aria-hidden="true" />
             </button>
             <button
               onClick={() => { resetImport(); setShowImportModal(true) }}
-              className="bg-white/20 text-white text-xs px-2.5 py-2 rounded-lg font-medium"
+              className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center"
+              title="Import Excel"
             >
-              <i className="ti ti-table-import" aria-hidden="true" /> Excel
+              <i className="ti ti-table-import text-gray-600 text-base" aria-hidden="true" />
             </button>
             <button
               onClick={() => { resetBroadcast(); setShowBroadcastModal(true); fetchBroadcastCount('', '') }}
-              className="bg-[#25D366] text-white text-xs px-2.5 py-2 rounded-lg font-bold"
+              className="h-9 px-2.5 rounded-xl bg-[#25D366] text-white text-[11px] font-bold flex items-center gap-1"
             >
-              <i className="ti ti-brand-whatsapp" aria-hidden="true" /> Broadcast
+              <i className="ti ti-brand-whatsapp text-sm" aria-hidden="true" /> WA
             </button>
             <button
               onClick={() => setShowRunModal(true)}
-              className="bg-white text-primary-500 text-xs px-2.5 py-2 rounded-lg font-bold"
+              className="h-9 px-2.5 rounded-xl bg-primary-500 text-white text-[11px] font-bold flex items-center gap-1"
             >
-              <i className="ti ti-robot" aria-hidden="true" /> Run
+              <i className="ti ti-robot text-sm" aria-hidden="true" /> Run
             </button>
           </div>
         </div>
@@ -597,15 +603,15 @@ export default function LeadsClient() {
       {/* Stats Cards */}
       <div className="grid grid-cols-4 gap-2 px-4 py-3">
         {[
-          { label: 'Jumla',      value: stats.total,     icon: 'chart-bar', color: 'bg-blue-50 text-blue-700' },
-          { label: 'Leo',        value: stats.new_today,  icon: 'square-rounded-plus', color: 'bg-green-50 text-green-700' },
-          { label: 'Walipigiwa', value: stats.contacted,  icon: 'phone', color: 'bg-yellow-50 text-yellow-700' },
-          { label: 'Walisajili', value: stats.converted,  icon: 'circle-check', color: 'bg-purple-50 text-purple-700' },
+          { label: 'Jumla',      value: stats.total,     icon: 'chart-bar',           bg: 'bg-blue-50',   text: 'text-blue-600',   num: 'text-blue-800' },
+          { label: 'Leo',        value: stats.new_today,  icon: 'square-rounded-plus', bg: 'bg-emerald-50',text: 'text-emerald-600', num: 'text-emerald-800' },
+          { label: 'Pigiwa',     value: stats.contacted,  icon: 'phone',               bg: 'bg-amber-50',  text: 'text-amber-600',  num: 'text-amber-800' },
+          { label: 'Sajili',     value: stats.converted,  icon: 'circle-check',        bg: 'bg-violet-50', text: 'text-violet-600', num: 'text-violet-800' },
         ].map((stat, i) => (
-          <div key={i} className={`${stat.color} rounded-xl p-2 text-center`}>
-            <i className={`ti ti-${stat.icon} text-lg`} aria-hidden="true" />
-            <div className="font-bold text-lg leading-none">{stat.value}</div>
-            <div className="text-xs opacity-70">{stat.label}</div>
+          <div key={i} className={`${stat.bg} rounded-xl p-2.5 text-center`}>
+            <i className={`ti ti-${stat.icon} ${stat.text} text-base block mb-1`} aria-hidden="true" />
+            <div className={`font-extrabold text-xl leading-none ${stat.num}`}>{stat.value}</div>
+            <div className={`text-[10px] mt-1 font-medium ${stat.text}`}>{stat.label}</div>
           </div>
         ))}
       </div>
@@ -708,101 +714,108 @@ export default function LeadsClient() {
           </div>
         )}
 
-        {!loading && leads.map(lead => (
-          <div
-            key={lead.id}
-            className="bg-white rounded-2xl border border-gray-100 p-4
-              cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => setSelectedLead(lead)}
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  {renderSourceIcon(lead.source)}
-                  <p className="font-semibold text-gray-900 text-sm">{lead.business_name}</p>
+        {!loading && leads.map(lead => {
+          const scoreHigh = lead.ai_score >= 80
+          const scoreMid  = lead.ai_score >= 60
+          const accentBar = scoreHigh ? 'bg-emerald-400' : scoreMid ? 'bg-amber-400' : 'bg-gray-300'
+          return (
+            <div
+              key={lead.id}
+              className="bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer active:scale-[0.99] transition-transform shadow-sm"
+              onClick={() => setSelectedLead(lead)}
+            >
+              {/* Score bar at top */}
+              <div className={`h-0.5 w-full ${accentBar}`} />
+
+              <div className="p-4">
+                {/* Row 1: name + score */}
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-500 text-base">
+                      {renderSourceIcon(lead.source)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm leading-tight truncate">
+                        {lead.business_name}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {lead.region || '—'} · {timeAgo(lead.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`flex-shrink-0 px-2 py-1 rounded-lg text-xs font-bold tabular-nums ${getScoreColor(lead.ai_score)}`}>
+                    {lead.ai_score}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {lead.region && (
-                    <span className="text-xs text-gray-400 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" />{lead.region}</span>
-                  )}
+
+                {/* Row 2: status + phone + WA */}
+                <div className="flex items-center gap-2">
+                  <select
+                    value={lead.status}
+                    onClick={e => e.stopPropagation()}
+                    onChange={e => { e.stopPropagation(); handleStatusChange(lead.id, e.target.value) }}
+                    className={`text-[11px] px-2 py-1 rounded-lg border-0 font-semibold cursor-pointer ${getStatusStyle(lead.status)}`}
+                  >
+                    {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+
                   {lead.phone && (
                     <a
                       href={`tel:${lead.phone}`}
                       onClick={e => e.stopPropagation()}
-                      className="text-xs text-blue-600"
+                      className="text-[11px] text-blue-600 flex items-center gap-0.5"
                     >
-                      <i className="ti ti-phone" aria-hidden="true" /> {lead.phone}
+                      <i className="ti ti-phone text-xs" aria-hidden="true" />
+                      {lead.phone}
                     </a>
                   )}
+
+                  <div className="ml-auto flex items-center gap-1.5">
+                    {(lead.facebook_url || lead.instagram_url || lead.tiktok_url) && (
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        {lead.facebook_url && (
+                          <a href={lead.facebook_url} target="_blank" rel="noopener noreferrer"
+                            className="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <i className="ti ti-brand-facebook text-xs" aria-hidden="true" />
+                          </a>
+                        )}
+                        {lead.instagram_url && (
+                          <a href={lead.instagram_url} target="_blank" rel="noopener noreferrer"
+                            className="w-6 h-6 rounded-md bg-pink-50 text-pink-500 flex items-center justify-center">
+                            <i className="ti ti-brand-instagram text-xs" aria-hidden="true" />
+                          </a>
+                        )}
+                        {lead.tiktok_url && (
+                          <a href={lead.tiktok_url} target="_blank" rel="noopener noreferrer"
+                            className="w-6 h-6 rounded-md bg-gray-100 text-gray-700 flex items-center justify-center">
+                            <i className="ti ti-brand-tiktok text-xs" aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {(lead.whatsapp || lead.phone) && (
+                      <a
+                        href={`https://wa.me/${(lead.whatsapp || lead.phone)?.replace(/[^0-9]/g, '')}?text=${waMessage(lead.business_name || 'Rafiki')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="h-7 px-2.5 bg-[#25D366] text-white text-[11px] font-bold rounded-lg flex items-center gap-1"
+                      >
+                        <i className="ti ti-brand-whatsapp text-xs" aria-hidden="true" /> WA
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className={`px-2 py-1 rounded-lg text-xs font-bold ${getScoreColor(lead.ai_score)}`}>
-                {lead.ai_score}
-              </div>
-            </div>
 
-            <div className="flex items-center justify-between">
-              <select
-                value={lead.status}
-                onClick={e => e.stopPropagation()}
-                onChange={e => { e.stopPropagation(); handleStatusChange(lead.id, e.target.value) }}
-                className={`text-xs px-2 py-1 rounded-lg border-0 font-medium cursor-pointer
-                  ${getStatusStyle(lead.status)}`}
-              >
-                {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
-
-              <div className="flex items-center gap-2">
-                {(lead.whatsapp || lead.phone) && (
-                  <a
-                    href={`https://wa.me/${(lead.whatsapp || lead.phone)?.replace(/[^0-9]/g, '')}?text=${waMessage(lead.business_name || 'Rafiki')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    className="bg-[#25D366] text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1"
-                  >
-                    <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WA
-                  </a>
+                {lead.ai_notes && (
+                  <p className="text-[11px] text-gray-400 mt-2 line-clamp-1 flex items-center gap-1">
+                    <i className="ti ti-robot text-[10px]" aria-hidden="true" />{lead.ai_notes}
+                  </p>
                 )}
-                <span className="text-xs text-gray-400">{timeAgo(lead.created_at)}</span>
               </div>
             </div>
-
-            {/* Social media quick links */}
-            {(lead.facebook_url || lead.instagram_url || lead.tiktok_url || lead.website_url) && (
-              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-50" onClick={e => e.stopPropagation()}>
-                {lead.facebook_url && (
-                  <a href={lead.facebook_url} target="_blank" rel="noopener noreferrer"
-                    className="bg-blue-50 text-blue-600 px-2 py-1 rounded-lg text-xs flex items-center gap-1">
-                    <i className="ti ti-brand-facebook" aria-hidden="true" /> FB
-                  </a>
-                )}
-                {lead.instagram_url && (
-                  <a href={lead.instagram_url} target="_blank" rel="noopener noreferrer"
-                    className="bg-pink-50 text-pink-600 px-2 py-1 rounded-lg text-xs flex items-center gap-1">
-                    <i className="ti ti-brand-instagram" aria-hidden="true" /> IG
-                  </a>
-                )}
-                {lead.tiktok_url && (
-                  <a href={lead.tiktok_url} target="_blank" rel="noopener noreferrer"
-                    className="bg-gray-100 text-gray-700 px-2 py-1 rounded-lg text-xs flex items-center gap-1">
-                    <i className="ti ti-brand-tiktok" aria-hidden="true" /> TT
-                  </a>
-                )}
-                {lead.website_url && (
-                  <a href={lead.website_url} target="_blank" rel="noopener noreferrer"
-                    className="bg-gray-50 text-gray-500 px-2 py-1 rounded-lg text-xs flex items-center gap-1">
-                    <i className="ti ti-world" aria-hidden="true" /> Web
-                  </a>
-                )}
-              </div>
-            )}
-
-            {lead.ai_notes && (
-              <p className="text-xs text-gray-400 mt-2 line-clamp-1 flex items-center gap-1"><i className="ti ti-robot" aria-hidden="true" />{lead.ai_notes}</p>
-            )}
-          </div>
-        ))}
+          )
+        })}
 
         {/* Pagination */}
         {!loading && total > 50 && (

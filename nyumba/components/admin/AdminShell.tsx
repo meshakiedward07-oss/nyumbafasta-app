@@ -330,7 +330,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         )}
       </aside>
 
-      {/* ── Right column: mobile header + content + mobile bottom nav ── */}
+      {/* ── Right column: mobile header + content ── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Mobile top header */}
         <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 z-40 flex items-center justify-between flex-shrink-0">
@@ -355,36 +355,56 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           </button>
         </header>
 
-        {/* Mobile quick-nav strip — inline between header and content */}
-        <nav className="lg:hidden bg-white border-b border-gray-200 overflow-x-auto flex-shrink-0">
-          <div className="flex justify-around px-1 py-1.5 min-w-max w-full">
-            {BOTTOM_NAV.map(item => (
-              <Link key={item.href + item.label} href={item.href} className="flex-1 min-w-[60px]">
-                <div className={`flex flex-col items-center px-1.5 py-1.5 rounded-xl transition-all ${
-                  isActive(item.href, item.exact) ? 'text-primary-500' : 'text-gray-400'
-                }`}>
-                  <div className="relative">
-                    {item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
-                      ? <PlatformLogo platform={item.icon.replace('brand-', '')} size={20} />
-                      : <i className={`ti ti-${item.icon} text-[18px]`} aria-hidden="true" />}
-                    {item.href === '/admin/whatsapp' && (
-                      <span className="absolute -top-1 -right-1.5 scale-75 origin-top-right">
-                        <PendingBadge />
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </nav>
-
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Page content — extra bottom padding so content clears the fixed bottom nav */}
+        <main className="flex-1 overflow-y-auto lg:pb-0 pb-20">
           {children}
         </main>
       </div>
+
+      {/* ── Mobile bottom nav (fixed) ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200"
+           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="flex items-stretch h-16">
+          {BOTTOM_NAV.map(item => {
+            const active = isActive(item.href, item.exact)
+            return (
+              <Link
+                key={item.href + item.label}
+                href={item.href}
+                className="flex-1 flex flex-col items-center justify-center gap-0.5 relative group"
+              >
+                {/* Active indicator bar at top */}
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" />
+                )}
+                <div className="relative">
+                  {item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
+                    ? (
+                      <span className={`transition-opacity ${active ? 'opacity-100' : 'opacity-40 group-hover:opacity-60'}`}>
+                        <PlatformLogo platform={item.icon.replace('brand-', '')} size={22} />
+                      </span>
+                    )
+                    : (
+                      <i className={`ti ti-${item.icon} text-[22px] transition-colors ${
+                        active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
+                      }`} aria-hidden="true" />
+                    )}
+                  {item.href === '/admin/whatsapp' && (
+                    <span className="absolute -top-1 -right-2 scale-75 origin-top-right">
+                      <PendingBadge />
+                    </span>
+                  )}
+                </div>
+                <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
+                  active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
+                }`}>
+                  {item.label}
+                </span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
 
       {/* Mobile drawer */}
       {drawerOpen && (
