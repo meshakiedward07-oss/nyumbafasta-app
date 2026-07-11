@@ -156,6 +156,7 @@ async function refreshTikTokStats(): Promise<number> {
           views_count:    video.statistics?.play_count    ?? 0,
           likes_count:    video.statistics?.like_count    ?? 0,
           comments_count: video.statistics?.comment_count ?? 0,
+          shares_count:   video.statistics?.share_count   ?? 0,
           updated_at:     new Date().toISOString(),
         })
         .eq('id', post.id)

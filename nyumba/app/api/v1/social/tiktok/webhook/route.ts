@@ -65,18 +65,7 @@ async function processTikTokEvent(body: Record<string, unknown>) {
       })
       .eq('publish_id', body.publish_id)
 
-    // Also sync to social_posts table if tracked there
-    if (videoId) {
-      await supabaseAdmin
-        .from('social_posts')
-        .update({
-          status:           'published',
-          platform_post_id: videoId,
-          published_at:     new Date().toISOString(),
-        })
-        .eq('platform', 'tiktok')
-        .eq('platform_post_id', body.publish_id)
-    }
+    // TikTok posts are tracked only in tiktok_posts — social_posts does not support 'tiktok'
   }
 
   if (body.event === 'video.publish_failed' && body.publish_id) {

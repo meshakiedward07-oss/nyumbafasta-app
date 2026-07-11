@@ -1,4 +1,4 @@
-const GRAPH_URL = 'https://graph.facebook.com/v18.0'
+const GRAPH_URL = 'https://graph.facebook.com/v21.0'
 
 function phoneId(): string {
   const id = process.env.WHATSAPP_PHONE_ID

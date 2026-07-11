@@ -184,7 +184,7 @@ export async function processCommentForSpam(params: {
     comment_text:   params.commentText,
     spam_reason:    result.reason || 'detected',
     spam_score:     result.score,
-    action_taken:   actionTaken,
+    action_taken:   actionTaken === 'delete' ? 'deleted' : actionTaken === 'hide' ? 'hidden' : actionTaken === 'flag' ? 'flagged' : 'ignored',
     deleted_at:     new Date().toISOString(),
   }, { onConflict: 'comment_id' })
 
@@ -216,9 +216,9 @@ export async function getSpamStats() {
     { data: topSpammerRow },
     { data: topKeywordRow },
   ] = await Promise.all([
-    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'delete'),
-    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'hide'),
-    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'flag'),
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'deleted'),
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'hidden'),
+    supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).eq('action_taken', 'flagged'),
     supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
     supabaseAdmin.from('spam_comments').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString()),
     supabaseAdmin.from('spam_comments').select('*').order('created_at', { ascending: false }).limit(20),
