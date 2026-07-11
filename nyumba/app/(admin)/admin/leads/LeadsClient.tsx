@@ -86,6 +86,7 @@ export default function LeadsClient() {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{
+    success: boolean
     imported: number
     duplicates_file: number
     duplicates_db: number
@@ -1342,13 +1343,21 @@ export default function LeadsClient() {
               /* ── Success/summary screen ── */
               <div className="space-y-4">
                 {/* Main counter */}
-                <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
-                  <i className="ti ti-circle-check text-green-500 text-4xl block mb-2" aria-hidden="true" />
-                  <p className="font-bold text-green-700 text-lg">Imekamilika!</p>
-                  <p className="text-green-600 text-sm mt-1">
-                    <span className="font-bold text-2xl">{importResult.imported}</span> leads mpya zimeingizwa kwenye mfumo
-                  </p>
-                </div>
+                {importResult.imported > 0 ? (
+                  <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
+                    <i className="ti ti-circle-check text-green-500 text-4xl block mb-2" aria-hidden="true" />
+                    <p className="font-bold text-green-700 text-lg">Imekamilika!</p>
+                    <p className="text-green-600 text-sm mt-1">
+                      <span className="font-bold text-2xl">{importResult.imported}</span> leads mpya zimeingizwa kwenye mfumo
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
+                    <i className="ti ti-alert-circle text-red-500 text-4xl block mb-2" aria-hidden="true" />
+                    <p className="font-bold text-red-700 text-lg">Hakuna leads zilizoingizwa</p>
+                    <p className="text-red-600 text-sm mt-1">Angalia makosa hapa chini</p>
+                  </div>
+                )}
 
                 {/* Duplicate breakdown — only show if any */}
                 {(importResult.duplicates_file > 0 || importResult.duplicates_db > 0) && (

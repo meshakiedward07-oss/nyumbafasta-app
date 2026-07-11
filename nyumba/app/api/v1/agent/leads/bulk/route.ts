@@ -156,9 +156,10 @@ type ParsedRow = {
   tiktok_url:    string | null
   website_url:   string | null
   source_url:    string | null
-  source:        'excel_import'
+  source:        'excel_import' | 'manual'
   ai_score:      number
   status:        'new'
+  pipeline_stage: 'mpya'
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -426,5 +427,6 @@ function addRecord(
     source:        'excel_import',
     ai_score:      confidence,
     status:        'new',
+    pipeline_stage: 'mpya',
   })
 }
