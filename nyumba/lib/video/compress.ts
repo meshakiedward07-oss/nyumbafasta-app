@@ -53,19 +53,25 @@ export async function compressVideo(
 
     const objectUrl  = URL.createObjectURL(file)
     const videoEl    = document.createElement('video')
-    videoEl.muted       = true
-    videoEl.playsInline = true  // Required on iOS to prevent fullscreen hijack
+    // Do NOT set muted=true here — some browsers skip audio decoding when muted,
+    // which prevents the Web Audio API from capturing audio tracks.
+    // Audio is silenced instead by routing it exclusively through AudioContext
+    // (createMediaElementSource disconnects the default speaker output).
+    videoEl.playsInline = true
     videoEl.preload     = 'metadata'
     videoEl.src         = objectUrl
 
     let drawInterval: ReturnType<typeof setInterval> | null = null
     let stuckInterval: ReturnType<typeof setInterval> | null = null
     let safetyTimer:   ReturnType<typeof setTimeout>  | null = null
+    let audioCtx:      AudioContext | null = null
 
     function cleanup() {
       if (drawInterval)  { clearInterval(drawInterval);  drawInterval  = null }
       if (stuckInterval) { clearInterval(stuckInterval); stuckInterval = null }
       if (safetyTimer)   { clearTimeout(safetyTimer);    safetyTimer   = null }
+      try { if (audioCtx && audioCtx.state !== 'closed') audioCtx.close() } catch {}
+      audioCtx = null
       try { URL.revokeObjectURL(objectUrl) } catch {}
       try { videoEl.pause(); videoEl.src = '' } catch {}
     }
@@ -94,6 +100,22 @@ export async function compressVideo(
         const stream   = (canvas as unknown as {
           captureStream: (fps: number) => MediaStream
         }).captureStream(CAPTURE_FPS)
+
+        // ── Capture audio from the source video ──────────────────────────────
+        // canvas.captureStream() is video-only; we need to tap the video's audio
+        // separately. createMediaElementSource also routes audio away from speakers
+        // (no sound output during compression), so no explicit muting is needed.
+        try {
+          audioCtx = new AudioContext()
+          const audioSrc = audioCtx.createMediaElementSource(videoEl)
+          const audioDst = audioCtx.createMediaStreamDestination()
+          audioSrc.connect(audioDst)
+          audioDst.stream.getAudioTracks().forEach(t => stream.addTrack(t))
+        } catch {
+          // Audio capture unavailable — compressed video will have no audio;
+          // fall through and still produce a (silent) compressed file.
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         const chunks: Blob[] = []
         const recorder = new MediaRecorder(stream, {

@@ -45,6 +45,11 @@ async function compressAndUpload(
   fd.append('file', compressed, file.name)
   const res = await fetch('/api/v1/upload/listing', { method: 'POST', body: fd })
   onProgress(96)
+  if (!res.ok) {
+    let msg = 'Upload ilishindwa'
+    try { const d = await res.json(); msg = d.error ?? msg } catch {}
+    throw new Error(msg)
+  }
   const data = await res.json() as { url?: string; error?: string }
   if (!data.url) throw new Error(data.error ?? 'Upload ilishindwa')
   return data.url
@@ -69,12 +74,22 @@ export function BulkPhotoUpload({
   const fileRef     = useRef<HTMLInputElement>(null)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
+  // Track blob URLs so they can be revoked when photos are removed or unmounted
+  const blobUrlsRef = useRef<Map<string, string>>(new Map()) // id → blob URL
 
   useEffect(() => {
     const urls      = photos.filter(p => p.status === 'done' && p.url).map(p => p.url!)
     const uploading = photos.some(p => p.status !== 'done' && p.status !== 'error')
     onChangeRef.current(urls, uploading)
   }, [photos])
+
+  // Revoke all blob URLs on unmount to free memory
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach(url => { try { URL.revokeObjectURL(url) } catch {} })
+      blobUrlsRef.current.clear()
+    }
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -120,16 +135,17 @@ export function BulkPhotoUpload({
     setPhotos(prev => {
       const canAdd = Math.max(0, maxPhotos - prev.length)
       if (!canAdd) {
-        setAddError(`Unaweza kupakia picha ${maxPhotos} tu kwa jumla`)
+        // setAddError must not be called inside the updater (runs twice in Strict Mode)
+        // Schedule it outside via setTimeout
+        setTimeout(() => setAddError(`Unaweza kupakia picha ${maxPhotos} tu kwa jumla`), 0)
         return prev
       }
-      newItems = sized.slice(0, canAdd).map(file => ({
-        id:         `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        file,
-        previewUrl: URL.createObjectURL(file),
-        progress:   0,
-        status:     'pending' as PhotoStatus,
-      }))
+      newItems = sized.slice(0, canAdd).map(file => {
+        const id  = `new-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        const url = URL.createObjectURL(file)
+        blobUrlsRef.current.set(id, url)
+        return { id, file, previewUrl: url, progress: 0, status: 'pending' as PhotoStatus }
+      })
       return [...prev, ...newItems]
     })
 
@@ -140,6 +156,8 @@ export function BulkPhotoUpload({
   }, [maxPhotos]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function removePhoto(id: string) {
+    const blobUrl = blobUrlsRef.current.get(id)
+    if (blobUrl) { try { URL.revokeObjectURL(blobUrl) } catch {} blobUrlsRef.current.delete(id) }
     setPhotos(prev => prev.filter(p => p.id !== id))
   }
 
