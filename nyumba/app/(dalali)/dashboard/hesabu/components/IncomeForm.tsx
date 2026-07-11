@@ -2,7 +2,7 @@
 import { useState } from 'react'
 
 const CATEGORIES = [
-  { value: 'commission',    label: '💰 Commission' },
+  { value: 'commission',    label: '💰 Kamisheni' },
   { value: 'viewing_fee',   label: '👁️ Viewing fee' },
   { value: 'consultation',  label: '💬 Ushauri' },
   { value: 'service',       label: '⚙️ Huduma nyingine' },

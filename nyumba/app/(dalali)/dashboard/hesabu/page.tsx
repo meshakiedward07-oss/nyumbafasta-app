@@ -43,7 +43,7 @@ function fmt(n: number) {
 function fmtFull(n: number) { return `TSh ${n.toLocaleString()}` }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  commission: 'Commission', viewing_fee: 'Viewing', consultation: 'Ushauri',
+  commission: 'Kamisheni', viewing_fee: 'Viewing', consultation: 'Ushauri',
   service: 'Huduma', transport: 'Usafiri', marketing: 'Matangazo',
   phone: 'Simu/Data', office: 'Ofisi', other: 'Nyingine',
 }
@@ -214,7 +214,7 @@ export default function HesabuPage() {
 
           {/* Tabs */}
           <div className="flex gap-1 mt-3 overflow-x-auto no-scrollbar -mx-1 px-1">
-            {([ ['muhtasari','Muhtasari'], ['mapato','Mapato'], ['matumizi','Matumizi'], ['commission','Commission'], ['ripoti','Ripoti'] ] as const).map(([id, label]) => (
+            {([ ['muhtasari','Muhtasari'], ['mapato','Mapato'], ['matumizi','Matumizi'], ['commission','Kamisheni'], ['ripoti','Ripoti'] ] as const).map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
                   tab === id ? 'bg-primary-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600'}`}>
@@ -275,7 +275,7 @@ export default function HesabuPage() {
 
                 {/* Commissions summary */}
                 <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                  <p className="text-xs font-semibold text-gray-700 mb-3">Commission</p>
+                  <p className="text-xs font-semibold text-gray-700 mb-3">Kamisheni</p>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="text-center">
                       <p className="text-base font-bold text-amber-600">{fmtFull(stats.commissions.pending).replace('TSh ', 'TSh\n')}</p>

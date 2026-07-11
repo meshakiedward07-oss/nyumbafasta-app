@@ -820,7 +820,7 @@ export default function AddListingWizard() {
                 <Row label="Picha" value={`${form.images.length} picha`} />
                 {form.video_url && <Row label="Video" value="Imepakiwa" />}
                 {commission.enabled && commission.type && (
-                  <Row label="Komisho" value={formatCommission(commission.type, parseFloat(commission.value) || null)} />
+                  <Row label="Kamisheni" value={formatCommission(commission.type, parseFloat(commission.value) || null)} />
                 )}
               </div>
 

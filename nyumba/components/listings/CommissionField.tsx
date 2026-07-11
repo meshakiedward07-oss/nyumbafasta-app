@@ -27,7 +27,7 @@ export default function CommissionField({ value, onChange }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Komisho (Hiari)</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Kamisheni (Hiari)</p>
           <p className="text-[11px] text-gray-400 mt-0.5">Mteja ataona baada ya kulipa unlock</p>
         </div>
         <button
@@ -124,7 +124,7 @@ export default function CommissionField({ value, onChange }: Props) {
                 type="text"
                 value={value.notes}
                 onChange={e => set({ notes: e.target.value })}
-                placeholder="Mf. Komisho ni ya mwezi wa kwanza tu"
+                placeholder="Mf. Kamisheni ni ya mwezi wa kwanza tu"
                 maxLength={200}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
               />

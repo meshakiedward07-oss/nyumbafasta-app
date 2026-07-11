@@ -339,7 +339,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {listing.commission_type && (
           <section className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
-              <i className="ti ti-coins" aria-hidden="true" /> Komisho ya Dalali
+              <i className="ti ti-coins" aria-hidden="true" /> Kamisheni ya Dalali
             </h3>
             {localUnlocked ? (
               <div className="space-y-2.5">
