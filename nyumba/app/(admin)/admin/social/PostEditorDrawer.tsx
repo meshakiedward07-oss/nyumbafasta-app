@@ -228,6 +228,7 @@ export default function PostEditorDrawer({ listing, defaultPlatform, onClose, on
 
   const handlePost = useCallback(async () => {
     if (!platforms.size) { showToast('Chagua platform moja angalau'); return }
+    if (!caption.trim()) { showToast('Andika maandishi ya post kwanza'); return }
     setPosting(true); setMixProgress(0); setMixStep('')
 
     try {
@@ -564,7 +565,7 @@ export default function PostEditorDrawer({ listing, defaultPlatform, onClose, on
           className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">
           Ghairi
         </button>
-        <button onClick={handlePost} disabled={posting || !platforms.size || !caption}
+        <button onClick={handlePost} disabled={posting || !platforms.size}
           className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 disabled:opacity-50 transition-all">
           {posting
             ? <><i className="ti ti-loader-2 animate-spin text-sm" /> {mixStep || 'Inachapisha…'}</>

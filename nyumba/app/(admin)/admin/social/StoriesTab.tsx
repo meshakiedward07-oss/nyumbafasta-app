@@ -41,7 +41,7 @@ export default function StoriesTab() {
 
   // Form state
   const [storyType, setStoryType]   = useState<'listing' | 'promotion'>('listing')
-  const [listings, setListings]     = useState<{ id: string; title: string; district: string }[]>([])
+  const [listings, setListings]     = useState<{ id: string; title: string; district: string; images: string[] }[]>([])
   const [listingsError, setListingsError] = useState(false)
   const [listingsLoaded, setListingsLoaded] = useState(false)
   const [selectedListing, setSelectedListing] = useState('')
@@ -69,7 +69,7 @@ export default function StoriesTab() {
     try {
       const res  = await fetch('/api/v1/listings?status=active&limit=50')
       if (!res.ok) throw new Error('fetch failed')
-      const data = await res.json() as { listings?: { id: string; title: string; district: string }[] }
+      const data = await res.json() as { listings?: { id: string; title: string; district: string; images: string[] }[] }
       setListings(data.listings ?? [])
     } catch {
       setListingsError(true)
@@ -189,19 +189,38 @@ export default function StoriesTab() {
 <><i className="ti ti-alert-triangle" aria-hidden="true" /> Hakuna listings active kwa sasa. Ongeza listing kwanza.</>
                 </div>
               ) : (
-                <select
-                  value={selectedListing}
-                  onChange={e => setSelectedListing(e.target.value)}
-                  disabled={!listingsLoaded}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
-                >
-                  <option value="">
-                    {!listingsLoaded ? 'Inapakia listings...' : '-- Chagua listing --'}
-                  </option>
-                  {listings.map(l => (
-                    <option key={l.id} value={l.id}>{l.title} — {l.district}</option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={selectedListing}
+                    onChange={e => setSelectedListing(e.target.value)}
+                    disabled={!listingsLoaded}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
+                  >
+                    <option value="">
+                      {!listingsLoaded ? 'Inapakia listings...' : '-- Chagua listing --'}
+                    </option>
+                    {listings.map(l => (
+                      <option key={l.id} value={l.id}>{l.title} — {l.district}</option>
+                    ))}
+                  </select>
+
+                  {/* Preview of selected listing's first image */}
+                  {selectedListing && (() => {
+                    const found = listings.find(l => l.id === selectedListing)
+                    const img   = found?.images?.[0]
+                    return img ? (
+                      <div className="mt-2 relative rounded-xl overflow-hidden bg-gray-100" style={{ aspectRatio: '9/16', maxHeight: 200 }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-end justify-center pb-4">
+                          <span className="bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                            Itakuwa 9:16 + watermark
+                          </span>
+                        </div>
+                      </div>
+                    ) : null
+                  })()}
+                </>
               )}
               <p className="text-xs text-gray-400 mt-1">
                 Picha ya listing itapigwa 9:16, watermark itaongezwa. Story itatumwa kwa IG + FB + TikTok (kama video ipo).

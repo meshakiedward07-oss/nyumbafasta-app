@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import ExcelJS from 'exceljs'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
+import { TANZANIA_REGIONS } from '@/lib/agent/regions'
 
 export const dynamic = 'force-dynamic'
 
@@ -142,6 +143,37 @@ function parseCSV(text: string): string[][] {
   return rows
 }
 
+// ── Region normalisation ───────────────────────────────────────────────────────
+// Build a lower-case → canonical map for fast lookup
+const REGION_LOWER = new Map<string, string>()
+for (const r of TANZANIA_REGIONS) REGION_LOWER.set(r.toLowerCase(), r)
+
+const REGION_ALIASES: Record<string, string> = {
+  'dar':           'Dar es Salaam',
+  'dsm':           'Dar es Salaam',
+  'dar es salam':  'Dar es Salaam',
+  'dares salaam':  'Dar es Salaam',
+  'dar-es-salaam': 'Dar es Salaam',
+  'zan':           'Zanzibar Mjini Magharibi',
+  'zanzibar':      'Zanzibar Mjini Magharibi',
+  'kili':          'Kilimanjaro',
+  'kilima':        'Kilimanjaro',
+  'moshi':         'Kilimanjaro',
+  'mbeya':         'Mbeya',
+  'mwanza':        'Mwanza',
+  'arusha':        'Arusha',
+  'tanga':         'Tanga',
+  'dodoma':        'Dodoma',
+}
+
+function normalizeRegion(value: string | null | undefined): string | null {
+  if (!value) return null
+  const lower = value.trim().toLowerCase()
+  if (!lower) return null
+  const canonical = REGION_LOWER.get(lower) ?? REGION_ALIASES[lower]
+  return canonical ?? value.trim()
+}
+
 // ── Parsed row shape ──────────────────────────────────────────────────────────
 type ParsedRow = {
   business_name: string
@@ -205,32 +237,18 @@ async function handleJsonChunk(req: NextRequest): Promise<NextResponse> {
     })
   }
 
-  // Dedup against DB (batched to avoid URL length limits)
-  const phones   = rawRows.map(r => r.phone).filter(Boolean) as string[]
-  const fbUrls   = rawRows.map(r => r.facebook_url).filter(Boolean) as string[]
-  const igUrls   = rawRows.map(r => r.instagram_url).filter(Boolean) as string[]
-  const ttUrls   = rawRows.map(r => r.tiktok_url).filter(Boolean) as string[]
-  const nameOnly = rawRows
-    .filter(r => !r.phone && !r.facebook_url && !r.instagram_url && !r.tiktok_url)
-    .map(r => r.business_name.toLowerCase())
+  // Dedup against DB by contact info only (batched to avoid URL length limits)
+  const phones = rawRows.map(r => r.phone).filter(Boolean) as string[]
+  const fbUrls = rawRows.map(r => r.facebook_url).filter(Boolean) as string[]
+  const igUrls = rawRows.map(r => r.instagram_url).filter(Boolean) as string[]
+  const ttUrls = rawRows.map(r => r.tiktok_url).filter(Boolean) as string[]
 
   const [existingPhones, existingFb, existingIg, existingTt] = await Promise.all([
-    phones.length  > 0 ? batchExistingValues('phone',         phones)  : Promise.resolve(new Set<string>()),
-    fbUrls.length  > 0 ? batchExistingValues('facebook_url',  fbUrls)  : Promise.resolve(new Set<string>()),
-    igUrls.length  > 0 ? batchExistingValues('instagram_url', igUrls)  : Promise.resolve(new Set<string>()),
-    ttUrls.length  > 0 ? batchExistingValues('tiktok_url',    ttUrls)  : Promise.resolve(new Set<string>()),
+    phones.length > 0 ? batchExistingValues('phone',         phones) : Promise.resolve(new Set<string>()),
+    fbUrls.length > 0 ? batchExistingValues('facebook_url',  fbUrls) : Promise.resolve(new Set<string>()),
+    igUrls.length > 0 ? batchExistingValues('instagram_url', igUrls) : Promise.resolve(new Set<string>()),
+    ttUrls.length > 0 ? batchExistingValues('tiktok_url',    ttUrls) : Promise.resolve(new Set<string>()),
   ])
-
-  const existingNames = new Set<string>()
-  if (nameOnly.length > 0) {
-    const { data } = await supabaseAdmin
-      .from('agent_leads').select('business_name')
-      .is('phone', null).is('facebook_url', null)
-      .is('instagram_url', null).is('tiktok_url', null)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(data ?? [] as any[]).forEach((r: Record<string, unknown>) =>
-      existingNames.add(String(r.business_name ?? '').toLowerCase()))
-  }
 
   const toInsert: ParsedRow[] = []
   let duplicatesInDb = 0
@@ -240,8 +258,6 @@ async function handleJsonChunk(req: NextRequest): Promise<NextResponse> {
               || (row.facebook_url  && existingFb.has(row.facebook_url))
               || (row.instagram_url && existingIg.has(row.instagram_url))
               || (row.tiktok_url    && existingTt.has(row.tiktok_url))
-              || (!row.phone && !row.facebook_url && !row.instagram_url && !row.tiktok_url
-                  && existingNames.has(row.business_name.toLowerCase()))
     if (inDb) duplicatesInDb++
     else toInsert.push(row)
   }
@@ -376,19 +392,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 3. Check existing DB leads ────────────────────────────────────────────
-    const phones    = uniqueRows.map(r => r.phone).filter(Boolean) as string[]
-    const fbUrls    = uniqueRows.map(r => r.facebook_url).filter(Boolean) as string[]
-    const igUrls    = uniqueRows.map(r => r.instagram_url).filter(Boolean) as string[]
-    const ttUrls    = uniqueRows.map(r => r.tiktok_url).filter(Boolean) as string[]
-    const nameOnly  = uniqueRows.filter(r => !r.phone && !r.facebook_url && !r.instagram_url && !r.tiktok_url)
-      .map(r => r.business_name.toLowerCase())
+    // ── 3. Check existing DB leads (contact-based dedup only) ────────────────
+    const phones = uniqueRows.map(r => r.phone).filter(Boolean) as string[]
+    const fbUrls = uniqueRows.map(r => r.facebook_url).filter(Boolean) as string[]
+    const igUrls = uniqueRows.map(r => r.instagram_url).filter(Boolean) as string[]
+    const ttUrls = uniqueRows.map(r => r.tiktok_url).filter(Boolean) as string[]
 
     const existingPhones = new Set<string>()
     const existingFb     = new Set<string>()
     const existingIg     = new Set<string>()
     const existingTt     = new Set<string>()
-    const existingNames  = new Set<string>()
 
     await Promise.all([
       phones.length > 0 && supabaseAdmin
@@ -406,11 +419,6 @@ export async function POST(req: NextRequest) {
       ttUrls.length > 0 && supabaseAdmin
         .from('agent_leads').select('tiktok_url').in('tiktok_url', ttUrls)
         .then(({ data }) => (data ?? []).forEach(r => r.tiktok_url && existingTt.add(r.tiktok_url))),
-
-      nameOnly.length > 0 && supabaseAdmin
-        .from('agent_leads').select('business_name').is('phone', null)
-        .is('facebook_url', null).is('instagram_url', null).is('tiktok_url', null)
-        .then(({ data }) => (data ?? []).forEach(r => existingNames.add((r.business_name as string).toLowerCase()))),
     ])
 
     const toInsert: ParsedRow[] = []
@@ -421,8 +429,6 @@ export async function POST(req: NextRequest) {
                 || (row.facebook_url  && existingFb.has(row.facebook_url))
                 || (row.instagram_url && existingIg.has(row.instagram_url))
                 || (row.tiktok_url    && existingTt.has(row.tiktok_url))
-                || (!row.phone && !row.facebook_url && !row.instagram_url && !row.tiktok_url
-                    && existingNames.has(row.business_name.toLowerCase()))
       if (inDb) {
         duplicatesInDb++
       } else {
@@ -487,14 +493,15 @@ function columnNotFoundError() {
   return 'Safu wima ya "business_name" / "Jina la Biashara" haikupatikana. Angalia mfano wa faili.'
 }
 
-// Return the dedup keys for a row, in priority order
+// Return the dedup keys for a row — contact-based only (no name fallback)
+// Two leads with same name but different contacts are kept; only true contact
+// overlaps (phone, social URLs) constitute a duplicate.
 function dedupeKeys(row: ParsedRow): string[] {
   const keys: string[] = []
   if (row.phone)         keys.push(`phone:${row.phone}`)
   if (row.facebook_url)  keys.push(`fb:${row.facebook_url}`)
   if (row.instagram_url) keys.push(`ig:${row.instagram_url}`)
   if (row.tiktok_url)    keys.push(`tt:${row.tiktok_url}`)
-  if (keys.length === 0) keys.push(`name:${row.business_name.toLowerCase()}`)
   return keys
 }
 
@@ -535,7 +542,7 @@ function addRecord(
     business_name: name,
     phone,
     email:         rec.email?.trim().toLowerCase() || null,
-    region:        rec.region?.trim() || null,
+    region:        normalizeRegion(rec.region),
     district:      rec.district?.trim() || null,
     notes:         rec.notes?.trim() || null,
     whatsapp:      waNumber,

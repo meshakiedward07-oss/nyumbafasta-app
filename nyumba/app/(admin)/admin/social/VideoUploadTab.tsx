@@ -267,7 +267,8 @@ export default function VideoUploadTab() {
       fd.append('signature', sign.signature)
       fd.append('folder',    sign.folder)
       fd.append('eager',     sign.eager)
-      fd.append('resource_type', 'video')
+      fd.append('resource_type',       'video')
+      fd.append('signature_algorithm', 'sha256')
 
       const xhr = new XMLHttpRequest()
       xhr.timeout = 20 * 60 * 1000

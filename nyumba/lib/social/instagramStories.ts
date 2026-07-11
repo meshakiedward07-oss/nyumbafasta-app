@@ -87,8 +87,23 @@ export async function postInstagramStory(params: {
     const containerId = containerData.id
     console.log('[IG Stories] Container created:', containerId)
 
-    // Wait for Meta to process the image
-    await new Promise(r => setTimeout(r, 4000))
+    // Poll until Meta finishes processing the container (up to 30s)
+    let ready = false
+    for (let i = 0; i < 15; i++) {
+      await new Promise(r => setTimeout(r, 2000))
+      const statusRes  = await fetch(
+        `${GRAPH}/${containerId}?fields=status_code,status&access_token=${igToken()}`
+      )
+      const statusData = await statusRes.json() as { status_code?: string; status?: string }
+      if (statusData.status_code === 'FINISHED' || statusData.status === 'FINISHED') {
+        ready = true
+        break
+      }
+      if (statusData.status_code === 'ERROR' || statusData.status_code === 'EXPIRED') {
+        return { success: false, error: `Container processing failed: ${statusData.status_code}` }
+      }
+    }
+    if (!ready) console.warn('[IG Stories] Container not FINISHED after 30s — attempting publish anyway')
 
     // Publish the story
     const publishRes  = await fetch(`${GRAPH}/${igUserId()}/media_publish`, {
@@ -313,6 +328,14 @@ export async function postListingStoryAllPlatforms(
   const appUrl        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
   const listingUrl    = `${appUrl}/listings/${listing.id}`
   const videoUrl      = (listing as Listing & { video_url?: string | null }).video_url ?? undefined
+
+  // Pre-warm Cloudinary lazy transformation so Meta can fetch the image immediately
+  try {
+    await fetch(storyImageUrl, { signal: AbortSignal.timeout(25_000) })
+    console.log('[IG Stories] Cloudinary URL pre-warmed')
+  } catch (e) {
+    console.warn('[IG Stories] Pre-warm failed, attempting anyway:', e)
+  }
 
   const { results, successCount, failedCount } = await postAllPlatformStories({
     imageUrl:   storyImageUrl,

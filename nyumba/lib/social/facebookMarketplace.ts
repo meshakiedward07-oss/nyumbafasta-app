@@ -4,6 +4,9 @@ import type { Listing } from '@/lib/types/database'
 
 const GRAPH      = 'https://graph.facebook.com/v21.0'
 const fbToken    = () => process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
+// Catalog API requires a System User token with catalog_management permission.
+// Set FACEBOOK_SYSTEM_USER_TOKEN in Vercel env vars (separate from the Page Access Token).
+const catalogToken = () => process.env.FACEBOOK_SYSTEM_USER_TOKEN ?? fbToken()
 const catalogId  = () => process.env.FACEBOOK_CATALOG_ID ?? ''
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -50,7 +53,7 @@ export async function createMarketplaceItem(
     const res = await fetch(`${GRAPH}/${cid}/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...item, access_token: fbToken() }),
+      body: JSON.stringify({ ...item, access_token: catalogToken() }),
     })
     const data = await res.json() as { id?: string; error?: { message: string } }
 
@@ -82,7 +85,7 @@ export async function updateMarketplaceItem(
     const res = await fetch(`${GRAPH}/${cid}/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: retailerId, ...updates, access_token: fbToken() }),
+      body: JSON.stringify({ id: retailerId, ...updates, access_token: catalogToken() }),
     })
     const data = await res.json() as { id?: string; error?: { message: string } }
     if (data.error) return { success: false, error: data.error.message }
@@ -110,7 +113,7 @@ export async function deleteMarketplaceItem(retailerId: string): Promise<Marketp
     const res = await fetch(`${GRAPH}/${cid}/items`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: retailerId, access_token: fbToken() }),
+      body: JSON.stringify({ id: retailerId, access_token: catalogToken() }),
     })
     const data = await res.json() as { success?: boolean; error?: { message: string } }
     if (data.error) return { success: false, error: data.error.message }
@@ -300,9 +303,9 @@ export async function renewExpiringListings(): Promise<void> {
 // ── Validate Marketplace Token ────────────────────────────────────────────
 
 export async function validateMarketplaceToken(): Promise<{ valid: boolean; error?: string }> {
-  const token = fbToken()
+  const token = catalogToken()
   const cid   = catalogId()
-  if (!token) return { valid: false, error: 'FACEBOOK_PAGE_ACCESS_TOKEN haijawekwa kwenye Vercel env vars' }
+  if (!token) return { valid: false, error: 'FACEBOOK_SYSTEM_USER_TOKEN (au FACEBOOK_PAGE_ACCESS_TOKEN) haijawekwa kwenye Vercel env vars' }
   if (!cid)   return { valid: false, error: 'FACEBOOK_CATALOG_ID haijawekwa kwenye Vercel env vars' }
   try {
     const res  = await fetch(`${GRAPH}/${cid}?fields=id,name&access_token=${token}`)
@@ -310,7 +313,7 @@ export async function validateMarketplaceToken(): Promise<{ valid: boolean; erro
     if (data.error) {
       return {
         valid: false,
-        error: `Token imeshindwa: ${data.error.message}. Nenda Meta Business Suite → Settings → System Users, tengeneza token mpya yenye catalog_management permission, kisha weka kwenye Vercel env var FACEBOOK_PAGE_ACCESS_TOKEN.`,
+        error: `Token imeshindwa: ${data.error.message}. Nenda Meta Business Suite → Settings → System Users → tengeneza token mpya yenye catalog_management permission → weka kwenye Vercel env var FACEBOOK_SYSTEM_USER_TOKEN.`,
       }
     }
     return { valid: true }

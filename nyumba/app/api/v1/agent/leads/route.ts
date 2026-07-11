@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
-    if (region) query = query.eq('region', region)
+    if (region) query = query.ilike('region', region)
     if (source) query = query.eq('source', source)
     if (status) query = query.eq('status', status)
     if (search) {
