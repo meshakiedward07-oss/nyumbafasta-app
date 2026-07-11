@@ -175,8 +175,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
   const rating            = profile?.rating_avg ?? 0
   const isVerified        = profile?.is_premium_verified ?? false
   const isFavourite       = profile?.is_favourite_dalali ?? false
-  const isTransparent     = profile?.is_transparent_agent ?? false
-  const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
+const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
 
   const isActive = listing.status === 'active'
 
@@ -368,11 +367,6 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
                   {isFavourite && (
                     <span className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
                       <i className="ti ti-rosette-discount-check" style={{ fontSize: '9px' }} aria-hidden="true" /> Halisi
-                    </span>
-                  )}
-                  {isTransparent && (
-                    <span className="inline-flex items-center gap-0.5 bg-green-100 text-green-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
-                      <i className="ti ti-eye" style={{ fontSize: '9px' }} aria-hidden="true" /> Uwazi
                     </span>
                   )}
                 </div>
