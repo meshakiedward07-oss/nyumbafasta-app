@@ -387,7 +387,7 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
           </div>
         ) : profile?.verification_status === 'pending' ? (
           <div className="bg-amber-50 border border-amber-100 rounded-2xl p-3">
-            <p className="text-sm font-semibold text-amber-800">⏳ Hati zinakaguliwa</p>
+            <p className="text-sm font-semibold text-amber-800 flex items-center gap-1.5"><i className="ti ti-clock-hour-4" aria-hidden="true" /> Hati zinakaguliwa</p>
             <p className="text-xs text-amber-600 mt-0.5">Admin anakagua — masaa 24. Utapata notification.</p>
           </div>
         ) : profile?.verification_status === 'rejected' ? (
@@ -699,24 +699,29 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
           onClick={dismissWelcome}
         >
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-end mb-1">
-              <button onClick={dismissWelcome} aria-label="Funga" className="text-gray-300 text-xl leading-none p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">×</button>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
+            <div className="bg-primary-500 px-6 pt-5 pb-4 flex flex-col items-center text-center">
+              <button onClick={dismissWelcome} aria-label="Funga"
+                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white text-sm">
+                <i className="ti ti-x" aria-hidden="true" />
+              </button>
+              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
+                <i className="ti ti-rosette-discount-check text-white text-3xl" aria-hidden="true" />
+              </div>
+              <h2 className="font-bold text-lg text-white">Akaunti Imethibitishwa</h2>
+              <p className="text-primary-100 text-sm mt-0.5">Karibu NyumbaFasta Tanzania</p>
             </div>
-            <div className="text-5xl mb-3"><i className="ti ti-confetti text-5xl text-primary-400" aria-hidden="true" /></div>
-            <h2 className="font-bold text-xl mb-2 text-gray-900">Karibu NyumbaFasta!</h2>
-            <p className="text-gray-500 text-sm mb-2 leading-relaxed">
-              Akaunti yako imethibitishwa vizuri.
-            </p>
-            <p className="text-gray-500 text-sm mb-5 leading-relaxed">
-              Anza kuongeza listings zako na upate wateja wako wa kwanza!
-            </p>
-            <button
-              onClick={dismissWelcome}
-              className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
-            >
-              Anza Kutumia →
-            </button>
+            <div className="px-6 py-5 text-center">
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Uko tayari kuongeza listings zako na kupata wateja wako wa kwanza.
+              </p>
+              <button
+                onClick={dismissWelcome}
+                className="mt-4 w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
+              >
+                Anza Kutumia
+              </button>
+            </div>
           </div>
         </div>
       )}

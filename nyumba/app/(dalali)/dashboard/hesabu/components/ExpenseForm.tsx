@@ -2,20 +2,20 @@
 import { useState } from 'react'
 
 const CATEGORIES = [
-  { value: 'transport',    label: '🚗 Usafiri' },
-  { value: 'marketing',   label: '📢 Matangazo' },
-  { value: 'phone',       label: '📱 Simu/Data' },
-  { value: 'office',      label: '🏢 Ofisi' },
-  { value: 'commission',  label: '🤝 Commission ya wengine' },
-  { value: 'other',       label: '📦 Nyingine' },
+  { value: 'transport',    label: 'Usafiri' },
+  { value: 'marketing',   label: 'Matangazo' },
+  { value: 'phone',       label: 'Simu / Data' },
+  { value: 'office',      label: 'Ofisi' },
+  { value: 'commission',  label: 'Commission ya wengine' },
+  { value: 'other',       label: 'Nyingine' },
 ]
 
 const PAYMENT_METHODS = [
-  { value: 'cash',   label: '💵 Cash' },
-  { value: 'mpesa',  label: '📱 M-Pesa' },
-  { value: 'tigo',   label: '📱 Tigo Pesa' },
-  { value: 'airtel', label: '📱 Airtel Money' },
-  { value: 'bank',   label: '🏦 Benki' },
+  { value: 'cash',   label: 'Cash' },
+  { value: 'mpesa',  label: 'M-Pesa' },
+  { value: 'tigo',   label: 'Tigo Pesa' },
+  { value: 'airtel', label: 'Airtel Money' },
+  { value: 'bank',   label: 'Benki' },
 ]
 
 interface Props { onClose: () => void; onSuccess: () => void }

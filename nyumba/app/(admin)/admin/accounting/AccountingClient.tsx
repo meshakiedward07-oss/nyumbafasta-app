@@ -671,11 +671,17 @@ ON CONFLICT DO NOTHING;`}</pre>
       <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2">
         <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-medium disabled:opacity-50">
-          {downloading === 'pdf' ? '⏳' : '⬇️'} PDF · {monthOptions.find(m => m.value === selectedMonth)?.label?.split(' ')[0] ?? selectedMonth}
+          {downloading === 'pdf'
+            ? <><span className="w-3 h-3 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />PDF</>
+            : <><i className="ti ti-download" aria-hidden="true" />PDF</>
+          } · {monthOptions.find(m => m.value === selectedMonth)?.label?.split(' ')[0] ?? selectedMonth}
         </button>
         <button onClick={() => handleDownload('excel')} disabled={!!downloading}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-xl text-xs font-medium disabled:opacity-50">
-          {downloading === 'excel' ? '⏳' : '⬇️'} Excel · {monthOptions.find(m => m.value === selectedMonth)?.label?.split(' ')[0] ?? selectedMonth}
+          {downloading === 'excel'
+            ? <><span className="w-3 h-3 border-2 border-green-300 border-t-green-700 rounded-full animate-spin" />Excel</>
+            : <><i className="ti ti-download" aria-hidden="true" />Excel</>
+          } · {monthOptions.find(m => m.value === selectedMonth)?.label?.split(' ')[0] ?? selectedMonth}
         </button>
         <button onClick={handleSync}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium">

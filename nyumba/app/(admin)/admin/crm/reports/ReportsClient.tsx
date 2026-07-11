@@ -124,7 +124,7 @@ export default function ReportsClient() {
           <h1 className="text-white font-bold text-lg"><i className="ti ti-clipboard-list" aria-hidden="true" /> CRM Reports</h1>
           <button onClick={exportCSV} disabled={exporting}
             className="bg-white text-primary-500 text-xs px-4 py-2 rounded-xl font-bold disabled:opacity-50">
-            {exporting ? 'Exporting...' : '⬇️ CSV'}
+            {exporting ? 'Exporting...' : <><i className="ti ti-download" aria-hidden="true" /> CSV</>}
           </button>
         </div>
         <div className="flex gap-2">

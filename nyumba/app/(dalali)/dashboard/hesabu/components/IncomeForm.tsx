@@ -2,19 +2,19 @@
 import { useState } from 'react'
 
 const CATEGORIES = [
-  { value: 'commission',    label: '💰 Kamisheni' },
-  { value: 'viewing_fee',   label: '👁️ Viewing fee' },
-  { value: 'consultation',  label: '💬 Ushauri' },
-  { value: 'service',       label: '⚙️ Huduma nyingine' },
-  { value: 'other',         label: '📦 Nyingine' },
+  { value: 'commission',    label: 'Kamisheni' },
+  { value: 'viewing_fee',   label: 'Viewing Fee' },
+  { value: 'consultation',  label: 'Ushauri' },
+  { value: 'service',       label: 'Huduma nyingine' },
+  { value: 'other',         label: 'Nyingine' },
 ]
 
 const PAYMENT_METHODS = [
-  { value: 'cash',   label: '💵 Cash' },
-  { value: 'mpesa',  label: '📱 M-Pesa' },
-  { value: 'tigo',   label: '📱 Tigo Pesa' },
-  { value: 'airtel', label: '📱 Airtel Money' },
-  { value: 'bank',   label: '🏦 Benki' },
+  { value: 'cash',   label: 'Cash' },
+  { value: 'mpesa',  label: 'M-Pesa' },
+  { value: 'tigo',   label: 'Tigo Pesa' },
+  { value: 'airtel', label: 'Airtel Money' },
+  { value: 'bank',   label: 'Benki' },
 ]
 
 interface Props { onClose: () => void; onSuccess: () => void }

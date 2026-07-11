@@ -672,7 +672,7 @@ function DalaliActivityView() {
                     <span><i className="ti ti-home" aria-hidden="true" /> Listings: {row.total_listings_ever}</span>
                     {row.days_before_deletion != null && (
                       <span className={row.days_before_deletion <= 7 ? 'text-red-600 font-semibold' : row.days_before_deletion <= 14 ? 'text-amber-600' : ''}>
-                        ⏳ Siku {row.days_before_deletion} kabla ya kufutwa
+                        <i className="ti ti-clock-hour-4" aria-hidden="true" /> Siku {row.days_before_deletion} kabla ya kufutwa
                       </span>
                     )}
                   </div>

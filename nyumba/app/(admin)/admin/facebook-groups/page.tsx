@@ -381,9 +381,9 @@ export default function FacebookGroupsPage() {
                         onChange={e => setEditedCategory(e.target.value)}
                         className="flex-1 border border-blue-200 bg-white rounded-xl px-3 py-2.5 text-sm focus:outline-none"
                       >
-                        <option value="nyumba">🏠 Nyumba &amp; Vyumba</option>
-                        <option value="biashara">🏪 Biashara</option>
-                        <option value="general">📢 Jumla (General)</option>
+                        <option value="nyumba">Nyumba &amp; Vyumba</option>
+                        <option value="biashara">Biashara</option>
+                        <option value="general">Jumla (General)</option>
                       </select>
                       <button
                         onClick={savePostingGroup}

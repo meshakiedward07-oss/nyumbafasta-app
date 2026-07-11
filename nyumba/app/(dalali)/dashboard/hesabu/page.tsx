@@ -319,7 +319,7 @@ export default function HesabuPage() {
                   ) : (
                     <button onClick={fetchAdvice} disabled={advLoading}
                       className="w-full bg-white/10 hover:bg-white/20 rounded-xl py-2.5 text-sm font-medium transition-all disabled:opacity-50">
-                      {advLoading ? '⏳ Amina anafikiri...' : '✨ Pata ushauri wa biashara'}
+                      {advLoading ? <span className="flex items-center justify-center gap-2"><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Amina anafikiri...</span> : <span className="flex items-center justify-center gap-1.5"><i className="ti ti-message-chatbot text-sm" aria-hidden="true" />Pata ushauri wa biashara</span>}
                     </button>
                   )}
                 </div>
@@ -597,7 +597,7 @@ export default function HesabuPage() {
               ) : (
                 <button onClick={fetchAdvice} disabled={advLoading}
                   className="w-full bg-white/10 hover:bg-white/20 rounded-xl py-2.5 text-sm font-medium transition-all disabled:opacity-50">
-                  {advLoading ? '⏳ Amina anafikiri...' : '✨ Pata ushauri wa biashara'}
+                  {advLoading ? <span className="flex items-center justify-center gap-2"><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Amina anafikiri...</span> : <span className="flex items-center justify-center gap-1.5"><i className="ti ti-message-chatbot text-sm" aria-hidden="true" />Pata ushauri wa biashara</span>}
                 </button>
               )}
             </div>

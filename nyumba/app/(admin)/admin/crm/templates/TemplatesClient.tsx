@@ -211,7 +211,7 @@ export default function TemplatesClient() {
                 <option value="followup">Follow-up</option>
                 <option value="viewing">Viewing</option>
                 <option value="closing">Closing</option>
-                <option value="reminder">⏰ Reminder</option>
+                <option value="reminder">Reminder</option>
                 <option value="general">General</option>
               </select>
               <textarea

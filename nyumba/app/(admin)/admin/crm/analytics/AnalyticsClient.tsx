@@ -205,7 +205,7 @@ export default function AnalyticsClient() {
               )}
               {stats.followupsDueToday > 0 && (
                 <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">
-                  <span className="text-2xl">⏰</span>
+                  <i className="ti ti-clock-hour-4 text-2xl text-amber-500" aria-hidden="true" />
                   <div>
                     <p className="font-semibold text-sm text-amber-700">
                       {stats.followupsDueToday} follow-up zimefika leo

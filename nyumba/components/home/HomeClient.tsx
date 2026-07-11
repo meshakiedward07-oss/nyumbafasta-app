@@ -14,19 +14,26 @@ function WelcomeModal() {
   if (!show) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
-        <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-confetti text-primary-500" aria-hidden="true" /></div>
-        <h2 className="font-bold text-xl mb-2 text-gray-900">Karibu NyumbaFasta!</h2>
-        <p className="text-gray-500 text-sm mb-5 leading-relaxed">
-          Akaunti yako imethibitishwa vizuri. Uko tayari kutafuta nyumba na vyumba Tanzania!
-        </p>
-        <button
-          onClick={() => { setDismissed(true); router.replace('/') }}
-          className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
-        >
-          Anza Kutumia →
-        </button>
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0">
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+        <div className="bg-primary-500 px-6 pt-6 pb-5 flex flex-col items-center text-center">
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
+            <i className="ti ti-rosette-discount-check text-white text-3xl" aria-hidden="true" />
+          </div>
+          <h2 className="font-bold text-lg text-white leading-tight">Akaunti Imethibitishwa</h2>
+          <p className="text-primary-100 text-sm mt-1">Karibu NyumbaFasta Tanzania</p>
+        </div>
+        <div className="px-6 py-5 text-center">
+          <p className="text-gray-600 text-sm leading-relaxed">
+            Uko tayari kutafuta nyumba na vyumba bora Tanzania yote.
+          </p>
+          <button
+            onClick={() => { setDismissed(true); router.replace('/') }}
+            className="mt-4 w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
+          >
+            Anza Kutumia
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -279,7 +279,7 @@ function LeadCard({
       }`}
     >
       {isFollowupDue && (
-        <p className="text-xs text-amber-600 font-medium mb-1.5">⏰ Follow-up inahitajika</p>
+        <p className="text-xs text-amber-600 font-medium mb-1.5 flex items-center gap-1"><i className="ti ti-clock-hour-4" aria-hidden="true" />Follow-up inahitajika</p>
       )}
       {neverContacted && (
         <p className="text-xs text-red-500 mb-1.5 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />Hajaguswa bado</p>
