@@ -1428,7 +1428,7 @@ export default function LeadsClient() {
                     <table className="text-xs text-blue-700 w-full">
                       <thead>
                         <tr className="border-b border-blue-200">
-                          {['business_name *', 'phone', 'whatsapp', 'facebook_url', 'instagram_url', 'tiktok_url', 'confidence', 'region', 'notes'].map(h => (
+                          {['business_name *', 'phone', 'whatsapp', 'region', 'district', 'facebook_url', 'instagram_url', 'tiktok_url', 'confidence', 'notes'].map(h => (
                             <th key={h} className="pr-3 pb-1 text-left font-semibold whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
@@ -1438,11 +1438,12 @@ export default function LeadsClient() {
                           <td className="pr-3 py-1 whitespace-nowrap">Nyumba Bora Agency</td>
                           <td className="pr-3 whitespace-nowrap">0712345678</td>
                           <td className="pr-3 whitespace-nowrap">0712345678</td>
+                          <td className="pr-3">Dar es Salaam</td>
+                          <td className="pr-3">Masaki</td>
                           <td className="pr-3 whitespace-nowrap text-blue-400">fb.com/nyumba</td>
                           <td className="pr-3 text-blue-400">ig.com/nyumba</td>
                           <td className="pr-3 text-blue-400">tiktok.com/@n</td>
                           <td className="pr-3">85</td>
-                          <td className="pr-3">Dar es Salaam</td>
                           <td></td>
                         </tr>
                       </tbody>

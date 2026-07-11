@@ -11,6 +11,7 @@ const COL_ALIASES: Record<string, string[]> = {
   phone:         ['phone', 'simu', 'tel', 'nambari', 'contact', 'telephone', 'namba ya simu'],
   email:         ['email', 'barua pepe', 'e-mail'],
   region:        ['region', 'mkoa', 'area', 'eneo', 'location'],
+  district:      ['district', 'wilaya', 'street', 'mtaa', 'kata', 'neighbourhood', 'neighborhood', 'area ya karibu', 'barabara'],
   notes:         ['notes', 'maelezo', 'comment', 'description', 'note', 'info'],
   whatsapp:      ['whatsapp', 'wa', 'whatsapp number', 'namba ya whatsapp', 'whatsapp url', 'whatsapp link'],
   facebook_url:  ['facebook_url', 'facebook', 'fb', 'fb page', 'ukurasa wa facebook', 'facebook page', 'fb url', 'fb link'],
@@ -114,6 +115,7 @@ type ParsedRow = {
   phone:         string | null
   email:         string | null
   region:        string | null
+  district:      string | null
   notes:         string | null
   whatsapp:      string | null
   facebook_url:  string | null
@@ -310,10 +312,10 @@ export async function GET() {
   if (!auth.ok) return auth.response
 
   const csv = [
-    'business_name,phone,email,region,notes,whatsapp,facebook_url,instagram_url,tiktok_url,website_url,confidence',
-    'Nyumba Bora Agency,0712345678,info@nyumbabora.co.tz,Dar es Salaam,Dalali mkubwa wa Masaki,0712345678,https://facebook.com/nyumbabora,https://instagram.com/nyumbabora,,https://nyumbabora.co.tz,85',
-    'Karibu Rentals,+255 754 111 222,,Arusha,,,https://facebook.com/kariburentals,,,, 70',
-    'Mlima Apartments,0765 333 444,mlima@gmail.com,Mwanza,,,,,https://tiktok.com/@mlimaapts,,60',
+    'business_name,phone,email,region,district,notes,whatsapp,facebook_url,instagram_url,tiktok_url,website_url,confidence',
+    'Nyumba Bora Agency,0712345678,info@nyumbabora.co.tz,Dar es Salaam,Masaki,Dalali mkubwa wa Masaki,0712345678,https://facebook.com/nyumbabora,https://instagram.com/nyumbabora,,https://nyumbabora.co.tz,85',
+    'Karibu Rentals,+255 754 111 222,,Arusha,Njiro,,https://facebook.com/kariburentals,,,, 70',
+    'Mlima Apartments,0765 333 444,mlima@gmail.com,Mwanza,Nyamagana,,,,,https://tiktok.com/@mlimaapts,,60',
   ].join('\n')
 
   return new Response(csv, {
@@ -376,6 +378,7 @@ function addRecord(
     phone,
     email:         rec.email?.trim().toLowerCase() || null,
     region:        rec.region?.trim() || null,
+    district:      rec.district?.trim() || null,
     notes:         rec.notes?.trim() || null,
     whatsapp:      waNumber,
     facebook_url:  fbUrl,
