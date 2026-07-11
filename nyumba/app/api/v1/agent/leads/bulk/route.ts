@@ -512,24 +512,24 @@ function addRecord(
   // Instagram/TikTok may be a bare username (e.g. 'dalalikinondoni') — build full URL
   const igUrl  = socialUrl(rec.instagram_url, 'https://www.instagram.com/')
   const ttUrl  = socialUrl(rec.tiktok_url,    'https://www.tiktok.com/@')
-  const waUrl  = rec.whatsapp?.trim() || null
+  const waVal  = rec.whatsapp?.trim() || null
 
-  // Extract phone from whatsapp URL if raw phone is missing
+  // Extract phone: prefer phone column, then wa.me URL, then plain number in WhatsApp column
   const rawPhone = normalizePhone(rec.phone)
-  const phone    = rawPhone ?? phoneFromWhatsAppUrl(waUrl)
+  const phone    = rawPhone ?? phoneFromWhatsAppUrl(waVal) ?? normalizePhone(waVal)
 
-  const hasSocial = !!(fbUrl || igUrl || ttUrl || normalizeUrl(rec.website_url) || phone)
+  const hasContact = !!(phone || fbUrl || igUrl || ttUrl || normalizeUrl(rec.website_url) || rec.email?.trim())
 
-  // Skip leads with no contact info at all
-  if (!phone && !hasSocial) {
-    errors.push({ row: rowNum, reason: 'Hana simu wala akaunti ya kijamii — imepitwa' })
+  // Skip leads with absolutely no way to contact them
+  if (!hasContact) {
+    errors.push({ row: rowNum, reason: 'Hana simu, email, wala akaunti ya kijamii — imepitwa' })
     return
   }
 
   const confidence = parseConfidence(rec.confidence)
 
-  // whatsapp field: prefer normalised phone, then extract from a wa.me URL
-  const waNumber = phoneFromWhatsAppUrl(waUrl) ?? phone
+  // whatsapp field: prefer normalized phone from WA column, then from wa.me URL, then phone column
+  const waNumber = normalizePhone(waVal) ?? phoneFromWhatsAppUrl(waVal) ?? phone
 
   out.push({
     business_name: name,
