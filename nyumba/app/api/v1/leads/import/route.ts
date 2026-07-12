@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { cleanPhone } from '../route'
+import { verifyLeadBatch } from '@/lib/leads/socialChecker'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -288,6 +289,36 @@ export async function POST(req: NextRequest) {
     const deadFound       = final.filter(l => !l.phone && !l.facebook_url && !l.instagram_url && !l.tiktok_url && !l.whatsapp_number).length
     const activeLeads     = inserted - duplicatesFound - deadFound
 
+    // ── Auto-verify social links (first 15 non-duplicate leads with social URLs) ──
+    let socialVerified = 0
+    let socialActive = 0
+    let socialInactive = 0
+    try {
+      const { data: toVerify } = await supabaseAdmin
+        .from('leads')
+        .select('id,facebook_url,instagram_url,tiktok_url,whatsapp_number')
+        .eq('import_batch_id', batchId)
+        .eq('is_duplicate', false)
+        .eq('is_dead_lead', false)
+        .or('facebook_url.not.is.null,instagram_url.not.is.null,tiktok_url.not.is.null,whatsapp_number.not.is.null')
+        .limit(15)
+
+      if (toVerify?.length) {
+        const results = await verifyLeadBatch(toVerify, 250)
+        for (const result of results) {
+          if (Object.keys(result.updates).length > 0) {
+            await supabaseAdmin.from('leads').update(result.updates).eq('id', result.id)
+            socialVerified++
+            const activeCount = result.summary.filter(s => s.status === 'active').length
+            if (activeCount > 0) socialActive++
+            else socialInactive++
+          }
+        }
+      }
+    } catch (verifyErr) {
+      console.warn('[Import] Social verify failed (non-fatal):', verifyErr)
+    }
+
     await supabaseAdmin
       .from('lead_import_batches')
       .update({
@@ -309,6 +340,9 @@ export async function POST(req: NextRequest) {
         duplicates: duplicatesFound,
         deadLeads:  deadFound,
         activeLeads: Math.max(0, activeLeads),
+        socialVerified,
+        socialActive,
+        socialInactive,
       },
     })
   } catch (err) {

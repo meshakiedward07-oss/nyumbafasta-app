@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
+import { verifySingleLead } from '@/lib/leads/socialChecker'
 
 export const dynamic = 'force-dynamic'
 
@@ -115,6 +116,23 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error) throw error
+
+    // Auto-verify social links immediately for manual adds
+    const hasSocial = data.facebook_url || data.instagram_url || data.tiktok_url || data.whatsapp_number
+    if (hasSocial) {
+      const result = await verifySingleLead({
+        id: data.id,
+        facebook_url:  data.facebook_url,
+        instagram_url: data.instagram_url,
+        tiktok_url:    data.tiktok_url,
+        whatsapp_number: data.whatsapp_number,
+      })
+      if (Object.keys(result.updates).length > 0) {
+        await supabaseAdmin.from('leads').update(result.updates).eq('id', data.id)
+        Object.assign(data, result.updates)
+      }
+    }
+
     return NextResponse.json({ success: true, lead: data })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'

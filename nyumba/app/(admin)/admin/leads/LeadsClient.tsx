@@ -45,7 +45,10 @@ type Stats = {
 
 type ImportResult = {
   success: boolean; batchId: string
-  stats: { total: number; imported: number; duplicates: number; deadLeads: number; activeLeads: number }
+  stats: {
+    total: number; imported: number; duplicates: number; deadLeads: number; activeLeads: number
+    socialVerified: number; socialActive: number; socialInactive: number
+  }
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -851,6 +854,30 @@ export default function LeadsClient() {
                     </div>
                   ))}
                 </div>
+
+                {/* Social verification results */}
+                {importResult.stats.socialVerified > 0 && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                    <p className="text-xs font-bold text-blue-800 mb-2 flex items-center gap-1.5">
+                      <i className="ti ti-brand-facebook" aria-hidden="true" /> Social Media — Auto-Check ({importResult.stats.socialVerified} zimechekiwa)
+                    </p>
+                    <div className="flex gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span className="text-xs text-gray-700 font-medium">{importResult.stats.socialActive} hai (active)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-red-400" />
+                        <span className="text-xs text-gray-700 font-medium">{importResult.stats.socialInactive} zimefungwa</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-gray-300" />
+                        <span className="text-xs text-gray-500">{importResult.stats.imported - importResult.stats.socialVerified} hazijachekiwa</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => { setImportResult(null); setImportFile(null) }}
                     className="py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">Import Nyingine</button>
