@@ -138,6 +138,16 @@ export default function LeadsClient() {
   // Verify social
   const [verifying, setVerifying] = useState(false)
 
+  // Broadcast
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false)
+  const [broadcastForm, setBroadcastForm] = useState({
+    target: 'has_whatsapp',
+    tone: 'personal',
+    message: '',
+  })
+  const [broadcasting, setBroadcasting]   = useState(false)
+  const [broadcastResult, setBroadcastResult] = useState<{ sent: number; failed: number; total: number; failedNames: string[] } | null>(null)
+
   // Add manual
   const [showAddModal, setShowAddModal] = useState(false)
   const [addForm, setAddForm] = useState({ full_name:'', phone:'', phone_2:'', email:'', ward:'', district:'', region:'Dar es Salaam', lead_type:'dalali', facebook_url:'', instagram_url:'', tiktok_url:'', whatsapp_number:'', notes:'' })
@@ -307,6 +317,34 @@ export default function LeadsClient() {
     XLSX.writeFile(wb, `leads-${new Date().toISOString().slice(0,10)}.xlsx`)
   }
 
+  // ── Broadcast ──────────────────────────────────────────────────────────────
+  async function handleBroadcast() {
+    if (!broadcastForm.message.trim()) { showToast('Andika ujumbe kwanza', false); return }
+    setBroadcasting(true); setBroadcastResult(null)
+    try {
+      const body: Record<string, unknown> = {
+        message: broadcastForm.message,
+        tone:    broadcastForm.tone,
+        target:  broadcastForm.target,
+      }
+      if (broadcastForm.target === 'selected') {
+        if (!selectedIds.size) { showToast('Chagua leads kwanza', false); setBroadcasting(false); return }
+        body.leadIds = [...selectedIds]
+      }
+      const res  = await fetch('/api/v1/leads/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setBroadcastResult({ sent: data.sent_count, failed: data.failed_count, total: data.recipients_count, failedNames: data.failed_names || [] })
+        showToast(`✅ Ujumbe umetumwa kwa ${data.sent_count} leads`)
+      } else showToast(data.error || 'Imeshindwa', false)
+    } catch { showToast('Hitilafu ya mtandao', false) }
+    finally { setBroadcasting(false) }
+  }
+
   const activeFilterCount = [qualityFilter, typeFilter, statusFilter, socialFilter].filter(Boolean).length + (showDups ? 1 : 0) + (showDead ? 1 : 0)
 
   // ── JSX ────────────────────────────────────────────────────────────────────
@@ -344,6 +382,10 @@ export default function LeadsClient() {
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50">
               {verifying ? <i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> : <i className="ti ti-brand-facebook" aria-hidden="true" />}
               {verifying ? 'Inacheki…' : 'Check Social'}
+            </button>
+            <button onClick={() => { setShowBroadcastModal(true); setBroadcastResult(null) }}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-[#25D366] text-white text-xs font-bold rounded-xl hover:bg-green-600">
+              <i className="ti ti-brand-whatsapp" aria-hidden="true" /> Tuma WA
             </button>
             <button onClick={handleExport}
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
@@ -1019,6 +1061,195 @@ export default function LeadsClient() {
                 {addLoading ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inaongeza…</> : 'Ongeza Lead'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          WHATSAPP BROADCAST MODAL
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {showBroadcastModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-6">
+          <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[92vh] overflow-y-auto">
+
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <span className="w-8 h-8 bg-[#25D366] rounded-xl flex items-center justify-center">
+                  <i className="ti ti-brand-whatsapp text-white text-base" aria-hidden="true" />
+                </span>
+                Tuma Ujumbe WA kwa Leads
+              </h3>
+              <button onClick={() => setShowBroadcastModal(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
+                <i className="ti ti-x" aria-hidden="true" />
+              </button>
+            </div>
+
+            {broadcastResult ? (
+              /* ── Result screen ── */
+              <div className="space-y-4">
+                <div className={`rounded-2xl p-6 text-center ${broadcastResult.failed === broadcastResult.total ? 'bg-red-50 border border-red-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+                  <i className={`ti ${broadcastResult.failed === broadcastResult.total ? 'ti-circle-x text-red-500' : 'ti-circle-check text-emerald-500'} text-5xl block mb-2`} aria-hidden="true" />
+                  <p className="font-bold text-2xl text-gray-800">{broadcastResult.sent.toLocaleString()}</p>
+                  <p className="text-sm text-gray-500">ujumbe umetumwa</p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Waliokusudiwa', val: broadcastResult.total, bg: 'bg-gray-50' },
+                    { label: 'Imefanikiwa', val: broadcastResult.sent, bg: 'bg-emerald-50' },
+                    { label: 'Imeshindwa', val: broadcastResult.failed, bg: 'bg-red-50' },
+                  ].map(s => (
+                    <div key={s.label} className={`${s.bg} rounded-xl p-3 text-center`}>
+                      <p className="text-xl font-bold text-gray-800">{s.val}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+                {broadcastResult.failedNames.length > 0 && (
+                  <div className="bg-red-50 rounded-xl p-3">
+                    <p className="text-xs font-semibold text-red-700 mb-1">Walishindwa kupokea:</p>
+                    <p className="text-xs text-red-600">{broadcastResult.failedNames.join(', ')}{broadcastResult.failed > broadcastResult.failedNames.length ? `… (+${broadcastResult.failed - broadcastResult.failedNames.length} wengine)` : ''}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setBroadcastResult(null)} className="py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">
+                    Tuma Tena
+                  </button>
+                  <button onClick={() => setShowBroadcastModal(false)} className="py-3 bg-[#25D366] text-white rounded-xl text-sm font-bold hover:bg-green-600">
+                    Imekamilika ✓
+                  </button>
+                </div>
+              </div>
+
+            ) : broadcasting ? (
+              /* ── Sending screen ── */
+              <div className="py-16 text-center space-y-4">
+                <div className="w-16 h-16 border-4 border-[#25D366] border-t-transparent rounded-full animate-spin mx-auto" />
+                <div>
+                  <p className="font-bold text-gray-800">Inatuma ujumbe…</p>
+                  <p className="text-sm text-gray-400 mt-1">200ms kati ya kila ujumbe. Tafadhali subiri.</p>
+                </div>
+              </div>
+
+            ) : (
+              /* ── Compose screen ── */
+              <div className="space-y-4">
+
+                {/* Target audience */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-2">Watumie Nani?</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'has_whatsapp', label: 'Wana WhatsApp', icon: 'ti-brand-whatsapp', count: stats.has_whatsapp },
+                      { id: 'high',         label: 'Ubora Juu',     icon: 'ti-star',            count: stats.high },
+                      { id: 'medium',       label: 'Ubora Wastani', icon: 'ti-star-half',       count: stats.medium },
+                      { id: 'dalali',       label: 'Madalali tu',   icon: 'ti-building',        count: null },
+                      { id: 'mteja',        label: 'Wateja tu',     icon: 'ti-user',            count: null },
+                      { id: 'new_status',   label: 'Status: Mpya',  icon: 'ti-clock',           count: null },
+                      { id: 'all',          label: 'Wote (wana namba)', icon: 'ti-users',       count: stats.total },
+                      { id: 'selected',     label: `Waliochaguliwa (${selectedIds.size})`, icon: 'ti-checkbox', count: selectedIds.size },
+                    ].map(t => (
+                      <button key={t.id} type="button"
+                        onClick={() => setBroadcastForm(f => ({ ...f, target: t.id }))}
+                        disabled={t.id === 'selected' && selectedIds.size === 0}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all disabled:opacity-40 ${broadcastForm.target === t.id ? 'bg-[#25D366] text-white border-green-500' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
+                        <i className={`ti ${t.icon} text-sm`} aria-hidden="true" />
+                        <span className="flex-1 text-left">{t.label}</span>
+                        {t.count !== null && t.count > 0 && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${broadcastForm.target === t.id ? 'bg-white/30 text-white' : 'bg-gray-100 text-gray-500'}`}>{t.count}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tone */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-2">Mtindo wa Ujumbe</label>
+                  <div className="flex gap-2">
+                    {[
+                      { id: 'personal', label: 'Kirafiki 😊' },
+                      { id: 'formal',   label: 'Rasmi 📝' },
+                      { id: 'urgent',   label: 'Haraka ⚡' },
+                    ].map(t => (
+                      <button key={t.id} type="button"
+                        onClick={() => setBroadcastForm(f => ({ ...f, tone: t.id }))}
+                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all ${broadcastForm.tone === t.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Message templates */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-2">Template za Haraka</label>
+                  <div className="space-y-1.5">
+                    {[
+                      { label: 'Mwaliko — Jiunge NyumbaFasta', msg: 'Habari! Tunakualika kujiunga na NyumbaFasta Tanzania — platform inayowakutanisha madalali wa nyumba na wateja elfu kila siku. Sajili sasa bila malipo na uanze kupata wateja zaidi! 🏠\n\nhttps://nyumbafasta.com' },
+                      { label: 'Follow-up — Bado unasubiri?', msg: 'Habari {jina}! Tulikusalimia juzi kuhusu NyumbaFasta. Je, umewahi kujibu maswali yetu? Tuko tayari kukusaidia uanze leo. Tafadhali wasiliana nasi!' },
+                      { label: 'Ofa Maalum — Subscription', msg: 'Habari {jina}! 🎉 Leo tuna ofa maalum — jiunge NyumbaFasta kwa nusu ya bei ya kawaida! Ofa hii inaisha hivi karibuni. Bonyeza hapa kuanza: https://nyumbafasta.com/register' },
+                      { label: 'Tangazo la Huduma Mpya', msg: 'Habari {jina}! NyumbaFasta imezindua huduma mpya ya kukusaidia kupata wateja zaidi haraka. Tembelea profile yako leo na uone maboresho mapya! 🚀' },
+                    ].map(t => (
+                      <button key={t.label} type="button"
+                        onClick={() => setBroadcastForm(f => ({ ...f, message: t.msg }))}
+                        className="w-full text-left px-3 py-2 rounded-xl border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all">
+                        <p className="text-xs font-semibold text-gray-700">{t.label}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5 truncate">{t.msg.slice(0, 60)}…</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Message composer */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Ujumbe Wako</label>
+                    <span className={`text-[10px] font-mono ${broadcastForm.message.length > 900 ? 'text-red-500' : 'text-gray-400'}`}>{broadcastForm.message.length}/1000</span>
+                  </div>
+                  <textarea
+                    value={broadcastForm.message}
+                    onChange={e => setBroadcastForm(f => ({ ...f, message: e.target.value.slice(0, 1000) }))}
+                    rows={5}
+                    placeholder={`Andika ujumbe wako hapa…\n\nTumia {jina} kuingiza jina la mpokeaji moja kwa moja.`}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366] resize-none font-mono"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1.5">
+                    <b>{'{jina}'}</b> itabadilishwa na jina la kwanza la kila lead. Ujumbe wa kwanza unaongezwa kwa mtindo uliochagua.
+                  </p>
+                </div>
+
+                {/* Preview */}
+                {broadcastForm.message && (
+                  <div className="bg-[#DCF8C6] rounded-2xl p-4 rounded-tl-sm border border-green-200">
+                    <p className="text-[10px] text-gray-500 mb-1.5 font-semibold">MFANO — Jinsi itakavyoonekana kwa "Juma Hassan":</p>
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                      {(() => {
+                        const first = 'Juma'
+                        let prefix = ''
+                        if (broadcastForm.tone === 'personal') prefix = `Habari ${first}! 😊\n\n`
+                        else if (broadcastForm.tone === 'formal') prefix = `Kwa heshima, ${first},\n\n`
+                        else if (broadcastForm.tone === 'urgent') prefix = `⚡ MUHIMU — ${first},\n\n`
+                        return (prefix + broadcastForm.message).replace(/\{jina\}/gi, first).replace(/\{name\}/gi, first)
+                      })()}
+                    </p>
+                  </div>
+                )}
+
+                {/* Send button */}
+                <button
+                  onClick={handleBroadcast}
+                  disabled={!broadcastForm.message.trim() || broadcasting || (broadcastForm.target === 'selected' && selectedIds.size === 0)}
+                  className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-bold text-base disabled:opacity-40 hover:bg-green-600 flex items-center justify-center gap-2">
+                  <i className="ti ti-send" aria-hidden="true" />
+                  {broadcastForm.target === 'selected'
+                    ? `Tuma kwa ${selectedIds.size} waliochaguliwa`
+                    : `Tuma kwa ${broadcastForm.target === 'high' ? 'ubora juu' : broadcastForm.target === 'medium' ? 'ubora wastani' : broadcastForm.target === 'has_whatsapp' ? 'wenye WhatsApp' : broadcastForm.target === 'dalali' ? 'madalali' : broadcastForm.target === 'mteja' ? 'wateja' : broadcastForm.target === 'new_status' ? 'wapya' : 'leads zote'}`
+                  }
+                </button>
+                <p className="text-[10px] text-center text-gray-400">Kiwango cha juu ni leads 200 kwa broadcast moja · 200ms kati ya kila ujumbe</p>
+              </div>
+            )}
           </div>
         </div>
       )}
