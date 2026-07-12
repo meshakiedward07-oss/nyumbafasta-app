@@ -84,8 +84,6 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Create broadcast record ────────────────────────────────────────────────
-    const adminData = await supabaseAdmin.auth.admin.listUsers()
-    // Use service role — just log with a generic admin reference
     const { data: broadcast, error: bErr } = await supabaseAdmin
       .from('whatsapp_broadcasts')
       .insert({

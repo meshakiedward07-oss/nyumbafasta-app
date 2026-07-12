@@ -555,7 +555,7 @@ export default function LeadsClient() {
                           className={`group cursor-pointer hover:bg-blue-50/30 transition-colors ${lead.is_duplicate ? 'opacity-60 bg-amber-50/30' : ''} ${lead.is_dead_lead ? 'opacity-50' : ''}`}>
                           <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
                             <input type="checkbox" checked={selectedIds.has(lead.id)}
-                              onChange={e => { const n = new Set(selectedIds); e.target.checked ? n.add(lead.id) : n.delete(lead.id); setSelectedIds(n) }}
+                              onChange={e => { const n = new Set(selectedIds); if (e.target.checked) n.add(lead.id); else n.delete(lead.id); setSelectedIds(n) }}
                               className="rounded" />
                           </td>
 
@@ -1222,7 +1222,7 @@ export default function LeadsClient() {
                 {/* Preview */}
                 {broadcastForm.message && (
                   <div className="bg-[#DCF8C6] rounded-2xl p-4 rounded-tl-sm border border-green-200">
-                    <p className="text-[10px] text-gray-500 mb-1.5 font-semibold">MFANO — Jinsi itakavyoonekana kwa "Juma Hassan":</p>
+                    <p className="text-[10px] text-gray-500 mb-1.5 font-semibold">MFANO — Jinsi itakavyoonekana kwa Juma Hassan:</p>
                     <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
                       {(() => {
                         const first = 'Juma'

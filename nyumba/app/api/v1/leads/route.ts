@@ -2,21 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { verifySingleLead } from '@/lib/leads/socialChecker'
+import { cleanPhone } from '@/lib/leads/cleanPhone'
 
 export const dynamic = 'force-dynamic'
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-export function cleanPhone(raw: unknown): string | null {
-  if (raw === null || raw === undefined) return null
-  const s = String(raw).replace(/[\s\-(). ]/g, '').replace(/^\+/, '')
-  if (!s) return null
-  if (s.startsWith('255') && s.length === 12) return `+${s}`
-  if (s.startsWith('0') && s.length === 10) return `+255${s.slice(1)}`
-  if (s.length === 9 && /^\d+$/.test(s)) return `+255${s}`
-  if (s.length > 7) return s.startsWith('+') ? s : `+${s}`
-  return null
-}
 
 // ── GET — list leads with filters ─────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -123,9 +111,9 @@ export async function POST(req: NextRequest) {
     if (hasSocial) {
       const result = await verifySingleLead({
         id: data.id,
-        facebook_url:  data.facebook_url,
-        instagram_url: data.instagram_url,
-        tiktok_url:    data.tiktok_url,
+        facebook_url:    data.facebook_url,
+        instagram_url:   data.instagram_url,
+        tiktok_url:      data.tiktok_url,
         whatsapp_number: data.whatsapp_number,
       })
       if (Object.keys(result.updates).length > 0) {

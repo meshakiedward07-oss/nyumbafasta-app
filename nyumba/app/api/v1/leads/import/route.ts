@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
-import { cleanPhone } from '../route'
+import { cleanPhone } from '@/lib/leads/cleanPhone'
 import { verifyLeadBatch } from '@/lib/leads/socialChecker'
 
 export const dynamic = 'force-dynamic'
