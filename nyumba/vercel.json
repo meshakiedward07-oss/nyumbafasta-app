@@ -39,6 +39,8 @@
     "app/api/v1/agent/run/route.ts":                  { "maxDuration": 60 },
     "app/api/v1/cron/daily/route.ts":                 { "maxDuration": 300 },
     "app/api/v1/cron/weekly/route.ts":                { "maxDuration": 60 },
-    "app/api/v1/cron/hourly/route.ts":                { "maxDuration": 30 }
+    "app/api/v1/cron/hourly/route.ts":                { "maxDuration": 30 },
+    "app/api/v1/leads/import/route.ts":               { "maxDuration": 300 },
+    "app/api/v1/leads/verify-social/route.ts":        { "maxDuration": 60 }
   }
 }
