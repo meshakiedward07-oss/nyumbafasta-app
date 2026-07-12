@@ -36,16 +36,6 @@ function matchCol(header: string): string | null {
   return null
 }
 
-function extractUrl(val: string | undefined, platform: string): string | null {
-  if (!val) return null
-  const s = val.trim()
-  if (!s) return null
-  if (s.toLowerCase().includes(platform)) {
-    return s.startsWith('http') ? s : `https://${s}`
-  }
-  return null
-}
-
 // Map raw Excel row → ParsedRow using column aliases
 function mapRow(raw: Record<string, unknown>): Record<string, string | null> {
   const out: Record<string, string | null> = {}
@@ -236,17 +226,29 @@ export async function POST(req: NextRequest) {
     const CHUNK = 50
     const processed: ProcessedRow[] = []
     for (let i = 0; i < rawRows.length; i += CHUNK) {
-      const chunk = await aiCleanChunk(rawRows.slice(i, i + CHUNK))
+      const slice = rawRows.slice(i, i + CHUNK)
+      const chunk = await aiCleanChunk(slice)
+      // Safety: if AI returns fewer rows than input, pad with fallback-mapped rows
+      if (chunk.length < slice.length) {
+        const fallback = slice.slice(chunk.length).map(raw => {
+          const mapped = mapRow(raw)
+          return { full_name: mapped.full_name || 'Unknown', phone: cleanPhone(mapped.phone), phone_2: cleanPhone(mapped.phone_2), email: mapped.email || null, ward: mapped.ward || null, district: mapped.district || null, region: mapped.region || 'Dar es Salaam', facebook_url: mapped.facebook_url || null, instagram_url: mapped.instagram_url || null, tiktok_url: mapped.tiktok_url || null, whatsapp_number: cleanPhone(mapped.whatsapp_number), notes: mapped.notes || null, address: mapped.address || null }
+        })
+        chunk.push(...fallback)
+      } else if (chunk.length > slice.length) {
+        chunk.splice(slice.length)
+      }
       processed.push(...chunk)
     }
 
     // ── In-file duplicate detection ────────────────────────────────────────
     const withInFileDups = detectInFileDuplicates(processed)
 
-    // ── Cross-check with DB (up to 5000 existing) ──────────────────────────
+    // ── Cross-check with DB (up to 5000 existing non-duplicates) ──────────────
     const { data: existing } = await supabaseAdmin
       .from('leads')
       .select('id,full_name,phone,ward,facebook_url,instagram_url,tiktok_url,whatsapp_number')
+      .eq('is_duplicate', false)
       .limit(5000)
 
     const final = crossCheckDB(withInFileDups, existing || [])

@@ -28,7 +28,8 @@ async function headCheck(url: string, timeout = 9000): Promise<SocialStatus> {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' },
     })
     if (res.status === 200 || res.status === 301 || res.status === 302 || res.status === 307) return 'active'
-    if (res.status === 404 || res.status === 410 || res.status === 403) return 'not_found'
+    if (res.status === 404 || res.status === 410) return 'not_found'
+    // 403 from Facebook/TikTok means the page exists but blocks bots — not the same as not found
     return 'inactive'
   } catch {
     return 'unchecked'
@@ -117,10 +118,10 @@ export async function verifyLeadBatch(
   delayMs = 300
 ): Promise<SocialVerifyResult[]> {
   const results: SocialVerifyResult[] = []
-  for (const lead of leads) {
-    const result = await verifySingleLead(lead)
+  for (let i = 0; i < leads.length; i++) {
+    const result = await verifySingleLead(leads[i])
     results.push(result)
-    if (delayMs > 0 && leads.indexOf(lead) < leads.length - 1) {
+    if (delayMs > 0 && i < leads.length - 1) {
       await new Promise(r => setTimeout(r, delayMs))
     }
   }

@@ -51,10 +51,11 @@ export async function GET(req: NextRequest) {
     if (ward)       q = q.ilike('ward', `%${ward}%`)
     if (batchId)    q = q.eq('import_batch_id', batchId)
 
-    if (socialFilter === 'has_facebook')    q = q.not('facebook_url', 'is', null)
+    if (socialFilter === 'has_facebook')       q = q.not('facebook_url', 'is', null)
     else if (socialFilter === 'has_instagram') q = q.not('instagram_url', 'is', null)
     else if (socialFilter === 'has_tiktok')    q = q.not('tiktok_url', 'is', null)
-    else if (socialFilter === 'active_social') q = q.gt('social_score', 0)
+    else if (socialFilter === 'has_whatsapp')  q = q.not('whatsapp_number', 'is', null)
+    else if (socialFilter === 'active_social') q = q.eq('has_any_social', true)
     else if (socialFilter === 'none')          q = q.eq('has_any_social', false)
 
     if (search) {

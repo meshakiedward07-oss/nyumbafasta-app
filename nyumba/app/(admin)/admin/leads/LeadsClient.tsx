@@ -111,6 +111,7 @@ export default function LeadsClient() {
 
   // Filters
   const [page,          setPage]          = useState(1)
+  const [searchInput,   setSearchInput]   = useState('')
   const [search,        setSearch]        = useState('')
   const [qualityFilter, setQualityFilter] = useState('')
   const [typeFilter,    setTypeFilter]    = useState('')
@@ -181,6 +182,12 @@ export default function LeadsClient() {
     } catch { /* silent */ } finally { setStatsLoading(false) }
   }, [])
 
+  // Debounce search input → 400ms before triggering fetch
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput); setPage(1) }, 400)
+    return () => clearTimeout(t)
+  }, [searchInput])
+
   useEffect(() => { fetchLeads() }, [fetchLeads])
   useEffect(() => { fetchStats() }, [fetchStats])
 
@@ -225,22 +232,34 @@ export default function LeadsClient() {
 
   // ── Status change ──────────────────────────────────────────────────────────
   async function handleStatusChange(id: string, status: string) {
-    await fetch('/api/v1/leads', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, status }),
-    })
+    // Optimistic update
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l))
     if (detailLead?.id === id) setDetailLead(prev => prev ? { ...prev, status } : null)
+    try {
+      const res  = await fetch('/api/v1/leads', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      })
+      if (!res.ok) throw new Error('Server error')
+    } catch {
+      showToast('Imeshindwa kubadilisha status', false)
+      fetchLeads() // revert by refetching
+    }
   }
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   async function handleDelete(id: string, hard = false) {
     if (!confirm(hard ? 'Futa kabisa?' : 'Futa hii lead?')) return
-    await fetch(`/api/v1/leads?id=${id}&type=${hard ? 'hard' : 'soft'}`, { method: 'DELETE' })
-    setLeads(prev => prev.filter(l => l.id !== id))
-    setDetailLead(null)
-    fetchStats()
+    try {
+      const res = await fetch(`/api/v1/leads?id=${id}&type=${hard ? 'hard' : 'soft'}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Server error')
+      setLeads(prev => prev.filter(l => l.id !== id))
+      setDetailLead(null)
+      fetchStats()
+    } catch {
+      showToast('Imeshindwa kufuta lead', false)
+    }
   }
 
   // ── Add manual ─────────────────────────────────────────────────────────────
@@ -385,8 +404,8 @@ export default function LeadsClient() {
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" aria-hidden="true" />
-              <input type="text" value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1) }}
+              <input type="text" value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
                 placeholder="Tafuta jina, simu, ward…"
                 className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
@@ -409,10 +428,11 @@ export default function LeadsClient() {
               </select>
               <select value={socialFilter}  onChange={e => { setSocialFilter(e.target.value);  setPage(1) }} className="px-2.5 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none">
                 <option value="">Social zote</option>
-                <option value="active_social">Wana social hai</option>
+                <option value="active_social">Wana social yoyote</option>
                 <option value="has_facebook">Wana Facebook</option>
                 <option value="has_instagram">Wana Instagram</option>
                 <option value="has_tiktok">Wana TikTok</option>
+                <option value="has_whatsapp">Wana WhatsApp</option>
                 <option value="none">Hawana social</option>
               </select>
               <select value={statusFilter}  onChange={e => { setStatusFilter(e.target.value);  setPage(1) }} className="px-2.5 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none">
@@ -420,7 +440,7 @@ export default function LeadsClient() {
                 {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
               </select>
               {activeFilterCount > 0 && (
-                <button onClick={() => { setSearch(''); setQualityFilter(''); setTypeFilter(''); setStatusFilter(''); setSocialFilter(''); setShowDups(false); setShowDead(false); setPage(1) }}
+                <button onClick={() => { setSearchInput(''); setSearch(''); setQualityFilter(''); setTypeFilter(''); setStatusFilter(''); setSocialFilter(''); setShowDups(false); setShowDead(false); setPage(1) }}
                   className="px-2.5 py-2 text-xs text-red-500 border border-red-100 rounded-xl hover:bg-red-50">
                   <i className="ti ti-x" aria-hidden="true" /> Futa
                 </button>
@@ -439,7 +459,7 @@ export default function LeadsClient() {
                 <option value="">Aina zote</option><option value="dalali">Madalali</option><option value="mteja">Wateja</option><option value="owner">Wamiliki</option>
               </select>
               <select value={socialFilter} onChange={e => { setSocialFilter(e.target.value); setPage(1) }} className="px-3 py-2.5 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none">
-                <option value="">Social zote</option><option value="active_social">Social hai</option><option value="has_facebook">Facebook</option><option value="has_instagram">Instagram</option><option value="has_tiktok">TikTok</option>
+                <option value="">Social zote</option><option value="active_social">Social yoyote</option><option value="has_facebook">Facebook</option><option value="has_instagram">Instagram</option><option value="has_tiktok">TikTok</option><option value="has_whatsapp">WhatsApp</option>
               </select>
               <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} className="px-3 py-2.5 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none col-span-2">
                 <option value="">Status zote</option>{STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
