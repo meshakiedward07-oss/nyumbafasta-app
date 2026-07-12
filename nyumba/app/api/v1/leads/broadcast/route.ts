@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
       .select('id,full_name,phone,whatsapp_number')
       .eq('is_duplicate', false)
       .eq('is_dead_lead', false)
+      .not('status', 'in', '("inactive","rejected")')
       .or('phone.not.is.null,whatsapp_number.not.is.null') // must have some contact
 
     if (target === 'selected') {

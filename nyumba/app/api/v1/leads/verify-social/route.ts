@@ -28,13 +28,11 @@ export async function POST(req: NextRequest) {
 
     const results = await verifyLeadBatch(leadsWithSocial)
 
-    let verified = 0
-    for (const result of results) {
-      if (Object.keys(result.updates).length > 0) {
-        await supabaseAdmin.from('leads').update(result.updates).eq('id', result.id)
-        verified++
-      }
-    }
+    const updateOps = results.filter(r => Object.keys(r.updates).length > 0)
+    await Promise.all(
+      updateOps.map(r => supabaseAdmin.from('leads').update(r.updates).eq('id', r.id))
+    )
+    const verified = updateOps.length
 
     const statusCounts = results.flatMap(r => r.summary).reduce((acc, s) => {
       acc[s.status] = (acc[s.status] || 0) + 1

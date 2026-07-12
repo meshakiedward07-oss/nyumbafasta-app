@@ -45,12 +45,13 @@ function mapRow(raw: Record<string, unknown>): Record<string, string | null> {
       out[field] = String(val).trim()
     }
   }
-  // Additional scan for social URLs hidden in any column
+  // Additional scan for social URLs hidden in any column (only real URLs, not mentions)
+  const urlPattern = /^https?:\/\//i
   const allVals = Object.values(raw).map(v => String(v || '').trim())
   for (const v of allVals) {
-    if (!out.facebook_url  && v.toLowerCase().includes('facebook'))  out.facebook_url  = v.startsWith('http') ? v : `https://${v}`
-    if (!out.instagram_url && v.toLowerCase().includes('instagram'))  out.instagram_url = v.startsWith('http') ? v : `https://${v}`
-    if (!out.tiktok_url    && v.toLowerCase().includes('tiktok'))     out.tiktok_url    = v.startsWith('http') ? v : `https://${v}`
+    if (!out.facebook_url  && urlPattern.test(v) && /facebook\.com|fb\.com/i.test(v))   out.facebook_url  = v
+    if (!out.instagram_url && urlPattern.test(v) && /instagram\.com/i.test(v))           out.instagram_url = v
+    if (!out.tiktok_url    && urlPattern.test(v) && /tiktok\.com/i.test(v))              out.tiktok_url    = v
     if (!out.whatsapp_number && v.includes('wa.me')) {
       const m = v.match(/wa\.me\/(\d{7,15})/)
       if (m) out.whatsapp_number = cleanPhone(m[1])
@@ -79,7 +80,7 @@ Jibu JSON array PEKE YAKE (bila markdown):
 
     const msg = await ai.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 8000,
+      max_tokens: 16000,
       messages: [{ role: 'user', content: prompt }],
     })
 
@@ -142,29 +143,65 @@ function similarity(a: string, b: string): number {
 }
 
 // ── In-file duplicate detection ───────────────────────────────────────────────
+// For large batches (>2000 rows), skip fuzzy name-similarity to avoid O(n²) timeout.
+// Exact phone/social-URL matches still run for all batch sizes.
 function detectInFileDuplicates(leads: ProcessedRow[]): (ProcessedRow & { is_duplicate: boolean; duplicate_reason: string | null; name_similarity_score: number | null })[] {
+  const useFuzzySim = leads.length <= 2000
   const out = leads.map(l => ({ ...l, is_duplicate: false, duplicate_reason: null as string | null, name_similarity_score: null as number | null }))
+
+  // Build exact-match indexes for O(1) lookup
+  const phoneIndex   = new Map<string, number>()
+  const fbIndex      = new Map<string, number>()
+  const igIndex      = new Map<string, number>()
+  const ttIndex      = new Map<string, number>()
+  const waIndex      = new Map<string, number>()
+
   for (let i = 0; i < out.length; i++) {
-    for (let j = i + 1; j < out.length; j++) {
-      if (out[j].is_duplicate) continue
-      const a = out[i], b = out[j]
-      const reasons: string[] = []
+    const a = out[i]
+    if (a.is_duplicate) continue
+    const reasons: string[] = []
 
-      if (a.phone && b.phone && a.phone === b.phone) reasons.push('Simu inafanana')
-      if (a.facebook_url && b.facebook_url && a.facebook_url === b.facebook_url) reasons.push('Facebook URL inafanana')
-      if (a.instagram_url && b.instagram_url && a.instagram_url === b.instagram_url) reasons.push('Instagram URL inafanana')
-      if (a.tiktok_url && b.tiktok_url && a.tiktok_url === b.tiktok_url) reasons.push('TikTok URL inafanana')
-      if (a.whatsapp_number && b.whatsapp_number && a.whatsapp_number === b.whatsapp_number) reasons.push('WhatsApp inafanana')
+    // Exact-match checks via index
+    if (a.phone) {
+      if (phoneIndex.has(a.phone)) reasons.push('Simu inafanana')
+      else phoneIndex.set(a.phone, i)
+    }
+    if (a.facebook_url) {
+      if (fbIndex.has(a.facebook_url)) reasons.push('Facebook URL inafanana')
+      else fbIndex.set(a.facebook_url, i)
+    }
+    if (a.instagram_url) {
+      if (igIndex.has(a.instagram_url)) reasons.push('Instagram URL inafanana')
+      else igIndex.set(a.instagram_url, i)
+    }
+    if (a.tiktok_url) {
+      if (ttIndex.has(a.tiktok_url)) reasons.push('TikTok URL inafanana')
+      else ttIndex.set(a.tiktok_url, i)
+    }
+    if (a.whatsapp_number) {
+      if (waIndex.has(a.whatsapp_number)) reasons.push('WhatsApp inafanana')
+      else waIndex.set(a.whatsapp_number, i)
+    }
 
-      const sim = similarity(a.full_name, b.full_name)
-      if (sim >= 80 && a.ward && b.ward && a.ward.toLowerCase() === b.ward.toLowerCase()) {
-        reasons.push(`Jina ${sim}% + ward moja`)
-        out[j].name_similarity_score = sim
-      }
+    if (reasons.length > 0) {
+      out[i].is_duplicate = true
+      out[i].duplicate_reason = reasons.join(', ')
+      continue
+    }
 
-      if (reasons.length > 0) {
-        out[j].is_duplicate = true
-        out[j].duplicate_reason = reasons.join(', ')
+    // Fuzzy name similarity — only for small batches
+    if (useFuzzySim && a.ward) {
+      for (let j = 0; j < i; j++) {
+        if (out[j].is_duplicate) continue
+        const b = out[j]
+        if (!b.ward || b.ward.toLowerCase() !== a.ward.toLowerCase()) continue
+        const sim = similarity(a.full_name, b.full_name)
+        if (sim >= 80) {
+          out[i].is_duplicate = true
+          out[i].duplicate_reason = `Jina ${sim}% + ward moja`
+          out[i].name_similarity_score = sim
+          break
+        }
       }
     }
   }
@@ -200,6 +237,7 @@ export async function POST(req: NextRequest) {
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
+  let batchId: string | null = null
   try {
     const formData = await req.formData()
     const file     = formData.get('file') as File | null
@@ -220,7 +258,7 @@ export async function POST(req: NextRequest) {
       .from('lead_import_batches')
       .insert({ filename: file.name, total_rows: rawRows.length, status: 'processing' })
       .select('id').single()
-    const batchId = batch?.id as string
+    batchId = batch?.id as string
 
     // ── AI process in chunks of 50 ─────────────────────────────────────────
     const CHUNK = 50
@@ -350,6 +388,14 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
     console.error('[Leads Import]', msg)
+    // Mark batch as failed so it doesn't stay 'processing' forever
+    if (typeof batchId === 'string') {
+      await supabaseAdmin
+        .from('lead_import_batches')
+        .update({ status: 'failed', error_message: msg, completed_at: new Date().toISOString() })
+        .eq('id', batchId)
+        .then(() => {}) // fire-and-forget, don't shadow original error
+    }
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

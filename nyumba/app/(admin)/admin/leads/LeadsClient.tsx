@@ -41,6 +41,7 @@ type Stats = {
   total: number; high: number; medium: number; low: number
   dead: number; duplicates: number
   has_whatsapp: number; has_facebook: number; has_instagram: number; has_tiktok: number
+  has_any_social: number
 }
 
 type ImportResult = {
@@ -106,7 +107,7 @@ export default function LeadsClient() {
   const [total, setTotal]         = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading]     = useState(true)
-  const [stats, setStats]         = useState<Stats>({ total:0,high:0,medium:0,low:0,dead:0,duplicates:0,has_whatsapp:0,has_facebook:0,has_instagram:0,has_tiktok:0 })
+  const [stats, setStats]         = useState<Stats>({ total:0,high:0,medium:0,low:0,dead:0,duplicates:0,has_whatsapp:0,has_facebook:0,has_instagram:0,has_tiktok:0,has_any_social:0 })
   const [statsLoading, setStatsLoading] = useState(true)
 
   // Filters
@@ -265,6 +266,7 @@ export default function LeadsClient() {
       const res = await fetch(`/api/v1/leads?id=${id}&type=${hard ? 'hard' : 'soft'}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Server error')
       setLeads(prev => prev.filter(l => l.id !== id))
+      setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n })
       setDetailLead(null)
       fetchStats()
     } catch {
@@ -295,7 +297,16 @@ export default function LeadsClient() {
 
   // ── Export ─────────────────────────────────────────────────────────────────
   async function handleExport() {
-    const p = new URLSearchParams({ limit:'5000', duplicates: String(showDups), dead: String(showDead), ...(qualityFilter && { quality: qualityFilter }) })
+    const p = new URLSearchParams({
+      limit: '5000',
+      duplicates: String(showDups),
+      dead: String(showDead),
+      ...(search        && { search }),
+      ...(qualityFilter && { quality: qualityFilter }),
+      ...(typeFilter    && { type:    typeFilter }),
+      ...(statusFilter  && { status:  statusFilter }),
+      ...(socialFilter  && { social:  socialFilter }),
+    })
     const res  = await fetch(`/api/v1/leads?${p}`)
     const data = await res.json()
     const XLSX = await import('xlsx')
@@ -412,7 +423,7 @@ export default function LeadsClient() {
             { label:'Amekufa',     val: stats.dead,         bg:'bg-red-50',     border:'border-red-200',     text:'text-red-700',     small:'text-red-500',    filter: 'dead' },
             { label:'Duplicates',  val: stats.duplicates,   bg:'bg-gray-50',    border:'border-gray-200',    text:'text-gray-700',    small:'text-gray-500',   filter: 'dup' },
             { label:'WhatsApp',    val: stats.has_whatsapp, bg:'bg-green-50',   border:'border-green-200',   text:'text-green-800',   small:'text-green-600',  filter: 'whatsapp' },
-            { label:'Social',      val: stats.has_facebook + stats.has_instagram + stats.has_tiktok, bg:'bg-purple-50', border:'border-purple-200', text:'text-purple-800', small:'text-purple-600', filter: 'active_social' },
+            { label:'Social',      val: stats.has_any_social, bg:'bg-purple-50', border:'border-purple-200', text:'text-purple-800', small:'text-purple-600', filter: 'active_social' },
           ].map((s) => {
             const isActive = (s.filter === 'high' && qualityFilter === 'high') ||
               (s.filter === 'medium' && qualityFilter === 'medium') ||

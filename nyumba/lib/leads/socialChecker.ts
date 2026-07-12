@@ -106,7 +106,7 @@ export async function verifySingleLead(lead: LeadSocialInput): Promise<SocialVer
   if (lead.whatsapp_number) {
     updates.whatsapp_status      = 'has_number'
     updates.whatsapp_verified_at = now
-    summary.push({ platform: 'whatsapp', status: 'active' })
+    summary.push({ platform: 'whatsapp', status: 'has_number' as SocialStatus })
   }
 
   return { id: lead.id, updates, summary }
