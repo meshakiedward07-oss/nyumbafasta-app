@@ -292,13 +292,36 @@ export default function PostEditorDrawer({ listing, defaultPlatform, onClose, on
         }),
       })
       const body = await res.text()
-      let data: { ok?: boolean; status?: string; error?: string } = {}
+      let data: {
+        ok?: boolean; status?: string; error?: string; warning?: string
+        instagramPostId?: string; facebookPostId?: string
+      } = {}
       try { data = JSON.parse(body) } catch {
         showToast(`Hitilafu (${res.status}): ${body.slice(0, 100)}`); return
       }
-      if (data.error)                  { showToast(`Hitilafu: ${data.error}`); return }
-      if (data.status === 'published') { showToast('Imechapishwa!'); onPosted(); onClose() }
-      else                             { showToast('Imeshindwa kuchapisha') }
+
+      if (data.status === 'published') {
+        // Full or partial success
+        if (data.warning) {
+          // One platform failed but the other succeeded
+          const failedPlatform = data.instagramPostId && !data.facebookPostId ? 'Facebook' : 'Instagram'
+          const hint = data.warning.includes('pages_manage_posts')
+            ? `${failedPlatform}: Regenerate FB token na pages_manage_posts permission (angalia Test Connection)`
+            : `${failedPlatform} imeshindwa: ${data.warning.slice(0, 60)}`
+          showToast(`✅ Imechapishwa (${data.instagramPostId ? 'IG ✓ ' : ''}${data.facebookPostId ? 'FB ✓' : ''})  ⚠ ${hint}`)
+        } else {
+          showToast('✅ Imechapishwa!')
+        }
+        onPosted(); onClose()
+      } else if (data.error) {
+        // Total failure — both platforms failed
+        const hint = data.error.includes('pages_manage_posts')
+          ? 'FB token haina ruhusa — Angalia Test Connection, regenerate token kwenye Meta Business Suite'
+          : data.error.slice(0, 120)
+        showToast(`Imeshindwa: ${hint}`)
+      } else {
+        showToast('Imeshindwa kuchapisha — jaribu tena')
+      }
     } finally {
       setPosting(false); setMixProgress(0); setMixStep('')
     }

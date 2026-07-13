@@ -59,16 +59,51 @@ async function testInstagram(): Promise<TestResult> {
 }
 
 async function testFacebook(): Promise<TestResult> {
-  const token  = process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN
+  // INSTAGRAM_ACCESS_TOKEN is the actual FB Page Token (resolves /me → page ID)
+  const token  = process.env.INSTAGRAM_ACCESS_TOKEN ?? process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN
   const pageId = process.env.FACEBOOK_PAGE_ID
-  if (!token || !pageId) return { ok: false, error: 'FACEBOOK_PAGE_ACCESS_TOKEN au FACEBOOK_PAGE_ID hazijakonfigurwa' }
+  if (!token || !pageId) return { ok: false, error: 'INSTAGRAM_ACCESS_TOKEN au FACEBOOK_PAGE_ID hazijakonfigurwa' }
 
   try {
-    const res  = await fetch(`${GRAPH}/${pageId}?fields=id,name,fan_count&access_token=${token}`)
-    const data = await res.json() as { id?: string; name?: string; fan_count?: number; error?: { message: string; code?: number } }
+    // 1. Verify page is accessible (read)
+    const pageRes  = await fetch(`${GRAPH}/${pageId}?fields=id,name&access_token=${token}`)
+    const pageData = await pageRes.json() as { id?: string; name?: string; error?: { message: string; code?: number } }
+    if (pageData.error) return { ok: false, error: `FB API: ${pageData.error.message} (code ${pageData.error.code})` }
 
-    if (data.error) return { ok: false, error: `FB API: ${data.error.message} (code ${data.error.code})` }
-    return { ok: true, name: data.name }
+    // 2. Try a test feed post to verify pages_manage_posts permission
+    const testRes  = await fetch(`${GRAPH}/${pageId}/feed`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        message:      `NyumbaFasta connection test ${Date.now()} [auto-delete]`,
+        access_token: token,
+      }),
+    })
+    const testData = await testRes.json() as { id?: string; error?: { message: string; code?: number } }
+
+    if (testData.error) {
+      const msg  = testData.error.message
+      const code = testData.error.code ?? 0
+      if (code === 200) {
+        return {
+          ok:    false,
+          name:  pageData.name,
+          error: 'Token haina ruhusa ya pages_manage_posts. ' +
+                 'Hatua za kurekebisha: ' +
+                 '1) Nenda Meta for Developers → App yako → Permissions → ongeza pages_manage_posts. ' +
+                 '2) Tengeneza token mpya ukitumia /{user-id}/accounts au Meta Business Suite → System Users. ' +
+                 '3) Weka token hiyo kama INSTAGRAM_ACCESS_TOKEN kwenye Vercel.',
+        }
+      }
+      return { ok: false, name: pageData.name, error: `FB post test: ${msg}` }
+    }
+
+    // Post succeeded — immediately delete it
+    if (testData.id) {
+      await fetch(`${GRAPH}/${testData.id}?access_token=${token}`, { method: 'DELETE' })
+    }
+
+    return { ok: true, name: pageData.name }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Hitilafu ya mtandao' }
   }

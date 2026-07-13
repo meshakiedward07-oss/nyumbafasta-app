@@ -21,7 +21,8 @@ export type PostResult = {
   facebookPostId?:   string
   caption:         string
   status:          'published' | 'failed'
-  error?:          string
+  error?:          string   // set only when status='failed' (total failure)
+  warning?:        string   // set when status='published' but one platform failed (partial)
   groupsPosted?:   number
   storyPosted?:    boolean
   carouselPosted?: boolean
@@ -270,6 +271,10 @@ export async function postListingToSocialMedia(
     }
   }
 
+  // When published=true but one platform failed, put the partial error in `warning`
+  // (not `error`) so the caller can show a success toast while surfacing the issue.
+  // `error` is reserved for total failures where status='failed'.
+  const isPartialFailure = published && !!lastError
   return {
     postId,
     platform,
@@ -277,7 +282,8 @@ export async function postListingToSocialMedia(
     facebookPostId:  fbPostId ?? undefined,
     caption,
     status:          published ? 'published' : 'failed',
-    error:           lastError ?? undefined,
+    error:           !published ? (lastError ?? undefined) : undefined,
+    warning:         isPartialFailure ? (lastError ?? undefined) : undefined,
     groupsPosted,
     storyPosted,
     carouselPosted,

@@ -22,17 +22,28 @@ const WM_TEXT = 'NyumbaFasta%20%E2%80%A2%20nyumbafasta.co'
 const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? 'daw8jlbbd'
 
 // ─── Cloudinary video overlay ─────────────────────────────────────────────────
+// Cloudinary text-layer overlays need TWO transformation segments:
+//   segment 1 — layer definition: text, color, background, padding, radius
+//   segment 2 — fl_layer_apply with gravity + y offset
+// Mixing them into one comma-separated block causes "invalid transformation
+// parameter" errors for pa_ and r_ qualifiers on video overlays.
 
 function buildVideoOverlay(): string {
-  return [
+  const layerDef = [
     `l_text:Arial_38_bold:${WM_TEXT}`,
     'co_white',
     'b_rgb:000000B3',   // semi-transparent black background (~70% opacity)
+    'pa_12',            // 12px padding around text
+    'r_20',             // 20px border radius on the background box
+  ].join(',')
+
+  const layerApply = [
+    'fl_layer_apply',
     'g_south',          // bottom-center (best for vertical Reels)
     'y_50',             // 50px from bottom
-    'pa_12',            // 12px padding
-    'r_20',             // 20px border radius
   ].join(',')
+
+  return `${layerDef}/${layerApply}`
 }
 
 /**

@@ -154,6 +154,7 @@ export default function LeadsClient() {
 
   // Verify social
   const [verifying, setVerifying] = useState(false)
+  const [revalidatingWa, setRevalidatingWa] = useState(false)
 
   // Broadcast
   const [showBroadcastModal, setShowBroadcastModal] = useState(false)
@@ -258,6 +259,19 @@ export default function LeadsClient() {
       fetchLeads()
     } catch { showToast('Hitilafu wakati wa kucheki', false) }
     finally { setVerifying(false) }
+  }
+
+  // ── Re-validate all WhatsApp numbers (format check, no HTTP) ─────────────
+  async function handleRevalidateWhatsapp() {
+    setRevalidatingWa(true)
+    try {
+      const res  = await fetch('/api/v1/admin/leads/revalidate-whatsapp', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      showToast(`✅ WhatsApp: ${data.active} sahihi, ${data.inactive} batili (${data.total} jumla)`)
+      fetchLeads()
+    } catch { showToast('Imeshindwa kufanya re-validate', false) }
+    finally { setRevalidatingWa(false) }
   }
 
   // ── Status change ──────────────────────────────────────────────────────────
@@ -485,6 +499,11 @@ export default function LeadsClient() {
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50">
               {verifying ? <i className="ti ti-loader-2 animate-spin" /> : <i className="ti ti-brand-tiktok" />}
               {verifying ? 'Inacheki…' : 'Check Social'}
+            </button>
+            <button onClick={handleRevalidateWhatsapp} disabled={revalidatingWa}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 border border-green-200 rounded-xl text-xs font-medium text-green-700 hover:bg-green-50 disabled:opacity-50">
+              {revalidatingWa ? <i className="ti ti-loader-2 animate-spin" /> : <i className="ti ti-brand-whatsapp" />}
+              {revalidatingWa ? 'Inafanya…' : 'Fix WA'}
             </button>
             <button onClick={() => { setShowBroadcastModal(true); setBroadcastResult(null) }}
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-[#25D366] text-white text-xs font-bold rounded-xl hover:bg-green-600">

@@ -32,6 +32,18 @@ export async function postInstagramCarousel(params: {
   const containerIds: string[] = []
 
   for (let i = 0; i < images.length; i++) {
+    // Pre-validate URL reachability — IG rejects non-200 URLs with a confusing error
+    try {
+      const head = await fetch(images[i], { method: 'HEAD', signal: AbortSignal.timeout(8_000) })
+      if (!head.ok) {
+        console.warn(`[Carousel] Item ${i + 1} URL returned ${head.status} — skipping`)
+        continue
+      }
+    } catch {
+      console.warn(`[Carousel] Item ${i + 1} URL unreachable — skipping`)
+      continue
+    }
+
     try {
       console.log('[Carousel] Creating item', i + 1, 'of', images.length)
       const id = await createIGCarouselItemContainer(images[i])

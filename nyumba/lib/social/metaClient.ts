@@ -3,8 +3,9 @@ import { createHmac, timingSafeEqual } from 'crypto'
 const GRAPH = 'https://graph.facebook.com/v21.0'
 
 const igToken   = () => process.env.INSTAGRAM_ACCESS_TOKEN ?? ''
-// Page operations require PAGE token, not System User token
-const fbToken   = () => process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
+// INSTAGRAM_ACCESS_TOKEN IS the Facebook Page Token (resolves /me to the FB page).
+// Use it for FB page operations too. FACEBOOK_PAGE_ACCESS_TOKEN kept as fallback for compat.
+const fbToken   = () => process.env.INSTAGRAM_ACCESS_TOKEN ?? process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
 const igUserId  = () => process.env.INSTAGRAM_USER_ID      ?? ''
 const fbPageId  = () => process.env.FACEBOOK_PAGE_ID       ?? ''
 

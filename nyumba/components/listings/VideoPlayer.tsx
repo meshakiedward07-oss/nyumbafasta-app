@@ -94,6 +94,17 @@ export function VideoPlayer({
     setProgress(pct * 100)
   }
 
+  function handleTouchSeek(e: React.TouchEvent<HTMLDivElement>) {
+    const v = videoRef.current
+    const bar = progressRef.current
+    if (!v || !bar) return
+    const touch = e.changedTouches[0]
+    const rect = bar.getBoundingClientRect()
+    const pct = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width))
+    v.currentTime = pct * v.duration
+    setProgress(pct * 100)
+  }
+
   function toggleMute() {
     const v = videoRef.current
     if (!v) return
@@ -196,7 +207,7 @@ export function VideoPlayer({
   return (
     <div
       ref={containerRef}
-      className={`relative bg-black rounded-2xl overflow-hidden group ${containerAspect} ${className}`}
+      className={`relative bg-black rounded-2xl overflow-hidden group cursor-pointer ${containerAspect} ${className}`}
       onMouseMove={showControlsTemporarily}
       onTouchStart={showControlsTemporarily}
       onClick={togglePlay}
@@ -218,6 +229,7 @@ export function VideoPlayer({
         poster={poster ?? undefined}
         preload="metadata"
         playsInline
+        crossOrigin="anonymous"
         muted={isMuted}
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleTimeUpdate}
@@ -284,8 +296,9 @@ export function VideoPlayer({
           {/* Progress bar */}
           <div
             ref={progressRef}
-            className="relative h-1 bg-white/30 rounded-full cursor-pointer group/bar hover:h-2 transition-all"
+            className="relative h-1.5 bg-white/30 rounded-full cursor-pointer group/bar hover:h-3 transition-all touch-none"
             onClick={handleSeek}
+            onTouchEnd={handleTouchSeek}
           >
             <div className="absolute inset-y-0 left-0 bg-white/40 rounded-full" style={{ width: `${buffered}%` }} />
             <div className="absolute inset-y-0 left-0 bg-white rounded-full" style={{ width: `${progress}%` }} />

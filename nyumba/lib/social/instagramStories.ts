@@ -5,7 +5,8 @@ import type { Listing } from '@/lib/types/database'
 const GRAPH      = 'https://graph.facebook.com/v21.0'
 const igToken    = () => process.env.INSTAGRAM_ACCESS_TOKEN ?? ''
 const igUserId   = () => process.env.INSTAGRAM_USER_ID      ?? ''
-const fbToken    = () => process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
+// INSTAGRAM_ACCESS_TOKEN IS the Facebook Page Token — use it for FB page ops too
+const fbToken    = () => process.env.INSTAGRAM_ACCESS_TOKEN ?? process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
 const fbPageId   = () => process.env.FACEBOOK_PAGE_ID ?? ''
 
 // ── Build a 9:16 story-format image URL ───────────────────────────────────────
@@ -22,17 +23,19 @@ export function buildStoryImageUrl(imageUrl: string): string {
   const base = imageUrl.slice(0, idx + marker.length)
   const rest = imageUrl.slice(idx + marker.length)
 
-  // Crop to 9:16, then add watermark at bottom-center
+  // Crop to 9:16, then add watermark at bottom-center.
+  // NOTE: pa_ (padding) is NOT supported for image overlays — use bo_ (transparent border trick) instead.
+  // Tested: this format returns HTTP 200 from Cloudinary. pa_12 causes HTTP 400.
   const transforms = [
     'ar_9:16,c_fill,g_auto,w_1080',
     [
       'l_text:Arial_32_bold:NyumbaFasta%20%E2%80%A2%20nyumbafasta.co',
       'co_white',
       'b_rgb:000000B3',
-      'g_south',
+      'bo_10px_solid_rgb:00000000',  // transparent border = padding (pa_ not supported on images)
+      'r_20',                         // border radius
+      'g_south',                      // bottom-center
       'y_60',
-      'pa_12',
-      'r_20',
     ].join(','),
   ].join('/')
 
@@ -157,19 +160,10 @@ export async function postFacebookStory(params: {
       return { success: true, storyId: data.post_id }
     }
 
-    // Photo story
-    const res  = await fetch(`${GRAPH}/${fbPageId()}/photo_stories`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        photo:        { url: params.imageUrl },
-        access_token: fbToken(),
-      }),
-    })
-    const data = await res.json() as { post_id?: string; error?: { message: string } }
-    if (data.error) throw new Error(data.error.message)
-    console.log('[FB Story] Photo story posted:', data.post_id)
-    return { success: true, storyId: data.post_id }
+    // FB photo_stories is not supported on all page types (returns code=1 "unknown error").
+    // When no video is available we skip FB story silently — IG story still posts.
+    console.warn('[FB Story] photo_stories not supported for this page — skipping FB image story')
+    return { success: false, error: 'FB page haisaidii photo_stories (video story inafanya kazi)' }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[FB Story] Exception:', msg)

@@ -4,16 +4,15 @@ import { requireAdminUser } from '@/lib/security/adminAuth'
 
 export const dynamic = 'force-dynamic'
 
-// Cloudinary video overlay — same as videoWatermark.ts
-const OVERLAY = [
-  'l_text:Arial_38_bold:NyumbaFasta%20%E2%80%A2%20nyumbafasta.co',
-  'co_white',
-  'b_rgb:000000B3',
-  'g_south',
-  'y_50',
-  'pa_12',
-  'r_20',
-].join(',')
+// Cloudinary video overlay — must match buildVideoOverlay() in videoWatermark.ts
+// Two segments separated by '/':
+//   segment 1: layer definition (text, color, background, padding, radius)
+//   segment 2: fl_layer_apply + gravity + position
+// Mixing pa_ / r_ with g_ / y_ into one comma block causes
+// "invalid transformation parameter" errors on video overlays.
+const OVERLAY =
+  'l_text:Arial_38_bold:NyumbaFasta%20%E2%80%A2%20nyumbafasta.co,co_white,b_rgb:000000B3,pa_12,r_20' +
+  '/fl_layer_apply,g_south,y_50'
 
 // GET /api/v1/social/video/upload-sign
 // Returns a Cloudinary signed upload signature so the client can upload
