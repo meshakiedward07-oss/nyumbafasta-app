@@ -15,87 +15,73 @@ export async function POST() {
   const admin = createAdminClient()
 
   try {
-    // Fetch all leads (filter nulls in JS to avoid PostgREST filter issues)
-    const PAGE = 1000
-    let offset = 0
-    let totalFixed = 0
-    let totalActive = 0
-    let totalInactive = 0
+    console.log('[RevalidateWA] step1: starting select')
+    const { data: allLeads, error: selectError } = await admin
+      .from('leads')
+      .select('id, whatsapp_number')
+      .limit(1000)
 
-    while (true) {
-      let allLeads: { id: string; whatsapp_number: string | null }[] | null = null
-      let selectError: unknown = null
-      try {
-        const res = await admin
-          .from('leads')
-          .select('id, whatsapp_number')
-          .range(offset, offset + PAGE - 1)
-        allLeads = res.data
-        selectError = res.error
-      } catch (fetchErr) {
-        console.error('[Revalidate WA] Select threw:', String(fetchErr))
-        throw fetchErr
-      }
+    console.log('[RevalidateWA] step2: select done, rows:', allLeads?.length ?? 'null', 'err:', JSON.stringify(selectError))
 
-      if (selectError) {
-        console.error('[Revalidate WA] Select error:', JSON.stringify(selectError))
-        throw selectError
-      }
+    if (selectError) throw selectError
 
-      const allFetched = allLeads ?? []
-      const leads = allFetched.filter((l: { whatsapp_number: string | null }) => l.whatsapp_number)
-      if (!leads || leads.length === 0) break
+    const leads = (allLeads ?? []).filter((l) => l.whatsapp_number)
+    console.log('[RevalidateWA] step3: leads with phone:', leads.length)
 
-      const now = new Date().toISOString()
-      const regex = /^\+255\d{9}$/
-
-      const activeIds:   string[] = []
-      const inactiveIds: string[] = []
-      const repairs: Array<{ id: string; whatsapp_number: string }> = []
-
-      for (const lead of leads) {
-        const cleaned = cleanPhone(lead.whatsapp_number)
-        const isValid = cleaned != null && regex.test(cleaned ?? '')
-        if (isValid) activeIds.push(lead.id)
-        else         inactiveIds.push(lead.id)
-        if (cleaned && cleaned !== lead.whatsapp_number) repairs.push({ id: lead.id, whatsapp_number: cleaned! })
-      }
-
-      // Batch UPDATE by status (no upsert — avoids NOT NULL constraint on other columns)
-      if (activeIds.length > 0) {
-        const { error: e } = await admin.from('leads')
-          .update({ whatsapp_status: 'active', whatsapp_verified_at: now })
-          .in('id', activeIds)
-        if (e) throw e
-      }
-      if (inactiveIds.length > 0) {
-        const { error: e } = await admin.from('leads')
-          .update({ whatsapp_status: 'inactive', whatsapp_verified_at: now })
-          .in('id', inactiveIds)
-        if (e) throw e
-      }
-      // Individual updates for phone repairs
-      for (const r of repairs) {
-        await admin.from('leads').update({ whatsapp_number: r.whatsapp_number }).eq('id', r.id)
-      }
-
-      totalActive   += activeIds.length
-      totalInactive += inactiveIds.length
-      totalFixed    += leads.length
-
-      if (allFetched.length < PAGE) break
-      offset += PAGE
+    if (leads.length === 0) {
+      return NextResponse.json({ success: true, total: 0, active: 0, inactive: 0 })
     }
 
+    const now = new Date().toISOString()
+    const regex = /^\+255\d{9}$/
+    const activeIds: string[] = []
+    const inactiveIds: string[] = []
+    const repairs: Array<{ id: string; whatsapp_number: string }> = []
+
+    for (const lead of leads) {
+      const cleaned = cleanPhone(lead.whatsapp_number)
+      const isValid = cleaned != null && regex.test(cleaned)
+      if (isValid) activeIds.push(lead.id)
+      else         inactiveIds.push(lead.id)
+      if (cleaned && cleaned !== lead.whatsapp_number) repairs.push({ id: lead.id, whatsapp_number: cleaned })
+    }
+
+    console.log('[RevalidateWA] step4: active:', activeIds.length, 'inactive:', inactiveIds.length, 'repairs:', repairs.length)
+
+    if (activeIds.length > 0) {
+      console.log('[RevalidateWA] step5a: updating active')
+      const { error: e } = await admin.from('leads')
+        .update({ whatsapp_status: 'active', whatsapp_verified_at: now })
+        .in('id', activeIds)
+      console.log('[RevalidateWA] step5a done, err:', JSON.stringify(e))
+      if (e) throw e
+    }
+
+    if (inactiveIds.length > 0) {
+      console.log('[RevalidateWA] step5b: updating inactive')
+      const { error: e } = await admin.from('leads')
+        .update({ whatsapp_status: 'inactive', whatsapp_verified_at: now })
+        .in('id', inactiveIds)
+      console.log('[RevalidateWA] step5b done, err:', JSON.stringify(e))
+      if (e) throw e
+    }
+
+    for (const r of repairs) {
+      await admin.from('leads').update({ whatsapp_number: r.whatsapp_number }).eq('id', r.id)
+    }
+
+    console.log('[RevalidateWA] step6: done')
     return NextResponse.json({
       success: true,
-      total: totalFixed,
-      active: totalActive,
-      inactive: totalInactive,
+      total: leads.length,
+      active: activeIds.length,
+      inactive: inactiveIds.length,
     })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : JSON.stringify(err)
-    console.error('[RevalidateWA]', msg, err)
-    return NextResponse.json({ error: 'Hitilafu ya seva', detail: msg }, { status: 500 })
+    const detail = err instanceof Error
+      ? err.message
+      : (typeof err === 'object' && err !== null ? JSON.stringify(err) : String(err))
+    console.error('[RevalidateWA] CAUGHT:', detail)
+    return NextResponse.json({ error: 'Hitilafu ya seva', detail }, { status: 500 })
   }
 }
