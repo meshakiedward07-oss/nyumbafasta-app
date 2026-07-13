@@ -101,13 +101,13 @@ export async function GET(request: NextRequest) {
       if (process.env.RESEND_API_KEY) {
         const { data: userRow } = await supabase
           .from('users')
-          .select('created_at, email, full_name, phone, region')
+          .select('created_at, full_name, phone, region')
           .eq('id', data.user.id)
           .single()
         const isNewUser = userRow?.created_at
           ? Date.now() - new Date(userRow.created_at as string).getTime() < 300_000
           : false
-        const userEmail  = (userRow?.email  as string | null) ?? data.user.email
+        const userEmail  = data.user.email
         const userName   = (userRow?.full_name as string | null) ?? (data.user.user_metadata?.full_name as string) ?? 'Mtumiaji'
         const userPhone  = (userRow?.phone as string | null) ?? null
         const userRegion = (userRow?.region as string | null) ?? null
@@ -128,14 +128,21 @@ export async function GET(request: NextRequest) {
             ;(async () => {
               try {
                 const adminClient = createAdminClient()
-                const [{ data: staffList }, { data: adminList }] = await Promise.all([
-                  adminClient.from('users').select('email').eq('role', 'staff').eq('staff_active', true),
-                  adminClient.from('users').select('email').eq('role', 'admin'),
+                // Fetch staff and admin user IDs, then resolve emails via auth.admin
+                const [staffRes, adminRes] = await Promise.all([
+                  adminClient.from('users').select('id').eq('role', 'staff').eq('staff_active', true),
+                  adminClient.from('users').select('id').eq('role', 'admin'),
                 ])
-                const recipients = [
-                  ...(staffList  || []).map(s => s.email as string),
-                  ...(adminList  || []).map(a => a.email as string),
-                ].filter(Boolean)
+                const recipientIds = [
+                  ...(staffRes.data ?? []).map(u => u.id as string),
+                  ...(adminRes.data ?? []).map(u => u.id as string),
+                ]
+                const emailList = await Promise.all(
+                  recipientIds.map(uid =>
+                    adminClient.auth.admin.getUserById(uid).then(r => r.data?.user?.email ?? null)
+                  )
+                )
+                const recipients = emailList.filter((e): e is string => Boolean(e))
 
                 if (recipients.length > 0 && userEmail) {
                   const { subject, html } = newUserAlertEmail(

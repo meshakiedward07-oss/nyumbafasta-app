@@ -40,7 +40,6 @@ export async function POST(req: NextRequest) {
     const { error: userError } = await admin.from('users').upsert(
       {
         id:        user.id,
-        email:     user.email ?? null,  // must be set — Google OAuth skips the trigger path that sets it
         phone:     user.phone ?? null,
         full_name,
         role,
