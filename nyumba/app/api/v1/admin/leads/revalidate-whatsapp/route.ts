@@ -14,9 +14,7 @@ export async function POST() {
 
   const admin = createAdminClient()
 
-  let step = 'start'
   try {
-    step = 'select'
     const { data: allLeads, error: selectError } = await admin
       .from('leads')
       .select('id, whatsapp_number')
@@ -24,14 +22,12 @@ export async function POST() {
 
     if (selectError) throw selectError
 
-    step = 'filter'
     const leads = (allLeads ?? []).filter((l) => l.whatsapp_number)
 
     if (leads.length === 0) {
       return NextResponse.json({ success: true, total: 0, active: 0, inactive: 0 })
     }
 
-    step = 'classify'
     const now = new Date().toISOString()
     const regex = /^\+255\d{9}$/
     const activeIds: string[] = []
@@ -46,23 +42,22 @@ export async function POST() {
       if (cleaned && cleaned !== lead.whatsapp_number) repairs.push({ id: lead.id, whatsapp_number: cleaned })
     }
 
-    if (activeIds.length > 0) {
-      step = 'update-active'
+    // Batch UPDATE in chunks of 100 to keep URL length under server limits
+    // (650+ UUIDs in one in.() filter exceeds server's URL length limit → 400)
+    const BATCH = 100
+    const chunks = (ids: string[]) =>
+      Array.from({ length: Math.ceil(ids.length / BATCH) }, (_, i) => ids.slice(i * BATCH, i * BATCH + BATCH))
+
+    for (const batch of chunks(activeIds)) {
       const { error: e } = await admin.from('leads')
-        .update({ whatsapp_status: 'active', whatsapp_verified_at: now })
-        .in('id', activeIds)
+        .update({ whatsapp_status: 'active', whatsapp_verified_at: now }).in('id', batch)
       if (e) throw e
     }
-
-    if (inactiveIds.length > 0) {
-      step = 'update-inactive'
+    for (const batch of chunks(inactiveIds)) {
       const { error: e } = await admin.from('leads')
-        .update({ whatsapp_status: 'inactive', whatsapp_verified_at: now })
-        .in('id', inactiveIds)
+        .update({ whatsapp_status: 'inactive', whatsapp_verified_at: now }).in('id', batch)
       if (e) throw e
     }
-
-    step = 'repairs'
     for (const r of repairs) {
       await admin.from('leads').update({ whatsapp_number: r.whatsapp_number }).eq('id', r.id)
     }
@@ -75,7 +70,7 @@ export async function POST() {
     })
   } catch (err) {
     const detail = typeof err === 'object' && err !== null ? JSON.stringify(err) : String(err)
-    console.error('[RevalidateWA] failed at step:', step, 'err:', detail)
-    return NextResponse.json({ error: 'Hitilafu ya seva', step, detail }, { status: 500 })
+    console.error('[RevalidateWA] error:', detail)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
 }
