@@ -78,15 +78,16 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient()
 
-  // Dedup — check phone or email already used (two separate queries to avoid raw filter interpolation)
-  const [{ data: byPhone }, { data: byEmail }] = await Promise.all([
-    admin.from('users').select('id').eq('phone', phone).maybeSingle(),
-    admin.from('users').select('id').eq('email', email).maybeSingle(),
-  ])
+  // Dedup phone via public.users (email dedup is handled by auth.admin.createUser below)
+  const { data: byPhone } = await admin
+    .from('users')
+    .select('id')
+    .eq('phone', phone)
+    .maybeSingle()
 
-  if (byPhone || byEmail) {
+  if (byPhone) {
     return NextResponse.json(
-      { error: 'Namba ya simu au email tayari inatumika' },
+      { error: 'Namba ya simu tayari inatumika' },
       { status: 409 }
     )
   }
@@ -106,19 +107,25 @@ export async function POST(req: NextRequest) {
 
   if (authError || !authData.user) {
     console.error('[Staff] Auth creation failed:', authError?.message)
-    return NextResponse.json({ error: `Imeshindwa kuunda akaunti: ${authError?.message ?? 'Hitilafu ya seva'}` }, { status: 500 })
+    // Supabase returns "User already registered" for duplicate email
+    const isDupEmail = authError?.message?.toLowerCase().includes('already registered') ||
+                       authError?.message?.toLowerCase().includes('already been registered')
+    return NextResponse.json(
+      { error: isDupEmail ? 'Email tayari inatumika' : `Imeshindwa kuunda akaunti: ${authError?.message ?? 'Hitilafu ya seva'}` },
+      { status: isDupEmail ? 409 : 500 }
+    )
   }
 
   const userId = authData.user.id
 
   // Upsert the users row (handles both: trigger already created it OR trigger hasn't fired yet)
+  // email is synced from auth.users via DB trigger — do not write it directly
   const { data: profile, error: profileError } = await admin
     .from('users')
     .upsert(
       {
         id: userId,
         full_name: name,
-        email,
         role: 'staff',
         phone,
         staff_title: staffTitle || 'Sales Agent',
