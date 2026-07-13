@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const { error: userError } = await admin.from('users').upsert(
       {
         id:        user.id,
-        phone:     user.phone ?? null,
+        phone:     user.phone || null,
         full_name,
         role,
         avatar_url: user.user_metadata?.avatar_url ?? null,
