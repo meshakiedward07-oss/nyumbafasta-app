@@ -556,13 +556,14 @@ export default function LeadsClient() {
           <div className="mb-4 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
             <p className="text-sm text-blue-800 font-medium"><i className="ti ti-git-merge mr-1.5" />Leads 2 zimechaguliwa — unganisha?</p>
             <button
+              disabled={mergingWith !== null}
               onClick={() => {
                 const [a, b] = [...selectedIds]
-                // First selected = primary, second = duplicate
                 handleMerge(b, a)
               }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 flex-shrink-0">
-              <i className="ti ti-git-merge" /> Unganisha
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 flex-shrink-0 disabled:opacity-50">
+              <i className={mergingWith ? 'ti ti-loader-2 animate-spin' : 'ti ti-git-merge'} />
+              {mergingWith ? 'Inaunganisha...' : 'Unganisha'}
             </button>
           </div>
         )}
