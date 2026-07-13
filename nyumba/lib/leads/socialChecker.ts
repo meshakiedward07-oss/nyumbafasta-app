@@ -1,6 +1,8 @@
 // Shared social media link verification logic
 // Used by: verify-social API route + auto-verify on manual add + auto-verify after import
 
+import { cleanPhone } from './cleanPhone'
+
 export type SocialStatus = 'active' | 'inactive' | 'not_found' | 'unchecked'
 
 export type LeadSocialInput = {
@@ -28,8 +30,9 @@ async function headCheck(url: string, timeout = 9000): Promise<SocialStatus> {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' },
     })
     if (res.status === 200 || res.status === 301 || res.status === 302 || res.status === 307) return 'active'
+    // 403: TikTok and Facebook block bots but the page EXISTS — treat as active
+    if (res.status === 403) return 'active'
     if (res.status === 404 || res.status === 410) return 'not_found'
-    // 403 from Facebook/TikTok means the page exists but blocks bots — not the same as not found
     return 'inactive'
   } catch {
     return 'unchecked'
@@ -104,9 +107,16 @@ export async function verifySingleLead(lead: LeadSocialInput): Promise<SocialVer
     summary.push({ platform: 'tiktok', status: ttStatus })
   }
   if (lead.whatsapp_number) {
-    updates.whatsapp_status      = 'has_number'
+    const cleaned = cleanPhone(lead.whatsapp_number)
+    const isValid = cleaned !== null && /^\+255\d{9}$/.test(cleaned)
+    const waStatus: SocialStatus = isValid ? 'active' : 'inactive'
+    updates.whatsapp_status      = waStatus
     updates.whatsapp_verified_at = now
-    summary.push({ platform: 'whatsapp', status: 'has_number' as SocialStatus })
+    // Repair trailing-0 numbers already in the DB
+    if (cleaned && cleaned !== lead.whatsapp_number) {
+      updates.whatsapp_number = cleaned
+    }
+    summary.push({ platform: 'whatsapp', status: waStatus })
   }
 
   return { id: lead.id, updates, summary }

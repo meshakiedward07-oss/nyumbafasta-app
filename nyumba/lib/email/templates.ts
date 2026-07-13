@@ -203,6 +203,125 @@ export function listingApprovedEmail(dalaliName: string, listingTitle: string, l
   }
 }
 
+// ── Staff welcome / credentials email ─────────────────────────────────────
+
+export function staffWelcomeEmail(name: string, email: string, tempPassword: string) {
+  const loginUrl = `${APP_URL}/login`
+  const changeUrl = `${APP_URL}/account/change-password`
+  return {
+    subject: '👋 Karibu NyumbaFasta — Akaunti Yako ya Staff Imeundwa',
+    html: emailBase(`
+      <span style="${styles.greeting}">Karibu ${name}! 🎉</span>
+      <span style="${styles.text}">Mkurugenzi amekuunda akaunti ya staff kwenye NyumbaFasta. Hapa chini ni maelezo yako ya kuingia.</span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">🔗 <strong>Link ya kuingia:</strong> <a href="${loginUrl}" style="color:#1D9E75">${loginUrl}</a></p>
+        <p style="${styles.infoText}">📧 <strong>Email:</strong> ${email}</p>
+        <p style="${styles.infoText}">🔑 <strong>Password ya muda:</strong> <code style="background:#d1fae5;padding:2px 6px;border-radius:4px;font-family:monospace">${tempPassword}</code></p>
+      </div>
+
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 18px;margin:16px 0">
+        <p style="font-size:14px;color:#92400e;margin:0">⚠️ <strong>Muhimu:</strong> Baada ya kuingia kwa mara ya kwanza, utaombwa kubadilisha password kwa usalama wako.</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${changeUrl}" style="${styles.btn}">🔑 Ingia na Badilisha Password →</a>
+        </td></tr>
+      </table>
+
+      <hr style="${styles.divider}">
+      <span style="${styles.textSmall}">Kama hukutarajiwa kupokea email hii, wasiliana na msimamizi wako mara moja.</span>
+    `, `Karibu NyumbaFasta — akaunti yako imeundwa`),
+  }
+}
+
+// ── New user registration alert to staff/admin ─────────────────────────────
+
+export function newUserAlertEmail(
+  newUserName: string,
+  role: string,
+  email: string,
+  phone: string | null,
+  region: string | null,
+  source: string | null,
+) {
+  const roleLabel = role === 'dalali' ? 'Dalali (Broker)' : role === 'client' ? 'Mteja (Client)' : role
+  const roleColor = role === 'dalali' ? '#1D9E75' : '#3b82f6'
+  const dashUrl   = `${APP_URL}/admin/leads`
+  return {
+    subject: `🆕 ${roleLabel} Mpya Amesajili — ${newUserName}`,
+    html: emailBase(`
+      <span style="${styles.greeting}">Mtumiaji Mpya! 🆕</span>
+      <span style="${styles.text}">Mtumiaji mpya amesajili kwenye NyumbaFasta. Hapa chini ni maelezo kamili:</span>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;margin:20px 0">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding:6px 0">
+              <span style="font-size:13px;color:#64748b;display:inline-block;width:130px">Jina</span>
+              <strong style="font-size:14px;color:#111827">${newUserName}</strong>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;border-top:1px solid #f1f5f9">
+              <span style="font-size:13px;color:#64748b;display:inline-block;width:130px">Aina</span>
+              <span style="font-size:13px;font-weight:700;color:${roleColor};background:${role === 'dalali' ? '#f0fdf4' : '#eff6ff'};padding:3px 10px;border-radius:20px">${roleLabel}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;border-top:1px solid #f1f5f9">
+              <span style="font-size:13px;color:#64748b;display:inline-block;width:130px">Email</span>
+              <strong style="font-size:14px;color:#111827">${email}</strong>
+            </td>
+          </tr>
+          ${phone ? `
+          <tr>
+            <td style="padding:6px 0;border-top:1px solid #f1f5f9">
+              <span style="font-size:13px;color:#64748b;display:inline-block;width:130px">Simu</span>
+              <strong style="font-size:14px;color:#111827">${phone}</strong>
+            </td>
+          </tr>` : ''}
+          ${region ? `
+          <tr>
+            <td style="padding:6px 0;border-top:1px solid #f1f5f9">
+              <span style="font-size:13px;color:#64748b;display:inline-block;width:130px">Mkoa</span>
+              <strong style="font-size:14px;color:#111827">${region}</strong>
+            </td>
+          </tr>` : ''}
+          ${source ? `
+          <tr>
+            <td style="padding:6px 0;border-top:1px solid #f1f5f9">
+              <span style="font-size:13px;color:#64748b;display:inline-block;width:130px">Chanzo</span>
+              <strong style="font-size:14px;color:#111827">${source}</strong>
+            </td>
+          </tr>` : ''}
+          <tr>
+            <td style="padding:6px 0;border-top:1px solid #f1f5f9">
+              <span style="font-size:13px;color:#64748b;display:inline-block;width:130px">Wakati</span>
+              <strong style="font-size:14px;color:#111827">${new Date().toLocaleString('sw-TZ', { timeZone: 'Africa/Dar_es_Salaam' })}</strong>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      ${role === 'dalali' ? `
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">💡 Dalali mpya anahitaji msaada wa kupost listing yake ya kwanza. Wasiliana nao haraka!</p>
+      </div>` : `
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;margin:16px 0">
+        <p style="font-size:14px;color:#1e40af;margin:0">💡 Mteja mpya anaweza kuhitaji msaada wa kutafuta nyumba. Angalia leads dashboard.</p>
+      </div>`}
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${dashUrl}" style="${styles.btn}">📋 Angalia Dashboard →</a>
+        </td></tr>
+      </table>
+    `, `${roleLabel} mpya amesajili — ${newUserName}`),
+  }
+}
+
 // ── Contact unlock notification email ─────────────────────────────────────
 
 export function contactUnlockEmail(dalaliName: string, clientName: string, listingTitle: string) {

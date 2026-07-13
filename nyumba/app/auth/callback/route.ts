@@ -1,7 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { welcomeEmail } from '@/lib/email/templates'
+import { welcomeEmail, newUserAlertEmail } from '@/lib/email/templates'
 import { auditLog } from '@/lib/security/auditLog'
 import { getClientIp } from '@/lib/security/rateLimit'
 
@@ -98,24 +98,60 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Send welcome email only for new signups (account created within last 60 seconds)
+      // Send welcome email only for new signups (account created within last 5 minutes)
       if (process.env.RESEND_API_KEY) {
         const { data: userRow } = await supabase
           .from('users')
-          .select('created_at, email, full_name')
+          .select('created_at, email, full_name, phone, region')
           .eq('id', data.user.id)
           .single()
         const isNewUser = userRow?.created_at
-          ? Date.now() - new Date(userRow.created_at as string).getTime() < 60_000
+          ? Date.now() - new Date(userRow.created_at as string).getTime() < 300_000
           : false
+        const userEmail  = (userRow?.email  as string | null) ?? data.user.email
+        const userName   = (userRow?.full_name as string | null) ?? (data.user.user_metadata?.full_name as string) ?? 'Mtumiaji'
+        const userPhone  = (userRow?.phone as string | null) ?? null
+        const userRegion = (userRow?.region as string | null) ?? null
+
         if (isNewUser) {
-          const userEmail = (userRow?.email as string | null) ?? data.user.email
-          const userName = (userRow?.full_name as string | null) ?? (data.user.user_metadata?.full_name as string) ?? 'Mtumiaji'
+          const resend = new Resend(process.env.RESEND_API_KEY)
+
+          // 1. Welcome email to the new user
           if (userEmail) {
             const { subject, html } = welcomeEmail(userName, role)
-            new Resend(process.env.RESEND_API_KEY).emails
+            resend.emails
               .send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: userEmail, subject, html })
               .catch(() => { /* ignore — don't block auth flow */ })
+          }
+
+          // 2. New-user alert to all active staff + admins (non-blocking)
+          if (role === 'dalali' || role === 'client') {
+            ;(async () => {
+              try {
+                const adminClient = createAdminClient()
+                const [{ data: staffList }, { data: adminList }] = await Promise.all([
+                  adminClient.from('users').select('email').eq('role', 'staff').eq('staff_active', true),
+                  adminClient.from('users').select('email').eq('role', 'admin'),
+                ])
+                const recipients = [
+                  ...(staffList  || []).map(s => s.email as string),
+                  ...(adminList  || []).map(a => a.email as string),
+                ].filter(Boolean)
+
+                if (recipients.length > 0 && userEmail) {
+                  const { subject, html } = newUserAlertEmail(
+                    userName, role, userEmail, userPhone, userRegion,
+                    (data.user.user_metadata?.source as string | null) ?? null,
+                  )
+                  await resend.emails.send({
+                    from: 'NyumbaFasta System <noreply@nyumbafasta.co>',
+                    to: recipients,
+                    subject,
+                    html,
+                  })
+                }
+              } catch { /* ignore — don't block auth flow */ }
+            })()
           }
         }
       }

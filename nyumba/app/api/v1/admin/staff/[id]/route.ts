@@ -41,6 +41,10 @@ export async function PATCH(
   if (body.staffActive !== undefined)      updates.staff_active       = body.staffActive
   if (body.maxLeadsCapacity !== undefined) updates.max_leads_capacity = body.maxLeadsCapacity
 
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'Hakuna mabadiliko ya kusasisha' }, { status: 400 })
+  }
+
   const { data, error } = await admin
     .from('users')
     .update(updates)
@@ -100,7 +104,7 @@ async function unassignStaffLeads(staffId: string): Promise<void> {
     .from('agent_leads')
     .update({ assigned_to: null, assigned_at: null })
     .eq('assigned_to', staffId)
-    .not('pipeline_stage', 'in', '("registered","lost")')
+    .not('pipeline_stage', 'in', '("amefanikiwa","amepotea")')
     .select('id')
 
   if (error) {

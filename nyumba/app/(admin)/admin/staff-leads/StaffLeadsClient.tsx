@@ -16,7 +16,7 @@ export default function StaffLeadsClient(props: {
   const fetchLeads = useCallback(async () => {
     setLoading(true)
     const res = await fetch(
-      `/api/v1/crm/leads?stage=${activeStage}&search=${encodeURIComponent(search)}&archived=1`,
+      `/api/v1/crm/leads?search=${encodeURIComponent(search)}`,
     )
     const data = await res.json()
     const rows: DalaliLead[] = data.leads || []
@@ -34,7 +34,7 @@ export default function StaffLeadsClient(props: {
       ).length,
     })
     setLoading(false)
-  }, [activeStage, search])
+  }, [search])
 
   useEffect(() => { fetchLeads() }, [fetchLeads])
 

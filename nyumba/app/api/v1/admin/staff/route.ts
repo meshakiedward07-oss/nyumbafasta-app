@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
-import { sendTextMessage } from '@/lib/whatsapp/client'
+import { Resend } from 'resend'
+import { staffWelcomeEmail } from '@/lib/email/templates'
 import { STAFF_ROLE_TEMPLATES } from '@/lib/staff/permissions'
 import type { RoleTemplate } from '@/lib/staff/permissions'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -21,28 +22,24 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const staffWithStats = await Promise.all(
-    (staff || []).map(async (s) => {
-      const [{ count: activeLeads }, { count: totalConverted }, { count: totalLost }] = await Promise.all([
-        admin
-          .from('agent_leads')
-          .select('id', { count: 'exact', head: true })
-          .eq('assigned_to', s.id)
-          .not('pipeline_stage', 'in', '("registered","lost")'),
-        admin
-          .from('agent_leads')
-          .select('id', { count: 'exact', head: true })
-          .eq('assigned_to', s.id)
-          .eq('pipeline_stage', 'registered'),
-        admin
-          .from('agent_leads')
-          .select('id', { count: 'exact', head: true })
-          .eq('assigned_to', s.id)
-          .eq('pipeline_stage', 'lost'),
-      ])
-      return { ...s, activeLeads: activeLeads ?? 0, totalConverted: totalConverted ?? 0, totalLost: totalLost ?? 0 }
-    })
-  )
+  const staffIds = (staff || []).map(s => s.id)
+  const { data: allLeads } = staffIds.length > 0
+    ? await admin.from('agent_leads').select('assigned_to, pipeline_stage').in('assigned_to', staffIds)
+    : { data: [] as { assigned_to: string; pipeline_stage: string }[] }
+
+  type StaffStats = { activeLeads: number; totalConverted: number; totalLost: number }
+  const statsMap: Record<string, StaffStats> = {}
+  for (const lead of allLeads ?? []) {
+    if (!statsMap[lead.assigned_to]) statsMap[lead.assigned_to] = { activeLeads: 0, totalConverted: 0, totalLost: 0 }
+    if (lead.pipeline_stage === 'amefanikiwa') statsMap[lead.assigned_to].totalConverted++
+    else if (lead.pipeline_stage === 'amepotea')  statsMap[lead.assigned_to].totalLost++
+    else                                           statsMap[lead.assigned_to].activeLeads++
+  }
+
+  const staffWithStats = (staff || []).map(s => ({
+    ...s,
+    ...(statsMap[s.id] ?? { activeLeads: 0, totalConverted: 0, totalLost: 0 }),
+  }))
 
   return NextResponse.json({ staff: staffWithStats })
 }
@@ -75,16 +72,19 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: 'Email si sahihi' }, { status: 400 })
+  }
+
   const admin = createAdminClient()
 
-  // Dedup — check phone or email already used
-  const { data: existing } = await admin
-    .from('users')
-    .select('id')
-    .or(`phone.eq.${phone},email.eq.${email}`)
-    .maybeSingle()
+  // Dedup — check phone or email already used (two separate queries to avoid raw filter interpolation)
+  const [{ data: byPhone }, { data: byEmail }] = await Promise.all([
+    admin.from('users').select('id').eq('phone', phone).maybeSingle(),
+    admin.from('users').select('id').eq('email', email).maybeSingle(),
+  ])
 
-  if (existing) {
+  if (byPhone || byEmail) {
     return NextResponse.json(
       { error: 'Namba ya simu au email tayari inatumika' },
       { status: 409 }
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
 
   const tempPassword = generateTempPassword()
 
-  // Create auth user — email_confirm skips verification for staff
+  // Create auth user — email_confirm: true skips verification email for staff
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
     email,
     password: tempPassword,
@@ -106,48 +106,60 @@ export async function POST(req: NextRequest) {
 
   if (authError || !authData.user) {
     console.error('[Staff] Auth creation failed:', authError?.message)
-    return NextResponse.json({ error: 'Imeshindwa kuunda akaunti' }, { status: 500 })
+    return NextResponse.json({ error: `Imeshindwa kuunda akaunti: ${authError?.message ?? 'Hitilafu ya seva'}` }, { status: 500 })
   }
 
   const userId = authData.user.id
 
-  // Update the users row the trigger created with staff-specific fields
+  // Upsert the users row (handles both: trigger already created it OR trigger hasn't fired yet)
   const { data: profile, error: profileError } = await admin
     .from('users')
-    .update({
-      phone,
-      staff_title: staffTitle || 'Sales Agent',
-      staff_active: true,
-      max_leads_capacity: maxLeadsCapacity ?? 500,
-      must_change_password: true,
-    })
-    .eq('id', userId)
+    .upsert(
+      {
+        id: userId,
+        full_name: name,
+        email,
+        role: 'staff',
+        phone,
+        staff_title: staffTitle || 'Sales Agent',
+        staff_active: true,
+        max_leads_capacity: maxLeadsCapacity ?? 500,
+        must_change_password: true,
+      },
+      { onConflict: 'id' }
+    )
     .select('id, full_name, email, phone, staff_title, staff_active, max_leads_capacity')
     .single()
 
   if (profileError) {
     // Rollback: delete auth user so we don't leave orphaned auth records
     await admin.auth.admin.deleteUser(userId)
-    console.error('[Staff] Profile update failed:', profileError.message)
-    return NextResponse.json({ error: 'Imeshindwa kuunda profile' }, { status: 500 })
+    console.error('[Staff] Profile upsert failed:', profileError.message)
+    return NextResponse.json({ error: `Imeshindwa kuunda profile: ${profileError.message}` }, { status: 500 })
   }
 
-  // Apply initial permissions from role template (non-blocking)
+  // Apply initial permissions from role template
+  let templateApplied = false
   if (roleTemplate) {
-    applyRoleTemplate(userId, roleTemplate, admin).catch(err =>
+    try {
+      await applyRoleTemplate(userId, roleTemplate, admin)
+      templateApplied = true
+    } catch (err) {
+      // Non-fatal — admin will see a warning in the response
       console.error('[Staff] Role template apply failed:', err)
-    )
+    }
   }
 
-  // Send credentials via WhatsApp (non-blocking — never fails the request)
-  sendStaffCredentials(phone, name, email, tempPassword).catch(err =>
-    console.error('[Staff] WhatsApp credentials send failed:', err)
+  // Send credentials via email (non-blocking)
+  sendStaffCredentialsEmail(email, name, tempPassword).catch(err =>
+    console.error('[Staff] Email send failed:', err)
   )
 
   return NextResponse.json({
     success: true,
     staff: profile,
-    message: `Akaunti ya ${name} imeundwa. Maelezo ya kuingia yametumwa kwa WhatsApp.`,
+    message: `Akaunti ya ${name} imeundwa. Maelezo ya kuingia yametumwa kwa email ${email}.`,
+    ...(roleTemplate && !templateApplied ? { warning: 'Ruhusa za mwanzo hazikuwekwa — weka kwa mkono kupitia Ruhusa.' } : {}),
   })
 }
 
@@ -176,26 +188,20 @@ async function applyRoleTemplate(
   await admin.from('users').update({ role_template: templateKey }).eq('id', userId)
 }
 
-async function sendStaffCredentials(
-  phone: string,
-  name: string,
+async function sendStaffCredentialsEmail(
   email: string,
+  name: string,
   password: string,
 ): Promise<void> {
-  await sendTextMessage(
-    phone,
-    `👋 Karibu kwenye Timu ya NyumbaFasta, ${name}!
-
-Akaunti yako ya staff imeundwa. Maelezo ya kuingia:
-
-🔗 Link: nyumbafasta.co/login
-📧 Email: ${email}
-🔑 Password ya muda: ${password}
-
-⚠️ Tafadhali badilisha password mara baada ya kuingia mara ya kwanza kwa usalama wako.
-
-Kazi yako: Kuwasiliana na madalali watarajiwa walioko kwenye CRM yetu na kuwakaribisha kujiunga na NyumbaFasta.
-
-Karibu sana! 🎉`,
-  )
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[Staff] RESEND_API_KEY not set — credentials email not sent to', email)
+    return
+  }
+  const { subject, html } = staffWelcomeEmail(name, email, password)
+  await new Resend(process.env.RESEND_API_KEY).emails.send({
+    from: 'NyumbaFasta <noreply@nyumbafasta.co>',
+    to: email,
+    subject,
+    html,
+  })
 }

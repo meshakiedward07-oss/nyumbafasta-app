@@ -31,7 +31,9 @@ export async function GET(req: NextRequest) {
       .from('leads')
       .select('id,full_name,phone,phone_2,email,ward,district,region,lead_type,source,notes,facebook_url,instagram_url,tiktok_url,whatsapp_number,facebook_status,instagram_status,tiktok_status,whatsapp_status,social_score,contact_quality,has_valid_phone,has_any_social,is_dead_lead,is_duplicate,duplicate_reason,name_similarity_score,status,contacted_at,registered_at,assigned_to,import_batch_id,created_at', { count: 'exact' })
 
-    if (!showDups)  q = q.eq('is_duplicate', false)
+    // Explicit filter so "duplicates" view shows ONLY duplicates, not everything
+    if (showDups) q = q.eq('is_duplicate', true)
+    else          q = q.eq('is_duplicate', false)
     if (!showDead)  q = q.eq('is_dead_lead', false)
     if (quality)    q = q.eq('contact_quality', quality)
     if (leadType)   q = q.eq('lead_type', leadType)

@@ -62,15 +62,29 @@ export async function PUT(
     return NextResponse.json({ error: 'Staff mwanachama haupatikani' }, { status: 404 })
   }
 
-  await admin.from('staff_permissions').delete().eq('staff_id', params.id)
+  const { error: deleteError } = await admin
+    .from('staff_permissions')
+    .delete()
+    .eq('staff_id', params.id)
+
+  if (deleteError) {
+    return NextResponse.json({ error: 'Imeshindwa kufuta ruhusa za zamani' }, { status: 500 })
+  }
 
   if (body.permissions.length > 0) {
-    await admin.from('staff_permissions').insert(
+    const { error: insertError } = await admin.from('staff_permissions').insert(
       body.permissions.map(key => ({
-        staff_id:   params.id,
+        staff_id:       params.id,
         permission_key: key,
       }))
     )
+    if (insertError) {
+      console.error('[Permissions] Insert failed after delete:', insertError.message)
+      return NextResponse.json(
+        { error: 'Ruhusa zilifutwa lakini kuongeza kulishindwa — wasiliana na msimamizi' },
+        { status: 500 }
+      )
+    }
   }
 
   return NextResponse.json({ success: true, message: 'Ruhusa zimesasishwa' })
@@ -98,19 +112,49 @@ export async function POST(
 
   const admin = createAdminClient()
 
-  await admin.from('staff_permissions').delete().eq('staff_id', params.id)
+  // Safety: only apply templates to staff profiles
+  const { data: target } = await admin
+    .from('users')
+    .select('role')
+    .eq('id', params.id)
+    .single()
 
-  await admin.from('staff_permissions').insert(
+  if (!target || target.role !== 'staff') {
+    return NextResponse.json({ error: 'Staff mwanachama haupatikani' }, { status: 404 })
+  }
+
+  const { error: deleteError } = await admin
+    .from('staff_permissions')
+    .delete()
+    .eq('staff_id', params.id)
+
+  if (deleteError) {
+    return NextResponse.json({ error: 'Imeshindwa kufuta ruhusa za zamani' }, { status: 500 })
+  }
+
+  const { error: insertError } = await admin.from('staff_permissions').insert(
     template.permissions.map(key => ({
-      staff_id:      params.id,
+      staff_id:       params.id,
       permission_key: key,
     }))
   )
 
-  await admin
+  if (insertError) {
+    console.error('[Permissions] Template insert failed after delete:', insertError.message)
+    return NextResponse.json(
+      { error: 'Ruhusa zilifutwa lakini template haikuwekwa — wasiliana na msimamizi' },
+      { status: 500 }
+    )
+  }
+
+  const { error: updateError } = await admin
     .from('users')
     .update({ role_template: body.template })
     .eq('id', params.id)
+
+  if (updateError) {
+    console.error('[Permissions] role_template update failed:', updateError.message)
+  }
 
   return NextResponse.json({
     success: true,

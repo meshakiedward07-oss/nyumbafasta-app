@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { moveLeadStage, PIPELINE_STAGES, type PipelineStage } from '@/lib/crm/dalaliCRM'
 
 export const dynamic = 'force-dynamic'
@@ -24,11 +24,28 @@ export async function PATCH(
     return NextResponse.json({ error: 'Ruhusa inahitajika' }, { status: 403 })
   }
 
+  if (profile?.role === 'staff' && !profile?.staff_active) {
+    return NextResponse.json({ error: 'Akaunti yako imesimamishwa' }, { status: 403 })
+  }
+
   const { id } = await params
   const body = await req.json() as { stage: string; note?: string }
 
   if (!VALID_STAGES.includes(body.stage as PipelineStage)) {
     return NextResponse.json({ error: 'Stage si sahihi' }, { status: 400 })
+  }
+
+  // Staff can only move leads assigned to them; admins can move any lead
+  if (profile?.role === 'staff') {
+    const admin = createAdminClient()
+    const { data: assignment } = await admin
+      .from('agent_leads')
+      .select('assigned_to')
+      .eq('id', id)
+      .single()
+    if (!assignment || assignment.assigned_to !== user.id) {
+      return NextResponse.json({ error: 'Huna ruhusa kubadilisha lead hii' }, { status: 403 })
+    }
   }
 
   const result = await moveLeadStage(id, body.stage as PipelineStage, user.id, body.note)

@@ -11,11 +11,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase
     .from('users')
-    .select('role')
+    .select('role, must_change_password')
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') redirect('/')
+  if (!['admin', 'staff'].includes(profile?.role ?? '')) redirect('/')
+
+  if (profile?.role === 'staff' && profile?.must_change_password) {
+    redirect('/account/change-password')
+  }
 
   return (
     <AdminShell>
