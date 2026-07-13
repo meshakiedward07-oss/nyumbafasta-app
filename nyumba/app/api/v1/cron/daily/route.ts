@@ -97,7 +97,6 @@ async function runDailyTasks() {
           body: `Listing yako "${l.title}" imekwisha. Huisha sasa ili iendelee kuonekana kwa wateja.`,
           is_read: false,
           ref_id: l.id,
-          data: { listing_id: l.id },
         }))
       )
     }
@@ -133,7 +132,6 @@ async function runDailyTasks() {
           title:    '⚠️ Subscription Imekwisha',
           body:     'Una siku 3 za grace period. Lipa sasa usipoteze wateja.',
           is_read:  false,
-          data:     { grace_period_until: gracePeriodUntil },
         }))
       )
     }
@@ -169,7 +167,6 @@ async function runDailyTasks() {
           title:    '🚫 Listings Zimesimamishwa',
           body:     'Listings zako hazionekani kwa wateja. Lipa sasa uzirudishe.',
           is_read:  false,
-          data:     {},
         }))
       )
 
@@ -239,7 +236,6 @@ async function runDailyTasks() {
                 title:    '🚨 Dalali Amesuspended Auto',
                 body:     `${suspended.length} dalali amesuspended kwa ripoti 3+ — angalia Admin Panel`,
                 is_read:  false,
-                data:     { suspended_ids: suspended.map(u => u.id) },
               }))
             )
           }
@@ -286,7 +282,6 @@ async function runDailyTasks() {
             title:    '⏰ Subscription Karibu Kuisha',
             body:     `Plan yako ya ${s.plan === 'premium' ? 'Premium' : 'Basic'} itaisha siku 3. Huisha mapema usipoteze wateja.`,
             is_read:  false,
-            data:     { expires_at: s.expires_at, plan: s.plan },
           }))
         )
       }
@@ -320,7 +315,6 @@ async function runDailyTasks() {
           body: `Listing yako "${listing.title}" itaisha siku 14. Huisha sasa ili iendelee kuonekana.`,
           is_read: false,
           ref_id: listing.id,
-          data: { listing_id: listing.id },
         }))
       )
       await admin
@@ -347,7 +341,6 @@ async function runDailyTasks() {
           body: `Listing yako "${listing.title}" itaisha siku 7. Huisha haraka!`,
           is_read: false,
           ref_id: listing.id,
-          data: { listing_id: listing.id },
         }))
       )
     }
@@ -370,7 +363,6 @@ async function runDailyTasks() {
           body: `Listing yako "${listing.title}" itaisha LEO. Huisha sasa hivi!`,
           is_read: false,
           ref_id: listing.id,
-          data: { listing_id: listing.id },
         }))
       )
     }

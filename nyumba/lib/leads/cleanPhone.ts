@@ -11,6 +11,9 @@ export function cleanPhone(raw: unknown): string | null {
   // XXXXXXXXX0 → XXXXXXXXX  (9 local + rogue 0 = 10 chars)
   if (s.length === 10 && /^\d+$/.test(s) && !s.startsWith('0') && !s.startsWith('255') && s.endsWith('0')) s = s.slice(0, 9)
 
+  // 2550XXXXXXXXX → 255XXXXXXXXX  (country code + redundant leading 0, 13 digits total)
+  if (s.startsWith('2550') && s.length === 13 && /^\d+$/.test(s)) s = '255' + s.slice(4)
+
   if (s.startsWith('255') && s.length === 12) return `+${s}`
   if (s.startsWith('0') && s.length === 10)   return `+255${s.slice(1)}`
   if (s.length === 9 && /^\d+$/.test(s))       return `+255${s}`

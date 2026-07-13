@@ -71,7 +71,6 @@ export async function POST(req: NextRequest) {
         body:     `Listing yako itaonekana juu ya wote kwa wiki ${bp.weeks}.`,
         type:     'boost_activated',
         is_read:  false,
-        data:     { listing_id: bp.listing_id },
       })
 
       console.log('[Boost Webhook] Listing boosted:', bp.listing_id, 'until:', bp.boosted_until)

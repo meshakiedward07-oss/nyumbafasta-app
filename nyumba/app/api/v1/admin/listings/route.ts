@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       region, district, ward, mtaa, images, video_url,
       amenities, description, bedrooms, is_boosted,
       view_count, lead_count, share_count,
-      created_at, updated_at, expires_at,
+      created_at, expires_at,
       dalali:dalali_id (
         id, full_name, phone,
         dalali_profiles ( whatsapp_number, is_premium_verified )

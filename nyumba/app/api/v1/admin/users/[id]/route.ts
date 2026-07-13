@@ -4,6 +4,32 @@ import { auditLog } from '@/lib/security/auditLog'
 import { getClientIp } from '@/lib/security/rateLimit'
 import { requireAdminUser } from '@/lib/security/adminAuth'
 
+// GET — fetch single user profile for admin
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const admin = await requireAdminUser()
+    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+    const adminClient = createAdminClient()
+    const { data: user, error } = await adminClient
+      .from('users')
+      .select(`
+        id, full_name, phone, role, is_active, created_at,
+        staff_title, staff_active, max_leads_capacity,
+        dalali_profiles ( whatsapp_number, bio, is_premium_verified, rating_avg )
+      `)
+      .eq('id', params.id)
+      .single()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+    return NextResponse.json({ user })
+  } catch {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
+
 // PATCH — suspend au activate user
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -83,7 +109,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         body:     `Akaunti yako kwenye NyumbaFasta imefutwa na admin. Sababu: ${reason}`,
         type:     'account_deleted',
         is_read:  false,
-        data:     { reason },
+        ref_id:   null,
       })
     }
 

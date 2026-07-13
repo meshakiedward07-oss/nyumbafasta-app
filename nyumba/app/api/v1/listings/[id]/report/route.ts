@@ -102,7 +102,6 @@ export async function POST(
             body:     `${dalali?.full_name ?? 'Dalali'} amesuspended baada ya ripoti ${count} — angalia Admin Panel`,
             type:     'admin_alert',
             is_read:  false,
-            data:     { dalali_id: listing.dalali_id },
           }))
         )
       }

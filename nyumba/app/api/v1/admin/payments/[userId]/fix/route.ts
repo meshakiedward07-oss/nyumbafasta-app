@@ -61,7 +61,6 @@ export async function POST(req: NextRequest, { params }: { params: { userId: str
         body:    'Subscription yako imewashwa na admin. Listings zako zinaonekana kwa wateja.',
         type:    'subscription_active',
         is_read: false,
-        data:    { subscription_id: record_id, manual_fix: true },
       })
 
       message = 'Subscription imewashwa'
@@ -93,7 +92,6 @@ export async function POST(req: NextRequest, { params }: { params: { userId: str
         body:    `Subscription yako imepanuliwa hadi ${base.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })} na admin.`,
         type:    'subscription_active',
         is_read: false,
-        data:    { subscription_id: record_id, extended: true },
       })
 
       message = 'Subscription imepanuliwa kwa siku 30'
@@ -120,7 +118,6 @@ export async function POST(req: NextRequest, { params }: { params: { userId: str
         body:    'Malipo yako yamekamilika. Namba ya dalali sasa inapatikana kwenye listing.',
         type:    'unlock_completed',
         is_read: false,
-        data:    { unlock_id: record_id, listing_id: unlock.listing_id, manual_fix: true },
       })
 
       message = 'Unlock imekamilika — mteja amearifiwa'

@@ -16,7 +16,7 @@ export async function GET() {
       .select(`
         id, reason, details, status, created_at,
         reporter:reporter_id ( id, full_name ),
-        dalali:reported_dalali_id ( id, full_name, email,
+        dalali:reported_dalali_id ( id, full_name, phone,
           dalali_profiles ( whatsapp_number )
         ),
         listing:listing_id ( id, title, type, district )

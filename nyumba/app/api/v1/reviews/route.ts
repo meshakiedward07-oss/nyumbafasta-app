@@ -140,7 +140,6 @@ export async function POST(req: NextRequest) {
       body: `${reviewer?.full_name ?? 'Mteja'} ameandika review — angalia na ujibu.`,
       type: 'new_review',
       is_read: false,
-      data: { review_id: review.id },
     })
 
     return NextResponse.json({ review: { id: review.id } }, { status: 201 })

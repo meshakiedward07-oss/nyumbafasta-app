@@ -11,7 +11,6 @@ export async function GET(req: NextRequest) {
     }
 
     const countOnly = req.nextUrl.searchParams.get('count') === 'true'
-    const now = new Date().toISOString()
 
     if (countOnly) {
       const { count } = await supabase
@@ -19,15 +18,13 @@ export async function GET(req: NextRequest) {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('is_read', false)
-        .or(`send_at.is.null,send_at.lte.${now}`)
       return NextResponse.json({ unread_count: count ?? 0 })
     }
 
     const { data: notifications, error } = await supabase
       .from('notifications')
-      .select('id, title, body, type, is_read, data, send_at, created_at')
+      .select('id, title, body, type, is_read, ref_id, created_at')
       .eq('user_id', user.id)
-      .or(`send_at.is.null,send_at.lte.${now}`)
       .order('created_at', { ascending: false })
       .limit(50)
 

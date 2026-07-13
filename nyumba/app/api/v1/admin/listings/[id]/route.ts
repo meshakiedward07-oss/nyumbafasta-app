@@ -63,7 +63,6 @@ export async function PATCH(
         body: notifBody,
         type: action === 'approve' ? 'listing_approved' : 'listing_rejected',
         is_read: false,
-        data: { listing_id: params.id },
       })
 
       // Push notification

@@ -85,7 +85,6 @@ export async function POST(req: NextRequest) {
         body:    `Umefanikiwa kuongeza listings ${count} za ziada. Unaweza sasa kupost listings zaidi.`,
         type:    'subscription_active',
         is_read: false,
-        data:    { extra_count: count },
       })
 
       console.log('[ExtraListings webhook] Added', count, 'listings to sub', subId)

@@ -80,7 +80,6 @@ export async function POST(req: NextRequest) {
         body:     `Plan yako ya ${planName} imefanikiwa. Listings zako zinaonekana kwa wateja.`,
         type:     'subscription_active',
         is_read:  false,
-        data:     { plan },
       })
 
       return NextResponse.json({ subscription_id: subscription.id, mock: true, amount })

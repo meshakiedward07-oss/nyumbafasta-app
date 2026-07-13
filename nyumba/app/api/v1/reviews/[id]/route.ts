@@ -67,7 +67,6 @@ export async function PATCH(
         body: 'Dalali amejibu maoni yako — angalia sasa.',
         type: 'review_reply',
         is_read: false,
-        data: { review_id: params.id },
       })
 
       return NextResponse.json({ ok: true })

@@ -112,7 +112,6 @@ export async function POST(req: NextRequest) {
         title:   '🎉 Karibu NyumbaFasta!',
         body:    'Umepata siku 14 za BURE! Anza kuongeza listings sasa na upate wateja wako wa kwanza.',
         is_read: false,
-        data:    { trial_days: 14 },
       })
     }
 

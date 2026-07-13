@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       await admin.from('notifications').insert({
         user_id: user.id, title: '⚡ Listing Imeboostwa!',
         body: `Listing yako itaonekana juu ya wote kwa wiki ${weeks}.`,
-        type: 'boost_activated', is_read: false, data: { listing_id },
+        type: 'boost_activated', is_read: false, ref_id: listing_id,
       })
       return NextResponse.json({ mock: true, boosted_until: boostedUntilISO, amount })
     }

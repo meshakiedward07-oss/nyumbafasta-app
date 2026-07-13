@@ -142,7 +142,6 @@ async function escalateToAdmin(
       body:    `Nambari: ${phone.slice(0, 5)}****${nameLabel}. Sababu: "${reason}"`,
       type:    'support_request',
       is_read: false,
-      data:    { phone, reason, escalated_at: new Date().toISOString() },
     }),
   )
 }

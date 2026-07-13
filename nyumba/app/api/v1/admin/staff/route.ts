@@ -16,7 +16,7 @@ export async function GET() {
 
   const { data: staff, error } = await admin
     .from('users')
-    .select('id, full_name, email, phone, staff_title, staff_active, max_leads_capacity, created_at')
+    .select('id, full_name, phone, staff_title, staff_active, max_leads_capacity, created_at')
     .eq('role', 'staff')
     .order('created_at', { ascending: false })
 
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
       },
       { onConflict: 'id' }
     )
-    .select('id, full_name, email, phone, staff_title, staff_active, max_leads_capacity')
+    .select('id, full_name, phone, staff_title, staff_active, max_leads_capacity')
     .single()
 
   if (profileError) {

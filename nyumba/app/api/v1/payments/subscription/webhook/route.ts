@@ -85,7 +85,6 @@ export async function POST(req: NextRequest) {
         body:    `Plan yako ya ${planName} imefanikiwa. Listings zako zinaonekana kwa wateja.`,
         type:    'subscription_active',
         is_read: false,
-        data:    { plan: subscription.plan },
       })
       console.log('[Sub Webhook] Subscription activated + notification sent:', subscription.id)
     }

@@ -132,13 +132,9 @@ export async function POST(req: NextRequest) {
         body:     leadBody,
         type:     'new_lead',
         is_read:  false,
-        data:     { listing_id, unlock_id: unlock.id },
+        ref_id:   unlock.id,
       })
       await sendPushToUser(listing.dalali_id, '🔔 Mteja Mpya!', leadBody, '/dashboard')
-
-      const day3 = new Date(); day3.setDate(day3.getDate() + 3)
-      const day7 = new Date(); day7.setDate(day7.getDate() + 7)
-      const reviewData = { unlock_id: unlock.id, listing_id, dalali_id: listing.dalali_id }
 
       await admin.from('notifications').insert([
         {
@@ -147,8 +143,7 @@ export async function POST(req: NextRequest) {
           body:     `Umezungumza na ${dalaliName} (${listingLabel}). Toa maoni yako — inasaidia wengine kuchagua vizuri.`,
           type:     'review_request',
           is_read:  false,
-          send_at:  day3.toISOString(),
-          data:     reviewData,
+          ref_id:   unlock.id,
         },
         {
           user_id:  user.id,
@@ -156,8 +151,7 @@ export async function POST(req: NextRequest) {
           body:     `Umezungumza na ${dalaliName} wiki iliyopita. Je, umepata nyumba? Toa review yako →`,
           type:     'review_reminder',
           is_read:  false,
-          send_at:  day7.toISOString(),
-          data:     reviewData,
+          ref_id:   unlock.id,
         },
       ])
 
