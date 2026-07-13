@@ -8,6 +8,7 @@
 
 -- 1. Add missing updated_at column to dalali_profiles
 --    (the trigger dalali_profiles_updated_at already exists and references this column)
+--    This also fixes POST /reviews which updates dalali_profiles.rating_avg/rating_count
 ALTER TABLE dalali_profiles
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 

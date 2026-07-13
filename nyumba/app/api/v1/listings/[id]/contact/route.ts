@@ -37,7 +37,7 @@ export async function GET(
   const { data: profile } = await admin
     .from('dalali_profiles')
     .select('whatsapp_number')
-    .eq('id', listing.dalali_id)
+    .eq('user_id', listing.dalali_id)
     .single()
 
   return NextResponse.json({ whatsapp_number: profile?.whatsapp_number ?? null })
