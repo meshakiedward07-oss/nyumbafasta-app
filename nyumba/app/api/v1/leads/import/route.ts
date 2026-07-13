@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { cleanPhone } from '@/lib/leads/cleanPhone'
-import { verifyLeadBatch } from '@/lib/leads/socialChecker'
+import { verifyLeadBatch, normalizeUrl } from '@/lib/leads/socialChecker'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -99,9 +99,9 @@ Jibu JSON array PEKE YAKE (bila markdown):
         ward:            mapped.ward         || null,
         district:        mapped.district     || null,
         region:          mapped.region       || 'Dar es Salaam',
-        facebook_url:    mapped.facebook_url || null,
-        instagram_url:   mapped.instagram_url || null,
-        tiktok_url:      mapped.tiktok_url   || null,
+        facebook_url:    normalizeUrl(mapped.facebook_url),
+        instagram_url:   normalizeUrl(mapped.instagram_url),
+        tiktok_url:      normalizeUrl(mapped.tiktok_url),
         whatsapp_number: cleanPhone(mapped.whatsapp_number),
         notes:           mapped.notes        || null,
         address:         mapped.address      || null,

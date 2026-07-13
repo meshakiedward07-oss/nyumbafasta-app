@@ -2,6 +2,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback, useRef } from 'react'
 
+/** Ensure social URLs stored without protocol open correctly as absolute links */
+function safeUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined
+  const t = url.trim()
+  if (!t) return undefined
+  return t.startsWith('http') ? t : `https://${t}`
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Lead = {
   id: string
@@ -794,19 +802,19 @@ export default function LeadsClient() {
                           <td className="px-3 py-3">
                             <div className="flex items-center gap-1.5">
                               {lead.facebook_url && (
-                                <a href={lead.facebook_url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={`Facebook: ${lead.facebook_status}`}
+                                <a href={safeUrl(lead.facebook_url)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={`Facebook: ${lead.facebook_status}`}
                                   className={`text-sm ${(SOCIAL_CFG[lead.facebook_status]||SOCIAL_CFG.unchecked).color}`}>
                                   <i className="ti ti-brand-facebook" />
                                 </a>
                               )}
                               {lead.instagram_url && (
-                                <a href={lead.instagram_url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={`Instagram: ${lead.instagram_status}`}
+                                <a href={safeUrl(lead.instagram_url)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={`Instagram: ${lead.instagram_status}`}
                                   className={`text-sm ${(SOCIAL_CFG[lead.instagram_status]||SOCIAL_CFG.unchecked).color}`}>
                                   <i className="ti ti-brand-instagram" />
                                 </a>
                               )}
                               {lead.tiktok_url && (
-                                <a href={lead.tiktok_url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={`TikTok: ${lead.tiktok_status}`}
+                                <a href={safeUrl(lead.tiktok_url)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={`TikTok: ${lead.tiktok_status}`}
                                   className={`text-sm ${(SOCIAL_CFG[lead.tiktok_status]||SOCIAL_CFG.unchecked).color}`}>
                                   <i className="ti ti-brand-tiktok" />
                                 </a>
@@ -913,9 +921,9 @@ export default function LeadsClient() {
                     </select>
                     {lead.phone && <a href={`tel:${lead.phone}`} className="text-xs text-blue-600 font-medium">{lead.phone}</a>}
                     <div className="ml-auto flex items-center gap-1.5">
-                      {lead.facebook_url && <a href={lead.facebook_url} target="_blank" rel="noopener noreferrer" className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${(SOCIAL_CFG[lead.facebook_status]||SOCIAL_CFG.unchecked).color} bg-gray-50`}><i className="ti ti-brand-facebook" /></a>}
-                      {lead.instagram_url && <a href={lead.instagram_url} target="_blank" rel="noopener noreferrer" className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${(SOCIAL_CFG[lead.instagram_status]||SOCIAL_CFG.unchecked).color} bg-gray-50`}><i className="ti ti-brand-instagram" /></a>}
-                      {lead.tiktok_url && <a href={lead.tiktok_url} target="_blank" rel="noopener noreferrer" className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${(SOCIAL_CFG[lead.tiktok_status]||SOCIAL_CFG.unchecked).color} bg-gray-50`}><i className="ti ti-brand-tiktok" /></a>}
+                      {lead.facebook_url && <a href={safeUrl(lead.facebook_url)} target="_blank" rel="noopener noreferrer" className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${(SOCIAL_CFG[lead.facebook_status]||SOCIAL_CFG.unchecked).color} bg-gray-50`}><i className="ti ti-brand-facebook" /></a>}
+                      {lead.instagram_url && <a href={safeUrl(lead.instagram_url)} target="_blank" rel="noopener noreferrer" className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${(SOCIAL_CFG[lead.instagram_status]||SOCIAL_CFG.unchecked).color} bg-gray-50`}><i className="ti ti-brand-instagram" /></a>}
+                      {lead.tiktok_url && <a href={safeUrl(lead.tiktok_url)} target="_blank" rel="noopener noreferrer" className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${(SOCIAL_CFG[lead.tiktok_status]||SOCIAL_CFG.unchecked).color} bg-gray-50`}><i className="ti ti-brand-tiktok" /></a>}
                       {waNum && <a href={waLink(waNum, lead.full_name)} target="_blank" rel="noopener noreferrer" className="h-7 px-2.5 bg-[#25D366] text-white text-[10px] font-bold rounded-lg flex items-center gap-1"><i className="ti ti-brand-whatsapp" /> WA</a>}
                     </div>
                   </div>
@@ -1019,27 +1027,25 @@ export default function LeadsClient() {
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Social Media</p>
                   <div className="grid grid-cols-2 gap-2">
                     {detailLead.facebook_url && (
-                      <a href={detailLead.facebook_url} target="_blank" rel="noopener noreferrer"
+                      <a href={safeUrl(detailLead.facebook_url)} target="_blank" rel="noopener noreferrer"
                         className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium ${(SOCIAL_CFG[detailLead.facebook_status]||SOCIAL_CFG.unchecked).color} bg-blue-50 border-blue-100`}>
                         <i className="ti ti-brand-facebook text-base" />
                         <div><p>Facebook</p><p className="text-[10px] opacity-70">{detailLead.facebook_status}</p></div>
                       </a>
                     )}
                     {detailLead.instagram_url && (
-                      <a href={detailLead.instagram_url} target="_blank" rel="noopener noreferrer"
+                      <a href={safeUrl(detailLead.instagram_url)} target="_blank" rel="noopener noreferrer"
                         className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium ${(SOCIAL_CFG[detailLead.instagram_status]||SOCIAL_CFG.unchecked).color} bg-pink-50 border-pink-100`}>
                         <i className="ti ti-brand-instagram text-base" />
                         <div><p>Instagram</p><p className="text-[10px] opacity-70">{detailLead.instagram_status}</p></div>
                       </a>
                     )}
                     {detailLead.tiktok_url && (
-                      <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium ${(SOCIAL_CFG[detailLead.tiktok_status]||SOCIAL_CFG.unchecked).color} bg-gray-100 border-gray-200`}>
+                      <a href={safeUrl(detailLead.tiktok_url)} target="_blank" rel="noopener noreferrer"
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium ${(SOCIAL_CFG[detailLead.tiktok_status]||SOCIAL_CFG.unchecked).color} bg-gray-100 border-gray-200`}>
                         <i className="ti ti-brand-tiktok text-base" />
-                        <div>
-                          <a href={detailLead.tiktok_url} target="_blank" rel="noopener noreferrer" className="hover:underline">TikTok</a>
-                          <p className="text-[10px] opacity-70">{detailLead.tiktok_status}</p>
-                        </div>
-                      </div>
+                        <div><p>TikTok</p><p className="text-[10px] opacity-70">{detailLead.tiktok_status}</p></div>
+                      </a>
                     )}
                     {detailLead.whatsapp_number && (
                       <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium ${(SOCIAL_CFG[detailLead.whatsapp_status]||SOCIAL_CFG.unchecked).color} bg-emerald-50 border-emerald-100`}>

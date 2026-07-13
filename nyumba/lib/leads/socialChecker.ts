@@ -19,6 +19,14 @@ export type SocialVerifyResult = {
   summary: { platform: string; status: SocialStatus }[]
 }
 
+/** Ensure a user-supplied social URL has a protocol so it works as an href */
+export function normalizeUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+  return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`
+}
+
 async function headCheck(url: string, timeout = 9000): Promise<SocialStatus> {
   try {
     let clean = url.trim()

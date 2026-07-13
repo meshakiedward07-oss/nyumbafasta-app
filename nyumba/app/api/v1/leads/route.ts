@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
-import { verifySingleLead } from '@/lib/leads/socialChecker'
+import { verifySingleLead, normalizeUrl } from '@/lib/leads/socialChecker'
 import { cleanPhone } from '@/lib/leads/cleanPhone'
 
 export const dynamic = 'force-dynamic'
@@ -97,9 +97,9 @@ export async function POST(req: NextRequest) {
         lead_type:       body.lead_type        || 'dalali',
         source:          'manual',
         notes:           body.notes?.trim()    || null,
-        facebook_url:    body.facebook_url?.trim()    || null,
-        instagram_url:   body.instagram_url?.trim()   || null,
-        tiktok_url:      body.tiktok_url?.trim()      || null,
+        facebook_url:    normalizeUrl(body.facebook_url),
+        instagram_url:   normalizeUrl(body.instagram_url),
+        tiktok_url:      normalizeUrl(body.tiktok_url),
         whatsapp_number: cleanPhone(body.whatsapp_number) || body.whatsapp_number?.trim() || null,
         status:          'new',
       })
