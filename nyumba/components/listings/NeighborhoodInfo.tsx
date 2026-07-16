@@ -133,7 +133,7 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
       </div>
 
       <p className="text-xs text-gray-400 mt-3">
-        * Umbali kutoka eneo la nyumba — taarifa kutoka Google Maps
+        * Umbali kutoka eneo la nyumba — taarifa kutoka OpenStreetMap
       </p>
     </section>
   )
