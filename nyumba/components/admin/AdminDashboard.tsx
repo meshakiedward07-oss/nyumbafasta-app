@@ -136,6 +136,23 @@ export default function AdminDashboard({
     }
   }
 
+  // ── Delete listing (admin hard-delete) ─────────────
+  async function handleDeleteListing(id: string) {
+    if (!confirm('Futa listing hii kabisa? Hatua hii haiwezi kurudishwa.')) return
+    setLoadingId(id)
+    setActionError('')
+    try {
+      const res = await fetch(`/api/v1/admin/listings/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Imeshindwa')
+      setListings(prev => prev.filter(l => l.id !== id))
+      setAllListingsState(prev => prev.filter(l => l.id !== id))
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : 'Hitilafu imetokea')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
   // ── Delete user (used from reports tab) ─────────────
   async function handleUserDelete(userId: string) {
     setUserActionLoading(userId)
@@ -621,6 +638,11 @@ export default function AdminDashboard({
                       <button onClick={() => handleAction(listing.id, 'approve')} disabled={loadingId === listing.id}
                         className="flex-1 py-2.5 rounded-xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
                         {loadingId === listing.id ? '...' : <><i className="ti ti-check" aria-hidden="true" /> Idhibiti</>}
+                      </button>
+                      <button onClick={() => handleDeleteListing(listing.id)} disabled={loadingId === listing.id}
+                        title="Futa kabisa"
+                        className="w-11 py-2.5 rounded-xl border-2 border-gray-200 text-gray-500 text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all flex-shrink-0 flex items-center justify-center">
+                        <i className="ti ti-trash" aria-hidden="true" />
                       </button>
                     </div>
                   </div>

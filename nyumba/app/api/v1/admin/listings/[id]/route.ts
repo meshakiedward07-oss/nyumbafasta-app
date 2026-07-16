@@ -133,3 +133,66 @@ export async function PATCH(
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
 }
+
+// DELETE — admin hard-deletes a listing (status = 'deleted')
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const adminUser = await requireAdminUser()
+    if (!adminUser) return NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 })
+
+    const admin = createAdminClient()
+
+    const { data: listing } = await admin
+      .from('listings')
+      .select('id, dalali_id, title, type, district')
+      .eq('id', params.id)
+      .single()
+
+    if (!listing) return NextResponse.json({ error: 'Listing haipatikani' }, { status: 404 })
+
+    const { error } = await admin
+      .from('listings')
+      .update({ status: 'deleted' })
+      .eq('id', params.id)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Non-fatal: remove from Marketplace if synced
+    void (async () => {
+      try {
+        const { data: ml } = await admin
+          .from('marketplace_listings')
+          .select('retailer_id')
+          .eq('listing_id', params.id)
+          .eq('status', 'active')
+          .maybeSingle()
+        if (ml?.retailer_id) {
+          const { deleteMarketplaceItem } = await import('@/lib/social/facebookMarketplace')
+          await deleteMarketplaceItem(ml.retailer_id)
+          await admin
+            .from('marketplace_listings')
+            .update({ status: 'deleted', availability: 'OUT_OF_STOCK', updated_at: new Date().toISOString() })
+            .eq('listing_id', params.id)
+        }
+      } catch (err) {
+        console.error('[Admin] Marketplace delete sync failed (non-fatal):', err)
+      }
+    })()
+
+    await auditLog({
+      action: 'listing_deleted',
+      user_id: adminUser.id,
+      target_id: params.id,
+      target_type: 'listing',
+      ip_address: getClientIp(req),
+      severity: 'warning',
+    })
+
+    return NextResponse.json({ success: true })
+  } catch {
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
+}

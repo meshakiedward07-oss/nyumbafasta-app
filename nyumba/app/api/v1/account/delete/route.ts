@@ -26,14 +26,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nenosiri linahitajika' }, { status: 400 })
     }
 
-    // Verify password by re-authenticating
-    const { data: userData } = await adminClient
-      .from('users')
-      .select('email')
-      .eq('id', user.id)
-      .single()
-
-    const email = userData?.email ?? user.email
+    // email lives in auth.users, not public.users
+    const email = user.email
     if (!email) {
       return NextResponse.json({ error: 'Barua pepe haipatikani — tumia Google sign-in kufuta akaunti' }, { status: 400 })
     }
