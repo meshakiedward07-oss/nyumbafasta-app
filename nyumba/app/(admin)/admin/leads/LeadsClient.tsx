@@ -170,6 +170,12 @@ export default function LeadsClient() {
   // Duplicate management
   const [deletingAllDups, setDeletingAllDups]   = useState(false)
 
+  // Staff assign
+  const [staffList, setStaffList]               = useState<{id:string;full_name:string;staff_title:string|null}[]>([])
+  const [assigningLeadId, setAssigningLeadId]   = useState<string | null>(null)
+  const [selectedStaffId, setSelectedStaffId]   = useState('')
+  const [assigningStaff,  setAssigningStaff]    = useState(false)
+
   // Toast
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
@@ -216,6 +222,14 @@ export default function LeadsClient() {
 
   useEffect(() => { fetchLeads() }, [fetchLeads])
   useEffect(() => { fetchStats() }, [fetchStats])
+
+  // Fetch active staff for assignment dropdown (lazy — once on mount)
+  useEffect(() => {
+    fetch('/api/v1/admin/staff')
+      .then(r => r.json())
+      .then(d => setStaffList((d.staff ?? []).filter((s: any) => s.staff_active)))
+      .catch(() => {})
+  }, [])
 
   // Sync notes editor when detail changes
   useEffect(() => {
@@ -325,6 +339,25 @@ export default function LeadsClient() {
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, assigned_to: userId } : l))
       showToast('✅ Lead imekukabidhiwa')
     } catch { showToast('Imeshindwa kukabidhi lead', false) }
+  }
+
+  // ── Assign to specific staff ───────────────────────────────────────────────
+  async function handleAssignToStaff(leadId: string, staffId: string) {
+    if (!staffId) return
+    setAssigningStaff(true)
+    try {
+      await fetch('/api/v1/leads', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: leadId, assigned_to: staffId }),
+      })
+      const s = staffList.find(x => x.id === staffId)
+      setDetailLead(prev => prev ? { ...prev, assigned_to: staffId } : null)
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, assigned_to: staffId } : l))
+      setAssigningLeadId(null); setSelectedStaffId('')
+      showToast(`✅ Lead imepewa ${s?.full_name ?? 'mfanyakazi'}`)
+    } catch { showToast('Imeshindwa kukabidhi lead', false) }
+    finally { setAssigningStaff(false) }
   }
 
   // ── Delete ─────────────────────────────────────────────────────────────────
@@ -1008,13 +1041,63 @@ export default function LeadsClient() {
                 <button onClick={() => handleAssignToMe(detailLead.id)}
                   className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-semibold hover:bg-blue-100">
                   <i className="ti ti-user-check text-base" />
-                  {detailLead.assigned_to ? 'Reassign' : 'Kabidhi Kwangu'}
+                  Kwangu
                 </button>
+                <button
+                  onClick={() => { setAssigningLeadId(detailLead.id); setSelectedStaffId('') }}
+                  className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-primary-50 border border-primary-100 text-primary-700 text-[10px] font-semibold hover:bg-primary-100">
+                  <i className="ti ti-users text-base" />
+                  Gawa Staff
+                </button>
+              </div>
+
+              {/* Assign to staff inline panel */}
+              {assigningLeadId === detailLead.id && (
+                <div className="bg-gray-50 rounded-2xl p-3 border border-gray-100">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">
+                    <i className="ti ti-user-plus" /> Gawa kwa Mfanyakazi
+                  </p>
+                  {staffList.length === 0 ? (
+                    <p className="text-xs text-gray-400">Hakuna wafanyakazi wanaofaa. Ongeza staff kwenye <a href="/admin/staff" className="text-primary-600 underline">ukurasa wa Wafanyakazi</a>.</p>
+                  ) : (
+                    <>
+                      <select
+                        value={selectedStaffId}
+                        onChange={e => setSelectedStaffId(e.target.value)}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 mb-2"
+                      >
+                        <option value="">— Chagua mfanyakazi —</option>
+                        {staffList.map(s => (
+                          <option key={s.id} value={s.id}>{s.full_name}{s.staff_title ? ` (${s.staff_title})` : ''}</option>
+                        ))}
+                      </select>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setAssigningLeadId(null); setSelectedStaffId('') }}
+                          className="flex-1 border border-gray-200 py-1.5 rounded-xl text-xs font-medium text-gray-500"
+                        >
+                          Ghairi
+                        </button>
+                        <button
+                          onClick={() => handleAssignToStaff(detailLead.id, selectedStaffId)}
+                          disabled={!selectedStaffId || assigningStaff}
+                          className="flex-1 bg-primary-500 text-white py-1.5 rounded-xl text-xs font-semibold disabled:opacity-40"
+                        >
+                          {assigningStaff ? 'Inatuma…' : 'Kabidhi'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Check Social */}
+              <div className="grid grid-cols-1">
                 <button onClick={() => handleVerify()}
                   disabled={verifying || !detailLead.has_any_social}
                   className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-purple-50 border border-purple-100 text-purple-700 text-[10px] font-semibold hover:bg-purple-100 disabled:opacity-40">
                   {verifying ? <i className="ti ti-loader-2 animate-spin text-base" /> : <i className="ti ti-refresh text-base" />}
-                  Check Social
+                  Check Social Media
                 </button>
               </div>
 

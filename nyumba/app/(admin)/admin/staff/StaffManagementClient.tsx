@@ -32,7 +32,19 @@ type StaffMember = {
   created_at: string
 }
 
-const TITLES = ['Sales Agent', 'Onboarding Specialist', 'Team Lead', 'Customer Success']
+const TITLES = [
+  'Sales Agent',
+  'Onboarding Specialist',
+  'Listings Moderator',
+  'User Support Specialist',
+  'Platform Manager',
+  'Social Media Manager',
+  'WhatsApp Support Agent',
+  'Quality Control Specialist',
+  'Customer Success',
+  'Team Lead',
+  'Nyingine…',
+]
 
 function timeAgo(iso: string) {
   const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -55,6 +67,7 @@ export default function StaffManagementClient() {
   const [managingPerms,    setManagingPerms]    = useState<StaffMember | null>(null)
   const [activityStaff,    setActivityStaff]    = useState<StaffMember | null>(null)
   const [performanceStaff, setPerformanceStaff] = useState<StaffMember | null>(null)
+  const [assigningTask,    setAssigningTask]    = useState<StaffMember | null>(null)
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok })
@@ -316,6 +329,12 @@ export default function StaffManagementClient() {
                         <i className="ti ti-chart-bar" aria-hidden="true" /> Angalia Utendaji
                       </button>
                       <button
+                        onClick={() => setAssigningTask(s)}
+                        className="bg-primary-50 text-primary-700 text-xs py-2 rounded-xl font-medium border border-primary-100 col-span-2 flex items-center justify-center gap-1.5"
+                      >
+                        <i className="ti ti-clipboard-plus" aria-hidden="true" /> Gawa Kazi
+                      </button>
+                      <button
                         onClick={() => setManagingPerms(s)}
                         className="bg-blue-50 text-blue-700 text-xs py-2 rounded-xl font-medium border border-blue-100 flex items-center justify-center gap-1"
                       >
@@ -387,6 +406,13 @@ export default function StaffManagementClient() {
       )}
       {performanceStaff && (
         <PerformanceModal staff={performanceStaff} onClose={() => setPerformanceStaff(null)} />
+      )}
+      {assigningTask && (
+        <AssignTaskModal
+          staff={assigningTask}
+          onClose={() => setAssigningTask(null)}
+          onSaved={(msg) => { setAssigningTask(null); showToast(msg) }}
+        />
       )}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -521,14 +547,22 @@ function AddStaffModal({
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Cheo</label>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Cheo (Kiwango)</label>
             <select
-              value={title}
-              onChange={e => setTitle(e.target.value)}
+              value={TITLES.includes(title) ? title : 'Nyingine…'}
+              onChange={e => { if (e.target.value !== 'Nyingine…') { setTitle(e.target.value) } else { setTitle('') } }}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             >
               {TITLES.map(t => <option key={t}>{t}</option>)}
             </select>
+            {(!TITLES.includes(title) || title === '') && (
+              <input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="Andika cheo mwenyewe…"
+                className="w-full mt-2 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+              />
+            )}
           </div>
 
           <div>
@@ -561,12 +595,21 @@ function AddStaffModal({
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
             >
               <option value="">Bila ruhusa (weka baadaye)</option>
-              <option value="sales_agent">Sales Agent — Leads tu</option>
-              <option value="onboarding_specialist">Onboarding Specialist — Leads + Scraper</option>
-              <option value="customer_support">Customer Support — WhatsApp + Violations</option>
-              <option value="social_media_manager">Social Media Manager — Social + Spam</option>
-              <option value="quality_control">Quality Control — Spam + Violations + Analytics</option>
-              <option value="team_lead">Team Lead — Vyote</option>
+              <optgroup label="— CRM / Leads —">
+                <option value="sales_agent">Sales Agent — Leads tu</option>
+                <option value="onboarding_specialist">Onboarding Specialist — Leads + Scraper</option>
+              </optgroup>
+              <optgroup label="— Platform Operations —">
+                <option value="listings_agent">Listings Moderator — Idhinisha matangazo + Uthibitisho</option>
+                <option value="user_support">User Support — Watumiaji + Ripoti + WhatsApp + Usajili</option>
+                <option value="platform_manager">Platform Manager — Kazi zote za Platform</option>
+              </optgroup>
+              <optgroup label="— Support / Content —">
+                <option value="customer_support">Customer Support — WhatsApp + Violations</option>
+                <option value="social_media_manager">Social Media Manager — Social + Spam</option>
+                <option value="quality_control">Quality Control — Spam + Violations + Analytics</option>
+              </optgroup>
+              <option value="team_lead">Team Lead — Vyote (Full Access)</option>
             </select>
           </div>
 
@@ -646,11 +689,22 @@ function EditStaffModal({
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Cheo</label>
-            <select value={title} onChange={e => setTitle(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+            <label className="text-xs font-medium text-gray-600 block mb-1">Cheo (Kiwango)</label>
+            <select
+              value={TITLES.includes(title) ? title : 'Nyingine…'}
+              onChange={e => { if (e.target.value !== 'Nyingine…') setTitle(e.target.value); else setTitle('') }}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+            >
               {TITLES.map(t => <option key={t}>{t}</option>)}
             </select>
+            {(!TITLES.includes(title) || title === '') && (
+              <input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="Andika cheo mwenyewe…"
+                className="w-full mt-2 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+              />
+            )}
           </div>
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1">Ukomo wa Leads</label>
@@ -1163,6 +1217,178 @@ function TeamPerformanceView({ staff, onSelect }: { staff: StaffMember[]; onSele
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ─── Assign Task Modal ────────────────────────────────────────────────────────
+function AssignTaskModal({
+  staff,
+  onClose,
+  onSaved,
+}: {
+  staff: StaffMember
+  onClose: () => void
+  onSaved: (msg: string) => void
+}) {
+  const [title,       setTitle]       = useState('')
+  const [description, setDescription] = useState('')
+  const [priority,    setPriority]    = useState('normal')
+  const [category,    setCategory]    = useState('general')
+  const [dueDate,     setDueDate]     = useState('')
+  const [saving,      setSaving]      = useState(false)
+  const [error,       setError]       = useState('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!title.trim()) { setError('Andika kichwa cha kazi'); return }
+    setSaving(true); setError('')
+    const res = await fetch('/api/v1/staff/assignments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        staff_id:    staff.id,
+        title:       title.trim(),
+        description: description.trim() || undefined,
+        priority,
+        category,
+        due_date:    dueDate || undefined,
+      }),
+    })
+    const data = await res.json()
+    setSaving(false)
+    if (!res.ok) { setError(data.error ?? 'Imeshindwa kutuma kazi'); return }
+    onSaved(`✅ Kazi imepewa ${staff.full_name}`)
+  }
+
+  const CATEGORIES = [
+    { v: 'general',      l: 'Jumla' },
+    { v: 'listing',      l: 'Matangazo' },
+    { v: 'user',         l: 'Watumiaji' },
+    { v: 'report',       l: 'Ripoti' },
+    { v: 'verification', l: 'Uthibitisho' },
+    { v: 'subscription', l: 'Usajili' },
+  ]
+
+  const PRIORITIES = [
+    { v: 'low',    l: 'Chini',   c: 'text-gray-600 border-gray-200 bg-gray-50' },
+    { v: 'normal', l: 'Kawaida', c: 'text-blue-700 border-blue-200 bg-blue-50' },
+    { v: 'high',   l: 'Juu',     c: 'text-amber-700 border-amber-200 bg-amber-50' },
+    { v: 'urgent', l: 'Haraka!', c: 'text-red-700 border-red-200 bg-red-50' },
+  ]
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+              <i className="ti ti-clipboard-plus text-primary-500" /> Gawa Kazi
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">Kwa: <strong>{staff.full_name}</strong> · {staff.staff_title}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
+            <i className="ti ti-x" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-3 py-2 rounded-xl mb-3">{error}</div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Title */}
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-1">Kichwa cha Kazi *</label>
+            <input
+              required
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Mfano: Angalia matangazo 10 yanayosubiri idhini…"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-1">Maelezo Zaidi (si lazima)</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Eleza kazi kwa undani zaidi…"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+            />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-2">Aina ya Kazi</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {CATEGORIES.map(c => (
+                <button
+                  key={c.v} type="button"
+                  onClick={() => setCategory(c.v)}
+                  className={`py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                    category === c.v
+                      ? 'bg-primary-500 text-white border-primary-500'
+                      : 'text-gray-500 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {c.l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-2">Kipaumbele</label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {PRIORITIES.map(p => (
+                <button
+                  key={p.v} type="button"
+                  onClick={() => setPriority(p.v)}
+                  className={`py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                    priority === p.v ? p.c + ' ring-2 ring-offset-1 ring-primary-400' : 'text-gray-400 border-gray-200 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  {p.l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Due date */}
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-1">Tarehe ya Mwisho (si lazima)</label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button" onClick={onClose}
+              className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm font-medium text-gray-600"
+            >
+              Ghairi
+            </button>
+            <button
+              type="submit" disabled={saving}
+              className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
+            >
+              {saving ? <><i className="ti ti-loader-2 animate-spin" /> Inatuma…</> : <><i className="ti ti-send" /> Tuma Kazi</>}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
