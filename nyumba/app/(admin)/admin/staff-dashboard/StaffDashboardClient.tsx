@@ -21,6 +21,11 @@ type Stats = {
   expiringSubs: number
   myActiveLeads: number
   completedToday: number
+  completedThisWeek: number
+  completedThisMonth: number
+  myAssignmentsTotal: number
+  myAssignmentsCompleted: number
+  pendingAssignments: number
 }
 
 type PendingListing = {
@@ -297,7 +302,9 @@ export default function StaffDashboardClient() {
             <div className="flex items-center gap-2">
               <div className="hidden sm:flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-full">
                 <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
-                <span className="text-xs font-semibold text-primary-700">{stats.completedToday} kazi leo</span>
+                <span className="text-xs font-semibold text-primary-700">
+                  {stats.completedToday} kazi leo · {stats.completedThisWeek} wiki hii
+                </span>
               </div>
               <button onClick={load} className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
                 <i className="ti ti-refresh text-base" aria-hidden="true" />
@@ -339,8 +346,85 @@ export default function StaffDashboardClient() {
         {tab === 'overview' && (
           <div className="space-y-6">
 
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* ── Personal Performance Card ── */}
+            <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-3xl p-5 text-white relative overflow-hidden">
+              {/* bg decoration */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white" />
+                <div className="absolute -bottom-10 -left-10 w-56 h-56 rounded-full bg-white" />
+              </div>
+
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <p className="text-primary-100 text-xs font-medium uppercase tracking-wider mb-0.5">Utendaji Wangu</p>
+                    <h2 className="text-xl font-bold">{staff.full_name}</h2>
+                    {staff.staff_title && (
+                      <span className="inline-block mt-1 bg-white/20 text-white text-[11px] font-semibold px-3 py-0.5 rounded-full">
+                        {staff.staff_title}
+                      </span>
+                    )}
+                  </div>
+                  {/* assignment completion ring */}
+                  {stats.myAssignmentsTotal > 0 && (
+                    <div className="relative w-16 h-16 flex-shrink-0">
+                      <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
+                        <circle
+                          cx="32" cy="32" r="26" fill="none"
+                          stroke="white" strokeWidth="8"
+                          strokeLinecap="round"
+                          strokeDasharray={`${2 * Math.PI * 26}`}
+                          strokeDashoffset={`${2 * Math.PI * 26 * (1 - (stats.myAssignmentsCompleted / stats.myAssignmentsTotal))}`}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-sm font-bold leading-none">
+                          {Math.round((stats.myAssignmentsCompleted / stats.myAssignmentsTotal) * 100)}%
+                        </span>
+                        <span className="text-[9px] text-primary-200 leading-none mt-0.5">Kazi</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Today / Week / Month */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Leo',       value: stats.completedToday,      icon: 'sun' },
+                    { label: 'Wiki Hii',  value: stats.completedThisWeek,   icon: 'calendar-week' },
+                    { label: 'Mwezi Huu', value: stats.completedThisMonth,  icon: 'calendar-month' },
+                  ].map(m => (
+                    <div key={m.label} className="bg-white/15 rounded-2xl p-3 text-center">
+                      <i className={`ti ti-${m.icon} text-base text-primary-200`} aria-hidden="true" />
+                      <p className="text-2xl font-bold mt-0.5">{m.value}</p>
+                      <p className="text-[10px] text-primary-200 font-medium">{m.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Assignments progress bar */}
+                {stats.myAssignmentsTotal > 0 && (
+                  <div className="mt-4">
+                    <div className="flex justify-between text-[11px] text-primary-200 mb-1.5">
+                      <span>Kazi za Admin: {stats.myAssignmentsCompleted}/{stats.myAssignmentsTotal} zimekamilika</span>
+                      {stats.pendingAssignments > 0 && (
+                        <span className="text-amber-300 font-semibold">{stats.pendingAssignments} zinasubiri</span>
+                      )}
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2">
+                      <div
+                        className="bg-white rounded-full h-2 transition-all duration-500"
+                        style={{ width: `${Math.round((stats.myAssignmentsCompleted / stats.myAssignmentsTotal) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Platform work queue counts */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {has('approve_listings') && (
                 <StatCard icon="home" label="Matangazo Yanayongoja" value={stats.pendingListings} color="amber" onClick={() => setTab('listings')} />
               )}
@@ -359,7 +443,6 @@ export default function StaffDashboardClient() {
               {has('manage_subscriptions') && (
                 <StatCard icon="credit-card" label="Usajili Unaoisha" value={stats.expiringSubs} color="purple" onClick={() => setTab('subscriptions')} />
               )}
-              <StatCard icon="check-circle" label="Kazi Zilizokamilika Leo" value={stats.completedToday} color="green" />
             </div>
 
             {/* Quick pending items (top 5 of each) */}

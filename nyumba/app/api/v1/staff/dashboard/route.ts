@@ -134,14 +134,32 @@ export async function GET() {
     subsCount = count ?? 0
   }
 
-  // Completed tasks today
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
-  const { count: completedToday } = await admin
-    .from('staff_activity_log')
-    .select('id', { count: 'exact', head: true })
-    .eq('staff_id', user.id)
-    .gte('created_at', todayStart.toISOString())
+  // Personal performance counters — all scoped to this staff member
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
+  const weekStart  = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0, 0, 0, 0)
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0)
+
+  const [
+    { count: completedToday },
+    { count: completedThisWeek },
+    { count: completedThisMonth },
+    { count: myAssignmentsTotal },
+    { count: myAssignmentsCompleted },
+    { count: pendingAssignments },
+  ] = await Promise.all([
+    admin.from('staff_activity_log').select('id', { count: 'exact', head: true })
+      .eq('staff_id', user.id).gte('created_at', todayStart.toISOString()),
+    admin.from('staff_activity_log').select('id', { count: 'exact', head: true })
+      .eq('staff_id', user.id).gte('created_at', weekStart.toISOString()),
+    admin.from('staff_activity_log').select('id', { count: 'exact', head: true })
+      .eq('staff_id', user.id).gte('created_at', monthStart.toISOString()),
+    admin.from('staff_assignments').select('id', { count: 'exact', head: true })
+      .eq('staff_id', user.id),
+    admin.from('staff_assignments').select('id', { count: 'exact', head: true })
+      .eq('staff_id', user.id).eq('status', 'completed'),
+    admin.from('staff_assignments').select('id', { count: 'exact', head: true })
+      .eq('staff_id', user.id).in('status', ['pending', 'in_progress']),
+  ])
 
   return NextResponse.json({
     staff: {
@@ -160,7 +178,12 @@ export async function GET() {
       usersToReview:   usersCount,
       expiringSubs:    subsCount,
       myActiveLeads:   myLeadsRes.count ?? 0,
-      completedToday:  completedToday ?? 0,
+      completedToday:  completedToday  ?? 0,
+      completedThisWeek:  completedThisWeek  ?? 0,
+      completedThisMonth: completedThisMonth ?? 0,
+      myAssignmentsTotal:     myAssignmentsTotal     ?? 0,
+      myAssignmentsCompleted: myAssignmentsCompleted ?? 0,
+      pendingAssignments:     pendingAssignments     ?? 0,
     },
     listings:      pendingListingsRes.data ?? [],
     reports:       openReportsRes.data ?? [],
