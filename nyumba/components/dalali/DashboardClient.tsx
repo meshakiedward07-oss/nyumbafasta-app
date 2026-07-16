@@ -118,11 +118,17 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
           <div>
             <p className="text-green-100 text-xs mb-0.5 opacity-80">Karibu,</p>
             <h1 className="text-white text-xl font-bold drop-shadow-sm">{dalaliName}</h1>
-            {profile?.is_premium_verified && (
-              <span className="inline-flex items-center gap-1 bg-white/25 text-white text-xs px-2.5 py-0.5 rounded-full mt-1.5 border border-white/20 backdrop-blur-sm">
-                <i className="ti ti-rosette-discount-check text-amber-300" aria-hidden="true" /> Premium
-              </span>
-            )}
+            {(() => {
+              const plan = subscription?.plan ?? 'free'
+              const PLAN_ICONS: Record<string, string> = { free: 'home', basic: 'star', premium: 'crown', enterprise: 'building' }
+              const PLAN_LABELS: Record<string, string> = { free: 'FREE', basic: 'BASIC', premium: 'PREMIUM', enterprise: 'ENTERPRISE' }
+              return (
+                <span className="inline-flex items-center gap-1 bg-white/20 text-white text-xs px-2.5 py-0.5 rounded-full mt-1.5 border border-white/20 backdrop-blur-sm">
+                  <i className={`ti ti-${PLAN_ICONS[plan] ?? 'home'}`} aria-hidden="true" />
+                  {PLAN_LABELS[plan] ?? 'FREE'}
+                </span>
+              )
+            })()}
             {profile?.whatsapp_number ? (
               <p className="text-green-100/70 text-xs mt-1.5 flex items-center gap-1">
                 <i className="ti ti-phone-filled text-xs" aria-hidden="true" />
