@@ -8,6 +8,7 @@ import {
   TERTIARY_REGIONS,
 } from '@/lib/agent/regions'
 import { monitorDalaliAccounts } from '@/lib/dalali/accountMonitor'
+import { emailBase, listingExpiredEmail, subscriptionExpiryEmail } from '@/lib/email/templates'
 
 export const dynamic = 'force-dynamic'
 
@@ -518,17 +519,8 @@ async function runDailyTasks() {
     for (const l of expiredToday ?? []) {
       const user = (l.users as unknown as { email: string; full_name: string } | null)
       if (!user?.email) continue
-      await sendEmail(
-        user.email,
-        '⏰ Listing Yako Imeisha — Renew Sasa',
-        `<h2>Habari ${user.full_name}!</h2>
-         <p>Listing yako <strong>${l.title}</strong> imeisha leo.</p>
-         <p>Renew sasa ili wateja waendelee kukuona:</p>
-         <a href="${APP_URL}/dashboard/listings"
-           style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
-           Renew Listing →
-         </a>`,
-      )
+      const tpl = listingExpiredEmail(user.full_name, l.title)
+      await sendEmail(user.email, tpl.subject, tpl.html)
     }
     results.push(`✅ Email listing expired: ${expiredToday?.length ?? 0}`)
   } catch (e) {
@@ -562,17 +554,8 @@ async function runDailyTasks() {
       if (!user?.email) continue
       const planName = String(s.plan).toUpperCase()
       const expiryDate = new Date(s.expires_at as string).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
-      await sendEmail(
-        user.email,
-        `⏰ Subscription Yako Inaisha Siku 7 — ${planName}`,
-        `<h2>Habari ${user.full_name}!</h2>
-         <p>Subscription yako ya <strong>${planName}</strong> inaisha tarehe <strong>${expiryDate}</strong> — siku 7 zinazo.</p>
-         <p>Huisha mapema ili usipoteze listings zako na wateja.</p>
-         <a href="${APP_URL}/dashboard/subscription"
-           style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
-           Huisha Subscription →
-         </a>`,
-      )
+      const tpl = subscriptionExpiryEmail(user.full_name, planName, expiryDate, 7)
+      await sendEmail(user.email, tpl.subject, tpl.html)
       await admin.from('notifications').insert({
         user_id: s.dalali_id, type: 'subscription_expiring_7days',
         title: '⏰ Subscription Inaisha Siku 7',
@@ -611,17 +594,8 @@ async function runDailyTasks() {
       if (!user?.email) continue
       const planName = String(s.plan).toUpperCase()
       const expiryDate = new Date(s.expires_at as string).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
-      await sendEmail(
-        user.email,
-        `⚠️ Siku 3 tu! Subscription Yako Inaisha — ${planName}`,
-        `<h2>Habari ${user.full_name}!</h2>
-         <p>Subscription yako ya <strong>${planName}</strong> inaisha tarehe <strong>${expiryDate}</strong> — siku 3 tu zimebaki!</p>
-         <p style="color:#dc2626;font-weight:bold">Usihudumu — huisha sasa ili listings zako ziendelee kuonekana.</p>
-         <a href="${APP_URL}/dashboard/subscription"
-           style="background:#dc2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
-           Huisha Sasa →
-         </a>`,
-      )
+      const tpl = subscriptionExpiryEmail(user.full_name, planName, expiryDate, 3)
+      await sendEmail(user.email, tpl.subject, tpl.html)
     }
     results.push(`✅ Email sub expiry 3 days: ${expiringSubs?.length ?? 0}`)
   } catch (e) {
@@ -673,67 +647,80 @@ async function runDailyTasks() {
     }
 
     const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co'
+    const todayLabel = new Date().toLocaleDateString('sw-TZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     await sendEmail(
       adminEmail,
       `📊 Ripoti ya Mapato — Leo — Tsh ${totalRevenue.toLocaleString()}`,
-      `<h2 style="color:#1D9E75">📊 Ripoti ya Mapato ya Kila Siku</h2>
-       <p style="color:#6b7280;font-size:14px">${new Date().toLocaleDateString('sw-TZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      emailBase(`
+        <span style="font-size:22px;font-weight:700;color:#111827;margin:0 0 4px;display:block">📊 Ripoti ya Mapato</span>
+        <span style="font-size:14px;color:#6b7280;display:block;margin:0 0 24px">${todayLabel}</span>
 
-       <!-- Summary boxes -->
-       <table width="100%" cellpadding="0" cellspacing="8" style="margin-bottom:24px">
-         <tr>
-           <td style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;text-align:center">
-             <div style="font-size:22px;font-weight:700;color:#166534">Tsh ${totalRevenue.toLocaleString()}</div>
-             <div style="font-size:12px;color:#4b5563;margin-top:2px">Jumla ya Leo</div>
-           </td>
-         </tr>
-       </table>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8px">
+          <tr>
+            <td style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:18px;text-align:center">
+              <div style="font-size:28px;font-weight:700;color:#166534">Tsh ${totalRevenue.toLocaleString()}</div>
+              <div style="font-size:13px;color:#4b5563;margin-top:4px">Jumla ya Mapato Leo</div>
+            </td>
+          </tr>
+        </table>
 
-       <!-- Breakdown table -->
-       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
-         <tr style="background:#1D9E75;color:white">
-           <td style="padding:10px 12px;font-weight:600">Chanzo cha Mapato</td>
-           <td style="padding:10px 12px;text-align:right;font-weight:600">Idadi</td>
-           <td style="padding:10px 12px;text-align:right;font-weight:600">Mapato</td>
-         </tr>
-         ${tableRow('🔓 Contact Unlocks', `${unlocks.length}`, `Tsh ${unlockRevenue.toLocaleString()}`)}
-         ${tableRow('📋 Subscriptions Mpya', `${subs.length}`, `Tsh ${subRevenue.toLocaleString()}`)}
-         ${tableRow('⚡ Boost Payments', `${boosts.length}`, `Tsh ${boostRevenue.toLocaleString()}`)}
-         ${tableRow('➕ Extra Listings', `${extraListings.length}`, `Tsh ${extraRevenue.toLocaleString()}`)}
-         <tr style="background:#f9fafb;font-weight:700">
-           <td style="padding:10px 12px;border-top:2px solid #1D9E75">JUMLA</td>
-           <td style="padding:10px 12px;text-align:right;border-top:2px solid #1D9E75">${unlocks.length + subs.length + boosts.length + extraListings.length}</td>
-           <td style="padding:10px 12px;text-align:right;border-top:2px solid #1D9E75;color:#1D9E75">Tsh ${totalRevenue.toLocaleString()}</td>
-         </tr>
-       </table>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin:20px 0">
+          <tr style="background:#1D9E75;color:white">
+            <td style="padding:10px 14px;font-size:13px;font-weight:600">Chanzo cha Mapato</td>
+            <td style="padding:10px 14px;text-align:right;font-size:13px;font-weight:600">Idadi</td>
+            <td style="padding:10px 14px;text-align:right;font-size:13px;font-weight:600">Mapato</td>
+          </tr>
+          ${tableRow('🔓 Contact Unlocks', `${unlocks.length}`, `Tsh ${unlockRevenue.toLocaleString()}`)}
+          ${tableRow('📋 Subscriptions Mpya', `${subs.length}`, `Tsh ${subRevenue.toLocaleString()}`)}
+          ${tableRow('⚡ Boost Payments', `${boosts.length}`, `Tsh ${boostRevenue.toLocaleString()}`)}
+          ${tableRow('➕ Extra Listings', `${extraListings.length}`, `Tsh ${extraRevenue.toLocaleString()}`)}
+          <tr style="background:#f9fafb;font-weight:700">
+            <td style="padding:10px 14px;border-top:2px solid #1D9E75;font-size:13px">JUMLA</td>
+            <td style="padding:10px 14px;text-align:right;border-top:2px solid #1D9E75;font-size:13px">${unlocks.length + subs.length + boosts.length + extraListings.length}</td>
+            <td style="padding:10px 14px;text-align:right;border-top:2px solid #1D9E75;color:#1D9E75;font-size:13px">Tsh ${totalRevenue.toLocaleString()}</td>
+          </tr>
+        </table>
 
-       ${subs.length > 0 ? `
-       <h3 style="color:#374151;margin-bottom:8px">📋 Subscriptions Zilizolipwa Leo</h3>
-       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
-         <tr style="background:#f3f4f6"><td style="padding:8px 12px;font-weight:600">Dalali</td><td style="padding:8px 12px;text-align:right;font-weight:600">Plan</td><td style="padding:8px 12px;text-align:right;font-weight:600">Kiasi</td></tr>
-         ${subs.map(s => {
-           const name = (s.users as unknown as { full_name: string } | null)?.full_name ?? '—'
-           return tableRow(name, String(s.plan).toUpperCase(), `Tsh ${(s.amount_paid ?? 0).toLocaleString()}`)
-         }).join('')}
-       </table>` : ''}
+        ${subs.length > 0 ? `
+        <p style="font-size:15px;font-weight:700;color:#374151;margin:20px 0 8px">📋 Subscriptions Zilizolipwa Leo</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:20px">
+          <tr style="background:#f3f4f6">
+            <td style="padding:8px 14px;font-size:12px;font-weight:600">Dalali</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Plan</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Kiasi</td>
+          </tr>
+          ${subs.map(s => {
+            const name = (s.users as unknown as { full_name: string } | null)?.full_name ?? '—'
+            return tableRow(name, String(s.plan).toUpperCase(), `Tsh ${(s.amount_paid ?? 0).toLocaleString()}`)
+          }).join('')}
+        </table>` : ''}
 
-       ${unlocks.length > 0 ? `
-       <h3 style="color:#374151;margin-bottom:8px">🔓 Unlocks kwa Dalali</h3>
-       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
-         <tr style="background:#f3f4f6"><td style="padding:8px 12px;font-weight:600">Dalali</td><td style="padding:8px 12px;text-align:right;font-weight:600">Unlocks</td><td style="padding:8px 12px;text-align:right;font-weight:600">Mapato</td></tr>
-         ${(() => {
-           const byD: Record<string, { name: string; n: number }> = {}
-           for (const u of unlocks) {
-             const nm = (u.users as unknown as { full_name: string } | null)?.full_name ?? '—'
-             if (!byD[u.dalali_id]) byD[u.dalali_id] = { name: nm, n: 0 }
-             byD[u.dalali_id].n++
-           }
-           return Object.values(byD).sort((a, b) => b.n - a.n)
-             .map(({ name, n }) => tableRow(name, `${n}`, `Tsh ${(n * 2000).toLocaleString()}`)).join('')
-         })()}
-       </table>` : ''}
+        ${unlocks.length > 0 ? `
+        <p style="font-size:15px;font-weight:700;color:#374151;margin:20px 0 8px">🔓 Unlocks kwa Dalali</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:20px">
+          <tr style="background:#f3f4f6">
+            <td style="padding:8px 14px;font-size:12px;font-weight:600">Dalali</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Unlocks</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Mapato</td>
+          </tr>
+          ${(() => {
+            const byD: Record<string, { name: string; n: number }> = {}
+            for (const u of unlocks) {
+              const nm = (u.users as unknown as { full_name: string } | null)?.full_name ?? '—'
+              if (!byD[u.dalali_id]) byD[u.dalali_id] = { name: nm, n: 0 }
+              byD[u.dalali_id].n++
+            }
+            return Object.values(byD).sort((a, b) => b.n - a.n)
+              .map(({ name, n }) => tableRow(name, `${n}`, `Tsh ${(n * 2000).toLocaleString()}`)).join('')
+          })()}
+        </table>` : ''}
 
-       <a href="${APP_URL}/admin" style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Fungua Admin Panel →</a>`,
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr><td align="center">
+            <a href="${APP_URL}/admin" style="display:inline-block;background:#1D9E75;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 32px;border-radius:10px;margin-top:8px">Fungua Admin Panel →</a>
+          </td></tr>
+        </table>
+      `, `Ripoti ya mapato — Tsh ${totalRevenue.toLocaleString()}`),
     )
     results.push(`✅ Admin daily revenue email: Tsh ${totalRevenue.toLocaleString()} (unlocks:${unlocks.length} subs:${subs.length} boosts:${boosts.length} extra:${extraListings.length})`)
   } catch (e) {

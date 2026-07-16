@@ -1,7 +1,8 @@
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nyumbafasta.co'
+const LOGO_URL = 'https://nyumbafasta.co/logo_nyumbafasta.png'
 
 // All styles are fully inline — <style> blocks are stripped by Gmail and Outlook.
-function emailBase(content: string, previewText = '') {
+export function emailBase(content: string, previewText = '') {
   return `<!DOCTYPE html>
 <html lang="sw">
 <head>
@@ -9,51 +10,69 @@ function emailBase(content: string, previewText = '') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NyumbaFasta</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
+<body style="margin:0;padding:0;background:#eef0f2;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
   ${previewText ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all">${previewText}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>` : ''}
 
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f5;padding:40px 0">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eef0f2;padding:40px 0 48px">
     <tr>
-      <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0" border="0"
-          style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.07);max-width:560px;width:100%">
+      <td align="center" style="padding:0 16px">
+        <table width="580" cellpadding="0" cellspacing="0" border="0"
+          style="max-width:580px;width:100%">
 
-          <!-- ── Header ──────────────────────────────────────── -->
+          <!-- ── Logo above card ──────────────────────────────── -->
           <tr>
-            <td align="center" style="background:#1D9E75;padding:28px 40px">
-              <a href="${APP_URL}" style="text-decoration:none;display:block">
+            <td align="center" style="padding:0 0 20px">
+              <a href="${APP_URL}" style="text-decoration:none;display:inline-block">
                 <img
-                  src="https://nyumbafasta.co/logo-white.svg"
+                  src="${LOGO_URL}"
                   alt="NyumbaFasta"
-                  width="200"
-                  style="display:block;margin:0 auto;max-width:200px;height:auto"
+                  width="96" height="96"
+                  style="display:block;border-radius:20px;border:3px solid #ffffff;max-width:96px"
                 />
               </a>
             </td>
           </tr>
 
-          <!-- ── Body ───────────────────────────────────────── -->
+          <!-- ── Card ─────────────────────────────────────────── -->
           <tr>
-            <td style="padding:40px 40px 32px">
-              ${content}
-            </td>
-          </tr>
+            <td style="background:#ffffff;border-radius:20px;overflow:hidden">
 
-          <!-- ── Footer ─────────────────────────────────────── -->
-          <tr>
-            <td style="background:#f9fafb;padding:24px 40px;border-top:1px solid #e5e7eb;text-align:center">
-              <p style="font-size:12px;color:#9ca3af;line-height:1.6;margin:0">
-                <a href="${APP_URL}" style="color:#1D9E75;text-decoration:none">🌐 nyumbafasta.co</a>
-                &nbsp;·&nbsp;
-                <a href="https://wa.me/255665831694" style="color:#1D9E75;text-decoration:none">💬 WhatsApp</a>
-              </p>
-              <p style="font-size:12px;color:#9ca3af;line-height:1.6;margin:6px 0 0">
-                © 2026 NyumbaFasta Tanzania. Haki zote zimehifadhiwa.
-              </p>
-              <p style="font-size:11px;color:#d1d5db;margin:4px 0 0">
-                Umepata email hii kwa sababu umesajili akaunti kwenye
-                <a href="${APP_URL}" style="color:#9ca3af;text-decoration:none">nyumbafasta.co</a>
-              </p>
+              <!-- Green accent bar -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background:#1D9E75;height:5px;font-size:0;line-height:0">&nbsp;</td>
+                </tr>
+              </table>
+
+              <!-- Body -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:36px 40px 32px">
+                    ${content}
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Footer -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background:#f8fafc;padding:22px 40px;border-top:1px solid #e5e7eb;text-align:center">
+                    <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0">
+                      <a href="${APP_URL}" style="color:#1D9E75;text-decoration:none;font-weight:600">nyumbafasta.co</a>
+                      &nbsp;&middot;&nbsp;
+                      <a href="https://wa.me/255665831694" style="color:#1D9E75;text-decoration:none">WhatsApp Support</a>
+                    </p>
+                    <p style="font-size:12px;color:#9ca3af;line-height:1.5;margin:6px 0 0">
+                      &copy; 2026 NyumbaFasta Tanzania &mdash; Haraka &amp; Kwa Uhakika
+                    </p>
+                    <p style="font-size:11px;color:#d1d5db;margin:4px 0 0">
+                      Umepata email hii kwa sababu una akaunti kwenye
+                      <a href="${APP_URL}" style="color:#d1d5db;text-decoration:none">nyumbafasta.co</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
             </td>
           </tr>
 
@@ -345,5 +364,78 @@ export function contactUnlockEmail(dalaliName: string, clientName: string, listi
 
       <span style="${styles.textSmall}">💡 Jibu haraka — wateja wanaotafuta nyumba hawangoji muda mrefu!</span>
     `, 'Mteja amefungua contact yako!'),
+  }
+}
+
+// ── Listing expired email (cron step 12) ──────────────────────────────────
+
+export function listingExpiredEmail(dalaliName: string, listingTitle: string) {
+  return {
+    subject: '⏰ Listing Yako Imeisha — Renew Sasa',
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari ${dalaliName}!</span>
+      <span style="${styles.text}">Listing yako imeisha leo. Huisha sasa ili wateja waendelee kukuona na usipoteze wateja wanaotafuta.</span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">🏠 <strong>${listingTitle}</strong></p>
+        <p style="${styles.infoText}">❌ Status: Imeisha</p>
+        <p style="${styles.infoText}">💡 Renew itaipa listing yako siku 90 zaidi za uhai</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${APP_URL}/dashboard/listings" style="${styles.btn}">🔄 Renew Listing Sasa →</a>
+        </td></tr>
+      </table>
+
+      <hr style="${styles.divider}">
+      <span style="${styles.textSmall}">Unahitaji msaada? Wasiliana nasi kupitia WhatsApp: <a href="https://wa.me/255665831694" style="${styles.linkSmall}">+255 665 831 694</a></span>
+    `, `Listing yako "${listingTitle}" imeisha — renew sasa`),
+  }
+}
+
+// ── Subscription expiry email (cron steps 13a / 13b) ─────────────────────
+
+export function subscriptionExpiryEmail(
+  dalaliName: string,
+  planName: string,
+  expiryDate: string,
+  daysLeft: number,
+) {
+  const isUrgent = daysLeft <= 3
+  const btnStyle = isUrgent
+    ? styles.btn.replace('#1D9E75', '#dc2626')
+    : styles.btn
+  const urgentBox = isUrgent
+    ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;margin:16px 0">
+         <p style="font-size:14px;color:#b91c1c;margin:0;font-weight:600">⚠️ Siku ${daysLeft} tu zimebaki! Huisha SASA usipoteze listings zako.</p>
+       </div>`
+    : ''
+  return {
+    subject: isUrgent
+      ? `⚠️ Siku ${daysLeft} tu! Subscription Yako Inaisha — ${planName}`
+      : `⏰ Subscription Yako Inaisha Siku ${daysLeft} — ${planName}`,
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari ${dalaliName}!</span>
+      <span style="${styles.text}">Subscription yako ya <strong>${planName}</strong> inaisha tarehe <strong>${expiryDate}</strong> — siku ${daysLeft} zinazo.</span>
+
+      ${urgentBox}
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">📋 <strong>Plan:</strong> ${planName}</p>
+        <p style="${styles.infoText}">📅 <strong>Inaisha:</strong> ${expiryDate}</p>
+        <p style="${styles.infoText}">⏰ <strong>Zimebaki:</strong> Siku ${daysLeft}</p>
+        <p style="${styles.infoText}">⚠️ Ukikosa kuhuisha, listings zako zitapunguzwa hadi 2 tu</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${APP_URL}/dashboard/subscription" style="${btnStyle}">${isUrgent ? '🚨' : '🔄'} Huisha Subscription →</a>
+        </td></tr>
+      </table>
+
+      <hr style="${styles.divider}">
+      <span style="${styles.textSmall}">Unahitaji msaada? Wasiliana nasi: <a href="https://wa.me/255665831694" style="${styles.linkSmall}">+255 665 831 694</a></span>
+    `, `Subscription yako ya ${planName} inaisha siku ${daysLeft}`),
   }
 }
