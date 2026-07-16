@@ -135,7 +135,7 @@ export default function DalaliProfileClient({
         <h1 className="text-sm font-bold text-gray-900 flex-1">Wasifu Wangu</h1>
         {isVerified && (
           <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded-full font-medium">
-            <i className="ti ti-circle-check" aria-hidden="true" /> Imethibitishwa
+            <i className="ti ti-circle-check" aria-hidden="true" /> Amethibitishwa
           </span>
         )}
       </div>

@@ -129,7 +129,7 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
                     </span>
                     {review.is_verified && (
                       <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">
-                        <i className="ti ti-circle-check" aria-hidden="true" /> Imethibitishwa
+                        <i className="ti ti-circle-check" aria-hidden="true" /> Amethibitishwa
                       </span>
                     )}
                   </div>

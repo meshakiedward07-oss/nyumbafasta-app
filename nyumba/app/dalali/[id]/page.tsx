@@ -172,7 +172,7 @@ export default async function DalaliProfilePage({
                     <h1 className="text-xl font-bold text-gray-900">{dalali.full_name}</h1>
                     {isVerified && (
                       <span className="bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full">
-                          <i className="ti ti-circle-check" aria-hidden="true" /> Imethibitishwa
+                          <i className="ti ti-circle-check" aria-hidden="true" /> Amethibitishwa
                       </span>
                     )}
                   </div>

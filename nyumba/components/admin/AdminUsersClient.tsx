@@ -93,7 +93,7 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 function VerifBadge({ status }: { status?: string | null }) {
-  if (status === 'approved') return <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Imethibitishwa</span>
+  if (status === 'approved') return <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Amethibitishwa</span>
   if (status === 'pending')  return <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">Inasubiri</span>
   return <span className="text-xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-x" aria-hidden="true" />Hakuna</span>
 }
@@ -971,7 +971,7 @@ function UserDetailModal({
               <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                 <span className="text-gray-500 text-xs">Uthibitisho</span>
                 <span className="text-xs font-medium">
-                  {user.dalali_profiles.verification_status === 'approved' ? 'Imethibitishwa'
+                  {user.dalali_profiles.verification_status === 'approved' ? 'Amethibitishwa'
                     : user.dalali_profiles.verification_status === 'pending' ? 'Inasubiri'
                     : 'Hakuna'}
                 </span>

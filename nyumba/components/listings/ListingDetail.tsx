@@ -548,7 +548,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 </span>
                 {isVerified && (
                   <span className="bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                    <i className="ti ti-check" aria-hidden="true" /> Imethibitishwa
+                    <i className="ti ti-check" aria-hidden="true" /> Amethibitishwa
                   </span>
                 )}
                 {isFavourite && (

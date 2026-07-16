@@ -135,7 +135,7 @@ export default function DalaliReviewsClient({ reviews: initial, ratingAvg, ratin
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-gray-900">{review.reviewer?.full_name ?? 'Mteja'}</p>
                     {review.is_verified && (
-                      <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Imethibitishwa</span>
+                      <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Amethibitishwa</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">

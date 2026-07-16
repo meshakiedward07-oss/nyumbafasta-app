@@ -156,7 +156,7 @@ export default function DalaliDetailClient({ dalali }: { dalali: DalaliDetail })
                   <><i className={`ti ti-${planData.icon}`} aria-hidden="true" /> {planBadge.label}</>
                 </span>
                 {profile?.is_premium_verified && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Imethibitishwa</span>
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1"><i className="ti ti-circle-check" aria-hidden="true" />Amethibitishwa</span>
                 )}
               </div>
             </div>
