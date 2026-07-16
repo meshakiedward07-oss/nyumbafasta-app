@@ -403,58 +403,6 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
           </div>
         ) : null}
 
-        {/* ── Microsite URL card — only for verified dalali ── */}
-        {profile?.is_premium_verified && username && (() => {
-          const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
-          const micrositeUrl = `${APP_URL}/agent/${username}`
-          return (
-            <div className="bg-white border border-primary-200 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="bg-primary-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <i className="ti ti-rosette-discount-check" aria-hidden="true" /> Verified
-                </span>
-                <p className="text-sm font-semibold text-gray-800">Ukurasa Wako wa Umma</p>
-              </div>
-              <p className="text-xs text-gray-500 mb-3 leading-relaxed">Wateja wanaweza kukupata moja kwa moja kupitia kiungo hiki:</p>
-              <div className="flex items-center gap-2 bg-primary-50 rounded-xl px-3 py-2 mb-3">
-                <i className="ti ti-link text-primary-500 flex-shrink-0 text-sm" aria-hidden="true" />
-                <span className="text-xs text-primary-700 font-medium flex-1 truncate">{micrositeUrl.replace('https://', '')}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => {
-                    navigator.clipboard?.writeText(micrositeUrl).catch(() => {
-                      const ta = document.createElement('textarea')
-                      ta.value = micrositeUrl
-                      ta.style.position = 'fixed'; ta.style.opacity = '0'
-                      document.body.appendChild(ta); ta.focus(); ta.select()
-                      document.execCommand('copy'); document.body.removeChild(ta)
-                    })
-                  }}
-                  className="flex items-center justify-center gap-1 bg-primary-500 text-white text-xs font-semibold py-2 rounded-xl active:scale-95 transition-all"
-                >
-                  <i className="ti ti-copy text-xs" aria-hidden="true" /> Nakili
-                </button>
-                <a
-                  href={`https://wa.me/?text=${encodeURIComponent(`Angalia listings zangu za nyumba: ${micrositeUrl}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1 bg-green-500 text-white text-xs font-semibold py-2 rounded-xl active:scale-95 transition-all"
-                >
-                  <i className="ti ti-brand-whatsapp text-xs" aria-hidden="true" /> Share
-                </a>
-                <a
-                  href={micrositeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1 bg-gray-100 text-gray-700 text-xs font-semibold py-2 rounded-xl active:scale-95 transition-all"
-                >
-                  <i className="ti ti-external-link text-xs" aria-hidden="true" /> Fungua
-                </a>
-              </div>
-            </div>
-          )
-        })()}
 
         {/* ── Listing usage bar ── */}
         {subscription && (() => {
@@ -502,26 +450,6 @@ export default function DashboardClient({ dalaliName, username, profile, subscri
           <span className="flex-shrink-0 text-green-100">→</span>
         </Link>
 
-        {/* ── Quick actions ── */}
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { href: '/dashboard/listings/new', icon: 'ti-circle-plus', label: 'Ongeza',  bg: 'bg-primary-50', color: 'text-primary-500' },
-            { href: '/dashboard/hesabu',       icon: 'ti-coins',       label: 'Hesabu',  bg: 'bg-blue-50',    color: 'text-blue-500'    },
-            { href: '/dashboard/reviews',      icon: 'ti-star',        label: 'Maoni',   bg: 'bg-amber-50',   color: 'text-amber-500'   },
-            { href: '/dashboard/profile',      icon: 'ti-settings',    label: 'Akaunti', bg: 'bg-gray-50',    color: 'text-gray-500'    },
-          ].map(a => (
-            <Link
-              key={a.href}
-              href={a.href}
-              className="flex flex-col items-center gap-1.5 bg-white border border-gray-100 rounded-2xl py-3 shadow-sm active:scale-95 transition-all"
-            >
-              <div className={`w-10 h-10 rounded-xl ${a.bg} flex items-center justify-center`}>
-                <i className={`ti ${a.icon} text-xl ${a.color}`} aria-hidden="true" />
-              </div>
-              <span className="text-[10px] text-gray-600 font-medium text-center leading-tight">{a.label}</span>
-            </Link>
-          ))}
-        </div>
 
         {/* ── Listings section ── */}
         <div>

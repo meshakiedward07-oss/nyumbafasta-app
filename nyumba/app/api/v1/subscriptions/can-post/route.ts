@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { getPricing } from '@/lib/config/pricing'
 
 export const dynamic = 'force-dynamic'
-
-const PLAN_LIMITS: Record<string, number> = {
-  free:       2,
-  basic:      5,
-  premium:   20,
-  enterprise: 50,
-}
 
 /**
  * GET /api/v1/subscriptions/can-post
@@ -21,7 +15,7 @@ export async function GET() {
 
   const admin = createAdminClient()
 
-  const [subRes, countRes] = await Promise.all([
+  const [subRes, countRes, pricing] = await Promise.all([
     admin
       .from('subscriptions')
       .select('plan, extra_listings, status, expires_at')
@@ -33,13 +27,15 @@ export async function GET() {
       .from('listings')
       .select('id', { count: 'exact', head: true })
       .eq('dalali_id', user.id)
-      .in('status', ['active', 'pending']),
+      .neq('status', 'deleted'),
+    getPricing(),
   ])
 
-  const sub   = subRes.data
-  const count = countRes.count ?? 0
-  const base  = sub ? (PLAN_LIMITS[sub.plan] ?? 0) : 0
-  const limit = base + (sub?.extra_listings ?? 0)
+  const sub    = subRes.data
+  const count  = countRes.count ?? 0
+  const limits = pricing.listingLimits
+  const base   = sub ? (limits[sub.plan as keyof typeof limits] ?? 0) : 0
+  const limit  = base + (sub?.extra_listings ?? 0)
 
   return NextResponse.json({
     can_post:    count < limit,

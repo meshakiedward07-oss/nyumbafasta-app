@@ -156,17 +156,39 @@ export default async function ListingDetailPage({
   let hasReviewed = false
 
   if (user) {
-    const { data: unlock } = await supabase
-      .from('contact_unlocks')
-      .select('id, created_at')
-      .eq('client_id', user.id)
-      .eq('listing_id', params.id)
-      .eq('status', 'completed')
-      .maybeSingle()
+    const last24hrs = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-    hasUnlocked     = !!unlock
-    unlockId        = unlock?.id ?? null
-    unlockCreatedAt = unlock?.created_at ?? null
+    // Two access paths run in parallel:
+    // 1. Direct unlock for this exact listing (permanent)
+    // 2. Any completed unlock for the same dalali within last 24 hrs (free access window)
+    const [directUnlockRes, dalaliAccessRes] = await Promise.all([
+      supabase
+        .from('contact_unlocks')
+        .select('id, created_at')
+        .eq('client_id', user.id)
+        .eq('listing_id', params.id)
+        .eq('status', 'completed')
+        .maybeSingle(),
+
+      supabase
+        .from('contact_unlocks')
+        .select('id, created_at')
+        .eq('client_id', user.id)
+        .eq('dalali_id', data.dalali_id)
+        .eq('status', 'completed')
+        .gte('created_at', last24hrs)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
+
+    const directUnlock = directUnlockRes.data
+    const dalaliAccess = dalaliAccessRes.data
+
+    hasUnlocked     = !!directUnlock || !!dalaliAccess
+    // Only a direct unlock on this listing enables the review prompt
+    unlockId        = directUnlock?.id ?? null
+    unlockCreatedAt = directUnlock?.created_at ?? dalaliAccess?.created_at ?? null
 
     if (unlockId) {
       const { data: review } = await supabase

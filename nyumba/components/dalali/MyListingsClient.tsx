@@ -199,9 +199,12 @@ type Dialog = { type: 'taken' | 'available' | 'delete'; listingId: string; title
 type Tab = 'all' | 'active' | 'expired'
 
 // ── Main component ────────────────────────────────────────
+type SlotInfo = { current: number; limit: number; plan: string | null } | null
+
 export default function MyListingsClient({ listings: initial, autoRenewId }: { listings: Listing[]; autoRenewId?: string }) {
   const router = useRouter()
   const [listings, setListings] = useState(initial)
+  const [slotInfo, setSlotInfo] = useState<SlotInfo>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [loading, setLoading] = useState<string | null>(null)
@@ -210,6 +213,13 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
   const [expandedAnalytics, setExpandedAnalytics] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('all')
   const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetch('/api/v1/subscriptions/can-post')
+      .then(r => r.json())
+      .then(d => setSlotInfo({ current: d.current ?? 0, limit: d.limit ?? 0, plan: d.plan ?? null }))
+      .catch(() => {})
+  }, [])
 
   // Auto-trigger renewal modal when navigated here from a notification with ?renew=<listingId>
   const [autoRenewTriggered, setAutoRenewTriggered] = useState(false)
@@ -286,8 +296,21 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
           <div>
             <h1 className="text-white text-lg font-bold">Listings Zangu</h1>
             <p className="text-green-100 text-xs">
-              {listings.length} jumla · {activeCount} zinafanya kazi · {pendingCount} zinasubiri
+              {activeCount} zinafanya kazi · {pendingCount} zinasubiri
             </p>
+            {slotInfo && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <div className="flex-1 max-w-[120px] h-1.5 bg-white/30 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${slotInfo.current >= slotInfo.limit ? 'bg-red-400' : 'bg-white'}`}
+                    style={{ width: `${Math.min(100, slotInfo.limit > 0 ? (slotInfo.current / slotInfo.limit) * 100 : 100)}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-green-100 font-medium">
+                  {slotInfo.current}/{slotInfo.limit} slots
+                </span>
+              </div>
+            )}
           </div>
           <Link
             href="/dashboard/listings/new"

@@ -95,6 +95,7 @@ export default async function DalaliProfilePage({
       .select('id, title, type, district, region, price_monthly, images, description')
       .eq('dalali_id', dalali.id)
       .eq('status', 'active')
+      .eq('is_sub_suspended', false)
       .order('created_at', { ascending: false })
       .limit(50)
     listings = (data ?? []) as SeoListing[]

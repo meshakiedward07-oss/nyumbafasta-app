@@ -98,12 +98,13 @@ async function getAgentData(username: string): Promise<{
     }
   }
 
-  const [listingsRes, reviewsRes] = await Promise.all([
+  const [listingsRes, reviewsRes, subRes] = await Promise.all([
     admin
       .from('listings')
       .select('id, title, type, price_monthly, district, region, images, bedrooms, is_boosted, view_count, created_at')
       .eq('dalali_id', dalali.id)
       .eq('status', 'active')
+      .eq('is_sub_suspended', false)
       .order('is_boosted', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(50),
@@ -114,9 +115,27 @@ async function getAgentData(username: string): Promise<{
       .eq('dalali_id', dalali.id)
       .order('created_at', { ascending: false })
       .limit(10),
+
+    admin
+      .from('subscriptions')
+      .select('plan, status, extra_listings')
+      .eq('dalali_id', dalali.id)
+      .in('status', ['active', 'grace_period'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
-  const listingData = (listingsRes.data ?? []) as ListingRow[]
+  // Cap visible listings to what the subscription actually allows.
+  // This is a safety net on top of the is_sub_suspended DB flag.
+  const PLAN_BASE_LIMITS: Record<string, number> = { free: 2, basic: 5, premium: 20, enterprise: 50 }
+  const sub = subRes.data
+  const isFullAccess = !!sub
+  const baseLimit    = isFullAccess ? (PLAN_BASE_LIMITS[sub.plan as string] ?? 2) : 2
+  const extraSlots   = isFullAccess ? (sub.extra_listings ?? 0) : 0
+  const visibleLimit = baseLimit + extraSlots
+
+  const listingData = ((listingsRes.data ?? []) as ListingRow[]).slice(0, visibleLimit)
 
   // Derive dalali's primary location from their active listings
   const regionCounts: Record<string, number> = {}

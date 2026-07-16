@@ -65,6 +65,7 @@ async function fetchListings(region: string, type: string): Promise<SeoListing[]
       .from('listings')
       .select('id, title, type, district, region, price_monthly, images, description')
       .eq('status', 'active')
+      .eq('is_sub_suspended', false)
       .eq('region', region)
       .eq('type', type)
       .order('created_at', { ascending: false })

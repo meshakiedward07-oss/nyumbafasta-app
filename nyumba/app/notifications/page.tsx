@@ -15,18 +15,16 @@ export default async function NotificationsPage() {
     .eq('id', user.id)
     .single()
 
-  const now = new Date().toISOString()
   const { data: notifications } = await supabase
     .from('notifications')
-    .select('id, title, body, type, is_read, data, send_at, created_at')
+    .select('id, title, body, type, is_read, ref_id, created_at')
     .eq('user_id', user.id)
-    .or(`send_at.is.null,send_at.lte.${now}`)
     .order('created_at', { ascending: false })
     .limit(50)
 
   return (
     <NotificationsClient
-      notifications={(notifications ?? []) as Notification[]}
+      notifications={(notifications ?? []) as unknown as Notification[]}
       role={userRow?.role ?? 'client'}
     />
   )

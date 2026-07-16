@@ -3,6 +3,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rateLimit'
 import { validateListing } from '@/lib/security/validate'
 import { cached, TTL } from '@/lib/cache/memoryCache'
+import { getPricing } from '@/lib/config/pricing'
+import { getPlan } from '@/lib/config/subscription-plans'
 
 // Public listing fields — NEVER include whatsapp_number here
 const PUBLIC_LISTING_FIELDS = `
@@ -47,6 +49,7 @@ export async function GET(req: NextRequest) {
       .from('listings')
       .select(PUBLIC_LISTING_FIELDS, { count: 'exact' })
       .eq('status', 'active')
+      .eq('is_sub_suspended', false)
       .order('is_boosted', { ascending: false })
       .order('boosted_until', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
@@ -72,13 +75,6 @@ export async function GET(req: NextRequest) {
       'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
     },
   })
-}
-
-const PLAN_LIMITS: Record<string, number> = {
-  free:       2,
-  basic:      5,
-  premium:   20,
-  enterprise: 50,
 }
 
 export async function POST(req: NextRequest) {
@@ -108,17 +104,21 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient()
 
-    // Check active subscription
-    const { data: subscription } = await admin
-      .from('subscriptions')
-      .select('plan, extra_listings')
-      .eq('dalali_id', user.id)
-      .eq('status', 'active')
-      .order('expires_at', { ascending: false })
-      .maybeSingle()
+    // Fetch subscription and dynamic pricing in parallel
+    const [{ data: subscription }, pricing] = await Promise.all([
+      admin
+        .from('subscriptions')
+        .select('plan, extra_listings')
+        .eq('dalali_id', user.id)
+        .eq('status', 'active')
+        .order('expires_at', { ascending: false })
+        .maybeSingle(),
+      getPricing(),
+    ])
 
     // 0 when no active subscription; add purchased extra slots on top of plan base
-    const baseLimit  = subscription ? (PLAN_LIMITS[subscription.plan] ?? 0) : 0
+    const planLimits = pricing.listingLimits
+    const baseLimit  = subscription ? (planLimits[subscription.plan as keyof typeof planLimits] ?? 0) : 0
     const extraSlots = subscription?.extra_listings ?? 0
     const limit      = baseLimit + extraSlots
 
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
       .from('listings')
       .select('id', { count: 'exact', head: true })
       .eq('dalali_id', user.id)
-      .in('status', ['active', 'pending'])
+      .neq('status', 'deleted')
 
     if ((count ?? 0) >= limit) {
       const planName = subscription?.plan ?? 'free'
@@ -148,6 +148,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Taarifa si sahihi', details: parsed.errors }, { status: 400 })
     }
     const data = parsed.data
+
+    // Enforce plan-based photo and video limits
+    const planConfig = getPlan(subscription?.plan)
+    const maxPhotos  = planConfig.limits.photos
+    if (data.images.length > maxPhotos) {
+      data.images = data.images.slice(0, maxPhotos)
+    }
+    if (!planConfig.limits.videos) {
+      data.video_url = null
+    }
 
     const typeLabels: Record<string, string> = {
       chumba: 'Chumba', apartment: 'Apartment',

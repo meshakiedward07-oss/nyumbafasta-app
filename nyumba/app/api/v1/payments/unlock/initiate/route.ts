@@ -77,6 +77,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Tayari umefungua listing hii', already_unlocked: true }, { status: 400 })
     }
 
+    // 24-hour dalali-level access: if the client already paid for any listing from
+    // this dalali within the last 24 hours, give them free access without charging again.
+    const last24hrs = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data: recentDalaliUnlock } = await admin
+      .from('contact_unlocks')
+      .select('id, created_at')
+      .eq('client_id', user.id)
+      .eq('dalali_id', listing.dalali_id)
+      .eq('status', 'completed')
+      .gte('created_at', last24hrs)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (recentDalaliUnlock) {
+      const accessExpiresAt = new Date(
+        new Date(recentDalaliUnlock.created_at).getTime() + 24 * 60 * 60 * 1000
+      ).toISOString()
+      return NextResponse.json({
+        already_unlocked: true,
+        access_expires_at: accessExpiresAt,
+      }, { status: 400 })
+    }
+
     // Only delete failed records — never touch pending ones that may have an in-flight STK push
     const staleIds = (existingList ?? [])
       .filter(r => r.status === 'failed')

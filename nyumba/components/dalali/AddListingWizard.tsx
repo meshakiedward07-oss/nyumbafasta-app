@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { TANZANIA_REGIONS, getDistricts, getWards } from '@/lib/data/tanzania-locations'
 import { createClient } from '@/lib/supabase/client'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
-import { getListingLimit } from '@/lib/config/subscription-plans'
+import { getListingLimit, getPhotoLimit, canUseFeature } from '@/lib/config/subscription-plans'
 import { VideoUpload } from '@/components/listings/VideoUpload'
 import { useDalaliProfile } from '@/lib/hooks/useDalaliProfile'
 import CommissionField, { type CommissionState } from '@/components/listings/CommissionField'
@@ -132,7 +132,7 @@ export default function AddListingWizard() {
         supabase.from('listings')
           .select('id', { count: 'exact', head: true })
           .eq('dalali_id', user.id)
-          .in('status', ['active', 'pending']),
+          .neq('status', 'deleted'),
       ])
 
       const baseLim = sub ? getListingLimit(sub.plan) : 0
@@ -777,8 +777,12 @@ export default function AddListingWizard() {
                   set('images', urls)
                   setPhotosUploading(uploading)
                 }}
-                maxPhotos={15}
+                maxPhotos={getPhotoLimit(limitInfo?.plan)}
               />
+              <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
+                <i className="ti ti-info-circle" aria-hidden="true" />
+                Plan yako ({limitInfo?.plan ?? 'free'}) inaruhusu picha {getPhotoLimit(limitInfo?.plan)} kwa kila listing.
+              </p>
             </div>
 
             {/* ── Video upload ── */}
@@ -786,12 +790,27 @@ export default function AddListingWizard() {
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
                 <i className="ti ti-video" aria-hidden="true" /> Video ya Nyumba (hiari)
               </label>
-              <VideoUpload
-                existingVideoUrl={form.video_url}
-                onUploadComplete={(url) => set('video_url', url)}
-                onRemove={() => set('video_url', null)}
-                onUploadStateChange={setVideoUploading}
-              />
+              {canUseFeature(limitInfo?.plan, 'videos') ? (
+                <VideoUpload
+                  existingVideoUrl={form.video_url}
+                  onUploadComplete={(url) => set('video_url', url)}
+                  onRemove={() => set('video_url', null)}
+                  onUploadStateChange={setVideoUploading}
+                />
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+                  <i className="ti ti-lock text-gray-400 text-2xl mb-1 block" aria-hidden="true" />
+                  <p className="text-sm font-medium text-gray-600">Video haipo kwa plan ya Free</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Upgrade kwenda Basic au zaidi kupakia video</p>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/dashboard/subscription')}
+                    className="mt-3 text-xs bg-primary-500 text-white px-4 py-2 rounded-lg font-semibold"
+                  >
+                    Upgrade Sasa
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Preview summary */}
@@ -921,7 +940,8 @@ export default function AddListingWizard() {
             <h3 className="font-bold text-lg text-gray-900 mb-1 flex items-center gap-2"><i className="ti ti-chart-bar" aria-hidden="true" />Umefika Limit ya Listings</h3>
             <p className="text-gray-500 text-sm mb-5">
               Plan yako inaruhusu listings <strong>{limitInfo?.limit ?? 0}</strong> tu.
-              Una listings <strong>{limitInfo?.current ?? 0}</strong> active sasa hivi.
+              Umeshapakia listings <strong>{limitInfo?.current ?? 0}</strong> (pamoja na zilizofutwa, taken, na pending).
+              Kufuta listing iliyopo hakuongezi nafasi — lazima ununue nafasi ya ziada.
             </p>
 
             <div className="space-y-3">
@@ -977,13 +997,6 @@ export default function AddListingWizard() {
                 </div>
               )}
 
-              {/* Option 3 — Delete old */}
-              {!extraDone && (
-                <button onClick={() => router.push('/dashboard/listings')}
-                  className="w-full border border-gray-200 text-gray-600 py-3 rounded-xl text-sm font-medium">
-                  <i className="ti ti-trash" aria-hidden="true" /> Futa Listing Iliyopita Badala Yake
-                </button>
-              )}
             </div>
 
             {!extraDone && (

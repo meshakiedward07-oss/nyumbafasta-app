@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { cache } from '@/lib/cache/memoryCache'
 
 async function getUser() {
   const supabase = await createClient()
@@ -43,14 +44,14 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
 
-  const { amount, category, date, description, payment_method } = body
+  const { amount, category, date, description, vendor, payment_method } = body
   if (!amount || !category || !date)
     return NextResponse.json({ error: 'amount, category, date zinahitajika' }, { status: 400 })
 
   const VALID_EXPENSE_CATEGORIES = [
     'usafiri', 'masoko', 'simu', 'intaneti', 'ofisi', 'nyingine',
     'transport', 'marketing', 'phone', 'internet', 'office', 'printing',
-    'fuel', 'utilities', 'software', 'other',
+    'fuel', 'utilities', 'software', 'commission', 'other',
   ]
   const VALID_PAYMENT_METHODS = ['cash', 'mpesa', 'airtel', 'tigo', 'halopesa', 'bank', 'transfer', 'other']
 
@@ -70,12 +71,14 @@ export async function POST(req: NextRequest) {
       category,
       date,
       description:    typeof description === 'string' ? description.slice(0, 500) : null,
+      vendor:         typeof vendor === 'string'      ? vendor.slice(0, 200)       : null,
       payment_method: safePaymentMethod,
     })
     .select()
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  cache.invalidatePrefix(`finance-stats:${user.id}:`)
   return NextResponse.json({ success: true, expense: data })
 }
 

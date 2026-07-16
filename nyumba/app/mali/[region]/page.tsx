@@ -60,6 +60,7 @@ async function fetchRegionListings(region: string, district?: string): Promise<S
       .from('listings')
       .select('id, title, type, district, region, price_monthly, images, description')
       .eq('status', 'active')
+      .eq('is_sub_suspended', false)
       .eq('region', region)
       .order('created_at', { ascending: false })
       .limit(20)

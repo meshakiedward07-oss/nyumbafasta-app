@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { getPricing, pricingToRows, PRICING_DEFAULTS, type Pricing } from '@/lib/config/pricing'
+import { getPricing, pricingToRows, invalidatePricingCache, PRICING_DEFAULTS, type Pricing } from '@/lib/config/pricing'
 import { revalidatePath } from 'next/cache'
 
 async function verifyAdmin() {
@@ -41,6 +41,12 @@ export async function PUT(req: NextRequest) {
       4:          body.boost?.[4]   ?? current.boost[4],
     },
     extraListing: body.extraListing ?? current.extraListing,
+    listingLimits: {
+      free:       body.listingLimits?.free       ?? current.listingLimits.free,
+      basic:      body.listingLimits?.basic      ?? current.listingLimits.basic,
+      premium:    body.listingLimits?.premium    ?? current.listingLimits.premium,
+      enterprise: body.listingLimits?.enterprise ?? current.listingLimits.enterprise,
+    },
   }
 
   // Validate — all prices must be positive integers ≥ 100
@@ -50,6 +56,12 @@ export async function PUT(req: NextRequest) {
   ]
   if (values.some(v => !Number.isInteger(v) || v < 100)) {
     return NextResponse.json({ error: 'Bei zote lazima ziwe namba nzima angalau 100 TZS' }, { status: 400 })
+  }
+
+  // Validate listing limits — must be positive integers ≥ 1
+  const limits = Object.values(updated.listingLimits)
+  if (limits.some(v => !Number.isInteger(v) || v < 1)) {
+    return NextResponse.json({ error: 'Idadi ya listings lazima iwe namba nzima angalau 1' }, { status: 400 })
   }
 
   // Also enforce logical ordering: basic < premium < enterprise
@@ -83,7 +95,8 @@ export async function PUT(req: NextRequest) {
     if (logErr) console.warn('[PricingSettings] admin_logs insert failed:', logErr.message)
   })
 
-  // Bust the public pricing cache
+  // Bust caches (in-process module cache + Next.js route cache)
+  invalidatePricingCache()
   revalidatePath('/api/v1/pricing')
 
   return NextResponse.json({ success: true, pricing: updated })
@@ -99,6 +112,7 @@ export async function DELETE() {
     { onConflict: 'key' }
   )
 
+  invalidatePricingCache()
   revalidatePath('/api/v1/pricing')
   return NextResponse.json({ success: true, pricing: PRICING_DEFAULTS, note: 'Reset kwa bei za awali' })
 }

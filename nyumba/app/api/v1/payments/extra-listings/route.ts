@@ -74,15 +74,18 @@ export async function POST(req: NextRequest) {
     const accountNumber = normalizePhone(msisdn)
     const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
 
-    // Insert pending payments row BEFORE calling AzamPay so webhook can update it
+    // Insert pending payments row BEFORE calling AzamPay so webhook can update it.
+    // external_id is UNIQUE — duplicate inserts will fail, preventing replay attacks.
     const { data: paymentRow, error: payInsertErr } = await admin
       .from('payments')
       .insert({
-        user_id:     user.id,
+        dalali_id:    user.id,
         amount,
-        status:      'pending',
-        external_id: payment_ref,
-        description: `Extra listings x${count}`,
+        currency:     'TZS',
+        status:       'pending',
+        type:         'extra_listings',
+        external_id:  payment_ref,
+        reference_id: sub.id,
       })
       .select('id')
       .single()

@@ -46,12 +46,33 @@ type TopListing = {
   lead_count: number
 }
 
+type Review = {
+  id: string
+  rating: number
+  comment: string | null
+  created_at: string
+  is_verified: boolean
+  response: string | null
+  response_at: string | null
+  reviewer: { full_name: string } | null
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtNum(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
   return String(n)
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const days = Math.floor(diff / 86_400_000)
+  if (days === 0) return 'leo'
+  if (days === 1) return 'jana'
+  if (days < 7)  return `siku ${days} zilizopita`
+  if (days < 30) return `wiki ${Math.floor(days / 7)} zilizopita`
+  return `mwezi ${Math.floor(days / 30)} uliopita`
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -72,13 +93,17 @@ const MONTHS_SW = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ago','Sep','Okt','
 export default function DalaliCRMClient() {
   const supabase = createClient()
 
-  const [account,   setAccount]   = useState<AccountStats | null>(null)
-  const [microsite, setMicrosite] = useState<MicrositeStats | null>(null)
-  const [monthly,   setMonthly]   = useState<MonthlyContact[]>([])
-  const [contacts,  setContacts]  = useState<UnlockContact[]>([])
+  const [account,    setAccount]    = useState<AccountStats | null>(null)
+  const [microsite,  setMicrosite]  = useState<MicrositeStats | null>(null)
+  const [monthly,    setMonthly]    = useState<MonthlyContact[]>([])
+  const [contacts,   setContacts]   = useState<UnlockContact[]>([])
   const [topListings, setTopListings] = useState<TopListing[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'microsite' | 'contacts'>('overview')
+  const [reviews,    setReviews]    = useState<Review[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [activeTab,  setActiveTab]  = useState<'overview' | 'microsite' | 'contacts' | 'maoni'>('overview')
+  const [replyId,    setReplyId]    = useState<string | null>(null)
+  const [replyText,  setReplyText]  = useState('')
+  const [replyLoading, setReplyLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -97,6 +122,7 @@ export default function DalaliCRMClient() {
       listingsRes, profileRes, userRes,
       totalContactsRes, monthContactsRes,
       allContactsRes, recentContactsRes,
+      reviewsRes,
     ] = await Promise.all([
       supabase.from('listings')
         .select('id, title, type, status, district, view_count, lead_count')
@@ -130,6 +156,12 @@ export default function DalaliCRMClient() {
         .eq('dalali_id', user.id)
         .order('created_at', { ascending: false })
         .limit(30),
+      // reviews
+      supabase.from('reviews')
+        .select('id, rating, comment, created_at, is_verified, response, response_at, reviewer:reviewer_id(full_name)')
+        .eq('dalali_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50),
     ])
 
     const listings = listingsRes.data ?? []
@@ -151,6 +183,7 @@ export default function DalaliCRMClient() {
 
     setTopListings(topByViews as TopListing[])
     setContacts((recentContactsRes.data as unknown as UnlockContact[]) ?? [])
+    setReviews((reviewsRes.data as unknown as Review[]) ?? [])
 
     // Build 6-month trend
     const buckets: Record<string, number> = {}
@@ -179,7 +212,28 @@ export default function DalaliCRMClient() {
 
   useEffect(() => { load() }, [load])
 
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  async function submitReply(reviewId: string) {
+    if (!replyText.trim()) return
+    setReplyLoading(true)
+    try {
+      const res = await fetch(`/api/v1/reviews/${reviewId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reply', response: replyText }),
+      })
+      if (!res.ok) throw new Error()
+      const now = new Date().toISOString()
+      setReviews(prev => prev.map(r =>
+        r.id === reviewId ? { ...r, response: replyText, response_at: now } : r
+      ))
+      setReplyId(null)
+      setReplyText('')
+    } catch {
+      // non-fatal — keep UI open
+    } finally {
+      setReplyLoading(false)
+    }
+  }
 
   // ── Loading skeleton ───────────────────────────────────────────────────────
   if (loading) {
@@ -208,6 +262,11 @@ export default function DalaliCRMClient() {
   const sourcesArr = Object.entries(microsite?.sources ?? {})
     .sort((a, b) => b[1] - a[1]).slice(0, 6)
   const maxSource = Math.max(...sourcesArr.map(s => s[1]), 1)
+
+  // ── Rating breakdown ───────────────────────────────────────────────────────
+  const ratingAvg   = account?.ratingAvg   ?? 0
+  const ratingCount = account?.ratingCount ?? 0
+  const fiveStar    = reviews.filter(r => r.rating === 5).length
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
@@ -250,23 +309,24 @@ export default function DalaliCRMClient() {
           <StatTile
             icon="ti-star"
             label="Rating"
-            value={account?.ratingCount ? account.ratingAvg.toFixed(1) : '—'}
-            sub={account?.ratingCount ? `${account.ratingCount} maoni` : 'Bado'}
+            value={ratingCount ? ratingAvg.toFixed(1) : '—'}
+            sub={ratingCount ? `${ratingCount} maoni` : 'Bado'}
           />
         </div>
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────────────────── */}
-      <div className="flex border-b border-gray-200 bg-white sticky top-0 z-10 shadow-sm">
+      <div className="flex border-b border-gray-200 bg-white sticky top-0 z-10 shadow-sm overflow-x-auto scrollbar-none">
         {([
-          { key: 'overview',  label: 'Muhtasari',   icon: 'ti-layout-dashboard' },
-          { key: 'microsite', label: 'Microsite',    icon: 'ti-world'            },
-          { key: 'contacts',  label: 'Contacts',     icon: 'ti-address-book'     },
+          { key: 'overview',  label: 'Muhtasari', icon: 'ti-layout-dashboard' },
+          { key: 'microsite', label: 'Microsite',  icon: 'ti-world'            },
+          { key: 'contacts',  label: 'Contacts',   icon: 'ti-address-book'     },
+          { key: 'maoni',     label: 'Maoni',      icon: 'ti-star'             },
         ] as const).map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium border-b-2 transition-colors ${
+            className={`flex-1 min-w-[72px] flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium border-b-2 transition-colors ${
               activeTab === tab.key
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-400'
@@ -349,34 +409,34 @@ export default function DalaliCRMClient() {
               )}
             </div>
 
-            {/* Profile link */}
-            {account?.username && (
-              <div className="bg-gradient-to-r from-primary-50 to-green-50 border border-primary-100 rounded-2xl p-4">
+            {/* Microsite quick stats preview (no link — full data is in the Microsite tab) */}
+            {microsite && (
+              <button
+                onClick={() => setActiveTab('microsite')}
+                className="w-full bg-gradient-to-r from-primary-50 to-green-50 border border-primary-100 rounded-2xl p-4 text-left"
+              >
                 <p className="text-xs font-semibold text-primary-700 mb-2 flex items-center gap-1.5">
-                  <i className="ti ti-link" aria-hidden="true" />
-                  Kiungo cha Microsite Yako
+                  <i className="ti ti-world" aria-hidden="true" />
+                  Microsite — Maoni Mwezi Huu
                 </p>
-                <p className="text-sm font-medium text-primary-800 mb-3 truncate">
-                  {APP_URL}/agent/{account.username}
-                </p>
-                <div className="flex gap-2">
-                  <a
-                    href={`${APP_URL}/agent/${account.username}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex-1 text-center py-2 bg-primary-500 text-white text-xs font-semibold rounded-xl"
-                  >
-                    <i className="ti ti-external-link mr-1" aria-hidden="true" />
-                    Angalia
-                  </a>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(`${APP_URL}/agent/${account.username!}`)}
-                    className="flex-1 py-2 border border-primary-300 text-primary-600 text-xs font-semibold rounded-xl"
-                  >
-                    <i className="ti ti-copy mr-1" aria-hidden="true" />
-                    Nakili
-                  </button>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-primary-700">{fmtNum(microsite.viewsToday)}</p>
+                    <p className="text-[10px] text-primary-500">Leo</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-primary-700">{fmtNum(microsite.viewsWeek)}</p>
+                    <p className="text-[10px] text-primary-500">Wiki Hii</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-primary-700">{fmtNum(microsite.viewsMonth)}</p>
+                    <p className="text-[10px] text-primary-500">Mwezi</p>
+                  </div>
                 </div>
-              </div>
+                <p className="text-[10px] text-primary-400 mt-2 text-right flex items-center justify-end gap-1">
+                  Angalia microsite kamili <i className="ti ti-arrow-right text-[10px]" aria-hidden="true" />
+                </p>
+              </button>
             )}
           </>
         )}
@@ -472,15 +532,27 @@ export default function DalaliCRMClient() {
                   </div>
                 )}
 
-                {/* Link to full analytics */}
-                <Link
-                  href="/dashboard/profile/analytics"
-                  className="flex items-center justify-center gap-2 py-3 border border-primary-200 text-primary-600 rounded-2xl text-sm font-medium"
-                >
-                  <i className="ti ti-chart-line" aria-hidden="true" />
-                  Angalia Analytics Kamili
-                  <i className="ti ti-arrow-right text-xs" aria-hidden="true" />
-                </Link>
+                {/* Total all-time */}
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                  <p className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <i className="ti ti-infinity text-primary-500" aria-hidden="true" />
+                    Jumla ya Wakati Wote
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center">
+                      <p className="text-xl font-bold text-gray-800">{fmtNum(microsite.viewsTotal)}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">Maoni yote</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xl font-bold text-gray-800">{fmtNum(microsite.whatsappClicks)}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">WA clicks</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xl font-bold text-gray-800">{fmtNum(account?.totalContacts ?? 0)}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">Contacts</p>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
           </>
@@ -539,6 +611,138 @@ export default function DalaliCRMClient() {
                         </a>
                       )}
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ══ MAONI TAB ═══════════════════════════════════════════════════════ */}
+        {activeTab === 'maoni' && (
+          <>
+            {/* Rating summary */}
+            {ratingCount > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="text-center flex-shrink-0">
+                    <p className="text-4xl font-bold text-gray-900">{ratingAvg.toFixed(1)}</p>
+                    <div className="flex gap-0.5 justify-center mt-1">
+                      {[1,2,3,4,5].map(i => (
+                        <i key={i} className={`ti ti-star-filled text-sm ${i <= Math.round(ratingAvg) ? 'text-amber-400' : 'text-gray-200'}`} aria-hidden="true" />
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1">{ratingCount} maoni</p>
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    {[5,4,3,2,1].map(star => {
+                      const count = reviews.filter(r => r.rating === star).length
+                      const pct   = reviews.length > 0 ? (count / reviews.length) * 100 : 0
+                      return (
+                        <div key={star} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500 w-3">{star}</span>
+                          <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-amber-400 h-full rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-[10px] text-gray-400 w-3 text-right">{count}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+                {fiveStar > 0 && (
+                  <div className="mt-3 bg-amber-50 rounded-xl px-3 py-2 flex items-center gap-2">
+                    <i className="ti ti-star-filled text-amber-400 text-sm" aria-hidden="true" />
+                    <p className="text-xs text-amber-700 font-medium">{fiveStar} kati ya {ratingCount} wamekupa nyota 5!</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reviews list */}
+            {reviews.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+                <i className="ti ti-star-off text-3xl text-gray-300 block mb-2" aria-hidden="true" />
+                <p className="text-gray-500 font-medium text-sm">Hakuna maoni bado</p>
+                <p className="text-gray-400 text-xs mt-1 leading-relaxed max-w-[200px] mx-auto">
+                  Wateja wataandika maoni baada ya kukupata kupitia listing yako
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {reviews.map(r => (
+                  <div key={r.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold flex-shrink-0">
+                          {r.reviewer?.full_name?.[0] ?? 'W'}
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-800">
+                            {r.reviewer?.full_name ?? 'Mteja'}
+                            {r.is_verified && (
+                              <i className="ti ti-circle-check text-primary-500 text-[11px] ml-1" aria-hidden="true" />
+                            )}
+                          </p>
+                          <p className="text-[10px] text-gray-400">{timeAgo(r.created_at)}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-0.5 flex-shrink-0">
+                        {[1,2,3,4,5].map(i => (
+                          <i key={i} className={`ti ti-star-filled text-xs ${i <= r.rating ? 'text-amber-400' : 'text-gray-200'}`} aria-hidden="true" />
+                        ))}
+                      </div>
+                    </div>
+
+                    {r.comment && (
+                      <p className="text-xs text-gray-600 leading-relaxed mb-3">{r.comment}</p>
+                    )}
+
+                    {/* Dalali reply */}
+                    {r.response ? (
+                      <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 mt-2">
+                        <p className="text-[10px] font-semibold text-primary-700 mb-1 flex items-center gap-1">
+                          <i className="ti ti-corner-down-right text-[10px]" aria-hidden="true" />
+                          Jibu lako
+                        </p>
+                        <p className="text-xs text-primary-800 leading-relaxed">{r.response}</p>
+                      </div>
+                    ) : (
+                      replyId === r.id ? (
+                        <div className="mt-2 space-y-2">
+                          <textarea
+                            value={replyText}
+                            onChange={e => setReplyText(e.target.value)}
+                            placeholder="Andika jibu lako..."
+                            rows={3}
+                            className="w-full text-xs rounded-xl border border-gray-200 p-2.5 resize-none focus:outline-none focus:ring-1 focus:ring-primary-400"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => submitReply(r.id)}
+                              disabled={replyLoading || !replyText.trim()}
+                              className="flex-1 py-2 bg-primary-500 text-white text-xs font-semibold rounded-xl disabled:opacity-40"
+                            >
+                              {replyLoading ? 'Inatuma...' : 'Tuma Jibu'}
+                            </button>
+                            <button
+                              onClick={() => { setReplyId(null); setReplyText('') }}
+                              className="px-3 py-2 border border-gray-200 text-gray-500 text-xs rounded-xl"
+                            >
+                              Ghairi
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setReplyId(r.id); setReplyText('') }}
+                          className="mt-1 text-[11px] text-primary-600 font-medium flex items-center gap-1"
+                        >
+                          <i className="ti ti-corner-down-right text-[11px]" aria-hidden="true" />
+                          Jibu Maoni Haya
+                        </button>
+                      )
+                    )}
                   </div>
                 ))}
               </div>

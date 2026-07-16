@@ -81,7 +81,7 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
       { label: 'Listings za ziada: +Tsh 2,000/kila moja', included: true },
     ],
     limits: {
-      listings: 5, photos: 4, videos: true, boost: false,
+      listings: 5, photos: 4, videos: true, boost: true,
       analytics: 'basic', verifiedBadge: false,
       searchPriority: 'medium', support: 'email', extraListings: true,
     },

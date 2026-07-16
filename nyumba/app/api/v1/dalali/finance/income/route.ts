@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { cache } from '@/lib/cache/memoryCache'
 
 async function getUser() {
   const supabase = await createClient()
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
   const VALID_INCOME_CATEGORIES = [
     'kamisheni', 'kodi', 'ushauri', 'nyingine',
     'commission', 'rental', 'consultation', 'other',
-    'referral', 'management', 'viewing_fee',
+    'referral', 'management', 'viewing_fee', 'service',
   ]
   const VALID_PAYMENT_METHODS = ['cash', 'mpesa', 'airtel', 'tigo', 'halopesa', 'bank', 'transfer', 'other']
 
@@ -78,6 +79,7 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  cache.invalidatePrefix(`finance-stats:${user.id}:`)
   return NextResponse.json({ success: true, income: data })
 }
 

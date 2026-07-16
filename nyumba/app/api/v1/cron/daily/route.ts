@@ -140,7 +140,7 @@ async function runDailyTasks() {
     errors.push(`❌ Expire subscriptions: ${String(e)}`)
   }
 
-  // ── 5. End grace period → suspend listings ────────────
+  // ── 5. End grace period → downgrade to free plan (show only 2 listings) ──
   try {
     const { data: graceEnded } = await admin
       .from('subscriptions')
@@ -150,22 +150,36 @@ async function runDailyTasks() {
       .select('id, dalali_id, plan')
 
     if (graceEnded?.length) {
-      const dalaliIds = graceEnded.map(s => s.dalali_id)
+      let totalSuspended = 0
 
-      // Suspend their active listings
-      await admin
-        .from('listings')
-        .update({ status: 'expired' })
-        .in('dalali_id', dalaliIds)
-        .eq('status', 'active')
+      for (const sub of graceEnded) {
+        // Keep listings active but hide extras — free plan shows 2 listings only.
+        // Boosted listings go first (they paid for visibility), then by recency.
+        const { data: activeLs } = await admin
+          .from('listings')
+          .select('id')
+          .eq('dalali_id', sub.dalali_id)
+          .eq('status', 'active')
+          .eq('is_sub_suspended', false)
+          .order('is_boosted', { ascending: false })
+          .order('created_at', { ascending: false })
+
+        const toSuspend = (activeLs ?? []).slice(2) // keep first 2 visible
+        if (toSuspend.length > 0) {
+          await admin.from('listings')
+            .update({ is_sub_suspended: true })
+            .in('id', toSuspend.map(l => l.id))
+          totalSuspended += toSuspend.length
+        }
+      }
 
       // Notify each dalali
       await admin.from('notifications').insert(
         graceEnded.map(s => ({
           user_id:  s.dalali_id,
           type:     'account_suspended',
-          title:    '🚫 Listings Zimesimamishwa',
-          body:     'Listings zako hazionekani kwa wateja. Lipa sasa uzirudishe.',
+          title:    '🚫 Subscription Imeisha — Free Plan',
+          body:     'Subscription yako imeisha. Listing mbili tu zinaonekana kwa wateja. Lipa sasa uzirudishe zote.',
           is_read:  false,
         }))
       )
@@ -187,10 +201,69 @@ async function runDailyTasks() {
           await admin.from('dalali_profiles').update({ is_premium_verified: false }).eq('id', dalaliId)
         }
       }
+
+      results.push(`✅ Grace period ended: ${graceEnded.length} subs, ${totalSuspended} listings zilizosimamishwa`)
+    } else {
+      results.push('✅ Grace period ended: hakuna')
     }
-    results.push(`✅ Grace period ended: ${graceEnded?.length ?? 0}`)
   } catch (e) {
     errors.push(`❌ Grace period: ${String(e)}`)
+  }
+
+  // ── 5b. Extra listings expiry (30 days after purchase) ──────────────────
+  try {
+    const { data: expiredExtra } = await admin
+      .from('subscriptions')
+      .update({ extra_listings: 0, extra_listings_expires_at: null })
+      .lt('extra_listings_expires_at', now)
+      .not('extra_listings_expires_at', 'is', null)
+      .eq('status', 'active')
+      .gt('extra_listings', 0)
+      .select('id, dalali_id, plan')
+
+    if (expiredExtra?.length) {
+      // Re-enforce plan base limit — listings that were only allowed because of
+      // extra slots must be suspended now that those slots have expired.
+      const PLAN_BASE_LIMITS: Record<string, number> = { free: 2, basic: 5, premium: 20, enterprise: 50 }
+      let totalReSuspended = 0
+
+      for (const sub of expiredExtra) {
+        const baseLimit = PLAN_BASE_LIMITS[sub.plan as string] ?? 2
+
+        const { data: activeLs } = await admin
+          .from('listings')
+          .select('id')
+          .eq('dalali_id', sub.dalali_id)
+          .eq('status', 'active')
+          .eq('is_sub_suspended', false)
+          .order('is_boosted', { ascending: false })
+          .order('created_at', { ascending: false })
+
+        const toSuspend = (activeLs ?? []).slice(baseLimit)
+        if (toSuspend.length > 0) {
+          await admin.from('listings')
+            .update({ is_sub_suspended: true })
+            .in('id', toSuspend.map(l => l.id))
+          totalReSuspended += toSuspend.length
+        }
+      }
+
+      await admin.from('notifications').insert(
+        expiredExtra.map(s => ({
+          user_id:  s.dalali_id,
+          type:     'extra_listings_expired',
+          title:    '⏰ Extra Listings Zimeisha',
+          body:     'Listings za ziada ulizolipa zimekwisha (siku 30). Baadhi ya listings zimesimamishwa. Nunua tena uendelee kupost.',
+          is_read:  false,
+        }))
+      )
+
+      results.push(`✅ Extra listings expired: ${expiredExtra.length} (${totalReSuspended} listings zilizosimamishwa)`)
+    } else {
+      results.push('✅ Extra listings expiry: hakuna')
+    }
+  } catch (e) {
+    errors.push(`❌ Extra listings expiry: ${String(e)}`)
   }
 
   // ── 6. Auto-suspend dalali wenye ripoti 3+ ────────────
@@ -462,84 +535,209 @@ async function runDailyTasks() {
     errors.push(`❌ Email listing expired: ${String(e)}`)
   }
 
-  // ── 13. Email: Subscription expiring in 3 days ────────
+  // ── 13a. Email: Subscription expiring in 7 days ──────
   try {
-    const in3days = new Date(Date.now() + 3 * 86_400_000).toISOString()
-    const { data: expiringSubs } = await admin
+    const in7days  = new Date(Date.now() + 7  * 86_400_000).toISOString()
+    const in6days  = new Date(Date.now() + 6  * 86_400_000).toISOString()
+    const { data: expiring7Subs } = await admin
       .from('subscriptions')
-      .select('plan, expires_at, users:dalali_id (email, full_name)')
+      .select('plan, expires_at, dalali_id, users:dalali_id (email, full_name)')
       .eq('status', 'active')
       .neq('plan', 'free')
-      .gte('expires_at', now)
-      .lte('expires_at', in3days)
+      .gte('expires_at', in6days)
+      .lte('expires_at', in7days)
 
-    for (const s of expiringSubs ?? []) {
+    // Guard: don't re-notify if already notified within 3 days
+    const { data: alreadyNotif7 } = await admin
+      .from('notifications')
+      .select('user_id')
+      .eq('type', 'subscription_expiring_7days')
+      .gt('created_at', new Date(Date.now() - 7 * 86_400_000).toISOString())
+
+    const notified7Set = new Set((alreadyNotif7 ?? []).map(n => n.user_id))
+
+    for (const s of expiring7Subs ?? []) {
+      if (notified7Set.has(s.dalali_id)) continue
       const user = (s.users as unknown as { email: string; full_name: string } | null)
       if (!user?.email) continue
+      const planName = String(s.plan).toUpperCase()
+      const expiryDate = new Date(s.expires_at as string).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
       await sendEmail(
         user.email,
-        `⚠️ Subscription Yako Inaisha Siku 3 — ${String(s.plan).toUpperCase()}`,
+        `⏰ Subscription Yako Inaisha Siku 7 — ${planName}`,
         `<h2>Habari ${user.full_name}!</h2>
-         <p>Subscription yako ya <strong>${String(s.plan).toUpperCase()}</strong> inaisha tarehe
-         <strong>${new Date(s.expires_at as string).toLocaleDateString('sw-TZ')}</strong>.</p>
+         <p>Subscription yako ya <strong>${planName}</strong> inaisha tarehe <strong>${expiryDate}</strong> — siku 7 zinazo.</p>
+         <p>Huisha mapema ili usipoteze listings zako na wateja.</p>
          <a href="${APP_URL}/dashboard/subscription"
            style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
-           Renew Subscription →
+           Huisha Subscription →
+         </a>`,
+      )
+      await admin.from('notifications').insert({
+        user_id: s.dalali_id, type: 'subscription_expiring_7days',
+        title: '⏰ Subscription Inaisha Siku 7',
+        body: `Plan yako ya ${planName} inaisha ${expiryDate}. Huisha mapema.`,
+        is_read: false,
+      })
+    }
+    results.push(`✅ Email sub expiry 7 days: ${expiring7Subs?.length ?? 0}`)
+  } catch (e) {
+    errors.push(`❌ Email sub expiry 7 days: ${String(e)}`)
+  }
+
+  // ── 13b. Email: Subscription expiring in 3 days ────────
+  try {
+    const in3days = new Date(Date.now() + 3 * 86_400_000).toISOString()
+    const in2days = new Date(Date.now() + 2 * 86_400_000).toISOString()
+    const { data: expiringSubs } = await admin
+      .from('subscriptions')
+      .select('plan, expires_at, dalali_id, users:dalali_id (email, full_name)')
+      .eq('status', 'active')
+      .neq('plan', 'free')
+      .gte('expires_at', in2days)
+      .lte('expires_at', in3days)
+
+    const { data: alreadyNotif3 } = await admin
+      .from('notifications')
+      .select('user_id')
+      .eq('type', 'subscription_expiring_soon')
+      .gt('created_at', new Date(Date.now() - 3 * 86_400_000).toISOString())
+
+    const notified3Set = new Set((alreadyNotif3 ?? []).map(n => n.user_id))
+
+    for (const s of expiringSubs ?? []) {
+      if (notified3Set.has(s.dalali_id)) continue
+      const user = (s.users as unknown as { email: string; full_name: string } | null)
+      if (!user?.email) continue
+      const planName = String(s.plan).toUpperCase()
+      const expiryDate = new Date(s.expires_at as string).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
+      await sendEmail(
+        user.email,
+        `⚠️ Siku 3 tu! Subscription Yako Inaisha — ${planName}`,
+        `<h2>Habari ${user.full_name}!</h2>
+         <p>Subscription yako ya <strong>${planName}</strong> inaisha tarehe <strong>${expiryDate}</strong> — siku 3 tu zimebaki!</p>
+         <p style="color:#dc2626;font-weight:bold">Usihudumu — huisha sasa ili listings zako ziendelee kuonekana.</p>
+         <a href="${APP_URL}/dashboard/subscription"
+           style="background:#dc2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
+           Huisha Sasa →
          </a>`,
       )
     }
-    results.push(`✅ Email subscription expiry: ${expiringSubs?.length ?? 0}`)
+    results.push(`✅ Email sub expiry 3 days: ${expiringSubs?.length ?? 0}`)
   } catch (e) {
-    errors.push(`❌ Email subscription expiry: ${String(e)}`)
+    errors.push(`❌ Email sub expiry 3 days: ${String(e)}`)
   }
 
-  // ── 14. Email: Contact unlock daily summary → ADMIN ONLY ─
+  // ── 14. Email: Comprehensive daily revenue report → ADMIN ─
   try {
     const yesterday = new Date(Date.now() - 86_400_000).toISOString()
-    const { data: unlocks } = await admin
-      .from('contact_unlocks')
-      .select('dalali_id, users:dalali_id (full_name)')
-      .gte('created_at', yesterday)
-      .eq('status', 'completed')
 
-    const total = unlocks?.length ?? 0
-    const revenue = total * 2000
+    const [unlocksRes, subsRes, boostsRes, extraListingsRes] = await Promise.all([
+      // Contact unlocks
+      admin.from('contact_unlocks')
+        .select('dalali_id, users:dalali_id (full_name)')
+        .gte('created_at', yesterday)
+        .eq('status', 'completed'),
+      // Subscription payments activated today
+      admin.from('subscriptions')
+        .select('plan, amount_paid, dalali_id, users:dalali_id (full_name)')
+        .gte('starts_at', yesterday)
+        .eq('status', 'active')
+        .neq('plan', 'free'),
+      // Boost payments completed today
+      admin.from('boost_payments')
+        .select('amount, weeks, dalali_id, users:dalali_id (full_name)')
+        .gte('created_at', yesterday)
+        .eq('status', 'completed'),
+      // Extra listing payments completed today (type = 'extra_listings' in payments table)
+      admin.from('payments')
+        .select('amount, dalali_id, users:dalali_id (full_name)')
+        .eq('type', 'extra_listings')
+        .gte('created_at', yesterday)
+        .eq('status', 'completed'),
+    ])
 
-    // Group per dalali for admin table
-    const byDalali: Record<string, { name: string; count: number }> = {}
-    for (const u of unlocks ?? []) {
-      const name = (u.users as unknown as { full_name: string } | null)?.full_name ?? 'Unknown'
-      if (!byDalali[u.dalali_id]) byDalali[u.dalali_id] = { name, count: 0 }
-      byDalali[u.dalali_id].count++
+    const unlocks      = unlocksRes.data ?? []
+    const subs         = subsRes.data ?? []
+    const boosts       = boostsRes.data ?? []
+    const extraListings = extraListingsRes.data ?? []
+
+    const unlockRevenue    = unlocks.length * 2000
+    const subRevenue       = subs.reduce((s, r) => s + (r.amount_paid ?? 0), 0)
+    const boostRevenue     = boosts.reduce((s, r) => s + (r.amount ?? 0), 0)
+    const extraRevenue     = (extraListings as { amount: number }[]).reduce((s, r) => s + (r.amount ?? 0), 0)
+    const totalRevenue     = unlockRevenue + subRevenue + boostRevenue + extraRevenue
+
+    function tableRow(...cells: string[]) {
+      return `<tr>${cells.map((c, i) => `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;${i > 0 ? 'text-align:right' : ''}">${c}</td>`).join('')}</tr>`
     }
-
-    const rows = Object.values(byDalali)
-      .sort((a, b) => b.count - a.count)
-      .map(({ name, count }) =>
-        `<tr><td style="padding:10px">${name}</td><td style="padding:10px;text-align:center"><strong>${count}</strong></td><td style="padding:10px;text-align:right">Tsh ${(count * 2000).toLocaleString()}</td></tr>`,
-      ).join('')
 
     const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co'
     await sendEmail(
       adminEmail,
-      `🔓 Unlocks ya Leo — ${total} contacts, Tsh ${revenue.toLocaleString()}`,
-      `<h2>🔓 Contact Unlocks — Leo</h2>
-       <p><strong>Jumla ya unlocks:</strong> ${total}</p>
-       <p><strong>Mapato ya leo:</strong> Tsh ${revenue.toLocaleString()}</p>
-       <table style="width:100%;border-collapse:collapse;margin-top:12px">
-         <tr style="background:#1D9E75;color:white">
-           <td style="padding:10px">Dalali</td>
-           <td style="padding:10px;text-align:center">Unlocks</td>
-           <td style="padding:10px;text-align:right">Mapato</td>
+      `📊 Ripoti ya Mapato — Leo — Tsh ${totalRevenue.toLocaleString()}`,
+      `<h2 style="color:#1D9E75">📊 Ripoti ya Mapato ya Kila Siku</h2>
+       <p style="color:#6b7280;font-size:14px">${new Date().toLocaleDateString('sw-TZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+
+       <!-- Summary boxes -->
+       <table width="100%" cellpadding="0" cellspacing="8" style="margin-bottom:24px">
+         <tr>
+           <td style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;text-align:center">
+             <div style="font-size:22px;font-weight:700;color:#166534">Tsh ${totalRevenue.toLocaleString()}</div>
+             <div style="font-size:12px;color:#4b5563;margin-top:2px">Jumla ya Leo</div>
+           </td>
          </tr>
-         ${rows || '<tr><td colspan="3" style="padding:10px;text-align:center">Hakuna unlocks leo</td></tr>'}
        </table>
-       <br>
+
+       <!-- Breakdown table -->
+       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
+         <tr style="background:#1D9E75;color:white">
+           <td style="padding:10px 12px;font-weight:600">Chanzo cha Mapato</td>
+           <td style="padding:10px 12px;text-align:right;font-weight:600">Idadi</td>
+           <td style="padding:10px 12px;text-align:right;font-weight:600">Mapato</td>
+         </tr>
+         ${tableRow('🔓 Contact Unlocks', `${unlocks.length}`, `Tsh ${unlockRevenue.toLocaleString()}`)}
+         ${tableRow('📋 Subscriptions Mpya', `${subs.length}`, `Tsh ${subRevenue.toLocaleString()}`)}
+         ${tableRow('⚡ Boost Payments', `${boosts.length}`, `Tsh ${boostRevenue.toLocaleString()}`)}
+         ${tableRow('➕ Extra Listings', `${extraListings.length}`, `Tsh ${extraRevenue.toLocaleString()}`)}
+         <tr style="background:#f9fafb;font-weight:700">
+           <td style="padding:10px 12px;border-top:2px solid #1D9E75">JUMLA</td>
+           <td style="padding:10px 12px;text-align:right;border-top:2px solid #1D9E75">${unlocks.length + subs.length + boosts.length + extraListings.length}</td>
+           <td style="padding:10px 12px;text-align:right;border-top:2px solid #1D9E75;color:#1D9E75">Tsh ${totalRevenue.toLocaleString()}</td>
+         </tr>
+       </table>
+
+       ${subs.length > 0 ? `
+       <h3 style="color:#374151;margin-bottom:8px">📋 Subscriptions Zilizolipwa Leo</h3>
+       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
+         <tr style="background:#f3f4f6"><td style="padding:8px 12px;font-weight:600">Dalali</td><td style="padding:8px 12px;text-align:right;font-weight:600">Plan</td><td style="padding:8px 12px;text-align:right;font-weight:600">Kiasi</td></tr>
+         ${subs.map(s => {
+           const name = (s.users as unknown as { full_name: string } | null)?.full_name ?? '—'
+           return tableRow(name, String(s.plan).toUpperCase(), `Tsh ${(s.amount_paid ?? 0).toLocaleString()}`)
+         }).join('')}
+       </table>` : ''}
+
+       ${unlocks.length > 0 ? `
+       <h3 style="color:#374151;margin-bottom:8px">🔓 Unlocks kwa Dalali</h3>
+       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:20px">
+         <tr style="background:#f3f4f6"><td style="padding:8px 12px;font-weight:600">Dalali</td><td style="padding:8px 12px;text-align:right;font-weight:600">Unlocks</td><td style="padding:8px 12px;text-align:right;font-weight:600">Mapato</td></tr>
+         ${(() => {
+           const byD: Record<string, { name: string; n: number }> = {}
+           for (const u of unlocks) {
+             const nm = (u.users as unknown as { full_name: string } | null)?.full_name ?? '—'
+             if (!byD[u.dalali_id]) byD[u.dalali_id] = { name: nm, n: 0 }
+             byD[u.dalali_id].n++
+           }
+           return Object.values(byD).sort((a, b) => b.n - a.n)
+             .map(({ name, n }) => tableRow(name, `${n}`, `Tsh ${(n * 2000).toLocaleString()}`)).join('')
+         })()}
+       </table>` : ''}
+
        <a href="${APP_URL}/admin" style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Fungua Admin Panel →</a>`,
     )
-    results.push(`✅ Email unlock summary (admin): ${total} unlocks, Tsh ${revenue.toLocaleString()}`)
+    results.push(`✅ Admin daily revenue email: Tsh ${totalRevenue.toLocaleString()} (unlocks:${unlocks.length} subs:${subs.length} boosts:${boosts.length} extra:${extraListings.length})`)
   } catch (e) {
-    errors.push(`❌ Email unlock notify: ${String(e)}`)
+    errors.push(`❌ Admin revenue email: ${String(e)}`)
   }
 
   // ── 15. Dalali account monitoring — warnings + 90-day deletion ──

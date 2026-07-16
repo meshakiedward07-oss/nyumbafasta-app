@@ -25,6 +25,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .from('listings')
         .select('id, updated_at')
         .eq('status', 'active')
+        .eq('is_sub_suspended', false)
         .order('created_at', { ascending: false })
         .limit(1000),
       // Only index verified dalalis with a username — these are the canonical microsite URLs

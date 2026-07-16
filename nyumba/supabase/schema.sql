@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS listings (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   dalali_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title         TEXT NOT NULL DEFAULT '',
-  type          TEXT NOT NULL CHECK (type IN ('chumba', 'apartment', 'nyumba', 'studio')),
+  type          TEXT NOT NULL CHECK (type IN ('chumba', 'apartment', 'nyumba', 'studio', 'duka')),
   status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'taken', 'expired', 'rejected', 'deleted')),
   price_monthly INTEGER NOT NULL,
   district      TEXT NOT NULL DEFAULT '',

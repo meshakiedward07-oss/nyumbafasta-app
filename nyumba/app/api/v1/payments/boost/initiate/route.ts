@@ -44,6 +44,23 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient()
 
+    // Gate: boost requires at least basic plan (paid subscription)
+    const { data: activeSub } = await admin
+      .from('subscriptions')
+      .select('plan')
+      .eq('dalali_id', user.id)
+      .eq('status', 'active')
+      .in('plan', ['basic', 'premium', 'enterprise'])
+      .order('expires_at', { ascending: false })
+      .maybeSingle()
+
+    if (!IS_MOCK && !activeSub) {
+      return NextResponse.json(
+        { error: 'Boost inahitaji subscription ya Basic au zaidi. Jiandikishe kwanza.' },
+        { status: 403 }
+      )
+    }
+
     const { data: listing } = await admin
       .from('listings')
       .select('id, dalali_id, status, boosted_until, boost_count')

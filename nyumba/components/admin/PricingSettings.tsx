@@ -2,18 +2,19 @@
 import { useState, useEffect } from 'react'
 import type { Pricing } from '@/lib/config/pricing'
 
-const DEFAULTS = {
-  subscription: { basic: 10000, premium: 25000, enterprise: 50000 },
-  unlock:       2000,
-  boost:        { 1: 5000, 2: 9000, 4: 16000 },
-  extraListing: 2000,
+const DEFAULTS: Pricing = {
+  subscription:  { basic: 10000, premium: 25000, enterprise: 50000 },
+  unlock:        2000,
+  boost:         { 1: 5000, 2: 9000, 4: 16000 },
+  extraListing:  2000,
+  listingLimits: { free: 2, basic: 5, premium: 20, enterprise: 50 },
 }
 
 function fmtTsh(n: number) {
   return `Tsh ${n.toLocaleString()}`
 }
 
-type FieldDef = {
+type PriceFieldDef = {
   key:   string
   label: string
   hint:  string
@@ -21,25 +22,33 @@ type FieldDef = {
   set:   (p: Pricing, v: number) => Pricing
 }
 
-const FIELDS: FieldDef[] = [
+type LimitFieldDef = {
+  key:   string
+  label: string
+  hint:  string
+  get:   (p: Pricing) => number
+  set:   (p: Pricing, v: number) => Pricing
+}
+
+const PRICE_FIELDS: PriceFieldDef[] = [
   {
     key: 'subscription_basic',
     label: 'Subscription — Basic',
-    hint: 'Listings 5, kila mwezi',
+    hint: 'Ada ya kila mwezi kwa plan ya Basic',
     get: p => p.subscription.basic,
     set: (p, v) => ({ ...p, subscription: { ...p.subscription, basic: v } }),
   },
   {
     key: 'subscription_premium',
     label: 'Subscription — Premium ⭐',
-    hint: 'Listings 20 + boost + analytics, kila mwezi',
+    hint: 'Ada ya kila mwezi kwa plan ya Premium',
     get: p => p.subscription.premium,
     set: (p, v) => ({ ...p, subscription: { ...p.subscription, premium: v } }),
   },
   {
     key: 'subscription_enterprise',
     label: 'Subscription — Enterprise 🏢',
-    hint: 'Listings bila kikomo, kila mwezi',
+    hint: 'Ada ya kila mwezi kwa plan ya Enterprise',
     get: p => p.subscription.enterprise,
     set: (p, v) => ({ ...p, subscription: { ...p.subscription, enterprise: v } }),
   },
@@ -80,6 +89,37 @@ const FIELDS: FieldDef[] = [
   },
 ]
 
+const LIMIT_FIELDS: LimitFieldDef[] = [
+  {
+    key: 'limit_free',
+    label: 'Kikomo — Free (bila subscription)',
+    hint: 'Idadi ya listings kwa dalali bila subscription inayofanya kazi',
+    get: p => p.listingLimits.free,
+    set: (p, v) => ({ ...p, listingLimits: { ...p.listingLimits, free: v } }),
+  },
+  {
+    key: 'limit_basic',
+    label: 'Kikomo — Basic',
+    hint: 'Idadi ya listings kwa subscribers wa Basic',
+    get: p => p.listingLimits.basic,
+    set: (p, v) => ({ ...p, listingLimits: { ...p.listingLimits, basic: v } }),
+  },
+  {
+    key: 'limit_premium',
+    label: 'Kikomo — Premium ⭐',
+    hint: 'Idadi ya listings kwa subscribers wa Premium',
+    get: p => p.listingLimits.premium,
+    set: (p, v) => ({ ...p, listingLimits: { ...p.listingLimits, premium: v } }),
+  },
+  {
+    key: 'limit_enterprise',
+    label: 'Kikomo — Enterprise 🏢',
+    hint: 'Idadi ya listings kwa subscribers wa Enterprise',
+    get: p => p.listingLimits.enterprise,
+    set: (p, v) => ({ ...p, listingLimits: { ...p.listingLimits, enterprise: v } }),
+  },
+]
+
 export default function PricingSettings() {
   const [pricing, setPricing] = useState<Pricing>(DEFAULTS)
   const [draft,   setDraft]   = useState<Pricing>(DEFAULTS)
@@ -91,11 +131,22 @@ export default function PricingSettings() {
   useEffect(() => {
     fetch('/api/v1/admin/settings/pricing')
       .then(r => r.json())
-      .then(d => { setPricing(d); setDraft(d); setLoading(false) })
+      .then(d => {
+        const full: Pricing = { ...DEFAULTS, ...d, listingLimits: { ...DEFAULTS.listingLimits, ...d.listingLimits } }
+        setPricing(full)
+        setDraft(full)
+        setLoading(false)
+      })
       .catch(() => setLoading(false))
   }, [])
 
-  function handleChange(field: FieldDef, raw: string) {
+  function handlePriceChange(field: PriceFieldDef, raw: string) {
+    const v = parseInt(raw.replace(/\D/g, ''), 10)
+    if (isNaN(v)) return
+    setDraft(prev => field.set(prev, v))
+  }
+
+  function handleLimitChange(field: LimitFieldDef, raw: string) {
     const v = parseInt(raw.replace(/\D/g, ''), 10)
     if (isNaN(v)) return
     setDraft(prev => field.set(prev, v))
@@ -112,9 +163,10 @@ export default function PricingSettings() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      setPricing(json.pricing)
-      setDraft(json.pricing)
-      setMsg({ text: 'Bei zimehifadhiwa. Zitatumika mara moja kwenye malipo yote mapya.', ok: true })
+      const full: Pricing = { ...DEFAULTS, ...json.pricing, listingLimits: { ...DEFAULTS.listingLimits, ...json.pricing.listingLimits } }
+      setPricing(full)
+      setDraft(full)
+      setMsg({ text: 'Bei na viwango vimehifadhiwa. Vitatumika mara moja kwenye malipo yote mapya.', ok: true })
       setEditing(false)
     } catch (e: unknown) {
       setMsg({ text: e instanceof Error ? e.message : 'Hitilafu imetokea', ok: false })
@@ -124,16 +176,17 @@ export default function PricingSettings() {
   }
 
   async function handleReset() {
-    if (!confirm('Resets zote kwa bei za awali (10k, 25k, 50k, 2k...)? Endelea?')) return
+    if (!confirm('Resets zote kwa bei na viwango vya awali? Endelea?')) return
     setSaving(true)
     setMsg(null)
     try {
       const res = await fetch('/api/v1/admin/settings/pricing', { method: 'DELETE' })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      setPricing(json.pricing)
-      setDraft(json.pricing)
-      setMsg({ text: 'Bei zimeresetwa kwa bei za awali.', ok: true })
+      const full: Pricing = { ...DEFAULTS, ...json.pricing, listingLimits: { ...DEFAULTS.listingLimits, ...json.pricing.listingLimits } }
+      setPricing(full)
+      setDraft(full)
+      setMsg({ text: 'Bei na viwango vimeresetwa kwa awali.', ok: true })
       setEditing(false)
     } catch (e: unknown) {
       setMsg({ text: e instanceof Error ? e.message : 'Hitilafu imetokea', ok: false })
@@ -158,7 +211,7 @@ export default function PricingSettings() {
         <div>
           <p className="font-bold text-gray-800 text-sm flex items-center gap-2">
             <i className="ti ti-tag text-primary-500 text-base" aria-hidden="true" />
-            Mipangilio ya Bei
+            Mipangilio ya Bei na Viwango
           </p>
           <p className="text-xs text-gray-400 mt-0.5">Bei unayobadilisha itatumika mara moja kwenye malipo yote mapya</p>
         </div>
@@ -179,53 +232,109 @@ export default function PricingSettings() {
         </div>
       )}
 
-      {/* Fields */}
       {loading ? (
         <div className="px-5 py-8 text-center">
           <i className="ti ti-loader-2 animate-spin text-primary-500 text-xl" aria-hidden="true" />
-          <p className="text-xs text-gray-400 mt-2">Inapakia bei za sasa...</p>
+          <p className="text-xs text-gray-400 mt-2">Inapakia mipangilio ya sasa...</p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-50">
-          {FIELDS.map(field => {
-            const current = field.get(pricing)
-            const value   = field.get(draft)
-            const changed = editing && value !== current
+        <>
+          {/* Price fields */}
+          <div className="px-5 pt-4 pb-1">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bei za Huduma</p>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {PRICE_FIELDS.map(field => {
+              const current = field.get(pricing)
+              const value   = field.get(draft)
+              const changed = editing && value !== current
 
-            return (
-              <div key={field.key} className="px-5 py-3.5 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-800">{field.label}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{field.hint}</p>
-                </div>
-
-                {editing ? (
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {changed && (
-                      <span className="text-[10px] text-gray-400 line-through">{fmtTsh(current)}</span>
-                    )}
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">Tsh</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min="100"
-                        step="100"
-                        value={value}
-                        onChange={e => handleChange(field, e.target.value)}
-                        className={`w-28 pl-9 pr-2 py-1.5 rounded-lg border text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-primary-400 ${
-                          changed ? 'border-primary-400 bg-primary-50' : 'border-gray-200 bg-white'
-                        }`}
-                      />
-                    </div>
+              return (
+                <div key={field.key} className="px-5 py-3.5 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-800">{field.label}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{field.hint}</p>
                   </div>
-                ) : (
-                  <span className="text-sm font-bold text-primary-600 flex-shrink-0">{fmtTsh(current)}</span>
-                )}
-              </div>
-            )
-          })}
-        </div>
+
+                  {editing ? (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {changed && (
+                        <span className="text-[10px] text-gray-400 line-through">{fmtTsh(current)}</span>
+                      )}
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">Tsh</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min="100"
+                          step="100"
+                          value={value}
+                          onChange={e => handlePriceChange(field, e.target.value)}
+                          className={`w-28 pl-9 pr-2 py-1.5 rounded-lg border text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-primary-400 ${
+                            changed ? 'border-primary-400 bg-primary-50' : 'border-gray-200 bg-white'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-sm font-bold text-primary-600 flex-shrink-0">{fmtTsh(current)}</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Listing limit fields */}
+          <div className="px-5 pt-5 pb-1 border-t border-gray-100">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i className="ti ti-list-numbers text-xs" aria-hidden="true" />
+              Idadi ya Listings kwa Kila Plan
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              Admin anaweza kupanga idadi ya listings inayoruhusiwa kwa kila aina ya subscription
+            </p>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {LIMIT_FIELDS.map(field => {
+              const current = field.get(pricing)
+              const value   = field.get(draft)
+              const changed = editing && value !== current
+
+              return (
+                <div key={field.key} className="px-5 py-3.5 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-800">{field.label}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{field.hint}</p>
+                  </div>
+
+                  {editing ? (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {changed && (
+                        <span className="text-[10px] text-gray-400 line-through">{current} listings</span>
+                      )}
+                      <div className="relative">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min="1"
+                          step="1"
+                          value={value}
+                          onChange={e => handleLimitChange(field, e.target.value)}
+                          className={`w-24 px-3 py-1.5 rounded-lg border text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-primary-400 ${
+                            changed ? 'border-primary-400 bg-primary-50' : 'border-gray-200 bg-white'
+                          }`}
+                        />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">ls</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-sm font-bold text-primary-600 flex-shrink-0">{current} listings</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
 
       {/* Edit actions */}
@@ -239,7 +348,7 @@ export default function PricingSettings() {
             {saving ? (
               <><i className="ti ti-loader-2 animate-spin mr-1" aria-hidden="true" />Inahifadhi...</>
             ) : (
-              <><i className="ti ti-check mr-1" aria-hidden="true" />Hifadhi Bei Mpya</>
+              <><i className="ti ti-check mr-1" aria-hidden="true" />Hifadhi Mabadiliko</>
             )}
           </button>
           <button
@@ -265,7 +374,7 @@ export default function PricingSettings() {
         <div className="px-5 py-3 border-t border-gray-50 bg-amber-50">
           <p className="text-[10px] text-amber-700 flex items-start gap-1.5">
             <i className="ti ti-info-circle flex-shrink-0 mt-0.5" aria-hidden="true" />
-            Kubadilisha bei kunaathiri: malipo mapya tu. Malipo yaliyopo na subscriptions zinazoendelea hazibadiliki.
+            Kubadilisha bei kunaathiri malipo mapya tu. Kubadilisha idadi ya listings kunaathiri uploads mpya — dalali walio na listings zaidi ya kikomo kipya hawataathirika retroactively.
           </p>
         </div>
       )}

@@ -26,9 +26,9 @@ export async function recordIncomeFromUnlock(unlockId: string): Promise<void> {
     return
   }
 
-  const amount     = Number(unlock.amount_paid)
-  const fee        = amount * AZAMPAY_FEE_PERCENT
-  const txDate     = new Date(unlock.created_at)
+  const amount  = Number(unlock.amount_paid)
+  const fee     = amount * AZAMPAY_FEE_PERCENT
+  const txDate  = new Date(unlock.created_at)
 
   const { error } = await supabaseAdmin.from('income_records').insert({
     source:           'contact_unlock',
@@ -49,7 +49,6 @@ export async function recordIncomeFromUnlock(unlockId: string): Promise<void> {
   })
 
   if (error && error.code !== '23505') {
-    // 23505 = unique_violation (already recorded) — ignore
     console.error('[Accounting] recordIncomeFromUnlock error:', error.message)
   } else {
     console.log('[Accounting] Income recorded — unlock:', unlockId, 'TZS', amount)
@@ -71,10 +70,10 @@ export async function recordIncomeFromSubscription(subscriptionId: string): Prom
   }
 
   const PLAN_PRICES: Record<string, number> = { basic: 10_000, premium: 25_000, enterprise: 50_000 }
-  const amount     = sub.amount_paid != null ? Number(sub.amount_paid) : (PLAN_PRICES[sub.plan] ?? 10_000)
-  const fee        = amount * AZAMPAY_FEE_PERCENT
-  const txDate     = new Date(sub.created_at)
-  const planLabel  = sub.plan === 'premium' ? 'Premium' : sub.plan === 'enterprise' ? 'Enterprise' : 'Basic'
+  const amount    = sub.amount_paid != null ? Number(sub.amount_paid) : (PLAN_PRICES[sub.plan] ?? 10_000)
+  const fee       = amount * AZAMPAY_FEE_PERCENT
+  const txDate    = new Date(sub.created_at)
+  const planLabel = sub.plan === 'premium' ? 'Premium' : sub.plan === 'enterprise' ? 'Enterprise' : 'Basic'
 
   const { error } = await supabaseAdmin.from('income_records').insert({
     source:           'subscription',
@@ -114,9 +113,9 @@ export async function recordIncomeFromBoost(boostPaymentId: string): Promise<voi
     return
   }
 
-  const amount     = Number(bp.amount)
-  const fee        = amount * AZAMPAY_FEE_PERCENT
-  const txDate     = new Date(bp.created_at)
+  const amount  = Number(bp.amount)
+  const fee     = amount * AZAMPAY_FEE_PERCENT
+  const txDate  = new Date(bp.created_at)
 
   const { error } = await supabaseAdmin.from('income_records').insert({
     source:           'boost_listing',
@@ -144,26 +143,30 @@ export async function recordIncomeFromBoost(boostPaymentId: string): Promise<voi
 }
 
 // ── Record income from extra listings purchase ────────────────────────────
+// source_ref_id = payment.id (NOT subscription id) so each purchase is unique.
 export async function recordIncomeFromExtraListings(params: {
-  subscriptionId: string
-  dalaliId:       string
-  count:          number
-  amount:         number
-  externalId:     string
+  paymentId:  string   // payments.id — used as source_ref_id for uniqueness
+  dalaliId:   string
+  count:      number
+  amount:     number
+  externalId: string
+  createdAt?: string   // ISO string from payments.created_at (falls back to now)
+  paymentMethod?: string
 }): Promise<void> {
-  const { subscriptionId, dalaliId, count, amount, externalId } = params
+  const { paymentId, dalaliId, count, amount, externalId, createdAt, paymentMethod } = params
   const fee    = amount * AZAMPAY_FEE_PERCENT
-  const txDate = new Date()
+  const txDate = new Date(createdAt ?? Date.now())
 
   const { error } = await supabaseAdmin.from('income_records').insert({
     source:           'extra_listing',
-    source_ref_id:    subscriptionId,
+    source_ref_id:    paymentId,
     dalali_id:        dalaliId,
     amount_tzs:       amount,
     platform_fee_tzs: parseFloat(fee.toFixed(2)),
     net_amount_tzs:   parseFloat((amount - fee).toFixed(2)),
     description:      `Listings za ziada — ${count} listings (TZS ${amount.toLocaleString()})`,
     reference_number: externalId,
+    payment_method:   paymentMethod ?? null,
     transaction_date: txDate.toISOString().split('T')[0],
     month:            txDate.getMonth() + 1,
     year:             txDate.getFullYear(),
@@ -174,70 +177,82 @@ export async function recordIncomeFromExtraListings(params: {
   if (error && error.code !== '23505') {
     console.error('[Accounting] recordIncomeFromExtraListings error:', error.message)
   } else {
-    console.log('[Accounting] Income recorded — extra listings sub:', subscriptionId, 'TZS', amount)
+    console.log('[Accounting] Income recorded — extra listings paymentId:', paymentId, 'TZS', amount)
   }
 }
 
 // ── Sync all completed payments to income_records ─────────────────────────
-// Pulls from all 3 source tables and inserts missing records idempotently.
+// Uses a bulk set-membership check instead of N individual SELECTs — O(n+4) queries.
 export async function syncAllPaymentsToIncome(): Promise<{ synced: number; skipped: number }> {
   let synced = 0
   let skipped = 0
 
-  // 1. Contact unlocks
+  // Load all existing (source, source_ref_id) pairs in one query
+  const { data: existingRaw } = await supabaseAdmin
+    .from('income_records')
+    .select('source, source_ref_id')
+
+  const existing = new Set(
+    (existingRaw ?? []).map(r => `${r.source}:${r.source_ref_id}`)
+  )
+
+  // ── 1. Contact unlocks ──────────────────────────────────────────────────
   const { data: unlocks } = await supabaseAdmin
     .from('contact_unlocks')
     .select('id')
     .eq('status', 'completed')
 
-  for (const unlock of unlocks ?? []) {
-    const { data: existing } = await supabaseAdmin
-      .from('income_records')
-      .select('id')
-      .eq('source', 'contact_unlock')
-      .eq('source_ref_id', unlock.id)
-      .maybeSingle()
-
-    if (existing) { skipped++; continue }
-    await recordIncomeFromUnlock(unlock.id)
+  for (const u of unlocks ?? []) {
+    if (existing.has(`contact_unlock:${u.id}`)) { skipped++; continue }
+    await recordIncomeFromUnlock(u.id)
     synced++
   }
 
-  // 2. Subscriptions
+  // ── 2. Subscriptions ───────────────────────────────────────────────────
   const { data: subs } = await supabaseAdmin
     .from('subscriptions')
     .select('id')
     .eq('status', 'active')
 
-  for (const sub of subs ?? []) {
-    const { data: existing } = await supabaseAdmin
-      .from('income_records')
-      .select('id')
-      .eq('source', 'subscription')
-      .eq('source_ref_id', sub.id)
-      .maybeSingle()
-
-    if (existing) { skipped++; continue }
-    await recordIncomeFromSubscription(sub.id)
+  for (const s of subs ?? []) {
+    if (existing.has(`subscription:${s.id}`)) { skipped++; continue }
+    await recordIncomeFromSubscription(s.id)
     synced++
   }
 
-  // 3. Boost payments
+  // ── 3. Boost payments ──────────────────────────────────────────────────
   const { data: boosts } = await supabaseAdmin
     .from('boost_payments')
     .select('id')
     .eq('status', 'completed')
 
   for (const bp of boosts ?? []) {
-    const { data: existing } = await supabaseAdmin
-      .from('income_records')
-      .select('id')
-      .eq('source', 'boost_listing')
-      .eq('source_ref_id', bp.id)
-      .maybeSingle()
-
-    if (existing) { skipped++; continue }
+    if (existing.has(`boost_listing:${bp.id}`)) { skipped++; continue }
     await recordIncomeFromBoost(bp.id)
+    synced++
+  }
+
+  // ── 4. Extra listings (payments table) ────────────────────────────────
+  const { data: extraPays } = await supabaseAdmin
+    .from('payments')
+    .select('id, dalali_id, amount, external_id, created_at, provider')
+    .eq('type', 'extra_listings')
+    .eq('status', 'completed')
+
+  for (const ep of extraPays ?? []) {
+    if (existing.has(`extra_listing:${ep.id}`)) { skipped++; continue }
+    // Decode count from externalId format: EX-{sub_id}-{count}
+    const parts = (ep.external_id ?? '').split('-')
+    const count = parseInt(parts[parts.length - 1], 10)
+    await recordIncomeFromExtraListings({
+      paymentId:     ep.id,
+      dalaliId:      ep.dalali_id,
+      count:         isNaN(count) ? 1 : count,
+      amount:        Number(ep.amount),
+      externalId:    ep.external_id ?? ep.id,
+      createdAt:     ep.created_at,
+      paymentMethod: ep.provider ?? undefined,
+    })
     synced++
   }
 
