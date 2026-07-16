@@ -158,8 +158,6 @@ export type Notification = {
   type: string
   is_read: boolean
   ref_id: string | null
-  data: Record<string, unknown> | null
-  send_at: string | null
   created_at: string
 }
 

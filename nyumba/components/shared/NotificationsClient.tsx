@@ -22,6 +22,11 @@ const TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
   review_reply:            { icon: 'message-circle', color: 'bg-primary-50 border-primary-100' },
   boost_activated:         { icon: 'rocket', color: 'bg-yellow-50 border-yellow-100' },
   listing_taken:           { icon: 'home', color: 'bg-gray-50 border-gray-100' },
+  trial_started:           { icon: 'gift', color: 'bg-primary-50 border-primary-100' },
+  trial_reminder_7days:    { icon: 'clock', color: 'bg-yellow-50 border-yellow-100' },
+  trial_reminder_3days:    { icon: 'alert-triangle', color: 'bg-orange-50 border-orange-100' },
+  trial_reminder_last_day: { icon: 'circle-dot', color: 'bg-red-50 border-red-100' },
+  admin_alert:             { icon: 'alert-circle', color: 'bg-red-50 border-red-100' },
   default:                 { icon: 'bell', color: 'bg-gray-50 border-gray-100' },
 }
 
@@ -80,9 +85,8 @@ export default function NotificationsClient({ notifications, role }: Props) {
 
   function handleNotifTap(n: Notification) {
     if (isReviewType(n.type) && !reviewed.has(n.id)) {
-      const d = n.data as ReviewNotifData | null
-      if (d?.unlock_id) {
-        setActiveReview({ ...d, notifId: n.id })
+      if (n.ref_id) {
+        setActiveReview({ unlock_id: n.ref_id, notifId: n.id })
       }
       return
     }

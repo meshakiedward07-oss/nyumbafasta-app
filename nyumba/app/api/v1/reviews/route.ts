@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
       .delete()
       .eq('user_id', user.id)
       .in('type', ['review_request', 'review_reminder'])
-      .eq('data->>unlock_id', unlock_id)
+      .eq('ref_id', unlock_id)
 
     // Fetch reviewer name for notification
     const { data: reviewer } = await admin
