@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import PermissionManagerModal from '@/components/admin/PermissionManagerModal'
+import { STAFF_PERMISSIONS } from '@/lib/staff/permissions'
+import type { PermissionKey } from '@/lib/staff/permissions'
 
 type RoleFilter = 'staff' | 'performance' | 'dalali_activity'
 
@@ -30,6 +32,7 @@ type StaffMember = {
   totalConverted: number
   totalLost: number
   created_at: string
+  permissions: PermissionKey[]
 }
 
 const TITLES = [
@@ -109,6 +112,31 @@ export default function StaffManagementClient() {
       body: JSON.stringify({ staffActive: !member.staff_active }),
     })
     loadStaff()
+  }
+
+  // Optimistic add/remove single permission — updates local state instantly
+  async function togglePermission(staffId: string, key: PermissionKey, action: 'add' | 'remove') {
+    // Optimistic update
+    setStaff(prev => prev.map(s => {
+      if (s.id !== staffId) return s
+      const perms = action === 'add'
+        ? [...new Set([...s.permissions, key])]
+        : s.permissions.filter(p => p !== key)
+      return { ...s, permissions: perms }
+    }))
+
+    const res = await fetch(`/api/v1/admin/staff/${staffId}/permissions`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, permission: key }),
+    })
+    if (!res.ok) {
+      // Rollback
+      loadStaff()
+      showToast('Imeshindwa kubadilisha ruhusa', false)
+    } else {
+      showToast(action === 'add' ? `Shughuli imeongezwa` : `Shughuli imeondolewa`)
+    }
   }
 
   async function deleteMember(member: StaffMember) {
@@ -320,6 +348,13 @@ export default function StaffManagementClient() {
                       </div>
                     </div>
 
+                    {/* ── Live Activity/Permission Chips ── */}
+                    <ActivityChips
+                      staff={s}
+                      onAdd={key => togglePermission(s.id, key, 'add')}
+                      onRemove={key => togglePermission(s.id, key, 'remove')}
+                    />
+
                     {/* Actions */}
                     <div className="grid grid-cols-2 gap-2 mt-3">
                       <button
@@ -338,7 +373,7 @@ export default function StaffManagementClient() {
                         onClick={() => setManagingPerms(s)}
                         className="bg-blue-50 text-blue-700 text-xs py-2 rounded-xl font-medium border border-blue-100 flex items-center justify-center gap-1"
                       >
-                        <i className="ti ti-key" aria-hidden="true" /> Ruhusa
+                        <i className="ti ti-settings" aria-hidden="true" /> Ruhusa Zote
                       </button>
                       <button
                         onClick={() => setActivityStaff(s)}
@@ -1217,6 +1252,102 @@ function TeamPerformanceView({ staff, onSelect }: { staff: StaffMember[]; onSele
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ─── Activity Chips — inline permission display + quick add/remove ────────────
+const CATEGORY_STYLE: Record<string, { bg: string; text: string; border: string }> = {
+  crm:     { bg: 'bg-blue-50',    text: 'text-blue-700',   border: 'border-blue-200' },
+  support: { bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200' },
+  content: { bg: 'bg-purple-50',  text: 'text-purple-700', border: 'border-purple-200' },
+  admin:   { bg: 'bg-primary-50', text: 'text-primary-700',border: 'border-primary-200' },
+}
+
+function ActivityChips({
+  staff,
+  onAdd,
+  onRemove,
+}: {
+  staff: StaffMember
+  onAdd: (key: PermissionKey) => void
+  onRemove: (key: PermissionKey) => void
+}) {
+  const [showPicker, setShowPicker] = useState(false)
+
+  const grantedSet = new Set(staff.permissions)
+  const available  = Object.values(STAFF_PERMISSIONS).filter(p => !grantedSet.has(p.key as PermissionKey))
+
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-50">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Shughuli Zilizopewa</p>
+        {available.length > 0 && (
+          <button
+            onClick={() => setShowPicker(v => !v)}
+            className="text-[10px] font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-0.5"
+          >
+            <i className="ti ti-plus text-xs" aria-hidden="true" /> Ongeza
+          </button>
+        )}
+      </div>
+
+      {/* Active permission chips */}
+      {staff.permissions.length === 0 ? (
+        <p className="text-[11px] text-gray-300 italic">Hakuna shughuli bado</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {staff.permissions.map(key => {
+            const perm = STAFF_PERMISSIONS[key as PermissionKey]
+            if (!perm) return null
+            const s = CATEGORY_STYLE[perm.category] ?? CATEGORY_STYLE.admin
+            return (
+              <span key={key} className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg border ${s.bg} ${s.text} ${s.border}`}>
+                <i className={`ti ti-${perm.icon} text-xs`} aria-hidden="true" />
+                {perm.label}
+                <button
+                  onClick={() => onRemove(key as PermissionKey)}
+                  className="ml-0.5 hover:opacity-60 transition-opacity leading-none"
+                  title={`Ondoa ${perm.label}`}
+                >
+                  <i className="ti ti-x text-[10px]" aria-hidden="true" />
+                </button>
+              </span>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Permission picker dropdown */}
+      {showPicker && available.length > 0 && (
+        <div className="mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 pt-2.5 pb-1">Chagua Shughuli ya Kuongeza</p>
+          <div className="max-h-52 overflow-y-auto divide-y divide-gray-50">
+            {available.map(perm => {
+              const s = CATEGORY_STYLE[perm.category] ?? CATEGORY_STYLE.admin
+              return (
+                <button
+                  key={perm.key}
+                  onClick={() => { onAdd(perm.key as PermissionKey); setShowPicker(false) }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 text-left transition-colors"
+                >
+                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${s.bg}`}>
+                    <i className={`ti ti-${perm.icon} text-sm ${s.text}`} aria-hidden="true" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-800">{perm.label}</p>
+                    <p className="text-[10px] text-gray-400 truncate">{perm.description}</p>
+                  </div>
+                  <i className="ti ti-plus text-xs text-gray-300" aria-hidden="true" />
+                </button>
+              )
+            })}
+          </div>
+          <div className="px-3 py-2 border-t border-gray-50">
+            <button onClick={() => setShowPicker(false)} className="text-[11px] text-gray-400 hover:text-gray-600">Funga</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

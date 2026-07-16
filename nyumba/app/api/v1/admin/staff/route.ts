@@ -16,29 +16,43 @@ export async function GET() {
 
   const { data: staff, error } = await admin
     .from('users')
-    .select('id, full_name, phone, staff_title, staff_active, max_leads_capacity, created_at')
+    .select('id, full_name, email, phone, staff_title, staff_active, max_leads_capacity, created_at')
     .eq('role', 'staff')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const staffIds = (staff || []).map(s => s.id)
-  const { data: allLeads } = staffIds.length > 0
-    ? await admin.from('agent_leads').select('assigned_to, pipeline_stage').in('assigned_to', staffIds)
-    : { data: [] as { assigned_to: string; pipeline_stage: string }[] }
+
+  // Fetch leads stats + permissions in parallel
+  const [leadsResult, permsResult] = await Promise.all([
+    staffIds.length > 0
+      ? admin.from('agent_leads').select('assigned_to, pipeline_stage').in('assigned_to', staffIds)
+      : Promise.resolve({ data: [] as { assigned_to: string; pipeline_stage: string }[] }),
+    staffIds.length > 0
+      ? admin.from('staff_permissions').select('staff_id, permission_key').in('staff_id', staffIds)
+      : Promise.resolve({ data: [] as { staff_id: string; permission_key: string }[] }),
+  ])
 
   type StaffStats = { activeLeads: number; totalConverted: number; totalLost: number }
   const statsMap: Record<string, StaffStats> = {}
-  for (const lead of allLeads ?? []) {
+  for (const lead of leadsResult.data ?? []) {
     if (!statsMap[lead.assigned_to]) statsMap[lead.assigned_to] = { activeLeads: 0, totalConverted: 0, totalLost: 0 }
     if (lead.pipeline_stage === 'amefanikiwa') statsMap[lead.assigned_to].totalConverted++
     else if (lead.pipeline_stage === 'amepotea')  statsMap[lead.assigned_to].totalLost++
     else                                           statsMap[lead.assigned_to].activeLeads++
   }
 
+  const permsMap: Record<string, string[]> = {}
+  for (const p of permsResult.data ?? []) {
+    if (!permsMap[p.staff_id]) permsMap[p.staff_id] = []
+    permsMap[p.staff_id].push(p.permission_key)
+  }
+
   const staffWithStats = (staff || []).map(s => ({
     ...s,
     ...(statsMap[s.id] ?? { activeLeads: 0, totalConverted: 0, totalLost: 0 }),
+    permissions: permsMap[s.id] ?? [],
   }))
 
   return NextResponse.json({ staff: staffWithStats })
