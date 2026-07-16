@@ -688,7 +688,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               }}
               className="btn-primary w-full py-3.5 text-sm"
             >
-              <i className="ti ti-lock-open" aria-hidden="true" /> Pata Nambari ya WhatsApp – Tsh {unlockPrice.toLocaleString()}
+              <i className="ti ti-lock-open" aria-hidden="true" /> Pata Namba ya WhatsApp ya {dalaliDisplayName} – Tsh {unlockPrice.toLocaleString()}
             </button>
             <p className="text-center text-xs text-gray-400 mt-1.5">
               Lipa mara moja kupata nambari ya dalali
