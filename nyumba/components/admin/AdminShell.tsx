@@ -115,6 +115,11 @@ const BOTTOM_NAV = [
   { href: '/admin/accounting', icon: 'coin', label: 'Hesabu',    exact: false },
 ]
 
+const STAFF_BOTTOM_NAV = [
+  { href: '/admin/staff-dashboard', icon: 'layout-dashboard', label: 'Dashboard', exact: false },
+  { href: '/admin/staff-leads',     icon: 'target',           label: 'Leads',     exact: false },
+]
+
 // ── Staff dynamic sidebar ──────────────────────────────────────────────────
 function StaffSidebar({
   pathname,
@@ -386,44 +391,75 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200"
            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-stretch h-16">
-          {BOTTOM_NAV.map(item => {
-            const active = isActive(item.href, item.exact)
-            return (
-              <Link
-                key={item.href + item.label}
-                href={item.href}
-                className="flex-1 flex flex-col items-center justify-center gap-0.5 relative group"
-              >
-                {/* Active indicator bar at top */}
-                {active && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" />
-                )}
-                <div className="relative">
-                  {item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
-                    ? (
-                      <span className={`transition-opacity ${active ? 'opacity-100' : 'opacity-40 group-hover:opacity-60'}`}>
-                        <PlatformLogo platform={item.icon.replace('brand-', '')} size={22} />
-                      </span>
-                    )
-                    : (
-                      <i className={`ti ti-${item.icon} text-[22px] transition-colors ${
-                        active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
-                      }`} aria-hidden="true" />
-                    )}
-                  {item.href === '/admin/whatsapp' && (
-                    <span className="absolute -top-1 -right-2 scale-75 origin-top-right">
-                      <PendingBadge />
-                    </span>
+          {userRole === null ? (
+            // Loading skeleton — prevents flash of wrong nav
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex-1 animate-pulse bg-gray-50/80" />
+            ))
+          ) : isStaff ? (
+            // Staff-specific bottom nav
+            STAFF_BOTTOM_NAV.map(item => {
+              const active = isActive(item.href, item.exact)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex-1 flex flex-col items-center justify-center gap-0.5 relative group"
+                >
+                  {active && (
+                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" />
                   )}
-                </div>
-                <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
-                  active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
-                }`}>
-                  {item.label}
-                </span>
-              </Link>
-            )
-          })}
+                  <i className={`ti ti-${item.icon} text-[22px] transition-colors ${
+                    active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
+                  }`} aria-hidden="true" />
+                  <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
+                    active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
+                  }`}>
+                    {item.label}
+                  </span>
+                </Link>
+              )
+            })
+          ) : (
+            // Admin bottom nav
+            BOTTOM_NAV.map(item => {
+              const active = isActive(item.href, item.exact)
+              return (
+                <Link
+                  key={item.href + item.label}
+                  href={item.href}
+                  className="flex-1 flex flex-col items-center justify-center gap-0.5 relative group"
+                >
+                  {active && (
+                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" />
+                  )}
+                  <div className="relative">
+                    {item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
+                      ? (
+                        <span className={`transition-opacity ${active ? 'opacity-100' : 'opacity-40 group-hover:opacity-60'}`}>
+                          <PlatformLogo platform={item.icon.replace('brand-', '')} size={22} />
+                        </span>
+                      )
+                      : (
+                        <i className={`ti ti-${item.icon} text-[22px] transition-colors ${
+                          active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
+                        }`} aria-hidden="true" />
+                      )}
+                    {item.href === '/admin/whatsapp' && (
+                      <span className="absolute -top-1 -right-2 scale-75 origin-top-right">
+                        <PendingBadge />
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
+                    active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
+                  }`}>
+                    {item.label}
+                  </span>
+                </Link>
+              )
+            })
+          )}
         </div>
       </nav>
 

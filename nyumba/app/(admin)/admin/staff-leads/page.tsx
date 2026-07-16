@@ -12,11 +12,13 @@ export default async function StaffLeadsPage() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('role')
+    .select('role, staff_active, must_change_password')
     .eq('id', user.id)
     .single()
 
   if (!['admin', 'staff'].includes(profile?.role ?? '')) redirect('/dashboard')
+  if (profile?.role === 'staff' && !profile?.staff_active) redirect('/login?suspended=1')
+  if (profile?.role === 'staff' && profile?.must_change_password) redirect('/account/change-password')
 
   return <StaffLeadsClient currentUserId={user.id} isAdmin={profile?.role === 'admin'} />
 }

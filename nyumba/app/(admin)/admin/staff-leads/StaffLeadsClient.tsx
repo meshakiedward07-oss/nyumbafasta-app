@@ -13,30 +13,28 @@ export default function StaffLeadsClient(props: {
   const [search, setSearch]     = useState('')
   const [stats, setStats]       = useState({ total: 0, active: 0, converted: 0, followupDue: 0 })
 
-  const fetchLeads = useCallback(async () => {
+  const fetchLeads = useCallback(async (searchTerm: string) => {
     setLoading(true)
-    const res = await fetch(
-      `/api/v1/crm/leads?search=${encodeURIComponent(search)}`,
-    )
-    const data = await res.json()
-    const rows: DalaliLead[] = data.leads || []
+    try {
+      const res = await fetch(`/api/v1/crm/leads?search=${encodeURIComponent(searchTerm)}`)
+      const data = await res.json()
+      const rows: DalaliLead[] = data.leads || []
+      const now = new Date()
+      setLeads(rows)
+      setStats({
+        total:       rows.length,
+        active:      rows.filter(l => !['amefanikiwa', 'amepotea'].includes(l.pipeline_stage)).length,
+        converted:   rows.filter(l => l.pipeline_stage === 'amefanikiwa').length,
+        followupDue: rows.filter(l => l.next_followup_at && new Date(l.next_followup_at) <= now).length,
+      })
+    } catch { /* silent */ }
+    finally { setLoading(false) }
+  }, [])
 
-    const now = new Date()
-    setLeads(rows)
-    setStats({
-      total:      rows.length,
-      active:     rows.filter(l =>
-        !['amefanikiwa', 'amepotea'].includes(l.pipeline_stage)
-      ).length,
-      converted:  rows.filter(l => l.pipeline_stage === 'amefanikiwa').length,
-      followupDue: rows.filter(l =>
-        l.next_followup_at && new Date(l.next_followup_at) <= now
-      ).length,
-    })
-    setLoading(false)
-  }, [search])
-
-  useEffect(() => { fetchLeads() }, [fetchLeads])
+  useEffect(() => {
+    const timer = setTimeout(() => fetchLeads(search), search ? 400 : 0)
+    return () => clearTimeout(timer)
+  }, [search, fetchLeads])
 
   async function updateStage(leadId: string, stage: string) {
     await fetch(`/api/v1/crm/leads/${leadId}/stage`, {

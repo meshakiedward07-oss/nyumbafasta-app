@@ -62,29 +62,25 @@ export async function PUT(
     return NextResponse.json({ error: 'Staff mwanachama haupatikani' }, { status: 404 })
   }
 
-  const { error: deleteError } = await admin
-    .from('staff_permissions')
-    .delete()
-    .eq('staff_id', params.id)
-
-  if (deleteError) {
-    return NextResponse.json({ error: 'Imeshindwa kufuta ruhusa za zamani' }, { status: 500 })
-  }
-
   if (body.permissions.length > 0) {
-    const { error: insertError } = await admin.from('staff_permissions').insert(
-      body.permissions.map(key => ({
-        staff_id:       params.id,
-        permission_key: key,
-      }))
+    // Atomic: upsert new set first (safe — no change if this fails)
+    const { error: upsertError } = await admin.from('staff_permissions').upsert(
+      body.permissions.map(key => ({ staff_id: params.id, permission_key: key })),
+      { onConflict: 'staff_id,permission_key', ignoreDuplicates: true }
     )
-    if (insertError) {
-      console.error('[Permissions] Insert failed after delete:', insertError.message)
-      return NextResponse.json(
-        { error: 'Ruhusa zilifutwa lakini kuongeza kulishindwa — wasiliana na msimamizi' },
-        { status: 500 }
-      )
+    if (upsertError) {
+      return NextResponse.json({ error: 'Imeshindwa kusasisha ruhusa' }, { status: 500 })
     }
+    // Then delete permissions no longer in the set (non-fatal if this fails)
+    const { error: deleteError } = await admin.from('staff_permissions')
+      .delete()
+      .eq('staff_id', params.id)
+      .not('permission_key', 'in', `(${body.permissions.join(',')})`)
+    if (deleteError) {
+      console.error('[Permissions] Cleanup delete failed (non-fatal):', deleteError.message)
+    }
+  } else {
+    await admin.from('staff_permissions').delete().eq('staff_id', params.id)
   }
 
   return NextResponse.json({ success: true, message: 'Ruhusa zimesasishwa' })
@@ -163,28 +159,20 @@ export async function POST(
     return NextResponse.json({ error: 'Staff mwanachama haupatikani' }, { status: 404 })
   }
 
-  const { error: deleteError } = await admin
-    .from('staff_permissions')
+  // Atomic: upsert template permissions first, then prune extras
+  const { error: upsertError } = await admin.from('staff_permissions').upsert(
+    template.permissions.map(key => ({ staff_id: params.id, permission_key: key })),
+    { onConflict: 'staff_id,permission_key', ignoreDuplicates: true }
+  )
+  if (upsertError) {
+    return NextResponse.json({ error: 'Imeshindwa kuweka ruhusa za template' }, { status: 500 })
+  }
+  const { error: deleteError } = await admin.from('staff_permissions')
     .delete()
     .eq('staff_id', params.id)
-
+    .not('permission_key', 'in', `(${template.permissions.join(',')})`)
   if (deleteError) {
-    return NextResponse.json({ error: 'Imeshindwa kufuta ruhusa za zamani' }, { status: 500 })
-  }
-
-  const { error: insertError } = await admin.from('staff_permissions').insert(
-    template.permissions.map(key => ({
-      staff_id:       params.id,
-      permission_key: key,
-    }))
-  )
-
-  if (insertError) {
-    console.error('[Permissions] Template insert failed after delete:', insertError.message)
-    return NextResponse.json(
-      { error: 'Ruhusa zilifutwa lakini template haikuwekwa — wasiliana na msimamizi' },
-      { status: 500 }
-    )
+    console.error('[Permissions] Template cleanup failed (non-fatal):', deleteError.message)
   }
 
   const { error: updateError } = await admin

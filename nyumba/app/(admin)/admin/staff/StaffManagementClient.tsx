@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import PermissionManagerModal from '@/components/admin/PermissionManagerModal'
 import { STAFF_PERMISSIONS } from '@/lib/staff/permissions'
 import type { PermissionKey } from '@/lib/staff/permissions'
@@ -64,6 +64,7 @@ export default function StaffManagementClient() {
   const [statusFilter, setStatusFilter] = useState<'all'|'active'|'inactive'>('all')
   const [toast, setToast]           = useState<{msg: string; ok: boolean} | null>(null)
 
+  const [togglingId, setTogglingId] = useState<string | null>(null)
   const [showAdd, setShowAdd]             = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<StaffMember | null>(null)
   const [editMember, setEditMember]       = useState<StaffMember | null>(null)
@@ -71,6 +72,7 @@ export default function StaffManagementClient() {
   const [activityStaff,    setActivityStaff]    = useState<StaffMember | null>(null)
   const [performanceStaff, setPerformanceStaff] = useState<StaffMember | null>(null)
   const [assigningTask,    setAssigningTask]    = useState<StaffMember | null>(null)
+  const [legalStaff,       setLegalStaff]       = useState<StaffMember | null>(null)
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok })
@@ -106,12 +108,17 @@ export default function StaffManagementClient() {
   }, [staff, search, statusFilter])
 
   async function toggleActive(member: StaffMember) {
-    await fetch(`/api/v1/admin/staff/${member.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ staffActive: !member.staff_active }),
-    })
-    loadStaff()
+    setTogglingId(member.id)
+    try {
+      const res = await fetch(`/api/v1/admin/staff/${member.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffActive: !member.staff_active }),
+      })
+      if (!res.ok) { showToast('Imeshindwa kubadilisha hali ya akaunti', false); return }
+      await loadStaff()
+    } catch { showToast('Hitilafu imetokea', false) }
+    finally { setTogglingId(null) }
   }
 
   // Optimistic add/remove single permission — updates local state instantly
@@ -140,10 +147,14 @@ export default function StaffManagementClient() {
   }
 
   async function deleteMember(member: StaffMember) {
-    await fetch(`/api/v1/admin/staff/${member.id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/v1/admin/staff/${member.id}`, { method: 'DELETE' })
     setConfirmDelete(null)
-    loadStaff()
-    showToast(`${member.full_name} amefutwa`)
+    if (res.ok) {
+      await loadStaff()
+      showToast(`${member.full_name} amefutwa`)
+    } else {
+      showToast('Imeshindwa kufuta akaunti', false)
+    }
   }
 
   const activeCount    = staff.filter(s => s.staff_active).length
@@ -370,6 +381,12 @@ export default function StaffManagementClient() {
                         <i className="ti ti-clipboard-plus" aria-hidden="true" /> Gawa Kazi
                       </button>
                       <button
+                        onClick={() => setLegalStaff(s)}
+                        className="bg-violet-50 text-violet-700 text-xs py-2 rounded-xl font-medium border border-violet-100 col-span-2 flex items-center justify-center gap-1.5"
+                      >
+                        <i className="ti ti-license" aria-hidden="true" /> Kisheria na Mishahara
+                      </button>
+                      <button
                         onClick={() => setManagingPerms(s)}
                         className="bg-blue-50 text-blue-700 text-xs py-2 rounded-xl font-medium border border-blue-100 flex items-center justify-center gap-1"
                       >
@@ -389,15 +406,18 @@ export default function StaffManagementClient() {
                       </button>
                       <button
                         onClick={() => toggleActive(s)}
-                        className={`text-xs py-2 rounded-xl font-medium flex items-center justify-center gap-1 ${
+                        disabled={togglingId === s.id}
+                        className={`text-xs py-2 rounded-xl font-medium flex items-center justify-center gap-1 disabled:opacity-40 ${
                           s.staff_active
                             ? 'bg-orange-50 text-orange-600 border border-orange-200'
                             : 'bg-green-50 text-green-600 border border-green-200'
                         }`}
                       >
-                        {s.staff_active
-                          ? <><i className="ti ti-player-pause" aria-hidden="true" /> Zimwa</>
-                          : <><i className="ti ti-player-play" aria-hidden="true" /> Washa</>
+                        {togglingId === s.id
+                          ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> ...</>
+                          : s.staff_active
+                            ? <><i className="ti ti-player-pause" aria-hidden="true" /> Zimwa</>
+                            : <><i className="ti ti-player-play" aria-hidden="true" /> Washa</>
                         }
                       </button>
                     </div>
@@ -433,7 +453,7 @@ export default function StaffManagementClient() {
         <PermissionManagerModal
           staff={managingPerms}
           onClose={() => setManagingPerms(null)}
-          onSaved={() => setManagingPerms(null)}
+          onSaved={() => { setManagingPerms(null); loadStaff() }}
         />
       )}
       {activityStaff && (
@@ -447,6 +467,13 @@ export default function StaffManagementClient() {
           staff={assigningTask}
           onClose={() => setAssigningTask(null)}
           onSaved={(msg) => { setAssigningTask(null); showToast(msg) }}
+        />
+      )}
+      {legalStaff && (
+        <StaffLegalModal
+          staff={legalStaff}
+          onClose={() => setLegalStaff(null)}
+          showToast={showToast}
         />
       )}
       {confirmDelete && (
@@ -843,11 +870,13 @@ function DalaliActivityView() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const qs = riskFilter !== 'all' ? `?risk=${riskFilter}` : ''
-    const res = await fetch(`/api/v1/admin/dalali/activity${qs}`)
-    const data = await res.json()
-    setRows(data.dalali ?? [])
-    setLoading(false)
+    try {
+      const qs = riskFilter !== 'all' ? `?risk=${riskFilter}` : ''
+      const res = await fetch(`/api/v1/admin/dalali/activity${qs}`)
+      const data = await res.json()
+      setRows(data.dalali ?? [])
+    } catch { /* silent */ }
+    finally { setLoading(false) }
   }, [riskFilter])
 
   useEffect(() => { load() }, [load])
@@ -1519,6 +1548,618 @@ function AssignTaskModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Staff Legal & Payroll Modal ─────────────────────────────────────────────
+
+type LegalInfo = {
+  nida_number: string | null
+  date_of_birth: string | null
+  nationality: string | null
+  marital_status: string | null
+  tin_number: string | null
+  nssf_number: string | null
+  nhif_number: string | null
+  emergency_contact_name: string | null
+  emergency_contact_phone: string | null
+  emergency_contact_relation: string | null
+  bank_name: string | null
+  bank_account_number: string | null
+  bank_branch: string | null
+  mobile_money_network: string | null
+  mobile_money_number: string | null
+  verification_status: string
+  verified_at: string | null
+  rejection_reason: string | null
+  admin_notes: string | null
+}
+
+type StaffDoc = {
+  id: string
+  document_type: string
+  document_name: string
+  document_url: string
+  file_type: string | null
+  file_size_kb: number | null
+  is_verified: boolean
+  uploaded_at: string
+}
+
+type Payroll = {
+  basic_salary: number
+  house_allowance: number
+  transport_allowance: number
+  meal_allowance: number
+  phone_allowance: number
+  other_allowances: number
+  other_allowances_notes: string | null
+  nssf_employee: number
+  nhif_employee: number
+  paye_tax: number
+  other_deductions: number
+  other_deductions_notes: string | null
+  effective_from: string
+  payment_method: string
+  notes: string | null
+}
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  nida_copy:        'Nakala ya NIDA',
+  cv:               'CV / Resume',
+  degree:           'Cheti cha Shahada/Diploma',
+  secondary_cert:   'Cheti cha CSEE',
+  good_conduct:     'Cheti cha Mwenendo Mzuri',
+  recommendation:   'Barua ya Kupendekeza',
+  professional_cert:'Cheti cha Kitaalamu',
+  other:            'Nyingine',
+}
+
+const MARITAL_LABELS: Record<string, string> = {
+  single: 'Mwenye Biko', married: 'Mwenye Ndoa', divorced: 'Aliyeachana', widowed: 'Mjane/Mgane',
+}
+
+function calcPAYE(grossMonthly: number): number {
+  if (grossMonthly <= 270000) return 0
+  if (grossMonthly <= 520000) return (grossMonthly - 270000) * 0.09
+  if (grossMonthly <= 760000) return 22500 + (grossMonthly - 520000) * 0.20
+  if (grossMonthly <= 1000000) return 70500 + (grossMonthly - 760000) * 0.25
+  return 130500 + (grossMonthly - 1000000) * 0.30
+}
+
+function fmtTZS(n: number) {
+  return new Intl.NumberFormat('sw-TZ').format(Math.round(n)) + ' TZS'
+}
+
+function InfoRow({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div>
+      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">{label}</p>
+      <p className="text-sm text-gray-800 font-medium mt-0.5">{value || <span className="text-gray-300 italic">Haijajazwa</span>}</p>
+    </div>
+  )
+}
+
+function StaffLegalModal({
+  staff,
+  onClose,
+  showToast,
+}: {
+  staff: StaffMember
+  onClose: () => void
+  showToast: (msg: string, ok?: boolean) => void
+}) {
+  const [modalTab,     setModalTab]     = useState<'legal' | 'payroll'>('legal')
+  const [loading,      setLoading]      = useState(true)
+  const [actionLoading,setActionLoading]= useState<string | null>(null)
+  const [legalInfo,    setLegalInfo]    = useState<LegalInfo | null>(null)
+  const [documents,    setDocuments]    = useState<StaffDoc[]>([])
+  const [rejectReason, setRejectReason] = useState('')
+  const [showReject,   setShowReject]   = useState(false)
+  const [adminNotes,   setAdminNotes]   = useState('')
+
+  // Payroll form
+  const [payroll, setPayroll] = useState<Payroll>({
+    basic_salary: 0, house_allowance: 0, transport_allowance: 0,
+    meal_allowance: 0, phone_allowance: 0, other_allowances: 0,
+    other_allowances_notes: '', nssf_employee: 0, nhif_employee: 0,
+    paye_tax: 0, other_deductions: 0, other_deductions_notes: '',
+    effective_from: new Date().toISOString().split('T')[0],
+    payment_method: 'bank', notes: '',
+  })
+  const [savingPayroll, setSavingPayroll] = useState(false)
+  const payrollRef = useRef<Payroll>(payroll)
+  useEffect(() => { payrollRef.current = payroll }, [payroll])
+
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res  = await fetch(`/api/v1/admin/staff/${staff.id}/legal`)
+      const data = await res.json()
+      setLegalInfo(data.legalInfo ?? null)
+      setDocuments(data.documents ?? [])
+      if (data.payroll) {
+        setPayroll({
+          basic_salary:             data.payroll.basic_salary             ?? 0,
+          house_allowance:          data.payroll.house_allowance          ?? 0,
+          transport_allowance:      data.payroll.transport_allowance      ?? 0,
+          meal_allowance:           data.payroll.meal_allowance           ?? 0,
+          phone_allowance:          data.payroll.phone_allowance          ?? 0,
+          other_allowances:         data.payroll.other_allowances         ?? 0,
+          other_allowances_notes:   data.payroll.other_allowances_notes   ?? '',
+          nssf_employee:            data.payroll.nssf_employee            ?? 0,
+          nhif_employee:            data.payroll.nhif_employee            ?? 0,
+          paye_tax:                 data.payroll.paye_tax                 ?? 0,
+          other_deductions:         data.payroll.other_deductions         ?? 0,
+          other_deductions_notes:   data.payroll.other_deductions_notes   ?? '',
+          effective_from:           data.payroll.effective_from           ?? new Date().toISOString().split('T')[0],
+          payment_method:           data.payroll.payment_method           ?? 'bank',
+          notes:                    data.payroll.notes                    ?? '',
+        })
+      }
+    } catch { /* silent */ }
+    finally { setLoading(false) }
+  }, [staff.id])
+
+  useEffect(() => { loadData() }, [loadData])
+
+  async function doLegalAction(action: string, extra?: Record<string, unknown>) {
+    setActionLoading(action)
+    try {
+      const res  = await fetch(`/api/v1/admin/staff/${staff.id}/legal`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, adminNotes: adminNotes || undefined, ...extra }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Hitilafu')
+      showToast(json.message ?? 'Imefanikiwa')
+      await loadData()
+      setShowReject(false)
+      setRejectReason('')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Hitilafu imetokea', false)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function savePayroll(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingPayroll(true)
+    try {
+      const res  = await fetch(`/api/v1/admin/staff/${staff.id}/payroll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payrollRef.current),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Hitilafu')
+      showToast(`Mshahara wa ${staff.full_name} umehifadhiwa`)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Hitilafu imetokea', false)
+    } finally {
+      setSavingPayroll(false)
+    }
+  }
+
+  function autoCalc() {
+    const p = payrollRef.current
+    const basic = p.basic_salary
+    const gross = basic + p.house_allowance + p.transport_allowance +
+                  p.meal_allowance + p.phone_allowance + p.other_allowances
+    const nssf  = Math.round(basic * 0.10)
+    const nhif  = Math.round(gross * 0.04)
+    const paye  = Math.round(calcPAYE(gross))
+    setPayroll(prev => ({ ...prev, nssf_employee: nssf, nhif_employee: nhif, paye_tax: paye }))
+    showToast('Makato yamehesabiwa kiotomatiki')
+  }
+
+  const verStatus = legalInfo?.verification_status ?? 'none'
+  const gross = payroll.basic_salary + payroll.house_allowance + payroll.transport_allowance +
+                payroll.meal_allowance + payroll.phone_allowance + payroll.other_allowances
+  const totalDed = payroll.nssf_employee + payroll.nhif_employee + payroll.paye_tax + payroll.other_deductions
+  const netSalary = gross - totalDed
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-2xl max-h-[92vh] flex flex-col shadow-2xl">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center font-bold text-violet-600 flex-shrink-0">
+              {staff.full_name.charAt(0)}
+            </div>
+            <div>
+              <h2 className="font-bold text-gray-900 text-base leading-tight">{staff.full_name}</h2>
+              <p className="text-xs text-gray-400">{staff.staff_title ?? 'Mfanyakazi'}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">
+            <i className="ti ti-x text-sm" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="px-5 pt-3 pb-0 flex gap-2 flex-shrink-0">
+          {([
+            { key: 'legal' as const,   label: 'Taarifa za Kisheria', icon: 'license' },
+            { key: 'payroll' as const, label: 'Mishahara',           icon: 'coin' },
+          ]).map(t => (
+            <button key={t.key} onClick={() => setModalTab(t.key)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                modalTab === t.key ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}>
+              <i className={`ti ti-${t.icon}`} aria-hidden="true" /> {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-2xl" />
+            ))
+          ) : modalTab === 'legal' ? (
+            <>
+              {/* Verification status banner */}
+              {!legalInfo ? (
+                <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  <i className="ti ti-file-off text-4xl text-gray-300 block mb-3" aria-hidden="true" />
+                  <p className="text-sm font-semibold text-gray-500">Mfanyakazi hajajaza taarifa bado</p>
+                  <p className="text-xs text-gray-400 mt-1">Atajaza kwenye dashibodi yake chini ya "Taarifa Zangu"</p>
+                </div>
+              ) : (
+                <>
+                  {/* Status & verify actions */}
+                  <div className={`rounded-2xl p-4 flex items-start justify-between gap-3 ${
+                    verStatus === 'verified' ? 'bg-green-50 border border-green-200' :
+                    verStatus === 'rejected' ? 'bg-red-50 border border-red-200' :
+                    'bg-amber-50 border border-amber-200'
+                  }`}>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <i className={`ti text-sm ${
+                          verStatus === 'verified' ? 'ti-circle-check text-green-600' :
+                          verStatus === 'rejected' ? 'ti-circle-x text-red-500' :
+                          'ti-clock text-amber-500'
+                        }`} aria-hidden="true" />
+                        <p className={`font-bold text-sm ${
+                          verStatus === 'verified' ? 'text-green-800' :
+                          verStatus === 'rejected' ? 'text-red-700' : 'text-amber-700'
+                        }`}>
+                          {verStatus === 'verified' ? 'Taarifa Zimethihibitiwa' :
+                           verStatus === 'rejected' ? 'Taarifa Zimekataliwa' :
+                           'Zinasubiri Ukaguzi'}
+                        </p>
+                      </div>
+                      {legalInfo.rejection_reason && (
+                        <p className="text-xs text-red-600 mt-1">{legalInfo.rejection_reason}</p>
+                      )}
+                      {legalInfo.verified_at && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(legalInfo.verified_at).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      )}
+                    </div>
+                    {verStatus !== 'verified' && (
+                      <button
+                        onClick={() => doLegalAction('verify_info')}
+                        disabled={!!actionLoading}
+                        className="flex-shrink-0 bg-green-600 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 disabled:opacity-40"
+                      >
+                        {actionLoading === 'verify_info'
+                          ? <i className="ti ti-loader-2 animate-spin" />
+                          : <i className="ti ti-circle-check" />
+                        }
+                        Thibitisha
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Admin notes */}
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">Maelezo ya Admin (si lazima)</label>
+                    <textarea
+                      value={adminNotes}
+                      onChange={e => setAdminNotes(e.target.value)}
+                      placeholder="Maelezo ya ndani kwa timu..."
+                      rows={2}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                    />
+                  </div>
+
+                  {/* Personal info */}
+                  <div className="bg-gray-50 rounded-2xl p-4">
+                    <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-3">Taarifa Binafsi</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                      <InfoRow label="NIDA" value={legalInfo.nida_number} />
+                      <InfoRow label="Tarehe ya Kuzaliwa" value={legalInfo.date_of_birth
+                        ? new Date(legalInfo.date_of_birth).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
+                        : null
+                      } />
+                      <InfoRow label="Hali ya Ndoa" value={legalInfo.marital_status ? (MARITAL_LABELS[legalInfo.marital_status] ?? legalInfo.marital_status) : null} />
+                      <InfoRow label="Uraia" value={legalInfo.nationality} />
+                    </div>
+                  </div>
+
+                  {/* Social security */}
+                  <div className="bg-blue-50 rounded-2xl p-4">
+                    <p className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-3">Usalama wa Jamii na Kodi</p>
+                    <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+                      <InfoRow label="NSSF" value={legalInfo.nssf_number} />
+                      <InfoRow label="NHIF" value={legalInfo.nhif_number} />
+                      <InfoRow label="TIN (TRA)" value={legalInfo.tin_number} />
+                    </div>
+                  </div>
+
+                  {/* Banking */}
+                  <div className="bg-green-50 rounded-2xl p-4">
+                    <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-3">Benki na Malipo</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                      <InfoRow label="Benki" value={legalInfo.bank_name} />
+                      <InfoRow label="Nambari ya Akaunti" value={legalInfo.bank_account_number} />
+                      <InfoRow label="Tawi" value={legalInfo.bank_branch} />
+                      <InfoRow label="Pesa ya Simu" value={
+                        legalInfo.mobile_money_network
+                          ? `${legalInfo.mobile_money_network} — ${legalInfo.mobile_money_number ?? ''}`
+                          : null
+                      } />
+                    </div>
+                  </div>
+
+                  {/* Emergency contact */}
+                  <div className="bg-red-50 rounded-2xl p-4">
+                    <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-3">Mtu wa Dharura</p>
+                    <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+                      <InfoRow label="Jina" value={legalInfo.emergency_contact_name} />
+                      <InfoRow label="Simu" value={legalInfo.emergency_contact_phone} />
+                      <InfoRow label="Uhusiano" value={legalInfo.emergency_contact_relation} />
+                    </div>
+                  </div>
+
+                  {/* Documents */}
+                  <div>
+                    <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Nyaraka ({documents.length})</p>
+                    {documents.length === 0 ? (
+                      <p className="text-xs text-gray-400 text-center py-4">Hajapakia nyaraka bado</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {documents.map(doc => (
+                          <div key={doc.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white">
+                            <i className={`ti ti-file-${doc.file_type === 'pdf' ? 'text' : 'photo'} text-gray-400 text-lg flex-shrink-0`} aria-hidden="true" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-800 truncate">
+                                {DOC_TYPE_LABELS[doc.document_type] ?? doc.document_type}
+                              </p>
+                              <p className="text-[10px] text-gray-400">{doc.file_size_kb}KB · {new Date(doc.uploaded_at).toLocaleDateString('sw-TZ')}</p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {doc.is_verified ? (
+                                <span className="text-[10px] text-green-600 font-bold flex items-center gap-0.5">
+                                  <i className="ti ti-circle-check" /> Imethibitiwa
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => doLegalAction('verify_doc', { docId: doc.id })}
+                                  disabled={!!actionLoading}
+                                  className="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-1 rounded-lg flex items-center gap-0.5 disabled:opacity-40"
+                                >
+                                  {actionLoading === 'verify_doc' ? <i className="ti ti-loader-2 animate-spin" /> : <i className="ti ti-check" />}
+                                  Thibitisha
+                                </button>
+                              )}
+                              <a href={doc.document_url} target="_blank" rel="noopener noreferrer"
+                                className="text-[10px] text-blue-600 font-medium">
+                                Angalia
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Reject section */}
+                  {verStatus !== 'rejected' && (
+                    <div>
+                      {!showReject ? (
+                        <button
+                          onClick={() => setShowReject(true)}
+                          className="w-full text-xs text-red-400 hover:text-red-600 border border-dashed border-red-200 hover:border-red-400 rounded-xl px-3 py-2 transition-colors"
+                        >
+                          <i className="ti ti-circle-x" aria-hidden="true" /> Kataa Taarifa
+                        </button>
+                      ) : (
+                        <div className="border border-red-200 rounded-2xl p-4 bg-red-50">
+                          <p className="text-xs font-bold text-red-700 mb-2">Sababu ya Kukataa</p>
+                          <textarea
+                            value={rejectReason}
+                            onChange={e => setRejectReason(e.target.value)}
+                            placeholder="Eleza sababu ya kukataa (itatumwa kwa mfanyakazi)..."
+                            rows={3}
+                            className="w-full border border-red-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-300 bg-white"
+                          />
+                          <div className="flex gap-2 mt-2">
+                            <button onClick={() => setShowReject(false)}
+                              className="flex-1 border border-gray-200 py-2 rounded-xl text-xs font-medium text-gray-600">
+                              Ghairi
+                            </button>
+                            <button
+                              onClick={() => doLegalAction('reject_info', { rejectionReason: rejectReason })}
+                              disabled={!!actionLoading}
+                              className="flex-1 bg-red-500 text-white py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-40"
+                            >
+                              {actionLoading === 'reject_info'
+                                ? <i className="ti ti-loader-2 animate-spin" />
+                                : <i className="ti ti-circle-x" />
+                              }
+                              Kataa
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            /* ── PAYROLL TAB ───────────────────────────────── */
+            <form onSubmit={savePayroll} className="space-y-4">
+
+              {/* Auto-calc banner */}
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-blue-800">Hesabu Kiotomatiki (TRA)</p>
+                  <p className="text-[11px] text-blue-600 mt-0.5">Weka mshahara wa msingi na posho, kisha bonyeza ili TRA mahesabu yafanyike</p>
+                </div>
+                <button type="button" onClick={autoCalc}
+                  className="flex-shrink-0 bg-blue-600 text-white text-xs font-bold px-3 py-2 rounded-xl">
+                  <i className="ti ti-calculator" aria-hidden="true" /> Hesabu
+                </button>
+              </div>
+
+              {/* Basic + allowances */}
+              <div className="bg-primary-50 rounded-2xl p-4">
+                <p className="text-xs font-bold text-primary-700 uppercase tracking-wider mb-3">Mapato (TZS/mwezi)</p>
+                <div className="space-y-2.5">
+                  {([
+                    { key: 'basic_salary',        label: 'Mshahara wa Msingi *' },
+                    { key: 'house_allowance',     label: 'Posho ya Nyumba' },
+                    { key: 'transport_allowance', label: 'Posho ya Usafiri' },
+                    { key: 'meal_allowance',      label: 'Posho ya Chakula' },
+                    { key: 'phone_allowance',     label: 'Posho ya Simu' },
+                    { key: 'other_allowances',    label: 'Posho Nyingine' },
+                  ] as { key: keyof Payroll; label: string }[]).map(f => (
+                    <div key={f.key} className="flex items-center gap-3">
+                      <label className="text-xs text-primary-800 w-36 flex-shrink-0">{f.label}</label>
+                      <input
+                        type="number" min={0}
+                        value={payroll[f.key] as number || ''}
+                        onChange={e => setPayroll(p => ({ ...p, [f.key]: Number(e.target.value) || 0 }))}
+                        placeholder="0"
+                        className="flex-1 border border-primary-200 rounded-xl px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary-500/30 bg-white tabular-nums"
+                      />
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-primary-800 w-36 flex-shrink-0">Maelezo ya Posho</label>
+                    <input
+                      value={payroll.other_allowances_notes ?? ''}
+                      onChange={e => setPayroll(p => ({ ...p, other_allowances_notes: e.target.value }))}
+                      placeholder="e.g. Posho ya kujikimu"
+                      className="flex-1 border border-primary-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 bg-white"
+                    />
+                  </div>
+                  <div className="border-t border-primary-200 pt-2.5 flex justify-between items-center">
+                    <span className="text-xs font-bold text-primary-800">Jumla ya Mapato</span>
+                    <span className="text-sm font-bold text-primary-700 tabular-nums">{fmtTZS(gross)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Deductions */}
+              <div className="bg-red-50 rounded-2xl p-4">
+                <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-3">Makato (TZS/mwezi)</p>
+                <div className="space-y-2.5">
+                  {([
+                    { key: 'nssf_employee', label: 'NSSF (10% ya Basic)' },
+                    { key: 'nhif_employee', label: 'NHIF (4% ya Gross)' },
+                    { key: 'paye_tax',      label: 'Kodi ya PAYE (TRA)' },
+                    { key: 'other_deductions', label: 'Makato Mengine' },
+                  ] as { key: keyof Payroll; label: string }[]).map(f => (
+                    <div key={f.key} className="flex items-center gap-3">
+                      <label className="text-xs text-red-800 w-36 flex-shrink-0">{f.label}</label>
+                      <input
+                        type="number" min={0}
+                        value={payroll[f.key] as number || ''}
+                        onChange={e => setPayroll(p => ({ ...p, [f.key]: Number(e.target.value) || 0 }))}
+                        placeholder="0"
+                        className="flex-1 border border-red-200 rounded-xl px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-red-300 bg-white tabular-nums"
+                      />
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-red-800 w-36 flex-shrink-0">Maelezo ya Makato</label>
+                    <input
+                      value={payroll.other_deductions_notes ?? ''}
+                      onChange={e => setPayroll(p => ({ ...p, other_deductions_notes: e.target.value }))}
+                      placeholder="e.g. Mkopo wa benki"
+                      className="flex-1 border border-red-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 bg-white"
+                    />
+                  </div>
+                  <div className="border-t border-red-200 pt-2.5 flex justify-between items-center">
+                    <span className="text-xs font-bold text-red-800">Jumla ya Makato</span>
+                    <span className="text-sm font-bold text-red-700 tabular-nums">- {fmtTZS(totalDed)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Net salary preview */}
+              <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-4 text-white flex items-center justify-between">
+                <div>
+                  <p className="text-primary-200 text-xs font-medium">Mshahara Halisi (Take-Home)</p>
+                  <p className="text-2xl font-bold mt-0.5 tabular-nums">{fmtTZS(netSalary)}</p>
+                </div>
+                <i className="ti ti-wallet text-4xl text-white/30" aria-hidden="true" />
+              </div>
+
+              {/* Payment method & effective date */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Njia ya Malipo</label>
+                  <select
+                    value={payroll.payment_method}
+                    onChange={e => setPayroll(p => ({ ...p, payment_method: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                  >
+                    <option value="bank">Benki</option>
+                    <option value="mobile_money">Pesa ya Simu</option>
+                    <option value="cash">Taslimu</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Tarehe ya Kuanza</label>
+                  <input
+                    type="date"
+                    value={payroll.effective_from}
+                    onChange={e => setPayroll(p => ({ ...p, effective_from: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Maelezo (si lazima)</label>
+                <textarea
+                  value={payroll.notes ?? ''}
+                  onChange={e => setPayroll(p => ({ ...p, notes: e.target.value }))}
+                  placeholder="Maelezo ya ziada kuhusu mshahara..."
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingPayroll}
+                className="w-full bg-primary-500 text-white py-3.5 rounded-2xl font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                {savingPayroll
+                  ? <><i className="ti ti-loader-2 animate-spin" /> Inahifadhi...</>
+                  : <><i className="ti ti-device-floppy" /> Hifadhi Mshahara</>
+                }
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   )

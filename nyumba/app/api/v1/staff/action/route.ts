@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
     const { error } = await admin
       .from('users')
       .update({ is_active: false, account_status: 'suspended' })
-      .eq('id', id).neq('role', 'admin')
+      .eq('id', id).neq('role', 'admin').neq('role', 'staff')
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     await logStaffActivity({ staffId: user.id, actionType: 'deactivate_user', resourceType: 'user', resourceId: id, description: `Ulizima akaunti ya mtumiaji #${id.slice(0, 8)}` })
     return NextResponse.json({ ok: true, message: 'Akaunti imezimwa' })
@@ -180,11 +180,6 @@ export async function POST(req: NextRequest) {
     if (!isAdmin && !await hasPermission(user.id, 'manage_verifications')) {
       return NextResponse.json({ error: 'Huna ruhusa ya kuthibitisha madalali' }, { status: 403 })
     }
-    const { error } = await admin
-      .from('dalali_profiles')
-      .update({ nida_number: null, business_license_url: null })
-      .eq('id', id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     await admin.from('notifications').insert({
       user_id: id,
       title: '❌ Uthibitisho Ulikataliwa',

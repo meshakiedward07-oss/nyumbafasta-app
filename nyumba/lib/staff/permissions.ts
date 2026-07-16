@@ -170,5 +170,4 @@ export const ROUTE_PERMISSION_MAP: Record<string, PermissionKey> = {
   '/admin/legal':           'legal_violations',
   '/admin/leads':           'lead_scraper',
   '/admin/crm/analytics':   'listing_analytics',
-  '/admin/staff-dashboard': 'approve_listings', // dashboard itself requires at least one admin task perm
 }

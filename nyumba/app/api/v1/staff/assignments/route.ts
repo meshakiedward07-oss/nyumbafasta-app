@@ -67,6 +67,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'staff_id na title vinahitajika' }, { status: 400 })
   }
 
+  const { data: targetUser } = await admin.from('users').select('role').eq('id', body.staff_id).single()
+  if (!targetUser || targetUser.role !== 'staff') {
+    return NextResponse.json({ error: 'Mpokeaji lazima awe mfanyakazi aliyesajiliwa' }, { status: 400 })
+  }
+
   const { data, error } = await admin.from('staff_assignments').insert({
     staff_id:    body.staff_id,
     assigned_by: user.id,
@@ -110,7 +115,9 @@ export async function PATCH(req: NextRequest) {
   try { body = await req.json() }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
 
-  const validStatuses = ['pending', 'in_progress', 'completed', 'cancelled']
+  const staffStatuses  = ['pending', 'in_progress', 'completed']
+  const adminStatuses  = ['pending', 'in_progress', 'completed', 'cancelled']
+  const validStatuses  = profile?.role === 'admin' ? adminStatuses : staffStatuses
   if (!body.id || !validStatuses.includes(body.status)) {
     return NextResponse.json({ error: 'id na status sahihi vinahitajika' }, { status: 400 })
   }
