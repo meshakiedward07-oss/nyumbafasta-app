@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { STAFF_PERMISSIONS } from '@/lib/staff/permissions'
+import { STAFF_PERMISSIONS, ADMIN_TASK_PERMISSIONS } from '@/lib/staff/permissions'
 import type { PermissionKey } from '@/lib/staff/permissions'
 import { PlatformLogo } from '@/components/shared/PlatformLogo'
 
@@ -144,7 +144,7 @@ function StaffSidebar({
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 py-5 border-b border-gray-100">
-        <Link href="/admin/staff-leads" onClick={onLinkClick}>
+        <Link href="/admin/staff-dashboard" onClick={onLinkClick}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-sm">NF</span>
@@ -169,25 +169,46 @@ function StaffSidebar({
             Huna ruhusa bado. Wasiliana na admin.
           </p>
         ) : (
-          granted.map(key => {
-            const perm = STAFF_PERMISSIONS[key]
-            if (!perm) return null
-            return (
-              <Link key={key} href={perm.adminPath} onClick={onLinkClick}>
+          <>
+            {/* Staff Dashboard — shown once if any admin-task permission is granted */}
+            {granted.some(k => ADMIN_TASK_PERMISSIONS.includes(k)) && (
+              <Link href="/admin/staff-dashboard" onClick={onLinkClick}>
                 <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
-                  isActive(perm.adminPath)
+                  isActive('/admin/staff-dashboard')
                     ? 'bg-primary-500 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}>
-<i className={`ti ti-${perm.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
-                  <span>{perm.label}</span>
-                  {isActive(perm.adminPath) && (
+                  <i className="ti ti-layout-dashboard text-base w-5 text-center flex-shrink-0" aria-hidden="true" />
+                  <span>Dashboard Yangu</span>
+                  {isActive('/admin/staff-dashboard') && (
                     <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
                   )}
                 </div>
               </Link>
-            )
-          })
+            )}
+            {/* Individual non-admin-task permissions */}
+            {granted
+              .filter(k => !ADMIN_TASK_PERMISSIONS.includes(k))
+              .map(key => {
+                const perm = STAFF_PERMISSIONS[key]
+                if (!perm) return null
+                return (
+                  <Link key={key} href={perm.adminPath} onClick={onLinkClick}>
+                    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
+                      isActive(perm.adminPath)
+                        ? 'bg-primary-500 text-white'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}>
+                      <i className={`ti ti-${perm.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
+                      <span>{perm.label}</span>
+                      {isActive(perm.adminPath) && (
+                        <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
+                      )}
+                    </div>
+                  </Link>
+                )
+              })}
+          </>
         )}
       </nav>
       <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-0.5">

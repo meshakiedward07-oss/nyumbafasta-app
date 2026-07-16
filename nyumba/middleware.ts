@@ -82,7 +82,7 @@ export async function middleware(request: NextRequest) {
       .single()
     const url = request.nextUrl.clone()
     url.pathname = me?.role === 'admin'  ? '/admin'
-      : me?.role === 'staff'  ? '/admin/staff-leads'
+      : me?.role === 'staff'  ? '/admin/staff-dashboard'
       : me?.role === 'dalali' ? '/dashboard'
       : '/'
     return NextResponse.redirect(url)
