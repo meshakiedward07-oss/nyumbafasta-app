@@ -203,14 +203,14 @@ const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
         )}
 
         {/* Image area */}
-        <div className="relative h-44 overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="relative aspect-[4/3] overflow-hidden bg-gray-900">
           {listing.images?.length > 0 && !imgError ? (
             <>
               <Image
                 fill
                 src={listing.images[0]}
                 alt={listing.title ?? `${typeStyle.label} – ${listing.district}`}
-                className="object-cover"
+                className="object-contain"
                 onError={() => setImgError(true)}
                 sizes="(max-width: 640px) 100vw, 50vw"
                 priority={priority}

@@ -85,9 +85,9 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                     </div>
                   )}
                   <Link href={`/listings/${listing.id}`} className={`block ${listing.status === 'taken' ? 'opacity-60' : ''}`}>
-                    <div className="relative h-40 bg-gray-100">
+                    <div className="relative aspect-[4/3] bg-gray-900">
                       {listing.images?.[0] ? (
-                        <Image fill src={listing.images[0]} alt="" className="object-cover" sizes="100vw" />
+                        <Image fill src={listing.images[0]} alt="" className="object-contain" sizes="100vw" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-300 text-4xl"><i className="ti ti-home" aria-hidden="true" /></div>
                       )}

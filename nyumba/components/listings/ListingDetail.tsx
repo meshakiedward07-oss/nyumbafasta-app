@@ -199,8 +199,9 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
       </div>
 
       {/* ── Image gallery ── */}
+      {/* bg-gray-950 + object-contain so portrait & landscape photos show fully without cropping */}
       <div
-        className="relative bg-gray-200 aspect-[4/3] max-h-[360px] touch-pan-y select-none"
+        className="relative bg-gray-950 aspect-[4/3] max-h-[80vh] touch-pan-y select-none"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -209,7 +210,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             fill
             src={images[activeImg]}
             alt={listing.title ?? `${typeLabel[listing.type] || listing.type} huko ${listing.district}`}
-            className="object-cover"
+            className="object-contain"
             onError={() => setImgError(true)}
             sizes="100vw"
             priority
