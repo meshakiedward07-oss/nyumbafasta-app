@@ -2,12 +2,11 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 
 function ChangePasswordForm() {
   const supabase = createClient()
-  const router   = useRouter()
   const searchParams = useSearchParams()
 
   // 'reset' = arrived from password-reset email link; 'forced' = staff first login
@@ -54,32 +53,38 @@ function ChangePasswordForm() {
 
     setSaving(true)
 
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+    // 1. Read role NOW — session is guaranteed valid before the password change
+    let role = 'client'
+    try {
+      const { data: { user: me } } = await supabase.auth.getUser()
+      if (me) {
+        const { data } = await supabase.from('users').select('role').eq('id', me.id).single()
+        role = data?.role ?? 'client'
+      }
+    } catch { /* fall through with default */ }
 
+    // 2. Change the password
+    const { error: updateError } = await supabase.auth.updateUser({ password })
     if (updateError) {
       setError(updateError.message)
       setSaving(false)
       return
     }
 
-    // Use admin-privileged API to clear must_change_password (RLS blocks client-side update)
-    let role = 'client'
+    // 3. Clear must_change_password via admin API (bypasses RLS)
     try {
-      const res = await fetch('/api/v1/auth/clear-force-password', { method: 'POST' })
-      const json = await res.json()
-      if (json.role) role = json.role
-    } catch {
-      // Non-fatal — middleware will still redirect correctly once flag is cleared
-    }
+      await fetch('/api/v1/auth/clear-force-password', { method: 'POST' })
+    } catch { /* non-fatal */ }
 
     setDone(true)
     setSaving(false)
 
+    // 4. Hard redirect (window.location) so middleware re-evaluates with fresh session + DB state
     setTimeout(() => {
-      if (role === 'admin') router.push('/admin')
-      else if (role === 'staff') router.push('/admin/staff-dashboard')
-      else if (role === 'dalali') router.push('/dashboard')
-      else router.push('/')
+      if (role === 'admin')  window.location.href = '/admin'
+      else if (role === 'staff')  window.location.href = '/admin/staff-dashboard'
+      else if (role === 'dalali') window.location.href = '/dashboard'
+      else window.location.href = '/'
     }, 1500)
   }
 
