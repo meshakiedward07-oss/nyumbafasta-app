@@ -102,6 +102,14 @@ export const STAFF_PERMISSIONS = {
     icon: 'id-badge',
     category: 'admin' as const,
   },
+  review_ads: {
+    key: 'review_ads',
+    label: 'Ukaguzi wa Matangazo',
+    description: 'Angalia, uidhinishe, au kataa kampeni za matangazo zilizopelekwa na waadvertiser',
+    adminPath: '/admin/staff-dashboard',
+    icon: 'speakerphone',
+    category: 'admin' as const,
+  },
 } as const
 
 export type PermissionKey = keyof typeof STAFF_PERMISSIONS
@@ -109,7 +117,7 @@ export type PermissionKey = keyof typeof STAFF_PERMISSIONS
 // ── Permission categories for UI grouping ──────────────────────────────────
 export const ADMIN_TASK_PERMISSIONS: PermissionKey[] = [
   'approve_listings', 'manage_users', 'handle_reports',
-  'manage_subscriptions', 'manage_verifications',
+  'manage_subscriptions', 'manage_verifications', 'review_ads',
 ]
 
 // Pre-built templates — admin can still customise per-person
@@ -146,8 +154,12 @@ export const STAFF_ROLE_TEMPLATES = {
     label: 'Platform Manager',
     permissions: [
       'approve_listings', 'manage_users', 'handle_reports',
-      'manage_subscriptions', 'manage_verifications', 'legal_violations',
+      'manage_subscriptions', 'manage_verifications', 'legal_violations', 'review_ads',
     ] as PermissionKey[],
+  },
+  ads_moderator: {
+    label: 'Ads Moderator',
+    permissions: ['review_ads'] as PermissionKey[],
   },
   team_lead: {
     label: 'Team Lead (Full Access)',
@@ -155,7 +167,7 @@ export const STAFF_ROLE_TEMPLATES = {
       'leads', 'whatsapp_support', 'social_media', 'legal_violations',
       'lead_scraper', 'listing_analytics', 'spam_moderation',
       'approve_listings', 'manage_users', 'handle_reports',
-      'manage_subscriptions', 'manage_verifications',
+      'manage_subscriptions', 'manage_verifications', 'review_ads',
     ] as PermissionKey[],
   },
 } as const
@@ -170,4 +182,5 @@ export const ROUTE_PERMISSION_MAP: Record<string, PermissionKey> = {
   '/admin/legal':           'legal_violations',
   '/admin/leads':           'lead_scraper',
   '/admin/crm/analytics':   'listing_analytics',
+  '/admin/adverts':         'review_ads',
 }

@@ -48,6 +48,7 @@ export async function GET() {
     myLeadsRes,
     activityRes,
     assignmentsRes,
+    pendingAdsRes,
   ] = await Promise.all([
     // Pending listings (if approve_listings or admin)
     permissions.includes('approve_listings') || profile?.role === 'admin'
@@ -100,6 +101,15 @@ export async function GET() {
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false })
       .limit(10),
+
+    // Pending ad campaigns for review
+    permissions.includes('review_ads') || profile?.role === 'admin'
+      ? admin.from('ad_campaigns')
+          .select('id, title, ad_type, status, target_region, created_at, admin_note, advertiser:advertiser_id(business_name, contact_phone, city), plan:plan_id(name, price_tzs)', { count: 'exact' })
+          .eq('status', 'pending_review')
+          .order('created_at', { ascending: true })
+          .limit(20)
+      : Promise.resolve({ data: [], count: 0, error: null }),
   ])
 
   // Users to review if manage_users
@@ -178,6 +188,7 @@ export async function GET() {
       usersToReview:   usersCount,
       expiringSubs:    subsCount,
       myActiveLeads:   myLeadsRes.count ?? 0,
+      pendingAds:      pendingAdsRes.count ?? 0,
       completedToday:  completedToday  ?? 0,
       completedThisWeek:  completedThisWeek  ?? 0,
       completedThisMonth: completedThisMonth ?? 0,
@@ -190,6 +201,7 @@ export async function GET() {
     verifications: pendingVerifRes.data ?? [],
     users:         usersData,
     subscriptions: subsData,
+    adCampaigns:   pendingAdsRes.data ?? [],
     recentActivity: activityRes.data ?? [],
     assignments:   assignmentsRes.data ?? [],
   })

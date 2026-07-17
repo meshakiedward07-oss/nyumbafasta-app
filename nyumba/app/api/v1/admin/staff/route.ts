@@ -8,17 +8,38 @@ import type { RoleTemplate } from '@/lib/staff/permissions'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // ─── GET — list all staff with performance stats ──────────────────────────────
-export async function GET() {
+// ?permission=review_ads  → only staff who have that permission
+export async function GET(req: NextRequest) {
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
   const admin = createAdminClient()
+  const permFilter = req.nextUrl.searchParams.get('permission')
 
-  const { data: staff, error } = await admin
+  // If filtering by permission, get matching staff_ids first
+  let filteredIds: string[] | null = null
+  if (permFilter) {
+    const { data: rows } = await admin
+      .from('staff_permissions')
+      .select('staff_id')
+      .eq('permission_key', permFilter)
+    filteredIds = (rows ?? []).map(r => r.staff_id)
+    if (filteredIds.length === 0) {
+      return NextResponse.json({ staff: [] })
+    }
+  }
+
+  let query = admin
     .from('users')
     .select('id, full_name, email, phone, staff_title, staff_active, max_leads_capacity, created_at')
     .eq('role', 'staff')
     .order('created_at', { ascending: false })
+
+  if (filteredIds) {
+    query = query.in('id', filteredIds)
+  }
+
+  const { data: staff, error } = await query
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

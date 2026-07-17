@@ -20,12 +20,20 @@ type Stats = {
   usersToReview: number
   expiringSubs: number
   myActiveLeads: number
+  pendingAds: number
   completedToday: number
   completedThisWeek: number
   completedThisMonth: number
   myAssignmentsTotal: number
   myAssignmentsCompleted: number
   pendingAssignments: number
+}
+
+type AdCampaign = {
+  id: string; title: string; ad_type: string; status: string
+  target_region: string; created_at: string; admin_note: string | null
+  advertiser: { business_name: string; contact_phone: string | null; city: string } | null
+  plan: { name: string; price_tzs: number } | null
 }
 
 type PendingListing = {
@@ -109,6 +117,7 @@ type DashboardData = {
   verifications: VerifRow[]
   users: UserRow[]
   subscriptions: SubRow[]
+  adCampaigns: AdCampaign[]
   recentActivity: ActivityEntry[]
   assignments: Assignment[]
 }
@@ -166,7 +175,7 @@ type PayrollData = {
   notes: string | null
 }
 
-type Tab = 'overview' | 'listings' | 'users' | 'reports' | 'verifications' | 'subscriptions' | 'assignments' | 'profile'
+type Tab = 'overview' | 'listings' | 'users' | 'reports' | 'verifications' | 'subscriptions' | 'ads' | 'assignments' | 'profile'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -192,6 +201,11 @@ const ACTION_ICONS: Record<string, string> = {
   activate_user: '🟢', deactivate_user: '⛔',
   approve_verification: '🏅', reject_verification: '❌',
   extend_subscription: '📅', suspend_subscription: '⏸',
+  approve_ad: '📢', reject_ad: '🚫', suspend_ad: '⏸',
+}
+
+const AD_TYPE_ICONS: Record<string, string> = {
+  banner: '🎯', search: '🔍', nearby: '📍', video: '🎬', featured: '⭐',
 }
 
 const PRIORITY_STYLES: Record<string, string> = {
@@ -211,7 +225,7 @@ export default function StaffDashboardClient() {
   const [toast,       setToast]       = useState<{ msg: string; ok: boolean } | null>(null)
   const [rejectId,    setRejectId]    = useState<string | null>(null)
   const [rejectReason,setRejectReason]= useState('')
-  const [rejectFor,   setRejectFor]   = useState<'listing' | 'verification'>('listing')
+  const [rejectFor,   setRejectFor]   = useState<'listing' | 'verification' | 'ad'>('listing')
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok })
@@ -282,7 +296,7 @@ export default function StaffDashboardClient() {
     )
   }
 
-  const { staff, permissions, stats, listings, reports, verifications, users, subscriptions, recentActivity, assignments } = data
+  const { staff, permissions, stats, listings, reports, verifications, users, subscriptions, adCampaigns, recentActivity, assignments } = data
   const has = (p: PermissionKey) => permissions.includes(p) || staff.role === 'admin'
 
   // Dynamic tabs based on permissions
@@ -293,6 +307,7 @@ export default function StaffDashboardClient() {
     { key: 'reports'        as Tab, label: 'Ripoti',      icon: 'flag',          count: stats.openReports,               show: has('handle_reports') },
     { key: 'verifications'  as Tab, label: 'Uthibitisho', icon: 'id-badge',      count: stats.pendingVerifications,      show: has('manage_verifications') },
     { key: 'subscriptions'  as Tab, label: 'Usajili',     icon: 'credit-card',   count: stats.expiringSubs,              show: has('manage_subscriptions') },
+    { key: 'ads'            as Tab, label: 'Matangazo',   icon: 'speakerphone',  count: stats.pendingAds,                show: has('review_ads') },
     { key: 'assignments'    as Tab, label: 'Kazi Zangu',  icon: 'clipboard-list',count: assignments.filter(a => a.status !== 'completed').length, show: true },
     { key: 'profile'        as Tab, label: 'Taarifa Zangu', icon: 'user-circle', count: undefined, show: true },
   ] as { key: Tab; label: string; icon: string; count?: number; show: boolean }[]).filter(t => t.show)
@@ -320,7 +335,7 @@ export default function StaffDashboardClient() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setRejectId(null)} />
           <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
             <h3 className="text-base font-bold text-gray-900 mb-1">Sababu ya Kukataa</h3>
-            <p className="text-xs text-gray-500 mb-4">Hii itatumwa kwa {rejectFor === 'listing' ? 'dalali' : 'mwanachama'} kupitia notification.</p>
+            <p className="text-xs text-gray-500 mb-4">Hii itatumwa kwa {rejectFor === 'listing' ? 'dalali' : rejectFor === 'ad' ? 'advertiser' : 'mwanachama'} kupitia notification.</p>
             <textarea
               value={rejectReason}
               onChange={e => setRejectReason(e.target.value)}
@@ -335,7 +350,7 @@ export default function StaffDashboardClient() {
               </button>
               <button
                 onClick={async () => {
-                  const actionType = rejectFor === 'listing' ? 'reject_listing' : 'reject_verification'
+                  const actionType = rejectFor === 'listing' ? 'reject_listing' : rejectFor === 'ad' ? 'reject_ad' : 'reject_verification'
                   await doAction(actionType, rejectId, { reason: rejectReason })
                   setRejectId(null); setRejectReason('')
                 }}
@@ -506,6 +521,9 @@ export default function StaffDashboardClient() {
               {has('manage_subscriptions') && (
                 <StatCard icon="credit-card" label="Usajili Unaoisha" value={stats.expiringSubs} color="purple" onClick={() => setTab('subscriptions')} />
               )}
+              {has('review_ads') && (
+                <StatCard icon="speakerphone" label="Matangazo Yanayosubiri" value={stats.pendingAds} color="teal" onClick={() => setTab('ads')} />
+              )}
             </div>
 
             {/* Quick pending items (top 5 of each) */}
@@ -624,6 +642,47 @@ export default function StaffDashboardClient() {
                           onClick={() => updateAssignment(a.id, 'completed')}
                           className="text-[11px] px-2.5 py-1 rounded-lg bg-primary-50 text-primary-700 font-semibold hover:bg-primary-100"
                         >Maliza</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Ads quick preview */}
+              {has('review_ads') && adCampaigns.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+                        <i className="ti ti-speakerphone text-teal-600 text-sm" aria-hidden="true" />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-800">Matangazo Yanayosubiri</span>
+                      <span className="text-[10px] bg-teal-100 text-teal-700 font-bold px-2 py-0.5 rounded-full">{stats.pendingAds}</span>
+                    </div>
+                    <button onClick={() => setTab('ads')} className="text-xs text-primary-600 font-semibold hover:underline">Angalia Zote</button>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {adCampaigns.slice(0, 3).map(c => (
+                      <div key={c.id} className="flex items-center gap-3 px-4 py-2.5">
+                        <span className="text-lg flex-shrink-0">{AD_TYPE_ICONS[c.ad_type] ?? '📢'}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 truncate">{c.title}</p>
+                          <p className="text-[11px] text-gray-400">
+                            {c.advertiser?.business_name ?? '—'} · {c.target_region}
+                            {c.plan ? ` · TZS ${c.plan.price_tzs.toLocaleString()}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex gap-1.5 flex-shrink-0">
+                          <button
+                            onClick={() => doAction('approve_ad', c.id)}
+                            disabled={actionLoading === `approve_ad:${c.id}`}
+                            className="px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 text-[11px] font-semibold hover:bg-teal-100 disabled:opacity-40"
+                          >✓</button>
+                          <button
+                            onClick={() => { setRejectId(c.id); setRejectFor('ad') }}
+                            className="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[11px] font-semibold hover:bg-red-100"
+                          >✕</button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -942,6 +1001,65 @@ export default function StaffDashboardClient() {
           </div>
         )}
 
+        {/* ── ADS TAB ──────────────────────────────────────── */}
+        {tab === 'ads' && has('review_ads') && (
+          <div className="space-y-3">
+            <SectionHeader icon="speakerphone" label="Kampeni za Matangazo Zinazosubiri Idhini" count={stats.pendingAds} color="teal" />
+            {adCampaigns.length === 0 ? (
+              <EmptyState icon="speakerphone" label="Matangazo yote yameshughulikiwa!" sub="Hakuna kampeni za matangazo zinazohitaji ukaguzi saa hii." />
+            ) : (
+              <div className="space-y-3">
+                {adCampaigns.map(c => (
+                  <div key={c.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-xl flex-shrink-0">
+                        {AD_TYPE_ICONS[c.ad_type] ?? '📢'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <p className="text-sm font-bold text-gray-900">{c.title}</p>
+                          <span className="text-[10px] bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full font-bold uppercase">{c.ad_type}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
+                          {c.advertiser && <span>🏪 {c.advertiser.business_name} ({c.advertiser.city})</span>}
+                          <span>📍 {c.target_region}</span>
+                          {c.plan && <span>💰 TZS {c.plan.price_tzs.toLocaleString()} — {c.plan.name}</span>}
+                          <span>🗓 {timeAgo(c.created_at)}</span>
+                        </div>
+                        {c.admin_note && (
+                          <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2 py-1 mt-1">{c.admin_note}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => doAction('approve_ad', c.id)}
+                        disabled={actionLoading === `approve_ad:${c.id}`}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-teal-500 text-white text-xs font-semibold hover:bg-teal-600 disabled:opacity-40 transition-colors"
+                      >
+                        {actionLoading === `approve_ad:${c.id}` ? '...' : <><i className="ti ti-check" aria-hidden="true" />Idhinisha</>}
+                      </button>
+                      <button
+                        onClick={() => { setRejectId(c.id); setRejectFor('ad') }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors border border-red-100"
+                      >
+                        <i className="ti ti-x" aria-hidden="true" />Kataa
+                      </button>
+                      <button
+                        onClick={() => doAction('suspend_ad', c.id)}
+                        disabled={actionLoading === `suspend_ad:${c.id}`}
+                        className="px-3 py-2 rounded-xl bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors border border-amber-100"
+                      >
+                        Simamisha
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── ASSIGNMENTS TAB ──────────────────────────────── */}
         {tab === 'assignments' && (
           <div className="space-y-3">
@@ -976,6 +1094,9 @@ export default function StaffDashboardClient() {
                           {a.description && <p className="text-xs text-gray-500 mt-1 leading-relaxed">{a.description}</p>}
                           <div className="flex items-center gap-3 mt-2 flex-wrap">
                             <span className="text-[11px] text-gray-400">Kutoka: {a.assigned_by_user?.full_name ?? 'Admin'}</span>
+                            {a.ref_type === 'ad_campaign' && (
+                              <span className="text-[10px] bg-teal-50 text-teal-700 font-bold px-2 py-0.5 rounded-full">📢 Ad Campaign</span>
+                            )}
                             {a.due_date && (
                               <span className={`text-[11px] font-medium ${daysLeft(a.due_date) < 0 ? 'text-red-600' : daysLeft(a.due_date) <= 1 ? 'text-amber-600' : 'text-gray-500'}`}>
                                 📅 {daysLeft(a.due_date) < 0 ? `Imechelewa siku ${Math.abs(daysLeft(a.due_date))}` : `Siku ${daysLeft(a.due_date)} zimebaki`}
@@ -1039,6 +1160,7 @@ function StatCard({ icon, label, value, color, onClick }: {
     orange: { bg: 'bg-orange-50',   icon: 'text-orange-500',  num: 'text-orange-600'  },
     blue:   { bg: 'bg-blue-50',     icon: 'text-blue-500',    num: 'text-blue-600'    },
     purple: { bg: 'bg-purple-50',   icon: 'text-purple-500',  num: 'text-purple-600'  },
+    teal:   { bg: 'bg-teal-50',     icon: 'text-teal-600',    num: 'text-teal-700'    },
   }
   const c = colors[color] ?? colors.green
   return (
@@ -1060,6 +1182,7 @@ function SectionHeader({ icon, label, count, color }: {
     amber: 'bg-amber-50 text-amber-700', red: 'bg-red-50 text-red-700',
     blue: 'bg-blue-50 text-blue-700', purple: 'bg-purple-50 text-purple-700',
     orange: 'bg-orange-50 text-orange-700', green: 'bg-primary-50 text-primary-700',
+    teal: 'bg-teal-50 text-teal-700',
   }
   return (
     <div className="flex items-center gap-3 mb-1">

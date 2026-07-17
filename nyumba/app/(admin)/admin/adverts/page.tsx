@@ -9,6 +9,10 @@ type Campaign = {
   plan: { name: string; price_tzs: number } | null
 }
 
+type StaffMember = {
+  id: string; full_name: string; staff_title: string | null
+}
+
 const STATUS_TABS = [
   { value: 'pending_review', label: 'Zinasubiri Ukaguzi' },
   { value: 'approved',       label: 'Zimeidhinishwa' },
@@ -30,6 +34,52 @@ export default function AdminAdvertsPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [reason, setReason]     = useState('')
   const [showReject, setShowReject] = useState(false)
+
+  // Assign to staff
+  const [assignCampaign, setAssignCampaign] = useState<Campaign | null>(null)
+  const [staffList, setStaffList]           = useState<StaffMember[]>([])
+  const [staffLoading, setStaffLoading]     = useState(false)
+  const [assignNote, setAssignNote]         = useState('')
+  const [assignTo, setAssignTo]             = useState('')
+  const [assigning, setAssigning]           = useState(false)
+  const [assignToast, setAssignToast]       = useState<string | null>(null)
+
+  async function openAssign(c: Campaign) {
+    setAssignCampaign(c)
+    setAssignTo('')
+    setAssignNote('')
+    setStaffLoading(true)
+    try {
+      const r = await fetch('/api/v1/admin/staff?permission=review_ads')
+      const d = await r.json()
+      setStaffList(d.staff ?? [])
+    } finally { setStaffLoading(false) }
+  }
+
+  async function submitAssignment() {
+    if (!assignCampaign || !assignTo) return
+    setAssigning(true)
+    try {
+      const res = await fetch('/api/v1/staff/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          staff_id:    assignTo,
+          title:       `Kagua tangazo: ${assignCampaign.title}`,
+          description: assignNote || `Kampeni ya ${assignCampaign.ad_type} kutoka ${assignCampaign.advertiser?.business_name ?? '—'}. Tafadhali kagua na uidhinishe au kataa.`,
+          category:    'moderation',
+          priority:    'normal',
+          ref_type:    'ad_campaign',
+          ref_id:      assignCampaign.id,
+        }),
+      })
+      if (res.ok) {
+        setAssignCampaign(null)
+        setAssignToast('Kazi imepewa mfanyakazi!')
+        setTimeout(() => setAssignToast(null), 3000)
+      }
+    } finally { setAssigning(false) }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -81,6 +131,68 @@ export default function AdminAdvertsPage() {
 
   return (
     <div className="p-6">
+
+      {/* Toast */}
+      {assignToast && (
+        <div className="fixed top-4 right-4 z-[200] px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white bg-primary-600 animate-in slide-in-from-top-2">
+          ✅ {assignToast}
+        </div>
+      )}
+
+      {/* Assign to Staff Modal */}
+      {assignCampaign && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setAssignCampaign(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="text-base font-bold text-gray-900 mb-1">Pewa Mfanyakazi</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Pewa kazi ya kukagua kampeni: <span className="font-semibold text-gray-700">{assignCampaign.title}</span>
+            </p>
+            {staffLoading ? (
+              <div className="space-y-2 mb-4">
+                {[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 animate-pulse rounded-lg" />)}
+              </div>
+            ) : staffList.length === 0 ? (
+              <p className="text-sm text-gray-500 mb-4 text-center py-4">Hakuna mfanyakazi mwenye ruhusa ya kukagua matangazo.</p>
+            ) : (
+              <div className="space-y-1.5 mb-4 max-h-48 overflow-y-auto">
+                {staffList.map(s => (
+                  <label key={s.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition border ${
+                    assignTo === s.id ? 'border-primary-400 bg-primary-50' : 'border-gray-100 hover:bg-gray-50'
+                  }`}>
+                    <input type="radio" name="staff" value={s.id} checked={assignTo === s.id}
+                      onChange={() => setAssignTo(s.id)} className="accent-primary-500" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">{s.full_name}</p>
+                      {s.staff_title && <p className="text-xs text-gray-400">{s.staff_title}</p>}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            <textarea
+              value={assignNote}
+              onChange={e => setAssignNote(e.target.value)}
+              placeholder="Maelezo ya ziada kwa mfanyakazi (hiari)..."
+              rows={2}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-300 mb-4"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setAssignCampaign(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600">
+                Ghairi
+              </button>
+              <button
+                onClick={submitAssignment}
+                disabled={!assignTo || assigning}
+                className="flex-1 py-2.5 rounded-xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary-600 transition">
+                {assigning ? 'Inatuma...' : 'Pewa Kazi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Kampeni za Matangazo</h1>
         <Link href="/admin/adverts/plans" className="text-sm text-primary-600 hover:underline">
@@ -194,6 +306,13 @@ export default function AdminAdvertsPage() {
                 >
                   Angalia
                 </Link>
+                <button
+                  onClick={() => openAssign(c)}
+                  className="border border-primary-200 text-primary-600 text-xs px-2.5 py-1.5 rounded-lg hover:bg-primary-50 transition"
+                  title="Pewa mfanyakazi"
+                >
+                  👤
+                </button>
                 {tab === 'pending_review' && (
                   <>
                     <button

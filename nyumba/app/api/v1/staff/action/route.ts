@@ -11,6 +11,7 @@ type ActionType =
   | 'activate_user'   | 'deactivate_user'
   | 'approve_verification' | 'reject_verification'
   | 'extend_subscription' | 'suspend_subscription'
+  | 'approve_ad' | 'reject_ad' | 'suspend_ad'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -220,6 +221,85 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     await logStaffActivity({ staffId: user.id, actionType: 'suspend_subscription', resourceType: 'subscription', resourceId: id, description: `Ulizima usajili #${id.slice(0, 8)}` })
     return NextResponse.json({ ok: true, message: 'Usajili umesimamishwa' })
+  }
+
+  // ── APPROVE AD CAMPAIGN ────────────────────────────────────────────────────
+  if (type === 'approve_ad') {
+    if (!isAdmin && !await hasPermission(user.id, 'review_ads')) {
+      return NextResponse.json({ error: 'Huna ruhusa ya kuidhinisha matangazo' }, { status: 403 })
+    }
+    const { error } = await admin
+      .from('ad_campaigns')
+      .update({ status: 'approved' })
+      .eq('id', id)
+      .eq('status', 'pending_review')
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    const { data: camp } = await admin
+      .from('ad_campaigns')
+      .select('title, ad_type, advertiser:advertiser_id (business_name, whatsapp_number)')
+      .eq('id', id)
+      .single()
+
+    const adv = (camp?.advertiser as unknown as { business_name: string; whatsapp_number: string | null } | null)
+    if (adv) {
+      await admin.from('notifications').insert({
+        user_id: id, // fallback; advertisers use their own notification channel
+        type: 'ad_approved',
+        title: '✅ Tangazo Lako Limeidhinishwa',
+        body: `Kampeni "${camp?.title ?? ''}" (${camp?.ad_type ?? ''}) imeidhinishwa. Lipa ili ianze kutumika.`,
+        is_read: false,
+      })
+    }
+
+    await logStaffActivity({
+      staffId: user.id, actionType: 'approve_ad', resourceType: 'ad_campaign', resourceId: id,
+      description: `Ulidhinisha kampeni ya tangazo "${camp?.title ?? id.slice(0, 8)}" (${camp?.ad_type ?? ''})`,
+    })
+    return NextResponse.json({ ok: true, message: 'Tangazo limeidhinishwa' })
+  }
+
+  // ── REJECT AD CAMPAIGN ─────────────────────────────────────────────────────
+  if (type === 'reject_ad') {
+    if (!isAdmin && !await hasPermission(user.id, 'review_ads')) {
+      return NextResponse.json({ error: 'Huna ruhusa ya kukataa matangazo' }, { status: 403 })
+    }
+    const { error } = await admin
+      .from('ad_campaigns')
+      .update({ status: 'rejected', admin_note: reason ?? null })
+      .eq('id', id)
+      .eq('status', 'pending_review')
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    const { data: camp } = await admin
+      .from('ad_campaigns')
+      .select('title, ad_type')
+      .eq('id', id)
+      .single()
+
+    await logStaffActivity({
+      staffId: user.id, actionType: 'reject_ad', resourceType: 'ad_campaign', resourceId: id,
+      description: `Ulikataa kampeni "${camp?.title ?? id.slice(0, 8)}"${reason ? `: ${reason}` : ''}`,
+    })
+    return NextResponse.json({ ok: true, message: 'Tangazo limekataliwa' })
+  }
+
+  // ── SUSPEND AD CAMPAIGN ────────────────────────────────────────────────────
+  if (type === 'suspend_ad') {
+    if (!isAdmin && !await hasPermission(user.id, 'review_ads')) {
+      return NextResponse.json({ error: 'Huna ruhusa ya kusimamisha matangazo' }, { status: 403 })
+    }
+    const { error } = await admin
+      .from('ad_campaigns')
+      .update({ status: 'suspended', admin_note: reason ?? 'Imesimamishwa na admin/staff' })
+      .eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    await logStaffActivity({
+      staffId: user.id, actionType: 'suspend_ad', resourceType: 'ad_campaign', resourceId: id,
+      description: `Ulisimamisha kampeni #${id.slice(0, 8)}${reason ? `: ${reason}` : ''}`,
+    })
+    return NextResponse.json({ ok: true, message: 'Tangazo limesimamishwa' })
   }
 
   return NextResponse.json({ error: 'Aina ya action haijulikani' }, { status: 400 })
