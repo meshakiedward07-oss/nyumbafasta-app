@@ -71,7 +71,7 @@ function RegisterForm() {
         password,
         options: {
           data: { full_name: fullName, role, whatsapp_number: whatsapp },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?redirect=/register/complete`,
         },
       })
       if (authError) throw authError

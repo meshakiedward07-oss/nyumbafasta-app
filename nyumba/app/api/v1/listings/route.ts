@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
         .from('subscriptions')
         .select('plan, extra_listings')
         .eq('dalali_id', user.id)
-        .eq('status', 'active')
+        .in('status', ['active', 'grace_period'])
         .order('expires_at', { ascending: false })
         .maybeSingle(),
       getPricing(),

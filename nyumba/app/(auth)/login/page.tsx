@@ -9,8 +9,9 @@ import ResendEmailButton from '@/components/auth/ResendEmailButton'
 function LoginForm() {
   const supabase = createClient()
   const searchParams = useSearchParams()
-  const redirectTo  = searchParams.get('redirect') || ''
-  const isSuspended = searchParams.get('suspended') === '1'
+  const redirectTo    = searchParams.get('redirect') || ''
+  const isSuspended   = searchParams.get('suspended') === '1'
+  const callbackError = searchParams.get('error')
 
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
@@ -173,6 +174,19 @@ function LoginForm() {
                 <p className="text-sm font-semibold text-red-700">Akaunti Imesimamishwa</p>
                 <p className="text-xs text-red-500 mt-0.5">
                   Wasiliana nasi kupitia WhatsApp ili ujue sababu.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Callback error banner (e.g. failed OAuth, expired link) */}
+          {callbackError && !isSuspended && (
+            <div className="bg-amber-50 border-b border-amber-100 px-4 py-3 flex items-start gap-2">
+              <i className="ti ti-alert-triangle text-lg text-amber-500 flex-shrink-0" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-semibold text-amber-700">Kiungo Kimeshindwa</p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  Kiungo cha kuingia kimekwisha muda au hakikufanya kazi. Jaribu tena.
                 </p>
               </div>
             </div>

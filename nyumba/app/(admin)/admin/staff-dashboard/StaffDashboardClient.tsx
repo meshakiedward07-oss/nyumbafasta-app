@@ -307,7 +307,7 @@ export default function StaffDashboardClient() {
     { key: 'reports'        as Tab, label: 'Ripoti',      icon: 'flag',          count: stats.openReports,               show: has('handle_reports') },
     { key: 'verifications'  as Tab, label: 'Uthibitisho', icon: 'id-badge',      count: stats.pendingVerifications,      show: has('manage_verifications') },
     { key: 'subscriptions'  as Tab, label: 'Usajili',     icon: 'credit-card',   count: stats.expiringSubs,              show: has('manage_subscriptions') },
-    { key: 'ads'            as Tab, label: 'Matangazo',   icon: 'speakerphone',  count: stats.pendingAds,                show: has('review_ads') },
+    { key: 'ads'            as Tab, label: 'Ads (Matangazo)', icon: 'speakerphone',  count: stats.pendingAds,                show: has('review_ads') },
     { key: 'assignments'    as Tab, label: 'Kazi Zangu',  icon: 'clipboard-list',count: assignments.filter(a => a.status !== 'completed').length, show: true },
     { key: 'profile'        as Tab, label: 'Taarifa Zangu', icon: 'user-circle', count: undefined, show: true },
   ] as { key: Tab; label: string; icon: string; count?: number; show: boolean }[]).filter(t => t.show)

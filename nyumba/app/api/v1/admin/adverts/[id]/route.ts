@@ -40,10 +40,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const admin = createAdminClient()
 
-  // Load campaign for notification data
+  // Load campaign for notification data and payment status
   const { data: campaign } = await admin
     .from('ad_campaigns')
-    .select('id, ad_type, advertiser:advertiser_id (business_name, whatsapp_number)')
+    .select('id, ad_type, payment_status, plan:plan_id (duration_days), advertiser:advertiser_id (business_name, whatsapp_number)')
     .eq('id', id)
     .single()
 
@@ -52,7 +52,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   let updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
 
   if (action === 'approve') {
-    updates = { ...updates, status: 'approved', admin_note: reason || null }
+    // If advertiser already paid, activate immediately — don't leave them in 'approved' limbo
+    const alreadyPaid = campaign.payment_status === 'completed'
+    const durationDays = (campaign.plan as unknown as { duration_days?: number } | null)?.duration_days ?? 30
+    updates = alreadyPaid
+      ? {
+          ...updates,
+          status: 'active',
+          admin_note: reason || null,
+          starts_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
+        }
+      : { ...updates, status: 'approved', admin_note: reason || null }
   } else if (action === 'reject') {
     updates = { ...updates, status: 'rejected', admin_note: reason || null }
   } else if (action === 'suspend') {

@@ -127,7 +127,7 @@ export default function AddListingWizard() {
         supabase.from('subscriptions')
           .select('plan, extra_listings')
           .eq('dalali_id', user.id)
-          .eq('status', 'active')
+          .in('status', ['active', 'grace_period'])
           .maybeSingle(),
         supabase.from('listings')
           .select('id', { count: 'exact', head: true })

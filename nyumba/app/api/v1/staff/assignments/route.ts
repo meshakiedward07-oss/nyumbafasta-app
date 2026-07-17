@@ -106,9 +106,12 @@ export async function PATCH(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const admin = createAdminClient()
-  const { data: profile } = await admin.from('users').select('role').eq('id', user.id).single()
+  const { data: profile } = await admin.from('users').select('role, staff_active').eq('id', user.id).single()
   if (!['admin', 'staff'].includes(profile?.role ?? '')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  if (profile?.role === 'staff' && profile?.staff_active === false) {
+    return NextResponse.json({ error: 'Akaunti ya staff imezimwa' }, { status: 403 })
   }
 
   let body: { id: string; status: string; notes?: string }
@@ -132,7 +135,8 @@ export async function PATCH(req: NextRequest) {
   let query = admin.from('staff_assignments').update(updatePayload).eq('id', body.id)
   if (profile?.role === 'staff') query = query.eq('staff_id', user.id)
 
-  const { error } = await query
+  const { data: rows, error } = await query.select('id')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!rows || rows.length === 0) return NextResponse.json({ error: 'Kazi haikupatikana' }, { status: 404 })
   return NextResponse.json({ ok: true })
 }

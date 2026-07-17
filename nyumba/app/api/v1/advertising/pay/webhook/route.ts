@@ -11,7 +11,8 @@ import { recordIncomeFromAdCampaign } from '@/lib/accounting/incomeTracker'
 
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    console.warn('[AdWebhook] Invalid webhook secret')
+    return NextResponse.json({ ok: true })
   }
 
   let payload: WebhookPayload
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
   const valid = await verifyAzamPaySignature(payload)
   if (!valid) {
     console.error('[AdWebhook] Invalid AzamPay signature')
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    return NextResponse.json({ ok: true })
   }
 
   const externalId = getExternalId(payload)
@@ -45,17 +46,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })  // Acknowledge to avoid retries
   }
 
-  if (payment.status === 'completed') {
-    return NextResponse.json({ ok: true })  // Idempotent
-  }
-
   const success = isWebhookSuccess(payload)
 
-  await admin.from('ad_payments').update({
+  // Atomic guard: only update if still pending — prevents double-activation on concurrent delivery
+  const { data: updated } = await admin.from('ad_payments').update({
     status:             success ? 'completed' : 'failed',
     gateway_reference:  payload.externalreference ?? null,
     paid_at:            success ? new Date().toISOString() : null,
-  }).eq('id', payment.id)
+  }).eq('id', payment.id).eq('status', 'pending').select('id').maybeSingle()
+
+  if (!updated) {
+    return NextResponse.json({ ok: true })  // Already processed (idempotent)
+  }
 
   if (success) {
     // Activate campaign and set expiry based on plan

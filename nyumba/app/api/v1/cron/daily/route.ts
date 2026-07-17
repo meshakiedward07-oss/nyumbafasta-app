@@ -398,13 +398,14 @@ async function runDailyTasks() {
     }
     results.push(`✅ Expiry reminders 14 days: ${expiring14?.length ?? 0}`)
 
-    // 7-day reminder
+    // 7-day reminder — once only (guarded by expiry_7day_reminded_at)
     const { data: expiring7 } = await admin
       .from('listings')
       .select('id, title, dalali_id, expires_at')
       .eq('status', 'active')
       .gte('expires_at', new Date(nowDate.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString())
       .lte('expires_at', new Date(nowDate.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString())
+      .is('expiry_7day_reminded_at', null)
 
     if (expiring7?.length) {
       await admin.from('notifications').insert(
@@ -417,6 +418,10 @@ async function runDailyTasks() {
           ref_id: listing.id,
         }))
       )
+      await admin
+        .from('listings')
+        .update({ expiry_7day_reminded_at: nowDate.toISOString() })
+        .in('id', expiring7.map(l => l.id))
     }
     results.push(`✅ Expiry reminders 7 days: ${expiring7?.length ?? 0}`)
 

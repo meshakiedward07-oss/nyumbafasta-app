@@ -210,7 +210,7 @@ export default async function ListingDetailPage({
     const { data: dp } = await admin
       .from('dalali_profiles')
       .select('whatsapp_number')
-      .eq('id', data.dalali_id)
+      .eq('user_id', data.dalali_id)
       .single()
     dalaliWhatsapp = (dp as { whatsapp_number?: string | null } | null)?.whatsapp_number ?? null
   }

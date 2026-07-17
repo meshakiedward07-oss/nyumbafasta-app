@@ -113,6 +113,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
         .from('listings')
         .select(LISTING_FIELDS, { count: 'exact' })
         .eq('status', 'active')
+        .eq('is_sub_suspended', false)
         .order('is_boosted', { ascending: false })
         .order('boosted_until', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })

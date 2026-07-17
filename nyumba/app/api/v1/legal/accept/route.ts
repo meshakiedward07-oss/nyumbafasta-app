@@ -67,13 +67,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
-    // Mark user as agreement_accepted
-    await admin.from('users').update({
+    // Mark user as agreement_accepted — do NOT override account_status for suspended/banned users
+    const updateData: Record<string, unknown> = {
       agreement_accepted:    true,
       agreement_accepted_at: new Date().toISOString(),
       agreement_version:     version,
-      account_status:        'active',
-    }).eq('id', user.id)
+    }
+    const { data: currentStatus } = await admin
+      .from('users').select('account_status').eq('id', user.id).single()
+    if (!currentStatus?.account_status || currentStatus.account_status === 'pending') {
+      updateData.account_status = 'active'
+    }
+    await admin.from('users').update(updateData).eq('id', user.id)
 
     return NextResponse.json({ success: true })
   } catch {

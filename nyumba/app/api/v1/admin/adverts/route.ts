@@ -50,23 +50,34 @@ export async function PATCH(req: NextRequest) {
   }
 
   const admin = createAdminClient()
-  const newStatus = action === 'approve' ? 'approved' : 'rejected'
 
   const { data: campaigns } = await admin
     .from('ad_campaigns')
-    .select('id, ad_type, advertiser:advertiser_id (business_name, whatsapp_number)')
+    .select('id, ad_type, payment_status, plan:plan_id (duration_days), advertiser:advertiser_id (business_name, whatsapp_number)')
     .in('id', ids)
 
-  const { error } = await admin
-    .from('ad_campaigns')
-    .update({
-      status:        newStatus,
-      admin_note:    reason || null,
-      updated_at:    new Date().toISOString(),
-    })
-    .in('id', ids)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (action === 'reject') {
+    const { error } = await admin.from('ad_campaigns').update({
+      status: 'rejected', admin_note: reason || null, updated_at: new Date().toISOString(),
+    }).in('id', ids)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  } else {
+    // Approve per-campaign: activate immediately if already paid, else just approve
+    const now = new Date()
+    for (const c of campaigns ?? []) {
+      const alreadyPaid  = c.payment_status === 'completed'
+      const durationDays = (c.plan as unknown as { duration_days?: number } | null)?.duration_days ?? 30
+      const approveData  = alreadyPaid
+        ? {
+            status: 'active', admin_note: reason || null,
+            starts_at: now.toISOString(),
+            expires_at: new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: now.toISOString(),
+          }
+        : { status: 'approved', admin_note: reason || null, updated_at: now.toISOString() }
+      await admin.from('ad_campaigns').update(approveData).eq('id', c.id)
+    }
+  }
 
   // Send notifications (non-blocking)
   for (const c of campaigns ?? []) {

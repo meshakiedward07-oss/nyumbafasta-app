@@ -688,6 +688,9 @@ function AddStaffModal({
                 <option value="user_support">User Support — Watumiaji + Ripoti + WhatsApp + Usajili</option>
                 <option value="platform_manager">Platform Manager — Kazi zote za Platform</option>
               </optgroup>
+              <optgroup label="— Ads —">
+                <option value="ads_moderator">Ads Moderator — Ukaguzi wa Matangazo</option>
+              </optgroup>
               <optgroup label="— Support / Content —">
                 <option value="customer_support">Customer Support — WhatsApp + Violations</option>
                 <option value="social_media_manager">Social Media Manager — Social + Spam</option>

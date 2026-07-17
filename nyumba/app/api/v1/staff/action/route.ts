@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { hasPermission, logStaffActivity } from '@/lib/staff/checkPermission'
 import { sendPushToUser } from '@/lib/notifications/send'
+import {
+  notifyAdvertiserApproved,
+  notifyAdvertiserRejected,
+} from '@/lib/ads/adNotifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -181,6 +185,8 @@ export async function POST(req: NextRequest) {
     if (!isAdmin && !await hasPermission(user.id, 'manage_verifications')) {
       return NextResponse.json({ error: 'Huna ruhusa ya kuthibitisha madalali' }, { status: 403 })
     }
+    // Clear nida_number so the dalali leaves the pending queue and can resubmit
+    await admin.from('dalali_profiles').update({ nida_number: null }).eq('user_id', id)
     await admin.from('notifications').insert({
       user_id: id,
       title: '❌ Uthibitisho Ulikataliwa',
@@ -242,14 +248,8 @@ export async function POST(req: NextRequest) {
       .single()
 
     const adv = (camp?.advertiser as unknown as { business_name: string; whatsapp_number: string | null } | null)
-    if (adv) {
-      await admin.from('notifications').insert({
-        user_id: id, // fallback; advertisers use their own notification channel
-        type: 'ad_approved',
-        title: '✅ Tangazo Lako Limeidhinishwa',
-        body: `Kampeni "${camp?.title ?? ''}" (${camp?.ad_type ?? ''}) imeidhinishwa. Lipa ili ianze kutumika.`,
-        is_read: false,
-      })
+    if (adv?.whatsapp_number) {
+      notifyAdvertiserApproved(adv.whatsapp_number, adv.business_name, camp?.ad_type ?? '').catch(() => {})
     }
 
     await logStaffActivity({
@@ -273,9 +273,14 @@ export async function POST(req: NextRequest) {
 
     const { data: camp } = await admin
       .from('ad_campaigns')
-      .select('title, ad_type')
+      .select('title, ad_type, advertiser:advertiser_id (business_name, whatsapp_number)')
       .eq('id', id)
       .single()
+
+    const adv = (camp?.advertiser as unknown as { business_name: string; whatsapp_number: string | null } | null)
+    if (adv?.whatsapp_number) {
+      notifyAdvertiserRejected(adv.whatsapp_number, adv.business_name, reason ?? 'Haifikii vigezo vyetu').catch(() => {})
+    }
 
     await logStaffActivity({
       staffId: user.id, actionType: 'reject_ad', resourceType: 'ad_campaign', resourceId: id,

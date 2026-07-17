@@ -3,6 +3,9 @@ import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 
 export async function GET() {
+  const auth = await requireAdminAuth()
+  if (!auth.ok) return auth.response
+
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('ad_subscription_plans')
