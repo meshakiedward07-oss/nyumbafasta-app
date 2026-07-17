@@ -30,11 +30,12 @@ export type RankedAd = {
 }
 
 export type RankAdsParams = {
-  ad_type?:  AdType | AdType[]
-  region:    string
-  category?: string
-  sessionId: string
-  limit?:    number
+  ad_type?:   AdType | AdType[]
+  region:     string
+  category?:  string
+  sessionId:  string
+  limit?:     number
+  placement?: string   // filter by allowed_placements (plan entitlement)
 }
 
 export type RankAdsResult = {
@@ -119,7 +120,7 @@ function sortScored(rows: ScoredRow[]): ScoredRow[] {
 // ── Main export ────────────────────────────────────────────────────────────────
 
 export async function rankAds(params: RankAdsParams): Promise<RankAdsResult> {
-  const { ad_type, region, category, sessionId, limit = 5 } = params
+  const { ad_type, region, category, sessionId, limit = 5, placement } = params
   const admin = createAdminClient()
   const now   = new Date().toISOString()
   const capAt = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
@@ -156,6 +157,12 @@ export async function rankAds(params: RankAdsParams): Promise<RankAdsResult> {
     }
     if (category) {
       q = q.or(`target_category.is.null,target_category.eq.${category}`)
+    }
+    // Placement entitlement: only show campaigns whose plan covers this placement.
+    // Campaigns with empty allowed_placements (created before this feature) fall
+    // back gracefully — they are not excluded.
+    if (placement) {
+      q = q.or(`allowed_placements.cs.{"${placement}"},allowed_placements.eq.{}`)
     }
     return q
   }

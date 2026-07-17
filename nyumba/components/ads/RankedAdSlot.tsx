@@ -118,12 +118,13 @@ function Skeleton({ count }: { count: number }) {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 type Props = {
-  region:    string
-  category?: string
-  adType?:   string
-  limit?:    number
-  title?:    string
-  allUrl?:   string    // href for "Tazama zote (N)" link
+  region:     string
+  category?:  string
+  adType?:    string
+  placement?: string   // filters by allowed_placements (plan entitlement)
+  limit?:     number
+  title?:     string
+  allUrl?:    string   // href for "Tazama zote (N)" link
   className?: string
 }
 
@@ -131,6 +132,7 @@ export default function RankedAdSlot({
   region,
   category,
   adType,
+  placement,
   limit = 5,
   title = 'Biashara Zinazopendekeza',
   allUrl,
@@ -145,8 +147,9 @@ export default function RankedAdSlot({
 
     const sid = getOrCreateSessionId()
     const p   = new URLSearchParams({ region, sid, limit: String(limit) })
-    if (adType)   p.set('type', adType)
-    if (category) p.set('category', category)
+    if (adType)    p.set('type', adType)
+    if (category)  p.set('category', category)
+    if (placement) p.set('placement', placement)
 
     setLoading(true)
     fetch(`/api/v1/ads/ranked?${p}`)

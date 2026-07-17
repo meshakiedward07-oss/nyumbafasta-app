@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const {
     name, ad_type, description,
     price_tzs, duration_days, slot_limit,
-    features, display_order, is_active,
+    features, display_order, is_active, placements,
   } = body
 
   if (!name || !ad_type || !price_tzs || !duration_days || !slot_limit) {
@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       duration_days,
       slot_limit,
       features:       features || [],
+      placements:     Array.isArray(placements) && placements.length > 0 ? placements : [ad_type],
       display_order:  display_order ?? 99,
       is_active:      is_active ?? true,
     })

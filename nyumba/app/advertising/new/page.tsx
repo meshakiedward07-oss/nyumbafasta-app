@@ -2,6 +2,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { REGION_NAMES } from '@/lib/data/tanzania-locations'
+import UploadCreative from '@/components/ads/UploadCreative'
 
 type Plan = {
   id: string; name: string; ad_type: string; price_tzs: number
@@ -24,9 +25,10 @@ function NewCampaignForm() {
 
   const [plans, setPlans]         = useState<Plan[]>([])
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState('')
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState('')
   const [advertiserOk, setAdvertiserOk] = useState<boolean | null>(null)
+  const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     plan_id: searchParams.get('plan') ?? '',
@@ -70,9 +72,35 @@ function NewCampaignForm() {
         return
       }
       if (data.waiting_list) { router.push('/advertising/dashboard?waiting=1'); return }
-      router.push('/advertising/dashboard?created=1')
+      // Show creative upload step before going to dashboard
+      setCreatedCampaignId(data.campaign.id)
     } catch { setError('Haikuweza kuunganika. Jaribu tena.') }
     finally { setLoading(false) }
+  }
+
+  // ── Creative upload step (shown after campaign is created) ──
+  if (createdCampaignId) {
+    return (
+      <div className="max-w-2xl mx-auto py-8 px-4">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">✓</span>
+            <span className="text-sm text-green-600 font-medium">Kampeni imeundwa!</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800">Pakia Creative ya Tangazo</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Pakia picha au video — mfumo utatengeneza mifumo yote ya banner, nearby, na featured kiotomatiki.
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <UploadCreative
+            campaignId={createdCampaignId}
+            onDone={() => router.push('/advertising/dashboard?created=1')}
+            onSkip={() => router.push('/advertising/dashboard?created=1')}
+          />
+        </div>
+      </div>
+    )
   }
 
   if (advertiserOk === false) {
@@ -175,30 +203,10 @@ function NewCampaignForm() {
                   />
                 </div>
 
-                {selectedPlan.ad_type !== 'video' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">URL ya Picha</label>
-                    <input
-                      type="url" value={form.image_url}
-                      onChange={e => set('image_url', e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                      placeholder="https://res.cloudinary.com/..."
-                    />
-                  </div>
-                )}
-
-                {selectedPlan.ad_type === 'video' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">URL ya Video *</label>
-                    <input
-                      required={selectedPlan.ad_type === 'video'}
-                      type="url" value={form.video_url}
-                      onChange={e => set('video_url', e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                      placeholder="https://res.cloudinary.com/..."
-                    />
-                  </div>
-                )}
+                <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 text-xs text-blue-700">
+                  📸 Hatua inayofuata: baada ya kuwasilisha fomu hii, utapakia picha au video yako.
+                  Mfumo utatengeneza kiotomatiki mifumo yote ya banner, nearby, na featured.
+                </div>
               </div>
             </div>
 

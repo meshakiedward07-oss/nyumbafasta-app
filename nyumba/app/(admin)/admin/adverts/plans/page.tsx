@@ -1,10 +1,20 @@
 'use client'
 import { useState, useEffect } from 'react'
 
+const PLACEMENT_OPTIONS = [
+  { value: 'banner',    label: 'Banner (Homepage)' },
+  { value: 'search',    label: 'Search Ads' },
+  { value: 'nearby',    label: 'Nearby Ads' },
+  { value: 'video',     label: 'Video Ads' },
+  { value: 'featured',  label: 'Featured Business / Directory' },
+  { value: 'microsite', label: 'Dalali Microsites' },
+]
+
 type Plan = {
   id: string; name: string; ad_type: string; description: string | null
   price_tzs: number; duration_days: number; slot_limit: number
-  features: string[]; display_order: number; is_active: boolean; updated_at: string
+  features: string[]; placements: string[]; display_order: number
+  is_active: boolean; updated_at: string
 }
 
 const AD_TYPES = [
@@ -18,7 +28,7 @@ const AD_TYPES = [
 const emptyForm = {
   name: '', ad_type: 'banner', description: '',
   price_tzs: 0, duration_days: 30, slot_limit: 5,
-  features: '', display_order: 99, is_active: true,
+  features: '', placements: ['banner'] as string[], display_order: 99, is_active: true,
 }
 
 export default function AdminAdvertPlansPage() {
@@ -48,15 +58,31 @@ export default function AdminAdvertPlansPage() {
     setForm({
       name: p.name, ad_type: p.ad_type, description: p.description ?? '',
       price_tzs: p.price_tzs, duration_days: p.duration_days, slot_limit: p.slot_limit,
-      features: (p.features ?? []).join('\n'), display_order: p.display_order, is_active: p.is_active,
+      features: (p.features ?? []).join('\n'),
+      placements: p.placements ?? [p.ad_type],
+      display_order: p.display_order, is_active: p.is_active,
     })
     setEditing(p); setCreating(false); setError('')
   }
 
   function set(k: string, v: unknown) { setForm(p => ({ ...p, [k]: v })) }
 
+  function togglePlacement(v: string) {
+    setForm(p => ({
+      ...p,
+      placements: p.placements.includes(v)
+        ? p.placements.filter(x => x !== v)
+        : [...p.placements, v],
+    }))
+  }
+
   async function save() {
     setSaving(true); setError('')
+    if (form.placements.length === 0) {
+      setError('Chagua angalau placement moja')
+      setSaving(false)
+      return
+    }
     const payload = {
       ...form,
       features: form.features.split('\n').map(f => f.trim()).filter(Boolean),
@@ -189,6 +215,36 @@ export default function AdminAdvertPlansPage() {
               />
             </div>
 
+            {/* Placement checkboxes */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Maeneo ya Matangazo *
+                <span className="text-xs font-normal text-gray-400 ml-1">
+                  (chagua wapi matangazo ya mpango huu yataonekana)
+                </span>
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {PLACEMENT_OPTIONS.map(opt => (
+                  <label
+                    key={opt.value}
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-sm transition ${
+                      form.placements.includes(opt.value)
+                        ? 'border-primary-400 bg-primary-50 text-primary-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.placements.includes(opt.value)}
+                      onChange={() => togglePlacement(opt.value)}
+                      className="accent-primary-500"
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
               <input
                 type="checkbox" id="is_active"
@@ -242,7 +298,16 @@ export default function AdminAdvertPlansPage() {
                     <div className="font-medium text-gray-800">{p.name}</div>
                     {p.description && <div className="text-xs text-gray-400 truncate max-w-xs">{p.description}</div>}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{p.ad_type}</td>
+                  <td className="px-4 py-3">
+                    <div className="text-gray-500 text-xs">{p.ad_type}</div>
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {(p.placements ?? []).map(pl => (
+                        <span key={pl} className="text-[10px] bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded font-medium">
+                          {pl}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-right font-medium tabular-nums">TZS {p.price_tzs.toLocaleString()}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{p.duration_days}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{p.slot_limit}</td>

@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   // Verify plan exists and matches ad_type
   const { data: plan, error: planErr } = await admin
     .from('ad_subscription_plans')
-    .select('id, ad_type, price_tzs, duration_days, slot_limit')
+    .select('id, ad_type, price_tzs, duration_days, slot_limit, placements')
     .eq('id', plan_id)
     .eq('is_active', true)
     .single()
@@ -103,23 +103,28 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Copy placements from plan at creation time (denormalized so existing campaigns
+  // are not affected if the plan is later edited)
+  const allowed = (plan as { placements?: string[] }).placements ?? [ad_type]
+
   const { data: campaign, error: insertErr } = await admin
     .from('ad_campaigns')
     .insert({
-      advertiser_id:   auth.advertiser.id,
+      advertiser_id:     auth.advertiser.id,
       plan_id,
       ad_type,
       title,
-      body_text:       body_text || null,
-      image_url:       image_url || null,
-      video_url:       video_url || null,
+      body_text:         body_text || null,
+      image_url:         image_url || null,
+      video_url:         video_url || null,
       cta_type,
       cta_value,
       target_region,
-      target_district: target_district || null,
-      target_category: target_category || null,
-      status:          'pending_review',
-      payment_status:  'pending',
+      target_district:   target_district || null,
+      target_category:   target_category || null,
+      allowed_placements: allowed,
+      status:            'pending_review',
+      payment_status:    'pending',
     })
     .select()
     .single()

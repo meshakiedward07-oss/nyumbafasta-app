@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   const region    = searchParams.get('region')
   const typeParam = searchParams.get('type')
   const category  = searchParams.get('category') ?? undefined
+  const placement = searchParams.get('placement') ?? undefined
   const sessionId = searchParams.get('sid')
   const limit     = Math.min(Math.max(parseInt(searchParams.get('limit') ?? '5', 10), 3), 10)
 
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
       : undefined
     : undefined
 
-  const result = await rankAds({ ad_type, region, category, sessionId, limit })
+  const result = await rankAds({ ad_type, region, category, placement, sessionId, limit })
 
   // Track impressions in background — skip for SSR sessions to avoid poisoning
   // the freq cap table with bot/crawler traffic (all SSR shares session 'ssr')

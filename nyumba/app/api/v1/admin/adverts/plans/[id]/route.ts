@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const allowed = [
     'name', 'description', 'price_tzs', 'duration_days',
-    'slot_limit', 'features', 'display_order', 'is_active',
+    'slot_limit', 'features', 'display_order', 'is_active', 'placements',
   ]
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
