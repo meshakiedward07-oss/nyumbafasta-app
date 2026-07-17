@@ -27,6 +27,34 @@ type Props = {
   showToast: (msg: string) => void
 }
 
+// ── Download helper ───────────────────────────────────────────────────────────
+// For Cloudinary URLs: adds fl_attachment so the CDN serves a download header.
+// For all others: fetch → blob → createObjectURL.
+async function downloadVideo(url: string, filename: string, onDone?: () => void) {
+  try {
+    let href = url
+
+    if (url.includes('cloudinary.com') && url.includes('/upload/')) {
+      // Insert fl_attachment transformation directly after /upload/
+      const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
+      href = url.replace('/upload/', `/upload/fl_attachment:${safeName}/`)
+    }
+
+    const a = document.createElement('a')
+    a.href = href
+    a.download = filename
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  } catch {
+    // nothing — browser handles errors
+  } finally {
+    onDone?.()
+  }
+}
+
 function timeAgo(iso: string | null): string {
   if (!iso) return ''
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
@@ -127,11 +155,12 @@ function BatchModal({
 type Filter = 'all' | 'unposted' | 'posted'
 
 export default function ListingsTab({ showToast }: Props) {
-  const [listings,  setListings]  = useState<SocialListing[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [filter,    setFilter]    = useState<Filter>('all')
-  const [search,    setSearch]    = useState('')
-  const [editor,    setEditor]    = useState<EditorState>(null)
+  const [listings,     setListings]     = useState<SocialListing[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [filter,       setFilter]       = useState<Filter>('all')
+  const [search,       setSearch]       = useState('')
+  const [editor,       setEditor]       = useState<EditorState>(null)
+  const [downloading,  setDownloading]  = useState<string | null>(null)
 
   // Multi-select
   const [selected,  setSelected]  = useState<Set<string>>(new Set())
@@ -381,13 +410,33 @@ export default function ListingsTab({ showToast }: Props) {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-auto pt-1">
+                  <div className="mt-auto pt-1 flex flex-col gap-1.5">
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditor({ listing, platform: 'both' }) }}
                       className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 transition-all active:scale-95"
                     >
                       <i className="ti ti-edit text-sm" aria-hidden="true" /> Hariri &amp; Chapisha
                     </button>
+
+                    {listing.video_url && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (downloading === listing.id) return
+                          setDownloading(listing.id)
+                          const filename = `nyumbafasta_${listing.type}_${listing.district.replace(/\s+/g, '_')}.mp4`
+                          downloadVideo(listing.video_url!, filename, () => setDownloading(null))
+                            .then(() => showToast('Video inashuka...'))
+                        }}
+                        disabled={downloading === listing.id}
+                        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all active:scale-95 disabled:opacity-60"
+                      >
+                        {downloading === listing.id
+                          ? <><i className="ti ti-loader-2 animate-spin text-sm" aria-hidden="true" /> Inashuka...</>
+                          : <><i className="ti ti-download text-sm" aria-hidden="true" /> Pakua Video</>
+                        }
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

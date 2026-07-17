@@ -28,6 +28,7 @@ type VideoRecord = {
   id:            string
   title:         string
   video_type:    string
+  video_url:     string | null
   post_status:   string
   platforms:     string[]
   ig_post_id:    string | null
@@ -67,6 +68,22 @@ function formatBytes(b: number) {
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+async function downloadVideo(url: string, filename: string) {
+  let href = url
+  if (url.includes('cloudinary.com') && url.includes('/upload/')) {
+    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
+    href = url.replace('/upload/', `/upload/fl_attachment:${safeName}/`)
+  }
+  const a = document.createElement('a')
+  a.href = href
+  a.download = filename
+  a.target = '_blank'
+  a.rel = 'noopener noreferrer'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -125,8 +142,9 @@ export default function VideoUploadTab() {
   const [connTesting, setConnTesting] = useState(false)
 
   // History
-  const [history, setHistory]         = useState<VideoRecord[]>([])
+  const [history,     setHistory]     = useState<VideoRecord[]>([])
   const [histLoading, setHistLoading] = useState(false)
+  const [downloading, setDownloading] = useState<string | null>(null)
 
   const dropRef  = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -915,19 +933,45 @@ export default function VideoUploadTab() {
                       <p className="text-xs text-red-500 mt-0.5 truncate" title={v.error_message}>{v.error_message}</p>
                     )}
                   </div>
-                  {v.post_status === 'draft' && (
-                    <button
-                      onClick={() => {
-                        setVideoId(v.id)
-                        setVideoUrl(null)
-                        setState('uploaded')
-                        window.scrollTo({ top: 0, behavior: 'smooth' })
-                      }}
-                      className="text-xs px-2 py-1 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex-shrink-0"
-                    >
-                      Chapisha
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {v.video_url && (
+                      <button
+                        onClick={async () => {
+                          if (downloading === v.id) return
+                          setDownloading(v.id)
+                          try {
+                            const filename = `nyumbafasta_${v.video_type}_${v.id.slice(0, 8)}.mp4`
+                            await downloadVideo(v.video_url!, filename)
+                            showToast('Video inashuka...')
+                          } finally {
+                            setDownloading(null)
+                          }
+                        }}
+                        disabled={downloading === v.id}
+                        title="Pakua video"
+                        className="text-xs px-2 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 flex items-center gap-1 disabled:opacity-60 transition-all"
+                      >
+                        {downloading === v.id
+                          ? <i className="ti ti-loader-2 animate-spin" aria-hidden="true" />
+                          : <i className="ti ti-download" aria-hidden="true" />
+                        }
+                        <span className="hidden sm:inline">{downloading === v.id ? '...' : 'Pakua'}</span>
+                      </button>
+                    )}
+                    {v.post_status === 'draft' && (
+                      <button
+                        onClick={() => {
+                          setVideoId(v.id)
+                          setVideoUrl(null)
+                          setState('uploaded')
+                          window.scrollTo({ top: 0, behavior: 'smooth' })
+                        }}
+                        className="text-xs px-2 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                      >
+                        Chapisha
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })}
