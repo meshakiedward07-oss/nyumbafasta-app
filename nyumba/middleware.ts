@@ -20,6 +20,16 @@ const AGREEMENT_EXEMPT = [
   '/register',
 ]
 
+// Helper: redirect while preserving Supabase-refreshed session cookies.
+// Without this, Supabase cannot refresh tokens mid-session and users get logged out.
+function redirectWithCookies(url: URL | string, supabaseResponse: NextResponse): NextResponse {
+  const res = NextResponse.redirect(url)
+  supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+    res.cookies.set(name, value, options)
+  })
+  return res
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -58,7 +68,7 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirect', path)
-    return NextResponse.redirect(url)
+    return redirectWithCookies(url, supabaseResponse)
   }
 
   // Email verification guard — all protected routes zinahitaji email iliyothibitishwa
@@ -68,7 +78,7 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = '/verify-email'
       url.searchParams.set('email', user.email ?? '')
-      return NextResponse.redirect(url)
+      return redirectWithCookies(url, supabaseResponse)
     }
   }
 
@@ -85,16 +95,45 @@ export async function middleware(request: NextRequest) {
       : me?.role === 'staff'  ? '/admin/staff-dashboard'
       : me?.role === 'dalali' ? '/dashboard'
       : '/'
-    return NextResponse.redirect(url)
+    return redirectWithCookies(url, supabaseResponse)
   }
 
   // Kwa routes zilizo na ulinzi — angalia is_active NA role kwa query moja
   if (user && (isProtected || needsRoleCheck)) {
-    const { data: userData } = await supabase
+    const { data: userData, error: profileErr } = await supabase
       .from('users')
       .select('role, is_active, staff_active, must_change_password, account_status, agreement_accepted')
       .eq('id', user.id)
       .single()
+
+    // If the full query fails (e.g. a column doesn't yet exist in the DB),
+    // fall back to the minimal columns that must always exist. This prevents
+    // treating every user as 'client' and blocking admin/staff/dalali access.
+    if (profileErr) {
+      const { data: fallback } = await supabase
+        .from('users')
+        .select('role, is_active')
+        .eq('id', user.id)
+        .single()
+
+      if (fallback?.is_active === false) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        url.searchParams.delete('redirect')
+        url.searchParams.set('suspended', '1')
+        return redirectWithCookies(url, supabaseResponse)
+      }
+
+      const role = fallback?.role ?? 'client'
+      if (ADMIN_ONLY_ROUTES.some(r => path.startsWith(r)) && role !== 'admin' && role !== 'staff') {
+        return redirectWithCookies(new URL('/', request.url), supabaseResponse)
+      }
+      if (DALALI_ROUTES.some(r => path.startsWith(r)) && role !== 'admin' && role !== 'dalali') {
+        return redirectWithCookies(new URL('/', request.url), supabaseResponse)
+      }
+
+      return supabaseResponse
+    }
 
     // Akaunti iliyozimwa kabisa (is_active = false)
     if (userData?.is_active === false) {
@@ -102,7 +141,7 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/login'
       url.searchParams.delete('redirect')
       url.searchParams.set('suspended', '1')
-      return NextResponse.redirect(url)
+      return redirectWithCookies(url, supabaseResponse)
     }
 
     // Staff iliyozimwa na admin (staff_active = false)
@@ -111,7 +150,7 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/login'
       url.searchParams.delete('redirect')
       url.searchParams.set('suspended', '1')
-      return NextResponse.redirect(url)
+      return redirectWithCookies(url, supabaseResponse)
     }
 
     // Staff yenye must_change_password — lazima ibadilishe password kwanza
@@ -121,29 +160,23 @@ export async function middleware(request: NextRequest) {
       !path.startsWith('/account/change-password') &&
       !path.startsWith('/api/')
     ) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/account/change-password'
-      return NextResponse.redirect(url)
+      return redirectWithCookies(new URL('/account/change-password', request.url), supabaseResponse)
     }
 
     // Akaunti iliyosimamishwa (account_status = suspended/banned)
     if (!isAgreementExempt) {
       if (userData?.account_status === 'suspended') {
-        const url = request.nextUrl.clone()
-        url.pathname = '/account-suspended'
-        return NextResponse.redirect(url)
+        return redirectWithCookies(new URL('/account-suspended', request.url), supabaseResponse)
       }
       if (userData?.account_status === 'banned') {
-        const url = request.nextUrl.clone()
-        url.pathname = '/account-banned'
-        return NextResponse.redirect(url)
+        return redirectWithCookies(new URL('/account-banned', request.url), supabaseResponse)
       }
 
-      // Makubaliano hayajasainiwa — admin wanapita bila kizuizi
-      if (userData?.role !== 'admin' && userData?.agreement_accepted === false) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/agreement-required'
-        return NextResponse.redirect(url)
+      // Makubaliano hayajasainiwa — admin NA staff wanapita bila kizuizi
+      // (staff hawana haja ya kusaini agreement ya client/dalali)
+      const skipAgreement = userData?.role === 'admin' || userData?.role === 'staff'
+      if (!skipAgreement && userData?.agreement_accepted === false) {
+        return redirectWithCookies(new URL('/agreement-required', request.url), supabaseResponse)
       }
     }
 
@@ -151,16 +184,12 @@ export async function middleware(request: NextRequest) {
 
     // /admin/* → admin au staff tu (staff wanaingia, lakini pages zinazidi kuangalia permissions)
     if (ADMIN_ONLY_ROUTES.some(r => path.startsWith(r)) && role !== 'admin' && role !== 'staff') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
+      return redirectWithCookies(new URL('/', request.url), supabaseResponse)
     }
 
     // /dashboard/* → dalali na admin tu (staff wanaenda /admin/*, si /dashboard/*)
     if (DALALI_ROUTES.some(r => path.startsWith(r)) && role !== 'admin' && role !== 'dalali') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
+      return redirectWithCookies(new URL('/', request.url), supabaseResponse)
     }
 
     // /dashboard/analytics → basic plan au zaidi (si free)
@@ -177,7 +206,7 @@ export async function middleware(request: NextRequest) {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard/subscription'
         url.searchParams.set('upgrade', 'analytics')
-        return NextResponse.redirect(url)
+        return redirectWithCookies(url, supabaseResponse)
       }
     }
   }

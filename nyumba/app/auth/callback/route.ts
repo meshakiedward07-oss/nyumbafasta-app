@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
           if (existingUser?.role) {
             // Already registered — send them home, not back to the register flow
             const dest = existingUser.role === 'admin'  ? `${origin}/admin`
-                       : existingUser.role === 'staff'  ? `${origin}/admin/staff-leads`
+                       : existingUser.role === 'staff'  ? `${origin}/admin/staff-dashboard`
                        : existingUser.role === 'dalali' ? `${origin}/dashboard`
                        : `${origin}/`
             return NextResponse.redirect(dest)
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest) {
         if (profile?.must_change_password) {
           return NextResponse.redirect(`${origin}/account/change-password`)
         }
-        return NextResponse.redirect(`${origin}/admin/staff-leads`)
+        return NextResponse.redirect(`${origin}/admin/staff-dashboard`)
       }
       if (role === 'dalali') return NextResponse.redirect(`${origin}/dashboard?welcome=true`)
       return NextResponse.redirect(`${origin}/?welcome=true`)
