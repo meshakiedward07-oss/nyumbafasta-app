@@ -61,7 +61,7 @@ function LoginForm() {
     const dest = redirectTo
       ? redirectTo
       : data?.role === 'admin'  ? '/admin'
-      : data?.role === 'staff'  ? '/admin/staff-leads'
+      : data?.role === 'staff'  ? '/admin/staff-dashboard'
       : data?.role === 'dalali' ? '/dashboard'
       : '/'
 

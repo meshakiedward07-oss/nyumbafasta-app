@@ -62,29 +62,25 @@ function ChangePasswordForm() {
       return
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
+    // Use admin-privileged API to clear must_change_password (RLS blocks client-side update)
     let role = 'client'
-    if (user) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      role = userData?.role ?? 'client'
-      await supabase
-        .from('users')
-        .update({ must_change_password: false })
-        .eq('id', user.id)
+    try {
+      const res = await fetch('/api/v1/auth/clear-force-password', { method: 'POST' })
+      const json = await res.json()
+      if (json.role) role = json.role
+    } catch {
+      // Non-fatal — middleware will still redirect correctly once flag is cleared
     }
 
     setDone(true)
     setSaving(false)
 
     setTimeout(() => {
-      if (role === 'admin' || role === 'staff') router.push('/admin')
+      if (role === 'admin') router.push('/admin')
+      else if (role === 'staff') router.push('/admin/staff-dashboard')
       else if (role === 'dalali') router.push('/dashboard')
       else router.push('/')
-    }, 2000)
+    }, 1500)
   }
 
   if (done) {

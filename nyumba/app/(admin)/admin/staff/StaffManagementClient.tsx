@@ -157,6 +157,20 @@ export default function StaffManagementClient() {
     }
   }
 
+  async function resetPassword(member: StaffMember) {
+    const res = await fetch(`/api/v1/admin/staff/${member.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reset_password' }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      showToast(`✓ Password mpya imetumwa kwa ${member.email ?? member.full_name}`)
+    } else {
+      showToast(data.error ?? 'Imeshindwa kubadilisha password', false)
+    }
+  }
+
   const activeCount    = staff.filter(s => s.staff_active).length
   const totalLeads     = staff.reduce((a, s) => a + s.activeLeads, 0)
   const totalConverted = staff.reduce((a, s) => a + s.totalConverted, 0)
@@ -422,8 +436,16 @@ export default function StaffManagementClient() {
                       </button>
                     </div>
                     <button
+                      onClick={() => {
+                        if (confirm(`Tuma password mpya kwa ${s.full_name}?`)) resetPassword(s)
+                      }}
+                      className="mt-2 w-full text-xs text-blue-500 hover:text-blue-700 border border-dashed border-blue-200 hover:border-blue-400 rounded-xl px-3 py-1.5 transition-colors flex items-center justify-center gap-1"
+                    >
+                      <i className="ti ti-key" aria-hidden="true" /> Badilisha Password
+                    </button>
+                    <button
                       onClick={() => setConfirmDelete(s)}
-                      className="mt-2 w-full text-xs text-red-400 hover:text-red-600 border border-dashed border-red-200 hover:border-red-400 rounded-xl px-3 py-1.5 transition-colors flex items-center justify-center gap-1"
+                      className="mt-1 w-full text-xs text-red-400 hover:text-red-600 border border-dashed border-red-200 hover:border-red-400 rounded-xl px-3 py-1.5 transition-colors flex items-center justify-center gap-1"
                     >
                       <i className="ti ti-trash" aria-hidden="true" /> Futa Akaunti
                     </button>
