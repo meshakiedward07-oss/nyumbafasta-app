@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdvertiserAuth } from '@/lib/security/advertiserAuth'
 import { createAdminClient } from '@/lib/supabase/server'
+import { normalizePhone } from '@/lib/utils/phone'
 
 export async function GET() {
   const auth = await requireAdvertiserAuth()
@@ -18,6 +19,9 @@ export async function PATCH(req: NextRequest) {
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]
+  }
+  if (updates.whatsapp_number && typeof updates.whatsapp_number === 'string') {
+    updates.whatsapp_number = normalizePhone(updates.whatsapp_number) || null
   }
 
   if (Object.keys(updates).length === 0) {

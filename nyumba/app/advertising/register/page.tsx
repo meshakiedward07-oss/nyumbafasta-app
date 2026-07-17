@@ -105,13 +105,16 @@ function RegisterForm() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    WhatsApp <span className="text-red-500 font-bold">*</span>
+                  </label>
                   <input
-                    type="tel" value={form.whatsapp_number}
+                    required type="tel" value={form.whatsapp_number}
                     onChange={e => set('whatsapp_number', e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    placeholder="0712345678"
+                    placeholder="255712345678"
                   />
+                  <p className="text-[11px] text-gray-400 mt-0.5">Wateja watabonyeza tangazo hadi WhatsApp yako</p>
                 </div>
               </div>
 

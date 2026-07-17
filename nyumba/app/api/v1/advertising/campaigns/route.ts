@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdvertiserAuth } from '@/lib/security/advertiserAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { checkSlotAvailability } from '@/lib/ads/fetcher'
+import { normalizePhone } from '@/lib/utils/phone'
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdvertiserAuth()
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
       video_url:         video_url || null,
       cta_type,
       cta_value: ['whatsapp', 'call'].includes(cta_type)
-        ? resolvedCtaValue.replace(/\D/g, '')
+        ? normalizePhone(resolvedCtaValue)
         : resolvedCtaValue,
       target_region,
       target_district:   target_district || null,

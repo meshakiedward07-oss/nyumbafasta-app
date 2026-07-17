@@ -2,6 +2,7 @@
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { getOrCreateSessionId } from '@/lib/ads/session'
+import { waLink } from '@/lib/utils/phone'
 
 type Ad = {
   id: string; title: string; body_text: string | null; image_url: string | null
@@ -37,7 +38,7 @@ export default function NearbyAds({ region }: { region: string }) {
             ? ad.cta_value
             : ad.advertiser?.whatsapp_number
           const href = waNumber
-            ? `https://wa.me/${waNumber.replace(/\D/g, '')}`
+            ? waLink(waNumber)
             : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : (ad.cta_value || '#')
 
           return (

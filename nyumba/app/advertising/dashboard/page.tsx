@@ -72,12 +72,20 @@ export default async function AdvertiserDashboard() {
             <span className="text-sm text-gray-400">{advertiser.city}</span>
           </div>
         </div>
-        <Link
-          href="/advertising/new"
-          className="bg-primary-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary-600 transition"
-        >
-          + Tangazo Jipya
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/advertising/profile"
+            className="border border-gray-300 text-gray-600 px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
+          >
+            ✏️ Wasifu
+          </Link>
+          <Link
+            href="/advertising/new"
+            className="bg-primary-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary-600 transition"
+          >
+            + Tangazo Jipya
+          </Link>
+        </div>
       </div>
 
       {/* Status banner for pending */}
@@ -85,6 +93,23 @@ export default async function AdvertiserDashboard() {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
           <strong>Akaunti yako inasubiri ukaguzi wa admin.</strong> Utapokea ujumbe wa WhatsApp
           baada ya kukaguliwa. Hii inachukua hadi saa 24.
+        </div>
+      )}
+
+      {/* Missing WhatsApp warning — clicks will go nowhere without it */}
+      {!advertiser.whatsapp_number && (
+        <div className="bg-red-50 border border-red-300 rounded-xl p-4 mb-6 text-sm text-red-800 flex items-start gap-3">
+          <span className="text-xl flex-shrink-0">⚠️</span>
+          <div>
+            <strong>Nambari ya WhatsApp haijawekwa!</strong>
+            <p className="mt-1 text-red-700">Wateja wanaobonyeza matangazo yako hawataweza kukufikia. Ongeza nambari yako ya WhatsApp mara moja.</p>
+            <a
+              href="/advertising/profile"
+              className="inline-block mt-2 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-700 transition"
+            >
+              + Ongeza WhatsApp →
+            </a>
+          </div>
         </div>
       )}
 

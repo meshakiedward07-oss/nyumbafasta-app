@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { normalizePhone } from '@/lib/utils/phone'
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
         business_name,
         business_category,
         contact_phone,
-        whatsapp_number:   whatsapp_number || null,
+        whatsapp_number:   whatsapp_number ? normalizePhone(whatsapp_number) : null,
         email,
         city,
         district:          district || null,

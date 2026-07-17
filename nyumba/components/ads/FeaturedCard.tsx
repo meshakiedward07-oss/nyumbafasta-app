@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { waLink } from '@/lib/utils/phone'
 
 type FeaturedBusiness = {
   id: string; title: string; body_text: string | null; image_url: string | null
@@ -15,7 +16,7 @@ export default function FeaturedCard({ ad }: { ad: FeaturedBusiness }) {
     ? ad.cta_value
     : ad.advertiser?.whatsapp_number
   const href = waNumber
-    ? `https://wa.me/${waNumber.replace(/\D/g, '')}`
+    ? waLink(waNumber)
     : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : (ad.cta_value || '#')
 
   const isExternal = ad.cta_type !== undefined

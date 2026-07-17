@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { getOrCreateSessionId } from '@/lib/ads/session'
+import { waLink } from '@/lib/utils/phone'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -32,7 +33,7 @@ function AdCard({ ad }: { ad: RankedAd }) {
     ? ad.cta_value
     : ad.advertiser?.whatsapp_number
   const href = waNumber
-    ? `https://wa.me/${waNumber.replace(/\D/g, '')}`
+    ? waLink(waNumber)
     : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : (ad.cta_value || '#')
 
   const ctaLabel = waNumber ? '💬 WhatsApp' :
