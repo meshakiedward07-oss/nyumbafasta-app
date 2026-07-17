@@ -606,41 +606,55 @@ async function runDailyTasks() {
   try {
     const yesterday = new Date(Date.now() - 86_400_000).toISOString()
 
+    // Queries without FK joins — boost_payments and payments tables don't have
+    // PostgREST FK relationships to users, so join syntax fails silently.
+    // Names are fetched separately below via a single .in() query.
     const [unlocksRes, subsRes, boostsRes, extraListingsRes] = await Promise.all([
-      // Contact unlocks
       admin.from('contact_unlocks')
-        .select('dalali_id, users:dalali_id (full_name)')
+        .select('dalali_id, amount_paid')
         .gte('created_at', yesterday)
         .eq('status', 'completed'),
-      // Subscription payments activated today
+      // starts_at is set when the subscription is activated by the webhook
       admin.from('subscriptions')
-        .select('plan, amount_paid, dalali_id, users:dalali_id (full_name)')
+        .select('plan, amount_paid, dalali_id')
         .gte('starts_at', yesterday)
-        .eq('status', 'active')
+        .in('status', ['active', 'grace_period'])
         .neq('plan', 'free'),
-      // Boost payments completed today
       admin.from('boost_payments')
-        .select('amount, weeks, dalali_id, users:dalali_id (full_name)')
+        .select('amount, weeks, dalali_id')
         .gte('created_at', yesterday)
         .eq('status', 'completed'),
-      // Extra listing payments completed today (type = 'extra_listings' in payments table)
       admin.from('payments')
-        .select('amount, dalali_id, users:dalali_id (full_name)')
+        .select('amount, dalali_id')
         .eq('type', 'extra_listings')
         .gte('created_at', yesterday)
         .eq('status', 'completed'),
     ])
 
-    const unlocks      = unlocksRes.data ?? []
-    const subs         = subsRes.data ?? []
-    const boosts       = boostsRes.data ?? []
+    const unlocks       = unlocksRes.data ?? []
+    const subs          = subsRes.data ?? []
+    const boosts        = boostsRes.data ?? []
     const extraListings = extraListingsRes.data ?? []
 
-    const unlockRevenue    = unlocks.length * 2000
-    const subRevenue       = subs.reduce((s, r) => s + (r.amount_paid ?? 0), 0)
-    const boostRevenue     = boosts.reduce((s, r) => s + (r.amount ?? 0), 0)
-    const extraRevenue     = (extraListings as { amount: number }[]).reduce((s, r) => s + (r.amount ?? 0), 0)
-    const totalRevenue     = unlockRevenue + subRevenue + boostRevenue + extraRevenue
+    const unlockRevenue = unlocks.reduce((s, r) => s + Number(r.amount_paid ?? 2000), 0)
+    const subRevenue    = subs.reduce((s, r) => s + Number(r.amount_paid ?? 0), 0)
+    const boostRevenue  = boosts.reduce((s, r) => s + Number(r.amount ?? 0), 0)
+    const extraRevenue  = extraListings.reduce((s, r) => s + Number(r.amount ?? 0), 0)
+    const totalRevenue  = unlockRevenue + subRevenue + boostRevenue + extraRevenue
+
+    // Fetch dalali names in one query (avoids FK join failures)
+    const allDalaliIds = [...new Set([
+      ...unlocks.map(u => u.dalali_id),
+      ...subs.map(s => s.dalali_id),
+      ...boosts.map(b => b.dalali_id),
+      ...extraListings.map(e => e.dalali_id),
+    ].filter(Boolean))]
+
+    const dalaliNames: Record<string, string> = {}
+    if (allDalaliIds.length > 0) {
+      const { data: ud } = await admin.from('users').select('id, full_name').in('id', allDalaliIds)
+      for (const u of ud ?? []) dalaliNames[u.id] = u.full_name ?? '—'
+    }
 
     function tableRow(...cells: string[]) {
       return `<tr>${cells.map((c, i) => `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;${i > 0 ? 'text-align:right' : ''}">${c}</td>`).join('')}</tr>`
@@ -689,10 +703,39 @@ async function runDailyTasks() {
             <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Plan</td>
             <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Kiasi</td>
           </tr>
-          ${subs.map(s => {
-            const name = (s.users as unknown as { full_name: string } | null)?.full_name ?? '—'
-            return tableRow(name, String(s.plan).toUpperCase(), `Tsh ${(s.amount_paid ?? 0).toLocaleString()}`)
-          }).join('')}
+          ${subs.map(s => tableRow(
+            dalaliNames[s.dalali_id] ?? '—',
+            String(s.plan).toUpperCase(),
+            `Tsh ${Number(s.amount_paid ?? 0).toLocaleString()}`
+          )).join('')}
+        </table>` : ''}
+
+        ${boosts.length > 0 ? `
+        <p style="font-size:15px;font-weight:700;color:#374151;margin:20px 0 8px">⚡ Boost Payments Leo</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:20px">
+          <tr style="background:#f3f4f6">
+            <td style="padding:8px 14px;font-size:12px;font-weight:600">Dalali</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Wiki</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Kiasi</td>
+          </tr>
+          ${boosts.map(b => tableRow(
+            dalaliNames[b.dalali_id] ?? '—',
+            `${b.weeks ?? 1}`,
+            `Tsh ${Number(b.amount ?? 0).toLocaleString()}`
+          )).join('')}
+        </table>` : ''}
+
+        ${extraListings.length > 0 ? `
+        <p style="font-size:15px;font-weight:700;color:#374151;margin:20px 0 8px">➕ Extra Listings Zilizolipwa Leo</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:20px">
+          <tr style="background:#f3f4f6">
+            <td style="padding:8px 14px;font-size:12px;font-weight:600">Dalali</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Kiasi</td>
+          </tr>
+          ${extraListings.map(e => tableRow(
+            dalaliNames[e.dalali_id] ?? '—',
+            `Tsh ${Number(e.amount ?? 0).toLocaleString()}`
+          )).join('')}
         </table>` : ''}
 
         ${unlocks.length > 0 ? `
@@ -704,14 +747,14 @@ async function runDailyTasks() {
             <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Mapato</td>
           </tr>
           ${(() => {
-            const byD: Record<string, { name: string; n: number }> = {}
+            const byD: Record<string, { n: number; amt: number }> = {}
             for (const u of unlocks) {
-              const nm = (u.users as unknown as { full_name: string } | null)?.full_name ?? '—'
-              if (!byD[u.dalali_id]) byD[u.dalali_id] = { name: nm, n: 0 }
+              if (!byD[u.dalali_id]) byD[u.dalali_id] = { n: 0, amt: 0 }
               byD[u.dalali_id].n++
+              byD[u.dalali_id].amt += Number(u.amount_paid ?? 2000)
             }
-            return Object.values(byD).sort((a, b) => b.n - a.n)
-              .map(({ name, n }) => tableRow(name, `${n}`, `Tsh ${(n * 2000).toLocaleString()}`)).join('')
+            return Object.entries(byD).sort((a, b) => b[1].n - a[1].n)
+              .map(([id, { n, amt }]) => tableRow(dalaliNames[id] ?? '—', `${n}`, `Tsh ${amt.toLocaleString()}`)).join('')
           })()}
         </table>` : ''}
 
