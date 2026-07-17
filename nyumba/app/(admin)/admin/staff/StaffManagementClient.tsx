@@ -1813,7 +1813,7 @@ function StaffLegalModal({
                 <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                   <i className="ti ti-file-off text-4xl text-gray-300 block mb-3" aria-hidden="true" />
                   <p className="text-sm font-semibold text-gray-500">Mfanyakazi hajajaza taarifa bado</p>
-                  <p className="text-xs text-gray-400 mt-1">Atajaza kwenye dashibodi yake chini ya "Taarifa Zangu"</p>
+                  <p className="text-xs text-gray-400 mt-1">Atajaza kwenye dashibodi yake chini ya &quot;Taarifa Zangu&quot;</p>
                 </div>
               ) : (
                 <>

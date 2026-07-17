@@ -1019,7 +1019,7 @@ export default function StaffDashboardClient() {
 
         {/* ── PROFILE TAB ─────────────────────────────────── */}
         {tab === 'profile' && (
-          <ProfileTab staffId={staff.id} staffName={staff.full_name} showToast={showToast} />
+          <ProfileTab showToast={showToast} />
         )}
 
       </div>
@@ -1136,12 +1136,8 @@ const DOC_TYPES = [
 ]
 
 function ProfileTab({
-  staffId,
-  staffName,
   showToast,
 }: {
-  staffId: string
-  staffName: string
   showToast: (msg: string, ok?: boolean) => void
 }) {
   const [loading,      setLoading]      = useState(true)

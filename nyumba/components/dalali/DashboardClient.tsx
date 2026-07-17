@@ -57,7 +57,7 @@ function formatPrice(amount: number): string {
   return `${amount}`
 }
 
-export default function DashboardClient({ dalaliName, username, profile, subscription, listings, stats }: Props) {
+export default function DashboardClient({ dalaliName, username: _username, profile, subscription, listings, stats }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [basicPrice, setBasicPrice] = useState(10_000)
