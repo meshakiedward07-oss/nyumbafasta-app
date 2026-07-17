@@ -6,7 +6,7 @@ import { getOrCreateSessionId } from '@/lib/ads/session'
 type Ad = {
   id: string; title: string; body_text: string | null; image_url: string | null
   cta_type: string; cta_value: string
-  advertiser: { business_name: string; business_category: string; logo_url: string | null } | null
+  advertiser: { business_name: string; business_category: string; logo_url: string | null; whatsapp_number: string | null } | null
 }
 
 export default function NearbyAds({ region }: { region: string }) {
@@ -33,10 +33,12 @@ export default function NearbyAds({ region }: { region: string }) {
       </p>
       <div className="flex gap-3 overflow-x-auto px-4 pb-2 no-scrollbar">
         {ads.map(ad => {
-          const href =
-            ad.cta_type === 'whatsapp' ? `https://wa.me/${ad.cta_value}` :
-            ad.cta_type === 'call'     ? `tel:${ad.cta_value}` :
-            ad.cta_value
+          const waNumber = (ad.cta_type === 'whatsapp' && ad.cta_value)
+            ? ad.cta_value
+            : ad.advertiser?.whatsapp_number
+          const href = waNumber
+            ? `https://wa.me/${waNumber.replace(/\D/g, '')}`
+            : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : (ad.cta_value || '#')
 
           return (
             <a

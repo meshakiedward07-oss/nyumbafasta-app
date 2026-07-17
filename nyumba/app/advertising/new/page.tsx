@@ -28,6 +28,7 @@ function NewCampaignForm() {
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState('')
   const [advertiserOk, setAdvertiserOk] = useState<boolean | null>(null)
+  const [advertiserWa, setAdvertiserWa] = useState<string>('')
   const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null)
 
   const [form, setForm] = useState({
@@ -45,7 +46,16 @@ function NewCampaignForm() {
       .then(r => r.json())
       .then(d => setPlans(d.plans ?? []))
     fetch('/api/v1/advertising/me')
-      .then(r => r.ok ? setAdvertiserOk(true) : setAdvertiserOk(false))
+      .then(async r => {
+        if (!r.ok) { setAdvertiserOk(false); return }
+        setAdvertiserOk(true)
+        const d = await r.json()
+        const wa = (d.advertiser?.whatsapp_number ?? '').replace(/\D/g, '')
+        if (wa) {
+          setAdvertiserWa(wa)
+          setForm(prev => prev.cta_value ? prev : { ...prev, cta_value: wa })
+        }
+      })
       .catch(() => setAdvertiserOk(false))
   }, [])
 
@@ -241,6 +251,11 @@ function NewCampaignForm() {
                 className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 placeholder={CTA_TYPES.find(ct => ct.value === form.cta_type)?.placeholder ?? ''}
               />
+              {form.cta_type === 'whatsapp' && advertiserWa && form.cta_value === advertiserWa && (
+                <p className="text-xs text-green-600 mt-1">
+                  ✅ Kutoka kwa profaili yako ya mfanyabiashara
+                </p>
+              )}
             </div>
 
             {/* Targeting */}

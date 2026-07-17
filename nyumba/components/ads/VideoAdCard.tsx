@@ -6,7 +6,7 @@ type Ad = {
   id: string; title: string; body_text: string | null
   video_url: string | null; image_url: string | null
   cta_type: string; cta_value: string
-  advertiser: { business_name: string; logo_url: string | null } | null
+  advertiser: { business_name: string; logo_url: string | null; whatsapp_number: string | null } | null
 }
 
 const FALLBACK_REGION = 'Dar es Salaam'
@@ -31,18 +31,25 @@ export default function VideoAdCard({ region }: { region?: string }) {
 
   if (!ad?.video_url) return null
 
-  const href =
-    ad.cta_type === 'whatsapp' ? `https://wa.me/${ad.cta_value}` :
-    ad.cta_type === 'call'     ? `tel:${ad.cta_value}` :
-    ad.cta_value
+  const waNumber = (ad.cta_type === 'whatsapp' && ad.cta_value)
+    ? ad.cta_value
+    : ad.advertiser?.whatsapp_number
+  const href = waNumber
+    ? `https://wa.me/${waNumber.replace(/\D/g, '')}`
+    : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : (ad.cta_value || '#')
 
   return (
-    <div className="mx-4 my-3 bg-gray-900 rounded-2xl overflow-hidden shadow-md">
+    <a
+      href={href}
+      target={!waNumber && ad.cta_type === 'website' ? '_blank' : undefined}
+      rel="noopener noreferrer"
+      className="block mx-4 my-3 bg-gray-900 rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition"
+    >
       <div className="relative">
         <video
           ref={videoRef}
           src={ad.video_url}
-          poster={ad.image_url ?? undefined}   // image_url = video_thumb_url from creative
+          poster={ad.image_url ?? undefined}
           className="w-full max-h-56 object-cover"
           autoPlay muted loop playsInline
         />
@@ -58,17 +65,11 @@ export default function VideoAdCard({ region }: { region?: string }) {
             <div className="text-xs text-gray-400 truncate">{ad.advertiser.business_name}</div>
           )}
         </div>
-        <a
-          href={href}
-          target={ad.cta_type === 'website' ? '_blank' : undefined}
-          rel="noopener noreferrer"
-          className="flex-shrink-0 bg-primary-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-primary-600 transition whitespace-nowrap"
-        >
-          {ad.cta_type === 'whatsapp' ? '💬 Wasiliana' :
-           ad.cta_type === 'call'     ? '📞 Piga Simu' :
-           '🌐 Tovuti'}
-        </a>
+        <span className="flex-shrink-0 bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl whitespace-nowrap">
+          {waNumber ? '💬 Wasiliana' :
+           ad.cta_type === 'call' ? '📞 Piga Simu' : '🌐 Tovuti'}
+        </span>
       </div>
-    </div>
+    </a>
   )
 }

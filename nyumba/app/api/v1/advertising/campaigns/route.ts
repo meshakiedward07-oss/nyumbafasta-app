@@ -45,7 +45,11 @@ export async function POST(req: NextRequest) {
     target_region, target_district, target_category,
   } = body
 
-  if (!plan_id || !ad_type || !title || !cta_type || !cta_value || !target_region) {
+  // For WhatsApp CTA, fall back to the advertiser's registered WhatsApp number
+  const resolvedCtaValue: string = cta_value
+    || (cta_type === 'whatsapp' ? (auth.advertiser.whatsapp_number ?? '') : '')
+
+  if (!plan_id || !ad_type || !title || !cta_type || !resolvedCtaValue || !target_region) {
     return NextResponse.json({ error: 'Tafadhali jaza sehemu zote zinazohitajika' }, { status: 400 })
   }
 
@@ -118,7 +122,9 @@ export async function POST(req: NextRequest) {
       image_url:         image_url || null,
       video_url:         video_url || null,
       cta_type,
-      cta_value,
+      cta_value: ['whatsapp', 'call'].includes(cta_type)
+        ? resolvedCtaValue.replace(/\D/g, '')
+        : resolvedCtaValue,
       target_region,
       target_district:   target_district || null,
       target_category:   target_category || null,

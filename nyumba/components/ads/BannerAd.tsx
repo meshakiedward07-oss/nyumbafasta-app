@@ -6,7 +6,7 @@ import { getOrCreateSessionId } from '@/lib/ads/session'
 type Ad = {
   id: string; title: string; body_text: string | null; image_url: string | null
   cta_type: string; cta_value: string
-  advertiser: { business_name: string; logo_url: string | null } | null
+  advertiser: { business_name: string; logo_url: string | null; whatsapp_number: string | null } | null
 }
 
 const FALLBACK_REGION = 'Dar es Salaam'
@@ -29,10 +29,12 @@ export default function BannerAd({ region }: { region?: string }) {
 
   if (!ad) return null
 
-  const href =
-    ad.cta_type === 'whatsapp' ? `https://wa.me/${ad.cta_value}` :
-    ad.cta_type === 'call'     ? `tel:${ad.cta_value}` :
-    ad.cta_value
+  const waNumber = (ad.cta_type === 'whatsapp' && ad.cta_value)
+    ? ad.cta_value
+    : ad.advertiser?.whatsapp_number
+  const href = waNumber
+    ? `https://wa.me/${waNumber.replace(/\D/g, '')}`
+    : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : (ad.cta_value || '#')
 
   return (
     <a

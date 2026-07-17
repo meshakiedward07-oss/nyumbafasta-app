@@ -11,8 +11,12 @@ type FeaturedBusiness = {
 }
 
 export default function FeaturedCard({ ad }: { ad: FeaturedBusiness }) {
-  const href = ad.cta_type === 'whatsapp' ? `https://wa.me/${ad.cta_value}`
-    : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : ad.cta_value
+  const waNumber = (ad.cta_type === 'whatsapp' && ad.cta_value)
+    ? ad.cta_value
+    : ad.advertiser?.whatsapp_number
+  const href = waNumber
+    ? `https://wa.me/${waNumber.replace(/\D/g, '')}`
+    : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : (ad.cta_value || '#')
 
   const isExternal = ad.cta_type !== undefined
 
@@ -52,17 +56,15 @@ export default function FeaturedCard({ ad }: { ad: FeaturedBusiness }) {
         )}
 
         <div className="mt-3">
-          {ad.cta_type === 'whatsapp' && (
+          {waNumber ? (
             <span className="block text-center w-full bg-green-500 text-white text-xs font-bold py-1.5 rounded-lg">
               💬 Wasiliana WhatsApp
             </span>
-          )}
-          {ad.cta_type === 'call' && (
+          ) : ad.cta_type === 'call' ? (
             <span className="block text-center w-full bg-blue-500 text-white text-xs font-bold py-1.5 rounded-lg">
               📞 Piga Simu
             </span>
-          )}
-          {ad.cta_type === 'website' && (
+          ) : (
             <span className="block text-center w-full bg-purple-500 text-white text-xs font-bold py-1.5 rounded-lg">
               🌐 Tembelea Tovuti
             </span>
