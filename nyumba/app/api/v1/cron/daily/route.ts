@@ -925,6 +925,18 @@ async function runDailyTasks() {
     errors.push(`❌ Ad expiry/reminders: ${String(e)}`)
   }
 
+  // ── 22. Purge stale ad impressions (older than 24h) ──
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { count } = await admin
+      .from('ad_impressions')
+      .delete({ count: 'exact' })
+      .lt('shown_at', cutoff)
+    results.push(`✅ Ad impressions zilizofutwa: ${count ?? 0}`)
+  } catch (e) {
+    errors.push(`❌ Ad impressions purge: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,
