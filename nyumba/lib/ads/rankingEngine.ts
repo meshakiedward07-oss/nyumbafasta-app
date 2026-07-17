@@ -9,7 +9,7 @@ export type RankedAd = {
   ad_type:          AdType
   title:            string
   body_text:        string | null
-  image_url:        string | null
+  image_url:        string | null   // placement-resolved: nearby → nearby_url, etc.
   video_url:        string | null
   cta_type:         'whatsapp' | 'call' | 'website'
   cta_value:        string
@@ -35,7 +35,7 @@ export type RankAdsParams = {
   category?:  string
   sessionId:  string
   limit?:     number
-  placement?: string   // filter by allowed_placements (plan entitlement)
+  placement?: string   // filter by allowed_placements; also selects variant URL
 }
 
 export type RankAdsResult = {
@@ -51,7 +51,6 @@ function getDayOfYear(): number {
   return Math.floor((now.getTime() - start.getTime()) / 86_400_000)
 }
 
-// Deterministic hash of a UUID string → positive 32-bit integer
 function djb2(str: string): number {
   let h = 5381
   for (let i = 0; i < str.length; i++) {
@@ -60,20 +59,29 @@ function djb2(str: string): number {
   return Math.abs(h >>> 0)
 }
 
-// ── Core ranking (TypeScript, no extra DB round-trips) ─────────────────────────
+// ── Core types ─────────────────────────────────────────────────────────────────
+
+type Creative = {
+  banner_url:      string | null
+  search_url:      string | null
+  nearby_url:      string | null
+  featured_url:    string | null
+  video_thumb_url: string | null
+} | null
 
 type RawRow = {
   id:              string
   ad_type:         string
   title:           string
   body_text:       string | null
-  image_url:       string | null
+  image_url:       string | null   // fallback if no creative
   video_url:       string | null
   cta_type:        string
   cta_value:       string
   target_region:   string
   target_district: string | null
   target_category: string | null
+  creative:        Creative
   advertiser:      Record<string, unknown> | null
 }
 
@@ -83,14 +91,38 @@ type ScoredRow = RawRow & {
   rotation_key:  number
 }
 
+// ── Per-placement image URL resolver ──────────────────────────────────────────
+// Returns the variant most appropriate for the requested placement,
+// falling back gracefully if a specific variant was not generated.
+
+function resolveImageUrl(row: RawRow, placement?: string): string | null {
+  const c = row.creative
+  if (!c) return row.image_url
+  switch (placement) {
+    case 'nearby':   return c.nearby_url      ?? c.banner_url ?? row.image_url
+    case 'search':   return c.search_url      ?? c.banner_url ?? row.image_url
+    case 'featured': return c.featured_url    ?? c.banner_url ?? row.image_url
+    case 'video':    return c.video_thumb_url ?? c.banner_url ?? row.image_url
+    default:         return c.banner_url      ?? row.image_url
+  }
+}
+
+// ── SELECT string (shared by candidate + fallback queries) ────────────────────
+// Joins ad_creatives for per-placement variant URLs.
+
 const AD_SELECT = `
   id, ad_type, title, body_text, image_url, video_url,
   cta_type, cta_value, target_region, target_district, target_category,
+  creative:creative_id (
+    banner_url, search_url, nearby_url, featured_url, video_thumb_url
+  ),
   advertiser:advertiser_id (
     id, business_name, business_category,
     logo_url, whatsapp_number, description, city
   )
 ` as const
+
+// ── Scoring ────────────────────────────────────────────────────────────────────
 
 function scoreRows(rows: RawRow[]): ScoredRow[] {
   const doy = getDayOfYear()
@@ -125,8 +157,8 @@ export async function rankAds(params: RankAdsParams): Promise<RankAdsResult> {
   const now   = new Date().toISOString()
   const capAt = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
 
-  // SSR renders share a single session ID — bypass freq cap entirely to avoid
-  // poisoning the impression table with bot/crawler traffic.
+  // SSR: skip freq cap — all server renders share 'ssr' session, which would
+  // incorrectly accumulate impressions and cap ads for real users.
   const isSsr = !sessionId || sessionId === 'ssr'
 
   // ── 1. Frequency cap: recent impression IDs for this session ─────────────
@@ -140,8 +172,8 @@ export async function rankAds(params: RankAdsParams): Promise<RankAdsResult> {
     recentIds = (recentData ?? []).map(r => r.campaign_id as string)
   }
 
-  // ── 2. Shared filter applicator ──────────────────────────────────────────
-  // Uses the partial index idx_ad_campaigns_active_ranking:
+  // ── 2. Filter applicator ──────────────────────────────────────────────────
+  // Partial index idx_ad_campaigns_active_ranking covers:
   //   (target_region, ad_type, target_category, expires_at)
   //   WHERE status = 'active' AND payment_status = 'completed'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -151,26 +183,28 @@ export async function rankAds(params: RankAdsParams): Promise<RankAdsResult> {
       .eq('payment_status', 'completed')
       .eq('target_region', region)
       .or(`expires_at.is.null,expires_at.gt.${now}`)
+
     if (ad_type) {
       if (Array.isArray(ad_type)) q = q.in('ad_type', ad_type)
       else                        q = q.eq('ad_type', ad_type)
     }
+
     if (category) {
       q = q.or(`target_category.is.null,target_category.eq.${category}`)
     }
-    // Placement entitlement: only show campaigns whose plan covers this placement.
-    // Campaigns with empty allowed_placements (created before this feature) fall
-    // back gracefully — they are not excluded.
+
+    // Placement entitlement: campaigns whose plan includes this placement.
+    // Uses GIN index idx_ad_campaigns_placements for O(1) array-contains lookup.
+    // Campaigns with empty allowed_placements (pre-migration) are excluded —
+    // run the ad_creatives.sql migration to backfill them.
     if (placement) {
-      q = q.or(`allowed_placements.cs.{"${placement}"},allowed_placements.eq.{}`)
+      q = q.filter('allowed_placements', 'cs', `{"${placement}"}`)
     }
+
     return q
   }
 
   // ── 3. Candidate + count in parallel ────────────────────────────────────
-  // Candidate pool: fetch enough to score + pick from, but no more.
-  // Extra headroom (×8) accounts for freq-cap exclusions and featured priority.
-  // Capped at 80 — beyond that, latency cost exceeds ranking benefit.
   const candidateLimit = Math.min(limit * 8, 80)
 
   let candidateQ = applyFilters(
@@ -199,7 +233,6 @@ export async function rankAds(params: RankAdsParams): Promise<RankAdsResult> {
   let pool       = [...featured, ...regular]
 
   // ── 6. Fallback: if still < 3, re-include recently seen ads ─────────────
-  // Only runs for real sessions that have impressions; SSR never hits this.
   if (!isSsr && pool.length < 3 && recentIds.length > 0) {
     const existingIds = new Set(pool.map(c => c.id))
     const needed      = 3 - pool.length
@@ -221,8 +254,16 @@ export async function rankAds(params: RankAdsParams): Promise<RankAdsResult> {
     pool = [...pool, ...fallbackScored.slice(0, needed)]
   }
 
+  // ── 7. Resolve per-placement image URLs ──────────────────────────────────
+  // Swap image_url to the variant sized for the requested placement.
+  // nearby → 300×200, search → 600×200, featured → 800×450, etc.
+  const resolvedPool = pool.slice(0, limit).map(row => ({
+    ...row,
+    image_url: resolveImageUrl(row, placement),
+  }))
+
   return {
-    ads:   pool.slice(0, limit) as unknown as RankedAd[],
+    ads:   resolvedPool as unknown as RankedAd[],
     total: total ?? 0,
   }
 }

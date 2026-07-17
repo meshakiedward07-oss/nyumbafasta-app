@@ -1,25 +1,40 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
+import { getOrCreateSessionId } from '@/lib/ads/session'
 
 type Ad = {
-  id: string; title: string; body_text: string | null; video_url: string | null
-  image_url: string | null; cta_type: string; cta_value: string
+  id: string; title: string; body_text: string | null
+  video_url: string | null; image_url: string | null
+  cta_type: string; cta_value: string
   advertiser: { business_name: string; logo_url: string | null } | null
 }
 
+const FALLBACK_REGION = 'Dar es Salaam'
+
 export default function VideoAdCard({ region }: { region?: string }) {
-  const [ad, setAd] = useState<Ad | null>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const [ad, setAd]   = useState<Ad | null>(null)
+  const videoRef      = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
-    const url = `/api/v1/ads?type=video${region ? `&region=${encodeURIComponent(region)}` : ''}&limit=1`
-    fetch(url).then(r => r.json()).then(d => setAd(d.ads?.[0] ?? null)).catch(() => {})
+    const sid = getOrCreateSessionId()
+    const r   = region
+      || (typeof window !== 'undefined' && localStorage.getItem('nf_region'))
+      || FALLBACK_REGION
+    const p = new URLSearchParams({
+      region: r, sid, type: 'video', placement: 'video', limit: '1',
+    })
+    fetch(`/api/v1/ads/ranked?${p}`)
+      .then(r => r.json())
+      .then(d => setAd(d.ads?.[0] ?? null))
+      .catch(() => {})
   }, [region])
 
   if (!ad?.video_url) return null
 
-  const href = ad.cta_type === 'whatsapp' ? `https://wa.me/${ad.cta_value}`
-    : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : ad.cta_value
+  const href =
+    ad.cta_type === 'whatsapp' ? `https://wa.me/${ad.cta_value}` :
+    ad.cta_type === 'call'     ? `tel:${ad.cta_value}` :
+    ad.cta_value
 
   return (
     <div className="mx-4 my-3 bg-gray-900 rounded-2xl overflow-hidden shadow-md">
@@ -27,7 +42,7 @@ export default function VideoAdCard({ region }: { region?: string }) {
         <video
           ref={videoRef}
           src={ad.video_url}
-          poster={ad.image_url ?? undefined}
+          poster={ad.image_url ?? undefined}   // image_url = video_thumb_url from creative
           className="w-full max-h-56 object-cover"
           autoPlay muted loop playsInline
         />
@@ -39,6 +54,9 @@ export default function VideoAdCard({ region }: { region?: string }) {
         <div className="flex-1 min-w-0">
           <div className="font-bold text-white text-sm truncate">{ad.title}</div>
           {ad.body_text && <div className="text-xs text-gray-300 truncate">{ad.body_text}</div>}
+          {ad.advertiser && (
+            <div className="text-xs text-gray-400 truncate">{ad.advertiser.business_name}</div>
+          )}
         </div>
         <a
           href={href}
@@ -46,9 +64,9 @@ export default function VideoAdCard({ region }: { region?: string }) {
           rel="noopener noreferrer"
           className="flex-shrink-0 bg-primary-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-primary-600 transition whitespace-nowrap"
         >
-          {ad.cta_type === 'whatsapp' ? '💬 Wasiliana'
-            : ad.cta_type === 'call' ? '📞 Piga Simu'
-            : '🌐 Tovuti'}
+          {ad.cta_type === 'whatsapp' ? '💬 Wasiliana' :
+           ad.cta_type === 'call'     ? '📞 Piga Simu' :
+           '🌐 Tovuti'}
         </a>
       </div>
     </div>

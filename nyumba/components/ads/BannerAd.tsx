@@ -1,6 +1,7 @@
 'use client'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
+import { getOrCreateSessionId } from '@/lib/ads/session'
 
 type Ad = {
   id: string; title: string; body_text: string | null; image_url: string | null
@@ -8,21 +9,30 @@ type Ad = {
   advertiser: { business_name: string; logo_url: string | null } | null
 }
 
+const FALLBACK_REGION = 'Dar es Salaam'
+
 export default function BannerAd({ region }: { region?: string }) {
   const [ad, setAd] = useState<Ad | null>(null)
 
   useEffect(() => {
-    const url = `/api/v1/ads?type=banner${region ? `&region=${encodeURIComponent(region)}` : ''}&limit=1`
-    fetch(url).then(r => r.json()).then(d => setAd(d.ads?.[0] ?? null)).catch(() => {})
+    const sid = getOrCreateSessionId()
+    // Prefer prop → localStorage pref → popular default
+    const r = region
+      || (typeof window !== 'undefined' && localStorage.getItem('nf_region'))
+      || FALLBACK_REGION
+    const p = new URLSearchParams({ region: r, sid, type: 'banner', placement: 'banner', limit: '1' })
+    fetch(`/api/v1/ads/ranked?${p}`)
+      .then(r => r.json())
+      .then(d => setAd(d.ads?.[0] ?? null))
+      .catch(() => {})
   }, [region])
 
   if (!ad) return null
 
-  const href = ad.cta_type === 'whatsapp'
-    ? `https://wa.me/${ad.cta_value}`
-    : ad.cta_type === 'call'
-    ? `tel:${ad.cta_value}`
-    : ad.cta_value
+  const href =
+    ad.cta_type === 'whatsapp' ? `https://wa.me/${ad.cta_value}` :
+    ad.cta_type === 'call'     ? `tel:${ad.cta_value}` :
+    ad.cta_value
 
   return (
     <a

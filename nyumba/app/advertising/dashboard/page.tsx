@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import Image from 'next/image'
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   pending_review: { label: 'Inasubiri Ukaguzi', cls: 'bg-amber-100 text-amber-700' },
@@ -37,7 +38,11 @@ export default async function AdvertiserDashboard() {
 
   const { data: campaigns } = await admin
     .from('ad_campaigns')
-    .select('*, plan:plan_id (name, price_tzs, duration_days)')
+    .select(`
+      *,
+      plan:plan_id (name, price_tzs, duration_days),
+      creative:creative_id (banner_url, video_thumb_url, processing_status)
+    `)
     .eq('advertiser_id', advertiser.id)
     .order('created_at', { ascending: false })
 
@@ -121,11 +126,22 @@ export default async function AdvertiserDashboard() {
             const st = STATUS_LABELS[c.status] ?? { label: c.status, cls: 'bg-gray-100 text-gray-500' }
             const pt = PAYMENT_LABELS[c.payment_status] ?? { label: c.payment_status, cls: 'bg-gray-100 text-gray-500' }
             const plan = c.plan as { name: string; price_tzs: number; duration_days: number } | null
-            const needsPayment = c.status === 'approved' && c.payment_status !== 'completed'
+            const creative = c.creative as { banner_url: string | null; video_thumb_url: string | null; processing_status: string } | null
+            const needsPayment   = c.status === 'approved' && c.payment_status !== 'completed'
+            const needsCreative  = !creative && !['rejected', 'expired', 'suspended'].includes(c.status)
+            const thumb          = creative?.banner_url ?? creative?.video_thumb_url ?? null
 
             return (
-              <div key={c.id} className={`bg-white rounded-2xl border p-4 shadow-sm ${needsPayment ? 'border-primary-300' : 'border-gray-100'}`}>
+              <div key={c.id} className={`bg-white rounded-2xl border p-4 shadow-sm ${
+                needsPayment ? 'border-primary-300' : needsCreative ? 'border-amber-200' : 'border-gray-100'
+              }`}>
                 <div className="flex items-start justify-between gap-3">
+                  {/* Thumbnail preview if creative exists */}
+                  {thumb && (
+                    <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                      <Image src={thumb} alt={c.title} fill className="object-cover" sizes="56px" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-lg">{TYPE_ICONS[c.ad_type] ?? '📢'}</span>
@@ -157,6 +173,11 @@ export default async function AdvertiserDashboard() {
                         Sababu: {c.admin_note}
                       </p>
                     )}
+                    {needsCreative && (
+                      <p className="text-xs text-amber-700 mt-1 bg-amber-50 rounded-lg px-2 py-1">
+                        📸 Bado hujapakia picha/video ya tangazo hili.
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2 items-end flex-shrink-0">
@@ -166,6 +187,14 @@ export default async function AdvertiserDashboard() {
                         className="bg-primary-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-primary-600 transition whitespace-nowrap"
                       >
                         💳 Lipa Sasa
+                      </Link>
+                    )}
+                    {needsCreative && (
+                      <Link
+                        href={`/advertising/campaigns/${c.id}/creative`}
+                        className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-amber-600 transition whitespace-nowrap"
+                      >
+                        📸 Pakia Creative
                       </Link>
                     )}
                     {c.payment_status === 'pending' && c.status === 'pending_review' && (

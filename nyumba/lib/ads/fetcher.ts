@@ -29,7 +29,7 @@ export async function getActiveAds(params: {
   const admin = createAdminClient()
   const now = new Date().toISOString()
 
-  const { data } = await admin
+  let q = admin
     .from('ad_campaigns')
     .select(`
       id, ad_type, title, body_text, image_url, video_url,
@@ -42,10 +42,12 @@ export async function getActiveAds(params: {
     .eq('payment_status', 'completed')
     .eq('ad_type', params.ad_type)
     .or(`expires_at.is.null,expires_at.gt.${now}`)
-    .eq(params.region ? 'target_region' : 'status', params.region ?? 'active')
     .order('created_at', { ascending: false })
     .limit(params.limit ?? 10)
 
+  if (params.region) q = q.eq('target_region', params.region)
+
+  const { data } = await q
   return (data ?? []) as unknown as ActiveAd[]
 }
 
