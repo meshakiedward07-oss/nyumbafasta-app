@@ -609,7 +609,7 @@ async function runDailyTasks() {
     // Queries without FK joins — boost_payments and payments tables don't have
     // PostgREST FK relationships to users, so join syntax fails silently.
     // Names are fetched separately below via a single .in() query.
-    const [unlocksRes, subsRes, boostsRes, extraListingsRes] = await Promise.all([
+    const [unlocksRes, subsRes, boostsRes, extraListingsRes, adPaysRes] = await Promise.all([
       admin.from('contact_unlocks')
         .select('dalali_id, amount_paid')
         .gte('created_at', yesterday)
@@ -629,18 +629,24 @@ async function runDailyTasks() {
         .eq('type', 'extra_listings')
         .gte('created_at', yesterday)
         .eq('status', 'completed'),
+      admin.from('ad_payments')
+        .select('id, amount, advertiser_id, campaign_id, provider, paid_at')
+        .gte('paid_at', yesterday)
+        .eq('status', 'completed'),
     ])
 
     const unlocks       = unlocksRes.data ?? []
     const subs          = subsRes.data ?? []
     const boosts        = boostsRes.data ?? []
     const extraListings = extraListingsRes.data ?? []
+    const adPays        = adPaysRes.data ?? []
 
     const unlockRevenue = unlocks.reduce((s, r) => s + Number(r.amount_paid ?? 2000), 0)
     const subRevenue    = subs.reduce((s, r) => s + Number(r.amount_paid ?? 0), 0)
     const boostRevenue  = boosts.reduce((s, r) => s + Number(r.amount ?? 0), 0)
     const extraRevenue  = extraListings.reduce((s, r) => s + Number(r.amount ?? 0), 0)
-    const totalRevenue  = unlockRevenue + subRevenue + boostRevenue + extraRevenue
+    const adRevenue     = adPays.reduce((s, r) => s + Number(r.amount ?? 0), 0)
+    const totalRevenue  = unlockRevenue + subRevenue + boostRevenue + extraRevenue + adRevenue
 
     // Fetch dalali names in one query (avoids FK join failures)
     const allDalaliIds = [...new Set([
@@ -654,6 +660,22 @@ async function runDailyTasks() {
     if (allDalaliIds.length > 0) {
       const { data: ud } = await admin.from('users').select('id, full_name').in('id', allDalaliIds)
       for (const u of ud ?? []) dalaliNames[u.id] = u.full_name ?? '—'
+    }
+
+    // Fetch advertiser names for ad payments
+    const allAdvertiserIds = [...new Set(adPays.map(a => a.advertiser_id).filter(Boolean))]
+    const advertiserNames: Record<string, string> = {}
+    if (allAdvertiserIds.length > 0) {
+      const { data: advs } = await admin.from('advertisers').select('id, business_name').in('id', allAdvertiserIds)
+      for (const a of advs ?? []) advertiserNames[a.id] = a.business_name ?? '—'
+    }
+
+    // Fetch campaign ad_type for each ad payment
+    const allCampaignIds = [...new Set(adPays.map(a => a.campaign_id).filter(Boolean))]
+    const campaignTypes: Record<string, string> = {}
+    if (allCampaignIds.length > 0) {
+      const { data: camps } = await admin.from('ad_campaigns').select('id, ad_type').in('id', allCampaignIds)
+      for (const c of camps ?? []) campaignTypes[c.id] = c.ad_type ?? '—'
     }
 
     function tableRow(...cells: string[]) {
@@ -688,9 +710,10 @@ async function runDailyTasks() {
           ${tableRow('📋 Subscriptions Mpya', `${subs.length}`, `Tsh ${subRevenue.toLocaleString()}`)}
           ${tableRow('⚡ Boost Payments', `${boosts.length}`, `Tsh ${boostRevenue.toLocaleString()}`)}
           ${tableRow('➕ Extra Listings', `${extraListings.length}`, `Tsh ${extraRevenue.toLocaleString()}`)}
+          ${tableRow('📢 Matangazo (Ads)', `${adPays.length}`, `Tsh ${adRevenue.toLocaleString()}`)}
           <tr style="background:#f9fafb;font-weight:700">
             <td style="padding:10px 14px;border-top:2px solid #1D9E75;font-size:13px">JUMLA</td>
-            <td style="padding:10px 14px;text-align:right;border-top:2px solid #1D9E75;font-size:13px">${unlocks.length + subs.length + boosts.length + extraListings.length}</td>
+            <td style="padding:10px 14px;text-align:right;border-top:2px solid #1D9E75;font-size:13px">${unlocks.length + subs.length + boosts.length + extraListings.length + adPays.length}</td>
             <td style="padding:10px 14px;text-align:right;border-top:2px solid #1D9E75;color:#1D9E75;font-size:13px">Tsh ${totalRevenue.toLocaleString()}</td>
           </tr>
         </table>
@@ -738,6 +761,30 @@ async function runDailyTasks() {
           )).join('')}
         </table>` : ''}
 
+        ${adPays.length > 0 ? `
+        <p style="font-size:15px;font-weight:700;color:#374151;margin:20px 0 8px">📢 Matangazo Yaliyolipwa Leo</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:20px">
+          <tr style="background:#f3f4f6">
+            <td style="padding:8px 14px;font-size:12px;font-weight:600">Advertiser</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Aina</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Njia</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;font-weight:600">Kiasi</td>
+          </tr>
+          ${adPays.map(a => {
+            const cells = [
+              advertiserNames[a.advertiser_id] ?? '—',
+              (campaignTypes[a.campaign_id] ?? '—').toUpperCase(),
+              (a.provider ?? 'N/A').toUpperCase(),
+              `Tsh ${Number(a.amount ?? 0).toLocaleString()}`,
+            ]
+            return `<tr>${cells.map((c, i) => `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;${i > 0 ? 'text-align:right' : ''}">${c}</td>`).join('')}</tr>`
+          }).join('')}
+          <tr style="background:#fefce8;font-weight:700">
+            <td style="padding:8px 14px;font-size:12px" colspan="3">JUMLA</td>
+            <td style="padding:8px 14px;text-align:right;font-size:12px;color:#1D9E75">Tsh ${adRevenue.toLocaleString()}</td>
+          </tr>
+        </table>` : ''}
+
         ${unlocks.length > 0 ? `
         <p style="font-size:15px;font-weight:700;color:#374151;margin:20px 0 8px">🔓 Unlocks kwa Dalali</p>
         <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:20px">
@@ -765,7 +812,7 @@ async function runDailyTasks() {
         </table>
       `, `Ripoti ya mapato — Tsh ${totalRevenue.toLocaleString()}`),
     )
-    results.push(`✅ Admin daily revenue email: Tsh ${totalRevenue.toLocaleString()} (unlocks:${unlocks.length} subs:${subs.length} boosts:${boosts.length} extra:${extraListings.length})`)
+    results.push(`✅ Admin daily revenue email: Tsh ${totalRevenue.toLocaleString()} (unlocks:${unlocks.length} subs:${subs.length} boosts:${boosts.length} extra:${extraListings.length} ads:${adPays.length})`)
   } catch (e) {
     errors.push(`❌ Admin revenue email: ${String(e)}`)
   }

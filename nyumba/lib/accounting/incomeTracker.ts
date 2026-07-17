@@ -181,6 +181,64 @@ export async function recordIncomeFromExtraListings(params: {
   }
 }
 
+// ── Record income from an ad campaign payment ─────────────────────────────
+export async function recordIncomeFromAdCampaign(adPaymentId: string): Promise<void> {
+  const { data: payment } = await supabaseAdmin
+    .from('ad_payments')
+    .select('id, campaign_id, advertiser_id, amount, provider, gateway_reference, paid_at, created_at, status')
+    .eq('id', adPaymentId)
+    .eq('status', 'completed')
+    .single()
+
+  if (!payment) {
+    console.log('[Accounting] Ad payment not found or not completed:', adPaymentId)
+    return
+  }
+
+  const [campaignRes, advertiserRes] = await Promise.all([
+    supabaseAdmin
+      .from('ad_campaigns')
+      .select('ad_type, title, plan:plan_id (name)')
+      .eq('id', payment.campaign_id)
+      .single(),
+    supabaseAdmin
+      .from('advertisers')
+      .select('business_name')
+      .eq('id', payment.advertiser_id)
+      .single(),
+  ])
+
+  const campaign   = campaignRes.data
+  const advertiser = advertiserRes.data
+  const amount     = Number(payment.amount)
+  const fee        = amount * AZAMPAY_FEE_PERCENT
+  const txDate     = new Date(payment.paid_at ?? payment.created_at)
+  const planName   = (campaign?.plan as unknown as { name: string } | null)?.name ?? campaign?.ad_type ?? 'Ad'
+  const desc       = `Tangazo — ${advertiser?.business_name ?? '—'} — ${planName} (${campaign?.ad_type ?? ''})`
+
+  const { error } = await supabaseAdmin.from('income_records').insert({
+    source:           'ad_campaign',
+    source_ref_id:    payment.id,
+    amount_tzs:       amount,
+    platform_fee_tzs: parseFloat(fee.toFixed(2)),
+    net_amount_tzs:   parseFloat((amount - fee).toFixed(2)),
+    description:      desc,
+    reference_number: payment.gateway_reference ?? payment.id,
+    payment_method:   payment.provider ?? null,
+    transaction_date: txDate.toISOString().split('T')[0],
+    month:            txDate.getMonth() + 1,
+    year:             txDate.getFullYear(),
+    week:             getWeekNumber(txDate),
+    status:           'confirmed',
+  })
+
+  if (error && error.code !== '23505') {
+    console.error('[Accounting] recordIncomeFromAdCampaign error:', error.message)
+  } else {
+    console.log('[Accounting] Income recorded — ad payment:', adPaymentId, 'TZS', amount)
+  }
+}
+
 // ── Sync all completed payments to income_records ─────────────────────────
 // Uses a bulk set-membership check instead of N individual SELECTs — O(n+4) queries.
 export async function syncAllPaymentsToIncome(): Promise<{ synced: number; skipped: number }> {
@@ -253,6 +311,18 @@ export async function syncAllPaymentsToIncome(): Promise<{ synced: number; skipp
       createdAt:     ep.created_at,
       paymentMethod: ep.provider ?? undefined,
     })
+    synced++
+  }
+
+  // ── 5. Ad campaign payments ────────────────────────────────────────────
+  const { data: adPays } = await supabaseAdmin
+    .from('ad_payments')
+    .select('id')
+    .eq('status', 'completed')
+
+  for (const ap of adPays ?? []) {
+    if (existing.has(`ad_campaign:${ap.id}`)) { skipped++; continue }
+    await recordIncomeFromAdCampaign(ap.id)
     synced++
   }
 

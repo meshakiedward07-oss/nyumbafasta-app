@@ -9,6 +9,7 @@ export function formatSourceName(source: string): string {
     contact_unlock:  'Contact Unlock (TZS 2,000)',
     boost_listing:   'Boost Listing',
     extra_listing:   'Listing ya Ziada',
+    ad_campaign:     'Matangazo (Ad Campaigns)',
     other:           'Mengine',
   }
   return names[source] || source

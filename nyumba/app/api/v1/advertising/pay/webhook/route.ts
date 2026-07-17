@@ -7,6 +7,7 @@ import {
 import {
   notifyAdvertiserPaymentSuccess,
 } from '@/lib/ads/adNotifications'
+import { recordIncomeFromAdCampaign } from '@/lib/accounting/incomeTracker'
 
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
@@ -98,6 +99,11 @@ export async function POST(req: NextRequest) {
         )
       }
     }
+
+    // Record revenue — fire-and-forget, never block webhook response
+    recordIncomeFromAdCampaign(payment.id).catch(e =>
+      console.error('[AdWebhook] Accounting error:', e)
+    )
   }
 
   return NextResponse.json({ ok: true })
