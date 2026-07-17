@@ -188,55 +188,75 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
     <div className="bg-gray-50">
 
       {/* ── Sticky top: logo + notification + search ── */}
-      <div className="bg-primary-500 sticky top-0 z-20 shadow-sm pt-[env(safe-area-inset-top,0px)]">
+      <div className="sticky top-0 z-20 pt-[env(safe-area-inset-top,0px)]"
+        style={{ background: 'linear-gradient(160deg, #27AE72 0%, #1D9E75 60%, #178A63 100%)' }}>
+        {/* Decorative dots */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/5" />
+          <div className="absolute top-1 right-16 w-8 h-8 rounded-full bg-white/5" />
+        </div>
         {/* Brand row */}
-        <div className="flex items-center justify-between px-3 pt-2 pb-1">
-          <div className="relative h-10 w-[52%] sm:w-[40%]">
+        <div className="relative flex items-center justify-between px-4 pt-2.5 pb-1">
+          <div className="relative h-9 w-[48%] sm:w-[36%]">
             <Image
               src="/transparent_logo_nyumbafasta.png"
               alt="NyumbaFasta"
               fill
               priority
               className="object-contain object-left"
-              sizes="(max-width: 640px) 52vw, 40vw"
+              sizes="(max-width: 640px) 48vw, 36vw"
             />
           </div>
           <NotificationBell asLink className="text-white/90 hover:text-white" />
         </div>
         {/* Search input */}
-        <div className="px-3 pb-3">
+        <div className="relative px-4 pb-3.5">
           <div className="relative">
-            <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
+            <i className="ti ti-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
             <input
               type="search"
               inputMode="search"
-              placeholder="Tafuta mtaa, wilaya..."
+              placeholder="Tafuta mtaa, wilaya, mkoa..."
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-white text-base
+              className="w-full pl-10 pr-10 py-3 rounded-2xl bg-white text-sm
                          text-gray-900 placeholder-gray-400 focus:outline-none
-                         focus:ring-2 focus:ring-white/50 shadow-sm"
+                         focus:ring-2 focus:ring-white/60"
+              style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)' }}
             />
+            {searchInput && (
+              <button
+                onClick={() => setSearchInput('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                aria-label="Futa utafutaji"
+              >
+                <i className="ti ti-x text-sm" aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* ── Region tabs ── */}
-      <div className="flex gap-2 px-4 py-2.5 overflow-x-auto scrollbar-none">
+      <div className="flex gap-1.5 px-4 pt-3 pb-1 overflow-x-auto scrollbar-none">
         <button
           onClick={() => applyFilter('region', '')}
-          className={`flex-shrink-0 px-3.5 min-h-[44px] rounded-full text-xs font-medium transition-all duration-150
-            ${(filters?.region ?? '') === '' ? 'bg-primary-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'}`}
+          className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200
+            ${(filters?.region ?? '') === ''
+              ? 'bg-primary-500 text-white shadow-[0_2px_8px_rgba(29,158,117,0.35)]'
+              : 'bg-white text-gray-500 border border-gray-200 hover:border-primary-200 hover:text-primary-600'}`}
         >
-          <i className="ti ti-map" aria-hidden="true" /> Zote
+          <i className="ti ti-world text-[11px]" aria-hidden="true" /> Tanzania
         </button>
 
         {PRIORITY_REGIONS.map(r => (
           <button
             key={r}
             onClick={() => applyFilter('region', r)}
-            className={`flex-shrink-0 px-3.5 min-h-[44px] rounded-full text-xs font-medium transition-all duration-150
-              ${(filters?.region ?? '') === r ? 'bg-primary-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'}`}
+            className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200
+              ${(filters?.region ?? '') === r
+                ? 'bg-primary-500 text-white shadow-[0_2px_8px_rgba(29,158,117,0.35)]'
+                : 'bg-white text-gray-500 border border-gray-200 hover:border-primary-200 hover:text-primary-600'}`}
           >
             {shortName(r)}
           </button>
@@ -245,13 +265,13 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
         <select
           value={PRIORITY_REGIONS.includes(filters?.region ?? '') ? '' : (filters?.region ?? '')}
           onChange={e => { if (e.target.value) applyFilter('region', e.target.value) }}
-          className={`flex-shrink-0 text-xs border rounded-full px-3.5 min-h-[44px]
+          className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold
             focus:outline-none cursor-pointer
             ${!PRIORITY_REGIONS.includes(filters?.region ?? '') && filters?.region
               ? 'bg-primary-500 text-white border-primary-500'
               : 'bg-white text-gray-500 border-gray-200'}`}
         >
-          <option value="">Mikoa Yote</option>
+          <option value="">Mikoa Mingine</option>
           {TANZANIA_REGIONS.map(r => (
             <option key={r.name} value={r.name}>{r.name}</option>
           ))}
@@ -259,32 +279,32 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
       </div>
 
       {/* ── Filter row ── */}
-      <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-none">
+      <div className="flex gap-1.5 px-4 pb-3 pt-1.5 overflow-x-auto scrollbar-none">
         <select
           value={filters?.type ?? ''}
           onChange={e => applyFilter('type', e.target.value)}
-          className="flex-shrink-0 text-xs bg-white border border-gray-200
-                     rounded-full px-3.5 min-h-[44px] text-gray-600 focus:outline-none"
+          className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold focus:outline-none cursor-pointer transition-all duration-200
+            ${filters?.type ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-500 border-gray-200'}`}
         >
           {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
 
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex-shrink-0 text-xs px-3.5 min-h-[44px] rounded-full border
-            transition-all duration-150 flex items-center gap-1.5
-            ${showFilters ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-200'}`}
+          className={`flex-shrink-0 text-xs px-4 py-2 rounded-full border font-semibold
+            transition-all duration-200 flex items-center gap-1.5
+            ${showFilters || hasExtraFilters ? 'bg-primary-500 text-white border-primary-500 shadow-[0_2px_8px_rgba(29,158,117,0.3)]' : 'bg-white text-gray-500 border-gray-200'}`}
         >
-          <i className="ti ti-adjustments" aria-hidden="true" /> Filters
-          {hasExtraFilters && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
+          <i className="ti ti-adjustments-horizontal text-xs" aria-hidden="true" /> Chuja
+          {hasExtraFilters && <span className="w-2 h-2 rounded-full bg-amber-400 border-2 border-white shadow" />}
         </button>
 
         {(hasExtraFilters || filters?.region || filters?.type) && (
           <button
             onClick={clearFilters}
-            className="flex-shrink-0 text-xs bg-red-50 text-red-500 border border-red-100 rounded-full px-3.5 min-h-[44px] flex items-center gap-1"
+            className="flex-shrink-0 text-xs bg-red-50 text-red-500 border border-red-100 rounded-full px-4 py-2 flex items-center gap-1 font-semibold"
           >
-            <i className="ti ti-x" aria-hidden="true" /> Futa
+            <i className="ti ti-x text-xs" aria-hidden="true" /> Futa Zote
           </button>
         )}
       </div>
@@ -346,25 +366,25 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
 
       {/* ── Count + view toggle ── */}
       <div className="px-4 mb-3 flex justify-between items-center">
-        <p className="text-sm text-gray-500 truncate min-w-0 mr-2">
+        <p className="text-xs font-medium text-gray-400 truncate min-w-0 mr-2">
           {loading
-            ? 'Inatafuta...'
-            : `${total} listing${total !== 1 ? 's' : ''}${filters?.region ? ` – ${filters.region}` : ''}`}
+            ? <span className="animate-pulse">Inatafuta...</span>
+            : <><span className="text-gray-700 font-bold">{total}</span> {total !== 1 ? 'nyumba' : 'nyumba'}{filters?.region ? ` – ${filters.region}` : ' Tanzania'}</>}
         </p>
-        <div className="flex-shrink-0 flex bg-gray-100 rounded-xl p-0.5 gap-0.5">
+        <div className="flex-shrink-0 flex bg-gray-100/80 rounded-xl p-0.5 gap-0.5">
           <button
             onClick={() => setViewMode('grid')}
             aria-pressed={viewMode === 'grid'}
-            className={`px-3 min-h-[44px] rounded-lg text-xs font-semibold transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
           >
-            <i className="ti ti-layout-grid" aria-hidden="true" /> Grid
+            <i className="ti ti-layout-grid-add" aria-hidden="true" /> Grid
           </button>
           <button
             onClick={() => setViewMode('map')}
             aria-pressed={viewMode === 'map'}
-            className={`px-3 min-h-[44px] rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
           >
-            <i className="ti ti-map" aria-hidden="true" /> Ramani
+            <i className="ti ti-map-2" aria-hidden="true" /> Ramani
           </button>
         </div>
       </div>
@@ -438,8 +458,8 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             <button
               onClick={() => setPage(p => p + 1)}
               className="w-full min-h-[48px] py-3 rounded-2xl border border-primary-200
-                         text-primary-600 text-sm font-semibold bg-primary-50
-                         active:bg-primary-100 transition-colors flex items-center justify-center gap-2"
+                         text-primary-600 text-sm font-semibold bg-primary-50 hover:bg-primary-100
+                         active:bg-primary-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <i className="ti ti-chevrons-down text-base" aria-hidden="true" />
               Onyesha zaidi ({total - listings.length} zimebaki)

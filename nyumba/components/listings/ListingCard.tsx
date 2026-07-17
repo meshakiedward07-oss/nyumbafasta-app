@@ -186,10 +186,10 @@ const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
       role="article"
     >
       <div
-        className={`bg-white rounded-2xl overflow-hidden transition-all duration-200 active:scale-[0.98]
+        className={`group bg-white rounded-2xl overflow-hidden transition-all duration-300 active:scale-[0.98]
           ${listing.is_boosted
-            ? 'border-2 border-yellow-400 shadow-[0_4px_24px_rgba(251,191,36,0.2)]'
-            : 'border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04),_0_6px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.10),_0_1px_4px_rgba(0,0,0,0.06)] hover:-translate-y-0.5'
+            ? 'border-2 border-yellow-400 shadow-[0_4px_24px_rgba(251,191,36,0.25)]'
+            : 'border border-gray-100/80 shadow-[0_2px_8px_rgba(0,0,0,0.06),_0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_28px_rgba(0,0,0,0.12),_0_2px_6px_rgba(0,0,0,0.06)] hover:-translate-y-1'
           }`}
       >
 
@@ -203,20 +203,20 @@ const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
         )}
 
         {/* Image area */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-gray-900">
+        <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
           {listing.images?.length > 0 && !imgError ? (
             <>
               <Image
                 fill
                 src={listing.images[0]}
                 alt={listing.title ?? `${typeStyle.label} – ${listing.district}`}
-                className="object-contain"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
                 onError={() => setImgError(true)}
                 sizes="(max-width: 640px) 100vw, 50vw"
                 priority={priority}
               />
               {/* Gradient overlay for bottom text readability */}
-              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
             </>
           ) : (
             <PlaceholderHouse />
@@ -259,29 +259,28 @@ const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
         </div>
 
         {/* Card content */}
-        <div className="p-3">
+        <div className="p-3.5">
 
           {/* Type chip + Price */}
-          <div className="flex items-center justify-between gap-2 mb-1.5">
-            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${typeStyle.pillBg} ${typeStyle.pillText}`}>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${typeStyle.pillBg} ${typeStyle.pillText}`}>
               <i className={`ti ${typeStyle.icon} text-xs`} aria-hidden="true" />
               {typeStyle.label}
             </div>
-            <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-sm whitespace-nowrap flex-shrink-0">
+            <div className="text-primary-600 text-sm font-bold whitespace-nowrap flex-shrink-0 tabular-nums">
               {formatPrice(listing.price_monthly)}
+              <span className="text-[10px] font-medium text-gray-400">/mwezi</span>
             </div>
           </div>
 
           {/* Title */}
-          <p className="font-semibold text-gray-900 text-sm leading-tight mb-1.5 truncate">
+          <p className="font-bold text-gray-900 text-[14px] leading-snug mb-1.5 line-clamp-1">
             {listing.title || `${typeStyle.label} – ${listing.district}`}
           </p>
 
           {/* Location */}
-          <p className="text-gray-400 text-sm mb-2.5 flex items-center gap-1">
-            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-100 flex-shrink-0">
-              <i className="ti ti-map-pin text-[9px] text-gray-500" aria-hidden="true" />
-            </span>
+          <p className="text-gray-400 text-xs mb-3 flex items-center gap-1">
+            <i className="ti ti-map-pin text-[11px] text-primary-400 flex-shrink-0" aria-hidden="true" />
             <span className="truncate">
               {getShortLocation(listing)}
             </span>
@@ -347,7 +346,7 @@ const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
           )}
 
           {/* Dalali footer */}
-          <div className="flex items-center justify-between pt-2.5 border-t border-gray-50">
+          <div className="flex items-center justify-between pt-2.5 border-t border-gray-100/70">
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Avatar

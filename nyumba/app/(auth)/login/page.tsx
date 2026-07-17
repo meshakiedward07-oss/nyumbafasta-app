@@ -142,8 +142,13 @@ function LoginForm() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
 
       {/* Header */}
-      <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center items-center">
-        <div className="relative h-20 sm:h-24 w-48 sm:w-56">
+      <div className="relative overflow-hidden px-4 pt-12 pb-10 flex flex-col justify-center items-center"
+        style={{ background: 'linear-gradient(160deg, #27AE72 0%, #1D9E75 55%, #117652 100%)' }}>
+        {/* Decorative circles */}
+        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5 pointer-events-none" />
+        <div className="absolute -bottom-6 -left-6 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
+        <div className="absolute top-6 right-12 w-10 h-10 rounded-full bg-white/8 pointer-events-none" />
+        <div className="relative h-16 sm:h-20 w-44 sm:w-52">
           <Image
             src="/transparent_logo_nyumbafasta.png"
             alt="NyumbaFasta"
@@ -153,10 +158,12 @@ function LoginForm() {
             sizes="224px"
           />
         </div>
+        <p className="text-white/75 text-xs mt-2 font-medium tracking-wide">Nyumba yako, haraka zaidi</p>
       </div>
 
-      <div className="flex-1 px-4 -mt-4 pb-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="flex-1 px-4 -mt-5 pb-8">
+        <div className="bg-white rounded-2xl overflow-hidden"
+          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06)' }}>
 
           {/* Suspension banner */}
           {isSuspended && (
@@ -307,9 +314,12 @@ function LoginForm() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-xl text-sm
-                               font-semibold disabled:opacity-50 hover:bg-primary-600
-                               transition-colors active:scale-[0.98]"
+                    className="w-full text-white py-3.5 min-h-[48px] rounded-xl text-sm
+                               font-semibold disabled:opacity-50 transition-all active:scale-[0.98]"
+                    style={{
+                      background: 'linear-gradient(135deg, #27AE72 0%, #1D9E75 55%, #178A63 100%)',
+                      boxShadow: loading ? 'none' : '0 4px 14px rgba(29,158,117,0.40), 0 1px 3px rgba(29,158,117,0.20)',
+                    }}
                   >
                     {loading ? 'Inaingia...' : 'Ingia'}
                   </button>
@@ -327,9 +337,10 @@ function LoginForm() {
                   onClick={handleGoogleLogin}
                   disabled={loading}
                   className="w-full flex items-center justify-center gap-3 border
-                             border-gray-200 rounded-xl py-3.5 min-h-[48px] text-sm font-medium
-                             text-gray-700 hover:bg-gray-50 transition-colors
+                             border-gray-200 rounded-xl py-3.5 min-h-[48px] text-sm font-semibold
+                             text-gray-700 bg-white hover:bg-gray-50 transition-all
                              disabled:opacity-50 active:scale-[0.98]"
+                  style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' }}
                 >
                   <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
