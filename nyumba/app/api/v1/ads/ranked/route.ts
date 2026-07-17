@@ -29,8 +29,9 @@ export async function GET(req: NextRequest) {
 
   const result = await rankAds({ ad_type, region, category, sessionId, limit })
 
-  // Track impressions in background — don't block the response
-  if (result.ads.length > 0) {
+  // Track impressions in background — skip for SSR sessions to avoid poisoning
+  // the freq cap table with bot/crawler traffic (all SSR shares session 'ssr')
+  if (result.ads.length > 0 && sessionId !== 'ssr') {
     trackImpressions(sessionId, result.ads.map(a => a.id)).catch(() => {})
   }
 

@@ -82,6 +82,15 @@ type ScoredRow = RawRow & {
   rotation_key:  number
 }
 
+const AD_SELECT = `
+  id, ad_type, title, body_text, image_url, video_url,
+  cta_type, cta_value, target_region, target_district, target_category,
+  advertiser:advertiser_id (
+    id, business_name, business_category,
+    logo_url, whatsapp_number, description, city
+  )
+` as const
+
 function scoreRows(rows: RawRow[]): ScoredRow[] {
   const doy = getDayOfYear()
   return rows.map(r => {
@@ -92,21 +101,17 @@ function scoreRows(rows: RawRow[]): ScoredRow[] {
       (adv?.city && String(adv.city).length > 0 ? 1 : 0)
     return {
       ...r,
-      is_featured:   r.ad_type === 'featured',
+      is_featured:  r.ad_type === 'featured',
       quality_score,
-      // rotation_key: changes every day, consistent within a day, per-ad-id
-      rotation_key:  (doy + djb2(r.id)) % 997,
+      rotation_key: (doy + djb2(r.id)) % 997,
     }
   })
 }
 
 function sortScored(rows: ScoredRow[]): ScoredRow[] {
   return [...rows].sort((a, b) => {
-    // 1. Featured before regular
     if (a.is_featured !== b.is_featured) return a.is_featured ? -1 : 1
-    // 2. Higher quality score first
     if (a.quality_score !== b.quality_score) return b.quality_score - a.quality_score
-    // 3. Tie-break with daily rotation (lower key = earlier today)
     return a.rotation_key - b.rotation_key
   })
 }
@@ -119,96 +124,82 @@ export async function rankAds(params: RankAdsParams): Promise<RankAdsResult> {
   const now   = new Date().toISOString()
   const capAt = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
 
-  // ── 1. Frequency cap: fetch recently shown IDs for this session ──────────
-  const { data: recentData } = await admin
-    .from('ad_impressions')
-    .select('campaign_id')
-    .eq('session_id', sessionId)
-    .gt('shown_at', capAt)
+  // SSR renders share a single session ID — bypass freq cap entirely to avoid
+  // poisoning the impression table with bot/crawler traffic.
+  const isSsr = !sessionId || sessionId === 'ssr'
 
-  const recentIds: string[] = (recentData ?? []).map(r => r.campaign_id as string)
+  // ── 1. Frequency cap: recent impression IDs for this session ─────────────
+  let recentIds: string[] = []
+  if (!isSsr) {
+    const { data: recentData } = await admin
+      .from('ad_impressions')
+      .select('campaign_id')
+      .eq('session_id', sessionId)
+      .gt('shown_at', capAt)
+    recentIds = (recentData ?? []).map(r => r.campaign_id as string)
+  }
 
-  // ── 2. Build candidate query (relevance filter + frequency cap) ──────────
-  function buildCandidateQuery(excludeIds: string[]) {
-    let q = admin
-      .from('ad_campaigns')
-      .select(`
-        id, ad_type, title, body_text, image_url, video_url,
-        cta_type, cta_value, target_region, target_district, target_category,
-        advertiser:advertiser_id (
-          id, business_name, business_category,
-          logo_url, whatsapp_number, description, city
-        )
-      `)
+  // ── 2. Shared filter applicator ──────────────────────────────────────────
+  // Uses the partial index idx_ad_campaigns_active_ranking:
+  //   (target_region, ad_type, target_category, expires_at)
+  //   WHERE status = 'active' AND payment_status = 'completed'
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function applyFilters(q: any): any {
+    q = q
       .eq('status', 'active')
       .eq('payment_status', 'completed')
       .eq('target_region', region)
       .or(`expires_at.is.null,expires_at.gt.${now}`)
-
     if (ad_type) {
       if (Array.isArray(ad_type)) q = q.in('ad_type', ad_type)
       else                        q = q.eq('ad_type', ad_type)
     }
-
-    // Relevance filter: NULL target_category = "any category" → always show
     if (category) {
       q = q.or(`target_category.is.null,target_category.eq.${category}`)
     }
-
-    // Frequency cap exclusion
-    if (excludeIds.length > 0) {
-      q = q.not('id', 'in', `(${excludeIds.join(',')})`)
-    }
-
-    return q.limit(50)
+    return q
   }
 
-  // ── 3. Total count — no frequency cap (for "Tazama zote" badge) ──────────
-  let countQ = admin
-    .from('ad_campaigns')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'active')
-    .eq('payment_status', 'completed')
-    .eq('target_region', region)
-    .or(`expires_at.is.null,expires_at.gt.${now}`)
+  // ── 3. Candidate + count in parallel ────────────────────────────────────
+  // Candidate pool: fetch enough to score + pick from, but no more.
+  // Extra headroom (×8) accounts for freq-cap exclusions and featured priority.
+  // Capped at 80 — beyond that, latency cost exceeds ranking benefit.
+  const candidateLimit = Math.min(limit * 8, 80)
 
-  if (ad_type) {
-    if (Array.isArray(ad_type)) countQ = countQ.in('ad_type', ad_type)
-    else                        countQ = countQ.eq('ad_type', ad_type)
+  let candidateQ = applyFilters(
+    admin.from('ad_campaigns').select(AD_SELECT)
+  )
+  if (recentIds.length > 0) {
+    candidateQ = candidateQ.not('id', 'in', `(${recentIds.join(',')})`)
   }
-  if (category) {
-    countQ = countQ.or(`target_category.is.null,target_category.eq.${category}`)
-  }
+  candidateQ = candidateQ.limit(candidateLimit)
 
-  // Run candidate + count in parallel
+  const countQ = applyFilters(
+    admin.from('ad_campaigns').select('*', { count: 'exact', head: true })
+  )
+
   const [{ data: rawCandidates }, { count: total }] = await Promise.all([
-    buildCandidateQuery(recentIds),
+    candidateQ,
     countQ,
   ])
 
   // ── 4. Score + sort ──────────────────────────────────────────────────────
   const scored = sortScored(scoreRows((rawCandidates ?? []) as unknown as RawRow[]))
 
-  // ── 5. Split: Featured (max 2) + Regular (fill remainder) ───────────────
+  // ── 5. Split: Featured (max 2 slots) + Regular (fill remainder) ──────────
   const featured = scored.filter(c => c.is_featured).slice(0, 2)
   const regular  = scored.filter(c => !c.is_featured).slice(0, limit - featured.length)
   let pool       = [...featured, ...regular]
 
-  // ── 6. Fallback — if < 3 ads, relax frequency cap to fill slots ──────────
-  if (pool.length < 3 && recentIds.length > 0) {
+  // ── 6. Fallback: if still < 3, re-include recently seen ads ─────────────
+  // Only runs for real sessions that have impressions; SSR never hits this.
+  if (!isSsr && pool.length < 3 && recentIds.length > 0) {
     const existingIds = new Set(pool.map(c => c.id))
     const needed      = 3 - pool.length
 
     const { data: fallbackRaw } = await admin
       .from('ad_campaigns')
-      .select(`
-        id, ad_type, title, body_text, image_url, video_url,
-        cta_type, cta_value, target_region, target_district, target_category,
-        advertiser:advertiser_id (
-          id, business_name, business_category,
-          logo_url, whatsapp_number, description, city
-        )
-      `)
+      .select(AD_SELECT)
       .eq('status', 'active')
       .eq('payment_status', 'completed')
       .eq('target_region', region)
