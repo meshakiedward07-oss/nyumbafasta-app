@@ -859,6 +859,72 @@ async function runDailyTasks() {
     errors.push(`❌ TikTok status poll: ${String(e)}`)
   }
 
+  // ── 21. Ad campaigns: expire and renewal reminders ──
+  try {
+    const nowIso = new Date().toISOString()
+
+    // Mark expired campaigns
+    const { data: expiredAds } = await admin
+      .from('ad_campaigns')
+      .update({ status: 'expired', updated_at: nowIso })
+      .eq('status', 'active')
+      .lt('expires_at', nowIso)
+      .select('id, ad_type, advertiser_id')
+
+    if (expiredAds?.length) {
+      results.push(`✅ Ad campaigns: ${expiredAds.length} zimeisha`)
+    }
+
+    // 3-day renewal reminders
+    const in3Days = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: expiringSoon } = await admin
+      .from('ad_campaigns')
+      .select('id, ad_type, advertiser:advertiser_id (business_name, whatsapp_number)')
+      .eq('status', 'active')
+      .lt('expires_at', in3Days)
+      .gt('expires_at', nowIso)
+
+    if (expiringSoon?.length) {
+      const { notifyAdvertiserRenewalReminder } = await import('@/lib/ads/adNotifications')
+      for (const c of expiringSoon) {
+        const adv = c.advertiser as unknown as { business_name: string; whatsapp_number: string | null }
+        if (adv?.whatsapp_number) {
+          const expiresAt = new Date()
+          expiresAt.setDate(expiresAt.getDate() + 3)
+          const daysLeft = 3
+          await notifyAdvertiserRenewalReminder(
+            adv.whatsapp_number, adv.business_name, c.ad_type, daysLeft
+          ).catch(() => {})
+        }
+      }
+      results.push(`✅ Ad renewal reminders: ${expiringSoon.length} zimetumwa`)
+    }
+
+    // Notify waiting list when slots opened up from expirations
+    if (expiredAds?.length) {
+      const { notifyWaitingListSlotOpen } = await import('@/lib/ads/adNotifications')
+      const freedSlots = new Set(expiredAds.map(a => `${a.ad_type}`))
+      for (const adType of freedSlots) {
+        const { data: waiting } = await admin
+          .from('ad_waiting_list')
+          .select('id, advertiser:advertiser_id (business_name, whatsapp_number), region')
+          .eq('ad_type', adType)
+          .eq('status', 'waiting')
+          .order('created_at', { ascending: true })
+          .limit(3)
+
+        for (const w of waiting ?? []) {
+          const adv = w.advertiser as unknown as { business_name: string; whatsapp_number: string | null }
+          if (adv?.whatsapp_number) {
+            await notifyWaitingListSlotOpen(adv.whatsapp_number, adv.business_name, adType, w.region).catch(() => {})
+          }
+        }
+      }
+    }
+  } catch (e) {
+    errors.push(`❌ Ad expiry/reminders: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,

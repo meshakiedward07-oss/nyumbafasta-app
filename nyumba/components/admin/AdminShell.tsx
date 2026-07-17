@@ -94,6 +94,13 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    title: 'Matangazo ya Biashara',
+    items: [
+      { href: '/admin/adverts',        label: 'Kampeni',       icon: 'speakerphone', exact: false },
+      { href: '/admin/adverts/plans',  label: 'Mipango',       icon: 'list',         exact: false },
+    ],
+  },
+  {
     title: 'Fedha',
     items: [
       { href: '/admin/accounting', label: 'Hesabu', icon: 'coin', exact: false },

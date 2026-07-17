@@ -19,10 +19,11 @@ function getItems(role: Role) {
     role === 'dalali' ? { href: '/dashboard',     icon: 'chart-bar', label: 'Dashibodi' } :
                         { href: '/notifications', icon: null,        label: 'Arifa'     }
   return [
-    { href: '/',        icon: 'search', label: 'Tafuta'    },
-    { href: '/saved',   icon: 'heart',  label: 'Zilizohifadhiwa' },
+    { href: '/',           icon: 'search',    label: 'Tafuta'    },
+    { href: '/saved',      icon: 'heart',     label: 'Hifadhi'   },
     mid,
-    { href: '/account', icon: 'user',   label: 'Akaunti'   },
+    { href: '/directory',  icon: 'building-store', label: 'Soko'  },
+    { href: '/account',    icon: 'user',      label: 'Akaunti'   },
   ]
 }
 

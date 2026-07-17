@@ -2,6 +2,7 @@
 import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import ListingsSection from '@/components/listings/ListingsSection'
+import BannerAd from '@/components/ads/BannerAd'
 import type { ListingWithDalali } from '@/lib/types/database'
 
 // Isolated so useSearchParams doesn't block SSR of the header + listings above it
@@ -47,6 +48,9 @@ type Props = {
 export default function HomeClient({ initialListings, initialTotal }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
+
+      {/* Banner Ad — shows above listings */}
+      <BannerAd />
 
       {/* Listings — logo + search bar + filters + cards; all in one component */}
       <ListingsSection initialListings={initialListings} initialTotal={initialTotal} />
