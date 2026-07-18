@@ -3,6 +3,7 @@ import { NextResponse, NextRequest } from 'next/server'
 import { auditLog } from '@/lib/security/auditLog'
 import { getClientIp } from '@/lib/security/rateLimit'
 import { requireAdminUser } from '@/lib/security/adminAuth'
+import { isSuperadmin } from '@/lib/security/superadmin'
 
 // GET — fetch single user profile for admin
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -42,6 +43,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const adminClient = createAdminClient()
+
+    // Superadmin account is permanently protected — cannot be suspended, banned, or altered
+    const { data: targetAuth } = await adminClient.auth.admin.getUserById(params.id)
+    if (isSuperadmin(targetAuth?.user?.email)) {
+      return NextResponse.json({ error: 'Akaunti hii inalindwa na haiwezi kubadilishwa' }, { status: 403 })
+    }
+
     const { error } = await adminClient
       .from('users')
       .update({ is_active: action === 'activate' })
@@ -78,6 +86,14 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: 'Huwezi kufuta akaunti yako mwenyewe' }, { status: 400 })
     }
 
+    const adminClient = createAdminClient()
+
+    // Superadmin account cannot be deleted via any admin UI path
+    const { data: delTargetAuth } = await adminClient.auth.admin.getUserById(params.id)
+    if (isSuperadmin(delTargetAuth?.user?.email)) {
+      return NextResponse.json({ error: 'Akaunti hii inalindwa na haiwezi kufutwa' }, { status: 403 })
+    }
+
     let reason: string | undefined
     let notify = false
     try {
@@ -85,8 +101,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       reason = body.reason
       notify = body.notify === true
     } catch { /* body optional */ }
-
-    const adminClient = createAdminClient()
 
     // Fetch dalali info before deletion (for notification and WhatsApp link)
     const { data: targetUser } = await adminClient

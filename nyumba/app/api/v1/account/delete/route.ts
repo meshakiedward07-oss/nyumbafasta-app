@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { auditLog } from '@/lib/security/auditLog'
 import { getClientIp } from '@/lib/security/rateLimit'
+import { isSuperadmin } from '@/lib/security/superadmin'
 
 const DELETION_REASONS = [
   'Situmii tena',
@@ -24,6 +25,11 @@ export async function POST(req: NextRequest) {
 
     if (!password) {
       return NextResponse.json({ error: 'Nenosiri linahitajika' }, { status: 400 })
+    }
+
+    // Superadmin account cannot be self-deleted
+    if (isSuperadmin(user.email)) {
+      return NextResponse.json({ error: 'Akaunti hii inalindwa na haiwezi kufutwa' }, { status: 403 })
     }
 
     // email lives in auth.users, not public.users
