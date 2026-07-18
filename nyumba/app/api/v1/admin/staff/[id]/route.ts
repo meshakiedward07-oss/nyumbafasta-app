@@ -51,19 +51,27 @@ export async function PATCH(
 
     await admin.from('users').update({ must_change_password: true }).eq('id', params.id)
 
+    // Fetch email from auth.admin — public.users.email may not be populated
+    const { data: authInfo } = await admin.auth.admin.getUserById(params.id)
+    const staffEmail = authInfo?.user?.email ?? null
+
     const { data: staffInfo } = await admin
       .from('users')
-      .select('full_name, email')
+      .select('full_name')
       .eq('id', params.id)
       .single()
 
-    if (staffInfo?.email) {
-      sendResetEmail(staffInfo.email, staffInfo.full_name ?? '', tempPassword).catch(() => {})
+    if (staffEmail) {
+      sendResetEmail(staffEmail, staffInfo?.full_name ?? '', tempPassword).catch(e =>
+        console.error('[Staff] Reset email failed:', e)
+      )
+    } else {
+      console.warn('[Staff] No email found for staff', params.id, '— reset email not sent')
     }
 
     return NextResponse.json({
       success: true,
-      message: `Password mpya imetumwa kwa ${staffInfo?.email ?? 'email ya staff'}`,
+      message: `Password mpya imetumwa kwa ${staffEmail ?? 'email ya staff'}`,
       tempPassword,
     })
   }
@@ -138,14 +146,18 @@ function generateTempPassword(): string {
 }
 
 async function sendResetEmail(email: string, name: string, password: string): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[Staff] RESEND_API_KEY not set — reset email not sent to', email)
+    return
+  }
   const { subject, html } = staffWelcomeEmail(name, email, password)
-  await new Resend(process.env.RESEND_API_KEY).emails.send({
+  const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
     from: 'NyumbaFasta <noreply@nyumbafasta.co>',
     to: email,
     subject: `[Password Mpya] ${subject}`,
     html,
   })
+  if (error) console.error('[Staff] Resend reset email error:', error)
 }
 
 async function unassignStaffLeads(staffId: string): Promise<void> {

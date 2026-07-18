@@ -250,10 +250,11 @@ async function sendStaffCredentialsEmail(
     return
   }
   const { subject, html } = staffWelcomeEmail(name, email, password)
-  await new Resend(process.env.RESEND_API_KEY).emails.send({
+  const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
     from: 'NyumbaFasta <noreply@nyumbafasta.co>',
     to: email,
     subject,
     html,
   })
+  if (error) console.error('[Staff] Resend credentials email error:', error)
 }
