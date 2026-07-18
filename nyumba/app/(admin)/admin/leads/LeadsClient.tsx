@@ -170,11 +170,20 @@ export default function LeadsClient() {
   // Duplicate management
   const [deletingAllDups, setDeletingAllDups]   = useState(false)
 
+  // Tabs
+  const [activeTab, setActiveTab]               = useState<'all' | 'staff'>('all')
+  const [staffTabFilter, setStaffTabFilter]     = useState('')   // staff member UUID filter
+
   // Staff assign
   const [staffList, setStaffList]               = useState<{id:string;full_name:string;staff_title:string|null}[]>([])
   const [assigningLeadId, setAssigningLeadId]   = useState<string | null>(null)
   const [selectedStaffId, setSelectedStaffId]   = useState('')
   const [assigningStaff,  setAssigningStaff]    = useState(false)
+
+  // Bulk distribute
+  const [showDistributeModal, setShowDistributeModal] = useState(false)
+  const [distributeStaffId,   setDistributeStaffId]   = useState('')
+  const [distributing,        setDistributing]        = useState(false)
 
   // Toast
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
@@ -197,6 +206,9 @@ export default function LeadsClient() {
         ...(typeFilter    && { type:    typeFilter }),
         ...(statusFilter  && { status:  statusFilter }),
         ...(socialFilter  && { social:  socialFilter }),
+        // staff tab
+        ...(activeTab === 'staff' && { has_assigned: 'true' }),
+        ...(activeTab === 'staff' && staffTabFilter && { assigned_to: staffTabFilter }),
       })
       const res  = await fetch(`/api/v1/leads?${p}`)
       const data = await res.json()
@@ -204,7 +216,7 @@ export default function LeadsClient() {
       setTotal(data.pagination?.total || 0)
       setTotalPages(data.pagination?.totalPages || 1)
     } catch { /* silent */ } finally { setLoading(false) }
-  }, [page, search, qualityFilter, typeFilter, statusFilter, socialFilter, showDups, showDead])
+  }, [page, search, qualityFilter, typeFilter, statusFilter, socialFilter, showDups, showDead, activeTab, staffTabFilter])
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true)
@@ -358,6 +370,32 @@ export default function LeadsClient() {
       showToast(`✅ Lead imepewa ${s?.full_name ?? 'mfanyakazi'}`)
     } catch { showToast('Imeshindwa kukabidhi lead', false) }
     finally { setAssigningStaff(false) }
+  }
+
+  // ── Bulk distribute to staff ───────────────────────────────────────────────
+  async function handleBulkDistribute() {
+    if (!distributeStaffId) { showToast('Chagua mfanyakazi kwanza', false); return }
+    const ids = selectedIds.size > 0 ? [...selectedIds] : leads.map(l => l.id)
+    if (!ids.length) { showToast('Hakuna leads za kugawa', false); return }
+    setDistributing(true)
+    try {
+      const res  = await fetch('/api/v1/leads/distribute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffId: distributeStaffId, leadIds: ids }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        showToast(`✅ Leads ${data.distributed} zimegawiwa kwa ${data.staffName ?? 'mfanyakazi'}`)
+        setShowDistributeModal(false)
+        setDistributeStaffId('')
+        setSelectedIds(new Set())
+        fetchLeads()
+      } else {
+        showToast(data.error || 'Imeshindwa kugawa', false)
+      }
+    } catch { showToast('Hitilafu ya mtandao', false) }
+    finally { setDistributing(false) }
   }
 
   // ── Delete ─────────────────────────────────────────────────────────────────
@@ -519,6 +557,11 @@ export default function LeadsClient() {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Bulk distribute */}
+            <button onClick={() => setShowDistributeModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700">
+              <i className="ti ti-users-group" /> Gawa kwa Wingi
+            </button>
             {/* Pipeline toggle */}
             <button onClick={() => setPipelineMode(p => !p)}
               className={`hidden sm:flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-medium transition-colors ${pipelineMode ? 'bg-primary-500 text-white border-primary-500' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
@@ -595,6 +638,39 @@ export default function LeadsClient() {
             )
           })}
         </div>
+
+        {/* ═══ TABS ══════════════════════════════════════════════════════════ */}
+        <div className="flex items-center gap-1 mb-4 bg-white border border-gray-200 rounded-2xl p-1 shadow-sm w-fit">
+          <button
+            onClick={() => { setActiveTab('all'); setStaffTabFilter(''); setPage(1) }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${activeTab === 'all' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <i className="ti ti-database" /> Leads Zote
+          </button>
+          <button
+            onClick={() => { setActiveTab('staff'); setPage(1); setShowDups(false); setShowDead(false) }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${activeTab === 'staff' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <i className="ti ti-users-group" /> Leads za Wafanyakazi
+          </button>
+        </div>
+
+        {/* Staff tab: filter by specific staff member */}
+        {activeTab === 'staff' && (
+          <div className="mb-4 flex items-center gap-3 flex-wrap">
+            <select
+              value={staffTabFilter}
+              onChange={e => { setStaffTabFilter(e.target.value); setPage(1) }}
+              className="px-3 py-2 border border-indigo-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-gray-700 font-medium">
+              <option value="">Wafanyakazi Wote (assigned)</option>
+              {staffList.map(s => (
+                <option key={s.id} value={s.id}>{s.full_name}{s.staff_title ? ` — ${s.staff_title}` : ''}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400">
+              <i className="ti ti-info-circle mr-1" />
+              Inaonyesha leads zilizogawiwa kwa wafanyakazi
+            </p>
+          </div>
+        )}
 
         {/* ═══ DUPLICATE BANNER ════════════════════════════════════════════ */}
         {showDups && stats.duplicates > 0 && (
@@ -810,7 +886,7 @@ export default function LeadsClient() {
                   <th className="w-10 px-3 py-3">
                     <input type="checkbox" onChange={e => setSelectedIds(e.target.checked ? new Set(leads.map(l => l.id)) : new Set())} checked={selectedIds.size === leads.length && leads.length > 0} className="rounded" />
                   </th>
-                  {['Jina','Mawasiliano','Eneo','Social','Ubora','Status','Umri',''].map((h,i) => (
+                  {['Jina','Mawasiliano','Eneo','Social','Ubora','Status','Umri',...(activeTab==='staff'?['Mfanyakazi']:[]),''].map((h,i) => (
                     <th key={i} className="text-left px-3 py-3 text-[10px] font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -893,8 +969,17 @@ export default function LeadsClient() {
                           <td className="px-3 py-3">
                             <span className="text-[10px] text-gray-400 tabular-nums">{timeAgo(lead.created_at)}</span>
                             {lead.is_duplicate && <p className="text-[10px] text-amber-600 font-medium">Duplicate</p>}
-                            {lead.assigned_to && <p className="text-[10px] text-primary-600 font-medium flex items-center gap-0.5"><i className="ti ti-user-check" /> Assigned</p>}
                           </td>
+                          {activeTab === 'staff' && (
+                            <td className="px-3 py-3">
+                              {lead.assigned_to
+                                ? <span className="inline-flex items-center gap-1 text-[10px] bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg font-semibold">
+                                    <i className="ti ti-user-check" />
+                                    {staffList.find(s => s.id === lead.assigned_to)?.full_name?.split(' ')[0] ?? 'Mfanyakazi'}
+                                  </span>
+                                : <span className="text-gray-300 text-xs">—</span>}
+                            </td>
+                          )}
                           <td className="px-3 py-3" onClick={e=>e.stopPropagation()}>
                             {waNum && (
                               <a href={waLink(waNum, lead.full_name)} target="_blank" rel="noopener noreferrer"
@@ -1371,6 +1456,82 @@ export default function LeadsClient() {
                 className="w-full bg-primary-500 text-white py-4 rounded-2xl font-bold disabled:opacity-40 hover:bg-primary-600">
                 {addLoading ? <><i className="ti ti-loader-2 animate-spin" /> Inaongeza…</> : 'Ongeza Lead'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ BULK DISTRIBUTE MODAL ══════════════════════════════════════════ */}
+      {showDistributeModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-6">
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <span className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <i className="ti ti-users-group text-white text-base" />
+                </span>
+                Gawa Leads kwa Mfanyakazi
+              </h3>
+              <button onClick={() => setShowDistributeModal(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
+                <i className="ti ti-x" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Summary */}
+              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+                <p className="text-sm font-semibold text-indigo-800 mb-1">
+                  <i className="ti ti-info-circle mr-1.5" />
+                  Leads zitakazogawiwa
+                </p>
+                <p className="text-2xl font-extrabold text-indigo-700">
+                  {selectedIds.size > 0 ? selectedIds.size.toLocaleString() : total.toLocaleString()}
+                </p>
+                <p className="text-xs text-indigo-600 mt-0.5">
+                  {selectedIds.size > 0 ? 'zilizochaguliwa (checkboxes)' : 'zote za ukurasa huu (filters unaotumika)'}
+                </p>
+              </div>
+
+              {/* Staff picker */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-2">
+                  Chagua Mfanyakazi
+                </label>
+                {staffList.length === 0 ? (
+                  <p className="text-sm text-gray-400 py-3 text-center bg-gray-50 rounded-xl">
+                    Hakuna wafanyakazi wanaofanya kazi. <a href="/admin/staff" className="text-primary-600 underline">Ongeza wafanyakazi</a>
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {staffList.map(s => (
+                      <button key={s.id} type="button"
+                        onClick={() => setDistributeStaffId(s.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all text-left ${distributeStaffId === s.id ? 'border-indigo-500 bg-indigo-50 text-indigo-800' : 'border-gray-100 bg-white hover:border-gray-200 text-gray-700'}`}>
+                        <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
+                          {s.full_name.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate">{s.full_name}</p>
+                          {s.staff_title && <p className="text-xs text-gray-400">{s.staff_title}</p>}
+                        </div>
+                        {distributeStaffId === s.id && <i className="ti ti-check ml-auto text-indigo-600" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button onClick={handleBulkDistribute}
+                disabled={!distributeStaffId || distributing || staffList.length === 0}
+                className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-sm disabled:opacity-40 hover:bg-indigo-700 flex items-center justify-center gap-2">
+                {distributing
+                  ? <><i className="ti ti-loader-2 animate-spin" /> Inagawa…</>
+                  : <><i className="ti ti-send" /> Gawa {selectedIds.size > 0 ? `${selectedIds.size} Leads` : `Leads ${total.toLocaleString()}`}</>
+                }
+              </button>
+              <p className="text-[10px] text-center text-gray-400">
+                Leads zitaonekana kwenye ukurasa wa mfanyakazi mara moja baada ya kugawa
+              </p>
             </div>
           </div>
         </div>

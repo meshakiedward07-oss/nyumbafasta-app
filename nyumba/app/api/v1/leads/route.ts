@@ -26,6 +26,8 @@ export async function GET(req: NextRequest) {
     const batchId      = searchParams.get('batch')   || ''
     const showDups     = searchParams.get('duplicates') === 'true'
     const showDead     = searchParams.get('dead')       === 'true'
+    const hasAssigned  = searchParams.get('has_assigned') === 'true'
+    const assignedTo   = searchParams.get('assigned_to') || ''
 
     let q = supabaseAdmin
       .from('leads')
@@ -39,7 +41,9 @@ export async function GET(req: NextRequest) {
     if (leadType)   q = q.eq('lead_type', leadType)
     if (status)     q = q.eq('status', status)
     if (ward)       q = q.ilike('ward', `%${ward}%`)
-    if (batchId)    q = q.eq('import_batch_id', batchId)
+    if (batchId)      q = q.eq('import_batch_id', batchId)
+    if (hasAssigned)  q = q.not('assigned_to', 'is', null)
+    if (assignedTo)   q = q.eq('assigned_to', assignedTo)
 
     if (socialFilter === 'has_facebook')       q = q.not('facebook_url', 'is', null)
     else if (socialFilter === 'has_instagram') q = q.not('instagram_url', 'is', null)

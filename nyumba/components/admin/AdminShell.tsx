@@ -86,7 +86,6 @@ const NAV_SECTIONS = [
     title: 'Usimamizi',
     items: [
       { href: '/admin/staff',         label: 'Wafanyakazi',      icon: 'user-tie', exact: false },
-      { href: '/admin/staff-leads',   label: 'Leads za Wafanyakazi', icon: 'target', exact: false },
       { href: '/admin/users',         label: 'Watumiaji',        icon: 'users', exact: false },
       { href: '/admin/listings',      label: 'Matangazo',        icon: 'home', exact: false },
       { href: '/admin/verifications', label: 'Uthibitisho',      icon: 'check', exact: false },
