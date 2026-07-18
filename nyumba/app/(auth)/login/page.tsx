@@ -426,12 +426,24 @@ function LoginForm() {
 
         {/* Register link */}
         {!forgotMode && (
-          <p className="text-center text-sm text-gray-500 mt-5 pb-8">
-            Bado huna akaunti?{' '}
-            <Link href="/register" className="text-primary-600 font-medium">
-              Jisajili hapa
+          <div className="mt-5 pb-8 flex flex-col items-center gap-3">
+            <p className="text-center text-sm text-gray-500">
+              Bado huna akaunti?{' '}
+              <Link href="/register" className="text-primary-600 font-medium">
+                Jisajili hapa
+              </Link>
+            </p>
+
+            {/* Staff / Admin portal — subtle, not meant for regular users */}
+            <Link
+              href="/staff-login"
+              className="flex items-center gap-1.5 text-[11px] text-gray-350 hover:text-gray-500 transition-colors py-1 px-3 rounded-full border border-gray-150 hover:border-gray-300"
+              style={{ color: '#b0b8c1', borderColor: '#e8ecf0' }}
+            >
+              <i className="ti ti-shield-lock text-[11px]" aria-hidden="true" />
+              Wafanyakazi &amp; Wasimamizi
             </Link>
-          </p>
+          </div>
         )}
       </div>
     </div>
