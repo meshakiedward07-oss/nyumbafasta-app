@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Routes zinazohitaji login
@@ -71,14 +72,36 @@ export async function middleware(request: NextRequest) {
     return redirectWithCookies(url, supabaseResponse)
   }
 
-  // Email verification guard — all protected routes zinahitaji email iliyothibitishwa
-  // Google/OAuth users wana email_confirmed_at tayari; change-password exempt (recovery session)
+  // Email verification guard — all protected routes zinahitaji email iliyothibitishwa.
+  // Admin/staff are exempt: their accounts are created by the platform operator with
+  // confirmed credentials. Auto-confirm them so they can always access the panel.
   if (user && !user.email_confirmed_at && isProtected) {
     if (!path.startsWith('/account/change-password')) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/verify-email'
-      url.searchParams.set('email', user.email ?? '')
-      return redirectWithCookies(url, supabaseResponse)
+      // Check role — admin and staff bypass the email-verification wall
+      const { data: roleRow } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      const isPrivileged = roleRow?.role === 'admin' || roleRow?.role === 'staff'
+
+      if (isPrivileged) {
+        // Auto-confirm so subsequent requests pass without this extra query
+        try {
+          const adminSup = createSupabaseAdmin(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            { auth: { autoRefreshToken: false, persistSession: false } },
+          )
+          await adminSup.auth.admin.updateUserById(user.id, { email_confirm: true })
+        } catch { /* non-fatal — they still get through this request */ }
+      } else {
+        const url = request.nextUrl.clone()
+        url.pathname = '/verify-email'
+        url.searchParams.set('email', user.email ?? '')
+        return redirectWithCookies(url, supabaseResponse)
+      }
     }
   }
 

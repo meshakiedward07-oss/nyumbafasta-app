@@ -32,13 +32,34 @@ function LoginForm() {
 
   // ── Role-based redirect ───────────────────────────────
   async function redirectByRole(userId: string) {
-    const { data } = await supabase
+    // Try full query first; fall back to minimal columns if any column is missing
+    // (e.g. staff_active / must_change_password not yet added to live DB).
+    let profileData: {
+      role?: string | null
+      is_active?: boolean | null
+      staff_active?: boolean | null
+      must_change_password?: boolean | null
+    } | null = null
+
+    const { data: full, error: fullErr } = await supabase
       .from('users')
       .select('role, is_active, staff_active, must_change_password')
       .eq('id', userId)
       .single()
 
-    if (data?.is_active === false) {
+    if (!fullErr && full) {
+      profileData = full
+    } else {
+      // Column missing or row absent — try minimal query
+      const { data: minimal } = await supabase
+        .from('users')
+        .select('role, is_active')
+        .eq('id', userId)
+        .single()
+      profileData = minimal
+    }
+
+    if (profileData?.is_active === false) {
       await supabase.auth.signOut()
       setError('Akaunti yako imesimamishwa. Wasiliana na support: wa.me/255615261147')
       setLoading(false)
@@ -46,7 +67,7 @@ function LoginForm() {
     }
 
     // Staff deactivated by admin
-    if (data?.role === 'staff' && data?.staff_active === false) {
+    if (profileData?.role === 'staff' && profileData?.staff_active === false) {
       await supabase.auth.signOut()
       setError('Akaunti yako ya staff imezimwa. Wasiliana na admin wako.')
       setLoading(false)
@@ -54,16 +75,16 @@ function LoginForm() {
     }
 
     // Staff forced to change password on first login
-    if (data?.role === 'staff' && data?.must_change_password) {
+    if (profileData?.role === 'staff' && profileData?.must_change_password) {
       window.location.href = '/account/change-password'
       return
     }
 
     const dest = redirectTo
       ? redirectTo
-      : data?.role === 'admin'  ? '/admin'
-      : data?.role === 'staff'  ? '/admin/staff-dashboard'
-      : data?.role === 'dalali' ? '/dashboard'
+      : profileData?.role === 'admin'  ? '/admin'
+      : profileData?.role === 'staff'  ? '/admin/staff-dashboard'
+      : profileData?.role === 'dalali' ? '/dashboard'
       : '/'
 
     window.location.href = dest

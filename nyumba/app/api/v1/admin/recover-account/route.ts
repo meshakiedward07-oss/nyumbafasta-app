@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Recovery not configured' }, { status: 500 })
   }
 
-  let body: { email?: string; secret?: string; newPassword?: string }
+  let body: { email?: string; secret?: string; newPassword?: string; setRole?: string; setActive?: boolean }
   try {
     body = await req.json()
   } catch {
@@ -89,30 +89,59 @@ export async function POST(req: NextRequest) {
   return doUpdate(admin, authUser.id, profileRow?.role ?? 'admin', body)
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 async function doUpdate(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
   userId: string,
   role: string,
-  body: { newPassword?: string },
+  body: { newPassword?: string; setRole?: string; setActive?: boolean },
 ): Promise<Response> {
-  const updates: Record<string, unknown> = { email_confirm: true }
+  const authUpdates: Record<string, unknown> = { email_confirm: true }
   if (body.newPassword && typeof body.newPassword === 'string' && body.newPassword.length >= 8) {
-    updates.password = body.newPassword
+    authUpdates.password = body.newPassword
   }
 
   const { data: updatedUser, error: updateErr } = await admin.auth.admin.updateUserById(
     userId,
-    updates,
+    authUpdates,
   )
 
   if (updateErr) {
     return Response.json({ error: updateErr.message }, { status: 500 })
   }
 
+  // Fix public.users role / is_active if requested
+  const profileUpdates: Record<string, unknown> = {}
+  const allowedRoles = ['admin', 'staff', 'dalali', 'client']
+  if (body.setRole && allowedRoles.includes(body.setRole)) {
+    profileUpdates.role = body.setRole
+    role = body.setRole
+  }
+  if (body.setActive === true)  profileUpdates.is_active = true
+  if (body.setActive === false) profileUpdates.is_active = false
+
+  if (Object.keys(profileUpdates).length > 0) {
+    const { error: profileErr } = await admin
+      .from('users')
+      .update(profileUpdates)
+      .eq('id', userId)
+    if (profileErr) {
+      console.error('[Recover] Profile update failed:', profileErr.message)
+    }
+  }
+
+  const changesDesc = [
+    'Email imethibitishwa',
+    authUpdates.password ? 'nenosiri limebadilishwa' : '',
+    profileUpdates.role ? `role imewekwa "${role}"` : '',
+    body.setActive !== undefined ? `is_active=${body.setActive}` : '',
+  ].filter(Boolean).join(', ')
+
   return Response.json({
     ok: true,
-    message: `Email imethibitishwa.${updates.password ? ' Nenosiri limebadilishwa. Ingia sasa.' : ' Jaribu kuingia na nenosiri lako la kawaida.'}`,
+    message: `${changesDesc}. Ingia sasa.`,
     user: {
       id: userId,
       role,
