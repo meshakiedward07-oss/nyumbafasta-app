@@ -31,7 +31,8 @@ export async function GET(req: NextRequest) {
 
   let query = admin
     .from('users')
-    .select('id, full_name, email, phone, staff_title, staff_active, max_leads_capacity, created_at')
+    // email lives in auth.users, not public.users — fetched separately below
+    .select('id, full_name, phone, staff_title, staff_active, max_leads_capacity, created_at')
     .eq('role', 'staff')
     .order('created_at', { ascending: false })
 
@@ -44,6 +45,15 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const staffIds = (staff || []).map(s => s.id)
+
+  // Fetch emails from auth.users (not available in public.users)
+  let emailMap: Map<string, string | null> = new Map()
+  try {
+    const emailFetches = await Promise.all(
+      staffIds.map(id => admin.auth.admin.getUserById(id).then(r => ({ id, email: r.data?.user?.email ?? null })))
+    )
+    emailMap = new Map(emailFetches.map(e => [e.id, e.email]))
+  } catch { /* non-fatal */ }
 
   // Fetch leads stats + permissions in parallel
   const [leadsResult, permsResult] = await Promise.all([
@@ -72,6 +82,7 @@ export async function GET(req: NextRequest) {
 
   const staffWithStats = (staff || []).map(s => ({
     ...s,
+    email: emailMap.get(s.id) ?? null,
     ...(statsMap[s.id] ?? { activeLeads: 0, totalConverted: 0, totalLost: 0 }),
     permissions: permsMap[s.id] ?? [],
   }))
