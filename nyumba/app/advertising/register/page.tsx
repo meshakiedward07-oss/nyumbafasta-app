@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Suspense } from 'react'
+import Image from 'next/image'
 
 const CATEGORIES = [
   'Nyumba na Mali', 'Hoteli na Lodges', 'Biashara ya Chakula', 'Afya na Dawa',
@@ -15,9 +15,10 @@ function RegisterForm() {
   const searchParams = useSearchParams()
   const planId = searchParams.get('plan')
 
-  const [step, setStep] = useState(1)
+  const [step, setStep]       = useState(1)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]     = useState('')
+  const [showPw, setShowPw]   = useState(false)
 
   const [form, setForm] = useState({
     business_name: '', business_category: '', contact_phone: '',
@@ -31,16 +32,17 @@ function RegisterForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (step === 1) { setStep(2); return }
-
-    if (form.password !== form.confirm_password) {
-      setError('Nywila hazifanani'); return
+    setError('')
+    if (step === 1) {
+      if (!form.business_name || !form.business_category || !form.contact_phone || !form.whatsapp_number || !form.city) {
+        setError('Jaza sehemu zote zinazohitajika (*)'); return
+      }
+      setStep(2); return
     }
-    if (form.password.length < 8) {
-      setError('Nywila iwe na angalau herufi 8'); return
-    }
+    if (form.password !== form.confirm_password) { setError('Nywila hazifanani'); return }
+    if (form.password.length < 8) { setError('Nywila iwe na angalau herufi 8'); return }
 
-    setLoading(true); setError('')
+    setLoading(true)
     try {
       const res = await fetch('/api/v1/advertising/register', {
         method: 'POST',
@@ -56,176 +58,215 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 w-full max-w-lg p-6">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Jiandikishe kwa Matangazo</h1>
-          <p className="text-gray-500 text-sm mt-1">Hatua {step} kati ya 2</p>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Branded header */}
+      <div className="bg-gradient-to-r from-[#085041] to-primary-600 px-4 py-5 text-center text-white">
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <Image src="/logo.png" alt="" width={28} height={28} className="rounded-lg" />
+          <span className="font-bold text-base">NyumbaFasta</span>
         </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm mb-4">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={submit} className="space-y-4">
-          {step === 1 && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jina la Biashara *</label>
-                <input
-                  required value={form.business_name}
-                  onChange={e => set('business_name', e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                  placeholder="Mfano: Hotel ya Mbuni, Duka la Nguruwe..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Aina ya Biashara *</label>
-                <select
-                  required value={form.business_category}
-                  onChange={e => set('business_category', e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                >
-                  <option value="">Chagua aina...</option>
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Simu *</label>
-                  <input
-                    required type="tel" value={form.contact_phone}
-                    onChange={e => set('contact_phone', e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    placeholder="0712345678"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    WhatsApp <span className="text-red-500 font-bold">*</span>
-                  </label>
-                  <input
-                    required type="tel" value={form.whatsapp_number}
-                    onChange={e => set('whatsapp_number', e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    placeholder="255712345678"
-                  />
-                  <p className="text-[11px] text-gray-400 mt-0.5">Wateja watabonyeza tangazo hadi WhatsApp yako</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mkoa / Mji *</label>
-                  <input
-                    required value={form.city}
-                    onChange={e => set('city', e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    placeholder="Dar es Salaam"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Wilaya</label>
-                  <input
-                    value={form.district}
-                    onChange={e => set('district', e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    placeholder="Kinondoni"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Maelezo ya Biashara</label>
-                <textarea
-                  value={form.description}
-                  onChange={e => set('description', e.target.value)}
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
-                  placeholder="Eleza biashara yako kwa ufupi..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tovuti (hiari)</label>
-                <input
-                  type="url" value={form.website_url}
-                  onChange={e => set('website_url', e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                  placeholder="https://..."
-                />
-              </div>
-            </>
-          )}
-
-          {step === 2 && (
-            <>
-              <p className="text-sm text-gray-500 bg-gray-50 rounded-xl p-3">
-                Unda akaunti yako ya mfanyabiashara ili uweze kusimamia matangazo yako.
-              </p>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Barua pepe *</label>
-                <input
-                  required type="email" value={form.email}
-                  onChange={e => set('email', e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                  placeholder="biashara@email.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nywila *</label>
-                <input
-                  required type="password" value={form.password}
-                  onChange={e => set('password', e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                  placeholder="Angalau herufi 8"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Thibitisha Nywila *</label>
-                <input
-                  required type="password" value={form.confirm_password}
-                  onChange={e => set('confirm_password', e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                  placeholder="Rudia nywila"
-                />
-              </div>
-            </>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            {step === 2 && (
-              <button
-                type="button" onClick={() => setStep(1)}
-                className="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
-              >
-                Rudi
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-primary-600 transition disabled:opacity-50"
-            >
-              {loading ? 'Inasajili...' : step === 1 ? 'Endelea →' : 'Unda Akaunti'}
-            </button>
-          </div>
-        </form>
-
-        <p className="text-center text-sm text-gray-500 mt-4">
-          Una akaunti tayari?{' '}
-          <Link href="/advertising/login" className="text-primary-600 font-medium hover:underline">
-            Ingia hapa
-          </Link>
-        </p>
+        <p className="text-xs text-primary-200">Sajili Biashara yako — Bure</p>
       </div>
+
+      <div className="flex-1 flex items-start justify-center pt-6 px-4 pb-12">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 w-full max-w-lg p-6">
+
+          {/* Step indicator */}
+          <div className="flex items-center gap-2 mb-6">
+            {[
+              { n: 1, label: 'Biashara' },
+              { n: 2, label: 'Akaunti' },
+            ].map((s, i) => (
+              <div key={s.n} className="flex items-center gap-2 flex-1">
+                <div className={`flex items-center gap-2 ${i > 0 ? 'flex-1' : ''}`}>
+                  {i > 0 && (
+                    <div className={`h-0.5 flex-1 transition-colors ${step >= s.n ? 'bg-primary-400' : 'bg-gray-200'}`} />
+                  )}
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${
+                    step >= s.n ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
+                  }`}>
+                    {step > s.n ? '✓' : s.n}
+                  </div>
+                </div>
+                <span className={`text-xs font-medium whitespace-nowrap ${step >= s.n ? 'text-primary-600' : 'text-gray-400'}`}>
+                  {s.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <h1 className="text-lg font-bold text-gray-800 mb-4">
+            {step === 1 ? 'Taarifa za Biashara Yako' : 'Unda Akaunti Yako'}
+          </h1>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm mb-4 flex items-start gap-2">
+              <span className="flex-shrink-0">⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={submit} className="space-y-4">
+            {step === 1 && (
+              <>
+                <Field label="Jina la Biashara *" required>
+                  <input
+                    required value={form.business_name}
+                    onChange={e => set('business_name', e.target.value)}
+                    className="input"
+                    placeholder="Mfano: Duka la Nguruwe, Salon ya Amina..."
+                  />
+                </Field>
+
+                <Field label="Aina ya Biashara *" required>
+                  <select
+                    required value={form.business_category}
+                    onChange={e => set('business_category', e.target.value)}
+                    className="input"
+                  >
+                    <option value="">Chagua aina...</option>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </Field>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Nambari ya Simu *">
+                    <input
+                      required type="tel" value={form.contact_phone}
+                      onChange={e => set('contact_phone', e.target.value)}
+                      className="input" placeholder="0712345678"
+                    />
+                  </Field>
+                  <Field label="WhatsApp *">
+                    <input
+                      required type="tel" value={form.whatsapp_number}
+                      onChange={e => set('whatsapp_number', e.target.value)}
+                      className="input" placeholder="255712345678"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-0.5">Wateja watabonyeza hadi WhatsApp yako</p>
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Mji / Mkoa *">
+                    <input
+                      required value={form.city}
+                      onChange={e => set('city', e.target.value)}
+                      className="input" placeholder="Dar es Salaam"
+                    />
+                  </Field>
+                  <Field label="Wilaya">
+                    <input
+                      value={form.district}
+                      onChange={e => set('district', e.target.value)}
+                      className="input" placeholder="Kinondoni"
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Maelezo ya Biashara (hiari)">
+                  <textarea
+                    value={form.description}
+                    onChange={e => set('description', e.target.value)}
+                    rows={3}
+                    className="input resize-none"
+                    placeholder="Eleza biashara yako kwa ufupi..."
+                  />
+                </Field>
+
+                <Field label="Tovuti (hiari)">
+                  <input
+                    type="url" value={form.website_url}
+                    onChange={e => set('website_url', e.target.value)}
+                    className="input" placeholder="https://..."
+                  />
+                </Field>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-sm text-primary-800 flex items-start gap-2">
+                  <span>✅</span>
+                  <span>Taarifa za biashara zimehifadhiwa. Sasa unda akaunti ya kuingia.</span>
+                </div>
+
+                <Field label="Barua Pepe *">
+                  <input
+                    required type="email" value={form.email}
+                    onChange={e => set('email', e.target.value)}
+                    className="input" placeholder="biashara@email.com"
+                    autoComplete="email"
+                  />
+                </Field>
+
+                <Field label="Nywila *">
+                  <div className="relative">
+                    <input
+                      required type={showPw ? 'text' : 'password'} value={form.password}
+                      onChange={e => set('password', e.target.value)}
+                      className="input pr-16" placeholder="Angalau herufi 8"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button" onClick={() => setShowPw(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      {showPw ? 'Ficha' : 'Onyesha'}
+                    </button>
+                  </div>
+                </Field>
+
+                <Field label="Thibitisha Nywila *">
+                  <input
+                    required type={showPw ? 'text' : 'password'} value={form.confirm_password}
+                    onChange={e => set('confirm_password', e.target.value)}
+                    className="input" placeholder="Rudia nywila"
+                    autoComplete="new-password"
+                  />
+                </Field>
+              </>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              {step === 2 && (
+                <button
+                  type="button" onClick={() => { setStep(1); setError('') }}
+                  className="flex-1 border border-gray-300 text-gray-600 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
+                >
+                  ← Rudi
+                </button>
+              )}
+              <button
+                type="submit" disabled={loading}
+                className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-bold hover:bg-primary-600 transition disabled:opacity-50"
+              >
+                {loading ? 'Inasajili...' : step === 1 ? 'Endelea →' : 'Unda Akaunti'}
+              </button>
+            </div>
+          </form>
+
+          <p className="text-center text-sm text-gray-500 mt-5">
+            Una akaunti tayari?{' '}
+            <Link href="/advertising/login" className="text-primary-600 font-semibold hover:underline">
+              Ingia hapa
+            </Link>
+          </p>
+        </div>
+      </div>
+
+      <style>{`.input { width: 100%; border: 1px solid #d1d5db; border-radius: 12px; padding: 10px 14px; font-size: 14px; outline: none; } .input:focus { border-color: #1D9E75; box-shadow: 0 0 0 3px rgba(29,158,117,0.12); }`}</style>
+    </div>
+  )
+}
+
+function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label} {required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
+      {children}
     </div>
   )
 }
