@@ -319,20 +319,26 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
 }
 
 // ── Main shell ─────────────────────────────────────────────────────────────
-export default function AdminShell({ children }: { children: React.ReactNode }) {
+export default function AdminShell({
+  children,
+  initialRole = 'admin',
+}: {
+  children: React.ReactNode
+  initialRole?: string
+}) {
   const pathname = usePathname()
   const router   = useRouter()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [userRole,   setUserRole]   = useState<string | null>(null)
+  const [userRole,   setUserRole]   = useState<string>(initialRole)
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
       supabase.from('users').select('role').eq('id', user.id).single()
-        .then(({ data }) => setUserRole(data?.role ?? null))
+        .then(({ data }) => setUserRole(data?.role ?? initialRole))
     })
-  }, [])
+  }, [initialRole])
 
   function isActive(href: string, exact: boolean) {
     if (exact) return pathname === href
@@ -367,12 +373,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Mobile top header */}
         <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 z-40 flex items-center justify-between flex-shrink-0">
-          <Link href="/admin">
+          <Link href={isStaff ? '/admin/staff-dashboard' : '/admin'}>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xs">NF</span>
               </div>
-              <span className="font-bold text-gray-900 text-sm">Admin</span>
+              <span className="font-bold text-gray-900 text-sm">{isStaff ? 'Dashboard' : 'Admin'}</span>
             </div>
           </Link>
           <button
@@ -398,12 +404,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200"
            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-stretch h-16">
-          {userRole === null ? (
-            // Loading skeleton — prevents flash of wrong nav
-            Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex-1 animate-pulse bg-gray-50/80" />
-            ))
-          ) : isStaff ? (
+          {isStaff ? (
             // Staff-specific bottom nav
             STAFF_BOTTOM_NAV.map(item => {
               const active = isActive(item.href, item.exact)

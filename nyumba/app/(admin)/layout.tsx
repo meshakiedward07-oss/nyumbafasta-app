@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <AdminShell>
+    <AdminShell initialRole={profile?.role ?? 'admin'}>
       <ErrorBoundary>
         {children}
       </ErrorBoundary>
