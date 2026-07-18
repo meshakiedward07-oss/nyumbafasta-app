@@ -2,16 +2,21 @@
 -- fix_email_trigger.sql
 -- Run in Supabase Dashboard → SQL Editor
 --
--- PROBLEM: The handle_new_user trigger was inserting into public.users
--- WITHOUT the email column. So public.users.email is NULL for all users.
+-- PROBLEM: The email column was never added to the live public.users table,
+-- and the handle_new_user trigger didn't populate it anyway.
 -- This broke: cron emails, check-email-status API, etc.
 --
 -- FIX:
---   1. Recreate trigger to populate email from NEW.email
---   2. Backfill all existing users from auth.users
+--   1. Add email column (if missing)
+--   2. Recreate trigger to populate email from NEW.email
+--   3. Backfill all existing users from auth.users
 -- ════════════════════════════════════════════════════════════════
 
--- 1. Update trigger to include email
+-- 1. Add email column (safe — does nothing if it already exists)
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS email TEXT;
+
+-- 2. Update trigger to include email
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -58,12 +63,12 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 2. Backfill email for ALL existing users whose email is NULL
+-- 3. Backfill email for ALL existing users from auth.users
+--    (column was just added so all rows are NULL — update unconditionally)
 UPDATE public.users u
 SET email = a.email
 FROM auth.users a
 WHERE u.id = a.id
-  AND u.email IS NULL
   AND a.email IS NOT NULL;
 
 -- 3. Verify the fix — should show 0 users with NULL email (or only OAuth phone users)
