@@ -53,17 +53,27 @@ function ChangePasswordForm() {
 
     setSaving(true)
 
-    // 1. Read role NOW — session is guaranteed valid before the password change
-    let role = 'client'
+    // 1. Read role and email BEFORE any auth change — session is guaranteed valid here
+    let role  = 'client'
+    let email = ''
     try {
       const { data: { user: me } } = await supabase.auth.getUser()
       if (me) {
+        email = me.email ?? ''
         const { data } = await supabase.from('users').select('role').eq('id', me.id).single()
         role = data?.role ?? 'client'
       }
-    } catch { /* fall through with default */ }
+    } catch { /* fall through with defaults */ }
 
-    // 2. Change the password
+    // 2. Clear must_change_password BEFORE changing the password.
+    //    If we clear it AFTER, supabase.auth.updateUser() invalidates the session
+    //    so the subsequent fetch() arrives unauthenticated (401) and the flag
+    //    stays true, trapping staff in an endless redirect loop.
+    try {
+      await fetch('/api/v1/auth/clear-force-password', { method: 'POST' })
+    } catch { /* non-fatal — flag cleared by admin API server-side */ }
+
+    // 3. Change the password
     const { error: updateError } = await supabase.auth.updateUser({ password })
     if (updateError) {
       setError(updateError.message)
@@ -71,20 +81,29 @@ function ChangePasswordForm() {
       return
     }
 
-    // 3. Clear must_change_password via admin API (bypasses RLS)
-    try {
-      await fetch('/api/v1/auth/clear-force-password', { method: 'POST' })
-    } catch { /* non-fatal */ }
+    // 4. Sign out + sign back in with the new password so the browser gets a
+    //    fresh valid session. updateUser() invalidates the old session token,
+    //    so without re-login the middleware sees no session and bounces to /login.
+    if (email) {
+      await supabase.auth.signOut()
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInError) {
+        // Extremely unlikely since we just set this password, but surface it.
+        setError(`Password imebadilishwa lakini kuingia kumeshindwa: ${signInError.message}`)
+        setSaving(false)
+        return
+      }
+    }
 
     setDone(true)
     setSaving(false)
 
-    // 4. Hard redirect (window.location) so middleware re-evaluates with fresh session + DB state
+    // 5. Redirect — session is now fresh and valid
     setTimeout(() => {
-      if (role === 'admin')  window.location.href = '/admin'
+      if (role === 'admin')       window.location.href = '/admin'
       else if (role === 'staff')  window.location.href = '/admin/staff-dashboard'
       else if (role === 'dalali') window.location.href = '/dashboard'
-      else window.location.href = '/'
+      else                        window.location.href = '/'
     }, 1500)
   }
 
