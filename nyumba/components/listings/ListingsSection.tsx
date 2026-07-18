@@ -300,14 +300,6 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           {hasExtraFilters && <span className="w-2 h-2 rounded-full bg-amber-400 border-2 border-white shadow" />}
         </button>
 
-        {(hasExtraFilters || filters?.region || filters?.type) && (
-          <button
-            onClick={clearFilters}
-            className="flex-shrink-0 text-xs bg-red-50 text-red-500 border border-red-100 rounded-full px-4 py-2 flex items-center gap-1 font-semibold"
-          >
-            <i className="ti ti-x text-xs" aria-hidden="true" /> Futa Zote
-          </button>
-        )}
       </div>
 
       {/* ── Expanded filters ── */}
