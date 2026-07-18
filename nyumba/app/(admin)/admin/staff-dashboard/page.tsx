@@ -7,7 +7,7 @@ const StaffDashboardClient = dynamic(() => import('./StaffDashboardClient'), { s
 export default async function StaffDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login?redirect=/admin/staff-dashboard')
+  if (!user) redirect('/staff-login?redirect=/admin/staff-dashboard')
 
   const { data: profile } = await supabase
     .from('users')

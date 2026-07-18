@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 // Routes zinazohitaji login
 const PROTECTED_ROUTES = ['/dashboard', '/admin', '/saved', '/account', '/subscription', '/notifications', '/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns']
 // Routes za watumiaji walioingia tu (usiende tena)
-const AUTH_ROUTES = ['/login', '/register']
+const AUTH_ROUTES = ['/login', '/register', '/staff-login']
 // Routes za admin peke yake
 const ADMIN_ONLY_ROUTES = ['/admin']
 // Routes za dalali na admin
@@ -64,10 +64,13 @@ export async function middleware(request: NextRequest) {
     DALALI_ROUTES.some(r => path.startsWith(r))
   const isAgreementExempt = AGREEMENT_EXEMPT.some(r => path.startsWith(r))
 
-  // Redirect kwenda login kama hana session
+  // Redirect kwenda login kama hana session.
+  // Admin paths → /staff-login (staff bookmarks land in the right portal).
+  // All other protected paths → regular /login.
   if (!user && isProtected) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    const isAdminPath = ADMIN_ONLY_ROUTES.some(r => path.startsWith(r))
+    url.pathname = isAdminPath ? '/staff-login' : '/login'
     url.searchParams.set('redirect', path)
     return redirectWithCookies(url, supabaseResponse)
   }

@@ -80,7 +80,16 @@ function LoginForm() {
       return
     }
 
-    const dest = redirectTo
+    // Don't send a regular user to an /admin path just because the URL had
+    // ?redirect=/admin — middleware would immediately bounce them, causing a
+    // confusing loop. Admin/staff are allowed to follow admin redirects.
+    const isAdminRedirect = redirectTo.startsWith('/admin')
+    const canFollowRedirect =
+      !isAdminRedirect ||
+      profileData?.role === 'admin' ||
+      profileData?.role === 'staff'
+
+    const dest = (redirectTo && canFollowRedirect)
       ? redirectTo
       : profileData?.role === 'admin'  ? '/admin'
       : profileData?.role === 'staff'  ? '/admin/staff-dashboard'
