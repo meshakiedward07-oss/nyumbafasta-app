@@ -22,28 +22,42 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const {
-    name, ad_type, description,
+    name, ad_type, bundle_types, description,
     price_tzs, duration_days, slot_limit,
-    features, display_order, is_active, placements,
+    features, display_order, is_active, placements, visibility,
   } = body
 
   if (!name || !ad_type || !price_tzs || !duration_days || !slot_limit) {
-    return NextResponse.json({ error: 'name, ad_type, price_tzs, duration_days, slot_limit zinahitajika' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'name, ad_type, price_tzs, duration_days, slot_limit zinahitajika' },
+      { status: 400 }
+    )
   }
+
+  const resolvedBundleTypes = Array.isArray(bundle_types) && bundle_types.length > 0
+    ? bundle_types
+    : [ad_type]
+
+  const resolvedPlacements = Array.isArray(placements) && placements.length > 0
+    ? placements
+    : [ad_type]
 
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('ad_subscription_plans')
     .insert({
-      name, ad_type,
-      description:    description || null,
+      name,
+      ad_type,
+      bundle_types:  resolvedBundleTypes,
+      description:   description || null,
       price_tzs,
       duration_days,
       slot_limit,
-      features:       features || [],
-      placements:     Array.isArray(placements) && placements.length > 0 ? placements : [ad_type],
-      display_order:  display_order ?? 99,
-      is_active:      is_active ?? true,
+      features:      features || [],
+      placements:    resolvedPlacements,
+      visibility:    visibility ?? 'new_campaign',
+      display_order: display_order ?? 99,
+      is_active:     is_active ?? true,
     })
     .select()
     .single()

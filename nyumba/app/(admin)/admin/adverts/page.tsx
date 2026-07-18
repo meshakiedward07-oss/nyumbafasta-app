@@ -195,9 +195,14 @@ export default function AdminAdvertsPage() {
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Kampeni za Matangazo</h1>
-        <Link href="/admin/adverts/plans" className="text-sm text-primary-600 hover:underline">
-          Simamia Mipango →
-        </Link>
+        <div className="flex gap-4">
+          <Link href="/admin/adverts/advertisers" className="text-sm text-primary-600 hover:underline">
+            Wafanyabiashara →
+          </Link>
+          <Link href="/admin/adverts/plans" className="text-sm text-primary-600 hover:underline">
+            Simamia Mipango →
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
