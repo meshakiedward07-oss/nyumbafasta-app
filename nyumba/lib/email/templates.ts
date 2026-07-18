@@ -394,6 +394,94 @@ export function listingExpiredEmail(dalaliName: string, listingTitle: string) {
   }
 }
 
+// ── Advertiser welcome email (sent on successful registration) ────────────
+
+export function advertiserWelcomeEmail(businessName: string, city: string) {
+  const dashUrl = `${APP_URL}/advertising/dashboard`
+  return {
+    subject: '🎉 Karibu NyumbaFasta Ads — Biashara Yako Imesajiliwa!',
+    html: emailBase(`
+      <span style="${styles.greeting}">Karibu ${businessName}! 🎉</span>
+      <span style="${styles.text}">Biashara yako imesajiliwa vizuri kwenye NyumbaFasta Ads. Timu yetu itakagua maombi yako na kukujulisha ndani ya <strong>saa 24</strong>.</span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">🏙️ <strong>Jina la Biashara:</strong> ${businessName}</p>
+        <p style="${styles.infoText}">📍 <strong>Mji:</strong> ${city}</p>
+        <p style="${styles.infoText}">⏳ <strong>Hali:</strong> Inasubiri Uhakiki</p>
+      </div>
+
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 18px;margin:16px 0">
+        <p style="font-size:14px;color:#92400e;margin:0">
+          📌 Utapata arifa ya WhatsApp na email pindi akaunti yako inapoidhinishwa.
+          Kama una swali lolote, wasiliana nasi mara moja.
+        </p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${dashUrl}" style="${styles.btn}">📊 Angalia Dashibodi Yako →</a>
+        </td></tr>
+      </table>
+
+      <hr style="${styles.divider}">
+      <span style="${styles.textSmall}">Msaada: <a href="https://wa.me/255665831694" style="${styles.linkSmall}">WhatsApp +255 665 831 694</a></span>
+    `, 'Biashara yako imesajiliwa — inasubiri uhakiki'),
+  }
+}
+
+// ── Advertiser account approved email ─────────────────────────────────────
+
+export function advertiserApprovedEmail(businessName: string) {
+  const dashUrl = `${APP_URL}/advertising/new`
+  return {
+    subject: '✅ Akaunti Yako Imeidhinishwa — Anza Kutangaza Sasa!',
+    html: emailBase(`
+      <span style="${styles.greeting}">Hongera ${businessName}! 🎉</span>
+      <span style="${styles.text}">Akaunti yako ya NyumbaFasta Ads <strong>imeidhinishwa</strong>! Sasa unaweza kuunda matangazo yako na kufikia wateja wa nyumba Tanzania nzima.</span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">✅ Akaunti: <strong>Imeidhinishwa (Active)</strong></p>
+        <p style="${styles.infoText}">🎯 Fikia wateja wa nyumba kote Tanzania</p>
+        <p style="${styles.infoText}">📊 Fuatilia matokeo kwa wakati halisi</p>
+        <p style="${styles.infoText}">💬 Wateja wawasiliane nawe moja kwa moja</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${dashUrl}" style="${styles.btn}">🚀 Unda Tangazo Lako la Kwanza →</a>
+        </td></tr>
+      </table>
+
+      <hr style="${styles.divider}">
+      <span style="${styles.textSmall}">Una maswali? <a href="https://wa.me/255665831694" style="${styles.linkSmall}">WhatsApp +255 665 831 694</a></span>
+    `, 'Akaunti ya NyumbaFasta Ads imeidhinishwa — anza kutangaza!'),
+  }
+}
+
+// ── Advertiser account rejected email ─────────────────────────────────────
+
+export function advertiserRejectedEmail(businessName: string, reason?: string) {
+  return {
+    subject: '❌ Maombi ya Akaunti Yako — NyumbaFasta Ads',
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari ${businessName},</span>
+      <span style="${styles.text}">Samahani, baada ya kukagua maombi yako, hatukuweza kuidhinisha akaunti yako kwa sababu zifuatazo:</span>
+
+      ${reason ? `
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:16px 20px;margin:20px 0">
+        <p style="font-size:14px;color:#b91c1c;margin:0"><strong>Sababu:</strong> ${reason}</p>
+      </div>` : ''}
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">💡 Unaweza kuwasiliana nasi kwa maelezo zaidi au kuomba tena baada ya kufanya marekebisho.</p>
+      </div>
+
+      <hr style="${styles.divider}">
+      <span style="${styles.textSmall}">Msaada: <a href="https://wa.me/255665831694" style="${styles.linkSmall}">WhatsApp +255 665 831 694</a></span>
+    `, 'Maombi ya NyumbaFasta Ads yameshughulikiwa'),
+  }
+}
+
 // ── Subscription expiry email (cron steps 13a / 13b) ─────────────────────
 
 export function subscriptionExpiryEmail(

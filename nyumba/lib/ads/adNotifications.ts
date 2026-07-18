@@ -83,6 +83,52 @@ export async function notifyAdvertiserRenewalReminder(
   } catch { /* non-fatal */ }
 }
 
+export async function notifyAccountApproved(
+  whatsapp: string,
+  businessName: string,
+): Promise<void> {
+  const msg =
+    `✅ *Akaunti Yako Imeidhinishwa!*\n\n` +
+    `Hongera ${businessName}!\n\n` +
+    `Akaunti yako ya NyumbaFasta Ads imepitiwa na *imeidhinishwa*. Sasa unaweza kuunda matangazo yako.\n\n` +
+    `👉 Unda tangazo lako la kwanza sasa:\n${APP_URL}/advertising/new`
+  try {
+    await sendTextMessage(formatPhoneNumber(whatsapp), msg)
+  } catch { /* non-fatal */ }
+}
+
+export async function notifyAccountRejected(
+  whatsapp: string,
+  businessName: string,
+  reason?: string,
+): Promise<void> {
+  const msg =
+    `❌ *Maombi ya Akaunti Yameshughulikiwa*\n\n` +
+    `Habari ${businessName},\n\n` +
+    `Samahani, akaunti yako ya NyumbaFasta Ads haikuidhinishwa kwa sasa.\n` +
+    (reason ? `Sababu: _${reason}_\n\n` : '\n') +
+    `Wasiliana nasi kwa maelezo zaidi:\n📞 wa.me/255665831694`
+  try {
+    await sendTextMessage(formatPhoneNumber(whatsapp), msg)
+  } catch { /* non-fatal */ }
+}
+
+export async function notifyAccountSuspended(
+  whatsapp: string,
+  businessName: string,
+  reason?: string,
+): Promise<void> {
+  const msg =
+    `⚠️ *Akaunti Yako Imesimamishwa*\n\n` +
+    `Habari ${businessName},\n\n` +
+    `Akaunti yako ya NyumbaFasta Ads imesimamishwa kwa muda.\n` +
+    (reason ? `Sababu: _${reason}_\n\n` : '\n') +
+    `Wasiliana nasi kwa msaada:\n📞 wa.me/255665831694`
+  try {
+    await sendTextMessage(formatPhoneNumber(whatsapp), msg)
+  } catch { /* non-fatal */ }
+}
+
 export async function notifyWaitingListSlotOpen(
   whatsapp: string,
   businessName: string,

@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { normalizePhone } from '@/lib/utils/phone'
+import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
+import { auditLog } from '@/lib/security/auditLog'
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 5 registrations per hour per IP
+  const ip = getClientIp(req)
+  const rl = await rateLimit(`adv_register:${ip}`, 5, 60 * 60 * 1000)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Maombi mengi sana. Jaribu tena baadaye.' }, { status: 429 })
+  }
+
   try {
     const body = await req.json()
     const {
@@ -19,32 +28,30 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
     const admin    = createAdminClient()
 
-    // Check if already logged in and has advertiser profile
     const { data: { user: existingUser } } = await supabase.auth.getUser()
 
     let userId: string
+    let createdAuthUser = false
 
     if (existingUser) {
-      // Existing auth user — just create advertiser profile
       userId = existingUser.id
     } else {
-      // Create new Supabase auth account
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/advertising/dashboard` },
       })
-
       if (signUpError) {
         return NextResponse.json({ error: signUpError.message }, { status: 400 })
       }
       if (!signUpData.user) {
         return NextResponse.json({ error: 'Imeshindwa kuunda akaunti' }, { status: 500 })
       }
-      userId = signUpData.user.id
+      userId         = signUpData.user.id
+      createdAuthUser = true
     }
 
-    // Check if advertiser profile already exists
+    // Check for existing advertiser profile
     const { data: existing } = await admin
       .from('advertisers')
       .select('id')
@@ -55,43 +62,90 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Tayari una akaunti ya mfanyabiashara', existing: true }, { status: 409 })
     }
 
-    // Create advertiser profile
+    // Create advertiser profile — if this fails, roll back the auth user
     const { data: advertiser, error: insertError } = await admin
       .from('advertisers')
       .insert({
-        user_id:           userId,
+        user_id:          userId,
         business_name,
         business_category,
         contact_phone,
-        whatsapp_number:   whatsapp_number ? normalizePhone(whatsapp_number) : null,
+        whatsapp_number:  whatsapp_number ? normalizePhone(whatsapp_number) : null,
         email,
         city,
-        district:          district || null,
-        description:       description || null,
-        website_url:       website_url || null,
-        status:            'pending_review',
+        district:         district    || null,
+        description:      description || null,
+        website_url:      website_url || null,
+        status:           'pending_review',
       })
       .select('id, status')
       .single()
 
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
+    if (insertError || !advertiser) {
+      // Atomic rollback: remove the auth user we just created so the email
+      // can be reused on the next attempt — prevents orphaned auth.users rows.
+      if (createdAuthUser) {
+        await admin.auth.admin.deleteUser(userId).catch(() => {})
+      }
+      return NextResponse.json({ error: 'Imeshindwa kusajili biashara. Jaribu tena.' }, { status: 500 })
     }
 
-    // Notify admin (non-blocking)
-    const adminEmail = process.env.ADMIN_EMAIL
-    if (adminEmail) {
-      import('@/lib/email/templates').then(({ emailBase }) => {
-        import('resend').then(({ Resend }) => {
-          new Resend(process.env.RESEND_API_KEY).emails.send({
-            from: 'NyumbaFasta <noreply@nyumbafasta.co>',
-            to: adminEmail,
-            subject: `🏪 Mfanyabiashara Mpya — ${business_name}`,
-            html: emailBase(`<p>Mfanyabiashara mpya amesajili: <b>${business_name}</b> (${city})<br>Angalia Admin Panel: <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/adverts">Admin → Matangazo</a></p>`, 'Mfanyabiashara mpya amesajili'),
+    // ── Non-blocking side effects ─────────────────────────────────────────────
+
+    // In-app welcome notification
+    admin.from('notifications').insert({
+      user_id: userId,
+      title:   '🎉 Karibu NyumbaFasta Ads!',
+      body:    `Akaunti ya "${business_name}" imesajiliwa. Itakaguliwa na timu yetu ndani ya saa 24.`,
+      type:    'advertiser_welcome',
+      is_read: false,
+    }).then(() => {}, () => {})
+
+    // Emails (non-blocking)
+    if (process.env.RESEND_API_KEY) {
+      Promise.all([
+        // Welcome email to the advertiser
+        import('@/lib/email/templates').then(({ advertiserWelcomeEmail }) => {
+          import('resend').then(({ Resend }) => {
+            const { subject, html } = advertiserWelcomeEmail(business_name, city)
+            return new Resend(process.env.RESEND_API_KEY).emails.send({
+              from: 'NyumbaFasta <noreply@nyumbafasta.co>',
+              to:   email,
+              subject,
+              html,
+            })
           })
-        })
-      }).catch(() => {})
+        }),
+        // Admin alert
+        process.env.ADMIN_EMAIL
+          ? import('@/lib/email/templates').then(({ emailBase }) => {
+              import('resend').then(({ Resend }) => {
+                new Resend(process.env.RESEND_API_KEY).emails.send({
+                  from: 'NyumbaFasta <noreply@nyumbafasta.co>',
+                  to:   process.env.ADMIN_EMAIL!,
+                  subject: `🏪 Mfanyabiashara Mpya — ${business_name}`,
+                  html: emailBase(
+                    `<p>Mfanyabiashara mpya amesajili: <b>${business_name}</b> (${city})<br>
+                     Angalia: <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/adverts/advertisers">Admin → Wafanyabiashara</a></p>`,
+                    'Mfanyabiashara mpya amesajili'
+                  ),
+                })
+              })
+            })
+          : Promise.resolve(),
+      ]).catch(() => {})
     }
+
+    // Audit log
+    auditLog({
+      action:      'admin_action',
+      user_id:     userId,
+      target_id:   advertiser.id,
+      target_type: 'advertiser',
+      metadata:    { event: 'advertiser_registered', business_name, city },
+      ip_address:  ip,
+      severity:    'info',
+    }).catch(() => {})
 
     return NextResponse.json({ ok: true, advertiser_id: advertiser.id })
   } catch (e) {

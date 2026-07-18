@@ -8,6 +8,7 @@ import {
 import { getPricing } from '@/lib/config/pricing'
 import { Resend } from 'resend'
 import { contactUnlockEmail } from '@/lib/email/templates'
+import { tryProcessAdPayment } from '@/lib/ads/processAdPayment'
 
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
@@ -51,8 +52,12 @@ export async function POST(req: NextRequest) {
       .select('id, client_id, listing_id, dalali_id')
 
     if (!updated || updated.length === 0) {
-      // Already processed (idempotent) or payment_ref not found
-      console.log('[Unlock Webhook] No pending unlock found for', externalId, '— skipping (already processed?)')
+      // Not a contact_unlock payment — check if it's an ad payment instead.
+      // AzamPay uses a single merchant callback URL, so both payment types land here.
+      const wasAd = await tryProcessAdPayment(admin, externalId, payload)
+      if (!wasAd) {
+        console.log('[Webhook] No matching payment for', externalId, '— skipping')
+      }
       return NextResponse.json({ received: true })
     }
 

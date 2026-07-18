@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
+import { LogoutButton } from '@/components/ads/LogoutButton'
 
 export const metadata = { title: 'NyumbaFasta · Matangazo ya Biashara' }
 
@@ -36,6 +37,7 @@ export default async function AdvertisingLayout({ children }: { children: ReactN
                 <span className="hidden sm:inline">+ Tangazo Jipya</span>
                 <span className="sm:hidden">+</span>
               </Link>
+              <LogoutButton />
             </>
           ) : (
             <>

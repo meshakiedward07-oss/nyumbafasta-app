@@ -16,6 +16,18 @@ export type AuditAction =
   | 'payment_failed'
   | 'admin_action'
   | 'unauthorized_access_attempt'
+  // Ads-specific actions
+  | 'advertiser_registered'
+  | 'advertiser_approved'
+  | 'advertiser_rejected'
+  | 'advertiser_suspended'
+  | 'advertiser_activated'
+  | 'ad_campaign_created'
+  | 'ad_campaign_approved'
+  | 'ad_campaign_rejected'
+  | 'ad_payment_initiated'
+  | 'ad_payment_completed'
+  | 'ad_payment_failed'
 
 interface AuditEntry {
   action: AuditAction

@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import {
   verifyWebhookSecret, verifyAzamPaySignature,
-  isWebhookSuccess, getExternalId, WebhookPayload,
+  getExternalId, WebhookPayload,
 } from '@/lib/payments/azampay'
-import {
-  notifyAdvertiserPaymentSuccess,
-} from '@/lib/ads/adNotifications'
-import { recordIncomeFromAdCampaign } from '@/lib/accounting/incomeTracker'
+import { tryProcessAdPayment } from '@/lib/ads/processAdPayment'
 
+// Secondary webhook endpoint — kept for explicit AzamPay sub-account routing.
+// The primary dispatch path is /api/v1/payments/webhook which handles both
+// contact_unlock and ad_payment types via tryProcessAdPayment().
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
     console.warn('[AdWebhook] Invalid webhook secret')
@@ -34,78 +34,10 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient()
+  const handled = await tryProcessAdPayment(admin, externalId, payload)
 
-  const { data: payment } = await admin
-    .from('ad_payments')
-    .select('id, campaign_id, advertiser_id, amount, status')
-    .eq('external_id', externalId)
-    .maybeSingle()
-
-  if (!payment) {
-    console.warn('[AdWebhook] Payment not found for externalId:', externalId)
-    return NextResponse.json({ ok: true })  // Acknowledge to avoid retries
-  }
-
-  const success = isWebhookSuccess(payload)
-
-  // Atomic guard: only update if still pending — prevents double-activation on concurrent delivery
-  const { data: updated } = await admin.from('ad_payments').update({
-    status:             success ? 'completed' : 'failed',
-    gateway_reference:  payload.externalreference ?? null,
-    paid_at:            success ? new Date().toISOString() : null,
-  }).eq('id', payment.id).eq('status', 'pending').select('id').maybeSingle()
-
-  if (!updated) {
-    return NextResponse.json({ ok: true })  // Already processed (idempotent)
-  }
-
-  if (success) {
-    // Activate campaign and set expiry based on plan
-    const { data: campaign } = await admin
-      .from('ad_campaigns')
-      .select('id, status, plan:plan_id (duration_days)')
-      .eq('id', payment.campaign_id)
-      .single()
-
-    if (campaign) {
-      const durationDays = (campaign.plan as unknown as { duration_days: number })?.duration_days ?? 30
-      const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
-      const newStatus = campaign.status === 'approved' ? 'active' : campaign.status
-
-      await admin.from('ad_campaigns').update({
-        payment_status: 'completed',
-        status:         newStatus,
-        starts_at:      new Date().toISOString(),
-        expires_at:     expiresAt,
-      }).eq('id', payment.campaign_id)
-
-      // Notify advertiser via WhatsApp
-      const { data: advertiser } = await admin
-        .from('advertisers')
-        .select('business_name, whatsapp_number')
-        .eq('id', payment.advertiser_id)
-        .single()
-
-      const { data: fullCampaign } = await admin
-        .from('ad_campaigns')
-        .select('ad_type')
-        .eq('id', payment.campaign_id)
-        .single()
-
-      if (advertiser?.whatsapp_number && fullCampaign) {
-        await notifyAdvertiserPaymentSuccess(
-          advertiser.whatsapp_number,
-          advertiser.business_name,
-          fullCampaign.ad_type,
-          expiresAt,
-        )
-      }
-    }
-
-    // Record revenue — fire-and-forget, never block webhook response
-    recordIncomeFromAdCampaign(payment.id).catch(e =>
-      console.error('[AdWebhook] Accounting error:', e)
-    )
+  if (!handled) {
+    console.warn('[AdWebhook] No ad_payment found for externalId:', externalId)
   }
 
   return NextResponse.json({ ok: true })

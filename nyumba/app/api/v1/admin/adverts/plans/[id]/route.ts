@@ -5,6 +5,9 @@ import { createAdminClient } from '@/lib/supabase/server'
 type Params = { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: Params) {
+  const auth = await requireAdminAuth()
+  if (!auth.ok) return auth.response
+
   const { id } = await params
   const admin = createAdminClient()
 

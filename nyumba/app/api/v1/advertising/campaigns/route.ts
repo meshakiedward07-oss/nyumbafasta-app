@@ -3,6 +3,7 @@ import { requireAdvertiserAuth } from '@/lib/security/advertiserAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { checkSlotAvailability } from '@/lib/ads/fetcher'
 import { normalizePhone } from '@/lib/utils/phone'
+import { rateLimit } from '@/lib/security/rateLimit'
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdvertiserAuth()
@@ -31,6 +32,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const auth = await requireAdvertiserAuth()
   if (!auth.ok) return auth.response
+
+  // Rate limit: 20 campaign creations per hour per user
+  const rl = await rateLimit(`adv_campaigns:${auth.userId}`, 20, 60 * 60 * 1000)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Maombi mengi. Jaribu tena baadaye.' }, { status: 429 })
+  }
 
   if (auth.advertiser.status !== 'active') {
     return NextResponse.json(
