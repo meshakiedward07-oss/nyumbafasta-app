@@ -2,19 +2,6 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { checkStaleListings } from '@/lib/listings/staleListingCheck'
-import {
-  runGoogleMapsRunner,
-  runGoogleBusinessRunner,
-  runFacebookGroupsRunner,
-  runFacebookPagesRunner,
-  runInstagramRunner,
-  runTiktokRunner,
-} from '@/lib/agent/runners'
-import {
-  PRIORITY_REGIONS,
-  SECONDARY_REGIONS,
-  TERTIARY_REGIONS,
-} from '@/lib/agent/regions'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -55,30 +42,6 @@ export async function GET(req: NextRequest) {
   const errors: string[] = []
   const now = new Date()
   const weekAgo = new Date(now.getTime() - 7 * 86_400_000)
-
-  // ── Lead scraping (existing) ──────────────────────────
-  const dayOfWeek = now.getDay()
-  const weeklyRegions = dayOfWeek === 1 ? PRIORITY_REGIONS
-    : dayOfWeek === 2 ? SECONDARY_REGIONS
-    : TERTIARY_REGIONS
-
-  for (const region of weeklyRegions) {
-    try {
-      const settled = await Promise.allSettled([
-        runGoogleMapsRunner(region),
-        runGoogleBusinessRunner(region),
-        runFacebookGroupsRunner(region),
-        runFacebookPagesRunner(region),
-        runInstagramRunner(region),
-        runTiktokRunner(region),
-      ])
-      const failed = settled.filter(r => r.status === 'rejected').length
-      results.push(`✅ ${region} — ${settled.length - failed}/${settled.length} sources`)
-      await new Promise(r => setTimeout(r, 3000))
-    } catch (e) {
-      errors.push(`❌ ${region}: ${String(e)}`)
-    }
-  }
 
   // ── Weekly report email kwa admin ─────────────────────
   try {
@@ -228,7 +191,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     success: true,
     timestamp: now.toISOString(),
-    regions_count: weeklyRegions.length,
     results,
     errors,
   })

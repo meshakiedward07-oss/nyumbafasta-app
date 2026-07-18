@@ -66,9 +66,7 @@ const NAV_SECTIONS = [
   {
     title: 'Utafutaji wa Wateja',
     items: [
-      { href: '/admin/leads',               label: 'Leads Zote',    icon: 'robot', exact: false },
-      { href: '/admin/facebook-groups',     label: 'Vikundi FB',    icon: 'users', exact: false },
-      { href: '/admin/instagram-profiles',  label: 'Wasifu IG',     icon: 'brand-instagram', exact: false },
+      { href: '/admin/leads', label: 'Leads Zote', icon: 'robot', exact: false },
     ],
   },
   {

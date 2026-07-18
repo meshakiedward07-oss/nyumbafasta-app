@@ -11,14 +11,6 @@ export const STAFF_PERMISSIONS = {
     icon: 'target',
     category: 'crm' as const,
   },
-  lead_scraper: {
-    key: 'lead_scraper',
-    label: 'Lead Scraper',
-    description: 'Kuendesha scraping ya madalali wapya, kuona leads zote',
-    adminPath: '/admin/leads',
-    icon: 'robot',
-    category: 'crm' as const,
-  },
   listing_analytics: {
     key: 'listing_analytics',
     label: 'Listing Analytics',
@@ -128,7 +120,7 @@ export const STAFF_ROLE_TEMPLATES = {
   },
   onboarding_specialist: {
     label: 'Onboarding Specialist',
-    permissions: ['leads', 'lead_scraper'] as PermissionKey[],
+    permissions: ['leads'] as PermissionKey[],
   },
   customer_support: {
     label: 'Customer Support',
@@ -165,7 +157,7 @@ export const STAFF_ROLE_TEMPLATES = {
     label: 'Team Lead (Full Access)',
     permissions: [
       'leads', 'whatsapp_support', 'social_media', 'legal_violations',
-      'lead_scraper', 'listing_analytics', 'spam_moderation',
+      'listing_analytics', 'spam_moderation',
       'approve_listings', 'manage_users', 'handle_reports',
       'manage_subscriptions', 'manage_verifications', 'review_ads',
     ] as PermissionKey[],
@@ -180,7 +172,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, PermissionKey> = {
   '/admin/whatsapp':        'whatsapp_support',
   '/admin/social':          'social_media',
   '/admin/legal':           'legal_violations',
-  '/admin/leads':           'lead_scraper',
   '/admin/crm/analytics':   'listing_analytics',
   '/admin/adverts':         'review_ads',
 }

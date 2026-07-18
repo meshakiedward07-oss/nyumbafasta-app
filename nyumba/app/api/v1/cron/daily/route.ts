@@ -1,12 +1,6 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { type NextRequest } from 'next/server'
 import { Resend } from 'resend'
-import { runGoogleMapsRunner } from '@/lib/agent/runners'
-import {
-  PRIORITY_REGIONS,
-  SECONDARY_REGIONS,
-  TERTIARY_REGIONS,
-} from '@/lib/agent/regions'
 import { monitorDalaliAccounts } from '@/lib/dalali/accountMonitor'
 import { emailBase, listingExpiredEmail, subscriptionExpiryEmail } from '@/lib/email/templates'
 
@@ -475,35 +469,7 @@ async function runDailyTasks() {
     errors.push(`❌ Listing expiry reminders: ${String(e)}`)
   }
 
-  // ── 9. Lead Agent — Daily Scraping ────────────────────
-  try {
-    const dayOfWeek = new Date().getDay()
-
-    let regionsToRun: string[] = PRIORITY_REGIONS
-
-    if (dayOfWeek === 1 || dayOfWeek === 4) {
-      regionsToRun = [...PRIORITY_REGIONS, ...SECONDARY_REGIONS]
-    }
-
-    if (dayOfWeek === 6) {
-      regionsToRun = [
-        ...PRIORITY_REGIONS,
-        ...SECONDARY_REGIONS,
-        ...TERTIARY_REGIONS,
-      ]
-    }
-
-    for (const region of regionsToRun) {
-      await runGoogleMapsRunner(region)
-      await new Promise(r => setTimeout(r, 2000))
-    }
-
-    results.push(`✅ Lead Agent: mikoa ${regionsToRun.length} imekamilika`)
-  } catch (e) {
-    errors.push(`❌ Lead Agent: ${String(e)}`)
-  }
-
-  // ── 10. Timeout stale pending payments (older than 10 min) ──
+  // ── 9. Timeout stale pending payments (older than 10 min) ──
   try {
     const tenMinAgo = new Date(Date.now() - 10 * 60_000).toISOString()
     const { data: timedOutUnlocks } = await admin
