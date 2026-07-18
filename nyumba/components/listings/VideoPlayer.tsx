@@ -207,7 +207,7 @@ export function VideoPlayer({
   return (
     <div
       ref={containerRef}
-      className={`relative bg-black rounded-2xl overflow-hidden group cursor-pointer ${containerAspect} ${className}`}
+      className={`relative bg-gray-900 rounded-2xl overflow-hidden group cursor-pointer ${containerAspect} ${className}`}
       onMouseMove={showControlsTemporarily}
       onTouchStart={showControlsTemporarily}
       onClick={togglePlay}
@@ -225,7 +225,7 @@ export function VideoPlayer({
       <video
         ref={videoRef}
         src={src}
-        className="absolute inset-0 w-full h-full object-contain"
+        className="absolute inset-0 w-full h-full object-cover"
         poster={poster ?? undefined}
         preload="metadata"
         playsInline

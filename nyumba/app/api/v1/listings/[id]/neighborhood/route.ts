@@ -13,7 +13,7 @@ export async function GET(
 
     const { data: listing, error } = await supabase
       .from('listings')
-      .select('latitude, longitude, region')
+      .select('region, district, ward, latitude, longitude')
       .eq('id', params.id)
       .eq('status', 'active')
       .maybeSingle()
@@ -22,16 +22,18 @@ export async function GET(
       return NextResponse.json({ error: 'Listing haikupatikana' }, { status: 404 })
     }
 
-    if (!listing.latitude || !listing.longitude) {
-      return NextResponse.json({ error: 'Listing haina location data' }, { status: 404 })
+    if (!listing.region || !listing.district) {
+      return NextResponse.json({ error: 'Listing haina taarifa za eneo' }, { status: 404 })
     }
 
-    const data = await getNeighborhoodInfo(
-      params.id,
-      Number(listing.latitude),
-      Number(listing.longitude),
-      listing.region ?? undefined,
-    )
+    const data = await getNeighborhoodInfo({
+      listingId: params.id,
+      region:    listing.region,
+      district:  listing.district,
+      ward:      listing.ward   ?? null,
+      lat:       listing.latitude  ? Number(listing.latitude)  : null,
+      lng:       listing.longitude ? Number(listing.longitude) : null,
+    })
 
     return NextResponse.json(data)
   } catch (err: unknown) {
