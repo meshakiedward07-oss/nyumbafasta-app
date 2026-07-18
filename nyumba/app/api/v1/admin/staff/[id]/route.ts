@@ -41,8 +41,11 @@ export async function PATCH(
   if ((body as Record<string, unknown>).action === 'reset_password') {
     const tempPassword = generateTempPassword()
 
+    // Also confirm email so staff can actually sign in (newer GoTrue returns
+    // "invalid login credentials" for unconfirmed emails)
     const { error: passError } = await admin.auth.admin.updateUserById(params.id, {
       password: tempPassword,
+      email_confirm: true,
     })
     if (passError) return NextResponse.json({ error: passError.message }, { status: 500 })
 

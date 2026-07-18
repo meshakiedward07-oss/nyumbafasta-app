@@ -167,6 +167,10 @@ export default function AdminDashboard({
       if (!res.ok) throw new Error((await res.json()).error ?? 'Imeshindwa')
       setDeleteReason('')
       setDeleteNotify(true)
+      // Remove all reports involving this user from the UI
+      setReportsList(prev => prev.filter(
+        r => r.dalali?.id !== userId && r.reporter?.id !== userId
+      ))
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : 'Hitilafu imetokea')
     } finally {

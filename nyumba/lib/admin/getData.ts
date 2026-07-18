@@ -39,6 +39,7 @@ export async function getAdminData(): Promise<AdminPageData> {
     reportsRes,
   ] = await Promise.all([
     // Full listing rows (for admin display + region stats) — capped at 100
+    // Exclude hard-deleted listings so they don't reappear on refresh
     admin
       .from('listings')
       .select(`
@@ -50,11 +51,12 @@ export async function getAdminData(): Promise<AdminPageData> {
           dalali_profiles ( whatsapp_number, is_premium_verified )
         )
       `)
+      .neq('status', 'deleted')
       .order('created_at', { ascending: false })
       .limit(100),
 
     // Count queries — no rows transferred, pure metadata
-    admin.from('listings').select('id', { count: 'exact', head: true }),
+    admin.from('listings').select('id', { count: 'exact', head: true }).neq('status', 'deleted'),
     admin.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'active'),
 
     admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'client'),

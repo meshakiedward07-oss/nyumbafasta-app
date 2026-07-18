@@ -78,23 +78,52 @@ function LoginForm() {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
-        if (error.message.toLowerCase().includes('email not confirmed')) {
+        // Catch BOTH old GoTrue message ("Email not confirmed") and new GoTrue error
+        // code ("email_not_confirmed") — Supabase changed the message to
+        // "Invalid login credentials" in 2024 to prevent email enumeration.
+        const isUnconfirmed =
+          error.message.toLowerCase().includes('email not confirmed') ||
+          (error as unknown as { code?: string }).code === 'email_not_confirmed'
+
+        if (isUnconfirmed) {
           setUnverifiedEmail(email)
           setShowUnverified(true)
           setLoading(false)
           return
         }
+
+        // If we got "invalid login credentials" it MIGHT still be an unconfirmed
+        // email — check server-side to give the user a better hint.
+        if (error.message.toLowerCase().includes('invalid login credentials')) {
+          try {
+            const res = await fetch('/api/v1/auth/check-email-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email }),
+            })
+            if (res.ok) {
+              const d = await res.json()
+              if (d.exists && !d.confirmed) {
+                setUnverifiedEmail(email)
+                setShowUnverified(true)
+                setLoading(false)
+                return
+              }
+            }
+          } catch { /* fall through to generic error */ }
+        }
+
         throw error
       }
       await redirectByRole(data.user.id)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message.toLowerCase() : ''
       const kiswahili =
-        msg.includes('invalid login credentials') || msg.includes('invalid email or password') ? 'Barua pepe au nenosiri si sahihi' :
+        msg.includes('invalid login credentials') || msg.includes('invalid email or password') ? 'Barua pepe au nenosiri si sahihi. Tumia "Umesahau nenosiri?" kupata kiungo cha kuingia.' :
         msg.includes('too many requests')         ? 'Maombi mengi mfululizo. Subiri dakika chache.' :
         msg.includes('user not found')            ? 'Akaunti haipo. Jisajili kwanza.' :
         msg.includes('network')                   ? 'Hakuna mtandao. Angalia internet yako.' :
-        'Barua pepe au nenosiri si sahihi'
+        'Imeshindwa kuingia. Tumia "Umesahau nenosiri?" au wasiliana na msaada.'
       setError(kiswahili)
       setLoading(false)
     }

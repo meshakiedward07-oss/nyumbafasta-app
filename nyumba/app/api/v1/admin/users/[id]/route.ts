@@ -121,12 +121,61 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     })
 
     if (rpcError) {
-      // Fallback: manually cascade-delete FK-constrained rows, then delete user
-      // Order matters — delete child tables before parent (users)
+      // Fallback: manually cascade-delete FK-constrained rows, then delete user.
+      // Order matters — delete child tables before parent (users).
+
+      // Step 1 — fetch the user's listing IDs so we can clean up records that
+      // reference those listings by other users (e.g. saved_listings from other clients).
+      const { data: userListings } = await adminClient
+        .from('listings')
+        .select('id')
+        .eq('dalali_id', params.id)
+      const listingIds = (userListings ?? []).map((l: { id: string }) => l.id)
+
+      // Step 2 — delete records keyed on those listing IDs (from any user)
+      if (listingIds.length > 0) {
+        await Promise.all([
+          adminClient.from('saved_listings').delete().in('listing_id', listingIds),
+          adminClient.from('contact_unlocks').delete().in('listing_id', listingIds),
+          adminClient.from('social_posts').delete().in('listing_id', listingIds),
+          adminClient.from('marketplace_listings').delete().in('listing_id', listingIds),
+          adminClient.from('boost_payments').delete().in('listing_id', listingIds),
+        ])
+      }
+
+      // Step 3 — delete advertiser campaigns before deleting the advertiser row
+      const { data: userAdvertisers } = await adminClient
+        .from('advertisers')
+        .select('id')
+        .eq('user_id', params.id)
+      const advertiserIds = (userAdvertisers ?? []).map((a: { id: string }) => a.id)
+      if (advertiserIds.length > 0) {
+        await adminClient.from('ad_campaigns').delete().in('advertiser_id', advertiserIds)
+      }
+
+      // Step 4 — delete records keyed directly on the user's id
       await Promise.all([
         adminClient.from('subscriptions').delete().eq('dalali_id', params.id),
         adminClient.from('saved_listings').delete().eq('client_id', params.id),
         adminClient.from('notifications').delete().eq('user_id', params.id),
+        adminClient.from('push_subscriptions').delete().eq('user_id', params.id),
+        adminClient.from('user_agreements').delete().eq('user_id', params.id),
+        adminClient.from('profile_views').delete().eq('dalali_id', params.id),
+        adminClient.from('boost_payments').delete().eq('dalali_id', params.id),
+        adminClient.from('dalali_commissions').delete().eq('dalali_id', params.id),
+        adminClient.from('advertisers').delete().eq('user_id', params.id),
+        // Reports filed BY or AGAINST this user
+        adminClient.from('reports').delete().eq('reporter_id', params.id),
+        adminClient.from('reports').delete().eq('reported_dalali_id', params.id),
+        // Legal violations
+        adminClient.from('agreement_violations').delete().eq('reporter_id', params.id),
+        adminClient.from('agreement_violations').delete().eq('reported_user_id', params.id),
+        // Agent leads
+        adminClient.from('agent_leads').delete().eq('assigned_to', params.id),
+        adminClient.from('agent_leads').delete().eq('created_by', params.id),
+        // Staff-specific tables
+        adminClient.from('staff_permissions').delete().eq('staff_id', params.id),
+        adminClient.from('staff_activity_log').delete().eq('staff_id', params.id),
       ])
       await adminClient.from('contact_unlocks').delete().or(`dalali_id.eq.${params.id},client_id.eq.${params.id}`)
       await adminClient.from('reviews').delete().or(`dalali_id.eq.${params.id},reviewer_id.eq.${params.id}`)

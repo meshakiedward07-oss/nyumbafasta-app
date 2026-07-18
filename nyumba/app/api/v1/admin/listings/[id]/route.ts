@@ -134,7 +134,7 @@ export async function PATCH(
   }
 }
 
-// DELETE — admin hard-deletes a listing (status = 'deleted')
+// DELETE — admin hard-deletes a listing (removes row from DB)
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -153,34 +153,34 @@ export async function DELETE(
 
     if (!listing) return NextResponse.json({ error: 'Listing haipatikani' }, { status: 404 })
 
+    // Non-fatal: remove from Marketplace before deleting the row
+    try {
+      const { data: ml } = await admin
+        .from('marketplace_listings')
+        .select('retailer_id')
+        .eq('listing_id', params.id)
+        .eq('status', 'active')
+        .maybeSingle()
+      if (ml?.retailer_id) {
+        const { deleteMarketplaceItem } = await import('@/lib/social/facebookMarketplace')
+        await deleteMarketplaceItem(ml.retailer_id).catch(() => {})
+      }
+    } catch { /* non-fatal */ }
+
+    // Cascade-delete FK-constrained child records before hard-deleting the listing row
+    await Promise.all([
+      admin.from('saved_listings').delete().eq('listing_id', params.id),
+      admin.from('contact_unlocks').delete().eq('listing_id', params.id),
+      admin.from('marketplace_listings').delete().eq('listing_id', params.id),
+      admin.from('social_posts').delete().eq('listing_id', params.id),
+    ])
+
     const { error } = await admin
       .from('listings')
-      .update({ status: 'deleted' })
+      .delete()
       .eq('id', params.id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-    // Non-fatal: remove from Marketplace if synced
-    void (async () => {
-      try {
-        const { data: ml } = await admin
-          .from('marketplace_listings')
-          .select('retailer_id')
-          .eq('listing_id', params.id)
-          .eq('status', 'active')
-          .maybeSingle()
-        if (ml?.retailer_id) {
-          const { deleteMarketplaceItem } = await import('@/lib/social/facebookMarketplace')
-          await deleteMarketplaceItem(ml.retailer_id)
-          await admin
-            .from('marketplace_listings')
-            .update({ status: 'deleted', availability: 'OUT_OF_STOCK', updated_at: new Date().toISOString() })
-            .eq('listing_id', params.id)
-        }
-      } catch (err) {
-        console.error('[Admin] Marketplace delete sync failed (non-fatal):', err)
-      }
-    })()
 
     await auditLog({
       action: 'listing_deleted',

@@ -15,6 +15,17 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data.user) {
+      // If email is not yet confirmed, confirm it now.
+      // The user proved ownership of the email by clicking this link (magic link,
+      // password reset, or OAuth callback) — confirming is safe and prevents the
+      // "invalid login credentials" error that newer GoTrue returns for unconfirmed emails.
+      if (!data.user.email_confirmed_at) {
+        const adminClient = createAdminClient()
+        await adminClient.auth.admin
+          .updateUserById(data.user.id, { email_confirm: true })
+          .catch(() => { /* non-fatal — user can still proceed */ })
+      }
+
       // Audit every successful session exchange (covers OAuth, magic link, password reset)
       await auditLog({
         action: 'login_success',
