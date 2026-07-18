@@ -134,7 +134,7 @@ export default function AdminAdvertsPage() {
   }
 
   function toggleSelect(id: string) {
-    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
   }
   const allSelected = campaigns.length > 0 && campaigns.every(c => selected.has(c.id))
 
