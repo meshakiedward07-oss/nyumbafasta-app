@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient()
 
     // Search auth.admin with pagination — fall back to public.users.email if not found
-    let authUser: { id: string; email_confirmed_at: string | null } | null = null
+    let authUser: { id: string; email_confirmed_at?: string | null } | null = null
 
     let page = 1
     let hasMore = true
