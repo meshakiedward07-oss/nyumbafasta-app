@@ -4,6 +4,8 @@ import { requireAdminUser } from '@/lib/security/adminAuth'
 import { sendPushToUser } from '@/lib/notifications/send'
 import { auditLog } from '@/lib/security/auditLog'
 import { getClientIp } from '@/lib/security/rateLimit'
+import { Resend } from 'resend'
+import { listingApprovedEmail } from '@/lib/email/templates'
 
 // Social posting on approval can take 30-60s per platform across 3 platforms
 export const maxDuration = 120
@@ -67,6 +69,31 @@ export async function PATCH(
 
       // Push notification
       await sendPushToUser(listing.dalali_id, notifTitle, notifBody, '/dashboard/listings')
+
+      // Email notification to dalali on approval (non-blocking)
+      if (action === 'approve' && process.env.RESEND_API_KEY) {
+        ;(async () => {
+          try {
+            const dalaliEmail = await admin.auth.admin.getUserById(listing.dalali_id)
+              .then(r => r.data?.user?.email ?? null)
+            const dalaliName = await admin.from('users')
+              .select('full_name').eq('id', listing.dalali_id).single()
+              .then(r => r.data?.full_name ?? 'Dalali')
+            if (dalaliEmail) {
+              const listingUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/listings/${params.id}`
+              const { subject, html } = listingApprovedEmail(dalaliName, `${listing.type} – ${listing.district}`, listingUrl)
+              const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
+                from: 'NyumbaFasta <noreply@nyumbafasta.co>',
+                to:   dalaliEmail,
+                subject, html,
+              })
+              if (error) console.error('[Listing Approval] Email failed:', error)
+            }
+          } catch (e) {
+            console.error('[Listing Approval] Email send error:', e)
+          }
+        })()
+      }
     }
 
     // Auto-post to ALL social platforms on approval (non-fatal, non-blocking)

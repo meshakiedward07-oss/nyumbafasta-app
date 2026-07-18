@@ -16,9 +16,34 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 const FROM = 'NyumbaFasta <noreply@nyumbafasta.co>'
 
 async function sendEmail(to: string, subject: string, html: string) {
-  if (!process.env.RESEND_API_KEY) return
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[Cron Daily] RESEND_API_KEY not set — email skipped to', to)
+    return
+  }
   const r = new Resend(process.env.RESEND_API_KEY)
-  await r.emails.send({ from: FROM, to, subject, html })
+  const { error } = await r.emails.send({ from: FROM, to, subject, html })
+  if (error) console.error('[Cron Daily] Resend error:', error)
+}
+
+// Batch-fetch emails from auth.admin for a list of user IDs.
+// public.users.email is not reliably populated by the trigger, so we
+// must go to auth.admin to get the actual email addresses.
+async function batchGetEmails(
+  admin: ReturnType<typeof getAdmin>,
+  userIds: string[],
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>()
+  if (userIds.length === 0) return map
+  const results = await Promise.allSettled(
+    userIds.map(id => admin.auth.admin.getUserById(id))
+  )
+  for (let i = 0; i < userIds.length; i++) {
+    const r = results[i]
+    if (r.status === 'fulfilled' && r.value.data?.user?.email) {
+      map.set(userIds[i], r.value.data.user.email)
+    }
+  }
+  return map
 }
 
 function getAdmin() {
@@ -516,16 +541,21 @@ async function runDailyTasks() {
   try {
     const { data: expiredToday } = await admin
       .from('listings')
-      .select('id, title, dalali_id, users:dalali_id (email, full_name)')
+      .select('id, title, dalali_id, users:dalali_id (full_name)')
       .eq('status', 'expired')
       .gte('expires_at', new Date(Date.now() - 86_400_000).toISOString())
       .lt('expires_at', now)
 
-    for (const l of expiredToday ?? []) {
-      const user = (l.users as unknown as { email: string; full_name: string } | null)
-      if (!user?.email) continue
-      const tpl = listingExpiredEmail(user.full_name, l.title)
-      await sendEmail(user.email, tpl.subject, tpl.html)
+    if (expiredToday?.length) {
+      const dalaliIds = [...new Set(expiredToday.map(l => l.dalali_id as string))]
+      const emailMap  = await batchGetEmails(admin, dalaliIds)
+      for (const l of expiredToday) {
+        const emailAddr = emailMap.get(l.dalali_id as string)
+        if (!emailAddr) continue
+        const user = l.users as unknown as { full_name: string } | null
+        const tpl = listingExpiredEmail(user?.full_name ?? 'Dalali', l.title)
+        await sendEmail(emailAddr, tpl.subject, tpl.html)
+      }
     }
     results.push(`✅ Email listing expired: ${expiredToday?.length ?? 0}`)
   } catch (e) {
@@ -538,7 +568,7 @@ async function runDailyTasks() {
     const in6days  = new Date(Date.now() + 6  * 86_400_000).toISOString()
     const { data: expiring7Subs } = await admin
       .from('subscriptions')
-      .select('plan, expires_at, dalali_id, users:dalali_id (email, full_name)')
+      .select('plan, expires_at, dalali_id, users:dalali_id (full_name)')
       .eq('status', 'active')
       .neq('plan', 'free')
       .gte('expires_at', in6days)
@@ -552,15 +582,20 @@ async function runDailyTasks() {
       .gt('created_at', new Date(Date.now() - 7 * 86_400_000).toISOString())
 
     const notified7Set = new Set((alreadyNotif7 ?? []).map(n => n.user_id))
+    const sub7Ids = (expiring7Subs ?? [])
+      .filter(s => !notified7Set.has(s.dalali_id))
+      .map(s => s.dalali_id as string)
+    const emailMap7 = await batchGetEmails(admin, sub7Ids)
 
     for (const s of expiring7Subs ?? []) {
       if (notified7Set.has(s.dalali_id)) continue
-      const user = (s.users as unknown as { email: string; full_name: string } | null)
-      if (!user?.email) continue
+      const emailAddr = emailMap7.get(s.dalali_id as string)
+      if (!emailAddr) continue
+      const user = s.users as unknown as { full_name: string } | null
       const planName = String(s.plan).toUpperCase()
       const expiryDate = new Date(s.expires_at as string).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
-      const tpl = subscriptionExpiryEmail(user.full_name, planName, expiryDate, 7)
-      await sendEmail(user.email, tpl.subject, tpl.html)
+      const tpl = subscriptionExpiryEmail(user?.full_name ?? 'Dalali', planName, expiryDate, 7)
+      await sendEmail(emailAddr, tpl.subject, tpl.html)
       await admin.from('notifications').insert({
         user_id: s.dalali_id, type: 'subscription_expiring_7days',
         title: '⏰ Subscription Inaisha Siku 7',
@@ -579,7 +614,7 @@ async function runDailyTasks() {
     const in2days = new Date(Date.now() + 2 * 86_400_000).toISOString()
     const { data: expiringSubs } = await admin
       .from('subscriptions')
-      .select('plan, expires_at, dalali_id, users:dalali_id (email, full_name)')
+      .select('plan, expires_at, dalali_id, users:dalali_id (full_name)')
       .eq('status', 'active')
       .neq('plan', 'free')
       .gte('expires_at', in2days)
@@ -592,15 +627,20 @@ async function runDailyTasks() {
       .gt('created_at', new Date(Date.now() - 3 * 86_400_000).toISOString())
 
     const notified3Set = new Set((alreadyNotif3 ?? []).map(n => n.user_id))
+    const sub3Ids = (expiringSubs ?? [])
+      .filter(s => !notified3Set.has(s.dalali_id))
+      .map(s => s.dalali_id as string)
+    const emailMap3 = await batchGetEmails(admin, sub3Ids)
 
     for (const s of expiringSubs ?? []) {
       if (notified3Set.has(s.dalali_id)) continue
-      const user = (s.users as unknown as { email: string; full_name: string } | null)
-      if (!user?.email) continue
+      const emailAddr = emailMap3.get(s.dalali_id as string)
+      if (!emailAddr) continue
+      const user = s.users as unknown as { full_name: string } | null
       const planName = String(s.plan).toUpperCase()
       const expiryDate = new Date(s.expires_at as string).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
-      const tpl = subscriptionExpiryEmail(user.full_name, planName, expiryDate, 3)
-      await sendEmail(user.email, tpl.subject, tpl.html)
+      const tpl = subscriptionExpiryEmail(user?.full_name ?? 'Dalali', planName, expiryDate, 3)
+      await sendEmail(emailAddr, tpl.subject, tpl.html)
     }
     results.push(`✅ Email sub expiry 3 days: ${expiringSubs?.length ?? 0}`)
   } catch (e) {

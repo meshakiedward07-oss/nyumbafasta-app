@@ -31,9 +31,13 @@ function getAdmin() {
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
-  if (!process.env.RESEND_API_KEY) return
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[Cron Weekly] RESEND_API_KEY not set — email skipped to', to)
+    return
+  }
   const r = new Resend(process.env.RESEND_API_KEY)
-  await r.emails.send({ from: FROM, to, subject, html })
+  const { error } = await r.emails.send({ from: FROM, to, subject, html })
+  if (error) console.error('[Cron Weekly] Resend error:', error)
 }
 
 export async function GET(req: NextRequest) {
@@ -121,24 +125,33 @@ export async function GET(req: NextRequest) {
     const admin = getAdmin()
     const { data: inactiveLeads } = await admin
       .from('agent_leads')
-      .select('assigned_to, users:assigned_to (email, full_name)')
+      .select('assigned_to, users:assigned_to (full_name)')
       .not('assigned_to', 'is', null)
       .eq('pipeline_stage', 'new')
       .lt('assigned_at', weekAgo.toISOString())
 
-    const uniqueDalali = new Map<string, { email: string; full_name: string }>()
+    // Collect unique dalali IDs and their names
+    const uniqueDalali = new Map<string, string>()  // id → full_name
     for (const lead of inactiveLeads ?? []) {
-      const user = lead.users as unknown as { email: string; full_name: string } | null
-      if (user?.email && !uniqueDalali.has(lead.assigned_to)) {
-        uniqueDalali.set(lead.assigned_to, user)
-      }
+      if (!lead.assigned_to || uniqueDalali.has(lead.assigned_to)) continue
+      const user = lead.users as unknown as { full_name: string } | null
+      uniqueDalali.set(lead.assigned_to, user?.full_name ?? 'Dalali')
     }
 
-    for (const dalali of uniqueDalali.values()) {
+    // Batch-fetch emails from auth.admin (public.users.email is not populated)
+    const dalaliIds = [...uniqueDalali.keys()]
+    const emailResults = await Promise.allSettled(
+      dalaliIds.map(id => admin.auth.admin.getUserById(id))
+    )
+    for (let i = 0; i < dalaliIds.length; i++) {
+      const r = emailResults[i]
+      const emailAddr = r.status === 'fulfilled' ? r.value.data?.user?.email : null
+      if (!emailAddr) continue
+      const fullName = uniqueDalali.get(dalaliIds[i]) ?? 'Dalali'
       await sendEmail(
-        dalali.email,
+        emailAddr,
         '📈 Una Leads Zinaokusubiri!',
-        `<h2>Habari ${dalali.full_name}!</h2>
+        `<h2>Habari ${fullName}!</h2>
          <p>Una leads ambazo bado haujafuatilia wiki nzima.</p>
          <p>Wasiliana nao leo — wateja wanakusubiri! 🏠</p>
          <a href="${APP_URL}/dashboard/crm" style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Angalia Leads →</a>`,

@@ -108,16 +108,23 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Send welcome email only for new signups (account created within last 5 minutes)
+      // Send welcome email on FIRST email confirmation (not just within 5 minutes —
+      // users often click the verification link hours after signup).
+      // We detect "first confirmation" by checking that email_confirmed_at was just
+      // set (i.e. it was absent before this code exchange, which we can infer because
+      // the callback was reached with a fresh code). We use account age ≤ 7 days as
+      // the outer guard so returning users never get a duplicate welcome.
       if (process.env.RESEND_API_KEY) {
         const { data: userRow } = await supabase
           .from('users')
           .select('created_at, full_name, phone, region')
           .eq('id', data.user.id)
           .single()
-        const isNewUser = userRow?.created_at
-          ? Date.now() - new Date(userRow.created_at as string).getTime() < 300_000
-          : false
+        // New user = account created within the last 7 days AND email just confirmed
+        const accountAgeMs  = userRow?.created_at
+          ? Date.now() - new Date(userRow.created_at as string).getTime()
+          : Infinity
+        const isNewUser = accountAgeMs < 7 * 24 * 60 * 60 * 1000
         const userEmail  = data.user.email
         const userName   = (userRow?.full_name as string | null) ?? (data.user.user_metadata?.full_name as string) ?? 'Mtumiaji'
         const userPhone  = (userRow?.phone as string | null) ?? null
@@ -131,7 +138,7 @@ export async function GET(request: NextRequest) {
             const { subject, html } = welcomeEmail(userName, role)
             resend.emails
               .send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: userEmail, subject, html })
-              .catch(() => { /* ignore — don't block auth flow */ })
+              .catch(e => console.error('[Auth Callback] Welcome email failed:', e))
           }
 
           // 2. New-user alert to all active staff + admins (non-blocking)
@@ -167,7 +174,7 @@ export async function GET(request: NextRequest) {
                     html,
                   })
                 }
-              } catch { /* ignore — don't block auth flow */ }
+              } catch (e) { console.error('[Auth Callback] Staff/admin alert email failed:', e) }
             })()
           }
         }

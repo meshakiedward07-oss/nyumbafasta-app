@@ -6,6 +6,8 @@ import {
   type WebhookPayload,
 } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
+import { Resend } from 'resend'
+import { contactUnlockEmail } from '@/lib/email/templates'
 
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
@@ -90,6 +92,32 @@ export async function POST(req: NextRequest) {
       import('@/lib/listings/rentalReminder')
         .then(m => m.notifyDalaliNewUnlock({ dalaliId: unlock.dalali_id, listingId: unlock.listing_id, listingLabel }))
         .catch(e => console.error('[RentalReminder] notifyDalaliNewUnlock failed:', e))
+
+      // Email notification to dalali (non-blocking)
+      if (process.env.RESEND_API_KEY) {
+        ;(async () => {
+          try {
+            // Get dalali's email from auth.admin (public.users.email not populated)
+            const dalaliEmail = await admin.auth.admin.getUserById(unlock.dalali_id)
+              .then(r => r.data?.user?.email ?? null)
+            // Get client's name for the notification
+            const clientName = await admin.auth.admin.getUserById(unlock.client_id)
+              .then(r => r.data?.user?.user_metadata?.full_name as string ?? 'Mteja')
+
+            if (dalaliEmail) {
+              const { subject, html } = contactUnlockEmail(dalaliName, clientName, listingLabel)
+              const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
+                from: 'NyumbaFasta <noreply@nyumbafasta.co>',
+                to:   dalaliEmail,
+                subject, html,
+              })
+              if (error) console.error('[Unlock Webhook] Email to dalali failed:', error)
+            }
+          } catch (e) {
+            console.error('[Unlock Webhook] Email send error:', e)
+          }
+        })()
+      }
 
       await admin.from('notifications').insert([
         {

@@ -4,6 +4,9 @@ import { createAdminClient } from '@/lib/supabase/server'
 // Called by the login page when signInWithPassword returns "invalid login credentials"
 // to distinguish an unconfirmed email from genuinely wrong credentials.
 // Returns { exists, confirmed } — no password info exposed.
+//
+// NOTE: public.users.email is not populated by the DB trigger — we query
+// auth.admin directly to avoid always returning { exists: false }.
 export async function POST(req: NextRequest) {
   let email: string
   try {
@@ -20,22 +23,17 @@ export async function POST(req: NextRequest) {
   try {
     const admin = createAdminClient()
 
-    // Look up user id from public.users (synced from auth.users via trigger)
-    const { data: row } = await admin
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
+    // Query auth.admin directly — public.users.email is not reliably populated
+    const { data: listData } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+    const authUser = (listData?.users ?? []).find(
+      u => u.email?.toLowerCase() === email,
+    )
 
-    if (!row?.id) return NextResponse.json({ exists: false, confirmed: false })
-
-    // Get auth record to check email_confirmed_at
-    const { data: authData } = await admin.auth.admin.getUserById(row.id)
-    if (!authData?.user) return NextResponse.json({ exists: false, confirmed: false })
+    if (!authUser) return NextResponse.json({ exists: false, confirmed: false })
 
     return NextResponse.json({
       exists: true,
-      confirmed: !!authData.user.email_confirmed_at,
+      confirmed: !!authUser.email_confirmed_at,
     })
   } catch {
     return NextResponse.json({ exists: false, confirmed: false })
