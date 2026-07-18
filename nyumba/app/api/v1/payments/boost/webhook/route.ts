@@ -83,6 +83,45 @@ export async function POST(req: NextRequest) {
       is_read:  false,
     })
 
+    // WhatsApp + email (non-blocking)
+    ;(async () => {
+      const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const { data: dalali } = await admin
+        .from('users')
+        .select('full_name, dalali_profiles(whatsapp_number)')
+        .eq('id', bp.dalali_id)
+        .single()
+      const wp    = (dalali?.dalali_profiles as { whatsapp_number?: string | null }[] | null)?.[0]?.whatsapp_number
+      const name  = dalali?.full_name ?? 'Dalali'
+      const until = bp.boosted_until
+        ? new Date(bp.boosted_until).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
+        : '—'
+
+      if (wp) {
+        const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
+        const msg =
+          `⚡ *Listing Yako Imeboostwa!*\n\nHabari ${name}!\n\n` +
+          `Listing yako imewashwa boost kwa wiki *${bp.weeks}*. Itaonekana juu ya wote!\n\n` +
+          `📅 Boosted hadi: *${until}*\n\n👉 ${APP_URL}/dashboard/listings`
+        await sendTextMessage(formatPhoneNumber(wp), msg).catch(() => {})
+      }
+
+      if (process.env.RESEND_API_KEY) {
+        const dalaliEmail = await admin.auth.admin.getUserById(bp.dalali_id)
+          .then(r => r.data?.user?.email ?? null)
+        if (dalaliEmail) {
+          const { boostActivatedEmail } = await import('@/lib/email/templates')
+          const { Resend } = await import('resend')
+          const { subject, html } = boostActivatedEmail(name, bp.weeks as number, until)
+          await new Resend(process.env.RESEND_API_KEY).emails.send({
+            from: 'NyumbaFasta <noreply@nyumbafasta.co>',
+            to:   dalaliEmail,
+            subject, html,
+          }).catch(() => {})
+        }
+      }
+    })().catch(() => {})
+
     console.log('[Boost Webhook] Listing boosted:', bp.listing_id, 'until:', bp.boosted_until)
     return NextResponse.json({ received: true })
   } catch (err) {

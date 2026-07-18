@@ -70,30 +70,50 @@ export async function PATCH(
       // Push notification
       await sendPushToUser(listing.dalali_id, notifTitle, notifBody, '/dashboard/listings')
 
-      // Email notification to dalali on approval (non-blocking)
-      if (action === 'approve' && process.env.RESEND_API_KEY) {
-        ;(async () => {
-          try {
-            const dalaliEmail = await admin.auth.admin.getUserById(listing.dalali_id)
-              .then(r => r.data?.user?.email ?? null)
-            const dalaliName = await admin.from('users')
-              .select('full_name').eq('id', listing.dalali_id).single()
-              .then(r => r.data?.full_name ?? 'Dalali')
-            if (dalaliEmail) {
-              const listingUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/listings/${params.id}`
-              const { subject, html } = listingApprovedEmail(dalaliName, `${listing.type} – ${listing.district}`, listingUrl)
-              const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
-                from: 'NyumbaFasta <noreply@nyumbafasta.co>',
-                to:   dalaliEmail,
-                subject, html,
-              })
-              if (error) console.error('[Listing Approval] Email failed:', error)
-            }
-          } catch (e) {
-            console.error('[Listing Approval] Email send error:', e)
+      // WhatsApp + email (non-blocking)
+      ;(async () => {
+        try {
+          const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+          const listingLabel = `${listing.type} – ${listing.district}`
+
+          // WhatsApp to dalali
+          const { data: dp } = await admin
+            .from('dalali_profiles')
+            .select('whatsapp_number')
+            .eq('id', listing.dalali_id)
+            .maybeSingle()
+          if (dp?.whatsapp_number) {
+            const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
+            const msg = action === 'approve'
+              ? `✅ *Listing Yako Imeidhibitiwa!*\n\n${listingLabel} inaonekana kwa wateja sasa!\n\n👉 ${APP_URL}/listings/${params.id}`
+              : `❌ *Listing Yako Ilikataliwa*\n\n${listingLabel} haikuidhinishwa. Rekebisha na utume tena.\n\n👉 ${APP_URL}/dashboard/listings`
+            await sendTextMessage(formatPhoneNumber(dp.whatsapp_number), msg).catch(() => {})
           }
-        })()
-      }
+
+          // Email
+          if (process.env.RESEND_API_KEY) {
+            const [dalaliEmail, dalaliNameRes] = await Promise.all([
+              admin.auth.admin.getUserById(listing.dalali_id).then(r => r.data?.user?.email ?? null),
+              admin.from('users').select('full_name').eq('id', listing.dalali_id).single()
+                .then(r => r.data?.full_name ?? 'Dalali'),
+            ])
+            if (dalaliEmail) {
+              const resend = new Resend(process.env.RESEND_API_KEY)
+              if (action === 'approve') {
+                const listingUrl = `${APP_URL}/listings/${params.id}`
+                const { subject, html } = listingApprovedEmail(dalaliNameRes, listingLabel, listingUrl)
+                await resend.emails.send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: dalaliEmail, subject, html })
+              } else {
+                const { listingRejectedEmail } = await import('@/lib/email/templates')
+                const { subject, html } = listingRejectedEmail(dalaliNameRes, listingLabel)
+                await resend.emails.send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: dalaliEmail, subject, html })
+              }
+            }
+          }
+        } catch (e) {
+          console.error('[Listing Action] Notification error:', e)
+        }
+      })()
     }
 
     // Auto-post to ALL social platforms on approval (non-fatal, non-blocking)

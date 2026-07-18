@@ -132,6 +132,11 @@ export async function POST(req: NextRequest) {
 
     const planName = subscription.plan === 'premium' ? 'Premium ⭐'
       : subscription.plan === 'enterprise' ? 'Enterprise 🏆' : 'Basic'
+    const expiresDate = updateFields.expires_at
+      ? new Date(updateFields.expires_at as string)
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    const expiryStr = expiresDate.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 
     await admin.from('notifications').insert({
       user_id: subscription.dalali_id,
@@ -140,6 +145,41 @@ export async function POST(req: NextRequest) {
       type:    'subscription_active',
       is_read: false,
     })
+
+    // WhatsApp + email (non-blocking)
+    ;(async () => {
+      const { data: dalali } = await admin
+        .from('users')
+        .select('full_name, dalali_profiles(whatsapp_number)')
+        .eq('id', subscription.dalali_id)
+        .single()
+      const wp   = (dalali?.dalali_profiles as { whatsapp_number?: string | null }[] | null)?.[0]?.whatsapp_number
+      const name = dalali?.full_name ?? 'Dalali'
+
+      if (wp) {
+        const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
+        const msg =
+          `✅ *Subscription Imewashwa!*\n\nHabari ${name}!\n\n` +
+          `Subscription yako ya *${planName}* imewashwa. Listings zako zinaonekana kwa wateja.\n\n` +
+          `📅 Inaisha: *${expiryStr}*\n\n👉 ${APP_URL}/dashboard`
+        await sendTextMessage(formatPhoneNumber(wp), msg).catch(() => {})
+      }
+
+      if (process.env.RESEND_API_KEY) {
+        const dalaliEmail = await admin.auth.admin.getUserById(subscription.dalali_id)
+          .then(r => r.data?.user?.email ?? null)
+        if (dalaliEmail) {
+          const { subscriptionActivatedEmail } = await import('@/lib/email/templates')
+          const { Resend } = await import('resend')
+          const { subject, html } = subscriptionActivatedEmail(name, planName, expiryStr)
+          await new Resend(process.env.RESEND_API_KEY).emails.send({
+            from: 'NyumbaFasta <noreply@nyumbafasta.co>',
+            to:   dalaliEmail,
+            subject, html,
+          }).catch(() => {})
+        }
+      }
+    })().catch(() => {})
 
     console.log('[Sub Webhook] Activated subscription:', subscription.id, 'plan:', subscription.plan)
     return NextResponse.json({ received: true })

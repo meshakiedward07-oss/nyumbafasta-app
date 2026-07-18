@@ -3,7 +3,8 @@ import { requireAdvertiserAuth } from '@/lib/security/advertiserAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { checkSlotAvailability } from '@/lib/ads/fetcher'
 import { normalizePhone } from '@/lib/utils/phone'
-import { rateLimit } from '@/lib/security/rateLimit'
+import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
+import { auditLog } from '@/lib/security/auditLog'
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdvertiserAuth()
@@ -144,6 +145,15 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 })
+
+  auditLog({
+    action: 'ad_campaign_created',
+    user_id: auth.userId,
+    target_id: campaign?.id,
+    target_type: 'ad_campaign',
+    ip_address: getClientIp(req),
+    severity: 'info',
+  }).catch(() => {})
 
   return NextResponse.json({ ok: true, campaign }, { status: 201 })
 }

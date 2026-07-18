@@ -40,9 +40,14 @@ async function sendEmail(to: string, subject: string, html: string) {
   if (error) console.error('[Cron Weekly] Resend error:', error)
 }
 
+function verifyAuth(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET
+  if (!secret) return false
+  return req.headers.get('authorization') === `Bearer ${secret}`
+}
+
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!verifyAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -227,4 +232,9 @@ export async function GET(req: NextRequest) {
     results,
     errors,
   })
+}
+
+// Allow POST so admin "Run Now" button can trigger the weekly cron
+export async function POST(req: NextRequest) {
+  return GET(req)
 }

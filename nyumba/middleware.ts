@@ -3,13 +3,13 @@ import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Routes zinazohitaji login
-const PROTECTED_ROUTES = ['/dashboard', '/admin', '/saved', '/account', '/subscription', '/notifications', '/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns']
+const PROTECTED_ROUTES = ['/dashboard', '/admin', '/saved', '/account', '/subscription', '/notifications', '/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile']
 // Routes za watumiaji walioingia tu (usiende tena)
 const AUTH_ROUTES = ['/login', '/register', '/staff-login']
 // Routes za admin peke yake
 const ADMIN_ONLY_ROUTES = ['/admin']
 // Routes za wafanyabiashara — zinaelekeza /advertising/login badala ya /login
-const ADVERTISING_PROTECTED_ROUTES = ['/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns']
+const ADVERTISING_PROTECTED_ROUTES = ['/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile']
 // Routes za dalali na admin
 const DALALI_ROUTES = ['/dashboard']
 // Routes ambazo hazizuiwi na account_status au agreement check

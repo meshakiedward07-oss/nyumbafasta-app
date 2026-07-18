@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { mobileCheckout, normalizePhone, detectProvider, type MobileProvider } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
+import { rateLimit } from '@/lib/security/rateLimit'
 
 export const maxDuration = 30
 
@@ -22,6 +23,12 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+    }
+
+    // Rate limit: 5 per 10 minutes per user
+    const rl = await rateLimit(`extra_listings:${user.id}`, 5, 10 * 60_000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Maombi mengi. Jaribu tena baadaye.' }, { status: 429 })
     }
 
     const { count, msisdn, provider = 'mpesa' } = await req.json()

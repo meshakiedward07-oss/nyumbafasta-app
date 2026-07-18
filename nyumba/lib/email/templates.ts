@@ -394,6 +394,160 @@ export function listingExpiredEmail(dalaliName: string, listingTitle: string) {
   }
 }
 
+// ── Listing rejected email ────────────────────────────────────────────────
+
+export function listingRejectedEmail(dalaliName: string, listingTitle: string) {
+  return {
+    subject: '❌ Listing Yako Ilikataliwa — NyumbaFasta',
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari ${dalaliName},</span>
+      <span style="${styles.text}">Samahani, listing yako haikuidhinishwa wakati huu. Angalia sababu hapa chini, rekebisha, na uwasilishe tena.</span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">🏠 <strong>${listingTitle}</strong></p>
+        <p style="${styles.infoText}">❌ Status: Ilikataliwa</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${APP_URL}/dashboard/listings" style="${styles.btn}">🔄 Rekebisha na Wasilisha Tena →</a>
+        </td></tr>
+      </table>
+
+      <hr style="${styles.divider}">
+      <span style="${styles.textSmall}">Maswali? Wasiliana nasi: <a href="https://wa.me/255665831694" style="${styles.linkSmall}">WhatsApp</a></span>
+    `, `Listing yako "${listingTitle}" ilikataliwa`),
+  }
+}
+
+// ── Subscription activated email ──────────────────────────────────────────
+
+export function subscriptionActivatedEmail(dalaliName: string, planName: string, expiresAt: string) {
+  return {
+    subject: `✅ Subscription ya ${planName} Imewashwa — NyumbaFasta`,
+    html: emailBase(`
+      <span style="${styles.greeting}">Hongera ${dalaliName}! 🎉</span>
+      <span style="${styles.text}">Subscription yako ya <strong>${planName}</strong> imewashwa. Listings zako zinaonekana kwa wateja sasa hivi!</span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">📋 <strong>Plan:</strong> ${planName}</p>
+        <p style="${styles.infoText}">✅ <strong>Status:</strong> Imewashwa</p>
+        <p style="${styles.infoText}">📅 <strong>Inaisha:</strong> ${expiresAt}</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${APP_URL}/dashboard" style="${styles.btn}">📊 Angalia Dashibodi Yako →</a>
+        </td></tr>
+      </table>
+    `, `Subscription ya ${planName} imewashwa`),
+  }
+}
+
+// ── Boost activated email ─────────────────────────────────────────────────
+
+export function boostActivatedEmail(dalaliName: string, weeks: number, boostedUntil: string) {
+  return {
+    subject: '⚡ Listing Yako Imeboostwa — NyumbaFasta',
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari ${dalaliName}! ⚡</span>
+      <span style="${styles.text}">Listing yako imewashwa boost kwa wiki <strong>${weeks}</strong>. Itaonekana juu ya listings zingine na kupata wateja haraka zaidi!</span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">⚡ <strong>Boost:</strong> Wiki ${weeks}</p>
+        <p style="${styles.infoText}">📅 <strong>Boosted hadi:</strong> ${boostedUntil}</p>
+        <p style="${styles.infoText}">🚀 Listing yako iko juu ya orodha sasa!</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${APP_URL}/dashboard/listings" style="${styles.btn}">🏠 Angalia Listings Zako →</a>
+        </td></tr>
+      </table>
+    `, `Listing yako imeboostwa kwa wiki ${weeks}`),
+  }
+}
+
+// ── Extra listings added email ────────────────────────────────────────────
+
+export function extraListingsAddedEmail(dalaliName: string, count: number) {
+  return {
+    subject: `✅ Listings ${count} za Ziada Zimeongezwa — NyumbaFasta`,
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari ${dalaliName}! ✅</span>
+      <span style="${styles.text}">Umefanikiwa kuongeza listings <strong>${count}</strong> za ziada kwenye akaunti yako. Unaweza sasa kupost listings zaidi!</span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">➕ <strong>Listings za Ziada:</strong> ${count}</p>
+        <p style="${styles.infoText}">⏰ <strong>Zinaisha:</strong> Siku 30 kutoka leo</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${APP_URL}/dashboard/listings/new" style="${styles.btn}">🏠 Ongeza Listing Mpya →</a>
+        </td></tr>
+      </table>
+    `, `Listings ${count} za ziada zimeongezwa`),
+  }
+}
+
+// ── Ad campaign approved email ────────────────────────────────────────────
+
+export function adCampaignApprovedEmail(businessName: string, adType: string) {
+  const typeLabel: Record<string, string> = {
+    banner: 'Banner', search: 'Search Ad', nearby: 'Nearby Ad',
+    video: 'Video Ad', featured: 'Featured Business', directory: 'Directory',
+  }
+  return {
+    subject: '✅ Tangazo Lako Limeidhibitiwa — NyumbaFasta Ads',
+    html: emailBase(`
+      <span style="${styles.greeting}">Hongera ${businessName}! 🎉</span>
+      <span style="${styles.text}">Tangazo lako la <strong>${typeLabel[adType] ?? adType}</strong> limeidhibitiwa na timu yetu. Hatua inayofuata: <strong>lipa ili tangazo lako lianze kutumika.</strong></span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">✅ <strong>Aina:</strong> ${typeLabel[adType] ?? adType}</p>
+        <p style="${styles.infoText}">💳 Malipo inahitajika ili tangazo lianze kuonekana</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${APP_URL}/advertising/dashboard" style="${styles.btn}">💳 Lipa Sasa →</a>
+        </td></tr>
+      </table>
+    `, 'Tangazo lako limeidhibitiwa — lipa ili lianze'),
+  }
+}
+
+// ── Ad campaign rejected email ────────────────────────────────────────────
+
+export function adCampaignRejectedEmail(businessName: string, reason?: string) {
+  return {
+    subject: '❌ Tangazo Lako Limekataliwa — NyumbaFasta Ads',
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari ${businessName},</span>
+      <span style="${styles.text}">Samahani, tangazo lako halijakidhi vigezo vyetu wakati huu.</span>
+
+      ${reason ? `
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:16px 20px;margin:20px 0">
+        <p style="font-size:14px;color:#b91c1c;margin:0"><strong>Sababu:</strong> ${reason}</p>
+      </div>` : ''}
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">💡 Unaweza kuwasiliana nasi au kuwasilisha tangazo jipya baada ya kufanya marekebisho.</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${APP_URL}/advertising/new" style="${styles.btn}">🔄 Tengeneza Tangazo Jipya →</a>
+        </td></tr>
+      </table>
+
+      <hr style="${styles.divider}">
+      <span style="${styles.textSmall}">Msaada: <a href="https://wa.me/255665831694" style="${styles.linkSmall}">WhatsApp</a></span>
+    `, 'Tangazo lako limekataliwa'),
+  }
+}
+
 // ── Advertiser welcome email (sent on successful registration) ────────────
 
 export function advertiserWelcomeEmail(businessName: string, city: string) {

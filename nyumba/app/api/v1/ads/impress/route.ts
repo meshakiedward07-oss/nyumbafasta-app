@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { trackImpressions } from '@/lib/ads/trackImpression'
+import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 
-// Manual impression tracking for cases where the client renders ads
-// directly (e.g. BannerAd, VideoAdCard) without going through /ads/ranked.
+// Impression tracking for client-rendered ads (BannerAd, VideoAdCard, etc.)
+// No auth required — anonymous browsers generate real impressions too.
+// Rate-limited per IP to prevent artificial inflation.
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req)
+  const rl = await rateLimit(`impress:${ip}`, 120, 60_000) // 120 per minute per IP
+  if (!rl.allowed) {
+    return NextResponse.json({ ok: false }, { status: 429 })
+  }
+
   try {
     const { session_id, campaign_ids } = await req.json() as {
       session_id: string

@@ -128,6 +128,42 @@ export async function POST(req: NextRequest) {
       is_read: false,
     })
 
+    // WhatsApp + email (non-blocking)
+    ;(async () => {
+      const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const { data: dalali } = await admin
+        .from('users')
+        .select('full_name, dalali_profiles(whatsapp_number)')
+        .eq('id', sub.dalali_id)
+        .single()
+      const wp   = (dalali?.dalali_profiles as { whatsapp_number?: string | null }[] | null)?.[0]?.whatsapp_number
+      const name = dalali?.full_name ?? 'Dalali'
+
+      if (wp) {
+        const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
+        const msg =
+          `✅ *Listings za Ziada Zimeongezwa!*\n\nHabari ${name}!\n\n` +
+          `Umeongeza listings *${count}* za ziada. Unaweza sasa kupost listings zaidi.\n\n` +
+          `👉 ${APP_URL}/dashboard/listings/new`
+        await sendTextMessage(formatPhoneNumber(wp), msg).catch(() => {})
+      }
+
+      if (process.env.RESEND_API_KEY) {
+        const dalaliEmail = await admin.auth.admin.getUserById(sub.dalali_id)
+          .then(r => r.data?.user?.email ?? null)
+        if (dalaliEmail) {
+          const { extraListingsAddedEmail } = await import('@/lib/email/templates')
+          const { Resend } = await import('resend')
+          const { subject, html } = extraListingsAddedEmail(name, count)
+          await new Resend(process.env.RESEND_API_KEY).emails.send({
+            from: 'NyumbaFasta <noreply@nyumbafasta.co>',
+            to:   dalaliEmail,
+            subject, html,
+          }).catch(() => {})
+        }
+      }
+    })().catch(() => {})
+
     console.log('[ExtraListings Webhook] Added', count, 'extra listings to sub', subId)
     return NextResponse.json({ received: true })
   } catch (err) {

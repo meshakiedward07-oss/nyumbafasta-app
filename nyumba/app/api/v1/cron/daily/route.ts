@@ -514,7 +514,7 @@ async function runDailyTasks() {
       .select('id')
     const { data: timedOutSubs } = await admin
       .from('subscriptions')
-      .update({ status: 'expired' })
+      .update({ status: 'failed' })
       .eq('status', 'pending')
       .lt('created_at', tenMinAgo)
       .select('id')

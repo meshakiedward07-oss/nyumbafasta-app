@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest) {
 
   const { data: campaigns } = await admin
     .from('ad_campaigns')
-    .select('id, ad_type, payment_status, plan:plan_id (duration_days), advertiser:advertiser_id (business_name, whatsapp_number)')
+    .select('id, ad_type, payment_status, plan:plan_id (duration_days), advertiser:advertiser_id (id, business_name, whatsapp_number, user_id, email)')
     .in('id', ids)
 
   if (action === 'reject') {
@@ -79,15 +79,48 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  // Send notifications (non-blocking)
+  // Notifications (non-blocking) — WhatsApp + in-app + email per campaign
   for (const c of campaigns ?? []) {
-    const adv = c.advertiser as unknown as { business_name: string; whatsapp_number: string | null }
+    const adv = c.advertiser as unknown as {
+      business_name: string; whatsapp_number: string | null; user_id: string | null; email: string | null
+    }
+
+    // WhatsApp
     if (adv?.whatsapp_number) {
       if (action === 'approve') {
         notifyAdvertiserApproved(adv.whatsapp_number, adv.business_name, c.ad_type).catch(() => {})
       } else {
         notifyAdvertiserRejected(adv.whatsapp_number, adv.business_name, reason ?? 'Haifikii vigezo vyetu').catch(() => {})
       }
+    }
+
+    // In-app
+    if (adv?.user_id) {
+      admin.from('notifications').insert({
+        user_id: adv.user_id,
+        title:   action === 'approve' ? '✅ Tangazo Lako Limeidhibitiwa!' : '❌ Tangazo Lilikataliwa',
+        body:    action === 'approve'
+          ? 'Tangazo lako limeidhibitiwa. Lipa ili lianze kuonekana kwa wateja.'
+          : (reason ? `Tangazo lako lilikataliwa. Sababu: ${reason}` : 'Tangazo lako halijakidhi vigezo vyetu.'),
+        type:    action === 'approve' ? 'ad_campaign_approved' : 'ad_campaign_rejected',
+        is_read: false,
+      }).then(() => {}, () => {})
+    }
+
+    // Email
+    if (adv?.email && process.env.RESEND_API_KEY) {
+      ;(async () => {
+        const { adCampaignApprovedEmail, adCampaignRejectedEmail } = await import('@/lib/email/templates')
+        const { Resend } = await import('resend')
+        const resend = new Resend(process.env.RESEND_API_KEY)
+        if (action === 'approve') {
+          const { subject, html } = adCampaignApprovedEmail(adv.business_name, c.ad_type)
+          await resend.emails.send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: adv.email!, subject, html })
+        } else {
+          const { subject, html } = adCampaignRejectedEmail(adv.business_name, reason)
+          await resend.emails.send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: adv.email!, subject, html })
+        }
+      })().catch(() => {})
     }
   }
 

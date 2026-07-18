@@ -5,6 +5,7 @@ import {
   generateExternalId, type MobileProvider,
 } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
+import { rateLimit } from '@/lib/security/rateLimit'
 
 function getLoyaltyDiscount(months: number): number {
   if (months >= 12) return 20
@@ -32,6 +33,12 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+    }
+
+    // Rate limit: 5 per 10 minutes per user
+    const rl = await rateLimit(`sub_renew:${user.id}`, 5, 10 * 60_000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Maombi mengi. Jaribu tena baadaye.' }, { status: 429 })
     }
 
     const { plan, msisdn, provider = 'mpesa' } = await req.json()

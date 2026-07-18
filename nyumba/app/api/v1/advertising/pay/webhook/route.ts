@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
 
   let payload: WebhookPayload
   try {
-    payload = await req.json() as WebhookPayload
+    const rawBody = await req.text()
+    payload = JSON.parse(rawBody) as WebhookPayload
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
