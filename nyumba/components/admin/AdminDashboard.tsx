@@ -277,67 +277,11 @@ export default function AdminDashboard({
               )}
             </Link>
             <Link
-              href="/admin/crm"
-              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-            >
-              <i className="ti ti-target" aria-hidden="true" /><span>CRM</span>
-            </Link>
-            <Link
-              href="/admin/crm/analytics"
-              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-            >
-              <i className="ti ti-chart-bar" aria-hidden="true" /><span>Takwimu</span>
-            </Link>
-            <Link
-              href="/admin/crm/assign"
-              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-            >
-              <i className="ti ti-users" aria-hidden="true" /><span>Mgawanyo</span>
-            </Link>
-            <Link
-              href="/admin/crm/reports"
-              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-            >
-              <i className="ti ti-list" aria-hidden="true" /><span>Ripoti</span>
-            </Link>
-            <Link
-              href="/admin/crm/commission"
-              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-            >
-              <i className="ti ti-briefcase" aria-hidden="true" /><span>Kamisheni</span>
-            </Link>
-            <Link
-              href="/admin/crm/templates"
-              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-            >
-              <i className="ti ti-message-circle" aria-hidden="true" /><span>Violezo WA</span>
-            </Link>
-            <Link
               href="/admin/leads"
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
                 border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
             >
-              <i className="ti ti-robot" aria-hidden="true" /><span>Leads</span>
-            </Link>
-            <Link
-              href="/admin/facebook-groups"
-              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-            >
-              <PlatformLogo platform="facebook" size={16} /><span>Vikundi FB</span>
-            </Link>
-            <Link
-              href="/admin/instagram-profiles"
-              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium
-                border-b-2 border-transparent text-gray-400 hover:text-primary-600 transition-colors"
-            >
-              <PlatformLogo platform="instagram" size={16} /><span>Wasifu IG</span>
+              <i className="ti ti-users" aria-hidden="true" /><span>Leads</span>
             </Link>
             <Link
               href="/admin/accounting"

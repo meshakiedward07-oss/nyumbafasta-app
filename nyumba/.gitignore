@@ -35,6 +35,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local debug/test scripts
+test-*.mjs
+test-*.js
+
 # Session cookies (sensitive — usifanye commit)
 lib/scraper/config/fb-cookies.json
 lib/scraper/config/fb-state.json

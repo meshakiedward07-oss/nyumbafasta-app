@@ -45,7 +45,7 @@ export async function notifyStaffNewProspect(
     `📡 Chanzo: ${sourceLabel[source] ?? source}\n\n` +
     `Kazi yako: Wasiliana naye, mkaribishe kujiunga NyumbaFasta kama dalali.\n` +
     `Mweleze faida (CRM, leads, branding) na jinsi ya kusajili.\n\n` +
-    `🔗 Angalia CRM: ${appUrl}/admin/crm`
+    `🔗 Angalia Leads: ${appUrl}/admin/leads`
   return sendTextMessage(to, message)
 }
 

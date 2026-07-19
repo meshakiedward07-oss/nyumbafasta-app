@@ -15,7 +15,7 @@ export const STAFF_PERMISSIONS = {
     key: 'listing_analytics',
     label: 'Listing Analytics',
     description: 'Kuangalia listings zenye performance ndogo, CRM analytics',
-    adminPath: '/admin/crm/analytics',
+    adminPath: '/admin/leads',
     icon: 'chart-bar',
     category: 'crm' as const,
   },
@@ -172,6 +172,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, PermissionKey> = {
   '/admin/whatsapp':        'whatsapp_support',
   '/admin/social':          'social_media',
   '/admin/legal':           'legal_violations',
-  '/admin/crm/analytics':   'listing_analytics',
+  '/admin/leads':           'listing_analytics',
   '/admin/adverts':         'review_ads',
 }

@@ -64,20 +64,9 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'Utafutaji wa Wateja',
+    title: 'Leads',
     items: [
-      { href: '/admin/leads', label: 'Leads Zote', icon: 'robot', exact: false },
-    ],
-  },
-  {
-    title: 'CRM',
-    items: [
-      { href: '/admin/crm',               label: 'Mchakato',         icon: 'target', exact: true  },
-      { href: '/admin/crm/assign',        label: 'Mgawanyo',         icon: 'user-tie', exact: false },
-      { href: '/admin/crm/analytics',     label: 'Takwimu',          icon: 'chart-bar', exact: false },
-      { href: '/admin/crm/reports',       label: 'Ripoti',           icon: 'trending-up', exact: false },
-      { href: '/admin/crm/commission',    label: 'Kamisheni',        icon: 'coin', exact: false },
-      { href: '/admin/crm/templates',     label: 'Violezo WA',       icon: 'message-circle', exact: false },
+      { href: '/admin/leads', label: 'Leads Management', icon: 'users', exact: false },
     ],
   },
   {
@@ -114,8 +103,7 @@ const NAV_SECTIONS = [
 const BOTTOM_NAV = [
   { href: '/admin',            icon: 'chart-bar', label: 'Nyumbani',  exact: true  },
   { href: '/admin/whatsapp',   icon: 'brand-whatsapp', label: 'WhatsApp',  exact: false },
-  { href: '/admin/leads',      icon: 'robot', label: 'Leads',     exact: false },
-  { href: '/admin/crm',        icon: 'target', label: 'CRM',       exact: false },
+  { href: '/admin/leads',      icon: 'users', label: 'Leads',     exact: false },
   { href: '/admin/accounting', icon: 'coin', label: 'Hesabu',    exact: false },
 ]
 

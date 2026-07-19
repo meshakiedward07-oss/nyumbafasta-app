@@ -134,7 +134,7 @@ async function notifyAdminNewLead(
       `🔍 Ishara: ${data.signal}\n\n` +
       `💬 Ujumbe: "${data.conversationSummary.slice(0, 120)}${data.conversationSummary.length > 120 ? '...' : ''}"\n\n` +
       `🆔 Lead ID: ${leadId.slice(0, 8)}...\n` +
-      `🔗 CRM: ${appUrl}/admin/crm`,
+      `🔗 Leads: ${appUrl}/admin/leads`,
     )
   } catch (err) {
     console.error('[Lead Capture] Admin notify failed:', err)

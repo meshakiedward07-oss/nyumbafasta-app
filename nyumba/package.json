@@ -6,16 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "scrape": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts",
-    "scrape:dar": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' all",
-    "scrape:google": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' google",
-    "scrape:facebook": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' facebook",
-    "scrape:facebook-graph": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' facebook_graph",
-    "scrape:facebook-groups": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' facebook_groups",
-    "scrape:instagram": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' instagram",
-    "scrape:tiktok": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/run.ts 'Dar es Salaam' tiktok",
-    "scheduler": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/scraper/scheduler.ts"
+    "lint": "next lint"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
