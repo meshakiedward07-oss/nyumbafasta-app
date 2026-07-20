@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PlatformLogo } from '@/components/shared/PlatformLogo'
 import type {
   AdminListing,
   AdminVerification,
