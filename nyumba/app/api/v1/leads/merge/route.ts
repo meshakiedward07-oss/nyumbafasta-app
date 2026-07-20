@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
+import { cache } from '@/lib/cache/memoryCache'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('leads').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', primaryId)
     }
     await supabaseAdmin.from('leads').delete().eq('id', duplicateId)
+    cache.delete('leads:stats:global')
 
     return NextResponse.json({ success: true, fieldsMerged: Object.keys(updates) })
   } catch (err) {
@@ -78,6 +80,7 @@ export async function DELETE(req: NextRequest) {
       .eq('is_duplicate', true)
 
     await supabaseAdmin.from('leads').delete().eq('is_duplicate', true)
+    cache.delete('leads:stats:global')
     return NextResponse.json({ success: true, deleted: count ?? 0 })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'

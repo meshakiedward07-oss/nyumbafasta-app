@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
+import { cache, TTL } from '@/lib/cache/memoryCache'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +9,7 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return auth.response
 
   const { searchParams } = new URL(req.url)
-  const status   = searchParams.get('status')    // active | pending | rejected | expired | taken
+  const status   = searchParams.get('status')
   const region   = searchParams.get('region')
   const type     = searchParams.get('type')
   const search   = searchParams.get('search')
@@ -16,6 +17,16 @@ export async function GET(req: NextRequest) {
   const limit    = Math.min(parseInt(searchParams.get('limit') ?? '50'), 100)
   const from     = page * limit
   const to       = from + limit - 1
+
+  // Cache filter-based queries (skip search — too many unique combinations)
+  const cacheKey = !search
+    ? `admin:listings:${status ?? 'all'}:${region ?? ''}:${type ?? ''}:${page}:${limit}`
+    : null
+
+  if (cacheKey) {
+    const hit = cache.get(cacheKey)
+    if (hit) return NextResponse.json(hit, { headers: { 'Cache-Control': 'no-store' } })
+  }
 
   const { createAdminClient } = await import('@/lib/supabase/server')
   const admin = createAdminClient()
@@ -50,10 +61,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({
+  const payload = {
     listings: data ?? [],
     total: count ?? 0,
     page,
     limit,
-  })
+  }
+
+  if (cacheKey) cache.set(cacheKey, payload, TTL.LISTINGS_PAGE)
+
+  return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
 }

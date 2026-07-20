@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { verifySingleLead, normalizeUrl } from '@/lib/leads/socialChecker'
 import { cleanPhone } from '@/lib/leads/cleanPhone'
+import { cache } from '@/lib/cache/memoryCache'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,6 +113,8 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error
 
+    cache.delete('leads:stats:global')
+
     // Auto-verify social links immediately for manual adds
     const hasSocial = data.facebook_url || data.instagram_url || data.tiktok_url || data.whatsapp_number
     if (hasSocial) {
@@ -152,6 +155,7 @@ export async function PATCH(req: NextRequest) {
       .single()
 
     if (error) throw error
+    cache.delete('leads:stats:global')
     return NextResponse.json({ success: true, lead: data })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
@@ -180,6 +184,7 @@ export async function DELETE(req: NextRequest) {
       if (error) throw error
     }
 
+    cache.delete('leads:stats:global')
     return NextResponse.json({ success: true })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'

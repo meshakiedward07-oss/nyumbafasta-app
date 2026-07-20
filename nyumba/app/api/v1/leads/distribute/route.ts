@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminUser } from '@/lib/security/adminAuth'
+import { cache } from '@/lib/cache/memoryCache'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
       .in('id', leadIds.slice(0, 500))
 
     if (error) throw error
+    cache.delete('leads:stats:global')
 
     return NextResponse.json({
       success: true,

@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { cleanPhone } from '@/lib/leads/cleanPhone'
 import { verifyLeadBatch, normalizeUrl } from '@/lib/leads/socialChecker'
+import { cache } from '@/lib/cache/memoryCache'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -370,6 +371,8 @@ export async function POST(req: NextRequest) {
         completed_at:     new Date().toISOString(),
       })
       .eq('id', batchId)
+
+    cache.delete('leads:stats:global')
 
     return NextResponse.json({
       success: true,

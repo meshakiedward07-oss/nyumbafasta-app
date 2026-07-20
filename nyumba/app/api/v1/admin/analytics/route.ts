@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { cache, TTL } from '@/lib/cache/memoryCache'
 
-export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const supabase = await createClient()
@@ -12,6 +13,11 @@ export async function GET() {
     .from('users').select('role').eq('id', user.id).single()
   if (!me || !['admin', 'staff'].includes(me.role))
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  // Return cached analytics — expensive multi-query route, 5-min TTL is acceptable for a dashboard
+  const CACHE_KEY = 'admin:analytics'
+  const hit = cache.get(CACHE_KEY)
+  if (hit) return NextResponse.json(hit, { headers: { 'Cache-Control': 'no-store' } })
 
   const admin = createAdminClient()
   const now   = new Date()
@@ -190,7 +196,7 @@ export async function GET() {
   const totalExpenses     = expensesThisMonth + recurringTotal
   const profitThisMonth   = thisMonthIncome - totalExpenses
 
-  return NextResponse.json({
+  const payload = {
     revenueByMonth,
     totals,
     growth: Math.round(growth * 10) / 10,
@@ -220,5 +226,8 @@ export async function GET() {
       recurring: recurringTotal,
       profit:    profitThisMonth,
     },
-  })
+  }
+
+  cache.set(CACHE_KEY, payload, TTL.ADMIN_STATS)
+  return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
 }
