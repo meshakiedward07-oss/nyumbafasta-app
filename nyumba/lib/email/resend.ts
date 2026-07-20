@@ -53,6 +53,7 @@ export async function sendEmail(opts: {
       senderName:    opts.senderName,
     })
 
+    // reply+{threadId}@kiruajorix.resend.app so Resend routes the reply back to our webhook
     const replyTo = opts.threadId
       ? `reply+${opts.threadId}@${REPLY_DOMAIN}`
       : `support@${REPLY_DOMAIN}`
