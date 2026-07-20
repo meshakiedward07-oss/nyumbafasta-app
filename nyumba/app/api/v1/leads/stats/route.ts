@@ -5,7 +5,7 @@ import { cache, TTL } from '@/lib/cache/memoryCache'
 
 export const dynamic = 'force-dynamic'
 
-export const LEADS_STATS_CACHE_KEY = 'leads:stats:global'
+const LEADS_STATS_CACHE_KEY = 'leads:stats:global'
 
 async function computeStats(since: string) {
   function base() {
