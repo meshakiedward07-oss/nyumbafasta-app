@@ -52,6 +52,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Hakuna mabadiliko' }, { status: 400 })
   }
 
+  // Re-queue rejected campaigns for review when the owner edits them
+  if (existing.status === 'rejected') {
+    updates.status    = 'pending_review'
+    updates.admin_note = null
+  }
+
   const { data, error } = await admin
     .from('ad_campaigns')
     .update({ ...updates, updated_at: new Date().toISOString() })

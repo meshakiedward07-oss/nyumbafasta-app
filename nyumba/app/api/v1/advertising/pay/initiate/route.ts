@@ -51,7 +51,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Kampeni hii imelipwa tayari' }, { status: 409 })
   }
 
-  const plan       = campaign.plan as { id: string; name: string; price_tzs: number; duration_days: number }
+  const plan = campaign.plan as { id: string; name: string; price_tzs: number; duration_days: number } | null
+  if (!plan) {
+    return NextResponse.json({ error: 'Kampeni haina mpango wa malipo. Wasiliana na msaada.' }, { status: 400 })
+  }
   const amount     = plan.price_tzs
   const externalId = generateExternalId('AD')
 

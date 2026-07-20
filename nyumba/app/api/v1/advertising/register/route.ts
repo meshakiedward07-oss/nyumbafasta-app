@@ -36,10 +36,12 @@ export async function POST(req: NextRequest) {
     if (existingUser) {
       userId = existingUser.id
     } else {
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // Use admin client so the email is auto-confirmed — advertisers can log in
+      // immediately without waiting for a confirmation email.
+      const { data: signUpData, error: signUpError } = await admin.auth.admin.createUser({
         email,
         password,
-        options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/advertising/dashboard` },
+        email_confirm: true,
       })
       if (signUpError) {
         return NextResponse.json({ error: signUpError.message }, { status: 400 })

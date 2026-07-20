@@ -34,16 +34,19 @@ export const PORTRAIT_THRESHOLD = 1.3
 
 // ── Brand stripe overlay ──────────────────────────────────────────────────────
 
-function brandStripeSvg(width: number): Buffer {
-  const svg = `<svg width="${width}" height="22" xmlns="http://www.w3.org/2000/svg">
-    <rect width="${width}" height="22" fill="#1D9E75" opacity="0.92"/>
-    <text x="${width / 2}" y="15" text-anchor="middle"
-          font-family="sans-serif" font-size="10" font-weight="700"
-          fill="white" letter-spacing="1.5" opacity="0.9">
-      nyumbafasta.co
-    </text>
-  </svg>`
-  return Buffer.from(svg)
+// Builds a solid #1D9E75 stripe as raw PNG — no librsvg required on Vercel Lambda.
+async function brandStripeBuffer(width: number): Promise<Buffer> {
+  const sharp = (await import('sharp')).default
+  return sharp({
+    create: {
+      width,
+      height: 22,
+      channels: 4,
+      background: { r: 29, g: 158, b: 117, alpha: 235 }, // #1D9E75 at ~92%
+    },
+  })
+    .png()
+    .toBuffer()
 }
 
 // ── Image processing ──────────────────────────────────────────────────────────
@@ -60,8 +63,8 @@ async function processVariant(
     .webp({ quality: 82 })
     .toBuffer()
 
-  // Composite brand stripe at bottom
-  const stripe = brandStripeSvg(w)
+  // Composite brand stripe at bottom — raw PNG avoids the librsvg dependency
+  const stripe = await brandStripeBuffer(w)
   return sharp(resized)
     .composite([{ input: stripe, gravity: 'south', blend: 'over' }])
     .webp({ quality: 82 })

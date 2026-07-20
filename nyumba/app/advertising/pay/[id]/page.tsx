@@ -7,6 +7,13 @@ type Campaign = {
   plan: { name: string; price_tzs: number; duration_days: number } | null
 }
 
+const PAYMENT_METHODS = [
+  { id: 'mpesa',     label: 'M-Pesa',       prefixes: ['074','075','076'], color: 'bg-red-50 border-red-200 text-red-700',    icon: '📱' },
+  { id: 'airtel',    label: 'Airtel Money',  prefixes: ['068','069','078'], color: 'bg-orange-50 border-orange-200 text-orange-700', icon: '📱' },
+  { id: 'tigo',      label: 'Tigo Pesa',     prefixes: ['065','067','071'], color: 'bg-blue-50 border-blue-200 text-blue-700',   icon: '📱' },
+  { id: 'halopesa',  label: 'HaloPesa',      prefixes: ['062'],            color: 'bg-green-50 border-green-200 text-green-700', icon: '📱' },
+]
+
 const PROVIDER_PREFIXES: Record<string, string> = {
   '074': 'M-Pesa', '075': 'M-Pesa', '076': 'M-Pesa',
   '068': 'Airtel', '069': 'Airtel', '078': 'Airtel',
@@ -24,13 +31,14 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params)
   const router = useRouter()
 
-  const [campaign, setCampaign] = useState<Campaign | null>(null)
-  const [phone, setPhone]       = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [polling, setPolling]   = useState(false)
+  const [campaign, setCampaign]   = useState<Campaign | null>(null)
+  const [phone, setPhone]         = useState('')
+  const [method, setMethod]       = useState<string | null>(null)
+  const [loading, setLoading]     = useState(false)
+  const [polling, setPolling]     = useState(false)
   const [paymentId, setPaymentId] = useState<string | null>(null)
-  const [error, setError]       = useState('')
-  const [status, setStatus]     = useState<'idle' | 'sent' | 'done' | 'failed'>('idle')
+  const [error, setError]         = useState('')
+  const [status, setStatus]       = useState<'idle' | 'sent' | 'done' | 'failed'>('idle')
 
   useEffect(() => {
     fetch(`/api/v1/advertising/campaigns/${id}`)
@@ -149,9 +157,39 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
               </div>
             )}
 
+            {/* Payment method selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Chagua Njia ya Malipo
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {PAYMENT_METHODS.map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setMethod(m.id)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition ${
+                      method === m.id
+                        ? 'border-primary-400 bg-primary-50 text-primary-700 ring-1 ring-primary-300'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>{m.icon}</span>
+                    <span className="font-semibold text-xs">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+              {method && (
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Nambari za {PAYMENT_METHODS.find(m2 => m2.id === method)?.label}:{' '}
+                  {PAYMENT_METHODS.find(m2 => m2.id === method)?.prefixes.join(', ')}
+                </p>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nambari ya Simu (M-Pesa / Airtel / Tigo)
+                Nambari ya Simu
               </label>
               <div className="relative">
                 <input
@@ -167,16 +205,20 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
                 )}
               </div>
               <p className="text-xs text-gray-400 mt-1">
-                Utapata ujumbe wa USSD kwenye simu hii kukuomba uthibitisho.
+                Utapata ujumbe wa USSD kwenye simu hii kukuomba PIN yako.
               </p>
             </div>
 
             <button
-              type="submit" disabled={loading}
+              type="submit" disabled={loading || !method}
               className="w-full bg-primary-500 text-white py-3 rounded-xl font-bold hover:bg-primary-600 transition disabled:opacity-50 text-sm"
             >
-              {loading ? 'Inatuma Ombi...' : `Lipa TZS ${plan?.price_tzs.toLocaleString() ?? '—'}`}
+              {loading ? 'Inatuma Ombi...' : `Lipa TZS ${plan?.price_tzs.toLocaleString() ?? '—'} →`}
             </button>
+
+            {!method && (
+              <p className="text-xs text-center text-amber-600">Tafadhali chagua njia ya malipo kwanza.</p>
+            )}
 
             <p className="text-xs text-center text-gray-400">
               Malipo yanafanywa kwa usalama kupitia AzamPay Tanzania

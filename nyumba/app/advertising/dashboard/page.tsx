@@ -231,7 +231,7 @@ export default async function AdvertiserDashboard() {
                     )}
 
                     {/* Actions */}
-                    {(needsPay || needsArt) && (
+                    {(needsPay || needsArt || c.status === 'rejected') && (
                       <div className="flex gap-2 mt-3">
                         {needsPay && (
                           <Link
@@ -247,6 +247,14 @@ export default async function AdvertiserDashboard() {
                             className="flex-1 text-center bg-amber-500 text-white text-xs font-bold px-3 py-2.5 rounded-xl hover:bg-amber-600 transition"
                           >
                             📸 Pakia Creative
+                          </Link>
+                        )}
+                        {c.status === 'rejected' && (
+                          <Link
+                            href={`/advertising/campaigns/${c.id}/edit`}
+                            className="flex-1 text-center bg-red-600 text-white text-xs font-bold px-3 py-2.5 rounded-xl hover:bg-red-700 transition"
+                          >
+                            ✏️ Rekebisha na Wasilisha Tena
                           </Link>
                         )}
                       </div>

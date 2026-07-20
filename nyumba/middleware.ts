@@ -80,20 +80,16 @@ export async function middleware(request: NextRequest) {
 
   // Email verification guard — all protected routes zinahitaji email iliyothibitishwa.
   // Admin/staff are exempt: their accounts are created by the platform operator with
-  // confirmed credentials. Auto-confirm them so they can always access the panel.
+  // confirmed credentials. Advertisers (/advertising/*) are also exempt because they
+  // register via a server-side API and use the advertisers table (not users) — the
+  // requireAdvertiserAuth guard handles their access control instead.
   if (user && !user.email_confirmed_at && isProtected) {
     if (!path.startsWith('/account/change-password')) {
-      // Check role — admin and staff bypass the email-verification wall
-      const { data: roleRow } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single()
+      const isAdvertisingRoute = ADVERTISING_PROTECTED_ROUTES.some(r => path.startsWith(r))
 
-      const isPrivileged = roleRow?.role === 'admin' || roleRow?.role === 'staff'
-
-      if (isPrivileged) {
-        // Auto-confirm so subsequent requests pass without this extra query
+      if (isAdvertisingRoute) {
+        // Advertisers don't appear in the users table; auto-confirm so they can access
+        // their dashboard. The API-layer requireAdvertiserAuth() is their access gate.
         try {
           const adminSup = createSupabaseAdmin(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -101,12 +97,33 @@ export async function middleware(request: NextRequest) {
             { auth: { autoRefreshToken: false, persistSession: false } },
           )
           await adminSup.auth.admin.updateUserById(user.id, { email_confirm: true })
-        } catch { /* non-fatal — they still get through this request */ }
+        } catch { /* non-fatal */ }
       } else {
-        const url = request.nextUrl.clone()
-        url.pathname = '/verify-email'
-        url.searchParams.set('email', user.email ?? '')
-        return redirectWithCookies(url, supabaseResponse)
+        // Check role — admin and staff bypass the email-verification wall
+        const { data: roleRow } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        const isPrivileged = roleRow?.role === 'admin' || roleRow?.role === 'staff'
+
+        if (isPrivileged) {
+          // Auto-confirm so subsequent requests pass without this extra query
+          try {
+            const adminSup = createSupabaseAdmin(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY!,
+              { auth: { autoRefreshToken: false, persistSession: false } },
+            )
+            await adminSup.auth.admin.updateUserById(user.id, { email_confirm: true })
+          } catch { /* non-fatal — they still get through this request */ }
+        } else {
+          const url = request.nextUrl.clone()
+          url.pathname = '/verify-email'
+          url.searchParams.set('email', user.email ?? '')
+          return redirectWithCookies(url, supabaseResponse)
+        }
       }
     }
   }
