@@ -92,5 +92,6 @@ export async function DELETE(req: NextRequest) {
   const admin = createAdminClient()
   const { error } = await admin.from('dalali_expenses').delete().eq('id', id).eq('dalali_id', user.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  cache.invalidatePrefix(`finance-stats:${user.id}:`)
   return NextResponse.json({ success: true })
 }

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { cache } from '@/lib/cache/memoryCache'
 
 async function getUser() {
   const supabase = await createClient()
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  cache.invalidatePrefix(`finance-stats:${user.id}:`)
   return NextResponse.json({ success: true, commission: data })
 }
 
@@ -89,6 +91,7 @@ export async function PATCH(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  cache.invalidatePrefix(`finance-stats:${user.id}:`)
   return NextResponse.json({ success: true, commission: data })
 }
 
@@ -102,5 +105,6 @@ export async function DELETE(req: NextRequest) {
   const admin = createAdminClient()
   const { error } = await admin.from('dalali_commissions').delete().eq('id', id).eq('dalali_id', user.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  cache.invalidatePrefix(`finance-stats:${user.id}:`)
   return NextResponse.json({ success: true })
 }

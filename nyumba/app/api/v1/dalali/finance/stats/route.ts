@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    return NextResponse.json(result, { headers: { 'Cache-Control': 'private, max-age=120' } })
+    return NextResponse.json(result, { headers: { 'Cache-Control': 'no-store' } })
   } catch (e) {
     console.error('[finance/stats]', e)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

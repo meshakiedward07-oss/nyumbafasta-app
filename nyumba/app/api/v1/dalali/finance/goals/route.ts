@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { cache } from '@/lib/cache/memoryCache'
 
 async function getUser() {
   const supabase = await createClient()
@@ -62,5 +63,6 @@ export async function POST(req: NextRequest) {
   }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  cache.invalidatePrefix(`finance-stats:${user.id}:`)
   return NextResponse.json({ success: true, goal: data })
 }
