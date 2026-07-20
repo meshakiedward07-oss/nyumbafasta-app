@@ -70,6 +70,13 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    title: 'Mawasiliano',
+    items: [
+      { href: '/admin/email',         label: 'Barua Pepe',       icon: 'mail', exact: false },
+      { href: '/admin/inbox',         label: 'Inbox ya Ujumbe',  icon: 'inbox', exact: false },
+    ],
+  },
+  {
     title: 'Usimamizi',
     items: [
       { href: '/admin/staff',         label: 'Wafanyakazi',      icon: 'user-tie', exact: false },
@@ -101,14 +108,15 @@ const NAV_SECTIONS = [
 ]
 
 const BOTTOM_NAV = [
-  { href: '/admin',            icon: 'chart-bar', label: 'Nyumbani',  exact: true  },
-  { href: '/admin/whatsapp',   icon: 'brand-whatsapp', label: 'WhatsApp',  exact: false },
-  { href: '/admin/leads',      icon: 'users', label: 'Leads',     exact: false },
-  { href: '/admin/accounting', icon: 'coin', label: 'Hesabu',    exact: false },
+  { href: '/admin',            icon: 'chart-bar',      label: 'Nyumbani', exact: true  },
+  { href: '/admin/whatsapp',   icon: 'brand-whatsapp', label: 'WhatsApp', exact: false },
+  { href: '/admin/email',      icon: 'mail',           label: 'Barua',    exact: false },
+  { href: '/admin/leads',      icon: 'users',          label: 'Leads',    exact: false },
 ]
 
 const STAFF_BOTTOM_NAV = [
   { href: '/admin/staff-dashboard', icon: 'layout-dashboard', label: 'Dashboard', exact: false },
+  { href: '/admin/email',           icon: 'mail',             label: 'Barua',     exact: false },
   { href: '/admin/staff-leads',     icon: 'target',           label: 'Leads',     exact: false },
 ]
 
@@ -183,6 +191,20 @@ function StaffSidebar({
                 </div>
               </Link>
             )}
+            {/* Email — always shown to all staff */}
+            <Link href="/admin/email" onClick={onLinkClick}>
+              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
+                isActive('/admin/email')
+                  ? 'bg-primary-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}>
+                <i className="ti ti-mail text-base w-5 text-center flex-shrink-0" aria-hidden="true" />
+                <span>Barua Pepe</span>
+                {isActive('/admin/email') && (
+                  <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
+                )}
+              </div>
+            </Link>
             {/* Individual non-admin-task permissions */}
             {granted
               .filter(k => !ADMIN_TASK_PERMISSIONS.includes(k))

@@ -60,6 +60,9 @@
     "app/api/v1/leads/broadcast/route.ts":            { "maxDuration": 60 },
     "app/api/v1/cron/social/refresh-stats/route.ts":  { "maxDuration": 60 },
     "app/api/v1/cron/social/refresh-token/route.ts":  { "maxDuration": 30 },
-    "app/api/v1/cron/social/tiktok-status/route.ts":  { "maxDuration": 30 }
+    "app/api/v1/cron/social/tiktok-status/route.ts":  { "maxDuration": 30 },
+    "app/api/v1/email/send/route.ts":                 { "maxDuration": 30 },
+    "app/api/v1/email/contacts/route.ts":             { "maxDuration": 30 },
+    "app/api/v1/email/inbound/route.ts":              { "maxDuration": 30 }
   }
 }
