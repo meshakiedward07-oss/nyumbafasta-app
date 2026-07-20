@@ -80,7 +80,7 @@ Jibu JSON array PEKE YAKE (bila markdown):
 [{"full_name":"","phone":null,"phone_2":null,"email":null,"ward":null,"district":null,"region":"Dar es Salaam","facebook_url":null,"instagram_url":null,"tiktok_url":null,"whatsapp_number":null,"notes":null,"address":null}]`
 
     const msg = await ai.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-4-5',
       max_tokens: 16000,
       messages: [{ role: 'user', content: prompt }],
     })

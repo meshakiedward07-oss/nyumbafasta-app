@@ -51,7 +51,7 @@ ${expLines}
 Toa ushauri wa vitendo 3-4 kwa Kiswahili. Kuwa mfupi na wa msaada. Kila ushauri uanze na emoji moja. Tumia takwimu halisi. Usiulize maswali.`
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-4-5',
       max_tokens: 350,
       messages: [{ role: 'user', content: prompt }],
     })

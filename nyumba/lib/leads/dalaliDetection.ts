@@ -92,7 +92,7 @@ async function checkWithAI(
     const recentContext = history.slice(-4).map(m => `${m.role}: ${m.content}`).join('\n')
 
     const res = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-4-5',
       max_tokens: 60,
       messages: [{
         role: 'user',

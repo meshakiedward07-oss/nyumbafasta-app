@@ -20,7 +20,7 @@ type Platform = 'instagram' | 'facebook'
 export async function classifyComment(text: string): Promise<CommentType> {
   try {
     const res = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-4-5',
       max_tokens: 20,
       system: `Classify this comment into ONE of these categories (reply with the word only):
 - inquiry: asking for contact/price/details about renting

@@ -715,7 +715,7 @@ export default function SocialDashboard() {
                     {' '}— weka kwenye Meta Developer Console
                   </p>
                   <p><i className="ti ti-key" aria-hidden="true" /> <strong>Verify Token:</strong>{' '}
-                    <code className="px-1 rounded text-xs" style={{ background: '#f4f4f0' }}>nyumbafasta_meta_webhook_2026</code>
+                    tazama <code className="px-1 rounded text-xs" style={{ background: '#f4f4f0' }}>META_WEBHOOK_VERIFY_TOKEN</code> kwenye Vercel env vars
                   </p>
                   <p><i className="ti ti-bolt" aria-hidden="true" /> <strong>Maoni ya Spam:</strong> hayajibiiwi kiotomatiki</p>
                   <p><i className="ti ti-robot" aria-hidden="true" /> <strong>DMs:</strong> zinajibiwa na Amina kwa Kiswahili cha Dar es Salaam</p>

@@ -10,7 +10,19 @@
     },
     {
       "path": "/api/v1/cron/hourly",
-      "schedule": "0 4 * * *"
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/v1/cron/social/refresh-stats",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/v1/cron/social/refresh-token",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/v1/cron/social/tiktok-status",
+      "schedule": "*/15 * * * *"
     }
   ],
   "functions": {
@@ -42,6 +54,9 @@
     "app/api/v1/cron/hourly/route.ts":                { "maxDuration": 30 },
     "app/api/v1/leads/import/route.ts":               { "maxDuration": 300 },
     "app/api/v1/leads/verify-social/route.ts":        { "maxDuration": 60 },
-    "app/api/v1/leads/broadcast/route.ts":            { "maxDuration": 60 }
+    "app/api/v1/leads/broadcast/route.ts":            { "maxDuration": 60 },
+    "app/api/v1/cron/social/refresh-stats/route.ts":  { "maxDuration": 60 },
+    "app/api/v1/cron/social/refresh-token/route.ts":  { "maxDuration": 30 },
+    "app/api/v1/cron/social/tiktok-status/route.ts":  { "maxDuration": 30 }
   }
 }

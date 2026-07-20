@@ -489,19 +489,7 @@ async function runDailyTasks() {
     errors.push(`❌ Payment cleanup: ${String(e)}`)
   }
 
-  // ── 11. CRM Auto-followup ──
-  try {
-    const followupUrl = `${APP_URL}/api/v1/crm/followup`
-    const res = await fetch(followupUrl, {
-      method: 'POST',
-      headers: { 'x-cron-secret': process.env.CRON_SECRET || '' },
-    })
-    const data = await res.json()
-    results.push(`✅ CRM Followups: ${(data.results as string[])?.length ?? 0} processed`)
-    if (data.errors?.length) errors.push(`❌ Followup errors: ${data.errors.join(', ')}`)
-  } catch (e) {
-    errors.push(`❌ CRM Followup: ${String(e)}`)
-  }
+  // ── 11. (CRM module removed — leads managed in leads management system) ──
 
   // ── 12. Email: Listing expired today ─────────────────
   try {

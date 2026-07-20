@@ -165,7 +165,7 @@ Jibu kwa JSON tu, bila markdown wala maelezo mengine:
 
   const anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const response = await anthropicClient.messages.create({
-    model:      'claude-haiku-4-5-20251001',
+    model:      'claude-haiku-4-5',
     max_tokens: 1200,
     messages:   [{ role: 'user', content: prompt }],
   })

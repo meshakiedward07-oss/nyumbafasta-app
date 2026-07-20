@@ -172,7 +172,7 @@ export async function GET(req: NextRequest) {
         `<h2>Habari ${fullName}!</h2>
          <p>Una leads ambazo bado haujafuatilia wiki nzima.</p>
          <p>Wasiliana nao leo — wateja wanakusubiri! 🏠</p>
-         <a href="${APP_URL}/dashboard/crm" style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Angalia Leads →</a>`,
+         <a href="${APP_URL}/admin/leads" style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Angalia Leads →</a>`,
       )
     }
     results.push(`✅ Dalali inactive alerts: ${uniqueDalali.size}`)
