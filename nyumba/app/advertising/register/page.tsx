@@ -62,7 +62,7 @@ function RegisterForm() {
       {/* Branded header */}
       <div className="bg-gradient-to-r from-[#085041] to-primary-600 px-4 py-5 text-center text-white">
         <div className="flex items-center justify-center gap-2 mb-1">
-          <Image src="/logo.png" alt="" width={28} height={28} className="rounded-lg" />
+          <Image src="/transparent_logo_nyumbafasta.png" alt="NyumbaFasta" width={28} height={28} className="object-contain" />
           <span className="font-bold text-base">NyumbaFasta</span>
         </div>
         <p className="text-xs text-primary-200">Sajili Biashara yako — Bure</p>
