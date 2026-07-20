@@ -98,7 +98,7 @@ export default function NotificationsClient({ notifications, role }: Props) {
                  n.type === 'listing_expiring_14days' || n.type === 'listing_expiring_today') {
         router.push(`/dashboard/listings?renew=${n.ref_id}`)
       } else if (n.type === 'new_lead') {
-        router.push(`/dashboard/crm`)
+        router.push(`/dashboard`)
       } else if (n.type === 'new_review') {
         router.push(`/dashboard/reviews`)
       } else if (n.type === 'boost_activated') {

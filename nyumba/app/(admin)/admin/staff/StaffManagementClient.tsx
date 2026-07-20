@@ -1312,7 +1312,6 @@ function TeamPerformanceView({ staff, onSelect }: { staff: StaffMember[]; onSele
 
 // ─── Activity Chips — inline permission display + quick add/remove ────────────
 const CATEGORY_STYLE: Record<string, { bg: string; text: string; border: string }> = {
-  crm:     { bg: 'bg-blue-50',    text: 'text-blue-700',   border: 'border-blue-200' },
   support: { bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200' },
   content: { bg: 'bg-purple-50',  text: 'text-purple-700', border: 'border-purple-200' },
   admin:   { bg: 'bg-primary-50', text: 'text-primary-700',border: 'border-primary-200' },

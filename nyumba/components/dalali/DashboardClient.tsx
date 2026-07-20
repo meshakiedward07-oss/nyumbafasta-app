@@ -445,7 +445,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
 
         {/* ── Stats / Growth Banner ── */}
         <Link
-          href="/dashboard/crm"
+          href="/dashboard"
           className="flex items-center gap-3 p-4 bg-gradient-to-r from-primary-600 to-primary-500 rounded-2xl text-white"
         >
           <i className="ti ti-chart-bar text-3xl flex-shrink-0" aria-hidden="true" />
