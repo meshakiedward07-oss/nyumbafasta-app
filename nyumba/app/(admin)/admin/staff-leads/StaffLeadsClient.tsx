@@ -550,7 +550,7 @@ export default function StaffLeadsClient({
               {/* Notes */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Maelezo / CRM Notes</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Maelezo / Notes</p>
                   {!editingNotes
                     ? <button onClick={() => setEditingNotes(true)} className="text-[10px] text-indigo-600 font-semibold hover:underline"><i className="ti ti-edit mr-0.5" />Hariri</button>
                     : <div className="flex gap-2">
