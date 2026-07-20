@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/ads/LogoutButton'
 
@@ -14,7 +13,8 @@ export default async function AdvertisingLayout({ children }: { children: ReactN
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-2 sticky top-0 z-50">
         <Link href="/" className="flex items-center mr-2">
-          <Image src="/logo-light.svg" alt="NyumbaFasta" width={140} height={56} priority />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-light.svg" alt="NyumbaFasta" height={44} style={{ height: 44, width: 'auto' }} />
         </Link>
 
         <div className="ml-auto flex items-center gap-2">
