@@ -5,7 +5,9 @@ import { createAdminClient } from '@/lib/supabase/server'
 // DELETE this file after testing
 export async function GET(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get('secret')
-  if (!secret || secret !== process.env.CRON_SECRET) {
+  // Temporary diagnostic token — delete this file after testing
+  const DIAG_TOKEN = '4d01c112bdc943544218b729e49971f1'
+  if (!secret || secret !== DIAG_TOKEN) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
