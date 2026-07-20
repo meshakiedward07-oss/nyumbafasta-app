@@ -13,12 +13,8 @@ export default async function AdvertisingLayout({ children }: { children: ReactN
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-2 sticky top-0 z-50">
-        <Link href="/" className="flex items-center gap-2 mr-2">
-          <Image src="/logo.png" alt="NyumbaFasta" width={30} height={30} className="rounded-lg" />
-          <div>
-            <span className="font-bold text-primary-700 text-base leading-none">NyumbaFasta</span>
-            <span className="block text-[10px] text-gray-400 leading-none">Matangazo</span>
-          </div>
+        <Link href="/" className="flex items-center mr-2">
+          <Image src="/logo-light.svg" alt="NyumbaFasta" width={140} height={56} priority />
         </Link>
 
         <div className="ml-auto flex items-center gap-2">

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 140 440 220">
+  <defs>
+    <linearGradient id="lgoldWave" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#F5C842"/>
+      <stop offset="50%"  stop-color="#EF9F27"/>
+      <stop offset="100%" stop-color="#D4820A"/>
+    </linearGradient>
+    <linearGradient id="lbldg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#2EBA8A"/>
+      <stop offset="100%" stop-color="#1D9E75"/>
+    </linearGradient>
+  </defs>
+
+  <!-- No background — transparent so white header shows through -->
+
+  <g transform="translate(0, 134) scale(1.25)">
+
+    <!-- LEFT BUILDINGS -->
+    <rect x="28"  y="10" width="22" height="80" fill="url(#lbldg)" rx="1"/>
+    <line x1="39"  y1="10" x2="39"  y2="90" stroke="rgba(0,0,0,0.10)" stroke-width="0.8"/>
+    <line x1="28"  y1="28" x2="50"  y2="28" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <line x1="28"  y1="46" x2="50"  y2="46" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <line x1="28"  y1="64" x2="50"  y2="64" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <rect x="31" y="14" width="7"  height="5" fill="rgba(239,159,39,0.80)" rx="0.5"/>
+    <rect x="42" y="14" width="7"  height="5" fill="rgba(239,159,39,0.80)" rx="0.5"/>
+    <rect x="31" y="32" width="7"  height="5" fill="rgba(239,159,39,0.80)" rx="0.5"/>
+    <rect x="42" y="32" width="7"  height="5" fill="rgba(239,159,39,0.80)" rx="0.5"/>
+
+    <rect x="55"  y="26" width="26" height="64" fill="url(#lbldg)" rx="1"/>
+    <line x1="55"  y1="42" x2="81"  y2="42" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <line x1="55"  y1="58" x2="81"  y2="58" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <line x1="55"  y1="74" x2="81"  y2="74" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+
+    <rect x="86"  y="44" width="22" height="46" fill="url(#lbldg)" rx="1"/>
+    <line x1="86"  y1="58" x2="108" y2="58" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <line x1="86"  y1="72" x2="108" y2="72" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+
+    <!-- RIGHT BUILDINGS (mirror) -->
+    <rect x="350" y="10" width="22" height="80" fill="url(#lbldg)" rx="1"/>
+    <line x1="361" y1="10" x2="361" y2="90" stroke="rgba(0,0,0,0.10)" stroke-width="0.8"/>
+    <line x1="350" y1="28" x2="372" y2="28" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <line x1="350" y1="46" x2="372" y2="46" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <line x1="350" y1="64" x2="372" y2="64" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <rect x="362" y="14" width="7"  height="5" fill="rgba(239,159,39,0.80)" rx="0.5"/>
+    <rect x="351" y="14" width="7"  height="5" fill="rgba(239,159,39,0.80)" rx="0.5"/>
+    <rect x="362" y="32" width="7"  height="5" fill="rgba(239,159,39,0.80)" rx="0.5"/>
+    <rect x="351" y="32" width="7"  height="5" fill="rgba(239,159,39,0.80)" rx="0.5"/>
+
+    <rect x="319" y="26" width="26" height="64" fill="url(#lbldg)" rx="1"/>
+    <line x1="319" y1="42" x2="345" y2="42" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <line x1="319" y1="58" x2="345" y2="58" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <line x1="319" y1="74" x2="345" y2="74" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+
+    <rect x="292" y="44" width="22" height="46" fill="url(#lbldg)" rx="1"/>
+    <line x1="292" y1="58" x2="314" y2="58" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+    <line x1="292" y1="72" x2="314" y2="72" stroke="rgba(0,0,0,0.10)" stroke-width="0.6"/>
+
+    <!-- CENTRAL HOUSE ROOF -->
+    <polygon points="140,65 200,16 260,65" fill="#1D9E75"/>
+    <line x1="200" y1="16" x2="200" y2="65" stroke="rgba(0,0,0,0.08)" stroke-width="0.8"/>
+    <rect x="191" y="35" width="18" height="16" fill="#EF9F27" rx="2"/>
+    <line x1="200" y1="35" x2="200" y2="51" stroke="rgba(0,0,0,0.20)" stroke-width="1"/>
+    <line x1="191" y1="43" x2="209" y2="43" stroke="rgba(0,0,0,0.20)" stroke-width="1"/>
+    <ellipse cx="200" cy="43" rx="22" ry="15" fill="rgba(239,159,39,0.15)"/>
+
+    <!-- HOUSE BODY -->
+    <rect x="158" y="65" width="84" height="37" fill="#E6F7F2" rx="1"/>
+    <line x1="158" y1="76" x2="242" y2="76" stroke="rgba(29,158,117,0.20)" stroke-width="0.7"/>
+    <line x1="158" y1="87" x2="242" y2="87" stroke="rgba(29,158,117,0.20)" stroke-width="0.7"/>
+    <rect x="163" y="69" width="15" height="11" fill="rgba(239,159,39,0.55)" rx="1"/>
+    <rect x="222" y="69" width="15" height="11" fill="rgba(239,159,39,0.55)" rx="1"/>
+    <rect x="188" y="83" width="24" height="19" fill="rgba(29,158,117,0.30)" rx="2"/>
+    <circle cx="208" cy="93" r="1.8" fill="rgba(0,0,0,0.15)"/>
+
+    <!-- GOLDEN WAVE -->
+    <path d="M 68,96 C 130,74 168,70 200,82 C 232,94 270,106 332,84 L 332,100 C 270,124 232,112 200,100 C 168,88 130,96 68,118 Z" fill="url(#lgoldWave)"/>
+
+    <!-- BRAND TEXT -->
+    <text x="200" y="153" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="bold" text-anchor="middle">
+      <tspan fill="#1D9E75">Nyumba</tspan><tspan fill="#EF9F27" font-style="italic">Fasta</tspan>
+    </text>
+
+    <!-- TAGLINE -->
+    <text x="200" y="174" font-family="Arial, Helvetica, sans-serif" font-size="9.5" letter-spacing="3" fill="#94A3B8" text-anchor="middle">&#x2014; HARAKA &amp; KWA UHAKIKA &#x2014;</text>
+
+  </g>
+</svg>
