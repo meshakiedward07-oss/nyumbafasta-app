@@ -56,14 +56,6 @@ export default async function AdvertisingLayout({ children }: { children: ReactN
 
       <main className="flex-1">{children}</main>
 
-      <footer className="text-center text-xs text-gray-400 py-6 border-t border-gray-100 bg-white px-4">
-        <p>© 2024 NyumbaFasta Tanzania</p>
-        <div className="flex justify-center gap-4 mt-2">
-          <Link href="/privacy" className="hover:underline">Sera ya Faragha</Link>
-          <Link href="/advertising" className="hover:underline">Matangazo</Link>
-          <Link href="/" className="hover:underline">Nyumbani</Link>
-        </div>
-      </footer>
     </div>
   )
 }
