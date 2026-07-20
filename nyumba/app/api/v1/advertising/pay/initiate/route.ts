@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { campaign_id, phone } = body
+  const { campaign_id, phone, provider: bodyProvider } = body
 
   if (!campaign_id || !phone) {
     return NextResponse.json({ error: 'campaign_id na phone zinahitajika' }, { status: 400 })
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       amount,
       currency:     'TZS',
       phone_number: normalizePhone(phone),
-      provider:     detectProvider(phone),
+      provider:     bodyProvider ?? detectProvider(phone),
       external_id:  externalId,
       status:       'pending',
     })
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     accountNumber: normalizePhone(phone),
     amount,
     externalId,
-    provider:    detectProvider(phone),
+    provider:    bodyProvider ?? detectProvider(phone),
     description: `NyumbaFasta Advert — ${plan.name}`,
   })
 
