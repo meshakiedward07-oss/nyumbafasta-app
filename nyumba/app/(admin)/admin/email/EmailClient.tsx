@@ -583,7 +583,7 @@ export default function EmailClient({ senderName }: { senderName: string }) {
               Barua Pepe
             </h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              Wasiliana na wateja, madalali, na wafanyabiashara
+              Unatuma kama <span className="font-medium text-gray-700">{senderName}</span>
             </p>
           </div>
           <button
