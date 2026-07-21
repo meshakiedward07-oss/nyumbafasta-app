@@ -39,6 +39,10 @@ export default function AdminAdvertisersPage() {
   const [rejectModal, setRejectModal]   = useState<Advertiser | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
+  // Delete confirmation modal
+  const [deleteModal, setDeleteModal]   = useState<Advertiser | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+
   // Detail drawer
   const [detail, setDetail]             = useState<Advertiser | null>(null)
 
@@ -67,6 +71,22 @@ export default function AdminAdvertisersPage() {
       if (res.ok) {
         showToast(action === 'approve' ? '✅ Ameidhinishwa' : action === 'reject' ? '❌ Amekataliwa' : '⏸ Imesimamishwa')
         setRejectModal(null); setRejectReason(''); setDetail(null)
+        await load()
+      } else { showToast(`Hitilafu: ${d.error}`, false) }
+    } finally { setActing(false) }
+  }
+
+  async function doDelete(advertiser: Advertiser) {
+    setActing(true)
+    try {
+      const res = await fetch('/api/v1/admin/adverts/advertisers', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: advertiser.id }),
+      })
+      const d = await res.json()
+      if (res.ok) {
+        showToast(`🗑️ "${advertiser.business_name}" imefutwa kabisa`)
+        setDeleteModal(null); setDeleteConfirm(''); setDetail(null)
         await load()
       } else { showToast(`Hitilafu: ${d.error}`, false) }
     } finally { setActing(false) }
@@ -108,6 +128,51 @@ export default function AdminAdvertisersPage() {
               <button onClick={() => doAction(rejectModal.id, 'reject', rejectReason)} disabled={acting}
                 className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-50">
                 {acting ? '...' : 'Kataa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteModal && (
+        <div className="fixed inset-0 z-[260] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => { setDeleteModal(null); setDeleteConfirm('') }} />
+          <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+            <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
+              <span className="text-2xl">🗑️</span>
+            </div>
+            <h3 className="font-bold text-gray-900 text-lg mb-1">Futa Akaunti Kabisa</h3>
+            <p className="text-sm text-gray-500 mb-1">
+              Hii itafuta <b className="text-gray-800">{deleteModal.business_name}</b> pamoja na:
+            </p>
+            <ul className="text-xs text-gray-400 list-disc list-inside mb-4 space-y-0.5">
+              <li>Akaunti ya Supabase (auth + public.users)</li>
+              <li>Rekodi ya mfanyabiashara</li>
+              <li>Kampeni zote na matangazo</li>
+              <li>Malipo na takwimu zote</li>
+            </ul>
+            <p className="text-xs font-semibold text-red-600 mb-2">
+              Hatua hii haiwezi kubatilishwa. Andika jina la biashara kuthibitisha:
+            </p>
+            <input
+              value={deleteConfirm}
+              onChange={e => setDeleteConfirm(e.target.value)}
+              placeholder={deleteModal.business_name}
+              autoFocus
+              className="w-full border border-red-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 mb-4"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setDeleteModal(null); setDeleteConfirm('') }}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">
+                Ghairi
+              </button>
+              <button
+                onClick={() => doDelete(deleteModal)}
+                disabled={acting || deleteConfirm !== deleteModal.business_name}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-40 transition">
+                {acting ? 'Inafuta...' : 'Futa Kabisa'}
               </button>
             </div>
           </div>
@@ -209,6 +274,15 @@ export default function AdminAdvertisersPage() {
                     🎯 Angalia Kampeni ({detail.campaign_count})
                   </Link>
                 )}
+
+                {/* Danger zone */}
+                <div className="pt-2 border-t border-gray-100">
+                  <button
+                    onClick={() => { setDeleteModal(detail); setDetail(null) }}
+                    className="w-full border-2 border-red-200 text-red-600 py-3 rounded-xl text-sm font-bold hover:bg-red-50 transition flex items-center justify-center gap-2">
+                    🗑️ Futa Akaunti Kabisa
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -340,6 +414,11 @@ export default function AdminAdvertisersPage() {
                       <button onClick={() => setDetail(a)}
                         className="text-xs border border-gray-200 text-gray-500 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition">
                         Angalia →
+                      </button>
+                      <button onClick={() => { setDeleteModal(a) }}
+                        title="Futa akaunti kabisa"
+                        className="text-xs border border-red-200 text-red-500 px-2 py-1.5 rounded-lg hover:bg-red-50 transition">
+                        🗑️
                       </button>
                     </div>
                   </div>

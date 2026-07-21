@@ -58,6 +58,70 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ advertisers, total: count ?? 0, page, limit })
 }
 
+// DELETE — permanently remove an advertiser and ALL their data
+// Cascade chain: auth.users → public.users + advertisers → ad_campaigns →
+//   ad_payments, ad_impressions, ad_creatives, ad_waiting_list, notifications
+export async function DELETE(req: NextRequest) {
+  const adminUser = await requireAdminUser()
+  if (!adminUser) {
+    return NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 })
+  }
+
+  const { id } = await req.json() as { id?: string }
+  if (!id) return NextResponse.json({ error: 'id inahitajika' }, { status: 400 })
+
+  const admin = createAdminClient()
+
+  // Fetch advertiser before deleting so we have data for audit + email
+  const { data: advertiser, error: fetchErr } = await admin
+    .from('advertisers')
+    .select('id, business_name, email, user_id')
+    .eq('id', id)
+    .single()
+
+  if (fetchErr || !advertiser) {
+    return NextResponse.json({ error: 'Mfanyabiashara hakupatikana' }, { status: 404 })
+  }
+
+  // Deleting auth.users cascades: public.users, advertisers, ad_campaigns,
+  // ad_creatives, ad_waiting_list, ad_payments, ad_impressions, notifications
+  if (advertiser.user_id) {
+    const { error: deleteErr } = await admin.auth.admin.deleteUser(advertiser.user_id)
+    if (deleteErr) {
+      return NextResponse.json({ error: `Imeshindwa kufuta akaunti: ${deleteErr.message}` }, { status: 500 })
+    }
+  } else {
+    // No auth user — just delete the orphaned advertisers row directly
+    await admin.from('advertisers').delete().eq('id', id)
+  }
+
+  // Audit log (non-blocking)
+  auditLog({
+    action:      'admin_action',
+    user_id:     adminUser.id,
+    target_id:   id,
+    target_type: 'advertiser',
+    metadata:    { event: 'advertiser_deleted', business_name: advertiser.business_name },
+    severity:    'critical',
+  }).catch(() => {})
+
+  // Deletion notice email (non-blocking, best-effort)
+  if (advertiser.email) {
+    sendMail({
+      to:      advertiser.email,
+      subject: 'Akaunti Yako ya NyumbaFasta Ads Imefutwa',
+      html:    emailBase(
+        `<span style="font-size:22px;font-weight:700;color:#111827;margin:0 0 12px;display:block">Habari,</span>
+         <span style="font-size:15px;color:#4b5563;line-height:1.7;display:block">Akaunti yako ya NyumbaFasta Ads (<b>${advertiser.business_name}</b>) imefutwa kabisa na msimamizi.</span>
+         <span style="font-size:15px;color:#4b5563;line-height:1.7;margin-top:12px;display:block">Kama una maswali, wasiliana nasi.</span>`,
+        'Akaunti imefutwa'
+      ),
+    }).catch(() => {})
+  }
+
+  return NextResponse.json({ ok: true, deleted: advertiser.business_name })
+}
+
 // PATCH — approve, reject, suspend, or activate an advertiser
 export async function PATCH(req: NextRequest) {
   const adminUser = await requireAdminUser()
