@@ -227,6 +227,10 @@ export default function AdminAdvertsPage() {
             <p className="text-xs text-gray-400 mt-0.5">Kagua, idhinisha na simamia kampeni</p>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/admin/adverts/analytics"
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition font-medium">
+              📊 <span className="hidden sm:inline">Analytics</span>
+            </Link>
             <Link href="/admin/adverts/advertisers"
               className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition font-medium">
               🏪 <span className="hidden sm:inline">Wafanyabiashara</span>

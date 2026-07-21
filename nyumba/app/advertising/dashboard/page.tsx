@@ -137,6 +137,21 @@ export default async function AdvertiserDashboard() {
           ))}
         </div>
 
+        {/* Analytics shortcut */}
+        <Link
+          href="/advertising/analytics"
+          className="mt-4 flex items-center justify-between bg-white border border-primary-100 rounded-2xl px-4 py-3.5 shadow-sm hover:bg-primary-50 transition"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📊</span>
+            <div>
+              <p className="font-bold text-gray-800 text-sm">Angalia Analytics</p>
+              <p className="text-xs text-gray-400">Maoni, clicks, na CTR ya matangazo yako</p>
+            </div>
+          </div>
+          <span className="text-gray-400 text-lg flex-shrink-0">→</span>
+        </Link>
+
         {/* New campaign CTA */}
         <Link
           href="/advertising/new"
