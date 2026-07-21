@@ -1,11 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 
 // Temporary diagnostic endpoint — DELETE after use
+// Auth: requires a live admin session cookie (visit while logged in as admin)
 export async function GET(req: NextRequest) {
-  const token = req.nextUrl.searchParams.get('token')
-  if (!token || token !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Verify the caller is an authenticated admin
+  let supabaseRes = NextResponse.next({ request: req })
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => req.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
+          supabaseRes = NextResponse.next({ request: req })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseRes.cookies.set(name, value, options)
+          )
+        },
+      },
+    },
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+
+  const { data: me } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (me?.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden — admin only' }, { status: 403 })
   }
 
   const email = req.nextUrl.searchParams.get('email') ?? 'adsnyumbafasta@gmail.com'
