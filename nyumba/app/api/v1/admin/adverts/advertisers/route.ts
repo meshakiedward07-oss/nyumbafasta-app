@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminAuth, requireAdminUser } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { auditLog } from '@/lib/security/auditLog'
+import { sendMail } from '@/lib/email/resend'
+import { advertiserApprovedEmail, advertiserRejectedEmail, emailBase } from '@/lib/email/templates'
 
 // GET — all advertisers with campaign stats
 export async function GET(req: NextRequest) {
@@ -185,41 +187,25 @@ export async function PATCH(req: NextRequest) {
   }
 
   // Email notification
-  if (advertiser.email && process.env.RESEND_API_KEY) {
-    ;(async () => {
-      const { emailBase, advertiserApprovedEmail, advertiserRejectedEmail } =
-        await import('@/lib/email/templates')
-      const { Resend } = await import('resend')
-      const resend = new Resend(process.env.RESEND_API_KEY)
-
-      if (action === 'approve' || action === 'activate') {
-        const { subject, html } = advertiserApprovedEmail(advertiser.business_name)
-        await resend.emails.send({
-          from: 'NyumbaFasta <noreply@nyumbafasta.co>',
-          to:   advertiser.email,
-          subject, html,
-        })
-      } else if (action === 'reject') {
-        const { subject, html } = advertiserRejectedEmail(advertiser.business_name, reason)
-        await resend.emails.send({
-          from: 'NyumbaFasta <noreply@nyumbafasta.co>',
-          to:   advertiser.email,
-          subject, html,
-        })
-      } else if (action === 'suspend') {
-        await resend.emails.send({
-          from:    'NyumbaFasta <noreply@nyumbafasta.co>',
-          to:      advertiser.email,
-          subject: '⚠️ Akaunti Yako Imesimamishwa — NyumbaFasta Ads',
-          html:    emailBase(
-            `<span style="font-size:22px;font-weight:700;color:#111827;margin:0 0 12px;display:block">Habari ${advertiser.business_name},</span>
-             <span style="font-size:15px;color:#4b5563;line-height:1.7;margin:0 0 16px;display:block">Akaunti yako ya NyumbaFasta Ads imesimamishwa kwa muda.${reason ? `<br><strong>Sababu:</strong> ${reason}` : ''}</span>
-             <span style="font-size:15px;color:#4b5563;line-height:1.7;margin:0;display:block">Wasiliana nasi: <a href="https://wa.me/255665831694" style="color:#1D9E75">WhatsApp</a></span>`,
-            'Akaunti imesimamishwa'
-          ),
-        })
-      }
-    })().catch(() => {})
+  if (advertiser.email) {
+    if (action === 'approve' || action === 'activate') {
+      const tpl = advertiserApprovedEmail(advertiser.business_name)
+      sendMail({ to: advertiser.email, ...tpl }).catch(() => {})
+    } else if (action === 'reject') {
+      const tpl = advertiserRejectedEmail(advertiser.business_name, reason)
+      sendMail({ to: advertiser.email, ...tpl }).catch(() => {})
+    } else if (action === 'suspend') {
+      sendMail({
+        to:      advertiser.email,
+        subject: '⚠️ Akaunti Yako Imesimamishwa — NyumbaFasta Ads',
+        html:    emailBase(
+          `<span style="font-size:22px;font-weight:700;color:#111827;margin:0 0 12px;display:block">Habari ${advertiser.business_name},</span>
+           <span style="font-size:15px;color:#4b5563;line-height:1.7;margin:0 0 16px;display:block">Akaunti yako ya NyumbaFasta Ads imesimamishwa kwa muda.${reason ? `<br><strong>Sababu:</strong> ${reason}` : ''}</span>
+           <span style="font-size:15px;color:#4b5563;line-height:1.7;margin:0;display:block">Wasiliana nasi: <a href="https://wa.me/255665831694" style="color:#1D9E75">WhatsApp</a></span>`,
+          'Akaunti imesimamishwa'
+        ),
+      }).catch(() => {})
+    }
   }
 
   return NextResponse.json({ ok: true, advertiser: data })

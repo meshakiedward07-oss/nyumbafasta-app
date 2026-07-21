@@ -6,6 +6,8 @@ import {
   type WebhookPayload,
 } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
+import { sendMail } from '@/lib/email/resend'
+import { subscriptionActivatedEmail } from '@/lib/email/templates'
 
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
@@ -165,19 +167,11 @@ export async function POST(req: NextRequest) {
         await sendTextMessage(formatPhoneNumber(wp), msg).catch(() => {})
       }
 
-      if (process.env.RESEND_API_KEY) {
-        const dalaliEmail = await admin.auth.admin.getUserById(subscription.dalali_id)
-          .then(r => r.data?.user?.email ?? null)
-        if (dalaliEmail) {
-          const { subscriptionActivatedEmail } = await import('@/lib/email/templates')
-          const { Resend } = await import('resend')
-          const { subject, html } = subscriptionActivatedEmail(name, planName, expiryStr)
-          await new Resend(process.env.RESEND_API_KEY).emails.send({
-            from: 'NyumbaFasta <noreply@nyumbafasta.co>',
-            to:   dalaliEmail,
-            subject, html,
-          }).catch(() => {})
-        }
+      const dalaliEmail = await admin.auth.admin.getUserById(subscription.dalali_id)
+        .then(r => r.data?.user?.email ?? null)
+      if (dalaliEmail) {
+        const { subject, html } = subscriptionActivatedEmail(name, planName, expiryStr)
+        sendMail({ to: dalaliEmail, subject, html }).catch(() => {})
       }
     })().catch(() => {})
 

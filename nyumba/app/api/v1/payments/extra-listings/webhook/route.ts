@@ -6,6 +6,8 @@ import {
   type WebhookPayload,
 } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
+import { sendMail } from '@/lib/email/resend'
+import { extraListingsAddedEmail } from '@/lib/email/templates'
 
 // externalId format: EX-{subscription_uuid}-{count}
 // e.g. EX-be7353b5-5b5b-4a77-9e4e-e76b8bc02cfa-3
@@ -148,19 +150,11 @@ export async function POST(req: NextRequest) {
         await sendTextMessage(formatPhoneNumber(wp), msg).catch(() => {})
       }
 
-      if (process.env.RESEND_API_KEY) {
-        const dalaliEmail = await admin.auth.admin.getUserById(sub.dalali_id)
-          .then(r => r.data?.user?.email ?? null)
-        if (dalaliEmail) {
-          const { extraListingsAddedEmail } = await import('@/lib/email/templates')
-          const { Resend } = await import('resend')
-          const { subject, html } = extraListingsAddedEmail(name, count)
-          await new Resend(process.env.RESEND_API_KEY).emails.send({
-            from: 'NyumbaFasta <noreply@nyumbafasta.co>',
-            to:   dalaliEmail,
-            subject, html,
-          }).catch(() => {})
-        }
+      const dalaliEmail = await admin.auth.admin.getUserById(sub.dalali_id)
+        .then(r => r.data?.user?.email ?? null)
+      if (dalaliEmail) {
+        const { subject, html } = extraListingsAddedEmail(name, count)
+        sendMail({ to: dalaliEmail, subject, html }).catch(() => {})
       }
     })().catch(() => {})
 

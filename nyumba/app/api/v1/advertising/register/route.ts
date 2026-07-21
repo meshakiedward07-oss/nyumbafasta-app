@@ -3,6 +3,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { normalizePhone } from '@/lib/utils/phone'
 import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 import { auditLog } from '@/lib/security/auditLog'
+import { sendMail } from '@/lib/email/resend'
+import { advertiserWelcomeEmail, emailBase } from '@/lib/email/templates'
 
 export async function POST(req: NextRequest) {
   // Rate limit: 5 registrations per hour per IP
@@ -103,39 +105,20 @@ export async function POST(req: NextRequest) {
       is_read: false,
     }).then(() => {}, () => {})
 
-    // Emails (non-blocking)
-    if (process.env.RESEND_API_KEY) {
-      Promise.all([
-        // Welcome email to the advertiser
-        import('@/lib/email/templates').then(({ advertiserWelcomeEmail }) => {
-          import('resend').then(({ Resend }) => {
-            const { subject, html } = advertiserWelcomeEmail(business_name, city)
-            return new Resend(process.env.RESEND_API_KEY).emails.send({
-              from: 'NyumbaFasta <noreply@nyumbafasta.co>',
-              to:   email,
-              subject,
-              html,
-            })
-          })
-        }),
-        // Admin alert
-        process.env.ADMIN_EMAIL
-          ? import('@/lib/email/templates').then(({ emailBase }) => {
-              import('resend').then(({ Resend }) => {
-                new Resend(process.env.RESEND_API_KEY).emails.send({
-                  from: 'NyumbaFasta <noreply@nyumbafasta.co>',
-                  to:   process.env.ADMIN_EMAIL!,
-                  subject: `🏪 Mfanyabiashara Mpya — ${business_name}`,
-                  html: emailBase(
-                    `<p>Mfanyabiashara mpya amesajili: <b>${business_name}</b> (${city})<br>
-                     Angalia: <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/adverts/advertisers">Admin → Wafanyabiashara</a></p>`,
-                    'Mfanyabiashara mpya amesajili'
-                  ),
-                })
-              })
-            })
-          : Promise.resolve(),
-      ]).catch(() => {})
+    // Emails (non-blocking) — both go through Resend, no rate limits
+    const { subject: wSubject, html: wHtml } = advertiserWelcomeEmail(business_name, city)
+    sendMail({ to: email, subject: wSubject, html: wHtml }).catch(() => {})
+
+    if (process.env.ADMIN_EMAIL) {
+      sendMail({
+        to:      process.env.ADMIN_EMAIL,
+        subject: `🏪 Mfanyabiashara Mpya — ${business_name}`,
+        html:    emailBase(
+          `<p>Mfanyabiashara mpya amesajili: <b>${business_name}</b> (${city})<br>
+           Angalia: <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/adverts/advertisers">Admin → Wafanyabiashara</a></p>`,
+          'Mfanyabiashara mpya amesajili'
+        ),
+      }).catch(() => {})
     }
 
     // Audit log

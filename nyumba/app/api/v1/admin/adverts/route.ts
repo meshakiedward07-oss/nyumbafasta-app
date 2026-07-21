@@ -5,6 +5,8 @@ import {
   notifyAdvertiserApproved,
   notifyAdvertiserRejected,
 } from '@/lib/ads/adNotifications'
+import { sendMail } from '@/lib/email/resend'
+import { adCampaignApprovedEmail, adCampaignRejectedEmail } from '@/lib/email/templates'
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdminAuth()
@@ -108,19 +110,11 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Email
-    if (adv?.email && process.env.RESEND_API_KEY) {
-      ;(async () => {
-        const { adCampaignApprovedEmail, adCampaignRejectedEmail } = await import('@/lib/email/templates')
-        const { Resend } = await import('resend')
-        const resend = new Resend(process.env.RESEND_API_KEY)
-        if (action === 'approve') {
-          const { subject, html } = adCampaignApprovedEmail(adv.business_name, c.ad_type)
-          await resend.emails.send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: adv.email!, subject, html })
-        } else {
-          const { subject, html } = adCampaignRejectedEmail(adv.business_name, reason)
-          await resend.emails.send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: adv.email!, subject, html })
-        }
-      })().catch(() => {})
+    if (adv?.email) {
+      const tpl = action === 'approve'
+        ? adCampaignApprovedEmail(adv.business_name, c.ad_type)
+        : adCampaignRejectedEmail(adv.business_name, reason)
+      sendMail({ to: adv.email!, ...tpl }).catch(() => {})
     }
   }
 

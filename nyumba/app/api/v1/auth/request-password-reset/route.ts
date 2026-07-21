@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { Resend } from 'resend'
+import { sendMail } from '@/lib/email/resend'
 import { passwordResetEmail } from '@/lib/email/templates'
-import { rateLimit } from '@/lib/security/rateLimit'
-import { getClientIp } from '@/lib/security/rateLimit'
+import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 
 // POST /api/v1/auth/request-password-reset
 // Generates a Supabase recovery link and sends it via Resend instead of
@@ -64,21 +63,8 @@ export async function POST(req: NextRequest) {
       if (profile?.full_name) userName = (profile.full_name as string).split(' ')[0]
     } catch { /* not critical */ }
 
-    const resendKey = process.env.RESEND_API_KEY
-    if (!resendKey) {
-      console.error('[PW Reset] RESEND_API_KEY not set')
-      return respond()
-    }
-
     const { subject, html } = passwordResetEmail(userName, linkData.properties.action_link)
-    const resend = new Resend(resendKey)
-
-    await resend.emails.send({
-      from:    'NyumbaFasta <noreply@nyumbafasta.co>',
-      to:      [normalizedEmail],
-      subject,
-      html,
-    })
+    await sendMail({ to: normalizedEmail, subject, html })
   } catch (err) {
     console.error('[PW Reset] Unexpected error:', err)
   }

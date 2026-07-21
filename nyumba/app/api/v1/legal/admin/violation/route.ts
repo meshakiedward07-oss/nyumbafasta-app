@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendTextMessage, formatPhoneNumber } from '@/lib/whatsapp/client'
-import { Resend } from 'resend'
+import { sendMail } from '@/lib/email/resend'
 import { hasPermission, logStaffActivity } from '@/lib/staff/checkPermission'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
@@ -103,15 +103,11 @@ export async function PATCH(req: NextRequest) {
       }
 
       // Email notification to admin (confirmation)
-      if (process.env.RESEND_API_KEY) {
-        const resend = new Resend(process.env.RESEND_API_KEY)
-        await resend.emails.send({
-          from:    'NyumbaFasta <noreply@nyumbafasta.co>',
-          to:      process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co',
-          subject: `Hatua Imechukuliwa: ${action_taken} kwa ${reported?.full_name}`,
-          html:    `<p>Admin <strong>${user.email}</strong> amechukua hatua ya <strong>${action_taken}</strong> dhidi ya mtumiaji <strong>${reported?.full_name}</strong>.</p><p><a href="${APP_URL}/admin/legal">Angalia Panel</a></p>`,
-        }).catch(() => {})
-      }
+      sendMail({
+        to:      process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co',
+        subject: `Hatua Imechukuliwa: ${action_taken} kwa ${reported?.full_name}`,
+        html:    `<p>Admin <strong>${user.email}</strong> amechukua hatua ya <strong>${action_taken}</strong> dhidi ya mtumiaji <strong>${reported?.full_name}</strong>.</p><p><a href="${APP_URL}/admin/legal">Angalia Panel</a></p>`,
+      }).catch(() => {})
     }
 
     // Log staff activity

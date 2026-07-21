@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import { sendMail } from '@/lib/email/resend'
 import { welcomeEmail, newUserAlertEmail } from '@/lib/email/templates'
 import { auditLog } from '@/lib/security/auditLog'
 import { getClientIp } from '@/lib/security/rateLimit'
@@ -143,69 +143,63 @@ export async function GET(request: NextRequest) {
       // set (i.e. it was absent before this code exchange, which we can infer because
       // the callback was reached with a fresh code). We use account age ≤ 7 days as
       // the outer guard so returning users never get a duplicate welcome.
-      if (process.env.RESEND_API_KEY) {
-        const { data: userRow } = await supabase
-          .from('users')
-          .select('created_at, full_name, phone, region')
-          .eq('id', data.user.id)
-          .single()
-        // New user = account created within the last 7 days AND email just confirmed
-        const accountAgeMs  = userRow?.created_at
-          ? Date.now() - new Date(userRow.created_at as string).getTime()
-          : Infinity
-        const isNewUser = accountAgeMs < 7 * 24 * 60 * 60 * 1000
-        const userEmail  = data.user.email
-        const userName   = (userRow?.full_name as string | null) ?? (data.user.user_metadata?.full_name as string) ?? 'Mtumiaji'
-        const userPhone  = (userRow?.phone as string | null) ?? null
-        const userRegion = (userRow?.region as string | null) ?? null
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('created_at, full_name, phone, region')
+        .eq('id', data.user.id)
+        .single()
+      // New user = account created within the last 7 days AND email just confirmed
+      const accountAgeMs = userRow?.created_at
+        ? Date.now() - new Date(userRow.created_at as string).getTime()
+        : Infinity
+      const isNewUser = accountAgeMs < 7 * 24 * 60 * 60 * 1000
+      const userEmail  = data.user.email
+      const userName   = (userRow?.full_name as string | null) ?? (data.user.user_metadata?.full_name as string) ?? 'Mtumiaji'
+      const userPhone  = (userRow?.phone as string | null) ?? null
+      const userRegion = (userRow?.region as string | null) ?? null
 
-        if (isNewUser) {
-          const resend = new Resend(process.env.RESEND_API_KEY)
+      if (isNewUser) {
+        // 1. Welcome email to the new user
+        if (userEmail) {
+          const { subject, html } = welcomeEmail(userName, role)
+          sendMail({ to: userEmail, subject, html })
+            .catch(e => console.error('[Auth Callback] Welcome email failed:', e))
+        }
 
-          // 1. Welcome email to the new user
-          if (userEmail) {
-            const { subject, html } = welcomeEmail(userName, role)
-            resend.emails
-              .send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: userEmail, subject, html })
-              .catch(e => console.error('[Auth Callback] Welcome email failed:', e))
-          }
-
-          // 2. New-user alert to all active staff + admins (non-blocking)
-          if (role === 'dalali' || role === 'client') {
-            ;(async () => {
-              try {
-                const adminClient = createAdminClient()
-                // Fetch staff and admin user IDs, then resolve emails via auth.admin
-                const [staffRes, adminRes] = await Promise.all([
-                  adminClient.from('users').select('id').eq('role', 'staff').eq('staff_active', true),
-                  adminClient.from('users').select('id').eq('role', 'admin'),
-                ])
-                const recipientIds = [
-                  ...(staffRes.data ?? []).map(u => u.id as string),
-                  ...(adminRes.data ?? []).map(u => u.id as string),
-                ]
-                const emailList = await Promise.all(
-                  recipientIds.map(uid =>
-                    adminClient.auth.admin.getUserById(uid).then(r => r.data?.user?.email ?? null)
-                  )
+        // 2. New-user alert to all active staff + admins (non-blocking)
+        if (role === 'dalali' || role === 'client') {
+          ;(async () => {
+            try {
+              const adminClient = createAdminClient()
+              const [staffRes, adminRes] = await Promise.all([
+                adminClient.from('users').select('id').eq('role', 'staff').eq('staff_active', true),
+                adminClient.from('users').select('id').eq('role', 'admin'),
+              ])
+              const recipientIds = [
+                ...(staffRes.data ?? []).map(u => u.id as string),
+                ...(adminRes.data ?? []).map(u => u.id as string),
+              ]
+              const emailList = await Promise.all(
+                recipientIds.map(uid =>
+                  adminClient.auth.admin.getUserById(uid).then(r => r.data?.user?.email ?? null)
                 )
-                const recipients = emailList.filter((e): e is string => Boolean(e))
+              )
+              const recipients = emailList.filter((e): e is string => Boolean(e))
 
-                if (recipients.length > 0 && userEmail) {
-                  const { subject, html } = newUserAlertEmail(
-                    userName, role, userEmail, userPhone, userRegion,
-                    (data.user.user_metadata?.source as string | null) ?? null,
-                  )
-                  await resend.emails.send({
-                    from: 'NyumbaFasta System <noreply@nyumbafasta.co>',
-                    to: recipients,
-                    subject,
-                    html,
-                  })
-                }
-              } catch (e) { console.error('[Auth Callback] Staff/admin alert email failed:', e) }
-            })()
-          }
+              if (recipients.length > 0 && userEmail) {
+                const { subject, html } = newUserAlertEmail(
+                  userName, role, userEmail, userPhone, userRegion,
+                  (data.user.user_metadata?.source as string | null) ?? null,
+                )
+                await sendMail({
+                  to:      recipients,
+                  subject,
+                  html,
+                  from:    'NyumbaFasta System <noreply@nyumbafasta.co>',
+                })
+              }
+            } catch (e) { console.error('[Auth Callback] Staff/admin alert email failed:', e) }
+          })()
         }
       }
 

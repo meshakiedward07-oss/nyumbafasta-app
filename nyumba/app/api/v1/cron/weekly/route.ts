@@ -1,13 +1,12 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import { sendMail } from '@/lib/email/resend'
 import { checkStaleListings } from '@/lib/listings/staleListingCheck'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
-const FROM = 'NyumbaFasta <noreply@nyumbafasta.co>'
 
 function getAdmin() {
   return createSupabaseClient(
@@ -18,13 +17,7 @@ function getAdmin() {
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[Cron Weekly] RESEND_API_KEY not set — email skipped to', to)
-    return
-  }
-  const r = new Resend(process.env.RESEND_API_KEY)
-  const { error } = await r.emails.send({ from: FROM, to, subject, html })
-  if (error) console.error('[Cron Weekly] Resend error:', error)
+  await sendMail({ to, subject, html })
 }
 
 function verifyAuth(req: NextRequest): boolean {

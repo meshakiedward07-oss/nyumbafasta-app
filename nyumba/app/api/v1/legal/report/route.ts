@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 import { sendTextMessage, formatPhoneNumber } from '@/lib/whatsapp/client'
-import { Resend } from 'resend'
+import { sendMail } from '@/lib/email/resend'
 
 const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP_NUMBER ?? '255615261147'
 const APP_URL        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
@@ -107,28 +107,20 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Email to admin
-    if (process.env.RESEND_API_KEY) {
-      try {
-        const resend = new Resend(process.env.RESEND_API_KEY)
-        await resend.emails.send({
-          from:    'NyumbaFasta <noreply@nyumbafasta.co>',
-          to:      process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co',
-          subject: `🚨 Ripoti Mpya: ${violationLabel}`,
-          html: `
-            <h2>Ripoti ya Ukiukaji Mpya</h2>
-            <table style="border-collapse:collapse;width:100%">
-              <tr><td style="padding:8px;font-weight:bold">Aina:</td><td style="padding:8px">${violationLabel}</td></tr>
-              <tr style="background:#f9f9f9"><td style="padding:8px;font-weight:bold">Aliyeripotiwa:</td><td style="padding:8px">${reported.full_name} (${reported.role})</td></tr>
-              <tr><td style="padding:8px;font-weight:bold">Aliyeripoti:</td><td style="padding:8px">${reporter?.full_name ?? 'Haijulikani'}</td></tr>
-              <tr style="background:#f9f9f9"><td style="padding:8px;font-weight:bold">Maelezo:</td><td style="padding:8px">${description}</td></tr>
-            </table>
-            <p><a href="${adminUrl}" style="background:#1D9E75;color:white;padding:10px 20px;border-radius:8px;text-decoration:none">Angalia Ripoti</a></p>
-          `,
-        })
-      } catch {
-        // Silently continue
-      }
-    }
+    sendMail({
+      to:      process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co',
+      subject: `🚨 Ripoti Mpya: ${violationLabel}`,
+      html: `
+        <h2>Ripoti ya Ukiukaji Mpya</h2>
+        <table style="border-collapse:collapse;width:100%">
+          <tr><td style="padding:8px;font-weight:bold">Aina:</td><td style="padding:8px">${violationLabel}</td></tr>
+          <tr style="background:#f9f9f9"><td style="padding:8px;font-weight:bold">Aliyeripotiwa:</td><td style="padding:8px">${reported.full_name} (${reported.role})</td></tr>
+          <tr><td style="padding:8px;font-weight:bold">Aliyeripoti:</td><td style="padding:8px">${reporter?.full_name ?? 'Haijulikani'}</td></tr>
+          <tr style="background:#f9f9f9"><td style="padding:8px;font-weight:bold">Maelezo:</td><td style="padding:8px">${description}</td></tr>
+        </table>
+        <p><a href="${adminUrl}" style="background:#1D9E75;color:white;padding:10px 20px;border-radius:8px;text-decoration:none">Angalia Ripoti</a></p>
+      `,
+    }).catch(() => {})
 
     // 3. WhatsApp warning to reported user (if they are a dalali with a WhatsApp number)
     if (reported.role === 'dalali') {

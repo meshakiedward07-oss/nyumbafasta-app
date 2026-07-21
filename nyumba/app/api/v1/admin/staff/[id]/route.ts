@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
-import { Resend } from 'resend'
+import { sendMail } from '@/lib/email/resend'
 import { staffWelcomeEmail } from '@/lib/email/templates'
 
 // ─── PATCH — update staff details or deactivate ───────────────────────────────
@@ -146,18 +146,8 @@ function generateTempPassword(): string {
 }
 
 async function sendResetEmail(email: string, name: string, password: string): Promise<void> {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[Staff] RESEND_API_KEY not set — reset email not sent to', email)
-    return
-  }
   const { subject, html } = staffWelcomeEmail(name, email, password)
-  const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
-    from: 'NyumbaFasta <noreply@nyumbafasta.co>',
-    to: email,
-    subject: `[Password Mpya] ${subject}`,
-    html,
-  })
-  if (error) console.error('[Staff] Resend reset email error:', error)
+  await sendMail({ to: email, subject: `[Password Mpya] ${subject}`, html })
 }
 
 async function unassignStaffLeads(staffId: string): Promise<void> {

@@ -1,22 +1,15 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { type NextRequest } from 'next/server'
-import { Resend } from 'resend'
+import { sendMail } from '@/lib/email/resend'
 import { monitorDalaliAccounts } from '@/lib/dalali/accountMonitor'
 import { emailBase, listingExpiredEmail, subscriptionExpiryEmail } from '@/lib/email/templates'
 
 export const dynamic = 'force-dynamic'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
-const FROM = 'NyumbaFasta <noreply@nyumbafasta.co>'
 
 async function sendEmail(to: string, subject: string, html: string) {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[Cron Daily] RESEND_API_KEY not set — email skipped to', to)
-    return
-  }
-  const r = new Resend(process.env.RESEND_API_KEY)
-  const { error } = await r.emails.send({ from: FROM, to, subject, html })
-  if (error) console.error('[Cron Daily] Resend error:', error)
+  await sendMail({ to, subject, html })
 }
 
 // Batch-fetch emails from auth.admin for a list of user IDs.

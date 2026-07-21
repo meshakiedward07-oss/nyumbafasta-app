@@ -6,7 +6,7 @@ import {
   type WebhookPayload,
 } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
-import { Resend } from 'resend'
+import { sendMail } from '@/lib/email/resend'
 import { contactUnlockEmail } from '@/lib/email/templates'
 import { tryProcessAdPayment } from '@/lib/ads/processAdPayment'
 
@@ -111,12 +111,7 @@ export async function POST(req: NextRequest) {
 
             if (dalaliEmail) {
               const { subject, html } = contactUnlockEmail(dalaliName, clientName, listingLabel)
-              const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
-                from: 'NyumbaFasta <noreply@nyumbafasta.co>',
-                to:   dalaliEmail,
-                subject, html,
-              })
-              if (error) console.error('[Unlock Webhook] Email to dalali failed:', error)
+              await sendMail({ to: dalaliEmail, subject, html })
             }
           } catch (e) {
             console.error('[Unlock Webhook] Email send error:', e)

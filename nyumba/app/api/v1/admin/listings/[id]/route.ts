@@ -4,8 +4,8 @@ import { requireAdminUser } from '@/lib/security/adminAuth'
 import { sendPushToUser } from '@/lib/notifications/send'
 import { auditLog } from '@/lib/security/auditLog'
 import { getClientIp } from '@/lib/security/rateLimit'
-import { Resend } from 'resend'
-import { listingApprovedEmail } from '@/lib/email/templates'
+import { sendMail } from '@/lib/email/resend'
+import { listingApprovedEmail, listingRejectedEmail } from '@/lib/email/templates'
 
 // Social posting on approval can take 30-60s per platform across 3 platforms
 export const maxDuration = 120
@@ -98,15 +98,13 @@ export async function PATCH(
                 .then(r => r.data?.full_name ?? 'Dalali'),
             ])
             if (dalaliEmail) {
-              const resend = new Resend(process.env.RESEND_API_KEY)
               if (action === 'approve') {
                 const listingUrl = `${APP_URL}/listings/${params.id}`
                 const { subject, html } = listingApprovedEmail(dalaliNameRes, listingLabel, listingUrl)
-                await resend.emails.send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: dalaliEmail, subject, html })
+                await sendMail({ to: dalaliEmail, subject, html })
               } else {
-                const { listingRejectedEmail } = await import('@/lib/email/templates')
                 const { subject, html } = listingRejectedEmail(dalaliNameRes, listingLabel)
-                await resend.emails.send({ from: 'NyumbaFasta <noreply@nyumbafasta.co>', to: dalaliEmail, subject, html })
+                await sendMail({ to: dalaliEmail, subject, html })
               }
             }
           }
