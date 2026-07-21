@@ -127,6 +127,16 @@ export async function POST(req: NextRequest) {
 
   const userId = created.user.id
 
+  // Explicitly upsert public.users — never rely on the trigger alone
+  const { error: profileErr } = await adminClient.from('users').upsert(
+    { id: userId, email, full_name: business_name ?? email.split('@')[0], role: 'client', is_active: true, is_verified: false },
+    { onConflict: 'id' }
+  )
+  if (profileErr) {
+    await adminClient.auth.admin.deleteUser(userId).catch(() => {})
+    return NextResponse.json({ error: `public.users upsert failed: ${profileErr.message}` }, { status: 500 })
+  }
+
   // Insert advertisers row if missing
   const { data: existingAdv } = await adminClient
     .from('advertisers')
@@ -135,12 +145,17 @@ export async function POST(req: NextRequest) {
     .maybeSingle()
 
   if (!existingAdv) {
-    await adminClient.from('advertisers').insert({
+    const { error: advErr } = await adminClient.from('advertisers').insert({
       user_id: userId,
       business_name: business_name ?? '',
-      contact_email: email,
+      email,
       status: 'active',
     })
+    if (advErr) {
+      try { await adminClient.from('users').delete().eq('id', userId) } catch { /* non-fatal */ }
+      await adminClient.auth.admin.deleteUser(userId).catch(() => {})
+      return NextResponse.json({ error: `advertisers insert failed: ${advErr.message}` }, { status: 500 })
+    }
   }
 
   // Generate magic link for them to set password and login

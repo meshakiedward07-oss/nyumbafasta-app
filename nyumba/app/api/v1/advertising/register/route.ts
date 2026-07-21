@@ -55,7 +55,33 @@ export async function POST(req: NextRequest) {
       createdAuthUser = true
     }
 
-    // Check for existing advertiser profile
+    // ── Step 1: Guarantee public.users row ───────────────────────────────────
+    // The handle_new_user DB trigger fires on INSERT INTO auth.users, but it
+    // swallows exceptions silently (RAISE WARNING). We must NOT rely on it as
+    // the only write path — if it fails the user ends up in auth.users with no
+    // public.users row, making the account unreachable everywhere in the app.
+    // Explicit upsert here is the authoritative write; the trigger is a backup.
+    if (createdAuthUser) {
+      const { error: profileErr } = await admin.from('users').upsert(
+        {
+          id:        userId,
+          email,
+          full_name: business_name,
+          role:      'client',
+          is_active: true,
+          is_verified: false,
+        },
+        { onConflict: 'id' }
+      )
+      if (profileErr) {
+        // Roll back auth user so the email can be reused on retry
+        await admin.auth.admin.deleteUser(userId).catch(() => {})
+        console.error('[Adv Register] public.users upsert failed:', profileErr.message)
+        return NextResponse.json({ error: 'Imeshindwa kusajili akaunti. Jaribu tena.' }, { status: 500 })
+      }
+    }
+
+    // ── Step 2: Check / create advertiser profile ────────────────────────────
     const { data: existing } = await admin
       .from('advertisers')
       .select('id')
@@ -66,7 +92,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Tayari una akaunti ya mfanyabiashara', existing: true }, { status: 409 })
     }
 
-    // Create advertiser profile — if this fails, roll back the auth user
     const { data: advertiser, error: insertError } = await admin
       .from('advertisers')
       .insert({
@@ -86,11 +111,12 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertError || !advertiser) {
-      // Atomic rollback: remove the auth user we just created so the email
-      // can be reused on the next attempt — prevents orphaned auth.users rows.
+      // Full rollback: remove public.users + auth user so email can be reused
       if (createdAuthUser) {
+        try { await admin.from('users').delete().eq('id', userId) } catch { /* non-fatal */ }
         await admin.auth.admin.deleteUser(userId).catch(() => {})
       }
+      console.error('[Adv Register] advertisers insert failed:', insertError?.message)
       return NextResponse.json({ error: 'Imeshindwa kusajili biashara. Jaribu tena.' }, { status: 500 })
     }
 
