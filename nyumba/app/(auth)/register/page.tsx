@@ -76,6 +76,14 @@ function RegisterForm() {
       })
       if (authError) throw authError
 
+      // Send a properly branded verification email via Resend (overrides Supabase's
+      // rate-limited built-in SMTP email that often goes to spam).
+      fetch('/api/v1/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).catch(() => { /* non-fatal — user can retry via ResendEmailButton */ })
+
       setRegisteredEmail(email)
       setStep('check_email')
     } catch (err: unknown) {
