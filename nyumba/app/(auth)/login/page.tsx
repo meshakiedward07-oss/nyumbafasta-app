@@ -180,16 +180,24 @@ function LoginForm() {
     }
   }
 
-  // ── Forgot password ───────────────────────────────────
+  // ── Forgot password — uses server route → Resend (not Supabase SMTP) ────────
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/auth/callback?redirect=/account/change-password`,
+      const res = await fetch('/api/v1/auth/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: resetEmail,
+          redirectTo: `${window.location.origin}/auth/callback?redirect=/account/change-password`,
+        }),
       })
-      if (error) throw error
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error((d as { error?: string }).error || 'Imeshindwa kutuma barua pepe.')
+      }
       setResetSent(true)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Imeshindwa kutuma barua pepe.')

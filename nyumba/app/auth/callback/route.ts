@@ -57,6 +57,35 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}${redirect}`)
       }
 
+      // Ensure public.users row exists (the trigger may have failed silently)
+      // This is the safety net: if the row is missing, create it now.
+      const adminClient2 = createAdminClient()
+      const { data: existingRow } = await adminClient2
+        .from('users')
+        .select('id, role, full_name, email, must_change_password')
+        .eq('id', data.user.id)
+        .maybeSingle()
+
+      if (!existingRow) {
+        const meta = data.user.user_metadata as Record<string, string | undefined>
+        const inferredRole = (meta?.role as string | null) ?? 'client'
+        await adminClient2.from('users').insert({
+          id:        data.user.id,
+          email:     data.user.email ?? null,
+          phone:     data.user.phone ?? null,
+          full_name: meta?.full_name ?? meta?.name ?? (data.user.email?.split('@')[0] ?? 'Mtumiaji'),
+          avatar_url: meta?.avatar_url ?? meta?.picture ?? null,
+          role:      inferredRole,
+          is_active: true,
+          is_verified: false,
+        }).then(r => {
+          if (r.error) console.error('[Auth Callback] Fallback user insert failed:', r.error.message)
+        })
+      } else if (!existingRow.email && data.user.email) {
+        // Row exists but email was never recorded — fill it in
+        await adminClient2.from('users').update({ email: data.user.email }).eq('id', data.user.id)
+      }
+
       // Get role from users table (trigger already created it on signUp)
       const { data: profile } = await supabase
         .from('users')
@@ -64,7 +93,7 @@ export async function GET(request: NextRequest) {
         .eq('id', data.user.id)
         .single()
 
-      const role = profile?.role ?? (data.user.user_metadata?.role as string | undefined) ?? 'client'
+      const role = profile?.role ?? existingRow?.role ?? (data.user.user_metadata?.role as string | undefined) ?? 'client'
 
       // For dalali users — ensure dalali_profiles + trial exist
       // (trigger only creates public.users; profile/trial need separate setup)

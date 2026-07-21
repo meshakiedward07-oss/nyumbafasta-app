@@ -23,10 +23,15 @@ function LoginForm() {
     const supabase = createClient()
 
     if (forgotMode) {
-      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/account/change-password`,
+      const res = await fetch('/api/v1/auth/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          redirectTo: `${window.location.origin}/auth/callback?redirect=/account/change-password`,
+        }),
       })
-      if (resetErr) { setError('Haikufanikiwa kutuma. Angalia barua pepe yako.') }
+      if (!res.ok) { setError('Haikufanikiwa kutuma. Jaribu tena.') }
       else setForgotSent(true)
       setLoading(false)
       return
