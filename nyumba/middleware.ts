@@ -64,7 +64,12 @@ export async function middleware(request: NextRequest) {
   const needsRoleCheck    =
     ADMIN_ONLY_ROUTES.some(r => path.startsWith(r)) ||
     DALALI_ROUTES.some(r => path.startsWith(r))
-  const isAgreementExempt = AGREEMENT_EXEMPT.some(r => path.startsWith(r))
+  const isAgreementExempt  = AGREEMENT_EXEMPT.some(r => path.startsWith(r))
+  // Advertising routes use a separate auth model (advertisers table + requireAdvertiserAuth).
+  // They must NOT be run through the public.users role/agreement checks below — advertisers
+  // are created with admin.createUser() which triggers handle_new_user and sets
+  // agreement_accepted=false (the column default), causing a permanent redirect loop.
+  const isAdvertisingRoute = ADVERTISING_PROTECTED_ROUTES.some(r => path.startsWith(r))
 
   // Redirect kwenda login kama hana session.
   // Admin paths → /staff-login (staff bookmarks land in the right portal).
@@ -144,8 +149,10 @@ export async function middleware(request: NextRequest) {
     return redirectWithCookies(url, supabaseResponse)
   }
 
-  // Kwa routes zilizo na ulinzi — angalia is_active NA role kwa query moja
-  if (user && (isProtected || needsRoleCheck)) {
+  // Kwa routes zilizo na ulinzi — angalia is_active NA role kwa query moja.
+  // Advertising routes skip this block entirely: their auth is enforced at the API layer
+  // by requireAdvertiserAuth(), which checks the advertisers table directly.
+  if (user && (isProtected || needsRoleCheck) && !isAdvertisingRoute) {
     const { data: userData, error: profileErr } = await supabase
       .from('users')
       .select('role, is_active, staff_active, must_change_password, account_status, agreement_accepted')
