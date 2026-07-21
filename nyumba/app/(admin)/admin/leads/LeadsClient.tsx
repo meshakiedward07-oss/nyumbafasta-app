@@ -35,7 +35,7 @@ type ImportResult = {
   stats: { total: number; imported: number; duplicates: number; deadLeads: number; activeLeads: number; socialVerified: number; socialActive: number; socialInactive: number }
 }
 
-type View = 'leads' | 'pipeline' | 'wafanyakazi' | 'takwimu' | 'ripoti'
+type View = 'leads' | 'pipeline' | 'takwimu' | 'ripoti'
 type ReportPeriod = 'today' | 'week' | 'month'
 
 // ── Config ─────────────────────────────────────────────────────────────────────
@@ -83,11 +83,10 @@ const STATUSES = [
 const PIPELINE_STAGES = ['new', 'contacted', 'interested', 'registered']
 
 const TABS: { id: View; label: string; icon: string }[] = [
-  { id: 'leads',        label: 'Leads',       icon: 'ti-database' },
-  { id: 'pipeline',     label: 'Pipeline',    icon: 'ti-layout-columns' },
-  { id: 'wafanyakazi',  label: 'Wafanyakazi', icon: 'ti-users-group' },
-  { id: 'takwimu',      label: 'Takwimu',     icon: 'ti-chart-bar' },
-  { id: 'ripoti',       label: 'Ripoti',      icon: 'ti-file-analytics' },
+  { id: 'leads',    label: 'Leads',    icon: 'ti-database' },
+  { id: 'pipeline', label: 'Pipeline', icon: 'ti-layout-columns' },
+  { id: 'takwimu',  label: 'Takwimu',  icon: 'ti-chart-bar' },
+  { id: 'ripoti',   label: 'Ripoti',   icon: 'ti-file-analytics' },
 ]
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -190,17 +189,22 @@ export default function LeadsClient() {
   // Duplicates
   const [deletingAllDups, setDeletingAllDups] = useState(false)
 
-  // Staff / Wafanyakazi
-  const [staffTabFilter,  setStaffTabFilter]  = useState('')
+  // Staff / Assign
   const [staffList,       setStaffList]       = useState<{ id: string; full_name: string; staff_title: string | null }[]>([])
   const [assigningLeadId, setAssigningLeadId] = useState<string | null>(null)
   const [selectedStaffId, setSelectedStaffId] = useState('')
   const [assigningStaff,  setAssigningStaff]  = useState(false)
 
-  // Bulk distribute
+  // Bulk distribute (manual count)
   const [showDistributeModal, setShowDistributeModal] = useState(false)
   const [distributeStaffId,   setDistributeStaffId]   = useState('')
+  const [distributeCount,     setDistributeCount]     = useState<number | ''>('')
+  const [distributeQuality,   setDistributeQuality]   = useState('')
   const [distributing,        setDistributing]        = useState(false)
+
+  // Bulk delete
+  const [deletingSelected, setDeletingSelected] = useState(false)
+  const [deletingAll,      setDeletingAll]      = useState(false)
 
   // Ripoti
   const [reportPeriod,  setReportPeriod]  = useState<ReportPeriod>('week')
@@ -219,16 +223,16 @@ export default function LeadsClient() {
     if (view === 'takwimu' || view === 'ripoti') return
     setLoading(true)
     try {
+      // Pipeline loads all leads (no pagination) so kanban shows full journey
+      const limit = view === 'pipeline' ? '1000' : '50'
       const p = new URLSearchParams({
-        page: String(page), limit: '50',
+        page: String(view === 'pipeline' ? 1 : page), limit,
         duplicates: String(showDups), dead: String(showDead),
         ...(search        && { search }),
         ...(qualityFilter && { quality: qualityFilter }),
         ...(typeFilter    && { type: typeFilter }),
         ...(statusFilter  && { status: statusFilter }),
         ...(socialFilter  && { social: socialFilter }),
-        ...(view === 'wafanyakazi' && { has_assigned: 'true' }),
-        ...(view === 'wafanyakazi' && staffTabFilter && { assigned_to: staffTabFilter }),
       })
       const res  = await fetch(`/api/v1/leads?${p}`)
       const data = await res.json()
@@ -236,7 +240,7 @@ export default function LeadsClient() {
       setTotal(data.pagination?.total || 0)
       setTotalPages(data.pagination?.totalPages || 1)
     } catch { /* silent */ } finally { setLoading(false) }
-  }, [view, page, search, qualityFilter, typeFilter, statusFilter, socialFilter, showDups, showDead, staffTabFilter])
+  }, [view, page, search, qualityFilter, typeFilter, statusFilter, socialFilter, showDups, showDead])
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true)
@@ -364,15 +368,62 @@ export default function LeadsClient() {
 
   async function handleBulkDistribute() {
     if (!distributeStaffId) { showToast('Chagua mfanyakazi kwanza', false); return }
-    const ids = selectedIds.size > 0 ? [...selectedIds] : leads.map(l => l.id)
-    if (!ids.length) { showToast('Hakuna leads za kugawa', false); return }
     setDistributing(true)
     try {
-      const data = await fetch('/api/v1/leads/distribute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ staffId: distributeStaffId, leadIds: ids }) }).then(r => r.json())
-      if (data.success) { showToast(`✅ Leads ${data.distributed} zimegawiwa`); setShowDistributeModal(false); setDistributeStaffId(''); setSelectedIds(new Set()); fetchLeads() }
-      else showToast(data.error || 'Imeshindwa kugawa', false)
+      let body: Record<string, unknown>
+      if (selectedIds.size > 0) {
+        // Use explicit selection
+        body = { staffId: distributeStaffId, leadIds: [...selectedIds] }
+      } else if (distributeCount && Number(distributeCount) > 0) {
+        // Manual count — let API pick unassigned leads
+        body = { staffId: distributeStaffId, count: Number(distributeCount), quality: distributeQuality || undefined }
+      } else {
+        showToast('Andika idadi ya leads au chagua leads kwanza', false)
+        setDistributing(false); return
+      }
+      const data = await fetch('/api/v1/leads/distribute', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      }).then(r => r.json())
+      if (data.success) {
+        showToast(`✅ Leads ${data.distributed} zimepewa ${data.staffName}`)
+        setShowDistributeModal(false); setDistributeStaffId(''); setDistributeCount(''); setDistributeQuality(''); setSelectedIds(new Set()); fetchLeads(); fetchStats()
+      } else showToast(data.error || 'Imeshindwa kugawa', false)
     } catch { showToast('Hitilafu ya mtandao', false) }
     finally { setDistributing(false) }
+  }
+
+  async function handleDeleteSelected() {
+    if (!selectedIds.size) return
+    if (!confirm(`Futa kabisa leads ${selectedIds.size} zilizochaguliwa?`)) return
+    setDeletingSelected(true)
+    try {
+      const ids = [...selectedIds].join(',')
+      const res = await fetch(`/api/v1/leads?ids=${encodeURIComponent(ids)}&type=hard`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        showToast(`✅ Leads ${data.deleted} zimefutwa`)
+        setLeads(prev => prev.filter(l => !selectedIds.has(l.id)))
+        setSelectedIds(new Set()); fetchStats()
+      } else showToast(data.error || 'Imeshindwa kufuta', false)
+    } catch { showToast('Hitilafu ya mtandao', false) }
+    finally { setDeletingSelected(false) }
+  }
+
+  async function handleDeleteAll() {
+    const msg = `HATARI: Futa leads ZOTE ${total.toLocaleString()} kabisa? Hii haiwezi kurudishwa!`
+    if (!confirm(msg)) return
+    if (!confirm('Una uhakika? Data yote ya leads itafutwa.')) return
+    setDeletingAll(true)
+    try {
+      const p = new URLSearchParams({ all: 'true', type: 'hard', ...(qualityFilter && { quality: qualityFilter }), ...(statusFilter && { status: statusFilter }) })
+      const res = await fetch(`/api/v1/leads?${p}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        showToast(`✅ Leads ${data.deleted} zote zimefutwa`)
+        setLeads([]); setTotal(0); setSelectedIds(new Set()); fetchStats()
+      } else showToast(data.error || 'Imeshindwa kufuta', false)
+    } catch { showToast('Hitilafu ya mtandao', false) }
+    finally { setDeletingAll(false) }
   }
 
   async function handleDelete(id: string, hard = false) {
@@ -456,7 +507,6 @@ export default function LeadsClient() {
 
   function switchView(v: View) {
     setView(v); setPage(1); setSelectedIds(new Set())
-    if (v !== 'wafanyakazi') setStaffTabFilter('')
     if (v !== 'leads') { setShowDups(false); setShowDead(false) }
   }
 
@@ -509,11 +559,6 @@ export default function LeadsClient() {
                 <i className={`ti ${tab.icon} text-sm`} />
                 <span className="hidden xs:inline sm:inline">{tab.label}</span>
                 <span className="xs:hidden sm:hidden">{tab.label.slice(0, 4)}</span>
-                {tab.id === 'wafanyakazi' && !statsLoading && stats.assigned > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${view === 'wafanyakazi' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                    {stats.assigned}
-                  </span>
-                )}
               </button>
             ))}
           </div>
@@ -569,7 +614,7 @@ export default function LeadsClient() {
                 className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm">
                 <i className="ti ti-plus text-sm" /> Ongeza
               </button>
-              <button onClick={() => setShowDistributeModal(true)}
+              <button onClick={() => { setShowDistributeModal(true) }}
                 className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow-sm">
                 <i className="ti ti-users-group text-sm" /> Gawa
               </button>
@@ -591,17 +636,30 @@ export default function LeadsClient() {
                 {revalidatingWa ? <i className="ti ti-loader-2 animate-spin text-sm" /> : <i className="ti ti-brand-whatsapp text-sm" />}
                 <span className="hidden sm:inline">{revalidatingWa ? 'Inafanya…' : 'Fix WA'}</span>
               </button>
-              {selectedIds.size > 0 && (
-                <div className="ml-auto flex items-center gap-2">
-                  <span className="text-xs font-medium text-primary-600 bg-primary-50 px-2.5 py-1.5 rounded-xl">
-                    <i className="ti ti-check mr-1" />{selectedIds.size} zimechaguliwa
-                  </span>
-                  <button onClick={() => setSelectedIds(new Set())}
-                    className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-xl hover:bg-gray-100">
-                    Ghairi
+
+              {/* Delete actions — always visible */}
+              <div className="ml-auto flex items-center gap-2">
+                {selectedIds.size > 0 ? (
+                  <>
+                    <span className="text-xs font-medium text-primary-600 bg-primary-50 px-2.5 py-1.5 rounded-xl">
+                      <i className="ti ti-check mr-1" />{selectedIds.size} zimechaguliwa
+                    </span>
+                    <button onClick={handleDeleteSelected} disabled={deletingSelected}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white rounded-xl text-xs font-semibold hover:bg-red-600 shadow-sm disabled:opacity-50">
+                      {deletingSelected ? <i className="ti ti-loader-2 animate-spin text-sm" /> : <i className="ti ti-trash text-sm" />}
+                      Futa {selectedIds.size}
+                    </button>
+                    <button onClick={() => setSelectedIds(new Set())}
+                      className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-xl hover:bg-gray-100">Ghairi</button>
+                  </>
+                ) : (
+                  <button onClick={handleDeleteAll} disabled={deletingAll || total === 0}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-semibold hover:bg-red-100 shadow-sm disabled:opacity-40">
+                    {deletingAll ? <i className="ti ti-loader-2 animate-spin text-sm" /> : <i className="ti ti-trash text-sm" />}
+                    <span className="hidden sm:inline">Futa Zote</span>
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Duplicate banner */}
@@ -996,295 +1054,19 @@ export default function LeadsClient() {
               </div>
             </div>
 
-            {/* Pipeline pagination */}
-            {!loading && total > 50 && (
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-xs text-gray-500">Ukurasa <b>{page}</b> / {totalPages} · {total.toLocaleString()} leads</p>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page === 1} className="px-3 py-1.5 text-xs border border-gray-200 rounded-xl disabled:opacity-40 hover:bg-gray-50">← Iliyopita</button>
-                  <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page >= totalPages} className="px-3 py-1.5 text-xs border border-gray-200 rounded-xl disabled:opacity-40 hover:bg-gray-50">Inayofuata →</button>
-                </div>
+            {/* Pipeline total note */}
+            {!loading && (
+              <div className="mt-2 text-center">
+                <p className="text-xs text-gray-400">
+                  <i className="ti ti-layout-columns mr-1" />
+                  Inaonyesha leads {leads.length.toLocaleString()} {total > leads.length ? `kati ya ${total.toLocaleString()} · (zaidi zinapatikana kwenye tab ya Leads)` : 'zote'}
+                </p>
               </div>
             )}
           </>
         )}
 
-        {/* ═══ TAB 3 — WAFANYAKAZI ═══ */}
-        {view === 'wafanyakazi' && (
-          <>
-            {/* Staff filter strip */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-3 mb-4 shadow-sm flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-              <button onClick={() => setStaffTabFilter('')}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${staffTabFilter === '' ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
-                <i className="ti ti-users mr-1" />Wote
-              </button>
-              {staffList.map(s => (
-                <button key={s.id} onClick={() => setStaffTabFilter(s.id)}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${staffTabFilter === s.id ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
-                  <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-bold ${staffTabFilter === s.id ? 'bg-white/20 text-white' : 'bg-primary-100 text-primary-700'}`}>
-                    {s.full_name.charAt(0)}
-                  </span>
-                  {s.full_name.split(' ')[0]}
-                </button>
-              ))}
-              {staffList.length === 0 && (
-                <p className="text-xs text-gray-400 pl-2">
-                  <a href="/admin/staff" className="text-primary-600 underline font-medium">Ongeza wafanyakazi</a> kwanza
-                </p>
-              )}
-            </div>
-
-            {/* Action toolbar */}
-            <div className="flex items-center gap-2 mb-4 flex-wrap">
-              <button onClick={() => setShowDistributeModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow-sm">
-                <i className="ti ti-users-group text-sm" /> Gawa Leads
-              </button>
-              <button onClick={() => { setShowBroadcastModal(true); setBroadcastResult(null) }}
-                className="flex items-center gap-1.5 px-3 py-2 bg-[#25D366] text-white rounded-xl text-xs font-semibold hover:bg-green-600 shadow-sm">
-                <i className="ti ti-brand-whatsapp text-sm" /> Broadcast
-              </button>
-              <button onClick={handleExport}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 shadow-sm">
-                <i className="ti ti-download text-sm" /> Export
-              </button>
-              {selectedIds.size > 0 && (
-                <div className="ml-auto flex items-center gap-2">
-                  <span className="text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1.5 rounded-xl">
-                    <i className="ti ti-check mr-1" />{selectedIds.size} zimechaguliwa
-                  </span>
-                  <button onClick={() => setSelectedIds(new Set())} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-xl hover:bg-gray-100">Ghairi</button>
-                </div>
-              )}
-            </div>
-
-            {/* Search + filter bar */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-3 mb-4 shadow-sm space-y-2">
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
-                  <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                  <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
-                    placeholder="Tafuta jina, simu…"
-                    className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/40" />
-                </div>
-                <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-                  className="px-2.5 py-2.5 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/40">
-                  <option value="">Status zote</option>
-                  {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* Summary card for selected staff */}
-            {staffTabFilter && (() => {
-              const s = staffList.find(x => x.id === staffTabFilter)
-              if (!s) return null
-              return (
-                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-4 flex items-center gap-4">
-                  <div className="w-11 h-11 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                    {s.full_name.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-indigo-800 text-sm">{s.full_name}</p>
-                    {s.staff_title && <p className="text-xs text-indigo-500">{s.staff_title}</p>}
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-2xl font-extrabold text-indigo-700 tabular-nums">{loading ? '—' : total.toLocaleString()}</p>
-                    <p className="text-xs text-indigo-400">leads assigned</p>
-                  </div>
-                </div>
-              )
-            })()}
-
-            {/* Desktop table */}
-            <div className="hidden md:block bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm mb-4">
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <p className="text-xs font-semibold text-gray-600">
-                  {loading
-                    ? <span className="flex items-center gap-1.5"><i className="ti ti-loader-2 animate-spin text-primary-400" /> Inapakia…</span>
-                    : <>{total.toLocaleString()} leads assigned{staffTabFilter && ' — mfanyakazi huyu'}</>}
-                </p>
-                {selectedIds.size > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">{selectedIds.size} zimechaguliwa</span>
-                    <button onClick={() => setShowDistributeModal(true)} className="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg font-medium hover:bg-indigo-100">
-                      Gawa upya
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[860px]">
-                  <thead>
-                    <tr className="bg-gray-50/80 border-b border-gray-100">
-                      <th className="w-10 px-3 py-3">
-                        <input type="checkbox" className="rounded"
-                          onChange={e => setSelectedIds(e.target.checked ? new Set(leads.map(l => l.id)) : new Set())}
-                          checked={selectedIds.size === leads.length && leads.length > 0} />
-                      </th>
-                      {['Jina','Mawasiliano','Eneo','Mfanyakazi','Social','Ubora','Status','Umri',''].map((h,i) => (
-                        <th key={i} className="text-left px-3 py-3 text-[10px] font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {loading
-                      ? Array.from({length:6}).map((_,i) => (
-                          <tr key={i}>{Array.from({length:10}).map((_,j) => <td key={j} className="px-3 py-4"><div className="h-3 bg-gray-100 rounded-full animate-pulse" style={{width:`${40+j*7}%`,maxWidth:'120px'}} /></td>)}</tr>
-                        ))
-                      : leads.map(lead => {
-                          const q = QUALITY_CFG[lead.contact_quality] || QUALITY_CFG.unknown
-                          const waNum = lead.whatsapp_number || lead.phone
-                          const assignedStaff = staffList.find(s => s.id === lead.assigned_to)
-                          const isSelected = selectedIds.has(lead.id)
-                          return (
-                            <tr key={lead.id} onClick={() => setDetailLead(lead)}
-                              className={`group cursor-pointer hover:bg-blue-50/30 transition-colors ${isSelected ? 'bg-primary-50/30' : ''}`}>
-                              <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
-                                <input type="checkbox" checked={isSelected} className="rounded"
-                                  onChange={e => { const n = new Set(selectedIds); if (e.target.checked) n.add(lead.id); else n.delete(lead.id); setSelectedIds(n) }} />
-                              </td>
-                              <td className="px-3 py-3 max-w-[160px]">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${q.dot}`} />
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-semibold text-gray-900 truncate">{lead.full_name}</p>
-                                    <p className="text-[10px] text-gray-400 capitalize">{lead.lead_type}</p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-3 py-3">
-                                {lead.phone ? <a href={`tel:${lead.phone}`} onClick={e=>e.stopPropagation()} className="text-xs text-blue-600 hover:underline font-medium">{lead.phone}</a> : <span className="text-gray-300 text-xs">—</span>}
-                              </td>
-                              <td className="px-3 py-3">
-                                <p className="text-xs font-medium text-gray-700">{lead.ward || lead.district || '—'}</p>
-                              </td>
-                              <td className="px-3 py-3">
-                                {assignedStaff
-                                  ? <div className="flex items-center gap-1.5">
-                                      <div className="w-5 h-5 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-700 font-bold text-[9px] flex-shrink-0">{assignedStaff.full_name.charAt(0)}</div>
-                                      <span className="text-xs font-medium text-gray-700 truncate max-w-[80px]">{assignedStaff.full_name.split(' ')[0]}</span>
-                                    </div>
-                                  : <span className="text-[10px] text-gray-400 italic">Haijapewa</span>
-                                }
-                              </td>
-                              <td className="px-3 py-3">
-                                <div className="flex items-center gap-1.5">
-                                  {lead.facebook_url  && <span className={`text-sm ${(SOCIAL_CFG[lead.facebook_status] ||SOCIAL_CFG.unchecked).color}`}><i className="ti ti-brand-facebook" /></span>}
-                                  {lead.instagram_url && <span className={`text-sm ${(SOCIAL_CFG[lead.instagram_status]||SOCIAL_CFG.unchecked).color}`}><i className="ti ti-brand-instagram" /></span>}
-                                  {lead.tiktok_url    && <span className={`text-sm ${(SOCIAL_CFG[lead.tiktok_status]   ||SOCIAL_CFG.unchecked).color}`}><i className="ti ti-brand-tiktok" /></span>}
-                                  {lead.whatsapp_number && <span className={`text-sm ${(SOCIAL_CFG[lead.whatsapp_status]||SOCIAL_CFG.unchecked).color}`}><i className="ti ti-brand-whatsapp" /></span>}
-                                  {!lead.has_any_social && <span className="text-gray-300 text-xs">—</span>}
-                                </div>
-                              </td>
-                              <td className="px-3 py-3">
-                                <span className={`inline-flex px-2 py-1 rounded-lg text-[10px] font-bold ${q.pill}`}>{q.label}</span>
-                              </td>
-                              <td className="px-3 py-3" onClick={e=>e.stopPropagation()}>
-                                <select value={lead.status} onChange={e => handleStatusChange(lead.id, e.target.value)}
-                                  className={`text-[10px] px-2 py-1 rounded-lg border-0 font-semibold cursor-pointer appearance-none ${STATUS_PILL[lead.status] || 'bg-gray-100 text-gray-600'}`}>
-                                  {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                                </select>
-                              </td>
-                              <td className="px-3 py-3">
-                                <span className="text-[10px] text-gray-400 tabular-nums">{timeAgo(lead.created_at)}</span>
-                              </td>
-                              <td className="px-3 py-3" onClick={e=>e.stopPropagation()}>
-                                {waNum && (
-                                  <a href={waLink(waNum, lead.full_name)} target="_blank" rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 bg-[#25D366] text-white text-[10px] px-2 py-1.5 rounded-lg font-bold hover:bg-green-600">
-                                    <i className="ti ti-brand-whatsapp text-sm" /> WA
-                                  </a>
-                                )}
-                              </td>
-                            </tr>
-                          )
-                        })
-                    }
-                  </tbody>
-                </table>
-              </div>
-              {!loading && leads.length === 0 && (
-                <div className="py-16 text-center">
-                  <i className="ti ti-users-group text-5xl text-gray-300 block mb-3" />
-                  <p className="font-semibold text-gray-600">
-                    {staffTabFilter ? 'Mfanyakazi huyu hana leads assigned' : 'Hakuna leads assigned bado'}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1 mb-4">Tumia kitufe cha Gawa kugawa leads kwa wafanyakazi</p>
-                  <button onClick={() => setShowDistributeModal(true)} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700">
-                    <i className="ti ti-users-group" /> Gawa Leads
-                  </button>
-                </div>
-              )}
-              {!loading && total > 50 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-                  <p className="text-xs text-gray-500">Ukurasa <b>{page}</b> / {totalPages} · {total.toLocaleString()} jumla</p>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">← Iliyopita</button>
-                    <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page>=totalPages} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">Inayofuata →</button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Mobile cards */}
-            <div className="md:hidden space-y-2.5">
-              {loading && Array.from({length:4}).map((_,i) => <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
-              {!loading && leads.length === 0 && (
-                <div className="bg-white rounded-2xl border border-gray-200 py-16 text-center shadow-sm">
-                  <i className="ti ti-users-group text-4xl text-gray-300 block mb-3" />
-                  <p className="font-semibold text-gray-600 text-sm">Hakuna leads assigned</p>
-                  <button onClick={() => setShowDistributeModal(true)} className="mt-4 bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold">Gawa Leads</button>
-                </div>
-              )}
-              {!loading && leads.map(lead => {
-                const q = QUALITY_CFG[lead.contact_quality] || QUALITY_CFG.unknown
-                const waNum = lead.whatsapp_number || lead.phone
-                const assignedStaff = staffList.find(s => s.id === lead.assigned_to)
-                return (
-                  <div key={lead.id} onClick={() => setDetailLead(lead)}
-                    className={`bg-white rounded-2xl border border-gray-100 border-l-4 ${q.border} shadow-sm cursor-pointer active:scale-[0.99] transition-all`}>
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm truncate">{lead.full_name}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            {lead.ward || lead.district || '—'} · {timeAgo(lead.created_at)}
-                          </p>
-                        </div>
-                        <span className={`flex-shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold ${q.pill}`}>{q.label}</span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap" onClick={e => e.stopPropagation()}>
-                        <select value={lead.status} onChange={e => handleStatusChange(lead.id, e.target.value)}
-                          className={`text-[10px] px-2 py-1 rounded-lg border-0 font-semibold cursor-pointer appearance-none ${STATUS_PILL[lead.status] || 'bg-gray-100 text-gray-600'}`}>
-                          {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                        </select>
-                        {assignedStaff && (
-                          <span className="flex items-center gap-1 text-[10px] text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg font-medium">
-                            <i className="ti ti-user text-xs" />{assignedStaff.full_name.split(' ')[0]}
-                          </span>
-                        )}
-                        <div className="ml-auto flex items-center gap-1.5">
-                          {lead.has_any_social && <span className="text-[10px] text-gray-400">{lead.social_score}pts</span>}
-                          {waNum && <a href={waLink(waNum, lead.full_name)} target="_blank" rel="noopener noreferrer" className="h-7 px-2.5 bg-[#25D366] text-white text-[10px] font-bold rounded-lg flex items-center gap-1"><i className="ti ti-brand-whatsapp" /> WA</a>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-              {!loading && total > 50 && (
-                <div className="flex items-center justify-between py-2">
-                  <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium disabled:opacity-40">← Iliyopita</button>
-                  <span className="text-xs text-gray-500">{page} / {totalPages}</span>
-                  <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page>=totalPages} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium disabled:opacity-40">Inayofuata →</button>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ═══ TAB 4 — TAKWIMU ═══ */}
+        {/* ═══ TAB 3 — TAKWIMU ═══ */}
         {view === 'takwimu' && (
           <>
             {/* 4 KPI cards */}
@@ -1395,7 +1177,7 @@ export default function LeadsClient() {
           </>
         )}
 
-        {/* ═══ TAB 5 — RIPOTI ═══ */}
+        {/* ═══ TAB 4 — RIPOTI ═══ */}
         {view === 'ripoti' && (
           <>
             {/* Period selector + export */}
@@ -1835,7 +1617,7 @@ export default function LeadsClient() {
       ══════════════════════════════════════════════════════════════════════ */}
       {showDistributeModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-6">
-          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] overflow-y-auto">
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <span className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center"><i className="ti ti-users-group text-white text-base" /></span>
@@ -1844,30 +1626,69 @@ export default function LeadsClient() {
               <button onClick={() => setShowDistributeModal(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200"><i className="ti ti-x" /></button>
             </div>
             <div className="space-y-4">
-              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
-                <p className="text-sm font-semibold text-indigo-800 mb-1"><i className="ti ti-info-circle mr-1.5" />Leads zitakazogawiwa</p>
-                <p className="text-2xl font-extrabold text-indigo-700">{selectedIds.size > 0 ? selectedIds.size.toLocaleString() : total.toLocaleString()}</p>
-                <p className="text-xs text-indigo-600 mt-0.5">{selectedIds.size > 0 ? 'zilizochaguliwa' : 'zote za ukurasa huu'}</p>
-              </div>
+
+              {/* Mode indicator */}
+              {selectedIds.size > 0 ? (
+                <div className="bg-primary-50 border border-primary-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+                  <i className="ti ti-checkbox text-primary-600 text-xl flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-primary-800">{selectedIds.size.toLocaleString()} leads zimechaguliwa</p>
+                    <p className="text-xs text-primary-600">Leads hizi ndizo zitakazogawiwa</p>
+                  </div>
+                </div>
+              ) : (
+                /* Manual count entry */
+                <div className="space-y-3">
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+                    <label className="text-xs font-bold text-indigo-700 uppercase tracking-wide block mb-2">
+                      <i className="ti ti-hash mr-1" />Idadi ya leads za kugawa
+                    </label>
+                    <input
+                      type="number" min="1" max="500"
+                      value={distributeCount}
+                      onChange={e => setDistributeCount(e.target.value === '' ? '' : Math.min(500, Math.max(1, parseInt(e.target.value) || 1)))}
+                      placeholder="Andika idadi (mf. 50)"
+                      className="w-full border-2 border-indigo-200 rounded-xl px-4 py-3 text-2xl font-bold text-indigo-800 text-center focus:outline-none focus:border-indigo-500 bg-white"
+                    />
+                    <p className="text-xs text-indigo-500 mt-2 text-center">
+                      Mfumo utachagua leads {distributeCount || '?'} bila assignment kutoka kwenye database · max 500
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Chuja kwa ubora (hiari)</label>
+                    <select value={distributeQuality} onChange={e => setDistributeQuality(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
+                      <option value="">Ubora wote</option>
+                      <option value="high">Ubora Juu tu</option>
+                      <option value="medium">Wastani tu</option>
+                      <option value="low">Chini tu</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Staff selector */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-2">Chagua Mfanyakazi</label>
                 {staffList.length === 0
                   ? <p className="text-sm text-gray-400 py-3 text-center bg-gray-50 rounded-xl">Hakuna wafanyakazi. <a href="/admin/staff" className="text-primary-600 underline">Ongeza</a></p>
-                  : <div className="space-y-2">
+                  : <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                       {staffList.map(s => (
                         <button key={s.id} type="button" onClick={() => setDistributeStaffId(s.id)}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-medium text-left ${distributeStaffId === s.id ? 'border-indigo-500 bg-indigo-50 text-indigo-800' : 'border-gray-100 bg-white hover:border-gray-200 text-gray-700'}`}>
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-medium text-left transition-all ${distributeStaffId === s.id ? 'border-indigo-500 bg-indigo-50 text-indigo-800' : 'border-gray-100 bg-white hover:border-gray-200 text-gray-700'}`}>
                           <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">{s.full_name.charAt(0)}</div>
                           <div className="min-w-0"><p className="font-semibold truncate">{s.full_name}</p>{s.staff_title && <p className="text-xs text-gray-400">{s.staff_title}</p>}</div>
-                          {distributeStaffId === s.id && <i className="ti ti-check ml-auto text-indigo-600" />}
+                          {distributeStaffId === s.id && <i className="ti ti-check ml-auto text-indigo-600 text-base" />}
                         </button>
                       ))}
                     </div>
                 }
               </div>
-              <button onClick={handleBulkDistribute} disabled={!distributeStaffId || distributing || staffList.length === 0}
+
+              <button onClick={handleBulkDistribute}
+                disabled={!distributeStaffId || distributing || staffList.length === 0 || (selectedIds.size === 0 && !distributeCount)}
                 className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-sm disabled:opacity-40 hover:bg-indigo-700 flex items-center justify-center gap-2">
-                {distributing ? <><i className="ti ti-loader-2 animate-spin" /> Inagawa…</> : <><i className="ti ti-send" /> Gawa {selectedIds.size > 0 ? `${selectedIds.size} Leads` : `Leads ${total.toLocaleString()}`}</>}
+                {distributing ? <><i className="ti ti-loader-2 animate-spin" /> Inagawa…</> : <><i className="ti ti-send" /> Gawa {selectedIds.size > 0 ? `${selectedIds.size} Leads` : distributeCount ? `Leads ${distributeCount}` : 'Leads'}</>}
               </button>
             </div>
           </div>

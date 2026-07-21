@@ -163,15 +163,51 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// ── DELETE — remove lead ──────────────────────────────────────────────────────
+// ── DELETE — remove lead(s) ───────────────────────────────────────────────────
+// Single:  ?id=<uuid>&type=soft|hard
+// Bulk:    ?ids=<uuid>,<uuid>,...&type=hard
+// All:     ?all=true&type=hard  (optional: &quality=high&status=new)
 export async function DELETE(req: NextRequest) {
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
   try {
     const { searchParams } = new URL(req.url)
-    const id   = searchParams.get('id')
-    const type = searchParams.get('type') || 'soft'
+    const id      = searchParams.get('id')
+    const idsRaw  = searchParams.get('ids')
+    const all     = searchParams.get('all') === 'true'
+    const type    = searchParams.get('type') || 'soft'
+    const quality = searchParams.get('quality') || ''
+    const status  = searchParams.get('status')  || ''
+
+    if (all) {
+      // Delete all leads (hard only — too destructive for soft)
+      let q = supabaseAdmin.from('leads').delete()
+      if (quality) q = q.eq('contact_quality', quality)
+      if (status)  q = q.eq('status', status)
+      const { error, count } = await q.gt('id', '00000000-0000-0000-0000-000000000000')
+      if (error) throw error
+      cache.delete('leads:stats:global')
+      return NextResponse.json({ success: true, deleted: count ?? 0 })
+    }
+
+    if (idsRaw) {
+      // Bulk delete specific IDs
+      const ids = idsRaw.split(',').map(s => s.trim()).filter(Boolean).slice(0, 500)
+      if (ids.length === 0) return NextResponse.json({ error: 'IDs zinahitajika' }, { status: 400 })
+
+      if (type === 'hard') {
+        const { error, count } = await supabaseAdmin.from('leads').delete().in('id', ids)
+        if (error) throw error
+        cache.delete('leads:stats:global')
+        return NextResponse.json({ success: true, deleted: count ?? ids.length })
+      } else {
+        const { error } = await supabaseAdmin.from('leads').update({ status: 'inactive' }).in('id', ids)
+        if (error) throw error
+        cache.delete('leads:stats:global')
+        return NextResponse.json({ success: true, deleted: ids.length })
+      }
+    }
 
     if (!id) return NextResponse.json({ error: 'ID inahitajika' }, { status: 400 })
 
