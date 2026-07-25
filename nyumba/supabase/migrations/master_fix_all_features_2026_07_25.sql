@@ -22,12 +22,6 @@
 --         EVERY request, breaking the entire staff dashboard and actions.
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- Ensure 'staff' is a valid user_role value (safe no-op if already present)
-DO $$ BEGIN
-  ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'staff';
-EXCEPTION WHEN others THEN NULL;
-END $$;
-
 ALTER TABLE public.users
   ADD COLUMN IF NOT EXISTS staff_title        TEXT,
   ADD COLUMN IF NOT EXISTS staff_active       BOOLEAN      DEFAULT true,
@@ -798,7 +792,7 @@ $$ LANGUAGE sql SECURITY DEFINER;
 
 UPDATE public.users pu
 SET
-  role           = 'admin'::user_role,
+  role           = 'admin',
   is_active      = TRUE,
   account_status = 'active',
   staff_active   = TRUE
