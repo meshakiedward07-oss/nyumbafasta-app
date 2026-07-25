@@ -14,13 +14,9 @@ CREATE INDEX IF NOT EXISTS idx_agent_leads_unassigned
   ON agent_leads(assigned_to, created_at DESC)
   WHERE assigned_to IS NULL;
 
--- Quality filter (high/medium/low + status)
-CREATE INDEX IF NOT EXISTS idx_agent_leads_quality_status
-  ON agent_leads(quality_score, status, created_at DESC);
-
 -- Duplicate detection (phone number)
 CREATE INDEX IF NOT EXISTS idx_agent_leads_phone
-  ON agent_leads(phone_number);
+  ON agent_leads(phone);
 
 -- ── Ad Campaigns ─────────────────────────────────────────────────────────────
 
