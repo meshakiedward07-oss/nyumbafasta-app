@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-import { requireAdminUser } from '@/lib/security/adminAuth'
+import { requireStaffAuth } from '@/lib/security/adminAuth'
 
 const SESSION_FIELDS = 'id, phone_number, status, assigned_admin_id, escalation_reason, escalated_at, last_message_at, created_at, updated_at'
 
 // GET /api/v1/whatsapp/sessions — list sessions enriched with last message preview
 export async function GET(req: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const auth = await requireStaffAuth()
+  if (!auth.ok) return auth.response
 
   const { searchParams } = req.nextUrl
   const status = searchParams.get('status')

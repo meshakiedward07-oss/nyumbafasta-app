@@ -141,10 +141,13 @@ export default function WhatsAppPanel() {
     const url = statusFilter !== 'all'
       ? `/api/v1/whatsapp/sessions?status=${statusFilter}&limit=50`
       : '/api/v1/whatsapp/sessions?limit=50'
-    const res = await fetch(url)
-    if (!res.ok) return
-    const data = await res.json()
-    setSessions(data.sessions ?? [])
+    try {
+      const res = await fetch(url)
+      if (res.ok) {
+        const data = await res.json()
+        setSessions(data.sessions ?? [])
+      }
+    } catch { /* network error — keep existing sessions */ }
     setLoading(false)
   }, [statusFilter])
 

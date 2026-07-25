@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendMultipartMessage } from '@/lib/whatsapp/client'
 import { getWASession, saveWAMessage } from '@/lib/whatsapp/sessionManager'
-import { requireWhatsAppSupportUser } from '@/lib/security/adminAuth'
+import { requireStaffAuth } from '@/lib/security/adminAuth'
 
 // POST /api/v1/whatsapp/sessions/[phone]/send
 // Body: { message: string }
@@ -9,8 +9,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { phone: string } },
 ) {
-  const actor = await requireWhatsAppSupportUser()
-  if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const auth = await requireStaffAuth()
+  if (!auth.ok) return auth.response
+  const actor = { id: auth.userId, full_name: auth.fullName }
 
   const phone = decodeURIComponent(params.phone)
 

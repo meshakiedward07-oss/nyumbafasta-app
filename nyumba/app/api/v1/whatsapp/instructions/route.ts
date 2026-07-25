@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-import { requireAdminUser } from '@/lib/security/adminAuth'
+import { requireStaffAuth } from '@/lib/security/adminAuth'
 
 // GET /api/v1/whatsapp/instructions — list active instructions
 export async function GET(req: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const auth = await requireStaffAuth()
+  if (!auth.ok) return auth.response
+  const admin = { id: auth.userId }
 
   const { searchParams } = req.nextUrl
   const phone = searchParams.get('phone')
@@ -49,8 +50,9 @@ export async function GET(req: NextRequest) {
 // POST /api/v1/whatsapp/instructions — add an instruction
 // Body: { instruction: string, scope: 'global'|'phone_specific', phone_number?: string }
 export async function POST(req: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const auth = await requireStaffAuth()
+  if (!auth.ok) return auth.response
+  const admin = { id: auth.userId }
 
   const { instruction, scope, phone_number } = await req.json() as {
     instruction: string
