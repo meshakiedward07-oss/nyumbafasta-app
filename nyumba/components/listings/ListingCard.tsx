@@ -167,6 +167,8 @@ function PlaceholderHouse() {
   )
 }
 
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+
 export default function ListingCard({ listing, hasUnlocked = false, priority = false }: { listing: ListingWithDalali; hasUnlocked?: boolean; priority?: boolean }) {
   const router = useRouter()
   const [imgError, setImgError] = useState(false)
@@ -175,9 +177,11 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
   const rating            = profile?.rating_avg ?? 0
   const isVerified        = profile?.is_premium_verified ?? false
   const isFavourite       = profile?.is_favourite_dalali ?? false
-const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
-
-  const isActive = listing.status === 'active'
+  const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
+  const isActive          = listing.status === 'active'
+  const isNew             = !listing.is_boosted && listing.created_at
+    ? Date.now() - new Date(listing.created_at).getTime() < THIRTY_DAYS_MS
+    : false
 
   return (
     <div
@@ -199,6 +203,14 @@ const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
             <i className="ti ti-rocket text-sm" aria-hidden="true" />
             {BOOSTED_LABEL} na NyumbaFasta
             <i className="ti ti-rocket text-sm" aria-hidden="true" />
+          </div>
+        )}
+
+        {/* Fresh listing banner */}
+        {isNew && (
+          <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold px-3 py-1 text-center tracking-wide flex items-center justify-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse flex-shrink-0" />
+            Mpya — Imetangazwa Hivi Karibuni
           </div>
         )}
 
@@ -238,18 +250,26 @@ const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
             )}
           </div>
 
-          {/* Status badge */}
-          {isActive ? (
-            <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm text-primary-700 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm border border-primary-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
-              {STATUS_LABELS.active.label}
-            </div>
-          ) : (
-            <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-gray-500 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm border border-gray-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-              {STATUS_LABELS[listing.status]?.label ?? STATUS_LABELS.taken.label}
-            </div>
-          )}
+          {/* Status badge + Mpya badge */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {isActive ? (
+              <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm text-primary-700 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm border border-primary-100">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
+                {STATUS_LABELS.active.label}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-gray-500 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm border border-gray-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                {STATUS_LABELS[listing.status]?.label ?? STATUS_LABELS.taken.label}
+              </div>
+            )}
+            {isNew && (
+              <div className="flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                <i className="ti ti-sparkles text-[9px]" aria-hidden="true" />
+                Mpya
+              </div>
+            )}
+          </div>
 
           {/* Save + Share — stop click from bubbling to the card nav handler */}
           <div className="absolute top-2 right-2 flex gap-1.5" onClick={e => e.stopPropagation()}>
@@ -384,9 +404,17 @@ const typeStyle         = TYPE_STYLE[listing.type] ?? TYPE_STYLE.nyumba
               </div>
             </div>
 
-            <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
-              <i className="ti ti-eye text-xs text-gray-400" aria-hidden="true" />
-              <span className="text-xs text-gray-400">{listing.view_count}</span>
+            <div className="flex items-center gap-2">
+              {listing.created_at && (
+                <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                  <i className="ti ti-clock text-[9px]" aria-hidden="true" />
+                  {listedAgo(listing.created_at)}
+                </span>
+              )}
+              <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
+                <i className="ti ti-eye text-xs text-gray-400" aria-hidden="true" />
+                <span className="text-xs text-gray-400">{listing.view_count}</span>
+              </div>
             </div>
           </div>
 
@@ -401,4 +429,15 @@ function formatPrice(amount: number): string {
   if (amount >= 1_000_000) return `Tsh ${(amount / 1_000_000).toFixed(1)}M/mwezi`
   if (amount >= 1_000) return `Tsh ${(amount / 1_000).toFixed(0)}k/mwezi`
   return `Tsh ${amount}/mwezi`
+}
+
+function listedAgo(iso: string): string {
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (s < 3600)  return 'Leo'
+  if (s < 86400) return `Saa ${Math.floor(s / 3600)} zilizopita`
+  const days = Math.floor(s / 86400)
+  if (days === 1) return 'Jana'
+  if (days < 30)  return `Siku ${days} zilizopita`
+  if (days < 60)  return 'Mwezi 1 uliopita'
+  return `Miezi ${Math.floor(days / 30)} iliyopita`
 }

@@ -30,15 +30,21 @@ const LIMIT = 10
 
 const LISTING_FIELDS = `
   id, title, type, status, price_monthly,
-  district, region, furnished, amenities,
+  district, region, ward, furnished, amenities,
   images, is_boosted, boosted_until,
   view_count, lead_count, share_count, latitude, longitude,
+  commission_type, created_at,
   dalali_id,
   dalali:dalali_id (
     id, full_name, avatar_url,
-    dalali_profiles ( rating_avg, is_premium_verified )
+    dalali_profiles ( rating_avg, is_premium_verified, is_favourite_dalali )
   )
 `
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+function isFresh(createdAt: string) {
+  return Date.now() - new Date(createdAt).getTime() < THIRTY_DAYS_MS
+}
 
 type Filters = {
   region: string
@@ -132,13 +138,16 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
       const { data, count, error } = await query
       if (error) throw error
 
-      const priorityOrder: Record<string, number> = { top: 0, high: 1, medium: 2, low: 3 }
       const raw = (data as unknown as ListingWithDalali[]) ?? []
       const rows = raw.sort((a, b) => {
+        // 1. Boosted always first
         if (a.is_boosted !== b.is_boosted) return a.is_boosted ? -1 : 1
-        const aPriority = priorityOrder[(a.dalali as { plan_priority?: string } | null)?.plan_priority ?? 'low'] ?? 3
-        const bPriority = priorityOrder[(b.dalali as { plan_priority?: string } | null)?.plan_priority ?? 'low'] ?? 3
-        return aPriority - bPriority
+        // 2. Fresh (within 30 days) before older listings
+        const aFresh = isFresh(a.created_at)
+        const bFresh = isFresh(b.created_at)
+        if (aFresh !== bFresh) return aFresh ? -1 : 1
+        // 3. Newest within each group
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       })
       setListings(prev => isNewSearch ? rows : [...prev, ...rows])
       setTotal(count ?? 0)
@@ -441,9 +450,45 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
               )}
             </div>
           ) : (
-            listings.map((listing, idx) => (
-              <ListingCard key={listing.id} listing={listing} hasUnlocked={unlockedIds.includes(listing.id)} priority={idx < 3} />
-            ))
+            (() => {
+              // Non-boosted listings split into fresh (≤30d) and older
+              const nonBoosted = listings.filter(l => !l.is_boosted)
+              const firstOlderIdx = nonBoosted.findIndex(l => !isFresh(l.created_at))
+              // Absolute index in full listings array where "older" section starts
+              const boostedCount = listings.filter(l => l.is_boosted).length
+              const olderStartIdx = firstOlderIdx === -1
+                ? listings.length
+                : boostedCount + firstOlderIdx
+
+              return listings.map((listing, idx) => (
+                <div key={listing.id}>
+                  {/* Section header: "Mpya — Ndani ya Siku 30" at top of fresh non-boosted */}
+                  {!listing.is_boosted && idx === boostedCount && nonBoosted.some(l => isFresh(l.created_at)) && (
+                    <div className="flex items-center gap-2 pt-1 pb-2">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+                      <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                        Mpya — Ndani ya Siku 30
+                      </p>
+                      <div className="flex-1 border-t border-gray-200" />
+                    </div>
+                  )}
+                  {/* Section header: "Listings Zingine" where older begins */}
+                  {idx === olderStartIdx && olderStartIdx < listings.length && olderStartIdx > 0 && (
+                    <div className="flex items-center gap-2 pt-3 pb-2">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                        Listings Zingine
+                      </p>
+                      <div className="flex-1 border-t border-gray-200" />
+                    </div>
+                  )}
+                  <ListingCard
+                    listing={listing}
+                    hasUnlocked={unlockedIds.includes(listing.id)}
+                    priority={idx < 3}
+                  />
+                </div>
+              ))
+            })()
           )}
 
           {/* Load more */}
