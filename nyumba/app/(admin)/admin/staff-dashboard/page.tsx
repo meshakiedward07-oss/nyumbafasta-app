@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
@@ -9,7 +9,9 @@ export default async function StaffDashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/staff-login?redirect=/admin/staff-dashboard')
 
-  const { data: profile } = await supabase
+  // Use admin client so RLS never blocks reading the user's own profile
+  const admin = createAdminClient()
+  const { data: profile } = await admin
     .from('users')
     .select('role, staff_active, must_change_password')
     .eq('id', user.id)
