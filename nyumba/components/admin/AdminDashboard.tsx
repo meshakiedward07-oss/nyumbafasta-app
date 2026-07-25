@@ -46,6 +46,7 @@ type Props = {
   pendingListings: AdminListing[]
   allListings: AdminListing[]
   pendingVerifications: AdminVerification[]
+  verifiedDalalis?: AdminVerification[]
   stats: Stats
   reports?: ReportItem[]
   regionStats?: [string, number][]
@@ -70,7 +71,7 @@ function timeAgo(dateStr: string) {
 
 export default function AdminDashboard({
   pendingListings, allListings,
-  pendingVerifications, stats, reports = [], regionStats = [],
+  pendingVerifications, verifiedDalalis = [], stats, reports = [], regionStats = [],
   initialTab = 'overview',
 }: Props) {
   // ── Main tabs ─────────────────────────────────────────
@@ -86,6 +87,7 @@ export default function AdminDashboard({
   // ── Verification ──────────────────────────────────────
   const [verifications, setVerifications] = useState(pendingVerifications)
   const [verifyLoading, setVerifyLoading] = useState<string | null>(null)
+  const [verifySubTab, setVerifySubTab]   = useState<'pending' | 'approved'>('pending')
 
   // ── Reports ───────────────────────────────────────────
   const [userActionLoading, setUserActionLoading] = useState<string | null>(null)
@@ -604,38 +606,84 @@ export default function AdminDashboard({
         ══════════════════════════════════════════════ */}
         {tab === 'verify' && (
           <div className="space-y-4">
-            {verifications.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
-                <div className="text-4xl mb-2"><i className="ti ti-circle-check text-4xl text-green-400" aria-hidden="true" /></div>
-                <p className="text-sm text-gray-500">Hakuna maombi ya uthibitisho yanayosubiri</p>
-              </div>
-            ) : verifications.map(v => (
-              <VerifyCard
-                key={v.user_id}
-                v={v}
-                loading={verifyLoading === v.user_id}
-                onApprove={async () => {
-                  setVerifyLoading(v.user_id)
-                  await fetch('/api/v1/admin/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ dalali_user_id: v.user_id, action: 'approve' }),
-                  })
-                  setVerifications(prev => prev.filter(x => x.user_id !== v.user_id))
-                  setVerifyLoading(null)
-                }}
-                onReject={async (reason: string) => {
-                  setVerifyLoading(v.user_id)
-                  await fetch('/api/v1/admin/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ dalali_user_id: v.user_id, action: 'reject', reason }),
-                  })
-                  setVerifications(prev => prev.filter(x => x.user_id !== v.user_id))
-                  setVerifyLoading(null)
-                }}
-              />
-            ))}
+            {/* Sub-tabs */}
+            <div className="flex gap-2 bg-gray-100 p-1 rounded-2xl">
+              <button
+                onClick={() => setVerifySubTab('pending')}
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                  verifySubTab === 'pending'
+                    ? 'bg-white shadow text-gray-900'
+                    : 'text-gray-500'
+                }`}
+              >
+                <i className="ti ti-clock" aria-hidden="true" />
+                Zinasubiri
+                {verifications.length > 0 && (
+                  <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{verifications.length}</span>
+                )}
+              </button>
+              <button
+                onClick={() => setVerifySubTab('approved')}
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                  verifySubTab === 'approved'
+                    ? 'bg-white shadow text-gray-900'
+                    : 'text-gray-500'
+                }`}
+              >
+                <i className="ti ti-circle-check" aria-hidden="true" />
+                Waliothibitishwa
+                {verifiedDalalis.length > 0 && (
+                  <span className="bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{verifiedDalalis.length}</span>
+                )}
+              </button>
+            </div>
+
+            {/* Pending verifications */}
+            {verifySubTab === 'pending' && (
+              verifications.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+                  <div className="text-4xl mb-2"><i className="ti ti-circle-check text-4xl text-green-400" aria-hidden="true" /></div>
+                  <p className="text-sm text-gray-500">Hakuna maombi ya uthibitisho yanayosubiri</p>
+                </div>
+              ) : verifications.map(v => (
+                <VerifyCard
+                  key={v.user_id}
+                  v={v}
+                  loading={verifyLoading === v.user_id}
+                  onApprove={async () => {
+                    setVerifyLoading(v.user_id)
+                    await fetch('/api/v1/admin/verify', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ dalali_user_id: v.user_id, action: 'approve' }),
+                    })
+                    setVerifications(prev => prev.filter(x => x.user_id !== v.user_id))
+                    setVerifyLoading(null)
+                  }}
+                  onReject={async (reason: string) => {
+                    setVerifyLoading(v.user_id)
+                    await fetch('/api/v1/admin/verify', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ dalali_user_id: v.user_id, action: 'reject', reason }),
+                    })
+                    setVerifications(prev => prev.filter(x => x.user_id !== v.user_id))
+                    setVerifyLoading(null)
+                  }}
+                />
+              ))
+            )}
+
+            {/* Approved dalalis — document archive */}
+            {verifySubTab === 'approved' && (
+              verifiedDalalis.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+                  <p className="text-sm text-gray-500">Hakuna madalali waliothibitishwa bado</p>
+                </div>
+              ) : verifiedDalalis.map(v => (
+                <VerifiedDalaliCard key={v.user_id} v={v} />
+              ))
+            )}
           </div>
         )}
 
@@ -935,6 +983,92 @@ function VerifyCard({
           onChange={e => setRejectReason(e.target.value)}
           className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-red-200"
         />
+      </div>
+    </div>
+  )
+}
+
+function VerifiedDalaliCard({ v }: { v: AdminVerification }) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div className="bg-white rounded-2xl border border-green-100 shadow-sm overflow-hidden">
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="font-semibold text-gray-900 text-sm">{v.user?.full_name ?? 'Dalali'}</p>
+              <span className="inline-flex items-center gap-0.5 bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                <i className="ti ti-circle-check" aria-hidden="true" /> Amethibitishwa
+              </span>
+              {v.business_license_url && (
+                <span className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  <i className="ti ti-rosette-discount-check" aria-hidden="true" /> Leseni
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-400">{v.user?.phone ?? ''}</p>
+            {v.nida_number && (
+              <p className="text-xs text-gray-500 mt-0.5">NIDA: <span className="font-mono">{v.nida_number}</span></p>
+            )}
+            {v.verification_approved_at && (
+              <p className="text-xs text-green-600 mt-0.5">
+                <i className="ti ti-calendar-check" aria-hidden="true" /> Imethibitishwa: {timeAgo(v.verification_approved_at)}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setExpanded(e => !e)}
+            className="flex-shrink-0 text-xs text-primary-600 font-medium bg-primary-50 px-3 py-1.5 rounded-xl"
+          >
+            {expanded ? 'Ficha' : 'Ona Hati'}
+          </button>
+        </div>
+
+        {expanded && (
+          <div className="space-y-3 pt-2 border-t border-gray-100">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Picha za Utambulisho</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[v.nida_image_front, v.nida_image_back, v.selfie_image].map((src, i) => (
+                src ? (
+                  <a key={i} href={src} target="_blank" rel="noreferrer"
+                    className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 block border border-gray-200">
+                    <Image fill src={src} alt="" className="object-cover" sizes="120px" unoptimized />
+                    <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-0.5">
+                      {['NIDA Mbele', 'NIDA Nyuma', 'Selfie'][i]}
+                    </span>
+                    <span className="absolute top-1.5 right-1.5 bg-black/50 text-white rounded-full p-0.5">
+                      <i className="ti ti-external-link text-[10px]" aria-hidden="true" />
+                    </span>
+                  </a>
+                ) : (
+                  <div key={i} className="aspect-square rounded-xl bg-gray-50 border border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 text-gray-300">
+                    <i className="ti ti-photo-off text-base" aria-hidden="true" />
+                    <span className="text-[10px]">{['NIDA Mbele', 'NIDA Nyuma', 'Selfie'][i]}</span>
+                  </div>
+                )
+              ))}
+            </div>
+
+            {v.business_license_url ? (
+              <a
+                href={v.business_license_url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-amber-700 active:scale-95 transition-all"
+              >
+                <i className="ti ti-file-type-pdf text-base text-red-500" aria-hidden="true" />
+                <span className="flex-1">Fungua Leseni ya Udalali (PDF)</span>
+                <i className="ti ti-external-link text-amber-400" aria-hidden="true" />
+              </a>
+            ) : (
+              <div className="flex items-center gap-2 bg-gray-50 border border-dashed border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-400">
+                <i className="ti ti-file-off" aria-hidden="true" />
+                Leseni ya udalali haikuwasilishwa
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -8,6 +8,7 @@ export type AdminPageData = {
   pendingListings: AdminListing[]
   allListings: AdminListing[]
   pendingVerifications: AdminVerification[]
+  verifiedDalalis: AdminVerification[]
   reports: unknown[]
   regionStats: [string, number][]
   stats: {
@@ -35,6 +36,7 @@ export async function getAdminData(): Promise<AdminPageData> {
     dalaliCountRes,
     totalUsersCountRes,
     verificationRes,
+    verifiedDalalisRes,
     trialSubsRes,
     reportsRes,
   ] = await Promise.all([
@@ -68,11 +70,23 @@ export async function getAdminData(): Promise<AdminPageData> {
       .select(`
         user_id, nida_number, nida_image_front, nida_image_back, selfie_image,
         business_license_url,
-        verification_status, verification_submitted_at, verification_rejected_reason,
+        verification_status, verification_submitted_at, verification_approved_at, verification_rejected_reason,
         user:user_id ( id, full_name, phone )
       `)
       .eq('verification_status', 'pending')
       .order('verification_submitted_at', { ascending: true }),
+
+    admin
+      .from('dalali_profiles')
+      .select(`
+        user_id, nida_number, nida_image_front, nida_image_back, selfie_image,
+        business_license_url,
+        verification_status, verification_submitted_at, verification_approved_at, verification_rejected_reason,
+        user:user_id ( id, full_name, phone )
+      `)
+      .eq('verification_status', 'approved')
+      .order('verification_approved_at', { ascending: false })
+      .limit(100),
 
     admin
       .from('subscriptions')
@@ -96,6 +110,7 @@ export async function getAdminData(): Promise<AdminPageData> {
   const allAdminListings     = (allListingsRes.data ?? []) as unknown as AdminListing[]
   const pendingListings      = allAdminListings.filter(l => l.status === 'pending')
   const pendingVerifications = (verificationRes.data ?? []) as unknown as AdminVerification[]
+  const verifiedDalalis      = (verifiedDalalisRes.data ?? []) as unknown as AdminVerification[]
   const trialSubs            = (trialSubsRes?.data ?? []) as { id: string; status: string; trial_converted_at: string | null }[]
   const reports              = (reportsRes?.data ?? []) as unknown[]
 
@@ -116,6 +131,7 @@ export async function getAdminData(): Promise<AdminPageData> {
     pendingListings,
     allListings:        allAdminListings,
     pendingVerifications,
+    verifiedDalalis,
     reports,
     regionStats,
     stats: {

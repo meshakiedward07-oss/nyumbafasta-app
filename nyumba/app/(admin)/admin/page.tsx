@@ -8,6 +8,7 @@ export default async function AdminPage() {
       pendingListings={data.pendingListings}
       allListings={data.allListings}
       pendingVerifications={data.pendingVerifications}
+      verifiedDalalis={data.verifiedDalalis}
       reports={data.reports as Parameters<typeof AdminDashboard>[0]['reports']}
       regionStats={data.regionStats}
       stats={data.stats}
@@ -50,6 +51,7 @@ export type AdminVerification = {
   business_license_url: string | null
   verification_status: string
   verification_submitted_at: string | null
+  verification_approved_at: string | null
   verification_rejected_reason: string | null
   user: { id: string; full_name: string; phone: string | null } | null
 }
