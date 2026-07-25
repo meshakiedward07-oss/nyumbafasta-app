@@ -21,17 +21,5 @@ export default async function LeadsPage() {
   if (profile.is_active === false) redirect('/staff-login')
   if (profile.role === 'staff' && !profile.staff_active) redirect('/staff-login')
 
-  // Staff need listing_analytics permission; admins always pass
-  if (profile.role === 'staff') {
-    const { data: perm } = await admin
-      .from('staff_permissions')
-      .select('permission_key')
-      .eq('staff_id', user.id)
-      .eq('permission_key', 'listing_analytics')
-      .maybeSingle()
-
-    if (!perm) redirect('/admin/no-access')
-  }
-
   return <LeadsClient />
 }

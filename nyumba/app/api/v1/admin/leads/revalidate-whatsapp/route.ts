@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { requireAdminAuth } from '@/lib/security/adminAuth'
+import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { cleanPhone } from '@/lib/leads/cleanPhone'
 
 export const dynamic = 'force-dynamic'
@@ -9,7 +9,7 @@ export const maxDuration = 60
 // Bulk re-validate WhatsApp numbers for ALL leads.
 // Pure format check — no HTTP calls, so processes thousands of rows quickly.
 export async function POST() {
-  const auth = await requireAdminAuth()
+  const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
 
   const admin = createAdminClient()

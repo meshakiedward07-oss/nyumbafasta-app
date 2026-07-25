@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-import { requireAdminAuth } from '@/lib/security/adminAuth'
+import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { verifySingleLead, normalizeUrl } from '@/lib/leads/socialChecker'
 import { cleanPhone } from '@/lib/leads/cleanPhone'
 import { cache } from '@/lib/cache/memoryCache'
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 // ── GET — list leads with filters ─────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminAuth()
+  const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
 
   try {
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
 
 // ── POST — add single lead manually ──────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const auth = await requireAdminAuth()
+  const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
 
   try {
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
 
 // ── PATCH — update lead ───────────────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
-  const auth = await requireAdminAuth()
+  const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
 
   try {
@@ -168,7 +168,7 @@ export async function PATCH(req: NextRequest) {
 // Bulk:    ?ids=<uuid>,<uuid>,...&type=hard
 // All:     ?all=true&type=hard  (optional: &quality=high&status=new)
 export async function DELETE(req: NextRequest) {
-  const auth = await requireAdminAuth()
+  const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
 
   try {

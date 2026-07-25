@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-import { requireAdminUser } from '@/lib/security/adminAuth'
+import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { cache } from '@/lib/cache/memoryCache'
 
 export const dynamic = 'force-dynamic'
@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic'
 // Accepts either { staffId, leadIds } for explicit selection
 // or { staffId, count, quality?, status? } to auto-pick N unassigned leads
 export async function POST(req: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Admin tu anaweza kugawa leads' }, { status: 403 })
+  const auth = await requireStaffAuth()
+  if (!auth.ok) return auth.response
 
   try {
     const body = await req.json() as {

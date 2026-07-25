@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-import { requireAdminAuth } from '@/lib/security/adminAuth'
+import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { verifyLeadBatch } from '@/lib/leads/socialChecker'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdminAuth()
+  const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
 
   try {

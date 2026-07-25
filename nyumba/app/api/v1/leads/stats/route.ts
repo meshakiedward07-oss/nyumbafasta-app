@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-import { requireAdminAuth } from '@/lib/security/adminAuth'
+import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { cache, TTL } from '@/lib/cache/memoryCache'
 
 export const dynamic = 'force-dynamic'
@@ -63,7 +63,7 @@ async function computeStats(since: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminAuth()
+  const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
 
   const since = new URL(req.url).searchParams.get('since') || ''

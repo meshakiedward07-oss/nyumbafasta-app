@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-import { requireAdminAuth } from '@/lib/security/adminAuth'
+import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { cleanPhone } from '@/lib/leads/cleanPhone'
 import { verifyLeadBatch, normalizeUrl } from '@/lib/leads/socialChecker'
 import { cache } from '@/lib/cache/memoryCache'
@@ -235,7 +235,7 @@ function crossCheckDB(
 
 // ── POST /api/v1/leads/import ─────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const auth = await requireAdminAuth()
+  const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
 
   let batchId: string | null = null

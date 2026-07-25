@@ -34,7 +34,8 @@ export async function GET(
       .maybeSingle()
 
     const isAdmin = profile?.role === 'admin'
-    if (!isAdmin && listing.dalali_id !== user.id) {
+    const isStaff = profile?.role === 'staff'
+    if (!isAdmin && !isStaff && listing.dalali_id !== user.id) {
       return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
     }
 
