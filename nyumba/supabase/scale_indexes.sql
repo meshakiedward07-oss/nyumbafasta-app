@@ -34,14 +34,15 @@ CREATE INDEX IF NOT EXISTS idx_ad_campaigns_expires
   WHERE status IN ('active', 'approved');
 
 -- ── Ad Impressions / Frequency Cap ───────────────────────────────────────────
+-- Note: ad_impressions uses 'shown_at' not 'created_at'
 
 -- Frequency cap lookup (per session + campaign)
 CREATE INDEX IF NOT EXISTS idx_ad_impressions_session_campaign
-  ON ad_impressions(session_id, campaign_id, created_at DESC);
+  ON ad_impressions(session_id, campaign_id, shown_at DESC);
 
 -- Campaign-level impression count (analytics)
 CREATE INDEX IF NOT EXISTS idx_ad_impressions_campaign_date
-  ON ad_impressions(campaign_id, created_at DESC);
+  ON ad_impressions(campaign_id, shown_at DESC);
 
 -- ── Advertisers ───────────────────────────────────────────────────────────────
 
@@ -72,14 +73,15 @@ CREATE INDEX IF NOT EXISTS idx_social_posts_created
   ON social_posts(created_at DESC, platform);
 
 -- ── Legal / Violations ────────────────────────────────────────────────────────
+-- Note: actual table name is 'agreement_violations' not 'violations'
 
 -- Violation list by status (admin legal panel)
 CREATE INDEX IF NOT EXISTS idx_violations_status_created
-  ON violations(status, created_at DESC);
+  ON agreement_violations(status, created_at DESC);
 
 -- Reported user lookup
 CREATE INDEX IF NOT EXISTS idx_violations_reported_user
-  ON violations(reported_user_id, status);
+  ON agreement_violations(reported_user_id, status);
 
 -- ── Staff Permissions ─────────────────────────────────────────────────────────
 
