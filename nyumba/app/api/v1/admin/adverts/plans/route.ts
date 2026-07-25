@@ -9,8 +9,9 @@ export async function GET() {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('ad_subscription_plans')
-    .select('*')
+    .select('id, name, ad_type, price_tzs, duration_days, slot_limit, display_order, is_active, visibility, description')
     .order('display_order', { ascending: true })
+    .limit(100)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ plans: data ?? [] })

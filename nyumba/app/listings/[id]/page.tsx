@@ -1,6 +1,10 @@
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+
+// Revalidate every 60 seconds — serves cached HTML for the 10M users
+// hitting the same listing while keeping content fresh enough.
+export const revalidate = 60
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import ListingDetail from '@/components/listings/ListingDetail'

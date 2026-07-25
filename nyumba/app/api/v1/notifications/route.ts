@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('is_read', false)
-      return NextResponse.json({ unread_count: count ?? 0 })
+      return NextResponse.json(
+        { unread_count: count ?? 0 },
+        { headers: { 'Cache-Control': 'private, max-age=30' } },
+      )
     }
 
     const { data: notifications, error } = await supabase

@@ -1,8 +1,12 @@
 'use client'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import type { RealtimeChannel } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/client'
+
+// Polling-based notification bell — no persistent WebSocket per user.
+// Supabase Realtime has a hard cap on concurrent connections (10,000 on Pro).
+// At scale, one realtime channel per active user would exhaust that cap
+// instantly. Polling every 30 s stays within HTTP rate limits, uses CDN
+// caching on the count endpoint, and degrades gracefully under load.
 
 interface Props {
   className?: string
@@ -12,7 +16,6 @@ interface Props {
 
 export default function NotificationBell({ className = '', asLink = true }: Props) {
   const [unread, setUnread] = useState(0)
-  const channelRef = useRef<RealtimeChannel | null>(null)
 
   const fetchCount = useCallback(() => {
     fetch('/api/v1/notifications?count=true')
@@ -22,44 +25,21 @@ export default function NotificationBell({ className = '', asLink = true }: Prop
   }, [])
 
   useEffect(() => {
-    // 1. Initial fetch
     fetchCount()
 
-    // 2. Refresh when tab regains focus
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') fetchCount()
-    }
+    // Re-fetch when tab becomes visible (handles background-tab resumption)
+    const onVisibility = () => { if (document.visibilityState === 'visible') fetchCount() }
     const onFocus = () => fetchCount()
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('focus', onFocus)
 
-    // 4. Supabase realtime — instant updates on INSERT to notifications
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return
-      const ch = supabase.channel('notif-bell')
-      ch.on(
-        'postgres_changes',
-        {
-          event:  'INSERT',
-          schema: 'public',
-          table:  'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          setUnread(prev => prev + 1)
-          if ('vibrate' in navigator) navigator.vibrate(200)
-        }
-      ).subscribe()
-      channelRef.current = ch
-    })
+    // 30-second poll — frequent enough to feel responsive, light enough for scale
+    const timer = setInterval(fetchCount, 30_000)
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('focus', onFocus)
-      if (channelRef.current) {
-        createClient().removeChannel(channelRef.current)
-      }
+      clearInterval(timer)
     }
   }, [fetchCount])
 

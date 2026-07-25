@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 
 type Story = {
   id: string
@@ -210,8 +211,7 @@ export default function StoriesTab() {
                     const img   = found?.images?.[0]
                     return img ? (
                       <div className="mt-2 relative rounded-xl overflow-hidden bg-gray-100" style={{ aspectRatio: '9/16', maxHeight: 200 }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={img} alt="Preview" className="w-full h-full object-cover" />
+                        <Image src={img} alt="Preview" fill className="object-cover" unoptimized />
                         <div className="absolute inset-0 flex items-end justify-center pb-4">
                           <span className="bg-black/60 text-white text-xs px-3 py-1 rounded-full">
                             Itakuwa 9:16 + watermark

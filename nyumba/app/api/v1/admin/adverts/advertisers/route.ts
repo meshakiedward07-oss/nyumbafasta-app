@@ -171,7 +171,7 @@ export async function PATCH(req: NextRequest) {
     .from('advertisers')
     .update(updates)
     .eq('id', id)
-    .select()
+    .select('id, status, rejection_reason, reviewed_at')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

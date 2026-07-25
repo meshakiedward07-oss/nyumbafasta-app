@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 
 type Advertiser = {
@@ -187,8 +188,7 @@ export default function AdminAdvertisersPage() {
             <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center flex-shrink-0 text-lg">
                 {detail.logo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={detail.logo_url} alt="" className="w-full h-full object-cover rounded-xl" />
+                  <Image src={detail.logo_url} alt="" width={40} height={40} className="w-full h-full object-cover rounded-xl" unoptimized />
                 ) : (
                   <span className="text-primary-600 font-bold">{detail.business_name.charAt(0).toUpperCase()}</span>
                 )}
@@ -365,8 +365,7 @@ export default function AdminAdvertisersPage() {
                     {/* Logo */}
                     <div className="w-11 h-11 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {a.logo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={a.logo_url} alt="" className="w-full h-full object-cover" />
+                        <Image src={a.logo_url} alt="" width={44} height={44} className="w-full h-full object-cover" unoptimized />
                       ) : (
                         <span className="text-primary-600 font-bold text-base">{a.business_name.charAt(0).toUpperCase()}</span>
                       )}

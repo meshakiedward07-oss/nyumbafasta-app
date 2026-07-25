@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
     .select('id, full_name, phone, staff_title, staff_active, max_leads_capacity, created_at')
     .eq('role', 'staff')
     .order('created_at', { ascending: false })
+    .limit(500)
 
   if (filteredIds) {
     query = query.in('id', filteredIds)

@@ -38,8 +38,9 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(result, {
     headers: {
-      // Short cache — rotation changes daily, freq cap changes per user
-      'Cache-Control': 'no-store',
+      // Per-user ad ranking — not publicly cacheable, but allow the browser
+      // to cache briefly so rapid navigations don't re-fire this endpoint.
+      'Cache-Control': 'private, max-age=30',
     },
   })
 }
