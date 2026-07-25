@@ -259,6 +259,8 @@ export default function AdminUsersClient() {
   const [confirmDeleteId, setConfirmDeleteId]   = useState<string | null>(null)
   const [deleteReason, setDeleteReason]         = useState('')
   const [deleteNotify, setDeleteNotify]         = useState(true)
+  const [confirmBanId, setConfirmBanId]         = useState<string | null>(null)
+  const [confirmSuspendData, setConfirmSuspendData] = useState<{ id: string; action: 'suspend' | 'activate' } | null>(null)
   const [actionError, setActionError]           = useState('')
   const [newUserBanner, setNewUserBanner]       = useState<string | null>(null)
 
@@ -668,8 +670,8 @@ export default function AdminUsersClient() {
                           <ActionMenu
                             user={u}
                             onView={u.role === 'dalali' ? `/admin/users/${u.id}` : undefined}
-                            onSuspend={() => handleSuspendActivate(u.id, u.is_active === false ? 'activate' : 'suspend')}
-                            onBan={() => handleBan(u.id)}
+                            onSuspend={() => setConfirmSuspendData({ id: u.id, action: u.is_active === false ? 'activate' : 'suspend' })}
+                            onBan={() => setConfirmBanId(u.id)}
                             onDelete={() => setConfirmDeleteId(u.id)}
                             loading={actionLoading === u.id}
                           />
@@ -752,7 +754,7 @@ export default function AdminUsersClient() {
                         </Link>
                       )}
                       <button
-                        onClick={() => handleSuspendActivate(u.id, u.is_active === false ? 'activate' : 'suspend')}
+                        onClick={() => setConfirmSuspendData({ id: u.id, action: u.is_active === false ? 'activate' : 'suspend' })}
                         disabled={actionLoading === u.id}
                         className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] disabled:opacity-40 ${
                           u.is_active === false ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
@@ -762,7 +764,7 @@ export default function AdminUsersClient() {
                       </button>
                       {u.is_active !== false && (
                         <button
-                          onClick={() => handleBan(u.id)}
+                          onClick={() => setConfirmBanId(u.id)}
                           disabled={actionLoading === u.id}
                           className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700 disabled:opacity-40 active:scale-[0.97] transition-all"
                           title="Ban Mtumiaji"
@@ -873,13 +875,61 @@ export default function AdminUsersClient() {
         </div>
       )}
 
+      {/* ── Ban confirmation modal ── */}
+      {confirmBanId && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setConfirmBanId(null)}>
+          <div className="bg-white w-full rounded-t-3xl px-6 pt-4 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
+            <div className="flex justify-center mb-2"><i className="ti ti-ban text-4xl text-orange-500" aria-hidden="true" /></div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-1">Ban Mtumiaji?</h3>
+            <p className="text-xs text-gray-500 text-center mb-6">Akaunti itafungwa. Mtumiaji hataweza kuingia tena hadi unrestriction.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmBanId(null)} className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm">Ghairi</button>
+              <button onClick={() => { handleBan(confirmBanId); setConfirmBanId(null) }} disabled={!!actionLoading} className="flex-1 py-3.5 rounded-2xl bg-orange-500 text-white font-bold text-sm disabled:opacity-40">
+                {actionLoading ? '...' : 'Ndio, Ban'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Suspend / Activate confirmation modal ── */}
+      {confirmSuspendData && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setConfirmSuspendData(null)}>
+          <div className="bg-white w-full rounded-t-3xl px-6 pt-4 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
+            <div className="flex justify-center mb-2">
+              <i className={`ti text-4xl ${confirmSuspendData.action === 'suspend' ? 'ti-lock text-amber-500' : 'ti-lock-open text-primary-500'}`} aria-hidden="true" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-1">
+              {confirmSuspendData.action === 'suspend' ? 'Simamisha Akaunti?' : 'Washa Akaunti?'}
+            </h3>
+            <p className="text-xs text-gray-500 text-center mb-6">
+              {confirmSuspendData.action === 'suspend'
+                ? 'Mtumiaji hataweza kuingia hadi akaunti ifunguliwe tena.'
+                : 'Mtumiaji ataweza kuingia tena baada ya hatua hii.'}
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmSuspendData(null)} className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm">Ghairi</button>
+              <button
+                onClick={() => { handleSuspendActivate(confirmSuspendData.id, confirmSuspendData.action); setConfirmSuspendData(null) }}
+                disabled={!!actionLoading}
+                className={`flex-1 py-3.5 rounded-2xl text-white font-bold text-sm disabled:opacity-40 ${confirmSuspendData.action === 'suspend' ? 'bg-amber-500' : 'bg-primary-500'}`}
+              >
+                {actionLoading ? '...' : confirmSuspendData.action === 'suspend' ? 'Ndio, Simamisha' : 'Ndio, Washa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── User detail modal ── */}
       {selectedUser && (
         <UserDetailModal
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
-          onSuspend={() => { handleSuspendActivate(selectedUser.id, selectedUser.is_active === false ? 'activate' : 'suspend'); setSelectedUser(null) }}
-          onBan={() => { handleBan(selectedUser.id); setSelectedUser(null) }}
+          onSuspend={() => { setSelectedUser(null); setConfirmSuspendData({ id: selectedUser.id, action: selectedUser.is_active === false ? 'activate' : 'suspend' }) }}
+          onBan={() => { setSelectedUser(null); setConfirmBanId(selectedUser.id) }}
           onDelete={() => { setConfirmDeleteId(selectedUser.id); setSelectedUser(null) }}
           micrositeStats={micrositeStats}
           loadingMicrosite={loadingMicrosite}

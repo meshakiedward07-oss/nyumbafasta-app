@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import type { PermissionKey } from '@/lib/staff/permissions'
 
@@ -218,6 +219,7 @@ const PRIORITY_STYLES: Record<string, string> = {
 // ── Main Component ─────────────────────────────────────────────────────────
 
 export default function StaffDashboardClient() {
+  const router = useRouter()
   const [data,        setData]        = useState<DashboardData | null>(null)
   const [loading,     setLoading]     = useState(true)
   const [tab,         setTab]         = useState<Tab>('overview')
@@ -516,7 +518,7 @@ export default function StaffDashboardClient() {
                 <StatCard icon="id-badge" label="Uthibitisho Unaongoja" value={stats.pendingVerifications} color="blue" onClick={() => setTab('verifications')} />
               )}
               {has('leads') && (
-                <StatCard icon="target" label="Leads Zangu Hai" value={stats.myActiveLeads} color="green" />
+                <StatCard icon="target" label="Leads Zangu Hai" value={stats.myActiveLeads} color="green" onClick={() => router.push('/admin/staff-leads')} />
               )}
               {has('manage_subscriptions') && (
                 <StatCard icon="credit-card" label="Usajili Unaoisha" value={stats.expiringSubs} color="purple" onClick={() => setTab('subscriptions')} />

@@ -136,6 +136,7 @@ export default function LeadsClient() {
   const [total, setTotal]           = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading]       = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [stats, setStats]           = useState<Stats>(EMPTY_STATS)
   const [statsLoading, setStatsLoading] = useState(true)
 
@@ -235,11 +236,15 @@ export default function LeadsClient() {
         ...(socialFilter  && { social: socialFilter }),
       })
       const res  = await fetch(`/api/v1/leads?${p}`)
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `Hitilafu ${res.status}`)
       const data = await res.json()
+      setFetchError(null)
       setLeads(data.leads || [])
       setTotal(data.pagination?.total || 0)
       setTotalPages(data.pagination?.totalPages || 1)
-    } catch { /* silent */ } finally { setLoading(false) }
+    } catch (e) {
+      setFetchError(e instanceof Error ? e.message : 'Imeshindwa kupakia leads')
+    } finally { setLoading(false) }
   }, [view, page, search, qualityFilter, typeFilter, statusFilter, socialFilter, showDups, showDead])
 
   const fetchStats = useCallback(async () => {
@@ -516,7 +521,7 @@ export default function LeadsClient() {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white max-w-xs transition-all ${toast.ok ? 'bg-emerald-600' : 'bg-red-500'}`}>
+        <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white max-w-xs animate-in slide-in-from-top-2 ${toast.ok ? 'bg-gray-900' : 'bg-red-600'}`}>
           {toast.msg}
         </div>
       )}
@@ -615,7 +620,7 @@ export default function LeadsClient() {
                 <i className="ti ti-plus text-sm" /> Ongeza
               </button>
               <button onClick={() => { setShowDistributeModal(true) }}
-                className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow-sm">
+                className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-semibold hover:bg-primary-600 shadow-sm">
                 <i className="ti ti-users-group text-sm" /> Gawa
               </button>
               <button onClick={() => { setShowBroadcastModal(true); setBroadcastResult(null) }}
@@ -839,7 +844,17 @@ export default function LeadsClient() {
                   </tbody>
                 </table>
               </div>
-              {!loading && leads.length === 0 && (
+              {!loading && fetchError && (
+                <div className="py-16 text-center">
+                  <i className="ti ti-alert-circle text-4xl text-red-300 block mb-3" />
+                  <p className="font-semibold text-gray-600">Imeshindwa kupakia leads</p>
+                  <p className="text-xs text-red-400 mt-1 mb-4">{fetchError}</p>
+                  <button onClick={() => fetchLeads()} className="bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-primary-600">
+                    Jaribu Tena
+                  </button>
+                </div>
+              )}
+              {!loading && !fetchError && leads.length === 0 && (
                 <div className="py-20 text-center">
                   <i className="ti ti-users text-5xl text-gray-300 block mb-3" />
                   <p className="font-semibold text-gray-600">{activeFilterCount > 0 ? 'Hakuna leads zinazolingana' : 'Hakuna leads bado'}</p>
@@ -1620,7 +1635,7 @@ export default function LeadsClient() {
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-bold text-lg flex items-center gap-2">
-                <span className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center"><i className="ti ti-users-group text-white text-base" /></span>
+                <span className="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center"><i className="ti ti-users-group text-white text-base" /></span>
                 Gawa Leads kwa Mfanyakazi
               </h3>
               <button onClick={() => setShowDistributeModal(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200"><i className="ti ti-x" /></button>
@@ -1639,8 +1654,8 @@ export default function LeadsClient() {
               ) : (
                 /* Manual count entry */
                 <div className="space-y-3">
-                  <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
-                    <label className="text-xs font-bold text-indigo-700 uppercase tracking-wide block mb-2">
+                  <div className="bg-primary-50 border border-primary-100 rounded-2xl p-4">
+                    <label className="text-xs font-bold text-primary-700 uppercase tracking-wide block mb-2">
                       <i className="ti ti-hash mr-1" />Idadi ya leads za kugawa
                     </label>
                     <input
@@ -1648,16 +1663,16 @@ export default function LeadsClient() {
                       value={distributeCount}
                       onChange={e => setDistributeCount(e.target.value === '' ? '' : Math.min(500, Math.max(1, parseInt(e.target.value) || 1)))}
                       placeholder="Andika idadi (mf. 50)"
-                      className="w-full border-2 border-indigo-200 rounded-xl px-4 py-3 text-2xl font-bold text-indigo-800 text-center focus:outline-none focus:border-indigo-500 bg-white"
+                      className="w-full border-2 border-primary-200 rounded-xl px-4 py-3 text-2xl font-bold text-primary-800 text-center focus:outline-none focus:border-primary-500 bg-white"
                     />
-                    <p className="text-xs text-indigo-500 mt-2 text-center">
+                    <p className="text-xs text-primary-500 mt-2 text-center">
                       Mfumo utachagua leads {distributeCount || '?'} bila assignment kutoka kwenye database · max 500
                     </p>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Chuja kwa ubora (hiari)</label>
                     <select value={distributeQuality} onChange={e => setDistributeQuality(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300/30">
                       <option value="">Ubora wote</option>
                       <option value="high">Ubora Juu tu</option>
                       <option value="medium">Wastani tu</option>
@@ -1675,10 +1690,10 @@ export default function LeadsClient() {
                   : <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                       {staffList.map(s => (
                         <button key={s.id} type="button" onClick={() => setDistributeStaffId(s.id)}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-medium text-left transition-all ${distributeStaffId === s.id ? 'border-indigo-500 bg-indigo-50 text-indigo-800' : 'border-gray-100 bg-white hover:border-gray-200 text-gray-700'}`}>
-                          <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">{s.full_name.charAt(0)}</div>
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-sm font-medium text-left transition-all ${distributeStaffId === s.id ? 'border-primary-500 bg-primary-50 text-primary-800' : 'border-gray-100 bg-white hover:border-gray-200 text-gray-700'}`}>
+                          <div className="w-8 h-8 bg-primary-100 rounded-xl flex items-center justify-center text-primary-600 font-bold text-sm flex-shrink-0">{s.full_name.charAt(0)}</div>
                           <div className="min-w-0"><p className="font-semibold truncate">{s.full_name}</p>{s.staff_title && <p className="text-xs text-gray-400">{s.staff_title}</p>}</div>
-                          {distributeStaffId === s.id && <i className="ti ti-check ml-auto text-indigo-600 text-base" />}
+                          {distributeStaffId === s.id && <i className="ti ti-check ml-auto text-primary-600 text-base" />}
                         </button>
                       ))}
                     </div>

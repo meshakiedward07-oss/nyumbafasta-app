@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { STAFF_PERMISSIONS, ADMIN_TASK_PERMISSIONS } from '@/lib/staff/permissions'
 import type { PermissionKey } from '@/lib/staff/permissions'
@@ -42,6 +42,32 @@ function PendingBadge() {
   )
 }
 
+function InboxBadge() {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/inbox/stats')
+        if (!res.ok) return
+        const d = await res.json()
+        if (!cancelled) setCount(d.flagged ?? 0)
+      } catch { /* silent */ }
+    }
+    load()
+    const timer = setInterval(load, 60_000)
+    return () => { cancelled = true; clearInterval(timer) }
+  }, [])
+
+  if (count === 0) return null
+  return (
+    <span className="ml-auto min-w-[20px] h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full px-1.5 flex items-center justify-center">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
 const NAV_SECTIONS = [
   {
     title: 'Muhtasari',
@@ -72,8 +98,8 @@ const NAV_SECTIONS = [
   {
     title: 'Mawasiliano',
     items: [
-      { href: '/admin/email',         label: 'Barua Pepe',       icon: 'mail', exact: false },
-      { href: '/admin/inbox',         label: 'Inbox ya Ujumbe',  icon: 'inbox', exact: false },
+      { href: '/admin/email',         label: 'Barua Pepe',       icon: 'mail',  exact: false },
+      { href: '/admin/inbox',         label: 'Inbox ya Ujumbe',  icon: 'inbox', exact: false, badge: 'inbox' as const },
     ],
   },
   {
@@ -83,7 +109,7 @@ const NAV_SECTIONS = [
       { href: '/admin/users',         label: 'Watumiaji',        icon: 'users', exact: false },
       { href: '/admin/listings',      label: 'Matangazo',        icon: 'home', exact: false },
       { href: '/admin/verifications', label: 'Uthibitisho',      icon: 'check', exact: false },
-      { href: '/admin/subscriptions', label: 'Usajili',          icon: 'credit-card', exact: false },
+      { href: '/admin/accounting',    label: 'Usajili / Hesabu', icon: 'credit-card', exact: false },
     ],
   },
   {
@@ -91,12 +117,6 @@ const NAV_SECTIONS = [
     items: [
       { href: '/admin/adverts',        label: 'Kampeni',       icon: 'speakerphone', exact: false },
       { href: '/admin/adverts/plans',  label: 'Mipango',       icon: 'list',         exact: false },
-    ],
-  },
-  {
-    title: 'Fedha',
-    items: [
-      { href: '/admin/accounting', label: 'Hesabu', icon: 'coin', exact: false },
     ],
   },
   {
@@ -253,9 +273,38 @@ type SidebarProps = {
 }
 
 function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
+  const searchParams = useSearchParams()
+
   function isActive(href: string, exact: boolean) {
-    if (exact) return pathname === href
-    return pathname.startsWith(href)
+    const qIdx = href.indexOf('?')
+    if (qIdx !== -1) {
+      const hrefPath = href.slice(0, qIdx)
+      const hrefQ    = new URLSearchParams(href.slice(qIdx + 1))
+      const pathOk   = exact ? pathname === hrefPath : pathname.startsWith(hrefPath)
+      if (!pathOk) return false
+      for (const [k, v] of hrefQ.entries()) {
+        if (searchParams.get(k) !== v) return false
+      }
+      return true
+    }
+    const pathMatch = exact ? pathname === href : pathname.startsWith(href)
+    if (!pathMatch) return false
+    // When exact and a sibling nav item owns the current tab, don't claim active
+    if (exact) {
+      const tab = searchParams.get('tab')
+      if (tab) {
+        const siblingOwnsTab = NAV_SECTIONS.some(s =>
+          s.items.some(i => {
+            const qi = i.href.indexOf('?')
+            if (qi === -1) return false
+            const sp = new URLSearchParams(i.href.slice(qi + 1))
+            return i.href.slice(0, qi) === href && sp.get('tab') === tab
+          })
+        )
+        if (siblingOwnsTab) return false
+      }
+    }
+    return true
   }
 
   return (
@@ -299,7 +348,7 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
                       : <i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />}
                     <span>{item.label}</span>
                     {('badge' in item && item.badge) && !isActive(item.href, item.exact) && (
-                      <PendingBadge />
+                      item.badge === 'inbox' ? <InboxBadge /> : <PendingBadge />
                     )}
                     {isActive(item.href, item.exact) && (
                       <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />

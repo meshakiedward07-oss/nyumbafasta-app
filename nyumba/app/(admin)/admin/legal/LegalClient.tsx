@@ -65,6 +65,7 @@ export default function LegalClient({ violations, stats }: { violations: Violati
     admin_notes: '',
   })
   const [feedback, setFeedback] = useState('')
+  const [pendingConfirm, setPendingConfirm] = useState(false)
 
   const filtered = statusFilter === 'all'
     ? violations
@@ -292,7 +293,13 @@ export default function LegalClient({ violations, stats }: { violations: Violati
                 )}
 
                 <button
-                  onClick={updateViolation}
+                  onClick={() => {
+                    if (actionForm.action_taken === 'suspend' || actionForm.action_taken === 'ban') {
+                      setPendingConfirm(true)
+                    } else {
+                      updateViolation()
+                    }
+                  }}
                   disabled={loading || !actionForm.status}
                   className="w-full bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold
                              disabled:opacity-50 hover:bg-primary-600 transition-colors"
@@ -302,6 +309,40 @@ export default function LegalClient({ violations, stats }: { violations: Violati
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Ban/Suspend confirmation modal ── */}
+      {pendingConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setPendingConfirm(false)} />
+          <div className="relative w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto sm:hidden mb-2" />
+            <div className="text-center">
+              <p className="text-base font-bold text-gray-900">
+                {actionForm.action_taken === 'ban' ? 'Futa Akaunti Kabisa?' : 'Simamisha Akaunti?'}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                {actionForm.action_taken === 'ban'
+                  ? 'Mtumiaji atafutwa kabisa na hataweza kutumia mfumo tena.'
+                  : 'Akaunti ya mtumiaji itasimamishwa mara moja.'}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button onClick={() => setPendingConfirm(false)}
+                className="py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+                Hapana
+              </button>
+              <button
+                onClick={() => { setPendingConfirm(false); updateViolation() }}
+                disabled={loading}
+                className={`py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 transition ${
+                  actionForm.action_taken === 'ban' ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'
+                }`}>
+                {actionForm.action_taken === 'ban' ? 'Ndio, Futa' : 'Ndio, Simamisha'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

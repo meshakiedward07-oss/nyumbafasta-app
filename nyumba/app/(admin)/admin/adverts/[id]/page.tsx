@@ -36,6 +36,7 @@ export default function CampaignDetailPage() {
   const [reason, setReason]     = useState('')
   const [acting, setActing]     = useState(false)
   const [toast, setToast]       = useState<{ msg: string; ok: boolean } | null>(null)
+  const [pendingAction, setPendingAction] = useState<'approve' | 'reject' | 'suspend' | 'activate' | null>(null)
 
   useEffect(() => {
     fetch(`/api/v1/admin/adverts/${id}`)
@@ -235,24 +236,24 @@ export default function CampaignDetailPage() {
 
                 {campaign.status === 'pending_review' && (
                   <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => doAction('approve')} disabled={acting}
+                    <button onClick={() => setPendingAction('approve')} disabled={acting}
                       className="flex items-center justify-center gap-1.5 bg-green-500 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-green-600 disabled:opacity-50 transition">
                       {acting ? '...' : '✅ Idhinisha'}
                     </button>
-                    <button onClick={() => doAction('reject')} disabled={acting}
+                    <button onClick={() => setPendingAction('reject')} disabled={acting}
                       className="flex items-center justify-center gap-1.5 bg-red-500 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition">
                       {acting ? '...' : '❌ Kataa'}
                     </button>
                   </div>
                 )}
                 {campaign.status === 'active' && (
-                  <button onClick={() => doAction('suspend')} disabled={acting}
+                  <button onClick={() => setPendingAction('suspend')} disabled={acting}
                     className="w-full bg-orange-500 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-orange-600 disabled:opacity-50 transition">
                     {acting ? '...' : '⏸ Simamisha'}
                   </button>
                 )}
                 {(campaign.status === 'suspended' || campaign.status === 'approved') && (
-                  <button onClick={() => doAction('activate')} disabled={acting}
+                  <button onClick={() => setPendingAction('activate')} disabled={acting}
                     className="w-full bg-primary-500 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-primary-600 disabled:opacity-50 transition">
                     {acting ? '...' : '▶ Amilisha'}
                   </button>
@@ -303,6 +304,50 @@ export default function CampaignDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Confirmation modal ── */}
+      {pendingAction && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setPendingAction(null)} />
+          <div className="relative w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto sm:hidden mb-2" />
+            <div className="text-center">
+              <p className="text-base font-bold text-gray-900">
+                {pendingAction === 'approve'  && 'Idhinisha Kampeni?'}
+                {pendingAction === 'reject'   && 'Kataa Kampeni?'}
+                {pendingAction === 'suspend'  && 'Simamisha Kampeni?'}
+                {pendingAction === 'activate' && 'Amilisha Kampeni?'}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                {pendingAction === 'approve'  && 'Kampeni itaonekana kwa watumizi baada ya kuidhinishwa.'}
+                {pendingAction === 'reject'   && 'Kampeni itakataliwa na mfanyabiashara atafahamishwa.'}
+                {pendingAction === 'suspend'  && 'Kampeni itasimama mara moja na haitaonekana kwa watumizi.'}
+                {pendingAction === 'activate' && 'Kampeni itaanza tena na kuonekana kwa watumizi.'}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button onClick={() => setPendingAction(null)}
+                className="py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+                Hapana
+              </button>
+              <button
+                onClick={async () => { const a = pendingAction; setPendingAction(null); await doAction(a) }}
+                disabled={acting}
+                className={`py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 transition ${
+                  pendingAction === 'approve'  ? 'bg-green-500 hover:bg-green-600' :
+                  pendingAction === 'reject'   ? 'bg-red-500 hover:bg-red-600' :
+                  pendingAction === 'suspend'  ? 'bg-orange-500 hover:bg-orange-600' :
+                                                 'bg-primary-500 hover:bg-primary-600'
+                }`}>
+                {pendingAction === 'approve'  && 'Ndio, Idhinisha'}
+                {pendingAction === 'reject'   && 'Ndio, Kataa'}
+                {pendingAction === 'suspend'  && 'Ndio, Simamisha'}
+                {pendingAction === 'activate' && 'Ndio, Amilisha'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

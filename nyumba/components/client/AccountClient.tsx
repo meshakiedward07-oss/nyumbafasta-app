@@ -265,11 +265,19 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             <span className="text-gray-300 text-lg">›</span>
           </Link>
           <Link href="/saved"
-            className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all">
+            className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <i className="ti ti-heart text-xl text-red-400" aria-hidden="true" />
             <span className="text-sm text-gray-700 flex-1">Listings Zilizohifadhiwa</span>
             <span className="text-gray-300 text-lg">›</span>
           </Link>
+          {!isDalali && !isAdmin && (
+            <Link href="/account/contacts"
+              className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all">
+              <i className="ti ti-message-circle text-xl text-blue-400" aria-hidden="true" />
+              <span className="text-sm text-gray-700 flex-1">Mawasiliano ya Dalali</span>
+              <span className="text-gray-300 text-lg">›</span>
+            </Link>
+          )}
         </div>
 
         {/* ── MSAADA section ── */}

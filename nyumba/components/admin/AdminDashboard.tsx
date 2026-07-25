@@ -83,6 +83,8 @@ export default function AdminDashboard({
   const [actionError, setActionError] = useState('')
   const [rejectListingId, setRejectListingId]         = useState<string | null>(null)
   const [listingRejectReason, setListingRejectReason] = useState('')
+  const [confirmApproveListingId, setConfirmApproveListingId] = useState<string | null>(null)
+  const [confirmApproveVerifyId,  setConfirmApproveVerifyId]  = useState<string | null>(null)
 
   // ── Verification ──────────────────────────────────────
   const [verifications, setVerifications] = useState(pendingVerifications)
@@ -593,7 +595,7 @@ export default function AdminDashboard({
                         className="flex-1 py-2.5 rounded-xl border-2 border-red-200 text-red-600 text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
                         {loadingId === listing.id ? '...' : <><i className="ti ti-x" aria-hidden="true" /> Kataa</>}
                       </button>
-                      <button onClick={() => handleAction(listing.id, 'approve')} disabled={loadingId === listing.id}
+                      <button onClick={() => setConfirmApproveListingId(listing.id)} disabled={loadingId === listing.id}
                         className="flex-1 py-2.5 rounded-xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
                         {loadingId === listing.id ? '...' : <><i className="ti ti-check" aria-hidden="true" /> Idhibiti</>}
                       </button>
@@ -659,16 +661,7 @@ export default function AdminDashboard({
                   key={v.user_id}
                   v={v}
                   loading={verifyLoading === v.user_id}
-                  onApprove={async () => {
-                    setVerifyLoading(v.user_id)
-                    await fetch('/api/v1/admin/verify', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ dalali_user_id: v.user_id, action: 'approve' }),
-                    })
-                    setVerifications(prev => prev.filter(x => x.user_id !== v.user_id))
-                    setVerifyLoading(null)
-                  }}
+                  onApprove={() => setConfirmApproveVerifyId(v.user_id)}
                   onReject={async (reason: string) => {
                     setVerifyLoading(v.user_id)
                     await fetch('/api/v1/admin/verify', {
@@ -791,6 +784,53 @@ export default function AdminDashboard({
                 disabled={!listingRejectReason}
                 className="flex-1 py-3 bg-red-500 text-white rounded-2xl text-sm font-bold disabled:opacity-40">
                 <i className="ti ti-x" aria-hidden="true" /> Kataa Listing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Listing approve confirmation modal ── */}
+      {confirmApproveListingId && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setConfirmApproveListingId(null)}>
+          <div className="bg-white w-full rounded-t-3xl px-6 pt-4 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
+            <div className="flex justify-center mb-2"><i className="ti ti-home-check text-4xl text-primary-500" aria-hidden="true" /></div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-1">Idhibiti Listing?</h3>
+            <p className="text-xs text-gray-500 text-center mb-6">Listing itaonekana kwa wateja mara moja.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmApproveListingId(null)} className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm">Ghairi</button>
+              <button onClick={() => { handleAction(confirmApproveListingId, 'approve'); setConfirmApproveListingId(null) }} disabled={!!loadingId} className="flex-1 py-3.5 rounded-2xl bg-primary-500 text-white font-bold text-sm disabled:opacity-40">
+                {loadingId ? '...' : 'Ndio, Idhibiti'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Verification approve confirmation modal ── */}
+      {confirmApproveVerifyId && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setConfirmApproveVerifyId(null)}>
+          <div className="bg-white w-full rounded-t-3xl px-6 pt-4 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
+            <div className="flex justify-center mb-2"><i className="ti ti-id-badge text-4xl text-primary-500" aria-hidden="true" /></div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-1">Thibitisha Dalali?</h3>
+            <p className="text-xs text-gray-500 text-center mb-6">Badge ya &ldquo;Amethibitishwa&rdquo; itaonekana kwenye profaili yake na listings zake.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmApproveVerifyId(null)} className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm">Ghairi</button>
+              <button
+                onClick={async () => {
+                  const id = confirmApproveVerifyId
+                  setConfirmApproveVerifyId(null)
+                  setVerifyLoading(id)
+                  await fetch('/api/v1/admin/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dalali_user_id: id, action: 'approve' }) })
+                  setVerifications(prev => prev.filter(x => x.user_id !== id))
+                  setVerifyLoading(null)
+                }}
+                disabled={!!verifyLoading}
+                className="flex-1 py-3.5 rounded-2xl bg-primary-500 text-white font-bold text-sm disabled:opacity-40"
+              >
+                {verifyLoading ? '...' : 'Ndio, Thibitisha'}
               </button>
             </div>
           </div>

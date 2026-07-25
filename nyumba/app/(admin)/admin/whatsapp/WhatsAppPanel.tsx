@@ -129,6 +129,7 @@ export default function WhatsAppPanel() {
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'chat' | 'controls'>('chat')
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
   const bottomRef    = useRef<HTMLDivElement>(null)
   const messagesRef  = useRef<HTMLDivElement>(null)
@@ -242,68 +243,87 @@ export default function WhatsAppPanel() {
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
+  function showToast(msg: string, ok = true) {
+    setToast({ msg, ok }); setTimeout(() => setToast(null), 3500)
+  }
+
   async function handleTakeover() {
     if (!selected) return
     setSending(true)
-    await fetch(`/api/v1/whatsapp/sessions/${encodeURIComponent(selected.phone_number)}/takeover`, { method: 'POST' })
-    await fetchMessages(selected.phone_number)
+    try {
+      const res = await fetch(`/api/v1/whatsapp/sessions/${encodeURIComponent(selected.phone_number)}/takeover`, { method: 'POST' })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); showToast(d.error ?? 'Imeshindwa kuchukua mazungumzo', false) }
+      else { showToast('Umechukua mazungumzo ✓'); await fetchMessages(selected.phone_number) }
+    } catch { showToast('Tatizo la mtandao — jaribu tena', false) }
     setSending(false)
   }
 
   async function handleHandback() {
     if (!selected) return
     setSending(true)
-    await fetch(`/api/v1/whatsapp/sessions/${encodeURIComponent(selected.phone_number)}/handback`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note: noteText.trim() || undefined }),
-    })
-    setNoteText('')
-    await fetchMessages(selected.phone_number)
+    try {
+      const res = await fetch(`/api/v1/whatsapp/sessions/${encodeURIComponent(selected.phone_number)}/handback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: noteText.trim() || undefined }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); showToast(d.error ?? 'Imeshindwa kurudisha kwa Amina', false) }
+      else { setNoteText(''); showToast('Kimerudishwa kwa Amina ✓'); await fetchMessages(selected.phone_number) }
+    } catch { showToast('Tatizo la mtandao — jaribu tena', false) }
     setSending(false)
   }
 
   async function handleResolve() {
     if (!selected) return
     setSending(true)
-    await fetch(`/api/v1/whatsapp/sessions/${encodeURIComponent(selected.phone_number)}/resolve`, { method: 'POST' })
-    await fetchMessages(selected.phone_number)
+    try {
+      const res = await fetch(`/api/v1/whatsapp/sessions/${encodeURIComponent(selected.phone_number)}/resolve`, { method: 'POST' })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); showToast(d.error ?? 'Imeshindwa kufunga mazungumzo', false) }
+      else { showToast('Mazungumzo yamefungwa ✓'); await fetchMessages(selected.phone_number) }
+    } catch { showToast('Tatizo la mtandao — jaribu tena', false) }
     setSending(false)
   }
 
   async function handleSend() {
     if (!selected || !msgText.trim()) return
     setSending(true)
-    await fetch(`/api/v1/whatsapp/sessions/${encodeURIComponent(selected.phone_number)}/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: msgText.trim() }),
-    })
-    setMsgText('')
-    await fetchMessages(selected.phone_number)
+    try {
+      const res = await fetch(`/api/v1/whatsapp/sessions/${encodeURIComponent(selected.phone_number)}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msgText.trim() }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); showToast(d.error ?? 'Ujumbe haukukumwa', false) }
+      else { setMsgText(''); await fetchMessages(selected.phone_number) }
+    } catch { showToast('Tatizo la mtandao — jaribu tena', false) }
     setSending(false)
   }
 
   async function handleAddInstruction() {
     if (!instrText.trim()) return
     setSending(true)
-    await fetch('/api/v1/whatsapp/instructions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        instruction: instrText.trim(),
-        scope: instrScope,
-        phone_number: instrScope === 'phone_specific' ? selected?.phone_number : undefined,
-      }),
-    })
-    setInstrText('')
-    if (selected) fetchInstructions(selected.phone_number)
+    try {
+      const res = await fetch('/api/v1/whatsapp/instructions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instruction: instrText.trim(),
+          scope: instrScope,
+          phone_number: instrScope === 'phone_specific' ? selected?.phone_number : undefined,
+        }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); showToast(d.error ?? 'Imeshindwa kuongeza maelekezo', false) }
+      else { setInstrText(''); showToast('Maelekezo yameongezwa ✓'); if (selected) fetchInstructions(selected.phone_number) }
+    } catch { showToast('Tatizo la mtandao — jaribu tena', false) }
     setSending(false)
   }
 
   async function handleDeleteInstruction(id: string) {
-    await fetch(`/api/v1/whatsapp/instructions/${id}`, { method: 'DELETE' })
-    if (selected) fetchInstructions(selected.phone_number)
+    try {
+      const res = await fetch(`/api/v1/whatsapp/instructions/${id}`, { method: 'DELETE' })
+      if (!res.ok) showToast('Imeshindwa kufuta maelekezo', false)
+      else { showToast('Maelekezo yamefutwa ✓'); if (selected) fetchInstructions(selected.phone_number) }
+    } catch { showToast('Tatizo la mtandao — jaribu tena', false) }
   }
 
   // ── Filtered sessions ──────────────────────────────────────────────────────
@@ -330,6 +350,13 @@ export default function WhatsAppPanel() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white animate-in slide-in-from-top-2 ${toast.ok ? 'bg-gray-900' : 'bg-red-600'}`}>
+          {toast.msg}
+        </div>
+      )}
 
       {/* ── LEFT: Conversation list ──────────────────────────────────────── */}
       <div className={`w-72 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col ${selected ? 'hidden lg:flex' : 'flex'}`}>

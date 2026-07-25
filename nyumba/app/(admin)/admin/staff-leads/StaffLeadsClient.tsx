@@ -206,7 +206,7 @@ export default function StaffLeadsClient({
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-screen-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
               <i className="ti ti-target text-white text-lg" />
             </div>
             <div className="min-w-0">
@@ -254,7 +254,7 @@ export default function StaffLeadsClient({
               <input type="text" value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 placeholder="Tafuta jina, simu, ward…"
-                className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary-300"
               />
             </div>
             <div className="hidden sm:flex gap-2">
@@ -285,7 +285,7 @@ export default function StaffLeadsClient({
           <div className="px-4 py-3 border-b border-gray-100">
             <p className="text-xs font-semibold text-gray-600">
               {loading
-                ? <span className="flex items-center gap-1.5"><i className="ti ti-loader-2 animate-spin text-indigo-400" /> Inapakia…</span>
+                ? <span className="flex items-center gap-1.5"><i className="ti ti-loader-2 animate-spin text-primary-400" /> Inapakia…</span>
                 : <>{total.toLocaleString()} lead{total !== 1 ? 's' : ''} zilizogawiwa kwangu</>
               }
             </p>
@@ -310,7 +310,7 @@ export default function StaffLeadsClient({
                       const waNum = lead.whatsapp_number || lead.phone
                       return (
                         <tr key={lead.id} onClick={() => setDetailLead(lead)}
-                          className="group cursor-pointer hover:bg-indigo-50/20 transition-colors">
+                          className="group cursor-pointer hover:bg-primary-50/40 transition-colors">
                           <td className="px-3 py-3 max-w-[180px]">
                             <div className="flex items-center gap-2">
                               <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${q.dot}`} />
@@ -552,10 +552,10 @@ export default function StaffLeadsClient({
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Maelezo / Notes</p>
                   {!editingNotes
-                    ? <button onClick={() => setEditingNotes(true)} className="text-[10px] text-indigo-600 font-semibold hover:underline"><i className="ti ti-edit mr-0.5" />Hariri</button>
+                    ? <button onClick={() => setEditingNotes(true)} className="text-[10px] text-primary-600 font-semibold hover:underline"><i className="ti ti-edit mr-0.5" />Hariri</button>
                     : <div className="flex gap-2">
                         <button onClick={() => setEditingNotes(false)} className="text-[10px] text-gray-500 hover:underline">Ghairi</button>
-                        <button onClick={handleSaveNotes} disabled={savingNotes} className="text-[10px] text-indigo-600 font-semibold hover:underline disabled:opacity-50">
+                        <button onClick={handleSaveNotes} disabled={savingNotes} className="text-[10px] text-primary-600 font-semibold hover:underline disabled:opacity-50">
                           {savingNotes ? 'Inahifadhi…' : 'Hifadhi'}
                         </button>
                       </div>
@@ -564,7 +564,7 @@ export default function StaffLeadsClient({
                 {editingNotes
                   ? <textarea value={notesValue} onChange={e => setNotesValue(e.target.value)} rows={4}
                       placeholder="Andika maelezo, logi ya mawasiliano, au maelezo yoyote…"
-                      className="w-full border border-indigo-300 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none" />
+                      className="w-full border border-primary-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
                   : <div className={`rounded-xl px-3 py-2.5 text-xs ${detailLead.notes ? 'bg-purple-50 text-purple-800 border border-purple-100' : 'bg-gray-50 text-gray-400 border border-dashed border-gray-200'}`}>
                       {detailLead.notes || 'Bonyeza Hariri kuongeza maelezo au logi ya mawasiliano…'}
                     </div>
