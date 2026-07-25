@@ -85,15 +85,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
 
-    // Verify dalali role
+    // Verify dalali role and account status
     const { data: profile } = await supabase
       .from('users')
-      .select('role')
+      .select('role, is_active')
       .eq('id', user.id)
       .single()
 
     if (profile?.role !== 'dalali' && profile?.role !== 'admin') {
       return NextResponse.json({ error: 'Dalali tu wanaweza kuongeza listings' }, { status: 403 })
+    }
+
+    if (profile?.is_active === false) {
+      return NextResponse.json({ error: 'Akaunti yako imesimamishwa. Wasiliana na msaada.' }, { status: 403 })
     }
 
     // 20 listings per hour per user

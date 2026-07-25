@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { validateListing, checkListingQuality } from '@/lib/security/validate'
 
 // ── Shared: verify ownership ───────────────────────────────────
 async function getOwned(id: string, userId: string) {
@@ -85,29 +86,41 @@ export async function PATCH(
       return NextResponse.json({ success: true })
     }
 
-    // ── Full edit (resubmits for review) ─────────────────────
+    // ── Full edit — validate before writing ──────────────────
     if (listing.status === 'rejected') {
       return NextResponse.json({ error: 'Listing iliyokataliwa haiwezi kuhaririwa' }, { status: 400 })
     }
 
-    const { type, price_monthly, bedrooms, furnished, description, region, district, amenities, images, latitude, longitude, address_full, place_id } = body
-    const updatePayload: Record<string, unknown> = {
-      type,
-      title: `${type.charAt(0).toUpperCase() + type.slice(1)} – ${district}`,
-      price_monthly: Number(price_monthly),
-      furnished,
-      description: description ?? null,
-      region, district,
-      amenities: amenities ?? [],
-      images: images ?? [],
-      status: 'pending',
-      street: '',
-      latitude: typeof latitude === 'number' ? latitude : null,
-      longitude: typeof longitude === 'number' ? longitude : null,
-      address_full: typeof address_full === 'string' ? address_full || null : null,
-      place_id: typeof place_id === 'string' ? place_id || null : null,
+    const parsed = validateListing(body)
+    if (!parsed.ok) {
+      return NextResponse.json({ error: 'Taarifa si sahihi', details: parsed.errors }, { status: 400 })
     }
-    if (bedrooms !== undefined) updatePayload.bedrooms = bedrooms ?? null
+    const data = parsed.data
+
+    // Re-run quality gate so edits that now meet standards go live immediately
+    const quality = checkListingQuality(data)
+    const newStatus = quality.passed ? 'active' : 'pending'
+
+    const updatePayload: Record<string, unknown> = {
+      type: data.type,
+      title: `${data.type.charAt(0).toUpperCase() + data.type.slice(1)} – ${data.district}`,
+      price_monthly: data.price_monthly,
+      furnished: data.furnished,
+      description: data.description ?? null,
+      region: data.region,
+      district: data.district,
+      ward: data.ward ?? null,
+      mtaa: data.mtaa ?? null,
+      amenities: data.amenities,
+      images: data.images,
+      status: newStatus,
+      street: '',
+      latitude: data.latitude,
+      longitude: data.longitude,
+      address_full: data.address_full,
+      place_id: data.place_id,
+    }
+    if (data.bedrooms !== null) updatePayload.bedrooms = data.bedrooms
 
     // Commission fields — optional; null clears them
     const VALID_COMMISSION_TYPES = ['one_month', 'percentage', 'fixed', 'negotiable']

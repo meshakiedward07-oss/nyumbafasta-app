@@ -10,12 +10,16 @@ export default async function DalaliLayout({ children }: { children: React.React
 
   const { data: profile } = await supabase
     .from('users')
-    .select('role')
+    .select('role, is_active, account_status')
     .eq('id', user.id)
     .single()
 
   if (profile?.role !== 'dalali' && profile?.role !== 'admin') {
     redirect('/')
+  }
+
+  if (profile?.is_active === false) {
+    redirect('/login?suspended=1')
   }
 
   return (

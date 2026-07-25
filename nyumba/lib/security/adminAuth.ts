@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-type AuthResult = { ok: true; role: string } | { ok: false; response: NextResponse }
+type AuthResult = { ok: true; role: string; userId: string } | { ok: false; response: NextResponse }
 
 export type AdminUser = { id: string; full_name: string | null }
 
@@ -51,7 +51,7 @@ export async function requireAdminAuth(): Promise<AuthResult> {
     }
   }
 
-  return { ok: true, role: 'admin' }
+  return { ok: true, role: 'admin', userId: user.id }
 }
 
 /**
@@ -89,7 +89,7 @@ export async function requireStaffAuth(): Promise<AuthResult> {
     }
   }
 
-  return { ok: true, role: profile?.role ?? 'staff' }
+  return { ok: true, role: profile?.role ?? 'staff', userId: user.id }
 }
 
 /**

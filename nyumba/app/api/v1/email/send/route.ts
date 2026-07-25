@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
-import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/resend'
 import { rateLimit } from '@/lib/security/rateLimit'
 
@@ -8,21 +8,18 @@ export async function POST(req: NextRequest) {
   const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
 
-  // Who is the sender?
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+  const userId = auth.userId
+  const admin  = createAdminClient()
 
-  const admin = createAdminClient()
   const { data: profile } = await admin
     .from('users')
     .select('full_name')
-    .eq('id', user.id)
+    .eq('id', userId)
     .single()
   const senderName = (profile?.full_name as string | null) ?? 'Timu ya NyumbaFasta'
 
   // Rate limit: 30 emails per 10 minutes per staff member
-  const rl = await rateLimit(`email:${user.id}`, 30, 10 * 60 * 1000)
+  const rl = await rateLimit(`email:${userId}`, 30, 10 * 60 * 1000)
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Maombi mengi. Jaribu tena baadaye.' }, { status: 429 })
   }
@@ -59,7 +56,7 @@ export async function POST(req: NextRequest) {
       to_name:        to_name.trim(),
       recipient_type: recipient_type ?? null,
       recipient_id:   recipient_id ?? null,
-      sent_by_id:     user.id,
+      sent_by_id:     userId,
       sent_by_name:   senderName,
       status:         'pending',
       thread_id:      thread_id ?? undefined,
