@@ -11,35 +11,42 @@ async function assertAdmin() {
 }
 
 export async function GET(req: NextRequest) {
-  const user = await assertAdmin()
-  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const user = await assertAdmin()
+    if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { searchParams } = new URL(req.url)
-  const platform = searchParams.get('platform') ?? 'all'
-  const status   = searchParams.get('status')   ?? 'flagged'
+    const { searchParams } = new URL(req.url)
+    const platform = searchParams.get('platform') ?? 'all'
+    const status   = searchParams.get('status')   ?? 'flagged'
 
-  let query = supabaseAdmin
-    .from('message_classifications')
-    .select('id, phone_number, platform, message_text, category, action, confidence, created_at, responded_at, response_text')
-    .order('created_at', { ascending: false })
-    .limit(50)
+    let query = supabaseAdmin
+      .from('message_classifications')
+      .select('id, phone_number, platform, message_text, category, action, confidence, created_at, responded_at, response_text')
+      .order('created_at', { ascending: false })
+      .limit(50)
 
-  if (platform !== 'all') query = query.eq('platform', platform)
+    if (platform !== 'all') query = query.eq('platform', platform)
 
-  if (status === 'flagged') {
-    query = query.in('action', ['flagged', 'pending']).in('category', ['personal', 'unclear'])
-  } else if (status === 'auto_replied') {
-    query = query.eq('action', 'auto_replied')
-  } else if (status === 'owner_replied') {
-    query = query.eq('action', 'owner_replied')
-  } else if (status === 'spam') {
-    query = query.eq('action', 'ignored')
+    if (status === 'flagged') {
+      query = query.in('action', ['flagged', 'pending']).in('category', ['personal', 'unclear'])
+    } else if (status === 'auto_replied') {
+      query = query.eq('action', 'auto_replied')
+    } else if (status === 'owner_replied') {
+      query = query.eq('action', 'owner_replied')
+    } else if (status === 'spam') {
+      query = query.eq('action', 'ignored')
+    }
+
+    const { data: messages } = await query
+
+    return NextResponse.json({
+      messages:    messages ?? [],
+      unreadCount: (messages ?? []).filter(m => m.action === 'flagged').length,
+    })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/inbox/flagged]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
-
-  const { data: messages } = await query
-
-  return NextResponse.json({
-    messages:    messages ?? [],
-    unreadCount: (messages ?? []).filter(m => m.action === 'flagged').length,
-  })
 }

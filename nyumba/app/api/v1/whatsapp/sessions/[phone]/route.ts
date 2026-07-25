@@ -7,14 +7,21 @@ export async function GET(
   _req: NextRequest,  // eslint-disable-line @typescript-eslint/no-unused-vars
   { params }: { params: { phone: string } },
 ) {
-  const auth = await requireStaffAuth()
-  if (!auth.ok) return auth.response
+  try {
+    const auth = await requireStaffAuth()
+    if (!auth.ok) return auth.response
 
-  const phone = decodeURIComponent(params.phone)
-  const [session, messages] = await Promise.all([
-    getWASession(phone),
-    getWAMessages(phone, 100),
-  ])
+    const phone = decodeURIComponent(params.phone)
+    const [session, messages] = await Promise.all([
+      getWASession(phone),
+      getWAMessages(phone, 100),
+    ])
 
-  return NextResponse.json({ session, messages })
+    return NextResponse.json({ session, messages })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/whatsapp/sessions/[phone]]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
 }

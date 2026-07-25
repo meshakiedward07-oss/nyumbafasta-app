@@ -5,18 +5,25 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
 
-  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin tu' }, { status: 403 })
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin tu' }, { status: 403 })
 
-  const { data: posts } = await supabaseAdmin
-    .from('tiktok_posts')
-    .select('*, listings!listing_id(id, title, type, district, region, images, location_display)')
-    .order('created_at', { ascending: false })
-    .limit(50)
+    const { data: posts } = await supabaseAdmin
+      .from('tiktok_posts')
+      .select('*, listings!listing_id(id, title, type, district, region, images, location_display)')
+      .order('created_at', { ascending: false })
+      .limit(50)
 
-  return NextResponse.json({ posts: posts ?? [] })
+    return NextResponse.json({ posts: posts ?? [] })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/social/tiktok/posts]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
 }

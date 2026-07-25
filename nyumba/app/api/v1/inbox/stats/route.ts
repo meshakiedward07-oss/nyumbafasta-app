@@ -11,19 +11,26 @@ async function assertAdmin() {
 }
 
 export async function GET() {
-  const user = await assertAdmin()
-  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const user = await assertAdmin()
+    if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { data } = await supabaseAdmin
-    .from('message_classifications')
-    .select('category, action')
+    const { data } = await supabaseAdmin
+      .from('message_classifications')
+      .select('category, action')
 
-  const rows = data ?? []
-  return NextResponse.json({
-    flagged:      rows.filter(r => r.action === 'flagged').length,
-    autoReplied:  rows.filter(r => r.action === 'auto_replied').length,
-    ownerReplied: rows.filter(r => r.action === 'owner_replied').length,
-    spam:         rows.filter(r => r.action === 'ignored').length,
-    total:        rows.length,
-  })
+    const rows = data ?? []
+    return NextResponse.json({
+      flagged:      rows.filter(r => r.action === 'flagged').length,
+      autoReplied:  rows.filter(r => r.action === 'auto_replied').length,
+      ownerReplied: rows.filter(r => r.action === 'owner_replied').length,
+      spam:         rows.filter(r => r.action === 'ignored').length,
+      total:        rows.length,
+    })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/inbox/stats]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
 }

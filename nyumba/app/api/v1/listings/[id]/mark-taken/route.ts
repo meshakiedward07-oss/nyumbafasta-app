@@ -7,28 +7,34 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { searchParams } = new URL(request.url)
-  const unlockId = searchParams.get('unlock') ?? ''
-  const token    = searchParams.get('token') ?? ''
+  try {
+    const { searchParams } = new URL(request.url)
+    const unlockId = searchParams.get('unlock') ?? ''
+    const token    = searchParams.get('token') ?? ''
 
-  if (!unlockId || !token) {
-    return html('error', 'Kiungo si sahihi au kimekwisha.')
+    if (!unlockId || !token) {
+      return html('error', 'Kiungo si sahihi au kimekwisha.')
+    }
+
+    if (!verifyMarkTakenToken(params.id, unlockId, token)) {
+      return html('error', 'Kiungo si sahihi au kimekwisha.')
+    }
+
+    const result = await markListingAsTakenByToken(params.id, unlockId)
+
+    if (result.alreadyTaken) {
+      return html('already', 'Listing hii tayari imefungwa.')
+    }
+    if (!result.success) {
+      return html('error', result.error ?? 'Imeshindwa kufunga listing.')
+    }
+
+    return html('success', 'Listing yako imefungwa. Wateja hawataiona tena.')
+
+  } catch (err) {
+    console.error('[GET mark-taken]', err)
+    return html('error', 'Hitilafu ya seva. Tafadhali jaribu tena.')
   }
-
-  if (!verifyMarkTakenToken(params.id, unlockId, token)) {
-    return html('error', 'Kiungo si sahihi au kimekwisha.')
-  }
-
-  const result = await markListingAsTakenByToken(params.id, unlockId)
-
-  if (result.alreadyTaken) {
-    return html('already', 'Listing hii tayari imefungwa.')
-  }
-  if (!result.success) {
-    return html('error', result.error ?? 'Imeshindwa kufunga listing.')
-  }
-
-  return html('success', 'Listing yako imefungwa. Wateja hawataiona tena.')
 }
 
 // ── Simple branded HTML page returned to dalali's browser ─────────────────────

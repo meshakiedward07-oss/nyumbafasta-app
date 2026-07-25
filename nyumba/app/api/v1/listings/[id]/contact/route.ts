@@ -9,51 +9,58 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
 
-  const admin = createAdminClient()
+    const admin = createAdminClient()
 
-  const { data: listing } = await admin
-    .from('listings')
-    .select('dalali_id')
-    .eq('id', params.id)
-    .single()
+    const { data: listing } = await admin
+      .from('listings')
+      .select('dalali_id')
+      .eq('id', params.id)
+      .single()
 
-  if (!listing) return NextResponse.json({ error: 'Listing haipatikani' }, { status: 404 })
+    if (!listing) return NextResponse.json({ error: 'Listing haipatikani' }, { status: 404 })
 
-  const last24hrs = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const last24hrs = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-  const [directUnlock, dalaliAccess] = await Promise.all([
-    admin
-      .from('contact_unlocks')
-      .select('id')
-      .eq('client_id', user.id)
-      .eq('listing_id', params.id)
-      .eq('status', 'completed')
-      .maybeSingle(),
+    const [directUnlock, dalaliAccess] = await Promise.all([
+      admin
+        .from('contact_unlocks')
+        .select('id')
+        .eq('client_id', user.id)
+        .eq('listing_id', params.id)
+        .eq('status', 'completed')
+        .maybeSingle(),
 
-    admin
-      .from('contact_unlocks')
-      .select('id')
-      .eq('client_id', user.id)
-      .eq('dalali_id', listing.dalali_id)
-      .eq('status', 'completed')
-      .gte('created_at', last24hrs)
-      .limit(1)
-      .maybeSingle(),
-  ])
+      admin
+        .from('contact_unlocks')
+        .select('id')
+        .eq('client_id', user.id)
+        .eq('dalali_id', listing.dalali_id)
+        .eq('status', 'completed')
+        .gte('created_at', last24hrs)
+        .limit(1)
+        .maybeSingle(),
+    ])
 
-  if (!directUnlock.data && !dalaliAccess.data) {
-    return NextResponse.json({ error: 'Hujafungua mawasiliano haya' }, { status: 403 })
+    if (!directUnlock.data && !dalaliAccess.data) {
+      return NextResponse.json({ error: 'Hujafungua mawasiliano haya' }, { status: 403 })
+    }
+
+    const { data: profile } = await admin
+      .from('dalali_profiles')
+      .select('whatsapp_number')
+      .eq('user_id', listing.dalali_id)
+      .single()
+
+    return NextResponse.json({ whatsapp_number: profile?.whatsapp_number ?? null })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/listings/[id]/contact]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
-
-  const { data: profile } = await admin
-    .from('dalali_profiles')
-    .select('whatsapp_number')
-    .eq('user_id', listing.dalali_id)
-    .single()
-
-  return NextResponse.json({ whatsapp_number: profile?.whatsapp_number ?? null })
 }

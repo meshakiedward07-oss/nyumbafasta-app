@@ -7,15 +7,22 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const auth = await requireStaffAuth()
-  if (!auth.ok) return auth.response
+  try {
+    const auth = await requireStaffAuth()
+    if (!auth.ok) return auth.response
 
-  const { error } = await supabaseAdmin
-    .from('amina_instructions')
-    .update({ active: false })
-    .eq('id', params.id)
+    const { error } = await supabaseAdmin
+      .from('amina_instructions')
+      .update({ active: false })
+      .eq('id', params.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[DELETE app/api/v1/whatsapp/instructions/[id]]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
 }

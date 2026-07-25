@@ -4,35 +4,42 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { getValidToken, checkTikTokPostStatus } from '@/lib/social/tiktok'
 
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
 
-  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin tu' }, { status: 403 })
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin tu' }, { status: 403 })
 
-  const { searchParams } = new URL(req.url)
-  const publishId = searchParams.get('publishId')
+    const { searchParams } = new URL(req.url)
+    const publishId = searchParams.get('publishId')
 
-  if (!publishId) return NextResponse.json({ error: 'publishId inahitajika' }, { status: 400 })
+    if (!publishId) return NextResponse.json({ error: 'publishId inahitajika' }, { status: 400 })
 
-  const accessToken = await getValidToken()
-  if (!accessToken) return NextResponse.json({ error: 'TikTok haijaunganishwa' }, { status: 400 })
+    const accessToken = await getValidToken()
+    if (!accessToken) return NextResponse.json({ error: 'TikTok haijaunganishwa' }, { status: 400 })
 
-  const status = await checkTikTokPostStatus(publishId, accessToken)
+    const status = await checkTikTokPostStatus(publishId, accessToken)
 
-  if (status.status === 'PUBLISH_COMPLETE') {
-    await supabaseAdmin
-      .from('tiktok_posts')
-      .update({
-        status: 'published',
-        video_id: status.videoId,
-        tiktok_video_url: status.shareUrl,
-        published_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('publish_id', publishId)
+    if (status.status === 'PUBLISH_COMPLETE') {
+      await supabaseAdmin
+        .from('tiktok_posts')
+        .update({
+          status: 'published',
+          video_id: status.videoId,
+          tiktok_video_url: status.shareUrl,
+          published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('publish_id', publishId)
+    }
+
+    return NextResponse.json(status)
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/social/tiktok/status]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
-
-  return NextResponse.json(status)
 }

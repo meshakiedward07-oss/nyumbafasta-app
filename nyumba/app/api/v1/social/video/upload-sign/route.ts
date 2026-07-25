@@ -19,43 +19,50 @@ const OVERLAY =
 // directly without an upload preset.
 // The eager transformation pre-generates the watermarked URL at upload time.
 export async function GET() {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const admin = await requireAdminUser()
+    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const apiKey    = process.env.CLOUDINARY_API_KEY
-  const apiSecret = process.env.CLOUDINARY_API_SECRET
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? 'daw8jlbbd'
+    const apiKey    = process.env.CLOUDINARY_API_KEY
+    const apiSecret = process.env.CLOUDINARY_API_SECRET
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? 'daw8jlbbd'
 
-  if (!apiKey || !apiSecret) {
-    return NextResponse.json({ error: 'CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET hazijawekwa' }, { status: 500 })
+    if (!apiKey || !apiSecret) {
+      return NextResponse.json({ error: 'CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET hazijawekwa' }, { status: 500 })
+    }
+
+    const timestamp = Math.round(Date.now() / 1000)
+    const folder    = 'nyumba/social-videos'
+
+    // Params to sign (sorted alphabetically, excluding api_key/file/resource_type/cloud_name)
+    // eager: pre-generate the watermarked version immediately after upload
+    const paramsToSign: Record<string, string | number> = {
+      eager:     OVERLAY,
+      folder,
+      timestamp,
+    }
+
+    const paramString = Object.keys(paramsToSign)
+      .sort()
+      .map(k => `${k}=${paramsToSign[k]}`)
+      .join('&')
+
+    const signature = createHash('sha256')
+      .update(paramString + apiSecret)
+      .digest('hex')
+
+    return NextResponse.json({
+      signature,
+      timestamp,
+      apiKey,
+      cloudName,
+      folder,
+      eager: OVERLAY,
+    })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/social/video/upload-sign]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
-
-  const timestamp = Math.round(Date.now() / 1000)
-  const folder    = 'nyumba/social-videos'
-
-  // Params to sign (sorted alphabetically, excluding api_key/file/resource_type/cloud_name)
-  // eager: pre-generate the watermarked version immediately after upload
-  const paramsToSign: Record<string, string | number> = {
-    eager:     OVERLAY,
-    folder,
-    timestamp,
-  }
-
-  const paramString = Object.keys(paramsToSign)
-    .sort()
-    .map(k => `${k}=${paramsToSign[k]}`)
-    .join('&')
-
-  const signature = createHash('sha256')
-    .update(paramString + apiSecret)
-    .digest('hex')
-
-  return NextResponse.json({
-    signature,
-    timestamp,
-    apiKey,
-    cloudName,
-    folder,
-    eager: OVERLAY,
-  })
 }

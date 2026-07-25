@@ -23,54 +23,61 @@ async function requireAdmin() {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdmin()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const admin = await requireAdmin()
+    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const body = await req.json() as { imageUrl?: string; videoUrl?: string }
-  const { imageUrl, videoUrl } = body
+    const body = await req.json() as { imageUrl?: string; videoUrl?: string }
+    const { imageUrl, videoUrl } = body
 
-  if (!imageUrl && !videoUrl) {
-    return NextResponse.json(
-      { error: 'Toa imageUrl au videoUrl kwenye body' },
-      { status: 400 },
+    if (!imageUrl && !videoUrl) {
+      return NextResponse.json(
+        { error: 'Toa imageUrl au videoUrl kwenye body' },
+        { status: 400 },
+      )
+    }
+
+    const results: Record<string, unknown> = {}
+
+    if (imageUrl) {
+      const isCloud = isCloudinaryUrl(imageUrl)
+      const watermarked = await watermarkImage(imageUrl)
+      results.image = {
+        original:    imageUrl,
+        watermarked,
+        applied:     watermarked !== imageUrl,
+        method:      isCloud ? 'cloudinary_url_transform' : 'sharp_composite',
+      }
+      console.log('[Watermark] Test image result:', results.image)
+    }
+
+    if (videoUrl) {
+      const isCloud = isCloudinaryVideoUrl(videoUrl)
+      const watermarked = watermarkVideo(videoUrl)
+      results.video = {
+        original:    videoUrl,
+        watermarked,
+        applied:     watermarked !== videoUrl,
+        method:      isCloud ? 'cloudinary_url_transform' : 'none_no_ffmpeg',
+      }
+      console.log('[Watermark] Test video result:', results.video)
+    }
+
+    const allApplied = Object.values(results).every(
+      (r) => (r as { applied: boolean }).applied,
     )
+
+    return NextResponse.json({
+      ok: allApplied,
+      results,
+      message: allApplied
+        ? 'Watermark zote zimefanikiwa ✅'
+        : 'Baadhi ya watermarks hazikufanya kazi ❌ — angalia logs',
+    })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[POST app/api/v1/social/test-watermark]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
-
-  const results: Record<string, unknown> = {}
-
-  if (imageUrl) {
-    const isCloud = isCloudinaryUrl(imageUrl)
-    const watermarked = await watermarkImage(imageUrl)
-    results.image = {
-      original:    imageUrl,
-      watermarked,
-      applied:     watermarked !== imageUrl,
-      method:      isCloud ? 'cloudinary_url_transform' : 'sharp_composite',
-    }
-    console.log('[Watermark] Test image result:', results.image)
-  }
-
-  if (videoUrl) {
-    const isCloud = isCloudinaryVideoUrl(videoUrl)
-    const watermarked = watermarkVideo(videoUrl)
-    results.video = {
-      original:    videoUrl,
-      watermarked,
-      applied:     watermarked !== videoUrl,
-      method:      isCloud ? 'cloudinary_url_transform' : 'none_no_ffmpeg',
-    }
-    console.log('[Watermark] Test video result:', results.video)
-  }
-
-  const allApplied = Object.values(results).every(
-    (r) => (r as { applied: boolean }).applied,
-  )
-
-  return NextResponse.json({
-    ok: allApplied,
-    results,
-    message: allApplied
-      ? 'Watermark zote zimefanikiwa ✅'
-      : 'Baadhi ya watermarks hazikufanya kazi ❌ — angalia logs',
-  })
 }

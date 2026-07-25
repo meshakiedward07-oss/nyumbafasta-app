@@ -7,72 +7,86 @@ export const maxDuration = 60
 
 // GET /api/v1/social/posts?tab=posts|comments|dms|schedule|stats&limit=20&offset=0
 export async function GET(req: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const admin = await requireAdminUser()
+    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { searchParams } = new URL(req.url)
-  const tab    = searchParams.get('tab') ?? 'posts'
-  const limit  = Math.min(parseInt(searchParams.get('limit')  ?? '20'), 50)
-  const offset = parseInt(searchParams.get('offset') ?? '0')
+    const { searchParams } = new URL(req.url)
+    const tab    = searchParams.get('tab') ?? 'posts'
+    const limit  = Math.min(parseInt(searchParams.get('limit')  ?? '20'), 50)
+    const offset = parseInt(searchParams.get('offset') ?? '0')
 
-  switch (tab) {
-    case 'stats': {
-      const stats = await getSocialStats()
-      return NextResponse.json({ stats })
+    switch (tab) {
+      case 'stats': {
+        const stats = await getSocialStats()
+        return NextResponse.json({ stats })
+      }
+
+      case 'posts': {
+        const { data, count } = await supabaseAdmin
+          .from('social_posts')
+          .select('*, listings(title, type, district, region)', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1)
+        return NextResponse.json({ posts: data ?? [], total: count ?? 0 })
+      }
+
+      case 'comments': {
+        const { data, count } = await supabaseAdmin
+          .from('social_comments')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1)
+        return NextResponse.json({ comments: data ?? [], total: count ?? 0 })
+      }
+
+      case 'dms': {
+        const { data, count } = await supabaseAdmin
+          .from('social_dms')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1)
+        return NextResponse.json({ dms: data ?? [], total: count ?? 0 })
+      }
+
+      case 'schedule': {
+        const { data, count } = await supabaseAdmin
+          .from('post_schedule')
+          .select('*, listings(title, type, district)', { count: 'exact' })
+          .order('scheduled_at', { ascending: true })
+          .range(offset, offset + limit - 1)
+        return NextResponse.json({ schedule: data ?? [], total: count ?? 0 })
+      }
+
+      default:
+        return NextResponse.json({ error: 'tab haijulikani' }, { status: 400 })
     }
 
-    case 'posts': {
-      const { data, count } = await supabaseAdmin
-        .from('social_posts')
-        .select('*, listings(title, type, district, region)', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1)
-      return NextResponse.json({ posts: data ?? [], total: count ?? 0 })
-    }
-
-    case 'comments': {
-      const { data, count } = await supabaseAdmin
-        .from('social_comments')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1)
-      return NextResponse.json({ comments: data ?? [], total: count ?? 0 })
-    }
-
-    case 'dms': {
-      const { data, count } = await supabaseAdmin
-        .from('social_dms')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1)
-      return NextResponse.json({ dms: data ?? [], total: count ?? 0 })
-    }
-
-    case 'schedule': {
-      const { data, count } = await supabaseAdmin
-        .from('post_schedule')
-        .select('*, listings(title, type, district)', { count: 'exact' })
-        .order('scheduled_at', { ascending: true })
-        .range(offset, offset + limit - 1)
-      return NextResponse.json({ schedule: data ?? [], total: count ?? 0 })
-    }
-
-    default:
-      return NextResponse.json({ error: 'tab haijulikani' }, { status: 400 })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/social/posts]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
 }
 
 // POST /api/v1/social/posts — trigger metrics refresh
 export async function POST(req: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const admin = await requireAdminUser()
+    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { action } = await req.json() as { action?: string }
+    const { action } = await req.json() as { action?: string }
 
-  if (action === 'refresh_metrics') {
-    const result = await updateAllPostMetrics()
-    return NextResponse.json({ ok: true, ...result })
+    if (action === 'refresh_metrics') {
+      const result = await updateAllPostMetrics()
+      return NextResponse.json({ ok: true, ...result })
+    }
+
+    return NextResponse.json({ error: 'action haijulikani' }, { status: 400 })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[POST app/api/v1/social/posts]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
-
-  return NextResponse.json({ error: 'action haijulikani' }, { status: 400 })
 }

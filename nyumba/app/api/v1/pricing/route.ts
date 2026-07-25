@@ -6,8 +6,15 @@ import { getPricing } from '@/lib/config/pricing'
 export const revalidate = 300
 
 export async function GET() {
-  const pricing = await getPricing()
-  return NextResponse.json(pricing, {
-    headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' },
-  })
+  try {
+    const pricing = await getPricing()
+    return NextResponse.json(pricing, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' },
+    })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/pricing]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
 }

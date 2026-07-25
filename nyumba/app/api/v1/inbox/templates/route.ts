@@ -11,14 +11,21 @@ async function assertAdmin() {
 }
 
 export async function GET() {
-  const user = await assertAdmin()
-  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const user = await assertAdmin()
+    if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { data } = await supabaseAdmin
-    .from('owner_reply_templates')
-    .select('*')
-    .order('usage_count', { ascending: false })
-    .limit(10)
+    const { data } = await supabaseAdmin
+      .from('owner_reply_templates')
+      .select('*')
+      .order('usage_count', { ascending: false })
+      .limit(10)
 
-  return NextResponse.json({ templates: data ?? [] })
+    return NextResponse.json({ templates: data ?? [] })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/inbox/templates]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
 }

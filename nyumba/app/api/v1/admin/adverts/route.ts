@@ -9,114 +9,128 @@ import { sendMail } from '@/lib/email/resend'
 import { adCampaignApprovedEmail, adCampaignRejectedEmail } from '@/lib/email/templates'
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminAuth()
-  if (!auth.ok) return auth.response
+  try {
+    const auth = await requireAdminAuth()
+    if (!auth.ok) return auth.response
 
-  const { searchParams } = new URL(req.url)
-  const status = searchParams.get('status') ?? 'pending_review'
-  const page   = parseInt(searchParams.get('page') ?? '1', 10)
-  const limit  = parseInt(searchParams.get('limit') ?? '20', 10)
-  const from   = (page - 1) * limit
-  const to     = from + limit - 1
+    const { searchParams } = new URL(req.url)
+    const status = searchParams.get('status') ?? 'pending_review'
+    const page   = parseInt(searchParams.get('page') ?? '1', 10)
+    const limit  = parseInt(searchParams.get('limit') ?? '20', 10)
+    const from   = (page - 1) * limit
+    const to     = from + limit - 1
 
-  const admin = createAdminClient()
+    const admin = createAdminClient()
 
-  const { data, error, count } = await admin
-    .from('ad_campaigns')
-    .select(`
-      *,
-      advertiser:advertiser_id (id, business_name, contact_phone, whatsapp_number, email, city, status),
-      plan:plan_id (name, ad_type, price_tzs, duration_days)
-    `, { count: 'exact' })
-    .eq('status', status)
-    .order('created_at', { ascending: false })
-    .range(from, to)
+    const { data, error, count } = await admin
+      .from('ad_campaigns')
+      .select(`
+        *,
+        advertiser:advertiser_id (id, business_name, contact_phone, whatsapp_number, email, city, status),
+        plan:plan_id (name, ad_type, price_tzs, duration_days)
+      `, { count: 'exact' })
+      .eq('status', status)
+      .order('created_at', { ascending: false })
+      .range(from, to)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ campaigns: data ?? [], total: count ?? 0, page, limit })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ campaigns: data ?? [], total: count ?? 0, page, limit })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/admin/adverts]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
 }
 
 // Bulk action: approve / reject multiple campaigns
 export async function PATCH(req: NextRequest) {
-  const auth = await requireAdminAuth()
-  if (!auth.ok) return auth.response
+  try {
+    const auth = await requireAdminAuth()
+    if (!auth.ok) return auth.response
 
-  const body = await req.json()
-  const { ids, action, reason } = body as { ids: string[]; action: 'approve' | 'reject'; reason?: string }
+    const body = await req.json()
+    const { ids, action, reason } = body as { ids: string[]; action: 'approve' | 'reject'; reason?: string }
 
-  if (!ids?.length || !action) {
-    return NextResponse.json({ error: 'ids na action zinahitajika' }, { status: 400 })
-  }
-  if (!['approve', 'reject'].includes(action)) {
-    return NextResponse.json({ error: 'action lazima iwe approve au reject' }, { status: 400 })
-  }
-
-  const admin = createAdminClient()
-
-  const { data: campaigns } = await admin
-    .from('ad_campaigns')
-    .select('id, ad_type, payment_status, plan:plan_id (duration_days), advertiser:advertiser_id (id, business_name, whatsapp_number, user_id, email)')
-    .in('id', ids)
-
-  if (action === 'reject') {
-    const { error } = await admin.from('ad_campaigns').update({
-      status: 'rejected', admin_note: reason || null, updated_at: new Date().toISOString(),
-    }).in('id', ids)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  } else {
-    // Approve per-campaign: activate immediately if already paid, else just approve
-    const now = new Date()
-    for (const c of campaigns ?? []) {
-      const alreadyPaid  = c.payment_status === 'completed'
-      const durationDays = (c.plan as unknown as { duration_days?: number } | null)?.duration_days ?? 30
-      const approveData  = alreadyPaid
-        ? {
-            status: 'active', admin_note: reason || null,
-            starts_at: now.toISOString(),
-            expires_at: new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: now.toISOString(),
-          }
-        : { status: 'approved', admin_note: reason || null, updated_at: now.toISOString() }
-      await admin.from('ad_campaigns').update(approveData).eq('id', c.id)
+    if (!ids?.length || !action) {
+      return NextResponse.json({ error: 'ids na action zinahitajika' }, { status: 400 })
     }
-  }
-
-  // Notifications (non-blocking) — WhatsApp + in-app + email per campaign
-  for (const c of campaigns ?? []) {
-    const adv = c.advertiser as unknown as {
-      business_name: string; whatsapp_number: string | null; user_id: string | null; email: string | null
+    if (!['approve', 'reject'].includes(action)) {
+      return NextResponse.json({ error: 'action lazima iwe approve au reject' }, { status: 400 })
     }
 
-    // WhatsApp
-    if (adv?.whatsapp_number) {
-      if (action === 'approve') {
-        notifyAdvertiserApproved(adv.whatsapp_number, adv.business_name, c.ad_type).catch(() => {})
-      } else {
-        notifyAdvertiserRejected(adv.whatsapp_number, adv.business_name, reason ?? 'Haifikii vigezo vyetu').catch(() => {})
+    const admin = createAdminClient()
+
+    const { data: campaigns } = await admin
+      .from('ad_campaigns')
+      .select('id, ad_type, payment_status, plan:plan_id (duration_days), advertiser:advertiser_id (id, business_name, whatsapp_number, user_id, email)')
+      .in('id', ids)
+
+    if (action === 'reject') {
+      const { error } = await admin.from('ad_campaigns').update({
+        status: 'rejected', admin_note: reason || null, updated_at: new Date().toISOString(),
+      }).in('id', ids)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    } else {
+      // Approve per-campaign: activate immediately if already paid, else just approve
+      const now = new Date()
+      for (const c of campaigns ?? []) {
+        const alreadyPaid  = c.payment_status === 'completed'
+        const durationDays = (c.plan as unknown as { duration_days?: number } | null)?.duration_days ?? 30
+        const approveData  = alreadyPaid
+          ? {
+              status: 'active', admin_note: reason || null,
+              starts_at: now.toISOString(),
+              expires_at: new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
+              updated_at: now.toISOString(),
+            }
+          : { status: 'approved', admin_note: reason || null, updated_at: now.toISOString() }
+        await admin.from('ad_campaigns').update(approveData).eq('id', c.id)
       }
     }
 
-    // In-app
-    if (adv?.user_id) {
-      admin.from('notifications').insert({
-        user_id: adv.user_id,
-        title:   action === 'approve' ? '✅ Tangazo Lako Limeidhibitiwa!' : '❌ Tangazo Lilikataliwa',
-        body:    action === 'approve'
-          ? 'Tangazo lako limeidhibitiwa. Lipa ili lianze kuonekana kwa wateja.'
-          : (reason ? `Tangazo lako lilikataliwa. Sababu: ${reason}` : 'Tangazo lako halijakidhi vigezo vyetu.'),
-        type:    action === 'approve' ? 'ad_campaign_approved' : 'ad_campaign_rejected',
-        is_read: false,
-      }).then(() => {}, () => {})
+    // Notifications (non-blocking) — WhatsApp + in-app + email per campaign
+    for (const c of campaigns ?? []) {
+      const adv = c.advertiser as unknown as {
+        business_name: string; whatsapp_number: string | null; user_id: string | null; email: string | null
+      }
+
+      // WhatsApp
+      if (adv?.whatsapp_number) {
+        if (action === 'approve') {
+          notifyAdvertiserApproved(adv.whatsapp_number, adv.business_name, c.ad_type).catch(() => {})
+        } else {
+          notifyAdvertiserRejected(adv.whatsapp_number, adv.business_name, reason ?? 'Haifikii vigezo vyetu').catch(() => {})
+        }
+      }
+
+      // In-app
+      if (adv?.user_id) {
+        admin.from('notifications').insert({
+          user_id: adv.user_id,
+          title:   action === 'approve' ? '✅ Tangazo Lako Limeidhibitiwa!' : '❌ Tangazo Lilikataliwa',
+          body:    action === 'approve'
+            ? 'Tangazo lako limeidhibitiwa. Lipa ili lianze kuonekana kwa wateja.'
+            : (reason ? `Tangazo lako lilikataliwa. Sababu: ${reason}` : 'Tangazo lako halijakidhi vigezo vyetu.'),
+          type:    action === 'approve' ? 'ad_campaign_approved' : 'ad_campaign_rejected',
+          is_read: false,
+        }).then(() => {}, () => {})
+      }
+
+      // Email
+      if (adv?.email) {
+        const tpl = action === 'approve'
+          ? adCampaignApprovedEmail(adv.business_name, c.ad_type)
+          : adCampaignRejectedEmail(adv.business_name, reason)
+        sendMail({ to: adv.email!, ...tpl }).catch(() => {})
+      }
     }
 
-    // Email
-    if (adv?.email) {
-      const tpl = action === 'approve'
-        ? adCampaignApprovedEmail(adv.business_name, c.ad_type)
-        : adCampaignRejectedEmail(adv.business_name, reason)
-      sendMail({ to: adv.email!, ...tpl }).catch(() => {})
-    }
+    return NextResponse.json({ ok: true, updated: ids.length })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[PATCH app/api/v1/admin/adverts]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
-
-  return NextResponse.json({ ok: true, updated: ids.length })
 }

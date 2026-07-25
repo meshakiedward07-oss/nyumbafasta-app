@@ -8,32 +8,39 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: { phone: string } },
 ) {
-  const auth = await requireStaffAuth()
-  if (!auth.ok) return auth.response
-  const actor = { id: auth.userId, full_name: auth.fullName }
+  try {
+    const auth = await requireStaffAuth()
+    if (!auth.ok) return auth.response
+    const actor = { id: auth.userId, full_name: auth.fullName }
 
-  const phone = decodeURIComponent(params.phone)
+    const phone = decodeURIComponent(params.phone)
 
-  await getOrCreateWASession(phone)
-  await updateWASession(phone, {
-    status: 'admin',
-    assigned_admin_id: actor.id,
-  })
+    await getOrCreateWASession(phone)
+    await updateWASession(phone, {
+      status: 'admin',
+      assigned_admin_id: actor.id,
+    })
 
-  await saveWAMessage(
-    phone,
-    'outbound',
-    'system',
-    `${actor.full_name ?? 'Staff'} amechukua mazungumzo haya.`,
-  )
+    await saveWAMessage(
+      phone,
+      'outbound',
+      'system',
+      `${actor.full_name ?? 'Staff'} amechukua mazungumzo haya.`,
+    )
 
-  logStaffActivity({
-    staffId:      actor.id,
-    actionType:   'whatsapp_takeover',
-    resourceType: 'whatsapp_sessions',
-    resourceId:   phone,
-    description:  `Alichukua mazungumzo ya ${phone} kutoka kwa Amina`,
-  }).catch(() => {})
+    logStaffActivity({
+      staffId:      actor.id,
+      actionType:   'whatsapp_takeover',
+      resourceType: 'whatsapp_sessions',
+      resourceId:   phone,
+      description:  `Alichukua mazungumzo ya ${phone} kutoka kwa Amina`,
+    }).catch(() => {})
 
-  return NextResponse.json({ ok: true, status: 'admin' })
+    return NextResponse.json({ ok: true, status: 'admin' })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[POST app/api/v1/whatsapp/sessions/[phone]/takeover]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
 }

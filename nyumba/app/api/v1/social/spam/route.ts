@@ -21,77 +21,98 @@ async function getAuthorisedUser() {
 
 // GET /api/v1/social/spam — spam stats + recent
 export async function GET() {
-  const actor = await getAuthorisedUser()
-  if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const actor = await getAuthorisedUser()
+    if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const stats = await getSpamStats()
-  return NextResponse.json(stats)
+    const stats = await getSpamStats()
+    return NextResponse.json(stats)
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[GET app/api/v1/social/spam]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
 }
 
 // POST /api/v1/social/spam — manually mark a comment as spam and delete it
 export async function POST(req: NextRequest) {
-  const actor = await getAuthorisedUser()
-  if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const actor = await getAuthorisedUser()
+    if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { commentId, platform, commentText, commenterId, postId } = await req.json() as {
-    commentId:   string
-    platform:    'instagram' | 'facebook'
-    commentText: string
-    commenterId: string
-    postId:      string
+    const { commentId, platform, commentText, commenterId, postId } = await req.json() as {
+      commentId:   string
+      platform:    'instagram' | 'facebook'
+      commentText: string
+      commenterId: string
+      postId:      string
+    }
+
+    if (!commentId || !platform) {
+      return NextResponse.json({ error: 'commentId na platform zinahitajika' }, { status: 400 })
+    }
+
+    const result = await processCommentForSpam({
+      platform,
+      commentId,
+      postId:        postId ?? '',
+      commenterId:   commenterId ?? '',
+      commenterName: '',
+      commentText:   commentText ?? '',
+    })
+
+    logStaffActivity({
+      staffId:      actor.id,
+      actionType:   'comment_moderated',
+      resourceType: 'spam_comments',
+      resourceId:   commentId,
+      description:  `Alithibitisha spam kwenye ${platform}: "${commentText?.slice(0, 60)}"`,
+    }).catch(() => {})
+
+    return NextResponse.json({ ok: true, ...result })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[POST app/api/v1/social/spam]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
-
-  if (!commentId || !platform) {
-    return NextResponse.json({ error: 'commentId na platform zinahitajika' }, { status: 400 })
-  }
-
-  const result = await processCommentForSpam({
-    platform,
-    commentId,
-    postId:        postId ?? '',
-    commenterId:   commenterId ?? '',
-    commenterName: '',
-    commentText:   commentText ?? '',
-  })
-
-  logStaffActivity({
-    staffId:      actor.id,
-    actionType:   'comment_moderated',
-    resourceType: 'spam_comments',
-    resourceId:   commentId,
-    description:  `Alithibitisha spam kwenye ${platform}: "${commentText?.slice(0, 60)}"`,
-  }).catch(() => {})
-
-  return NextResponse.json({ ok: true, ...result })
 }
 
 // PATCH /api/v1/social/spam — restore a falsely flagged comment (unhide)
 export async function PATCH(req: NextRequest) {
-  const actor = await getAuthorisedUser()
-  if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const actor = await getAuthorisedUser()
+    if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { spamId, commentId, platform } = await req.json() as {
-    spamId:    string
-    commentId: string
-    platform:  'instagram' | 'facebook'
+    const { spamId, commentId, platform } = await req.json() as {
+      spamId:    string
+      commentId: string
+      platform:  'instagram' | 'facebook'
+    }
+
+    if (platform === 'instagram') {
+      await hideIGComment(commentId, false)  // unhide
+    }
+
+    await supabaseAdmin
+      .from('spam_comments')
+      .update({ action_taken: 'ignored' })
+      .eq('id', spamId)
+
+    logStaffActivity({
+      staffId:      actor.id,
+      actionType:   'comment_moderated',
+      resourceType: 'spam_comments',
+      resourceId:   spamId,
+      description:  `Alirudisha comment iliyoflagiwa kwa makosa (${platform})`,
+    }).catch(() => {})
+
+    return NextResponse.json({ ok: true, restored: true })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[PATCH app/api/v1/social/spam]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
-
-  if (platform === 'instagram') {
-    await hideIGComment(commentId, false)  // unhide
-  }
-
-  await supabaseAdmin
-    .from('spam_comments')
-    .update({ action_taken: 'ignored' })
-    .eq('id', spamId)
-
-  logStaffActivity({
-    staffId:      actor.id,
-    actionType:   'comment_moderated',
-    resourceType: 'spam_comments',
-    resourceId:   spamId,
-    description:  `Alirudisha comment iliyoflagiwa kwa makosa (${platform})`,
-  }).catch(() => {})
-
-  return NextResponse.json({ ok: true, restored: true })
 }
