@@ -6,7 +6,6 @@ import { requireStaffAuth } from '@/lib/security/adminAuth'
 export async function GET(req: NextRequest) {
   const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
-  const admin = { id: auth.userId }
 
   const { searchParams } = req.nextUrl
   const phone = searchParams.get('phone')

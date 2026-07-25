@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 

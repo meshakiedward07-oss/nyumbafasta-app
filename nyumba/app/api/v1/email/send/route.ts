@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     status:         'sent',
     resend_id:      result.id ?? null,
     thread_id:      usedThreadId,
-  }).then().catch(() => {}) // Non-fatal — email already sent
+  }).then(null, () => {}) // Non-fatal — email already sent
 
   return NextResponse.json({ ok: true, thread_id: usedThreadId })
 }
