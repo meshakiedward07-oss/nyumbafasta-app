@@ -72,10 +72,17 @@ export default function PropertySchema({
     },
   }
 
+  // Escape </script> break-out sequences — JSON.stringify doesn't do this by default
+  const jsonLd = JSON.stringify(schema)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+
   return (
+    // nosemgrep: react-dangerouslysetinnerhtml — jsonLd is JSON.stringify output with </> escaped via </>
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLd }}
     />
   )
 }

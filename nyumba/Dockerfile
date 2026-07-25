@@ -52,4 +52,8 @@ RUN npm run build
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/bin
 ENV CHROMIUM_PATH=/usr/bin/chromium
 
+# Run as non-root for security
+RUN chown -R node:node /app
+USER node
+
 CMD ["npx", "ts-node", "scripts/scraper/scheduler.ts"]
