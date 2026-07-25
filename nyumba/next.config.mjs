@@ -16,11 +16,12 @@ const nextConfig = {
     imageSizes: [48, 64, 96, 128, 256],
   },
 
+  // sharp must be external so Vercel doesn't try to bundle the native binary
+  serverExternalPackages: ['sharp'],
+
   experimental: {
     // Tree-shake these packages so only used icons/functions are bundled
     optimizePackageImports: ['lucide-react', '@tabler/icons-react', '@supabase/supabase-js'],
-    // Mark native packages as external so they're not bundled — required for sharp to work on Vercel
-    serverComponentsExternalPackages: ['sharp'],
   },
 
   async headers() {
@@ -54,8 +55,8 @@ const nextConfig = {
               // ESRI satellite tiles + OSM street tiles + Leaflet CDN marker icons
               "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.supabase.co https://images.unsplash.com https://*.arcgisonline.com https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com",
               "font-src 'self' https://fonts.gstatic.com",
-              // media-src: REQUIRED for <video src="https://*.supabase.co/..."> playback
-              "media-src 'self' https://*.supabase.co blob:",
+              // media-src: required for Supabase Storage AND Cloudinary video ads
+              "media-src 'self' https://*.supabase.co https://res.cloudinary.com https://*.cloudinary.com blob:",
               // Geoapify geocoding/autocomplete API
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.resend.com https://api.cloudinary.com https://api.geoapify.com",
               "worker-src 'self' blob:",

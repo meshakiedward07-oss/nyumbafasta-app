@@ -76,10 +76,11 @@ async function uploadVariant(
   storagePath: string,
 ): Promise<string> {
   const admin = createAdminClient()
-  await admin.storage.from(STORAGE_BUCKET).upload(storagePath, buffer, {
+  const { error } = await admin.storage.from(STORAGE_BUCKET).upload(storagePath, buffer, {
     contentType: 'image/webp',
     upsert: true,
   })
+  if (error) throw new Error(`Storage upload failed (${storagePath}): ${error.message}`)
   const { data } = admin.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath)
   return data.publicUrl
 }
@@ -175,6 +176,12 @@ export async function uploadVideo(
   mimeType: string,
   advertiserId: string,
 ): Promise<VideoResult> {
+  if (!CLOUD || !API_KEY || !API_SEC) {
+    throw new Error(
+      'Cloudinary credentials hazijawekwa — weka NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, ' +
+      'CLOUDINARY_API_KEY, na CLOUDINARY_API_SECRET kwenye Vercel environment variables.',
+    )
+  }
   const folder    = `ad-creatives/${advertiserId}`
   const timestamp = Math.floor(Date.now() / 1000)
   const paramStr  = `folder=${folder}&timestamp=${timestamp}`
@@ -218,10 +225,11 @@ export async function uploadOriginal(
   storagePath: string,
 ): Promise<string> {
   const admin = createAdminClient()
-  await admin.storage.from(STORAGE_BUCKET).upload(storagePath, buffer, {
+  const { error } = await admin.storage.from(STORAGE_BUCKET).upload(storagePath, buffer, {
     contentType: mimeType,
     upsert: true,
   })
+  if (error) throw new Error(`Storage upload failed (${storagePath}): ${error.message}`)
   const { data } = admin.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath)
   return data.publicUrl
 }

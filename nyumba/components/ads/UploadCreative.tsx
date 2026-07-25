@@ -58,41 +58,91 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
   }, [])
 
   // ── Upload ────────────────────────────────────────────────────────────────
+  // Uses a two-step signed-URL flow to bypass Vercel's 4.5 MB request body limit:
+  //   1. GET /sign  → Supabase signed upload URL + path
+  //   2. PUT file   → upload directly to Supabase Storage (no Vercel proxy)
+  //   3. POST /creative with JSON { mode:'presigned', path, mimeType } → server processes
 
   async function upload(force = false) {
     if (files.length === 0) return
     setPhase('uploading')
     setError(null)
     setWarning(null)
-    setProgress(10)
 
-    const form = new FormData()
-    if (force) form.append('force', 'true')
-
-    if (files.length === 1) {
-      form.append('file', files[0])
-    } else {
-      for (const f of files) form.append('files', f)
-    }
-
-    setProgress(30)
+    const controller = new AbortController()
+    // Abort after 270s so user gets a clear message before Vercel's 300s hard kill
+    const timeoutId  = setTimeout(() => controller.abort(), 270_000)
 
     try {
-      const res  = await fetch(`/api/v1/advertising/campaigns/${campaignId}/creative`, {
-        method: 'POST',
-        body:   form,
-      })
-      const data = await res.json()
-      setProgress(90)
+      const firstFile = files[0]
+      const isVideo   = firstFile.type.startsWith('video/')
 
-      if (res.status === 422 && data.warning) {
-        setWarning(data.message)
-        setPhase('idle')
-        setProgress(0)
-        return
+      // ── Step 1: ratio pre-check for images (cheap, no upload yet) ──────────
+      if (!isVideo && !force && files.length === 1) {
+        setProgress(5)
+        const checkForm = new FormData()
+        checkForm.append('file', firstFile)
+        checkForm.append('checkOnly', 'true')
+        const checkRes  = await fetch(
+          `/api/v1/advertising/campaigns/${campaignId}/creative`,
+          { method: 'POST', body: checkForm, signal: controller.signal },
+        )
+        if (checkRes.status === 422) {
+          const d = await checkRes.json()
+          if (d.warning) { setWarning(d.message); setPhase('idle'); setProgress(0); clearTimeout(timeoutId); return }
+        }
       }
 
-      if (!res.ok) {
+      // ── Step 2: get signed upload URL from server ────────────────────────
+      setProgress(10)
+      const signRes = await fetch(
+        `/api/v1/advertising/campaigns/${campaignId}/creative/sign` +
+        `?mimeType=${encodeURIComponent(firstFile.type)}&count=${files.length}`,
+        { signal: controller.signal },
+      )
+      if (!signRes.ok) {
+        const d = await signRes.json().catch(() => ({}))
+        throw new Error(d.error ?? 'Haikuweza kupata URL ya upakiaji')
+      }
+      const { uploads } = await signRes.json() as {
+        uploads: { signedUrl: string; token: string; path: string }[]
+      }
+
+      // ── Step 3: upload each file directly to Supabase Storage ───────────
+      const paths: string[] = []
+      for (let i = 0; i < files.length; i++) {
+        setProgress(15 + Math.round((i / files.length) * 55))
+        const { signedUrl, path } = uploads[i]
+        const putRes = await fetch(signedUrl, {
+          method:  'PUT',
+          headers: { 'Content-Type': files[i].type, 'x-upsert': 'true' },
+          body:    files[i],
+          signal:  controller.signal,
+        })
+        if (!putRes.ok) throw new Error(`Upakiaji wa faili ${i + 1} umeshindwa (${putRes.status})`)
+        paths.push(path)
+      }
+
+      // ── Step 4: tell server to process the uploaded file(s) ──────────────
+      setProgress(75)
+      const processRes = await fetch(
+        `/api/v1/advertising/campaigns/${campaignId}/creative`,
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            mode:     'presigned',
+            paths,
+            mimeType: firstFile.type,
+            force,
+          }),
+          signal: controller.signal,
+        },
+      )
+      const data = await processRes.json()
+      setProgress(95)
+
+      if (!processRes.ok) {
         setError(data.error ?? 'Kuna tatizo. Jaribu tena.')
         setPhase('failed')
         return
@@ -102,9 +152,15 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
       setPhase('done')
       setProgress(100)
       onDone?.(data.creative)
-    } catch {
-      setError('Haikuweza kuunganika. Angalia mtandao na ujaribu tena.')
+
+    } catch (e) {
+      const isAbort = e instanceof Error && e.name === 'AbortError'
+      setError(isAbort
+        ? 'Imechukua muda mrefu sana. Jaribu faili ndogo zaidi au muunganiko bora.'
+        : 'Haikuweza kuunganika. Angalia mtandao na ujaribu tena.')
       setPhase('failed')
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
 

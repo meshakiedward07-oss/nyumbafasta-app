@@ -19,7 +19,7 @@ export default function FeaturedCard({ ad }: { ad: FeaturedBusiness }) {
     ? waLink(waNumber)
     : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : (ad.cta_value || '#')
 
-  const isExternal = ad.cta_type !== undefined
+  const isInternalLink = ad.cta_type === 'website' && href.startsWith('/')
 
   const content = (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition">
@@ -75,11 +75,11 @@ export default function FeaturedCard({ ad }: { ad: FeaturedBusiness }) {
     </div>
   )
 
-  return isExternal ? (
+  return isInternalLink ? (
+    <Link href={href}>{content}</Link>
+  ) : (
     <a href={href} target={ad.cta_type === 'website' ? '_blank' : undefined} rel="noopener noreferrer">
       {content}
     </a>
-  ) : (
-    <Link href={href}>{content}</Link>
   )
 }

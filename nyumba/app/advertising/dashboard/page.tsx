@@ -35,7 +35,7 @@ export default async function AdvertiserDashboard() {
     .select(`
       *,
       plan:plan_id (name, price_tzs, duration_days),
-      creative:creative_id (banner_url, video_thumb_url, processing_status)
+      creative:creative_id (banner_url, video_thumb_url, processing_status, error_message)
     `)
     .eq('advertiser_id', advertiser.id)
     .order('created_at', { ascending: false })
@@ -196,9 +196,9 @@ export default async function AdvertiserDashboard() {
             {(campaigns ?? []).map(c => {
               const st        = STATUS_LABELS[c.status] ?? { label: c.status, cls: 'bg-gray-100 text-gray-500 border-gray-200', dot: 'bg-gray-400' }
               const plan      = c.plan as { name: string; price_tzs: number; duration_days: number } | null
-              const creative  = c.creative as { banner_url: string | null; video_thumb_url: string | null; processing_status: string } | null
+              const creative  = c.creative as { banner_url: string | null; video_thumb_url: string | null; processing_status: string; error_message: string | null } | null
               const needsPay  = c.status === 'approved' && c.payment_status !== 'completed'
-              const needsArt  = !creative && !['rejected', 'expired', 'suspended'].includes(c.status)
+              const needsArt  = (!creative || creative.processing_status === 'failed') && !['rejected', 'expired', 'suspended'].includes(c.status)
               const thumb     = creative?.banner_url ?? creative?.video_thumb_url ?? null
 
               return (
@@ -248,7 +248,9 @@ export default async function AdvertiserDashboard() {
                     )}
                     {needsArt && (
                       <div className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2">
-                        📸 Bado hujapakia picha au video ya tangazo hili.
+                        {creative?.processing_status === 'failed'
+                          ? `❌ Upakiaji wa creative umeshindwa: ${creative.error_message ?? 'Jaribu tena.'}`
+                          : '📸 Bado hujapakia picha au video ya tangazo hili.'}
                       </div>
                     )}
 
