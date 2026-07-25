@@ -172,7 +172,7 @@ export async function createIGCarouselContainer(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       media_type:   'CAROUSEL',
-      children:     childIds.join(','),
+      children:     childIds,
       caption,
       access_token: igToken(),
     }),
@@ -229,7 +229,7 @@ export async function getIGPostMetrics(igMediaId: string): Promise<IGMetrics> {
 
     // Insights endpoint for reach/impressions/saved
     const insRes = await fetch(
-      `${GRAPH}/${igMediaId}/insights?metric=reach,impressions,saved&period=lifetime&access_token=${igToken()}`,
+      `${GRAPH}/${igMediaId}/insights?metric=reach,saved&period=lifetime&access_token=${igToken()}`,
     )
     const insData = await insRes.json() as { data?: { name: string; values: { value: number }[] }[] }
     const ins: Record<string, number> = {}

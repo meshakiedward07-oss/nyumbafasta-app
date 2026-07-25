@@ -164,6 +164,7 @@ export async function postListingToSocialMedia(
         await waitForIGContainer(containerId)
       } else if (imageUrl) {
         containerId = await createIGImageContainer(imageUrl, fullCaption)
+        await waitForIGContainer(containerId, 15_000)
       } else {
         throw new Error('Listing haina picha au video — haiwezi kupoatstwa kwenye Instagram')
       }
@@ -184,8 +185,8 @@ export async function postListingToSocialMedia(
   // ── Facebook ──────────────────────────────────────────────────────────────
   if ((platform === 'facebook' || platform === 'both') && !skipPlatforms.has('facebook')) {
     try {
-      if (!process.env.FACEBOOK_PAGE_ID || (!process.env.FACEBOOK_PAGE_ACCESS_TOKEN && !process.env.FACEBOOK_ACCESS_TOKEN)) {
-        throw new Error('FACEBOOK_PAGE_ID au FACEBOOK_PAGE_ACCESS_TOKEN hazijakonfigurwa')
+      if (!process.env.FACEBOOK_PAGE_ID || (!process.env.INSTAGRAM_ACCESS_TOKEN && !process.env.FACEBOOK_PAGE_ACCESS_TOKEN && !process.env.FACEBOOK_ACCESS_TOKEN)) {
+        throw new Error('FACEBOOK_PAGE_ID au token hazijakonfigurwa (INSTAGRAM_ACCESS_TOKEN / FACEBOOK_PAGE_ACCESS_TOKEN)')
       }
 
       // Use override if provided; otherwise generate FB-specific caption (can be longer)

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { postListingToSocialMedia, schedulePost } from '@/lib/social/autoPost'
 import { requireAdminUser } from '@/lib/security/adminAuth'
 
-export const maxDuration = 60
+export const maxDuration = 300
 
 // POST /api/v1/social/post
 // Body: { listingId, platform, scheduledAt? }

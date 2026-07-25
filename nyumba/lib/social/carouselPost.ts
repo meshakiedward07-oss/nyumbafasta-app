@@ -47,14 +47,14 @@ export async function postInstagramCarousel(params: {
     try {
       console.log('[Carousel] Creating item', i + 1, 'of', images.length)
       const id = await createIGCarouselItemContainer(images[i])
+      // Poll until Meta finishes processing this item before moving to the next.
+      // Without polling, the parent carousel container creation fails if any
+      // item container is still IN_PROGRESS.
+      await waitForIGContainer(id, 45_000)
       containerIds.push(id)
-      console.log('[Carousel] Item', i + 1, 'container:', id)
+      console.log('[Carousel] Item', i + 1, 'ready:', id)
     } catch (err) {
       console.error('[Carousel] Item', i + 1, 'failed:', err instanceof Error ? err.message : err)
-    }
-
-    if (i < images.length - 1) {
-      await new Promise(r => setTimeout(r, 1500))
     }
   }
 

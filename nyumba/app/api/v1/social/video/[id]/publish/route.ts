@@ -71,12 +71,9 @@ export async function POST(
   // Resolve watermarked URL — idempotent: if video_url already IS the eager-transformed
   // Cloudinary URL (stored that way since the upload flow was fixed), watermarkVideo() returns
   // it unchanged. Otherwise it constructs the lazy transformation URL.
-  const watermarkedUrl = watermarkVideo(video.video_url)
-  if (!watermarkedUrl || !watermarkedUrl.includes('cloudinary.com')) {
-    return NextResponse.json(
-      { error: 'Video URL si sahihi. Pakia video upya kupitia VideoUploadTab.' },
-      { status: 500 },
-    )
+  const watermarkedUrl = watermarkVideo(video.video_url) ?? video.video_url
+  if (!watermarkedUrl) {
+    return NextResponse.json({ error: 'Video URL si sahihi au haipo.' }, { status: 400 })
   }
 
   // Mark as posting
@@ -139,8 +136,8 @@ export async function POST(
 
   // ── Facebook Video ──────────────────────────────────────────────────────
   if (platforms.includes('facebook')) {
-    if (!process.env.FACEBOOK_PAGE_ID || !process.env.FACEBOOK_PAGE_ACCESS_TOKEN) {
-      errors.push('Facebook: FACEBOOK_PAGE_ID au FACEBOOK_PAGE_ACCESS_TOKEN hazijakonfigurwa kwenye Vercel')
+    if (!process.env.FACEBOOK_PAGE_ID || (!process.env.INSTAGRAM_ACCESS_TOKEN && !process.env.FACEBOOK_PAGE_ACCESS_TOKEN && !process.env.FACEBOOK_ACCESS_TOKEN)) {
+      errors.push('Facebook: FACEBOOK_PAGE_ID au token hazijakonfigurwa kwenye Vercel')
     } else {
       try {
         console.log('[VideoPublish] Uploading to Facebook...')

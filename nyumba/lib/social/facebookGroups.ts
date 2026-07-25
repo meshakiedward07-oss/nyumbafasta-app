@@ -2,7 +2,7 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import type { Listing } from '@/lib/types/database'
 
 const GRAPH    = 'https://graph.facebook.com/v21.0'
-const fbToken  = () => process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
+const fbToken  = () => process.env.INSTAGRAM_ACCESS_TOKEN ?? process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
 
 export type GroupPostResult = {
   groupId:   string

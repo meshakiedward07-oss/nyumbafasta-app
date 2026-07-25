@@ -61,22 +61,34 @@ export async function postInstagramStory(params: {
       access_token: igToken(),
     }
 
-    // Link sticker — requires pages_read_engagement permission on the account
+    // Link sticker — optional; domain must be whitelisted in Meta app settings.
+    // Retry without sticker if container creation fails, so the story still posts.
     if (params.listingUrl) {
       containerBody.sticker_data = {
-        link_sticker: {
-          link:         params.listingUrl,
-          display_text: 'Angalia Nyumba',
-        },
+        link_sticker: { link: params.listingUrl },
       }
     }
 
-    const containerRes  = await fetch(`${GRAPH}/${igUserId()}/media`, {
+    let containerData: { id?: string; error?: { message: string } }
+
+    const attempt1 = await fetch(`${GRAPH}/${igUserId()}/media`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(containerBody),
     })
-    const containerData = await containerRes.json() as { id?: string; error?: { message: string } }
+    containerData = await attempt1.json() as typeof containerData
+
+    // If sticker caused the failure, retry without it
+    if (containerData.error && containerBody.sticker_data) {
+      console.warn('[IG Stories] Sticker failed, retrying without:', containerData.error.message)
+      delete containerBody.sticker_data
+      const attempt2 = await fetch(`${GRAPH}/${igUserId()}/media`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(containerBody),
+      })
+      containerData = await attempt2.json() as typeof containerData
+    }
 
     if (containerData.error) {
       console.error('[IG Stories] Container error:', containerData.error.message)
