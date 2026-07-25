@@ -102,6 +102,7 @@ export default function AddListingWizard() {
   const [photosUploading, setPhotosUploading] = useState(false)
   const [videoUploading, setVideoUploading] = useState(false)
   const [error, setError] = useState('')
+  const [submitted, setSubmitted] = useState<{ autoApproved: boolean; listingId: string } | null>(null)
 
   // ── Listing limit ─────────────────────────────────────────
   type LimitInfo = { limit: number; current: number; canAdd: boolean; remaining: number; plan: string | null }
@@ -279,23 +280,100 @@ export default function AddListingWizard() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Imeshindwa kuunda listing')
       try { if (draftKey) localStorage.removeItem(draftKey) } catch {}
-      router.push('/dashboard?new=1')
-      router.refresh()
+      setSubmitted({ autoApproved: data.auto_approved === true, listingId: data.id })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
       setSubmitting(false)
     }
   }
 
+  // ── Quality checks (mirror server-side checkListingQuality) ──
+  const qualityChecks = [
+    {
+      key: 'photos',
+      label: 'Picha 3 au zaidi',
+      hint: `${form.images.length}/3 picha`,
+      passed: form.images.length >= 3,
+      required: true,
+    },
+    {
+      key: 'description',
+      label: 'Maelezo ya kutosha (≥30 herufi)',
+      hint: `${form.description.trim().length}/30 herufi`,
+      passed: form.description.trim().length >= 30,
+      required: true,
+    },
+    {
+      key: 'ward',
+      label: 'Kata (eneo halisi)',
+      hint: form.ward || 'Haijawekwa',
+      passed: form.ward.trim().length > 1,
+      required: true,
+    },
+    {
+      key: 'amenities',
+      label: 'Huduma angalau 1',
+      hint: `${form.amenities.length} zilizochaguliwa`,
+      passed: form.amenities.length >= 1,
+      required: false,
+    },
+    {
+      key: 'location',
+      label: 'Pin ya ramani',
+      hint: form.latitude !== null ? 'Imewekwa' : 'Haijawekwa',
+      passed: form.latitude !== null && form.longitude !== null,
+      required: false,
+    },
+  ]
+  const allRequiredPassed = qualityChecks.filter(c => c.required).every(c => c.passed)
+
   // ── Step validation ───────────────────────────────────
   const canProceed = [
-    form.type && form.price_monthly && parseInt(form.price_monthly) > 0,
-    form.region && form.district.trim().length > 1,
+    !!(form.type && form.price_monthly && parseInt(form.price_monthly) > 0 && form.description.trim().length >= 30),
+    !!(form.region && form.district.trim().length > 1 && form.ward.trim().length > 1),
     true, // amenities optional
-    true, // preview — always can submit
+    allRequiredPassed,
   ][step]
 
   const stepTitles = ['Maelezo', 'Mahali', 'Huduma', 'Picha & Kagua']
+
+  // ── Success screen ────────────────────────────────────
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
+        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-5 ${submitted.autoApproved ? 'bg-green-100' : 'bg-amber-100'}`}>
+          <i className={`ti text-4xl ${submitted.autoApproved ? 'ti-circle-check text-green-500' : 'ti-clock text-amber-500'}`} aria-hidden="true" />
+        </div>
+        {submitted.autoApproved ? (
+          <>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Imechapishwa!</h2>
+            <p className="text-sm text-gray-500 mb-1">Listing yako imepita ukaguzi wa ubora na inaweza kuonekana na wateja <strong>sasa hivi</strong>.</p>
+            <p className="text-xs text-green-600 mb-8 flex items-center justify-center gap-1">
+              <i className="ti ti-stars" aria-hidden="true" /> Umeweka picha, maelezo, na eneo — hongera!
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Imepokelewa</h2>
+            <p className="text-sm text-gray-500 mb-1">Listing yako imewasilishwa na inangojea ukaguzi wa mwisho.</p>
+            <p className="text-xs text-amber-600 mb-8">Kawaida inachukua masaa 24 kuidhinishwa.</p>
+          </>
+        )}
+        <button
+          onClick={() => { router.push('/dashboard'); router.refresh() }}
+          className="w-full max-w-xs bg-primary-500 text-white py-3.5 rounded-2xl font-semibold text-sm mb-3"
+        >
+          Angalia Dashboard →
+        </button>
+        <button
+          onClick={() => { setSubmitted(null); setStep(0); setForm({ type: 'chumba', price_monthly: '', bedrooms: '', furnished: 'empty', description: '', region: '', district: '', ward: '', mtaa: '', amenities: [], images: [], video_url: null, latitude: null, longitude: null, address_full: '', place_id: '', shop_size_sqm: '', floor_level: '', commercial_use: '', listing_unit_type: 'single', total_capacity: '', auto_deactivate_on_full: true }) }}
+          className="text-sm text-gray-400 underline"
+        >
+          Ongeza listing nyingine
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
@@ -570,20 +648,37 @@ export default function AddListingWizard() {
             {/* Description */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                Maelezo (hiari)
+                Maelezo <span className="text-red-400">*</span>
               </label>
               <textarea
                 rows={4}
-                placeholder={form.type === 'duka' ? 'Elezea duka lako — eneo, jirani, masharti maalum...' : 'Elezea nyumba yako — eneo, jirani, masharti maalum...'}
+                placeholder={form.type === 'duka' ? 'Elezea duka lako — eneo, jirani, ukubwa, masharti maalum...' : 'Elezea nyumba yako — eneo, jirani, ghorofa, masharti maalum...'}
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
                 maxLength={500}
-                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
-                           focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
+                className={`w-full border rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 resize-none ${
+                  form.description.trim().length >= 30
+                    ? 'border-green-300 focus:ring-green-200'
+                    : form.description.length > 0
+                    ? 'border-amber-300 focus:ring-amber-200'
+                    : 'border-gray-200 focus:ring-primary-300'
+                }`}
               />
-              <p className={`text-xs mt-1 text-right ${form.description.length >= 490 ? 'text-amber-500' : 'text-gray-400'}`}>
-                {form.description.length}/500
-              </p>
+              <div className="flex items-center justify-between mt-1">
+                <p className={`text-xs ${
+                  form.description.trim().length >= 30 ? 'text-green-600' :
+                  form.description.length > 0 ? 'text-amber-600' : 'text-gray-400'
+                }`}>
+                  {form.description.trim().length >= 30
+                    ? '✓ Maelezo yanafaa'
+                    : form.description.length > 0
+                    ? `Herufi ${form.description.trim().length}/30 — ongeza zaidi`
+                    : 'Lazima angalau herufi 30'}
+                </p>
+                <p className={`text-xs ${form.description.length >= 490 ? 'text-amber-500' : 'text-gray-400'}`}>
+                  {form.description.length}/500
+                </p>
+              </div>
             </div>
 
             {/* Commission */}
@@ -653,7 +748,7 @@ export default function AddListingWizard() {
             {/* Kata (Ward) */}
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                Kata
+                Kata <span className="text-red-400">*</span>
               </label>
               {form.district && getWards(form.region, form.district).length > 0 ? (
                 <select
@@ -670,7 +765,7 @@ export default function AddListingWizard() {
               ) : (
                 <input
                   type="text"
-                  placeholder={form.district ? 'Andika jina la kata (hiari)' : 'Chagua wilaya kwanza'}
+                  placeholder={form.district ? 'Andika jina la kata' : 'Chagua wilaya kwanza'}
                   value={form.ward}
                   onChange={e => set('ward', e.target.value)}
                   disabled={!form.district}
@@ -678,6 +773,9 @@ export default function AddListingWizard() {
                              focus:outline-none focus:ring-2 focus:ring-primary-300
                              disabled:bg-gray-50 disabled:text-gray-400"
                 />
+              )}
+              {!form.ward && form.district && (
+                <p className="text-xs text-amber-600 mt-1">Kata inahitajika ili listing ichapishwe moja kwa moja</p>
               )}
             </div>
 
@@ -874,9 +972,41 @@ export default function AddListingWizard() {
               </div>
             </div>
 
-            {/* Status note */}
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
-              ℹ️ Listing yako itapitiwa na admin kabla ya kuonekana kwa wateja. Kawaida inachukua masaa 24.
+            {/* Quality checklist */}
+            <div className={`rounded-2xl border p-4 ${allRequiredPassed ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+              <p className={`text-xs font-bold mb-3 flex items-center gap-1.5 ${allRequiredPassed ? 'text-green-700' : 'text-amber-700'}`}>
+                <i className={`ti ${allRequiredPassed ? 'ti-stars text-green-500' : 'ti-list-check text-amber-500'}`} aria-hidden="true" />
+                {allRequiredPassed ? 'Ubora wa Listing — Tayari Kuchapishwa Moja kwa Moja!' : 'Ubora wa Listing — Kamilisha ili Ichapishwe Moja kwa Moja'}
+              </p>
+              <div className="space-y-2">
+                {qualityChecks.map(check => (
+                  <div key={check.key} className="flex items-center gap-2.5">
+                    <div className={`w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold ${
+                      check.passed
+                        ? 'bg-green-500 text-white'
+                        : check.required
+                        ? 'bg-red-100 text-red-500 border border-red-300'
+                        : 'bg-gray-100 text-gray-400 border border-gray-200'
+                    }`}>
+                      {check.passed ? '✓' : check.required ? '!' : '○'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-xs font-medium ${check.passed ? 'text-green-700' : check.required ? 'text-red-700' : 'text-gray-500'}`}>
+                        {check.label}
+                      </span>
+                      {!check.required && <span className="text-[10px] text-gray-400 ml-1">(hiari)</span>}
+                    </div>
+                    <span className={`text-[10px] font-mono ${check.passed ? 'text-green-600' : check.required ? 'text-red-500' : 'text-gray-400'}`}>
+                      {check.hint}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {!allRequiredPassed && (
+                <p className="text-[10px] text-amber-600 mt-3 pt-2 border-t border-amber-200">
+                  Vitu vilivyoashiria (!) vinahitajika ili listing ichapishwe moja kwa moja. Bila hivyo, itasubiri ukaguzi wa admin.
+                </p>
+              )}
             </div>
 
             {/* Expiry info */}
@@ -908,14 +1038,15 @@ export default function AddListingWizard() {
         ) : (
           <button
             onClick={handleSubmit}
-            disabled={submitting || photosUploading || videoUploading}
-            className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold
-                       disabled:opacity-50 active:scale-95 transition-all"
+            disabled={submitting || photosUploading || videoUploading || !allRequiredPassed}
+            className={`w-full py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-50 active:scale-95 transition-all text-white ${
+              allRequiredPassed ? 'bg-green-500' : 'bg-primary-500'
+            }`}
           >
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Inatuma...
+                Inachapisha...
               </span>
             ) : videoUploading ? (
               <span className="flex items-center justify-center gap-2">
@@ -927,7 +1058,11 @@ export default function AddListingWizard() {
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Subiri picha zikamilike...
               </span>
-            ) : 'Wasilisha Listing'}
+            ) : allRequiredPassed ? (
+              <span className="flex items-center justify-center gap-2">
+                <i className="ti ti-stars" aria-hidden="true" /> Chapisha Listing Sasa
+              </span>
+            ) : 'Kamilisha Ubora Kwanza'}
           </button>
         )}
       </div>

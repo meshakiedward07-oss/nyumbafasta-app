@@ -526,6 +526,15 @@ export default function AdminDashboard({
               <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">{actionError}</div>
             )}
 
+            {listingStatusFilter === 'pending' && allListingsState.filter(l => l.status === 'pending').length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
+                <i className="ti ti-info-circle text-blue-500 text-base flex-shrink-0 mt-0.5" aria-hidden="true" />
+                <p className="text-xs text-blue-700">
+                  Listings hizi hazikupita ukaguzi wa ubora wa otomatiki (picha &lt;3, maelezo mafupi, au kata haijawekwa). Angalia kila moja na uidhinishe au kataa.
+                </p>
+              </div>
+            )}
+
             {(() => {
               const filtered = listingStatusFilter === 'all' ? allListingsState : allListingsState.filter(l => l.status === listingStatusFilter)
               return filtered.length === 0 ? (

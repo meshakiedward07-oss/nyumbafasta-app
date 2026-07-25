@@ -243,6 +243,18 @@ export function validateProfile(body: unknown): ValidationResult<ProfileInput> {
   return { ok: true, data: out }
 }
 
+export type ListingQualityResult =
+  | { passed: true }
+  | { passed: false; issues: string[] }
+
+export function checkListingQuality(data: ListingInput): ListingQualityResult {
+  const issues: string[] = []
+  if (data.images.length < 3) issues.push('Picha lazima ziwe 3 au zaidi')
+  if (!data.description || data.description.trim().length < 30) issues.push('Maelezo lazima yawe angalau herufi 30')
+  if (!data.ward || data.ward.trim().length < 2) issues.push('Kata (Ward) inahitajika')
+  return issues.length === 0 ? { passed: true } : { passed: false, issues }
+}
+
 function isHttpUrl(value: string): boolean {
   try {
     const u = new URL(value)

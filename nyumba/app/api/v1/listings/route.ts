@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/security/rateLimit'
-import { validateListing } from '@/lib/security/validate'
+import { validateListing, checkListingQuality } from '@/lib/security/validate'
 import { cached, TTL } from '@/lib/cache/memoryCache'
 import { getPricing } from '@/lib/config/pricing'
 import { getPlan } from '@/lib/config/subscription-plans'
@@ -149,6 +149,10 @@ export async function POST(req: NextRequest) {
     }
     const data = parsed.data
 
+    // Auto-approve if listing meets quality standards
+    const quality = checkListingQuality(data)
+    const initialStatus = quality.passed ? 'active' : 'pending'
+
     // Enforce plan-based photo and video limits
     const planConfig = getPlan(subscription?.plan)
     const maxPhotos  = planConfig.limits.photos
@@ -168,7 +172,7 @@ export async function POST(req: NextRequest) {
       dalali_id: user.id,
       type: data.type,
       title: `${typeLabels[data.type] ?? data.type} – ${data.district}`,
-      status: 'pending',
+      status: initialStatus,
       price_monthly: data.price_monthly,
       furnished: data.furnished,
       description: data.description,
@@ -220,7 +224,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertError?.message ?? 'Imeshindwa kuunda listing' }, { status: 500 })
     }
 
-    return NextResponse.json({ id: listing.id, status: 'pending' }, { status: 201 })
+    return NextResponse.json({ id: listing.id, status: initialStatus, auto_approved: quality.passed }, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
