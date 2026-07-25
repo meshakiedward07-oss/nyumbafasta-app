@@ -114,10 +114,10 @@ const BOTTOM_NAV = [
   { href: '/admin/leads',      icon: 'users',          label: 'Leads',    exact: false },
 ]
 
-const STAFF_BOTTOM_NAV = [
-  { href: '/admin/staff-dashboard', icon: 'layout-dashboard', label: 'Dashboard', exact: false },
-  { href: '/admin/email',           icon: 'mail',             label: 'Barua',     exact: false },
-  { href: '/admin/staff-leads',     icon: 'target',           label: 'Leads',     exact: false },
+const STAFF_BOTTOM_NAV_BASE = [
+  { href: '/admin/staff-dashboard', icon: 'layout-dashboard', label: 'Dashboard', exact: false, permission: null },
+  { href: '/admin/email',           icon: 'mail',             label: 'Barua',     exact: false, permission: null },
+  { href: '/admin/staff-leads',     icon: 'target',           label: 'Leads',     exact: false, permission: 'leads' as const },
 ]
 
 // ── Staff dynamic sidebar ──────────────────────────────────────────────────
@@ -335,15 +335,25 @@ export default function AdminShell({
 }) {
   const pathname = usePathname()
   const router   = useRouter()
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [userRole,   setUserRole]   = useState<string>(initialRole)
+  const [drawerOpen,       setDrawerOpen]       = useState(false)
+  const [userRole,         setUserRole]         = useState<string>(initialRole)
+  const [staffPermissions, setStaffPermissions] = useState<string[]>([])
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
       supabase.from('users').select('role').eq('id', user.id).single()
-        .then(({ data }) => setUserRole(data?.role ?? initialRole))
+        .then(({ data }) => {
+          const role = data?.role ?? initialRole
+          setUserRole(role)
+          if (role === 'staff') {
+            fetch('/api/v1/staff/me/permissions')
+              .then(r => r.json())
+              .then(d => setStaffPermissions(d.granted ?? []))
+              .catch(() => {})
+          }
+        })
     })
   }, [initialRole])
 
@@ -412,8 +422,10 @@ export default function AdminShell({
            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-stretch h-16">
           {isStaff ? (
-            // Staff-specific bottom nav
-            STAFF_BOTTOM_NAV.map(item => {
+            // Staff-specific bottom nav — only show items the staff member has permission for
+            STAFF_BOTTOM_NAV_BASE
+              .filter(item => !item.permission || staffPermissions.includes(item.permission))
+              .map(item => {
               const active = isActive(item.href, item.exact)
               return (
                 <Link

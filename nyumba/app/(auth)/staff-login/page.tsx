@@ -98,18 +98,54 @@ function StaffLoginForm() {
     setError('')
     setLoading(true)
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        const msg = error.message.toLowerCase()
+      let result = await supabase.auth.signInWithPassword({ email, password })
+
+      // Supabase changed "Email not confirmed" → "Invalid login credentials" in 2024
+      // to prevent email enumeration. So an unconfirmed admin email looks identical
+      // to a wrong password. Detect this and auto-confirm admin/staff emails.
+      if (result.error) {
+        const msg = result.error.message.toLowerCase()
+        const isCredErr = msg.includes('invalid login credentials') || msg.includes('invalid email or password')
+
+        if (isCredErr) {
+          try {
+            const statusRes = await fetch('/api/v1/auth/check-email-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email }),
+            })
+            if (statusRes.ok) {
+              const status = await statusRes.json() as { exists: boolean; confirmed: boolean }
+              if (status.exists && !status.confirmed) {
+                // Auto-confirm — only works for admin/staff roles in public.users.
+                // A wrong password still fails after confirmation, so this is safe.
+                const confirmRes = await fetch('/api/v1/auth/admin-confirm-email', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email }),
+                })
+                if (confirmRes.ok) {
+                  const { ok } = await confirmRes.json() as { ok: boolean }
+                  if (ok) result = await supabase.auth.signInWithPassword({ email, password })
+                }
+              }
+            }
+          } catch { /* fall through to error display */ }
+        }
+      }
+
+      if (result.error) {
+        const msg = result.error.message.toLowerCase()
         throw new Error(
           msg.includes('invalid login credentials') || msg.includes('invalid email or password')
-            ? 'Barua pepe au nenosiri si sahihi.'
+            ? 'Barua pepe au nenosiri si sahihi. Tumia "Umesahau nenosiri?" kupata kiungo cha kuingia.'
             : msg.includes('too many requests')
             ? 'Maombi mengi. Subiri dakika chache.'
             : 'Imeshindwa kuingia. Jaribu tena.'
         )
       }
-      await redirectByRole(data.user.id)
+
+      await redirectByRole(result.data!.user.id)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Imeshindwa kuingia.')
       setLoading(false)

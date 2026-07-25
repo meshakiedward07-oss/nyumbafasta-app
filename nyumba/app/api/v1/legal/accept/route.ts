@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Mtumiaji hapatikani' }, { status: 404 })
     }
 
-    // Look up the agreement version
-    const { data: versionRow } = await admin
+    // Look up the agreement version — auto-seed it if missing (migration not yet run)
+    let { data: versionRow } = await admin
       .from('agreement_versions')
       .select('id')
       .eq('role', userData.role)
@@ -45,26 +45,41 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     if (!versionRow) {
-      return NextResponse.json({ error: 'Toleo la makubaliano halikupatikana' }, { status: 404 })
+      // Seed the missing version row so subsequent accepts work too
+      const { data: seeded } = await admin
+        .from('agreement_versions')
+        .upsert(
+          {
+            role:       userData.role,
+            version,
+            title_sw:   userData.role === 'client' ? 'Masharti na Miongozo ya Matumizi' : 'Mkataba wa Dalali',
+            title_en:   userData.role === 'client' ? 'Terms and Conditions' : 'Broker Agreement',
+            content_sw: 'Makubaliano ya jukwaa la NyumbaFasta.',
+            content_en: 'NyumbaFasta platform agreement.',
+            is_current: true,
+          },
+          { onConflict: 'role,version' }
+        )
+        .select('id')
+        .maybeSingle()
+      versionRow = seeded
     }
 
-    // Save acceptance record
-    const { error: insertError } = await admin.from('user_agreements').upsert(
-      {
-        user_id:           user.id,
-        version_id:        versionRow.id,
-        accepted_at:       new Date().toISOString(),
-        full_name_signed:  full_name_signed.trim(),
-        phone_signed:      phone_signed.trim(),
-        ip_address:        getClientIp(req),
-        user_agent:        req.headers.get('user-agent') ?? null,
-        checkboxes_checked: checkboxes_checked ?? {},
-      },
-      { onConflict: 'user_id,version_id' }
-    )
-
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
+    // Save acceptance audit record (best-effort — not blocking)
+    if (versionRow) {
+      await admin.from('user_agreements').upsert(
+        {
+          user_id:            user.id,
+          version_id:         versionRow.id,
+          accepted_at:        new Date().toISOString(),
+          full_name_signed:   full_name_signed.trim(),
+          phone_signed:       phone_signed.trim(),
+          ip_address:         getClientIp(req),
+          user_agent:         req.headers.get('user-agent') ?? null,
+          checkboxes_checked: checkboxes_checked ?? {},
+        },
+        { onConflict: 'user_id,version_id' }
+      )
     }
 
     // Mark user as agreement_accepted — do NOT override account_status for suspended/banned users

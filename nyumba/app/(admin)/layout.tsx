@@ -7,15 +7,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login?redirect=/admin')
+  if (!user) redirect('/staff-login?redirect=/admin')
 
   const { data: profile } = await supabase
     .from('users')
-    .select('role, must_change_password')
+    .select('role, is_active, staff_active, must_change_password')
     .eq('id', user.id)
     .single()
 
   if (!['admin', 'staff'].includes(profile?.role ?? '')) redirect('/')
+  if (profile?.is_active === false) redirect('/staff-login')
+  if (profile?.role === 'staff' && profile?.staff_active === false) redirect('/staff-login')
 
   if (profile?.role === 'staff' && profile?.must_change_password) {
     redirect('/account/change-password')

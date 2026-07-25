@@ -108,7 +108,7 @@ export default function HesabuPage() {
     try {
       const res = await fetch(`/api/v1/dalali/finance/stats?month=${period.month}&year=${period.year}`)
       const data = await res.json()
-      if (data.stats) setStats(data.stats)
+      if (res.ok && !data.error) setStats(data)
     } finally { setLoading(false) }
   }, [period.month, period.year])
 

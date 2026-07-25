@@ -11,7 +11,7 @@ export default function NoAccessPage() {
         Sehemu hii inahitaji ruhusa maalum. Wasiliana na admin wako ili aweze kukupa ufikiaji wa sehemu hii.
       </p>
       <Link
-        href="/admin/staff-leads"
+        href="/admin/staff-dashboard"
         className="bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold"
       >
         ← Rudi kwenye Dashboard

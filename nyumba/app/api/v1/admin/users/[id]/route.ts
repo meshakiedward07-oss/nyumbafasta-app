@@ -50,9 +50,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: 'Akaunti hii inalindwa na haiwezi kubadilishwa' }, { status: 403 })
     }
 
+    const accountStatus = action === 'activate' ? 'active'
+      : action === 'ban' ? 'banned'
+      : 'suspended'
+
     const { error } = await adminClient
       .from('users')
-      .update({ is_active: action === 'activate' })
+      .update({ is_active: action === 'activate', account_status: accountStatus })
       .eq('id', params.id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

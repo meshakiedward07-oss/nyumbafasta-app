@@ -59,7 +59,9 @@ export default function AgreementModal({
   const handleScroll = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
-    const pct = (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100
+    const scrollable = el.scrollHeight - el.clientHeight
+    // Guard: if content fits without scrolling, treat as fully read
+    const pct = scrollable > 0 ? (el.scrollTop / scrollable) * 100 : 100
     setScrollPct(Math.round(pct))
     if (pct >= 95) setHasScrolled(true)
   }, [])
@@ -68,6 +70,8 @@ export default function AgreementModal({
     const el = scrollRef.current
     if (!el) return
     el.addEventListener('scroll', handleScroll, { passive: true })
+    // Check on mount in case content already fits (no scrolling needed)
+    handleScroll()
     return () => el.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
 
@@ -111,7 +115,7 @@ export default function AgreementModal({
 
   return (
     <div className={fullPage
-      ? 'min-h-screen bg-gray-50 flex flex-col'
+      ? 'h-full flex flex-col'
       : 'flex flex-col h-full'
     }>
       {/* Header */}

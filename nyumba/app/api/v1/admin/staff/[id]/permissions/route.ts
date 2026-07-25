@@ -72,10 +72,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Imeshindwa kusasisha ruhusa' }, { status: 500 })
     }
     // Then delete permissions no longer in the set (non-fatal if this fails)
+    // Values must be quoted in the PostgREST IN filter for TEXT columns.
     const { error: deleteError } = await admin.from('staff_permissions')
       .delete()
       .eq('staff_id', params.id)
-      .not('permission_key', 'in', `(${body.permissions.join(',')})`)
+      .not('permission_key', 'in', `("${body.permissions.join('","')}")`)
     if (deleteError) {
       console.error('[Permissions] Cleanup delete failed (non-fatal):', deleteError.message)
     }
@@ -170,7 +171,7 @@ export async function POST(
   const { error: deleteError } = await admin.from('staff_permissions')
     .delete()
     .eq('staff_id', params.id)
-    .not('permission_key', 'in', `(${template.permissions.join(',')})`)
+    .not('permission_key', 'in', `("${template.permissions.join('","')}")`)
   if (deleteError) {
     console.error('[Permissions] Template cleanup failed (non-fatal):', deleteError.message)
   }

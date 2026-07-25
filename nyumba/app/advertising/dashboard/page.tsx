@@ -143,13 +143,20 @@ export default async function AdvertiserDashboard() {
           className="mt-4 flex items-center justify-between bg-white border border-primary-100 rounded-2xl px-4 py-3.5 shadow-sm hover:bg-primary-50 transition"
         >
           <div className="flex items-center gap-3">
-            <span className="text-2xl">📊</span>
+            <span className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0 p-2 text-primary-600">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+              </svg>
+            </span>
             <div>
               <p className="font-bold text-gray-800 text-sm">Angalia Analytics</p>
               <p className="text-xs text-gray-400">Maoni, clicks, na CTR ya matangazo yako</p>
             </div>
           </div>
-          <span className="text-gray-400 text-lg flex-shrink-0">→</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-400 flex-shrink-0">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
         </Link>
 
         {/* New campaign CTA */}

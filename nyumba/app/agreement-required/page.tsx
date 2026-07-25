@@ -91,7 +91,7 @@ export default function AgreementRequiredPage() {
   if (!role) return null
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen overflow-hidden bg-gray-50 flex flex-col">
       {/* Notice banner */}
       <div className="bg-amber-500 px-4 py-3 flex-shrink-0">
         <p className="text-white text-xs text-center font-medium max-w-lg mx-auto">
@@ -101,7 +101,7 @@ export default function AgreementRequiredPage() {
         </p>
       </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col">
         <AgreementModal
           role={role}
           prefillName={userName}

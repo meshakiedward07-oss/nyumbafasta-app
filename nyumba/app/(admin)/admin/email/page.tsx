@@ -7,7 +7,7 @@ const EmailClient = dynamic(() => import('./EmailClient'), { ssr: false })
 export default async function EmailPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login?redirect=/admin/email')
+  if (!user) redirect('/staff-login?redirect=/admin/email')
 
   const { data: profile } = await supabase
     .from('users')
