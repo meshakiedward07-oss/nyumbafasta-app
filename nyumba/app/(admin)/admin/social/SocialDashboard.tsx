@@ -192,8 +192,12 @@ export default function SocialDashboard() {
         fetch('/api/v1/social/listings'),
       ])
       if (statsResult.status === 'fulfilled') {
-        const statsData = await statsResult.value.json() as { platforms: UnifiedPlatformStat[]; totals: UnifiedTotals; recentPosts: UnifiedRecentPost[] }
-        setUnifiedStats(statsData)
+        const statsData = await statsResult.value.json() as { platforms?: UnifiedPlatformStat[]; totals?: UnifiedTotals; recentPosts?: UnifiedRecentPost[]; error?: string }
+        setUnifiedStats({
+          platforms:   statsData.platforms   ?? [],
+          totals:      statsData.totals      ?? { posts: 0, views: 0, likes: 0, comments: 0, shares: 0 },
+          recentPosts: statsData.recentPosts ?? [],
+        })
       }
       if (connResult.status === 'fulfilled') {
         const connData = await connResult.value.json() as { platforms?: PlatformConnection[] }
@@ -532,9 +536,9 @@ export default function SocialDashboard() {
               </div>
 
               {/* Per-platform breakdown */}
-              {unifiedStats && (
+              {unifiedStats && (unifiedStats.platforms?.length ?? 0) > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {unifiedStats.platforms.map(p => {
+                  {(unifiedStats.platforms ?? []).map(p => {
                     const colors: Record<string, string> = { instagram: '#c13584', facebook: '#1877f2', tiktok: '#1a1a18' }
                     return (
                       <div key={p.platform} className="bg-white rounded-xl border p-4" style={{ borderColor: '#e5e5e0' }}>
@@ -624,11 +628,11 @@ export default function SocialDashboard() {
               </div>
 
               {/* Recent posts */}
-              {unifiedStats && unifiedStats.recentPosts.length > 0 && (
+              {unifiedStats && (unifiedStats.recentPosts?.length ?? 0) > 0 && (
                 <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e5e0' }}>
                   <h3 className="font-semibold mb-3" style={{ color: '#1a1a18' }}>Machapisho ya Hivi Karibuni</h3>
                   <div className="space-y-2">
-                    {unifiedStats.recentPosts.slice(0, 10).map(rp => {
+                    {(unifiedStats.recentPosts ?? []).slice(0, 10).map(rp => {
                       const statusColors: Record<string, string> = {
                         posted: '#3b6d11', published: '#3b6d11',
                         failed: '#a32d2d', posting: '#185fa5', pending: '#854f0b',
