@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
-import { sendEmail } from '@/lib/email/resend'
+import { sendMail, buildEmailHtml } from '@/lib/email/resend'
 import { rateLimit } from '@/lib/security/rateLimit'
+import { randomUUID } from 'crypto'
 
 export async function POST(req: NextRequest) {
   const auth = await requireStaffAuth()
@@ -43,47 +44,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Anwani ya barua pepe si sahihi' }, { status: 400 })
   }
 
-  // Insert email record (pending)
-  const { data: emailRecord, error: insertErr } = await admin
-    .from('emails')
-    .insert({
-      direction:      'outbound',
-      subject:        subject.trim(),
-      body_text:      body_text.trim(),
-      from_email:     'noreply@nyumbafasta.co',
-      from_name:      senderName,
-      to_email:       to_email.toLowerCase(),
-      to_name:        to_name.trim(),
-      recipient_type: recipient_type ?? null,
-      recipient_id:   recipient_id ?? null,
-      sent_by_id:     userId,
-      sent_by_name:   senderName,
-      status:         'pending',
-      thread_id:      thread_id ?? undefined,
-    })
-    .select('id, thread_id')
-    .single()
-
-  if (insertErr || !emailRecord) {
-    return NextResponse.json({ error: 'Imeshindwa kuunda rekodi ya barua pepe' }, { status: 500 })
-  }
-
-  // Send via Resend
-  const result = await sendEmail({
-    to:         to_email,
-    toName:     to_name,
-    subject:    subject.trim(),
-    bodyText:   body_text.trim(),
+  // Build HTML using the same helper used by all automatic emails
+  const html = buildEmailHtml({
+    recipientName: to_name,
+    subject:       subject.trim(),
+    bodyText:      body_text.trim(),
     senderName,
-    threadId:   emailRecord.thread_id as string,
   })
 
-  if (!result) {
-    await admin.from('emails').update({ status: 'failed' }).eq('id', emailRecord.id)
-    return NextResponse.json({ error: 'Imeshindwa kutuma barua pepe. Angalia RESEND_API_KEY.' }, { status: 502 })
+  // Send via Resend — same path as every other automatic email in the system
+  const result = await sendMail({
+    to:      to_email.toLowerCase(),
+    subject: subject.trim(),
+    html,
+  })
+
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: 'Imeshindwa kutuma barua pepe. Angalia RESEND_API_KEY kwenye Vercel.' },
+      { status: 502 },
+    )
   }
 
-  await admin.from('emails').update({ status: 'sent', resend_id: result.id }).eq('id', emailRecord.id)
+  // Log to emails table non-fatally — delivery never depends on this succeeding
+  const usedThreadId = thread_id ?? randomUUID()
+  admin.from('emails').insert({
+    direction:      'outbound',
+    subject:        subject.trim(),
+    body_text:      body_text.trim(),
+    from_email:     'noreply@nyumbafasta.co',
+    from_name:      senderName,
+    to_email:       to_email.toLowerCase(),
+    to_name:        to_name.trim(),
+    recipient_type: recipient_type ?? null,
+    recipient_id:   recipient_id ?? null,
+    sent_by_id:     userId,
+    sent_by_name:   senderName,
+    status:         'sent',
+    resend_id:      result.id ?? null,
+    thread_id:      usedThreadId,
+  }).then().catch(() => {}) // Non-fatal — email already sent
 
-  return NextResponse.json({ ok: true, email_id: emailRecord.id, thread_id: emailRecord.thread_id })
+  return NextResponse.json({ ok: true, thread_id: usedThreadId })
 }
