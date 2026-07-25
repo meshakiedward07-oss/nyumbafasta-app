@@ -205,28 +205,32 @@ function StaffSidebar({
                 )}
               </div>
             </Link>
-            {/* Individual non-admin-task permissions */}
-            {granted
-              .filter(k => !ADMIN_TASK_PERMISSIONS.includes(k))
-              .map(key => {
-                const perm = STAFF_PERMISSIONS[key]
-                if (!perm) return null
-                return (
-                  <Link key={key} href={perm.adminPath} onClick={onLinkClick}>
-                    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
-                      isActive(perm.adminPath)
-                        ? 'bg-primary-500 text-white'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}>
-                      <i className={`ti ti-${perm.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
-                      <span>{perm.label}</span>
-                      {isActive(perm.adminPath) && (
-                        <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
-                      )}
-                    </div>
-                  </Link>
-                )
-              })}
+            {/* Individual non-admin-task permissions — deduplicated by adminPath */}
+            {(() => {
+              const seen = new Set<string>()
+              return granted
+                .filter(k => !ADMIN_TASK_PERMISSIONS.includes(k))
+                .map(key => {
+                  const perm = STAFF_PERMISSIONS[key]
+                  if (!perm || seen.has(perm.adminPath)) return null
+                  seen.add(perm.adminPath)
+                  return (
+                    <Link key={key} href={perm.adminPath} onClick={onLinkClick}>
+                      <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
+                        isActive(perm.adminPath)
+                          ? 'bg-primary-500 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}>
+                        <i className={`ti ti-${perm.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
+                        <span>{perm.label}</span>
+                        {isActive(perm.adminPath) && (
+                          <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
+                        )}
+                      </div>
+                    </Link>
+                  )
+                })
+            })()}
           </>
         )}
       </nav>
