@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   const { data: listing, error } = await supabaseAdmin
     .from('listings')
-    .select('id, title, type, price_monthly, region, district, description, images, dalali_id, status, furnished, amenities')
+    .select('*')
     .eq('id', listingId)
     .single()
 
