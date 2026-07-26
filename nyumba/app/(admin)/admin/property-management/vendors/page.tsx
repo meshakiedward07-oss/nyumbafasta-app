@@ -99,7 +99,7 @@ export default function AdminVendorsPage() {
       {rejectModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Kataa Mchezaji</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Kataa Fundi</h2>
             <p className="text-sm text-gray-500 mb-4">{rejectModal.name} — {rejectModal.organization?.name}</p>
             <div className="mb-4">
               <label className="text-xs font-medium text-gray-600 block mb-1">Sababu ya Kukataa (hiari)</label>
@@ -125,8 +125,8 @@ export default function AdminVendorsPage() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Uthibitisho wa Wachuuzi</h1>
-        <p className="text-sm text-gray-500">Kagua na thibitisha wachuuzi walioomba kujiunga</p>
+        <h1 className="text-2xl font-bold text-gray-900">Uthibitisho wa Mafundi</h1>
+        <p className="text-sm text-gray-500">Kagua na thibitisha mafundi walioomba kujiunga</p>
       </div>
 
       {/* Summary chips */}
@@ -146,7 +146,7 @@ export default function AdminVendorsPage() {
 
       {/* Search */}
       <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-        placeholder="Tafuta jina la mchezaji..."
+        placeholder="Tafuta jina la fundi..."
         className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-primary-300" />
 
       {err && !rejectModal && <p className="text-sm text-red-600 mb-3">{err}</p>}
@@ -159,8 +159,8 @@ export default function AdminVendorsPage() {
       ) : vendors.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-14 text-center">
           <i className="ti ti-address-book text-5xl text-gray-200" aria-hidden="true" />
-          <p className="text-gray-500 font-medium mt-3">Hakuna wachuuzi</p>
-          <p className="text-sm text-gray-400 mt-1">Hakuna wachuuzi wanaofanana na utafutaji huu.</p>
+          <p className="text-gray-500 font-medium mt-3">Hakuna mafundi</p>
+          <p className="text-sm text-gray-400 mt-1">Hakuna mafundi wanaofanana na utafutaji huu.</p>
         </div>
       ) : (
         <div className="space-y-3">

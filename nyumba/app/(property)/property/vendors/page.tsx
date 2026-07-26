@@ -64,7 +64,7 @@ export default function VendorsPage() {
   }
 
   async function handleSave() {
-    if (!orgId || !form.name.trim()) { setFormErr('Jina la mchezaji linahitajika'); return }
+    if (!orgId || !form.name.trim()) { setFormErr('Jina la fundi linahitajika'); return }
     setSaving(true); setFormErr(null)
     try {
       const body = {
@@ -129,12 +129,12 @@ export default function VendorsPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-gray-900 mb-1">
-              {modal === 'add' ? 'Ongeza Mchezaji' : `Hariri — ${editTarget?.name}`}
+              {modal === 'add' ? 'Ongeza Fundi' : `Hariri — ${editTarget?.name}`}
             </h2>
             {modal === 'add' && (
               <p className="text-xs text-amber-600 mb-4 flex items-center gap-1.5">
                 <i className="ti ti-info-circle" aria-hidden="true" />
-                Mchezaji mpya atapitiwa na admin kabla ya kuonekana kwenye orodha.
+                Fundi mpya atapitiwa na admin kabla ya kuonekana kwenye orodha.
               </p>
             )}
             <div className="space-y-3">
@@ -204,9 +204,9 @@ export default function VendorsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Wachuuzi</h1>
+          <h1 className="text-xl font-bold text-gray-900">Mafundi</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {activeCount} wachuuzi wamethibitishwa
+            {activeCount} mafundi wamethibitishwa
           </p>
         </div>
         <button onClick={openAdd}
@@ -235,9 +235,9 @@ export default function VendorsPage() {
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3 mb-4">
           <i className="ti ti-shield-check text-blue-500 text-xl flex-shrink-0 mt-0.5" aria-hidden="true" />
           <div>
-            <p className="text-sm font-medium text-blue-800">Wachuuzi Wanapitiwa</p>
+            <p className="text-sm font-medium text-blue-800">Mafundi Wanapitiwa</p>
             <p className="text-xs text-blue-600 mt-0.5">
-              Wachuuzi wanapitiwa na timu yetu kabla ya kuonekana hapa ili kuhakikisha ubora na usalama.
+              Mafundi wanapitiwa na timu yetu kabla ya kuonekana hapa ili kuhakikisha ubora na usalama.
             </p>
           </div>
         </div>
@@ -273,17 +273,17 @@ export default function VendorsPage() {
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-14 text-center">
           <i className="ti ti-address-book text-5xl text-gray-200" aria-hidden="true" />
           <p className="text-gray-500 font-medium mt-3">
-            {vendors.length === 0 ? 'Huna wachuuzi bado' : 'Hakuna matokeo'}
+            {vendors.length === 0 ? 'Huna mafundi bado' : 'Hakuna matokeo'}
           </p>
           <p className="text-sm text-gray-400 mt-1">
             {vendors.length === 0
-              ? 'Ongeza mchezaji wa kwanza. Atahitaji uthibitisho wa admin kabla ya kuonekana.'
+              ? 'Ongeza fundi wa kwanza. Atahitaji uthibitisho wa admin kabla ya kuonekana.'
               : 'Badilisha utafutaji au kichujio.'}
           </p>
           {vendors.length === 0 && (
             <button onClick={openAdd}
               className="mt-4 bg-primary-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
-              Ongeza Mchezaji
+              Ongeza Fundi
             </button>
           )}
         </div>

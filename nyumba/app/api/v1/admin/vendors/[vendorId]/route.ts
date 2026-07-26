@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     const { data: existing } = await admin.from('vendors').select('id, org_id, name').eq('id', vendorId).maybeSingle()
-    if (!existing) return NextResponse.json({ error: 'Mchezaji hapatikani' }, { status: 404 })
+    if (!existing) return NextResponse.json({ error: 'Fundi hapatikani' }, { status: 404 })
 
     const now = new Date().toISOString()
     const updates: Record<string, unknown> = { updated_at: now }
@@ -49,9 +49,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       try {
         const { data: org } = await admin.from('organizations').select('created_by, name').eq('id', existing.org_id).maybeSingle()
         if (!org?.created_by) return
-        const title = action === 'verify' ? 'Mchezaji Amethibitishwa ✓' : 'Mchezaji Alikataliwa'
+        const title = action === 'verify' ? 'Fundi Amethibitishwa ✓' : 'Fundi Alikataliwa'
         const notifBody = action === 'verify'
-          ? `${existing.name} amethibitishwa. Sasa anaonekana kwenye orodha ya wachuuzi wako.`
+          ? `${existing.name} amethibitishwa. Sasa anaonekana kwenye orodha ya mafundi wako.`
           : `${existing.name} alikataliwa.${rejection_reason?.trim() ? ' Sababu: ' + rejection_reason.trim() : ''}`
         await admin.from('notifications').insert({
           user_id: org.created_by,

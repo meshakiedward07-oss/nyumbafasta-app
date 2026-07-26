@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (!canWrite) return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
 
     const { data: existing } = await admin.from('vendors').select('org_id, verification_status').eq('id', vendorId).maybeSingle()
-    if (!existing || existing.org_id !== orgId) return NextResponse.json({ error: 'Mchezaji hapatikani' }, { status: 404 })
+    if (!existing || existing.org_id !== orgId) return NextResponse.json({ error: 'Fundi hapatikani' }, { status: 404 })
 
     const body = await req.json()
     const { action, rejection_reason } = body
@@ -51,9 +51,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         try {
           const { data: org } = await admin.from('organizations').select('created_by, name').eq('id', orgId).maybeSingle()
           if (!org?.created_by) return
-          const title = action === 'verify' ? 'Mchezaji Amethibitishwa ✓' : 'Mchezaji Alikataliwa'
+          const title = action === 'verify' ? 'Fundi Amethibitishwa ✓' : 'Fundi Alikataliwa'
           const notifBody = action === 'verify'
-            ? `${vendor.name} amethibitishwa na sasa anaonekana kwenye orodha ya wachuuzi.`
+            ? `${vendor.name} amethibitishwa na sasa anaonekana kwenye orodha ya mafundi.`
             : `${vendor.name} alikataliwa.${rejection_reason ? ' Sababu: ' + rejection_reason : ''}`
           await admin.from('notifications').insert({
             user_id: org.created_by,
@@ -119,7 +119,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     if (!canWrite) return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
 
     const { data: existing } = await admin.from('vendors').select('org_id').eq('id', vendorId).maybeSingle()
-    if (!existing || existing.org_id !== orgId) return NextResponse.json({ error: 'Mchezaji hapatikani' }, { status: 404 })
+    if (!existing || existing.org_id !== orgId) return NextResponse.json({ error: 'Fundi hapatikani' }, { status: 404 })
 
     await admin.from('vendors').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', vendorId)
     return NextResponse.json({ ok: true })

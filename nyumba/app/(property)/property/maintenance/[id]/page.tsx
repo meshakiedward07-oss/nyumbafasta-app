@@ -263,10 +263,10 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
               </div>
               {vendors.length > 0 && (
                 <div>
-                  <label className="text-[10px] text-gray-400 font-medium block mb-1">Mchezaji (kutoka orodha)</label>
+                  <label className="text-[10px] text-gray-400 font-medium block mb-1">Fundi (kutoka orodha)</label>
                   <select value={editVendorId} onChange={e => setEditVendorId(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                    <option value="">Hakuna mchezaji</option>
+                    <option value="">Hakuna fundi</option>
                     {vendors.map(v => (
                       <option key={v.id} value={v.id}>{v.name}{v.phone ? ` — ${v.phone}` : ''}</option>
                     ))}
@@ -312,7 +312,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
                 if (!v) return null
                 return (
                   <div className="col-span-2">
-                    <dt className="text-[10px] text-gray-400 font-medium">Mchezaji</dt>
+                    <dt className="text-[10px] text-gray-400 font-medium">Fundi</dt>
                     <dd className="text-gray-800 font-medium flex items-center gap-2">
                       <i className="ti ti-address-book text-primary-400 text-sm" />
                       {v.name}

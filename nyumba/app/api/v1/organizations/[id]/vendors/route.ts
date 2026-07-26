@@ -87,7 +87,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     const body = await req.json()
     const { name, category = 'other', phone, email, specialty, location, notes } = body
 
-    if (!name?.trim()) return NextResponse.json({ error: 'Jina la mchezaji linahitajika' }, { status: 400 })
+    if (!name?.trim()) return NextResponse.json({ error: 'Jina la fundi linahitajika' }, { status: 400 })
 
     const { data: vendor, error } = await admin
       .from('vendors')
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest, { params }: Params) {
             admins.map(a => ({
               user_id:  a.id,
               type:     'vendor_pending_verification',
-              title:    'Mchezaji Mpya Anasubiri Uthibitisho',
+              title:    'Fundi Mpya Anasubiri Uthibitisho',
               body:     `${name.trim()} kutoka ${org?.name ?? 'shirika'} anasubiri uthibitisho wako.`,
               data:     { vendor_id: vendor.id, org_id: orgId },
               read:     false,
