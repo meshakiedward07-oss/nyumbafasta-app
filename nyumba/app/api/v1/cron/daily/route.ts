@@ -976,6 +976,218 @@ async function runDailyTasks() {
     errors.push(`❌ Ad impressions purge: ${String(e)}`)
   }
 
+  // ── 23. Org subscription: trial expiry warnings ───────
+  try {
+    const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
+    const d7 = new Date(Date.now() + 7 * 86_400_000).toISOString()
+    const d1 = new Date(Date.now() + 1 * 86_400_000).toISOString()
+    const d0 = now
+
+    // Fetch trials ending in 7 days (warn once in a 7-day window)
+    const { data: trials } = await admin
+      .from('organization_subscriptions')
+      .select('org_id, trial_ends_at')
+      .eq('status', 'trial')
+      .gte('trial_ends_at', d0)
+      .lte('trial_ends_at', d7)
+
+    let trialWarnings = 0
+    for (const sub of trials ?? []) {
+      const daysLeft = Math.ceil((new Date(sub.trial_ends_at).getTime() - Date.now()) / 86_400_000)
+      const notifType = daysLeft <= 1 ? 'org_trial_expiring_1d' : 'org_trial_expiring_7d'
+
+      // Guard: skip if already notified with this type recently
+      const { count: already } = await admin
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('type', notifType)
+        .gte('created_at', new Date(Date.now() - 6 * 86_400_000).toISOString())
+        // We use a sub-select via metadata since notifications doesn't have org_id.
+        // Instead query for the org's owner user_id.
+      const { data: ownerRow } = await admin
+        .from('organization_members')
+        .select('user_id, user:users(id, phone)')
+        .eq('organization_id', sub.org_id)
+        .eq('role', 'owner')
+        .maybeSingle()
+
+      if (!ownerRow) continue
+
+      const owner = ownerRow.user as unknown as { id: string; phone: string | null } | null
+      if (!owner) continue
+
+      // Check per-owner dedup
+      const { count: recentWarn } = await admin
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', owner.id)
+        .eq('type', notifType)
+        .gte('created_at', new Date(Date.now() - 6 * 86_400_000).toISOString())
+
+      if ((recentWarn ?? 0) > 0) continue
+
+      const urgency = daysLeft <= 1 ? '🚨 LEO!' : '⚠️ Onyo'
+      const waMsg =
+        `*NyumbaFasta — ${urgency} Majaribio Yanakwisha*\n\n` +
+        `Kipindi chako cha majaribio kitakwisha siku *${daysLeft}* ${daysLeft === 1 ? 'LEO' : 'zinazokuja'}.\n\n` +
+        `Fanya malipo ya usajili ili kuendelea kutumia huduma zote:\n` +
+        `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/property/usajili`
+
+      if (owner.phone) {
+        await sendTextMessage(formatPhoneNumber(owner.phone), waMsg).catch(() => {})
+      }
+      await admin.from('notifications').insert({
+        user_id: owner.id,
+        type:    notifType,
+        title:   `${urgency} Majaribio Yanakwisha — Siku ${daysLeft}`,
+        body:    `Kipindi chako cha majaribio kitakwisha siku ${daysLeft}. Fanya malipo ili kuendelea.`,
+        is_read: false,
+      })
+      trialWarnings++
+    }
+    results.push(`✅ Org trial warnings: ${trialWarnings}`)
+  } catch (e) {
+    errors.push(`❌ Org trial warnings: ${String(e)}`)
+  }
+
+  // ── 24. Org subscription: subscription expiry warnings + auto-transitions ──
+  try {
+    const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
+    const d7 = new Date(Date.now() + 7 * 86_400_000).toISOString()
+    const d1 = new Date(Date.now() + 1 * 86_400_000).toISOString()
+    const d3ago = new Date(Date.now() - 3 * 86_400_000).toISOString()
+
+    // a) Expiry warnings: active subs expiring within 7 days
+    const { data: expiringSoon } = await admin
+      .from('organization_subscriptions')
+      .select('org_id, current_period_end, plan:subscription_plans(name)')
+      .eq('status', 'active')
+      .lte('current_period_end', d7)
+      .gte('current_period_end', now)
+
+    let subWarnings = 0
+    for (const sub of expiringSoon ?? []) {
+      const daysLeft = Math.ceil((new Date(sub.current_period_end).getTime() - Date.now()) / 86_400_000)
+      const notifType = daysLeft <= 1 ? 'org_sub_expiring_1d' : 'org_sub_expiring_7d'
+      const planName = (sub.plan as unknown as { name: string } | null)?.name ?? 'Mpango'
+
+      const { data: ownerRow } = await admin
+        .from('organization_members')
+        .select('user_id, user:users(id, phone)')
+        .eq('organization_id', sub.org_id)
+        .eq('role', 'owner')
+        .maybeSingle()
+      const owner = (ownerRow?.user as unknown as { id: string; phone: string | null } | null)
+      if (!owner) continue
+
+      const { count: recentWarn } = await admin
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', owner.id)
+        .eq('type', notifType)
+        .gte('created_at', new Date(Date.now() - 6 * 86_400_000).toISOString())
+      if ((recentWarn ?? 0) > 0) continue
+
+      const urgency = daysLeft <= 1 ? '🚨 LEO!' : '⚠️ Onyo'
+      const waMsg =
+        `*NyumbaFasta — ${urgency} Usajili Unakwisha*\n\n` +
+        `Mpango wako wa *${planName}* utakwisha siku *${daysLeft}* ${daysLeft === 1 ? 'LEO' : 'zinazokuja'}.\n\n` +
+        `Fanya malipo ya upya usipoteze ufikiaji wa huduma zako:\n` +
+        `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/property/usajili`
+
+      if (owner.phone) {
+        await sendTextMessage(formatPhoneNumber(owner.phone), waMsg).catch(() => {})
+      }
+      await admin.from('notifications').insert({
+        user_id: owner.id,
+        type:    notifType,
+        title:   `${urgency} Usajili Unakwisha — Siku ${daysLeft}`,
+        body:    `Mpango wa ${planName} utakwisha siku ${daysLeft}. Fanya malipo ya upya.`,
+        is_read: false,
+      })
+      subWarnings++
+    }
+    results.push(`✅ Org sub expiry warnings: ${subWarnings}`)
+
+    // b) Auto-transition: active → past_due (period ended)
+    const { data: nowPastDue } = await admin
+      .from('organization_subscriptions')
+      .update({ status: 'past_due', updated_at: now })
+      .eq('status', 'active')
+      .lt('current_period_end', now)
+      .select('org_id, plan:subscription_plans(name)')
+
+    if (nowPastDue?.length) {
+      for (const sub of nowPastDue) {
+        const planName = (sub.plan as unknown as { name: string } | null)?.name ?? 'Mpango'
+        const { data: ownerRow } = await admin
+          .from('organization_members')
+          .select('user_id, user:users(id, phone)')
+          .eq('organization_id', sub.org_id)
+          .eq('role', 'owner')
+          .maybeSingle()
+        const owner = (ownerRow?.user as unknown as { id: string; phone: string | null } | null)
+        if (!owner) continue
+        const waMsg =
+          `*NyumbaFasta — Malipo Yanachelewa* ⚠️\n\n` +
+          `Usajili wako wa *${planName}* umeisha na haujafanya upya.\n\n` +
+          `Fanya malipo sasa ili kuepuka kusimamishwa kwa huduma:\n` +
+          `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/property/usajili`
+        if (owner.phone) {
+          await sendTextMessage(formatPhoneNumber(owner.phone), waMsg).catch(() => {})
+        }
+        await admin.from('notifications').insert({
+          user_id: owner.id,
+          type:    'org_sub_past_due',
+          title:   '⚠️ Malipo ya Usajili Yamechelewa',
+          body:    `Mpango wa ${planName} umeisha. Fanya malipo ya upya haraka.`,
+          is_read: false,
+        })
+      }
+    }
+    results.push(`✅ Org active→past_due: ${nowPastDue?.length ?? 0}`)
+
+    // c) Auto-transition: past_due (3+ days) → expired
+    const { data: nowExpired } = await admin
+      .from('organization_subscriptions')
+      .update({ status: 'expired', updated_at: now })
+      .eq('status', 'past_due')
+      .lt('current_period_end', d3ago)
+      .select('org_id, plan:subscription_plans(name)')
+
+    if (nowExpired?.length) {
+      for (const sub of nowExpired) {
+        const planName = (sub.plan as unknown as { name: string } | null)?.name ?? 'Mpango'
+        const { data: ownerRow } = await admin
+          .from('organization_members')
+          .select('user_id, user:users(id, phone)')
+          .eq('organization_id', sub.org_id)
+          .eq('role', 'owner')
+          .maybeSingle()
+        const owner = (ownerRow?.user as unknown as { id: string; phone: string | null } | null)
+        if (!owner) continue
+        const waMsg =
+          `*NyumbaFasta — Usajili Umesimamishwa* 🚫\n\n` +
+          `Mpango wako wa *${planName}* umesimamishwa kwa kutolipa.\n\n` +
+          `Fanya malipo ya upya ili kurudisha ufikiaji kamili:\n` +
+          `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/property/usajili`
+        if (owner.phone) {
+          await sendTextMessage(formatPhoneNumber(owner.phone), waMsg).catch(() => {})
+        }
+        await admin.from('notifications').insert({
+          user_id: owner.id,
+          type:    'org_sub_expired',
+          title:   '🚫 Usajili Umesimamishwa',
+          body:    `Mpango wa ${planName} umesimamishwa. Fanya malipo ya upya.`,
+          is_read: false,
+        })
+      }
+    }
+    results.push(`✅ Org past_due→expired: ${nowExpired?.length ?? 0}`)
+  } catch (e) {
+    errors.push(`❌ Org subscription lifecycle: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,

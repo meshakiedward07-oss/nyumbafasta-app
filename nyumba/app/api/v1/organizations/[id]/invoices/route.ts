@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { notifyOrgInvoiceCreated } from '@/lib/subscription/notifications'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -96,6 +97,11 @@ export async function POST(req: NextRequest, { params }: Params) {
       .single()
 
     if (error) throw error
+
+    // Notify org owner asynchronously (non-fatal)
+    const planName = (data.plan as { name: string } | null)?.name ?? 'Mpango'
+    notifyOrgInvoiceCreated(id, amount_tzs, planName).catch(() => {})
+
     return NextResponse.json({ invoice: data }, { status: 201 })
   } catch (err) {
     console.error('[POST /organizations/[id]/invoices]', err)

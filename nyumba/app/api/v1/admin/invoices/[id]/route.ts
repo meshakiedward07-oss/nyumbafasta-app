@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
+import { notifyOrgInvoiceConfirmed, notifyOrgInvoiceVoided } from '@/lib/subscription/notifications'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -59,6 +60,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         .single()
 
       if (error) throw error
+      notifyOrgInvoiceVoided(invoice.org_id, void_reason?.trim() || 'Admin action').catch(() => {})
       return NextResponse.json({ invoice: data })
     }
 
@@ -96,6 +98,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       .eq('org_id', invoice.org_id)
 
     if (subErr) throw subErr
+
+    // Fetch plan name for the notification
+    const { data: planRow } = await admin
+      .from('subscription_plans')
+      .select('name')
+      .eq('id', invoice.plan_id)
+      .maybeSingle()
+    notifyOrgInvoiceConfirmed(invoice.org_id, planRow?.name ?? 'Mpango').catch(() => {})
 
     return NextResponse.json({ invoice: updatedInvoice, message: 'Ankara imethibitishwa. Usajili umesasishwa.' })
   } catch (err) {
