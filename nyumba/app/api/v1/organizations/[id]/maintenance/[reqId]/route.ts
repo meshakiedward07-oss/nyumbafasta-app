@@ -98,22 +98,24 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const body = await req.json()
     const {
-      status, priority, assigned_to, estimated_cost, actual_cost,
+      status, priority, assigned_to, vendor_id, estimated_cost, actual_cost,
       scheduled_at, resolved_at, notes, comment,
     } = body
 
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
-    if (status        !== undefined) updates.status         = status
-    if (priority      !== undefined) updates.priority       = priority
-    if (assigned_to   !== undefined) updates.assigned_to    = assigned_to
+    const now = new Date().toISOString()
+    const updates: Record<string, unknown> = { updated_at: now }
+    if (status         !== undefined) updates.status         = status
+    if (priority       !== undefined) updates.priority       = priority
+    if (assigned_to    !== undefined) updates.assigned_to    = assigned_to
+    if (vendor_id      !== undefined) updates.vendor_id      = vendor_id || null
     if (estimated_cost !== undefined) updates.estimated_cost = estimated_cost
-    if (actual_cost   !== undefined) updates.actual_cost    = actual_cost
-    if (scheduled_at  !== undefined) updates.scheduled_at   = scheduled_at
-    if (notes         !== undefined) updates.notes          = notes?.trim() || null
+    if (actual_cost    !== undefined) updates.actual_cost    = actual_cost
+    if (scheduled_at   !== undefined) updates.scheduled_at   = scheduled_at
+    if (notes          !== undefined) updates.notes          = notes?.trim() || null
 
     // Auto-set resolved_at when resolving
     if (status === 'resolved' && current.status !== 'resolved') {
-      updates.resolved_at = new Date().toISOString()
+      updates.resolved_at = now
     }
     if (resolved_at !== undefined) updates.resolved_at = resolved_at
 
@@ -121,10 +123,43 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       .from('maintenance_requests')
       .update(updates)
       .eq('id', reqId)
-      .select()
+      .select('*, vendor:vendors(id, name, phone, category)')
       .single()
 
     if (error) throw error
+
+    // Increment vendor jobs_completed when resolved/closed
+    if (vendor_id && ['resolved', 'closed'].includes(status ?? '')) {
+      const { data: v } = await admin.from('vendors').select('jobs_completed').eq('id', vendor_id).maybeSingle()
+      if (v) {
+        try {
+          await admin.from('vendors')
+            .update({ jobs_completed: ((v.jobs_completed as number) ?? 0) + 1, updated_at: now })
+            .eq('id', vendor_id)
+        } catch { /* non-fatal */ }
+      }
+    }
+
+    // Notify vendor via WhatsApp when newly assigned
+    const newVendorId = vendor_id !== undefined ? vendor_id : null
+    const prevVendorId = (current as Record<string, unknown>).vendor_id ?? null
+    if (newVendorId && newVendorId !== prevVendorId) {
+      ;(async () => {
+        const { data: vendor } = await admin.from('vendors').select('name, phone').eq('id', newVendorId).maybeSingle()
+        if (!vendor?.phone) return
+        const { data: req } = await admin.from('maintenance_requests').select('title, unit:property_units(unit_number)').eq('id', reqId).maybeSingle()
+        const unitLabel = (req?.unit as unknown as { unit_number?: string } | null)?.unit_number ?? 'kitengo'
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
+        const msg =
+          `🔧 *NyumbaFasta — Kazi Mpya*\n\n` +
+          `Habari ${vendor.name}!\n\nUmepewa kazi ya matengenezo:\n` +
+          `📋 *${req?.title ?? 'Matengenezo'}*\n🏠 Kitengo: *${unitLabel}*\n\n` +
+          `Wasiliana nasi au angalia maelezo zaidi:\n${appUrl}/property/maintenance/${reqId}`
+        sendTextMessage(formatPhoneNumber(vendor.phone), msg).catch(() => {})
+        await admin.from('maintenance_requests').update({ vendor_notified_at: now }).eq('id', reqId)
+      })().catch(() => {})
+    }
 
     // Add a comment for status changes or explicit comment
     const statusChange = status && status !== current.status ? `${current.status}→${status}` : null

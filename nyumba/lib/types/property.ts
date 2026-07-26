@@ -387,26 +387,45 @@ export type MaintenancePriority = 'low' | 'medium' | 'high' | 'urgent'
 export type MaintenanceStatus   = 'open' | 'assigned' | 'in_progress' | 'awaiting_parts' | 'resolved' | 'closed' | 'cancelled'
 
 export interface MaintenanceRequest {
-  id:              string
-  org_id:          string
-  unit_id:         string | null
-  lease_id:        string | null
-  title:           string
-  description:     string | null
-  category:        MaintenanceCategory
-  priority:        MaintenancePriority
-  status:          MaintenanceStatus
-  reported_by:     string
-  assigned_to:     string | null
-  estimated_cost:  number | null
-  actual_cost:     number | null
-  images:          string[]
-  scheduled_at:    string | null
-  resolved_at:     string | null
-  notes:           string | null
-  conversation_id: string | null
-  created_at:      string
-  updated_at:      string
+  id:                  string
+  org_id:              string
+  unit_id:             string | null
+  lease_id:            string | null
+  title:               string
+  description:         string | null
+  category:            MaintenanceCategory
+  priority:            MaintenancePriority
+  status:              MaintenanceStatus
+  reported_by:         string
+  assigned_to:         string | null
+  vendor_id:           string | null
+  vendor_notified_at:  string | null
+  estimated_cost:      number | null
+  actual_cost:         number | null
+  images:              string[]
+  scheduled_at:        string | null
+  resolved_at:         string | null
+  notes:               string | null
+  conversation_id:     string | null
+  created_at:          string
+  updated_at:          string
+}
+
+export interface Vendor {
+  id:             string
+  org_id:         string
+  name:           string
+  category:       string
+  phone:          string | null
+  email:          string | null
+  specialty:      string | null
+  location:       string | null
+  notes:          string | null
+  is_active:      boolean
+  jobs_completed: number
+  rating_avg:     number | null
+  created_at:     string
+  updated_at:     string
 }
 
 export interface MaintenanceComment {

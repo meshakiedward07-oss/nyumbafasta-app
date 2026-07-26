@@ -49,6 +49,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
   const [request, setRequest] = useState<RichRequest | null>(null)
   const [comments, setComments] = useState<RichComment[]>([])
   const [members,  setMembers]  = useState<OrgMember[]>([])
+  const [vendors,  setVendors]  = useState<{ id: string; name: string; phone: string | null; category: string }[]>([])
   const [loading,  setLoading]  = useState(true)
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
@@ -56,20 +57,27 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
   const [addingComment, setAddingComment] = useState(false)
 
   // Inline edits
-  const [editAssignee, setEditAssignee] = useState<string>('')
-  const [editCost,     setEditCost]     = useState<string>('')
+  const [editAssignee,  setEditAssignee]  = useState<string>('')
+  const [editVendorId,  setEditVendorId]  = useState<string>('')
+  const [editCost,      setEditCost]      = useState<string>('')
   const [editScheduled, setEditScheduled] = useState<string>('')
-  const [editNotes,    setEditNotes]    = useState<string>('')
+  const [editNotes,     setEditNotes]     = useState<string>('')
   const [showEditPanel, setShowEditPanel] = useState(false)
 
   async function load(oid: string) {
-    const res  = await fetch(`/api/v1/organizations/${oid}/maintenance/${id}`)
+    const [res, vendorRes] = await Promise.all([
+      fetch(`/api/v1/organizations/${oid}/maintenance/${id}`),
+      fetch(`/api/v1/organizations/${oid}/vendors`),
+    ])
     if (!res.ok) { setError('Ombi halipatikani.'); return }
-    const data = await res.json()
+    const data       = await res.json()
+    const vendorData = await vendorRes.json()
     setRequest(data.request)
     setComments(data.comments ?? [])
     setMembers(data.members ?? [])
+    setVendors(vendorData.vendors ?? [])
     setEditAssignee(data.request?.assigned_to ?? '')
+    setEditVendorId(data.request?.vendor_id ?? '')
     setEditCost(data.request?.actual_cost?.toString() ?? '')
     setEditScheduled(data.request?.scheduled_at
       ? new Date(data.request.scheduled_at).toISOString().slice(0, 16) : '')
@@ -116,7 +124,8 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
     setSaving(true)
     try {
       const body: Record<string, unknown> = {}
-      if (editAssignee !== (request.assigned_to ?? '')) body.assigned_to    = editAssignee || null
+      if (editAssignee !== (request.assigned_to ?? '')) body.assigned_to = editAssignee || null
+      if (editVendorId !== ((request as unknown as Record<string, unknown>).vendor_id ?? '')) body.vendor_id = editVendorId || null
       if (editCost     !== (request.actual_cost?.toString() ?? '')) body.actual_cost = editCost ? parseFloat(editCost) : null
       if (editScheduled) body.scheduled_at = new Date(editScheduled).toISOString()
       body.notes = editNotes.trim() || null
@@ -241,7 +250,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
           {showEditPanel ? (
             <div className="space-y-2.5">
               <div>
-                <label className="text-[10px] text-gray-400 font-medium block mb-1">Mpewa</label>
+                <label className="text-[10px] text-gray-400 font-medium block mb-1">Mpewa (wafanyakazi)</label>
                 <select value={editAssignee} onChange={e => setEditAssignee(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
                   <option value="">Haijapewa</option>
@@ -252,6 +261,18 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
                   ))}
                 </select>
               </div>
+              {vendors.length > 0 && (
+                <div>
+                  <label className="text-[10px] text-gray-400 font-medium block mb-1">Mchezaji (kutoka orodha)</label>
+                  <select value={editVendorId} onChange={e => setEditVendorId(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
+                    <option value="">Hakuna mchezaji</option>
+                    {vendors.map(v => (
+                      <option key={v.id} value={v.id}>{v.name}{v.phone ? ` — ${v.phone}` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="text-[10px] text-gray-400 font-medium block mb-1">Gharama halisi (Tsh)</label>
                 <input type="number" value={editCost} onChange={e => setEditCost(e.target.value)}
@@ -286,6 +307,22 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
                   {request.assignee?.full_name ?? <span className="text-gray-400 font-normal">Haijapewa</span>}
                 </dd>
               </div>
+              {(() => {
+                const v = (request as unknown as Record<string, unknown>).vendor as { name?: string; phone?: string } | null
+                if (!v) return null
+                return (
+                  <div className="col-span-2">
+                    <dt className="text-[10px] text-gray-400 font-medium">Mchezaji</dt>
+                    <dd className="text-gray-800 font-medium flex items-center gap-2">
+                      <i className="ti ti-address-book text-primary-400 text-sm" />
+                      {v.name}
+                      {v.phone && (
+                        <a href={`tel:${v.phone}`} className="text-xs text-primary-600 hover:underline font-normal">{v.phone}</a>
+                      )}
+                    </dd>
+                  </div>
+                )
+              })()}
               <div>
                 <dt className="text-[10px] text-gray-400 font-medium">Gharama ya kadirio</dt>
                 <dd className="text-gray-800">{formatCost(request.estimated_cost)}</dd>
