@@ -481,7 +481,12 @@ function InvoicesTab({ plans }: { plans: SubscriptionPlan[] }) {
                     const canAct = inv.status === 'pending' || inv.status === 'proof_uploaded'
                     return (
                       <tr key={inv.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{org?.name ?? '—'}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900">
+                          <a href={`/admin/organizations/${inv.org_id}`}
+                            className="hover:text-primary-600 hover:underline">
+                            {org?.name ?? '—'}
+                          </a>
+                        </td>
                         <td className="px-4 py-3 text-gray-600">{plan?.name ?? '—'}</td>
                         <td className="px-4 py-3 font-mono text-gray-700">Tsh {inv.amount_tzs.toLocaleString()}</td>
                         <td className="px-4 py-3">
@@ -952,7 +957,10 @@ export default function AdminSubscriptionsPage() {
                       {subs.map(s => (
                         <tr key={s.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3">
-                            <p className="font-medium text-gray-900">{s.org?.name ?? s.org_id}</p>
+                            <a href={`/admin/organizations/${s.org_id}`}
+                              className="font-medium text-gray-900 hover:text-primary-600 hover:underline">
+                              {s.org?.name ?? s.org_id}
+                            </a>
                             <p className="text-xs text-gray-400 capitalize">{s.org?.org_type?.replace('_', ' ')}</p>
                           </td>
                           <td className="px-4 py-3 text-gray-700">

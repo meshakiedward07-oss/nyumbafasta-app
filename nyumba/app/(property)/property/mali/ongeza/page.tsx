@@ -23,6 +23,7 @@ export default function OngezaMaliPage() {
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [orgId,     setOrgId]     = useState<string | null>(null)
+  const [limitHit,  setLimitHit]  = useState(false)
   const [orgLoaded, setOrgLoaded] = useState(false)
 
   // Form state
@@ -72,7 +73,10 @@ export default function OngezaMaliPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) {
+        if (data.upgrade_required) { setLimitHit(true); return }
+        setError(data.error ?? 'Kuna tatizo'); return
+      }
       router.push(`/property/mali/${data.listing.id}`)
     } catch {
       setError('Haikuweza kuunganika. Jaribu tena.')
@@ -83,6 +87,29 @@ export default function OngezaMaliPage() {
 
   return (
     <div className="p-4 lg:p-6 max-w-xl mx-auto">
+      {/* Upgrade gate overlay */}
+      {limitHit && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl text-center">
+            <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i className="ti ti-lock text-amber-500 text-3xl" aria-hidden="true" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Kikomo cha Mpango</h2>
+            <p className="text-sm text-gray-500 mb-5">
+              Umefika kikomo cha mali kwenye mpango wako wa sasa. Panda mpango ili kuongeza mali zaidi.
+            </p>
+            <a href="/property/usajili"
+              className="block w-full py-3 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition mb-3">
+              Panda Mpango
+            </a>
+            <button onClick={() => setLimitHit(false)}
+              className="text-sm text-gray-400 hover:text-gray-600">
+              Rudi nyuma
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6">
         <button onClick={() => router.back()} className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-3">
           <i className="ti ti-arrow-left" aria-hidden="true" />
