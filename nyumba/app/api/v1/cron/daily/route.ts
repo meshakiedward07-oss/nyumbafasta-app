@@ -1188,6 +1188,69 @@ async function runDailyTasks() {
     errors.push(`❌ Org subscription lifecycle: ${String(e)}`)
   }
 
+  // ── 25. Org subscription: apply pending plan changes ──
+  try {
+    const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
+
+    const { data: pendingChanges } = await admin
+      .from('organization_subscriptions')
+      .select('org_id, pending_plan_id, pending_plan_starts_at, plan:subscription_plans!plan_id(name)')
+      .not('pending_plan_id', 'is', null)
+      .lte('pending_plan_starts_at', now)
+
+    let applied = 0
+    for (const sub of pendingChanges ?? []) {
+      // Fetch new plan details
+      const { data: newPlan } = await admin
+        .from('subscription_plans')
+        .select('id, name, features')
+        .eq('id', sub.pending_plan_id)
+        .maybeSingle()
+      if (!newPlan) continue
+
+      const oldPlanName = (sub.plan as unknown as { name: string } | null)?.name ?? 'Mpango wa Zamani'
+
+      await admin
+        .from('organization_subscriptions')
+        .update({
+          plan_id:               newPlan.id,
+          pending_plan_id:       null,
+          pending_plan_starts_at: null,
+          updated_at:            now,
+        })
+        .eq('org_id', sub.org_id)
+
+      // Notify org owner
+      const { data: ownerRow } = await admin
+        .from('organization_members')
+        .select('user_id, user:users(id, phone)')
+        .eq('organization_id', sub.org_id)
+        .eq('role', 'owner')
+        .maybeSingle()
+      const owner = ownerRow?.user as unknown as { id: string; phone: string | null } | null
+      if (owner) {
+        const waMsg =
+          `*NyumbaFasta — Mpango Umebadilishwa* 🔄\n\n` +
+          `Mpango wako umebadilika kutoka *${oldPlanName}* kwenda *${newPlan.name}* leo.\n\n` +
+          `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/property/usajili`
+        if (owner.phone) await sendTextMessage(formatPhoneNumber(owner.phone), waMsg).catch(() => {})
+        try {
+          await admin.from('notifications').insert({
+            user_id: owner.id,
+            type:    'org_plan_changed',
+            title:   '🔄 Mpango Umebadilishwa',
+            body:    `Mpango umebadilika kutoka ${oldPlanName} kwenda ${newPlan.name}.`,
+            is_read: false,
+          })
+        } catch { /* non-fatal */ }
+      }
+      applied++
+    }
+    results.push(`✅ Org pending plan changes applied: ${applied}`)
+  } catch (e) {
+    errors.push(`❌ Org pending plan changes: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,

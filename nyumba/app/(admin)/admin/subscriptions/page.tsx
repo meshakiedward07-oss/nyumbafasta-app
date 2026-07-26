@@ -525,9 +525,188 @@ function InvoicesTab({ plans }: { plans: SubscriptionPlan[] }) {
   )
 }
 
+// ── Metrics Tab ───────────────────────────────────────────────────────────────
+
+interface Metrics {
+  mrr:              number
+  arr:              number
+  total_revenue:    number
+  status_counts:    Record<string, number>
+  plan_distribution: { name: string; count: number; mrr: number }[]
+  monthly_revenue:  { month: string; revenue: number; count: number }[]
+  pending_invoices: number
+  upcoming_renewals: { org_id: string; current_period_end: string; org: { name: string } | null; plan: { name: string; price_tzs: number } | null }[]
+  churned_last_30d: number
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  trial:        'bg-blue-100 text-blue-700',
+  active:       'bg-green-100 text-green-700',
+  past_due:     'bg-amber-100 text-amber-700',
+  grace_period: 'bg-orange-100 text-orange-700',
+  cancelled:    'bg-gray-100 text-gray-500',
+  expired:      'bg-red-100 text-red-500',
+}
+const STATUS_LABELS_SW: Record<string, string> = {
+  trial: 'Majaribio', active: 'Hai', past_due: 'Imechelewa',
+  grace_period: 'Neema', cancelled: 'Ilisimamishwa', expired: 'Imekwisha',
+}
+
+function MetricsTab() {
+  const [data,    setData]    = useState<Metrics | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/v1/admin/subscription-metrics')
+      .then(r => r.json())
+      .then(d => setData(d))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {[1,2,3,4].map(i => <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-2xl" />)}
+    </div>
+  )
+  if (!data) return <p className="text-red-500 text-sm">Haikuweza kupakia takwimu.</p>
+
+  const chartMax = Math.max(...data.monthly_revenue.map(m => m.revenue), 1)
+
+  return (
+    <div className="space-y-6">
+      {/* ── KPI cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'MRR',            value: fmt(data.mrr),           sub: 'Mapato ya Kila Mwezi', icon: 'trending-up',   color: 'text-green-600'   },
+          { label: 'ARR',            value: fmt(data.arr),           sub: 'Mapato ya Kila Mwaka', icon: 'calendar',      color: 'text-primary-600' },
+          { label: 'Mapato Yote',    value: fmt(data.total_revenue), sub: 'Ankara zilizothibitishwa', icon: 'cash',      color: 'text-gray-800'    },
+          { label: 'Ankara Zinasubiri', value: String(data.pending_invoices), sub: 'Zinahitaji hatua', icon: 'clock', color: 'text-amber-600' },
+        ].map(card => (
+          <div key={card.label} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-xs text-gray-500 font-medium">{card.label}</p>
+              <i className={`ti ti-${card.icon} text-base text-gray-300`} aria-hidden="true" />
+            </div>
+            <p className={`text-xl font-bold tabular-nums ${card.color}`}>{card.value}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{card.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* ── 6-month revenue trend ── */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Mwelekeo wa Mapato (miezi 6)</h3>
+          <div className="flex items-end gap-2 h-32">
+            {data.monthly_revenue.map(m => {
+              const pct = Math.round((m.revenue / chartMax) * 100)
+              const [y, mo] = m.month.split('-')
+              const label = new Date(Number(y), Number(mo) - 1).toLocaleDateString('sw-TZ', { month: 'short' })
+              return (
+                <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-[10px] text-gray-400 tabular-nums">{m.revenue > 0 ? `${Math.round(m.revenue/1000)}K` : ''}</span>
+                  <div className="w-full bg-gray-100 rounded-t-lg overflow-hidden" style={{ height: '80px' }}>
+                    <div
+                      className="w-full bg-primary-400 rounded-t-lg transition-all"
+                      style={{ height: `${pct}%`, marginTop: `${100 - pct}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-gray-500">{label}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── Status distribution ── */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Mgawanyo wa Hali</h3>
+          <div className="space-y-2">
+            {Object.entries(data.status_counts)
+              .sort(([, a], [, b]) => b - a)
+              .map(([status, count]) => {
+                const total = Object.values(data.status_counts).reduce((s, n) => s + n, 0)
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0
+                return (
+                  <div key={status}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[status] ?? 'bg-gray-100 text-gray-500'}`}>
+                        {STATUS_LABELS_SW[status] ?? status}
+                      </span>
+                      <span className="text-xs text-gray-500 tabular-nums">{count} ({pct}%)</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary-300 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+            <span className="text-xs text-gray-500">Churn (siku 30)</span>
+            <span className="text-xs font-semibold text-red-500">{data.churned_last_30d} mashirika</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* ── Plan distribution ── */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Mgawanyo wa Mipango</h3>
+          {data.plan_distribution.length === 0 ? (
+            <p className="text-sm text-gray-400">Hakuna data bado.</p>
+          ) : (
+            <div className="space-y-3">
+              {data.plan_distribution.map(p => (
+                <div key={p.name} className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium text-gray-800">{p.name}</span>
+                      <span className="text-xs text-gray-500 tabular-nums">{p.count} mashr.</span>
+                    </div>
+                    <p className="text-xs text-primary-600 font-semibold tabular-nums">{fmt(Math.round(p.mrr))}/mwezi</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Upcoming renewals ── */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Upya Unaokuja (siku 30)</h3>
+          {data.upcoming_renewals.length === 0 ? (
+            <p className="text-sm text-gray-400">Hakuna upya ndani ya siku 30.</p>
+          ) : (
+            <div className="space-y-2 overflow-y-auto max-h-48">
+              {data.upcoming_renewals.map(r => {
+                const org  = r.org  as unknown as { name: string } | null
+                const plan = r.plan as unknown as { name: string; price_tzs: number } | null
+                const daysLeft = Math.ceil((new Date(r.current_period_end).getTime() - Date.now()) / 86_400_000)
+                return (
+                  <div key={r.org_id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{org?.name ?? '—'}</p>
+                      <p className="text-xs text-gray-400">{plan?.name ?? '—'} · {dateFmt(r.current_period_end)}</p>
+                    </div>
+                    <span className={`text-xs font-semibold tabular-nums ${daysLeft <= 3 ? 'text-red-600' : daysLeft <= 7 ? 'text-amber-600' : 'text-gray-500'}`}>
+                      Siku {daysLeft}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-type Tab = 'plans' | 'subscriptions' | 'invoices'
+type Tab = 'plans' | 'subscriptions' | 'invoices' | 'metrics'
 
 export default function AdminSubscriptionsPage() {
   const [tab,     setTab]     = useState<Tab>('subscriptions')
@@ -619,9 +798,10 @@ export default function AdminSubscriptionsPage() {
       {/* Tab switcher */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl mb-6 w-fit">
         {([
-          { id: 'subscriptions', label: 'Usajili' },
-          { id: 'invoices',      label: 'Ankara'  },
-          { id: 'plans',         label: 'Mipango' },
+          { id: 'subscriptions', label: 'Usajili'  },
+          { id: 'invoices',      label: 'Ankara'   },
+          { id: 'plans',         label: 'Mipango'  },
+          { id: 'metrics',       label: 'Takwimu'  },
         ] as { id: Tab; label: string }[]).map(t => (
           <button
             key={t.id}
@@ -809,6 +989,9 @@ export default function AdminSubscriptionsPage() {
 
       {/* ── Invoices Tab ── */}
       {tab === 'invoices' && <InvoicesTab plans={plans} />}
+
+      {/* ── Metrics Tab ── */}
+      {tab === 'metrics' && <MetricsTab />}
 
       {/* Plan create/edit modal */}
       {planModal && (
