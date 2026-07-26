@@ -13,19 +13,26 @@ export type ServiceRequestStatus = 'pending' | 'assigned' | 'in_progress' | 'com
 export type KycStatus = 'pending' | 'approved' | 'rejected' | 'needs_more_info'
 
 export interface Organization {
-  id:          string
-  name:        string
-  org_type:    OrgType
-  description: string | null
-  phone:       string | null
-  email:       string | null
-  logo_url:    string | null
-  region:      string | null
-  district:    string | null
-  status:      OrgStatus
-  created_by:  string | null
-  created_at:  string
-  updated_at:  string
+  id:              string
+  name:            string
+  org_type:        OrgType
+  description:     string | null
+  phone:           string | null
+  email:           string | null
+  logo_url:        string | null
+  region:          string | null
+  district:        string | null
+  status:          OrgStatus
+  created_by:      string | null
+  created_at:      string
+  updated_at:      string
+  // Billing info (Phase 1)
+  billing_name:    string | null
+  billing_address: string | null
+  billing_phone:   string | null
+  billing_email:   string | null
+  tax_id:          string | null
+  deactivated_at:  string | null
 }
 
 export interface OrganizationMember {
@@ -466,4 +473,63 @@ export const STATUS_COLORS: Record<MaintenanceStatus, string> = {
   resolved:       'bg-green-100 text-green-700',
   closed:         'bg-gray-100 text-gray-500',
   cancelled:      'bg-red-100 text-red-400',
+}
+
+// ── Phase 1: Subscriptions ─────────────────────────────────────────────────
+
+export type SubscriptionBillingCycle = 'monthly' | 'quarterly' | 'annual'
+export type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'grace_period' | 'cancelled' | 'expired'
+
+export interface PlanFeatures {
+  max_properties:             number  // -1 = unlimited
+  max_units:                  number
+  max_members:                number
+  has_reports:                boolean
+  has_maintenance:            boolean
+  has_communication_hub:      boolean
+  has_vendor_directory:       boolean
+  has_staff_assisted_listing: boolean
+  has_priority_support:       boolean
+  trial_days:                 number
+}
+
+export interface SubscriptionPlan {
+  id:            string
+  name:          string
+  description:   string | null
+  price_tzs:     number
+  billing_cycle: SubscriptionBillingCycle
+  is_active:     boolean
+  is_public:     boolean
+  is_default:    boolean
+  features:      PlanFeatures
+  created_by:    string | null
+  created_at:    string
+  updated_at:    string
+}
+
+export interface OrganizationSubscription {
+  id:                     string
+  org_id:                 string
+  plan_id:                string | null
+  status:                 SubscriptionStatus
+  trial_ends_at:          string | null
+  current_period_start:   string | null
+  current_period_end:     string | null
+  pending_plan_id:        string | null
+  pending_plan_starts_at: string | null
+  cancelled_at:           string | null
+  cancellation_reason:    string | null
+  created_at:             string
+  updated_at:             string
+  plan?:                  SubscriptionPlan | null
+}
+
+export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
+  trial:        'Kipindi cha Majaribio',
+  active:       'Inaendelea',
+  past_due:     'Malipo Yamechelewa',
+  grace_period: 'Muda wa Neema',
+  cancelled:    'Imesitishwa',
+  expired:      'Imekwisha',
 }

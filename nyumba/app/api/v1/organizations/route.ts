@@ -72,6 +72,30 @@ export async function POST(req: NextRequest) {
       throw memberErr
     }
 
+    // Auto-assign the default (free) plan as a trial subscription
+    const { data: defaultPlan } = await admin
+      .from('subscription_plans')
+      .select('id, features')
+      .eq('is_default', true)
+      .eq('is_active', true)
+      .single()
+
+    if (defaultPlan) {
+      const trialDays: number = (defaultPlan.features as Record<string, number>)?.trial_days ?? 14
+      const now      = new Date()
+      const trialEnd = new Date(now)
+      trialEnd.setDate(trialEnd.getDate() + trialDays)
+
+      await admin.from('organization_subscriptions').insert({
+        org_id:                org.id,
+        plan_id:               defaultPlan.id,
+        status:                'trial',
+        trial_ends_at:         trialEnd.toISOString(),
+        current_period_start:  now.toISOString(),
+        current_period_end:    trialEnd.toISOString(),
+      })
+    }
+
     return NextResponse.json({ organization: org }, { status: 201 })
   } catch (err) {
     console.error('[POST /organizations]', err)

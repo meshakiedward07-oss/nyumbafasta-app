@@ -45,11 +45,31 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!canManage) return NextResponse.json({ error: 'Mwenye shirika peke yake anaweza kuongeza wanachama' }, { status: 403 })
 
     const body = await req.json()
-    const { user_id, role } = body
-    if (!user_id || !role) return NextResponse.json({ error: 'user_id na role zinahitajika' }, { status: 400 })
+    const { role, phone, email } = body
+    let { user_id } = body
+
+    if (!role) return NextResponse.json({ error: 'role inahitajika' }, { status: 400 })
     if (!['owner', 'branch_manager', 'agent', 'maintenance_coordinator', 'accountant'].includes(role)) {
       return NextResponse.json({ error: 'Nafasi si sahihi' }, { status: 400 })
     }
+
+    // Accept phone or email lookup in addition to user_id
+    if (!user_id && (phone || email)) {
+      let lookupQuery = admin.from('users').select('id')
+      if (phone) lookupQuery = lookupQuery.eq('phone', phone.trim())
+      else       lookupQuery = lookupQuery.eq('email', email.trim().toLowerCase())
+      const { data: found } = await lookupQuery.maybeSingle()
+      if (!found) {
+        return NextResponse.json({
+          error: phone
+            ? `Hakuna mtumiaji mwenye namba ${phone}. Mwalikeni wajiandikishe kwanza.`
+            : `Hakuna mtumiaji mwenye barua pepe hiyo. Mwalikeni wajiandikishe kwanza.`,
+        }, { status: 404 })
+      }
+      user_id = found.id
+    }
+
+    if (!user_id) return NextResponse.json({ error: 'user_id, phone, au email inahitajika' }, { status: 400 })
 
     const { data: existing } = await admin.from('organization_members').select('id').eq('organization_id', id).eq('user_id', user_id).maybeSingle()
     if (existing) return NextResponse.json({ error: 'Mtumiaji tayari ni mwanachama' }, { status: 409 })

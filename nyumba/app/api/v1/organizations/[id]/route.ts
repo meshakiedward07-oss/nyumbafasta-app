@@ -68,10 +68,31 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     const body = await req.json()
-    const allowed = ['name', 'description', 'phone', 'email', 'region', 'district', 'logo_url', 'status']
+
+    // org_type can be changed by owner (landlord → property_manager → firm as org grows)
+    const profileFields = ['name', 'description', 'phone', 'email', 'region', 'district', 'logo_url']
+    const billingFields = ['billing_name', 'billing_address', 'billing_phone', 'billing_email', 'tax_id']
+    // status only changeable by admin/staff
+    const adminFields   = ['status']
+
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
-    for (const key of allowed) {
-      if (key in body) updates[key] = body[key]
+
+    for (const key of [...profileFields, ...billingFields]) {
+      if (key in body) updates[key] = body[key] ?? null
+    }
+
+    if ('org_type' in body) {
+      const validTypes = ['landlord', 'property_manager', 'firm']
+      if (!validTypes.includes(body.org_type)) {
+        return NextResponse.json({ error: 'Aina ya shirika si sahihi' }, { status: 400 })
+      }
+      updates.org_type = body.org_type
+    }
+
+    if (isAdminStaff) {
+      for (const key of adminFields) {
+        if (key in body) updates[key] = body[key]
+      }
     }
 
     const { data, error } = await admin.from('organizations').update(updates).eq('id', id).select().single()
