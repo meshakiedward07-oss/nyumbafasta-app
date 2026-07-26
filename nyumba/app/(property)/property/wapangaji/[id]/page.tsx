@@ -69,9 +69,10 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
   const [recording,  setRecording]  = useState(false)
   const [recordErr,  setRecordErr]  = useState<string | null>(null)
 
-  // Remind / void loading states (per payment id)
-  const [reminding, setReminding] = useState<string | null>(null)
-  const [voiding,   setVoiding]   = useState<string | null>(null)
+  // Remind / void / send-invoice loading states (per payment id)
+  const [reminding,      setReminding]      = useState<string | null>(null)
+  const [voiding,        setVoiding]        = useState<string | null>(null)
+  const [sendingInvoice, setSendingInvoice] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -180,6 +181,18 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       body: JSON.stringify({ action: 'remind' }),
     }).catch(() => {})
     setReminding(null)
+  }
+
+  async function handleSendInvoice(payment: Payment) {
+    if (!orgId) return
+    setSendingInvoice(payment.id)
+    const res  = await fetch(`/api/v1/organizations/${orgId}/leases/${leaseId}/payments/${payment.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'send_invoice' }),
+    })
+    const data = await res.json()
+    if (res.ok) setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, invoice_sent_at: data.payment?.invoice_sent_at ?? new Date().toISOString() } : p))
+    setSendingInvoice(null)
   }
 
   async function handleVoid(payment: Payment) {
@@ -528,8 +541,20 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                             Thibitisha
                           </button>
                         )}
-                        {['pending', 'partial'].includes(payment.status) && (
+                        {payment.status === 'paid' && (
+                          <a href={`/rent/receipt/${payment.id}`} target="_blank" rel="noopener noreferrer"
+                            className="text-xs px-3 py-1.5 bg-green-50 text-green-700 rounded-xl font-medium hover:bg-green-100 transition flex items-center gap-1 whitespace-nowrap">
+                            <i className="ti ti-receipt text-xs" />Risiti
+                          </a>
+                        )}
+                        {['pending', 'partial', 'late'].includes(payment.status) && (
                           <>
+                            {!payment.invoice_sent_at && (
+                              <button onClick={() => handleSendInvoice(payment)} disabled={sendingInvoice === payment.id}
+                                className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 rounded-xl font-medium hover:bg-blue-100 disabled:opacity-60 transition whitespace-nowrap">
+                                {sendingInvoice === payment.id ? '...' : 'Tuma Ankara'}
+                              </button>
+                            )}
                             <button onClick={() => { setRecordFor(payment); setRecordNew(false) }}
                               className="text-xs px-3 py-1.5 bg-green-50 text-green-700 rounded-xl font-medium hover:bg-green-100 transition whitespace-nowrap">
                               Imelipwa
@@ -538,7 +563,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                               className="text-xs px-3 py-1.5 bg-primary-50 text-primary-700 rounded-xl font-medium hover:bg-primary-100 transition">
                               {payment.proof_url ? 'Sasisha' : 'Pakia'}
                             </button>
-                            {late && (
+                            {(late || payment.status === 'late') && (
                               <button onClick={() => handleRemind(payment)} disabled={reminding === payment.id}
                                 className="text-xs px-3 py-1.5 bg-amber-50 text-amber-700 rounded-xl font-medium hover:bg-amber-100 disabled:opacity-60 transition">
                                 {reminding === payment.id ? '...' : 'Kumbusha'}

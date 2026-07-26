@@ -26,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const { data: payment } = await admin
       .from('lease_payments')
-      .select('id, lease_id, status, amount_due, due_date')
+      .select('id, lease_id, status, amount_due, due_date, invoice_sent_at')
       .eq('id', paymentId)
       .eq('lease_id', leaseId)
       .maybeSingle()
@@ -155,6 +155,59 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
 
       return NextResponse.json({ ok: true, message: 'Ukumbusho umetumwa' })
+    }
+
+    // ── Send invoice ───────────────────────────────────────────────────────────
+    if (action === 'send_invoice') {
+      if (['paid', 'void'].includes(payment.status)) {
+        return NextResponse.json({ error: 'Malipo haya hayawezi kupata ankara' }, { status: 409 })
+      }
+      const { data: updated, error } = await admin
+        .from('lease_payments')
+        .update({ invoice_sent_at: now, updated_at: now })
+        .eq('id', paymentId)
+        .select()
+        .single()
+      if (error) throw error
+
+      // Notify tenant (non-fatal)
+      ;(async () => {
+        const { data: lease } = await admin
+          .from('leases')
+          .select('tenant_id, unit:property_units(unit_number)')
+          .eq('id', leaseId)
+          .maybeSingle()
+        if (!lease) return
+        const { data: tenant } = await admin.from('users').select('id, phone, full_name').eq('id', lease.tenant_id as string).maybeSingle()
+        if (!tenant) return
+        const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const unitLabel = (lease.unit as unknown as { unit_number: string } | null)?.unit_number ?? 'kitengo chako'
+        const amount    = `TZS ${payment.amount_due.toLocaleString()}`
+        const dueStr    = new Date(payment.due_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
+        try {
+          await admin.from('notifications').insert({
+            user_id: tenant.id,
+            title:   '🧾 Ankara ya Kodi Imetumwa',
+            body:    `Ankara ya kodi ya ${amount} ya ${unitLabel} imetumwa. Inastahili tarehe ${dueStr}.`,
+            type:    'rent_invoice',
+            is_read: false,
+            data:    JSON.stringify({ payment_id: paymentId, lease_id: leaseId }),
+          })
+        } catch { /* non-fatal */ }
+        if (tenant.phone) {
+          const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
+          const msg =
+            `🧾 *NyumbaFasta — Ankara ya Kodi*\n\n` +
+            `Habari ${tenant.full_name ?? ''}!\n\n` +
+            `Ankara ya kodi ya *${unitLabel}*:\n` +
+            `💰 Kiasi: *${amount}*\n` +
+            `📅 Inastahili: *${dueStr}*\n\n` +
+            `Lipa na pakia ushahidi hapa:\n${appUrl}/rent/proof/${paymentId}`
+          sendTextMessage(formatPhoneNumber(tenant.phone), msg).catch(() => {})
+        }
+      })().catch(() => {})
+
+      return NextResponse.json({ payment: updated })
     }
 
     return NextResponse.json({ error: 'Tendo halijulikani' }, { status: 400 })

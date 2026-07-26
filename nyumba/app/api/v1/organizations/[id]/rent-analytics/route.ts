@@ -43,12 +43,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
+    const UNPAID = ['pending', 'partial', 'late']
+
     const totalInvoicesSent = all.filter(p => p.invoice_sent_at).length
     const totalCleared      = all.filter(p => p.status === 'paid').length
-    const totalPending      = all.filter(p => ['pending', 'partial'].includes(p.status)).length
+    const totalPending      = all.filter(p => UNPAID.includes(p.status)).length
     const totalProofUp      = all.filter(p => p.status === 'proof_uploaded').length
     const totalOverdue      = all.filter(p =>
-      ['pending', 'partial'].includes(p.status) && new Date(p.due_date) < today
+      (UNPAID.includes(p.status) || p.status === 'proof_uploaded') && new Date(p.due_date) < today
     ).length
 
     const amountCollected = all
@@ -56,7 +58,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       .reduce((s, p) => s + (p.amount_paid ?? p.amount_due ?? 0), 0)
 
     const amountOutstanding = all
-      .filter(p => ['pending', 'partial', 'proof_uploaded'].includes(p.status))
+      .filter(p => [...UNPAID, 'proof_uploaded'].includes(p.status))
       .reduce((s, p) => s + (p.amount_due ?? 0), 0)
 
     // 6-month collection trend
@@ -78,14 +80,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
       return { ...p, tenant_name: tenant?.full_name ?? null, tenant_phone: tenant?.phone ?? null, unit_number: unit?.unit_number ?? null }
     }
 
-    // Recent unpaid (awaiting verification or proof)
     const awaitingVerification = all
       .filter(p => p.status === 'proof_uploaded')
       .slice(0, 10)
       .map(enrichPayment)
 
     const overdueList = all
-      .filter(p => ['pending', 'partial'].includes(p.status) && new Date(p.due_date) < today)
+      .filter(p => ['pending', 'partial', 'late'].includes(p.status) && new Date(p.due_date) < today)
       .slice(0, 10)
       .map(enrichPayment)
 

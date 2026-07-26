@@ -115,17 +115,19 @@ function ProgressRow({ label, value, color }: { label: string; value: number; co
 // ─── PaymentRow ───────────────────────────────────────────────────────────────
 
 function PaymentRow({
-  p, orgId, isOwner, onVerified, onReminded, onMarkedPaid,
+  p, orgId, isOwner, onVerified, onReminded, onMarkedPaid, onInvoiceSent,
 }: {
   p: EnrichedPayment; orgId: string; isOwner: boolean
-  onVerified:   (id: string) => void
-  onReminded:   (id: string) => void
-  onMarkedPaid: (id: string) => void
+  onVerified:     (id: string) => void
+  onReminded:     (id: string) => void
+  onMarkedPaid:   (id: string) => void
+  onInvoiceSent:  (id: string) => void
 }) {
-  const [verifying,  setVerifying]  = useState(false)
-  const [reminding,  setReminding]  = useState(false)
-  const [marking,    setMarking]    = useState(false)
-  const [markModal,  setMarkModal]  = useState(false)
+  const [verifying,      setVerifying]      = useState(false)
+  const [reminding,      setReminding]      = useState(false)
+  const [marking,        setMarking]        = useState(false)
+  const [sendingInvoice, setSendingInvoice] = useState(false)
+  const [markModal,      setMarkModal]      = useState(false)
   const [markForm,   setMarkForm]   = useState({ paid_date: new Date().toISOString().split('T')[0], payment_method: 'bank', reference: '', notes: '' })
   const [markErr,    setMarkErr]    = useState<string | null>(null)
 
@@ -153,6 +155,18 @@ function PaymentRow({
       })
       onReminded(p.id)
     } finally { setReminding(false) }
+  }
+
+  async function handleSendInvoice(e: React.MouseEvent) {
+    e.preventDefault()
+    setSendingInvoice(true)
+    try {
+      await fetch(`/api/v1/organizations/${orgId}/leases/${p.lease_id}/payments/${p.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_invoice' }),
+      })
+      onInvoiceSent(p.id)
+    } finally { setSendingInvoice(false) }
   }
 
   async function handleMarkPaid(e: React.FormEvent) {
@@ -274,13 +288,19 @@ function PaymentRow({
                   {verifying ? '...' : 'Thibitisha'}
                 </button>
               )}
-              {(p.status === 'pending' || p.status === 'partial') && (
+              {['pending', 'partial', 'late'].includes(p.status) && (
                 <>
+                  {!p.invoice_sent_at && (
+                    <button onClick={handleSendInvoice} disabled={sendingInvoice}
+                      className="bg-blue-50 text-blue-700 text-xs font-medium px-2.5 py-1.5 rounded-lg hover:bg-blue-100 disabled:opacity-60 transition whitespace-nowrap">
+                      {sendingInvoice ? '...' : 'Tuma Ankara'}
+                    </button>
+                  )}
                   <button onClick={(e) => { e.preventDefault(); setMarkModal(true) }}
                     className="bg-primary-50 text-primary-700 text-xs font-medium px-2.5 py-1.5 rounded-lg hover:bg-primary-100 transition whitespace-nowrap">
                     Imelipwa
                   </button>
-                  {overdueFlag && (
+                  {(overdueFlag || p.status === 'late') && (
                     <button onClick={handleRemind} disabled={reminding}
                       className="bg-amber-50 text-amber-700 text-xs font-medium px-2.5 py-1.5 rounded-lg hover:bg-amber-100 disabled:opacity-60 transition whitespace-nowrap">
                       {reminding ? '...' : 'Kumbusha'}
@@ -411,6 +431,25 @@ export default function KodiPage() {
     })
   }
 
+  function handleInvoiceSent(paymentId: string) {
+    // Mark invoice_sent_at on the in-memory payment rows so button disappears
+    setPayments(prev => prev.map(p =>
+      p.id === paymentId ? { ...p, invoice_sent_at: new Date().toISOString() } : p
+    ))
+    setAnalytics(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        awaiting_verification: prev.awaiting_verification.map(p =>
+          p.id === paymentId ? { ...p, invoice_sent_at: new Date().toISOString() } : p
+        ),
+        overdue_list: prev.overdue_list.map(p =>
+          p.id === paymentId ? { ...p, invoice_sent_at: new Date().toISOString() } : p
+        ),
+      }
+    })
+  }
+
   // ── Loading skeleton ─────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -429,8 +468,22 @@ export default function KodiPage() {
 
       {/* Header */}
       <div className="p-4 lg:p-5 border-b border-gray-100 bg-white flex-shrink-0">
-        <h1 className="text-xl font-bold text-gray-900">Malipo ya Kodi</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Usimamizi wa malipo ya wapangaji wako</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Malipo ya Kodi</h1>
+            <p className="text-xs text-gray-400 mt-0.5">Usimamizi wa malipo ya wapangaji wako</p>
+          </div>
+          {orgId && (
+            <a
+              href={`/api/v1/organizations/${orgId}/lease-payments?status=${tab === 'overview' ? 'all' : tab}&format=csv`}
+              download
+              className="flex items-center gap-1.5 border border-gray-200 text-gray-600 text-xs font-medium px-3 py-2 rounded-xl hover:bg-gray-50 transition flex-shrink-0"
+            >
+              <i className="ti ti-file-export text-sm" aria-hidden="true" />
+              Pakua CSV
+            </a>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -514,7 +567,7 @@ export default function KodiPage() {
                 <div className="p-2">
                   {allAwaiting.map(p => (
                     <PaymentRow key={p.id} p={p} orgId={orgId} isOwner={isOwner}
-                      onVerified={handleVerified} onReminded={handleReminded} onMarkedPaid={handleMarkedPaid} />
+                      onVerified={handleVerified} onReminded={handleReminded} onMarkedPaid={handleMarkedPaid} onInvoiceSent={handleInvoiceSent} />
                   ))}
                 </div>
               </div>
@@ -532,7 +585,7 @@ export default function KodiPage() {
                 <div className="p-2">
                   {allOverdue.map(p => (
                     <PaymentRow key={p.id} p={p} orgId={orgId} isOwner={isOwner}
-                      onVerified={handleVerified} onReminded={handleReminded} onMarkedPaid={handleMarkedPaid} />
+                      onVerified={handleVerified} onReminded={handleReminded} onMarkedPaid={handleMarkedPaid} onInvoiceSent={handleInvoiceSent} />
                   ))}
                 </div>
               </div>
@@ -627,7 +680,7 @@ export default function KodiPage() {
                 <div className="p-2">
                   {payments.map(p => (
                     <PaymentRow key={p.id} p={p} orgId={orgId} isOwner={isOwner}
-                      onVerified={handleVerified} onReminded={handleReminded} onMarkedPaid={handleMarkedPaid} />
+                      onVerified={handleVerified} onReminded={handleReminded} onMarkedPaid={handleMarkedPaid} onInvoiceSent={handleInvoiceSent} />
                   ))}
                 </div>
                 {payments.length < payTotal && (

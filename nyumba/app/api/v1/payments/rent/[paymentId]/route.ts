@@ -17,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // Fetch the payment and its parent lease
     const { data: payment } = await admin
       .from('lease_payments')
-      .select('id, lease_id, status, amount_due, amount_paid, due_date, paid_date, proof_url, proof_note, proof_uploaded_at, verified_at')
+      .select('id, lease_id, status, amount_due, amount_paid, due_date, paid_date, proof_url, proof_note, proof_uploaded_at, verified_at, payment_method, reference')
       .eq('id', paymentId)
       .maybeSingle()
 
@@ -52,14 +52,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
       .eq('org_id', orgId)
       .maybeSingle()
 
-    // Fetch org name
-    const { data: org } = await admin
-      .from('organizations')
-      .select('name')
-      .eq('id', orgId)
-      .maybeSingle()
+    // Fetch org name + tenant name
+    const [{ data: org }, { data: tenantUser }] = await Promise.all([
+      admin.from('organizations').select('name').eq('id', orgId).maybeSingle(),
+      admin.from('users').select('full_name').eq('id', lease.tenant_id as string).maybeSingle(),
+    ])
 
-    return NextResponse.json({ payment, lease, banking, org_name: org?.name ?? null, org_id: orgId })
+    return NextResponse.json({ payment, lease, banking, org_name: org?.name ?? null, org_id: orgId, tenant_name: tenantUser?.full_name ?? null })
   } catch (err) {
     console.error('[GET /payments/rent/:paymentId]', err)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

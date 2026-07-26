@@ -250,6 +250,11 @@ export default function TenantProofPage({ params }: { params: Promise<{ paymentI
             <p className="text-sm text-green-600 mt-1">
               Rekodi hii imekamilika. Hakuna hatua zaidi.
             </p>
+            <Link href={`/rent/receipt/${paymentId}`}
+              className="mt-4 inline-flex items-center gap-2 bg-white border border-green-200 text-green-700 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-green-50 transition">
+              <i className="ti ti-file-download" aria-hidden="true" />
+              Pakua Risiti
+            </Link>
           </div>
         )}
 

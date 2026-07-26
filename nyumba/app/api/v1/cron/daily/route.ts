@@ -1456,6 +1456,33 @@ async function runDailyTasks() {
     errors.push(`❌ Overdue rent alerts: ${String(e)}`)
   }
 
+  // ── 29. Mark overdue pending/partial payments as 'late' ───────────────────────
+  // Keeps the DB accurate — anything past due_date that is still pending → late.
+  try {
+    const todayStr = now.split('T')[0]
+    const { data: toMark, error: markFetchErr } = await admin
+      .from('lease_payments')
+      .select('id')
+      .in('status', ['pending', 'partial'])
+      .lt('due_date', todayStr)
+
+    if (markFetchErr) throw markFetchErr
+
+    let marked = 0
+    if (toMark && toMark.length > 0) {
+      const ids = toMark.map(p => p.id)
+      const { error: markErr } = await admin
+        .from('lease_payments')
+        .update({ status: 'late', updated_at: now })
+        .in('id', ids)
+      if (markErr) throw markErr
+      marked = ids.length
+    }
+    results.push(`✅ Payments marked late: ${marked}`)
+  } catch (e) {
+    errors.push(`❌ Mark overdue as late: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,

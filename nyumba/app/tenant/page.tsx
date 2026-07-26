@@ -216,7 +216,7 @@ export default function TenantPage() {
   const [loading, setLoading] = useState(true)
   const [authErr, setAuthErr] = useState(false)
   const [activeLeaseIdx, setActiveLeaseIdx] = useState(0)
-  const [activeTab, setActiveTab] = useState<'malipo' | 'matengenezo'>('malipo')
+  const [activeTab, setActiveTab] = useState<'malipo' | 'historia' | 'matengenezo'>('malipo')
 
   // Maintenance state
   const [requests,    setRequests]    = useState<MaintenanceRequest[]>([])
@@ -422,20 +422,29 @@ export default function TenantPage() {
         <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
           <button
             onClick={() => setActiveTab('malipo')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
+            className={`flex-1 py-2 rounded-lg text-xs font-medium transition ${
               activeTab === 'malipo' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
             }`}
           >
-            <i className="ti ti-cash mr-1.5" aria-hidden="true" />
-            Malipo ya Kodi
+            <i className="ti ti-cash mr-1" aria-hidden="true" />
+            Malipo
+          </button>
+          <button
+            onClick={() => setActiveTab('historia')}
+            className={`flex-1 py-2 rounded-lg text-xs font-medium transition ${
+              activeTab === 'historia' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            <i className="ti ti-history mr-1" aria-hidden="true" />
+            Historia
           </button>
           <button
             onClick={() => { setActiveTab('matengenezo'); loadMaintenance() }}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
+            className={`flex-1 py-2 rounded-lg text-xs font-medium transition ${
               activeTab === 'matengenezo' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
             }`}
           >
-            <i className="ti ti-tool mr-1.5" aria-hidden="true" />
+            <i className="ti ti-tool mr-1" aria-hidden="true" />
             Matengenezo
           </button>
         </div>
@@ -525,6 +534,91 @@ export default function TenantPage() {
         )}
 
         </> /* end malipo tab */}
+
+        {/* ══ HISTORIA YOTE TAB ═══════════════════════════════════════════════ */}
+        {activeTab === 'historia' && (() => {
+          // Flatten all payments from all leases, tag with unit label, sort by due_date desc
+          type FlatPayment = Payment & { unitLabel: string; orgLabel: string }
+          const flat: FlatPayment[] = leases.flatMap(l => {
+            const u = l.lease.unit as unknown as LeaseUnit | null
+            const unitLabel = u?.unit_number ?? `Mkataba`
+            const orgLabel  = l.org_name ?? 'NyumbaFasta'
+            return l.payments.map(p => ({ ...p, unitLabel, orgLabel }))
+          })
+          flat.sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime())
+
+          if (flat.length === 0) {
+            return (
+              <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+                <i className="ti ti-history text-5xl text-gray-200" aria-hidden="true" />
+                <p className="text-gray-500 font-medium mt-3">Hakuna historia ya malipo</p>
+              </div>
+            )
+          }
+
+          return (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">
+                Historia Yote ya Malipo ({flat.length})
+              </p>
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                {flat.map((p, i) => {
+                  const s = PAYMENT_STATUS[p.status] ?? PAYMENT_STATUS.pending
+                  const isOverdue = ['pending', 'partial', 'late'].includes(p.status) && new Date(p.due_date) < new Date()
+                  return (
+                    <div key={`${p.id}-${i}`} className={`flex items-start gap-3 px-4 py-3.5 ${i > 0 ? 'border-t border-gray-50' : ''} ${isOverdue ? 'bg-red-50/30' : ''}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                        p.status === 'paid' ? 'bg-green-50' :
+                        isOverdue           ? 'bg-red-50'   : 'bg-gray-100'
+                      }`}>
+                        <i className={`ti ti-${s.icon} text-sm ${
+                          p.status === 'paid' ? 'text-green-500' :
+                          isOverdue           ? 'text-red-400'   : 'text-gray-400'
+                        }`} aria-hidden="true" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-gray-800 tabular-nums">
+                            TZS {p.amount_due.toLocaleString()}
+                          </p>
+                          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                            {p.unitLabel}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Ankara: {dateFmt(p.due_date)}
+                          {p.paid_date && ` · Ilipwa: ${dateFmt(p.paid_date)}`}
+                        </p>
+                        {p.verified_at && (
+                          <p className="text-[10px] text-green-500 mt-0.5 flex items-center gap-0.5">
+                            <i className="ti ti-shield-check" aria-hidden="true" /> Imethibitishwa
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${s.cls}`}>
+                          {s.label}
+                        </span>
+                        {p.status === 'paid' && (
+                          <a href={`/rent/receipt/${p.id}`}
+                            className="text-[10px] text-primary-600 hover:underline flex items-center gap-0.5">
+                            <i className="ti ti-receipt text-[10px]" aria-hidden="true" /> Risiti
+                          </a>
+                        )}
+                        {['pending', 'partial'].includes(p.status) && (
+                          <a href={`/rent/proof/${p.id}`}
+                            className="text-[10px] text-amber-600 hover:underline flex items-center gap-0.5">
+                            <i className="ti ti-upload text-[10px]" aria-hidden="true" /> Lipa
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ══ MATENGENEZO TAB ═════════════════════════════════════════════════ */}
         {activeTab === 'matengenezo' && (
