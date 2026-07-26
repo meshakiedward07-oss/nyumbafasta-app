@@ -39,6 +39,7 @@ const NAV_ITEMS = [
   { href: '/property/maintenance',  icon: 'tool',              label: 'Matengenezo',  exact: false },
   { href: '/property/agreements',   icon: 'file-text',         label: 'Makubaliano',  exact: false },
   { href: '/property/team',         icon: 'user-plus',         label: 'Timu Yangu',   exact: false },
+  { href: '/property/usajili',      icon: 'credit-card',       label: 'Usajili',      exact: false },
   { href: '/property/hati',         icon: 'folder',            label: 'Hati',         exact: false },
   { href: '/property/taarifa',      icon: 'chart-bar',         label: 'Taarifa',      exact: false },
 ]
