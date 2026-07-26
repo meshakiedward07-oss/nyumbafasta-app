@@ -35,6 +35,7 @@ const NAV_ITEMS = [
   { href: '/property/dashboard',    icon: 'layout-dashboard', label: 'Muhtasari',    exact: true  },
   { href: '/property/mali',         icon: 'building',          label: 'Mali Zangu',   exact: false },
   { href: '/property/wapangaji',    icon: 'users',             label: 'Wapangaji',    exact: false },
+  { href: '/property/kodi',         icon: 'cash',              label: 'Malipo ya Kodi', exact: false },
   { href: '/property/mazungumzo',   icon: 'message-circle',    label: 'Mazungumzo',   exact: false },
   { href: '/property/maintenance',  icon: 'tool',              label: 'Matengenezo',  exact: false },
   { href: '/property/agreements',   icon: 'file-text',         label: 'Makubaliano',  exact: false },

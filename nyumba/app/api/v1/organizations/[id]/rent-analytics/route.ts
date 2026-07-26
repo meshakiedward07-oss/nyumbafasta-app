@@ -21,13 +21,22 @@ export async function GET(_req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
     }
 
+    // All leases for this org (with unit + tenant)
+    const { data: orgLeases } = await admin
+      .from('leases')
+      .select('id, tenant_id, tenant:users!tenant_id(id, full_name, phone), unit:property_units(id, unit_number)')
+      .eq('org_id', orgId)
+
+    const leaseIds = (orgLeases ?? []).map(l => l.id)
+    const leaseMap = new Map(
+      (orgLeases ?? []).map(l => [l.id, l])
+    )
+
     // All payments for this org's leases
     const { data: payments } = await admin
       .from('lease_payments')
-      .select('id, status, amount_due, amount_paid, due_date, paid_date, invoice_sent_at, verified_at, lease_id')
-      .in('lease_id',
-        (await admin.from('leases').select('id').eq('org_id', orgId)).data?.map(l => l.id) ?? []
-      )
+      .select('id, status, amount_due, amount_paid, due_date, paid_date, invoice_sent_at, verified_at, lease_id, proof_url, proof_note')
+      .in('lease_id', leaseIds.length > 0 ? leaseIds : ['00000000-0000-0000-0000-000000000000'])
       .order('due_date', { ascending: false })
 
     const all = payments ?? []
@@ -62,14 +71,23 @@ export async function GET(_req: NextRequest, { params }: Params) {
       months.push({ month: label, collected, invoiced })
     }
 
+    function enrichPayment(p: typeof all[number]) {
+      const lease = leaseMap.get(p.lease_id)
+      const tenant = lease?.tenant as unknown as { id: string; full_name: string | null; phone: string | null } | null
+      const unit   = lease?.unit   as unknown as { id: string; unit_number: string } | null
+      return { ...p, tenant_name: tenant?.full_name ?? null, tenant_phone: tenant?.phone ?? null, unit_number: unit?.unit_number ?? null }
+    }
+
     // Recent unpaid (awaiting verification or proof)
     const awaitingVerification = all
       .filter(p => p.status === 'proof_uploaded')
-      .slice(0, 5)
+      .slice(0, 10)
+      .map(enrichPayment)
 
     const overdueList = all
       .filter(p => ['pending', 'partial'].includes(p.status) && new Date(p.due_date) < today)
-      .slice(0, 5)
+      .slice(0, 10)
+      .map(enrichPayment)
 
     return NextResponse.json({
       summary: {
