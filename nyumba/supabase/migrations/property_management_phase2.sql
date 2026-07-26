@@ -79,59 +79,53 @@ ALTER TABLE leases          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lease_payments  ENABLE ROW LEVEL SECURITY;
 
 -- property_units: org members can see/manage; tenants see their unit; admin/staff all
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "units_access" ON property_units;
-  CREATE POLICY "units_access" ON property_units FOR ALL TO authenticated
-    USING (
-      org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
-      OR listing_id IN (SELECT listing_id FROM leases WHERE tenant_id = auth.uid() AND status = 'active')
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    )
-    WITH CHECK (
-      org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()
-                 AND role IN ('owner','branch_manager','agent'))
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    );
-END $$;
+DROP POLICY IF EXISTS "units_access" ON property_units;
+CREATE POLICY "units_access" ON property_units FOR ALL TO authenticated
+  USING (
+    org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
+    OR listing_id IN (SELECT listing_id FROM leases WHERE tenant_id = auth.uid() AND status = 'active')
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  )
+  WITH CHECK (
+    org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()
+               AND role IN ('owner','branch_manager','agent'))
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  );
 
 -- leases: tenant sees own; org members see org leases; landlord sees own; admin/staff all
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "leases_access" ON leases;
-  CREATE POLICY "leases_access" ON leases FOR ALL TO authenticated
-    USING (
-      tenant_id = auth.uid()
-      OR landlord_id = auth.uid()
-      OR org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    )
-    WITH CHECK (
-      landlord_id = auth.uid()
-      OR org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()
-                    AND role IN ('owner','branch_manager','agent'))
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    );
-END $$;
+DROP POLICY IF EXISTS "leases_access" ON leases;
+CREATE POLICY "leases_access" ON leases FOR ALL TO authenticated
+  USING (
+    tenant_id = auth.uid()
+    OR landlord_id = auth.uid()
+    OR org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  )
+  WITH CHECK (
+    landlord_id = auth.uid()
+    OR org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()
+                  AND role IN ('owner','branch_manager','agent'))
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  );
 
 -- lease_payments: via lease access
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "lease_payments_access" ON lease_payments;
-  CREATE POLICY "lease_payments_access" ON lease_payments FOR ALL TO authenticated
-    USING (
-      lease_id IN (
-        SELECT id FROM leases
-        WHERE tenant_id = auth.uid()
-          OR landlord_id = auth.uid()
-          OR org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
-      )
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+DROP POLICY IF EXISTS "lease_payments_access" ON lease_payments;
+CREATE POLICY "lease_payments_access" ON lease_payments FOR ALL TO authenticated
+  USING (
+    lease_id IN (
+      SELECT id FROM leases
+      WHERE tenant_id = auth.uid()
+        OR landlord_id = auth.uid()
+        OR org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
     )
-    WITH CHECK (
-      lease_id IN (
-        SELECT id FROM leases
-        WHERE landlord_id = auth.uid()
-          OR org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()
-                        AND role IN ('owner','branch_manager','agent'))
-      )
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    );
-END $$;
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  )
+  WITH CHECK (
+    lease_id IN (
+      SELECT id FROM leases
+      WHERE landlord_id = auth.uid()
+        OR org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()
+                      AND role IN ('owner','branch_manager','agent'))
+    )
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  );

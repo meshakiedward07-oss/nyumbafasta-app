@@ -195,120 +195,105 @@ ALTER TABLE service_requests     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kyc_submissions      ENABLE ROW LEVEL SECURITY;
 
 -- organizations: members see/edit their org; admin/staff see all
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "orgs_access" ON organizations;
-  CREATE POLICY "orgs_access" ON organizations FOR ALL TO authenticated
-    USING (
-      created_by = auth.uid()
-      OR id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    )
-    WITH CHECK (
-      created_by = auth.uid()
-      OR id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role = 'owner')
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    );
-END $$;
+DROP POLICY IF EXISTS "orgs_access" ON organizations;
+CREATE POLICY "orgs_access" ON organizations FOR ALL TO authenticated
+  USING (
+    created_by = auth.uid()
+    OR id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  )
+  WITH CHECK (
+    created_by = auth.uid()
+    OR id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role = 'owner')
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  );
 
 -- organization_members: members see peers; owners manage
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "org_members_select" ON organization_members;
-  CREATE POLICY "org_members_select" ON organization_members FOR SELECT TO authenticated
-    USING (
-      organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    );
-  DROP POLICY IF EXISTS "org_members_manage" ON organization_members;
-  CREATE POLICY "org_members_manage" ON organization_members FOR ALL TO authenticated
-    USING (
-      organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role = 'owner')
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    )
-    WITH CHECK (
-      organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role = 'owner')
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    );
-END $$;
+DROP POLICY IF EXISTS "org_members_select" ON organization_members;
+CREATE POLICY "org_members_select" ON organization_members FOR SELECT TO authenticated
+  USING (
+    organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  );
+
+DROP POLICY IF EXISTS "org_members_manage" ON organization_members;
+CREATE POLICY "org_members_manage" ON organization_members FOR ALL TO authenticated
+  USING (
+    organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role = 'owner')
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  )
+  WITH CHECK (
+    organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role = 'owner')
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  );
 
 -- management_agreements: landlord sees own; org members see their org's; admin/staff all
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "agreements_access" ON management_agreements;
-  CREATE POLICY "agreements_access" ON management_agreements FOR ALL TO authenticated
-    USING (
-      landlord_id = auth.uid()
-      OR managing_org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    )
-    WITH CHECK (
-      landlord_id = auth.uid()
-      OR managing_org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role IN ('owner','branch_manager'))
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    );
-END $$;
+DROP POLICY IF EXISTS "agreements_access" ON management_agreements;
+CREATE POLICY "agreements_access" ON management_agreements FOR ALL TO authenticated
+  USING (
+    landlord_id = auth.uid()
+    OR managing_org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  )
+  WITH CHECK (
+    landlord_id = auth.uid()
+    OR managing_org_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid() AND role IN ('owner','branch_manager'))
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  );
 
 -- commission_rules: admin only writes; all authenticated can read active rules
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "commission_rules_read" ON commission_rules;
-  CREATE POLICY "commission_rules_read" ON commission_rules FOR SELECT TO authenticated
-    USING (active = true OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'));
-  DROP POLICY IF EXISTS "commission_rules_admin" ON commission_rules;
-  CREATE POLICY "commission_rules_admin" ON commission_rules FOR ALL TO authenticated
-    USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'))
-    WITH CHECK (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'));
-END $$;
+DROP POLICY IF EXISTS "commission_rules_read" ON commission_rules;
+CREATE POLICY "commission_rules_read" ON commission_rules FOR SELECT TO authenticated
+  USING (active = true OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "commission_rules_admin" ON commission_rules;
+CREATE POLICY "commission_rules_admin" ON commission_rules FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'));
 
 -- brokerage_commissions: landlord sees own; admin/staff all
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "brokerage_commissions_read" ON brokerage_commissions;
-  CREATE POLICY "brokerage_commissions_read" ON brokerage_commissions FOR SELECT TO authenticated
-    USING (
-      landlord_id = auth.uid()
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    );
-  DROP POLICY IF EXISTS "brokerage_commissions_admin" ON brokerage_commissions;
-  CREATE POLICY "brokerage_commissions_admin" ON brokerage_commissions FOR ALL TO authenticated
-    USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')))
-    WITH CHECK (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')));
-END $$;
+DROP POLICY IF EXISTS "brokerage_commissions_read" ON brokerage_commissions;
+CREATE POLICY "brokerage_commissions_read" ON brokerage_commissions FOR SELECT TO authenticated
+  USING (
+    landlord_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  );
+
+DROP POLICY IF EXISTS "brokerage_commissions_admin" ON brokerage_commissions;
+CREATE POLICY "brokerage_commissions_admin" ON brokerage_commissions FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')))
+  WITH CHECK (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')));
 
 -- staff_workload: admin/staff only
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "staff_workload_access" ON staff_workload;
-  CREATE POLICY "staff_workload_access" ON staff_workload FOR ALL TO authenticated
-    USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')));
-END $$;
+DROP POLICY IF EXISTS "staff_workload_access" ON staff_workload;
+CREATE POLICY "staff_workload_access" ON staff_workload FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')));
 
 -- conflict_flags: admin/staff only
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "conflict_flags_access" ON conflict_flags;
-  CREATE POLICY "conflict_flags_access" ON conflict_flags FOR ALL TO authenticated
-    USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')));
-END $$;
+DROP POLICY IF EXISTS "conflict_flags_access" ON conflict_flags;
+CREATE POLICY "conflict_flags_access" ON conflict_flags FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')));
 
 -- service_requests: landlord sees own; admin/staff all
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "service_requests_access" ON service_requests;
-  CREATE POLICY "service_requests_access" ON service_requests FOR ALL TO authenticated
-    USING (
-      landlord_id = auth.uid()
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    )
-    WITH CHECK (
-      landlord_id = auth.uid()
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    );
-END $$;
+DROP POLICY IF EXISTS "service_requests_access" ON service_requests;
+CREATE POLICY "service_requests_access" ON service_requests FOR ALL TO authenticated
+  USING (
+    landlord_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  )
+  WITH CHECK (
+    landlord_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  );
 
 -- kyc_submissions: landlord sees own; admin/staff all
-DO $$ BEGIN
-  DROP POLICY IF EXISTS "kyc_submissions_access" ON kyc_submissions;
-  CREATE POLICY "kyc_submissions_access" ON kyc_submissions FOR ALL TO authenticated
-    USING (
-      landlord_id = auth.uid()
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    )
-    WITH CHECK (
-      landlord_id = auth.uid()
-      OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
-    );
-END $$;
+DROP POLICY IF EXISTS "kyc_submissions_access" ON kyc_submissions;
+CREATE POLICY "kyc_submissions_access" ON kyc_submissions FOR ALL TO authenticated
+  USING (
+    landlord_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  )
+  WITH CHECK (
+    landlord_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+  );
