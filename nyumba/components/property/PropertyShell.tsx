@@ -1,26 +1,53 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Organization } from '@/lib/types/property'
 
+function UnreadBadge() {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/conversations?unread=1')
+        if (!res.ok) return
+        const d = await res.json()
+        if (!cancelled) setCount(d.unread_count ?? 0)
+      } catch { /* silent */ }
+    }
+    load()
+    const t = setInterval(load, 30_000)
+    return () => { cancelled = true; clearInterval(t) }
+  }, [])
+
+  if (count === 0) return null
+  return (
+    <span className="ml-auto min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full px-1 flex items-center justify-center">
+      {count > 9 ? '9+' : count}
+    </span>
+  )
+}
+
 const NAV_ITEMS = [
-  { href: '/property/dashboard',   icon: 'layout-dashboard', label: 'Muhtasari',    exact: true },
-  { href: '/property/mali',        icon: 'building',          label: 'Mali Zangu',   exact: false },
-  { href: '/property/wapangaji',   icon: 'users',             label: 'Wapangaji',    exact: false },
-  { href: '/property/maintenance', icon: 'tool',              label: 'Matengenezo',  exact: false },
-  { href: '/property/agreements',  icon: 'file-text',         label: 'Makubaliano',  exact: false },
-  { href: '/property/team',        icon: 'user-plus',         label: 'Timu Yangu',   exact: false },
-  { href: '/property/hati',        icon: 'folder',            label: 'Hati',         exact: false },
-  { href: '/property/taarifa',     icon: 'chart-bar',         label: 'Taarifa',      exact: false },
+  { href: '/property/dashboard',    icon: 'layout-dashboard', label: 'Muhtasari',    exact: true  },
+  { href: '/property/mali',         icon: 'building',          label: 'Mali Zangu',   exact: false },
+  { href: '/property/wapangaji',    icon: 'users',             label: 'Wapangaji',    exact: false },
+  { href: '/property/mazungumzo',   icon: 'message-circle',    label: 'Mazungumzo',   exact: false },
+  { href: '/property/maintenance',  icon: 'tool',              label: 'Matengenezo',  exact: false },
+  { href: '/property/agreements',   icon: 'file-text',         label: 'Makubaliano',  exact: false },
+  { href: '/property/team',         icon: 'user-plus',         label: 'Timu Yangu',   exact: false },
+  { href: '/property/hati',         icon: 'folder',            label: 'Hati',         exact: false },
+  { href: '/property/taarifa',      icon: 'chart-bar',         label: 'Taarifa',      exact: false },
 ]
 
 const BOTTOM_NAV = [
-  { href: '/property/dashboard',  icon: 'layout-dashboard', label: 'Muhtasari', exact: true  },
-  { href: '/property/mali',       icon: 'building',          label: 'Mali',      exact: false },
-  { href: '/property/wapangaji',  icon: 'users',             label: 'Wapangaji', exact: false },
-  { href: '/property/agreements', icon: 'file-text',         label: 'Mikataba',  exact: false },
+  { href: '/property/dashboard',   icon: 'layout-dashboard', label: 'Muhtasari',  exact: true  },
+  { href: '/property/mali',        icon: 'building',          label: 'Mali',       exact: false },
+  { href: '/property/wapangaji',   icon: 'users',             label: 'Wapangaji',  exact: false },
+  { href: '/property/mazungumzo',  icon: 'message-circle',    label: 'Ujumbe',     exact: false },
 ]
 
 type Props = {
@@ -86,9 +113,12 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
                 }`}>
                   <i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
                   <span>{item.label}</span>
-                  {isActive(item.href, item.exact) && (
-                    <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
-                  )}
+                  {item.href === '/property/mazungumzo' && !isActive(item.href, item.exact)
+                    ? <UnreadBadge />
+                    : isActive(item.href, item.exact) && (
+                        <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
+                      )
+                  }
                 </div>
               </Link>
             ))}

@@ -143,6 +143,41 @@ export async function POST(req: NextRequest, { params }: Params) {
       status: 'pending',
     })
 
+    // Auto-create a lease conversation between tenant and org
+    try {
+      const { data: conv } = await admin
+        .from('conversations')
+        .insert({
+          title:        `Mkataba — ${tenantProfile.full_name ?? tenantProfile.phone}`,
+          conv_type:    'lease',
+          context_type: 'lease',
+          context_id:   lease.id,
+          org_id:       orgId,
+          created_by:   user.id,
+          last_message_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+
+      if (conv) {
+        // Org member who created + tenant as participants
+        await admin.from('conversation_participants').insert([
+          { conversation_id: conv.id, user_id: user.id,           role: 'owner'  },
+          { conversation_id: conv.id, user_id: tenantProfile.id,  role: 'member' },
+          ...(landlord_id !== user.id
+            ? [{ conversation_id: conv.id, user_id: landlord_id, role: 'member' as const }]
+            : []),
+        ])
+        // Welcome system message
+        await admin.from('messages').insert({
+          conversation_id: conv.id,
+          sender_id:       user.id,
+          body:            `Habari ${tenantProfile.full_name ?? ''}! Mkataba wako wa upangaji umeanzishwa. Unaweza kuwasiliana nasi hapa kwa maswali yoyote.`,
+          message_type:    'system',
+        })
+      }
+    } catch { /* conversation creation is non-critical */ }
+
     return NextResponse.json({ lease, tenant: tenantProfile }, { status: 201 })
   } catch (err) {
     console.error('[POST /organizations/:id/leases]', err)

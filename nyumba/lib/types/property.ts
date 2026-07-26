@@ -283,3 +283,86 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   airtel:       'Airtel Money',
   tigo:         'Tigo Pesa',
 }
+
+// ── Phase 3 types ─────────────────────────────────────────────────────────────
+
+export type ConvType       = 'lease' | 'service_request' | 'agreement' | 'maintenance' | 'general'
+export type ConvStatus     = 'open' | 'closed' | 'archived'
+export type MessageType    = 'text' | 'system' | 'note'
+export type ParticipantRole = 'owner' | 'member' | 'observer'
+
+export interface Conversation {
+  id:              string
+  title:           string | null
+  conv_type:       ConvType
+  status:          ConvStatus
+  context_type:    string | null
+  context_id:      string | null
+  org_id:          string | null
+  created_by:      string
+  last_message_at: string | null
+  created_at:      string
+  updated_at:      string
+  // Joined
+  participants?:   ConversationParticipant[]
+  last_message?:   Message | null
+  unread_count?:   number
+}
+
+export interface ConversationParticipant {
+  id:              string
+  conversation_id: string
+  user_id:         string
+  role:            ParticipantRole
+  last_read_at:    string | null
+  joined_at:       string
+  user?: {
+    id: string
+    full_name: string | null
+    phone:     string | null
+    avatar_url: string | null
+  }
+}
+
+export interface Message {
+  id:              string
+  conversation_id: string
+  sender_id:       string
+  body:            string
+  message_type:    MessageType
+  is_internal:     boolean
+  created_at:      string
+  deleted_at:      string | null
+  sender?: {
+    id:         string
+    full_name:  string | null
+    avatar_url: string | null
+  }
+  attachments?: MessageAttachment[]
+}
+
+export interface MessageAttachment {
+  id:         string
+  message_id: string
+  file_url:   string
+  file_name:  string | null
+  file_type:  string | null
+  file_size:  number | null
+  created_at: string
+}
+
+export const CONV_TYPE_LABELS: Record<ConvType, string> = {
+  lease:           'Mkataba wa Upangaji',
+  service_request: 'Ombi la Huduma',
+  agreement:       'Makubaliano ya Usimamizi',
+  maintenance:     'Matengenezo',
+  general:         'Mazungumzo ya Kawaida',
+}
+
+export const CONV_TYPE_ICONS: Record<ConvType, string> = {
+  lease:           'file-text',
+  service_request: 'clipboard',
+  agreement:       'file-check',
+  maintenance:     'tool',
+  general:         'message',
+}
