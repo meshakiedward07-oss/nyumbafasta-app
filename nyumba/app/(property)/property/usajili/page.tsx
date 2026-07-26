@@ -111,92 +111,153 @@ function PlanCard({ plan, current, onSelect }: {
   )
 }
 
-// ── Upgrade request modal ────────────────────────────────────────────────────
+// ── AzamPay payment modal ─────────────────────────────────────────────────────
 
-function UpgradeModal({ plan, orgId, onCreated, onClose }: {
+type PayStep = 'form' | 'pending' | 'done'
+
+function PaymentModal({ plan, orgId, onPaid, onClose }: {
   plan: SubscriptionPlan
   orgId: string
-  onCreated: (inv: SubscriptionInvoice) => void
+  onPaid: (inv: SubscriptionInvoice) => void
   onClose: () => void
 }) {
   const cycles: { v: string; label: string; multiplier: number }[] = [
-    { v: 'monthly',   label: 'Kila Mwezi',       multiplier: 1  },
-    { v: 'quarterly', label: 'Kila Robo Mwaka',  multiplier: 3  },
+    { v: 'monthly',   label: 'Kila Mwezi',              multiplier: 1  },
+    { v: 'quarterly', label: 'Kila Robo Mwaka',         multiplier: 3  },
     { v: 'annual',    label: 'Kila Mwaka (10% punguzo)', multiplier: 10 },
   ]
-  const [cycle,  setCycle]  = useState('monthly')
-  const [notes,  setNotes]  = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error,  setError]  = useState<string | null>(null)
+  const [cycle,     setCycle]     = useState('monthly')
+  const [msisdn,    setMsisdn]    = useState('')
+  const [saving,    setSaving]    = useState(false)
+  const [error,     setError]     = useState<string | null>(null)
+  const [step,      setStep]      = useState<PayStep>('form')
+  const [invoiceId, setInvoiceId] = useState<string | null>(null)
+  const [pollCount, setPollCount] = useState(0)
 
   const multiplier = cycles.find(c => c.v === cycle)?.multiplier ?? 1
   const total = plan.price_tzs * multiplier
 
   async function submit() {
+    if (!msisdn.trim()) { setError('Weka namba ya simu'); return }
     setSaving(true); setError(null)
-    const res  = await fetch(`/api/v1/organizations/${orgId}/invoices`, {
+    const res  = await fetch(`/api/v1/organizations/${orgId}/subscription/pay`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan_id: plan.id, billing_cycle: cycle, notes: notes.trim() || undefined }),
+      body: JSON.stringify({ plan_id: plan.id, billing_cycle: cycle, msisdn: msisdn.trim() }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); setSaving(false); return }
-    onCreated(data.invoice)
+    setInvoiceId(data.invoice_id)
+    setStep('pending')
+    setSaving(false)
   }
+
+  // Poll for invoice confirmation every 5 seconds (max ~2 min)
+  useEffect(() => {
+    if (step !== 'pending' || !invoiceId || pollCount >= 24) return
+    const t = setTimeout(async () => {
+      try {
+        const res  = await fetch(`/api/v1/organizations/${orgId}/invoices`)
+        const data = await res.json()
+        const inv: SubscriptionInvoice | undefined = (data.invoices ?? []).find((i: SubscriptionInvoice) => i.id === invoiceId)
+        if (inv?.status === 'confirmed') { setStep('done'); onPaid(inv) }
+        else if (inv?.status === 'void') { setStep('form'); setError('Malipo yalikataliwa. Jaribu tena.') }
+        else setPollCount(c => c + 1)
+      } catch { setPollCount(c => c + 1) }
+    }, 5000)
+    return () => clearTimeout(t)
+  }, [step, invoiceId, pollCount, orgId, onPaid])
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-        <h2 className="text-lg font-bold text-gray-900 mb-1">Ombi la Kubadilisha Mpango</h2>
-        <p className="text-sm text-gray-500 mb-4">Badilisha kwenda <strong>{plan.name}</strong></p>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 block">Muda wa Usajili</label>
-            <div className="grid grid-cols-3 gap-2">
-              {cycles.map(c => (
-                <button
-                  key={c.v}
-                  type="button"
-                  onClick={() => setCycle(c.v)}
-                  className={`py-2 px-3 rounded-xl text-xs font-medium border-2 transition text-center ${cycle === c.v ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
-                >
-                  {c.label}
+
+        {step === 'form' && (
+          <>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Lipa kwa Simu</h2>
+            <p className="text-sm text-gray-500 mb-4">Panda kwenda <strong>{plan.name}</strong></p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Muda wa Usajili</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {cycles.map(c => (
+                    <button key={c.v} type="button" onClick={() => setCycle(c.v)}
+                      className={`py-2 px-2 rounded-xl text-xs font-medium border-2 transition text-center ${cycle === c.v ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-primary-50 rounded-xl p-3 flex justify-between items-center">
+                <span className="text-sm text-primary-700">{plan.name} × {multiplier} {multiplier === 1 ? 'mwezi' : 'miezi'}</span>
+                <span className="font-bold text-primary-800 text-lg">{fmt(total)}</span>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Namba ya Simu ya Malipo *</label>
+                <input
+                  type="tel"
+                  value={msisdn}
+                  onChange={e => setMsisdn(e.target.value)}
+                  placeholder="07XXXXXXXX"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                />
+                <p className="text-xs text-gray-400 mt-1">M-Pesa, Airtel Money, Tigo Pesa, au Halopesa</p>
+              </div>
+
+              {error && <p className="text-sm text-red-600">{error}</p>}
+
+              <div className="flex gap-2">
+                <button onClick={submit} disabled={saving}
+                  className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
+                  {saving ? 'Inatuma...' : `Lipa ${fmt(total)}`}
                 </button>
+                <button onClick={onClose} className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
+              </div>
+
+              <p className="text-[10px] text-gray-400 text-center">
+                Utapokea USSD popup kwenye simu yako. Thibitisha malipo kwa PIN yako.
+              </p>
+            </div>
+          </>
+        )}
+
+        {step === 'pending' && (
+          <div className="text-center py-4">
+            <div className="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-4">
+              <i className="ti ti-phone-calling text-primary-500 text-3xl animate-pulse" aria-hidden="true" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Subiri Idhini</h2>
+            <p className="text-sm text-gray-500 mb-1">Ombi la USSD limetumwa kwenye simu yako.</p>
+            <p className="text-sm text-gray-500 mb-6">Ingiza PIN yako ya Mobile Money kumaliza malipo.</p>
+            <div className="flex justify-center gap-1 mb-6">
+              {[0,1,2].map(i => (
+                <span key={i} className="w-2 h-2 bg-primary-400 rounded-full animate-bounce"
+                  style={{ animationDelay: `${i * 0.15}s` }} />
               ))}
             </div>
+            {pollCount >= 24 && (
+              <div className="text-sm text-amber-600 bg-amber-50 rounded-xl p-3 mb-4">
+                Muda umeisha. Hakuna uthibitisho uliopokelewa. Tafadhali angalia akaunti yako ya mobile money na ujaribu tena.
+              </div>
+            )}
+            <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600">Funga (malipo bado yanaweza kukamilika)</button>
           </div>
+        )}
 
-          <div className="bg-gray-50 rounded-xl p-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">{plan.name} × {multiplier} {multiplier === 1 ? 'mwezi' : 'miezi'}</span>
-              <span className="font-bold text-gray-900">{fmt(total)}</span>
+        {step === 'done' && (
+          <div className="text-center py-4">
+            <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
+              <i className="ti ti-check text-green-500 text-3xl" aria-hidden="true" />
             </div>
-          </div>
-
-          <div className="bg-primary-50 border border-primary-100 rounded-xl p-3">
-            <p className="text-xs font-semibold text-primary-700 mb-1">Maelekezo ya Malipo</p>
-            <p className="text-xs text-primary-600">
-              Tuma <strong>{fmt(total)}</strong> kwa njia ya M-Pesa / Airtel / benki, kisha pakia picha ya risiti hapa chini.
-              Timu yetu itathibitisha ndani ya saa 24.
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 block">Maelezo (hiari)</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-              placeholder="Kitu chochote unachotaka sisi tujue..." />
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <div className="flex gap-2">
-            <button onClick={submit} disabled={saving}
-              className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40">
-              {saving ? 'Inaunda Ankara...' : 'Unda Ankara'}
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Malipo Yamepita!</h2>
+            <p className="text-sm text-gray-500 mb-6">Mpango wako wa <strong>{plan.name}</strong> umewashwa.</p>
+            <button onClick={onClose}
+              className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
+              Sawa, Niende Kwenye Dashibodi
             </button>
-            <button onClick={onClose} className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
@@ -295,9 +356,11 @@ function InvoicesTab({ orgId, invoices, loading, onProofUploaded }: {
       )}
       <div className="space-y-3">
         {invoices.map(inv => {
-          const s      = INVOICE_STATUS[inv.status]
-          const plan   = inv.plan as SubscriptionPlan | null
-          const canUpload = inv.status === 'pending' || inv.status === 'proof_uploaded'
+          const s = INVOICE_STATUS[inv.status]
+          const plan = inv.plan as SubscriptionPlan | null
+          // AzamPay invoices have payment_reference set — no manual proof needed
+          const isAzamPay  = !!inv.payment_reference
+          const canUpload  = !isAzamPay && (inv.status === 'pending' || inv.status === 'proof_uploaded')
           return (
             <div key={inv.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <div className="flex items-start gap-3">
@@ -305,12 +368,20 @@ function InvoicesTab({ orgId, invoices, loading, onProofUploaded }: {
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-gray-900">{plan?.name ?? 'Ankara'}</p>
                     <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${s.cls}`}>{s.label}</span>
+                    {isAzamPay && (
+                      <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">Mobile Money</span>
+                    )}
                   </div>
                   <p className="text-xl font-bold text-primary-600 mt-1">{fmt(inv.amount_tzs)}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {CYCLE_LABEL[inv.billing_cycle] ?? inv.billing_cycle} · Tarehe: {dateFmt(inv.created_at)}
                     {inv.due_date && ` · Malipo: ${dateFmt(inv.due_date)}`}
                   </p>
+                  {isAzamPay && inv.status === 'pending' && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      <i className="ti ti-clock" /> Inasubiri uthibitisho wa malipo ya simu
+                    </p>
+                  )}
                   {inv.proof_url && inv.status === 'proof_uploaded' && (
                     <p className="text-xs text-blue-600 mt-1">
                       <i className="ti ti-check" /> Ushahidi umepakiwa — inasubiri uthibitisho
@@ -428,10 +499,17 @@ export default function UsajiliPage() {
     finally { setInvLoad(false) }
   }, [orgId])
 
-  function handleInvoiceCreated(inv: SubscriptionInvoice) {
-    setInvoices(prev => [inv, ...prev])
+  function handlePaymentDone(inv: SubscriptionInvoice) {
+    setInvoices(prev => [inv, ...prev.filter(i => i.id !== inv.id)])
     setSelected(null)
     setTab('ankara')
+    // Refresh subscription data to show updated status
+    if (orgId) {
+      fetch(`/api/v1/organizations/${orgId}/subscription`)
+        .then(r => r.json())
+        .then(d => { setSub(d.subscription); setUsage(d.usage ?? null) })
+        .catch(() => {})
+    }
   }
 
   function handleProofUploaded(updated: SubscriptionInvoice) {
@@ -473,7 +551,7 @@ export default function UsajiliPage() {
   return (
     <div className="p-4 lg:p-6 max-w-4xl mx-auto">
       {selected && orgId && (
-        <UpgradeModal plan={selected} orgId={orgId} onCreated={handleInvoiceCreated} onClose={() => setSelected(null)} />
+        <PaymentModal plan={selected} orgId={orgId} onPaid={handlePaymentDone} onClose={() => setSelected(null)} />
       )}
 
       <div className="mb-6">
