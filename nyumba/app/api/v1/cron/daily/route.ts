@@ -1263,6 +1263,199 @@ async function runDailyTasks() {
     errors.push(`❌ Org pending plan changes: ${String(e)}`)
   }
 
+  // ── 26. Auto-generate monthly rent invoices ──────────────────────────────────
+  // For every active lease, ensure a payment record exists for the current month.
+  try {
+    const { data: activeLeases } = await admin
+      .from('leases')
+      .select('id, org_id, monthly_rent, start_date')
+      .eq('status', 'active')
+
+    const thisMonth = now.slice(0, 7) // "YYYY-MM"
+    let generated = 0
+    for (const lease of activeLeases ?? []) {
+      // Check if a payment record already exists for this month
+      const { count } = await admin
+        .from('lease_payments')
+        .select('id', { count: 'exact', head: true })
+        .eq('lease_id', lease.id)
+        .gte('due_date', `${thisMonth}-01`)
+        .lte('due_date', `${thisMonth}-31`)
+
+      if ((count ?? 0) > 0) continue
+
+      // Due on same day-of-month as lease start (clamped to end of month)
+      const startDay = new Date(lease.start_date).getDate()
+      const dueDate  = new Date(`${thisMonth}-01`)
+      dueDate.setDate(Math.min(startDay, new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0).getDate()))
+
+      await admin.from('lease_payments').insert({
+        lease_id:  lease.id,
+        amount_due: lease.monthly_rent,
+        due_date:  dueDate.toISOString().split('T')[0],
+        status:    'pending',
+      })
+      generated++
+    }
+    results.push(`✅ Monthly rent invoices generated: ${generated}`)
+  } catch (e) {
+    errors.push(`❌ Monthly rent invoice generation: ${String(e)}`)
+  }
+
+  // ── 27. Send rent invoices to tenants (WhatsApp + in-app) ────────────────────
+  // For pending payment records where invoice_sent_at IS NULL, notify the tenant.
+  try {
+    const { data: unsent } = await admin
+      .from('lease_payments')
+      .select('id, lease_id, amount_due, due_date')
+      .eq('status', 'pending')
+      .is('invoice_sent_at', null)
+      .limit(100)
+
+    let sent = 0
+    for (const payment of unsent ?? []) {
+      const { data: lease } = await admin
+        .from('leases')
+        .select('id, org_id, tenant_id, unit:property_units(unit_number, unit_type), listing:listings(title, district)')
+        .eq('id', payment.lease_id)
+        .maybeSingle()
+
+      if (!lease) continue
+
+      const [{ data: tenant }, { data: banking }, { data: org }] = await Promise.all([
+        admin.from('users').select('id, full_name, phone').eq('id', lease.tenant_id).maybeSingle(),
+        admin.from('organization_banking').select('*').eq('org_id', lease.org_id).maybeSingle(),
+        admin.from('organizations').select('name').eq('id', lease.org_id).maybeSingle(),
+      ])
+
+      if (!tenant) continue
+
+      const unitLabel    = (lease.unit as unknown as { unit_number: string; unit_type: string } | null)?.unit_number ?? 'kitengo chako'
+      const listingLabel = (lease.listing as unknown as { title: string; district: string } | null)?.title ?? ''
+      const dueStr       = new Date(payment.due_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
+      const amount       = `TZS ${payment.amount_due.toLocaleString()}`
+      const appUrl       = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const proofUrl     = `${appUrl}/rent/proof/${payment.id}`
+
+      // In-app notification
+      try {
+        await admin.from('notifications').insert({
+          user_id: tenant.id,
+          title:   `🏠 Ankara ya Kodi — ${dueStr}`,
+          body:    `Kodi yako ya ${amount} inastahili kulipwa ifikapo ${dueStr}. Lipa benki kisha pakia ushahidi.`,
+          type:    'rent_invoice',
+          is_read: false,
+          data:    JSON.stringify({ payment_id: payment.id, lease_id: lease.id }),
+        })
+      } catch { /* non-fatal */ }
+
+      // WhatsApp notification with bank details
+      if (tenant.phone) {
+        let bankInfo = ''
+        if (banking) {
+          bankInfo = `\n\n🏦 *Maelezo ya Malipo:*\nBenki: *${banking.bank_name}*\nJina la Akaunti: *${banking.account_name}*\nNamba: *${banking.account_number}*`
+          if (banking.branch)               bankInfo += `\nTawi: ${banking.branch}`
+          if (banking.mobile_money_number)  bankInfo += `\n📱 Mobile Money: *${banking.mobile_money_number}* (${banking.mobile_money_provider ?? ''})`
+          if (banking.additional_instructions) bankInfo += `\n\nℹ️ ${banking.additional_instructions}`
+        }
+
+        const msg =
+          `🏠 *NyumbaFasta — Ankara ya Kodi*\n\n` +
+          `Habari ${tenant.full_name ?? ''}!\n\n` +
+          `📋 *Ankara ya Malipo*\n` +
+          `Nyumba/Kitengo: *${unitLabel}* — ${listingLabel}\nMkazi: *${org?.name ?? 'Mmiliki'}*\n` +
+          `Kiasi: *${amount}*\nTarehe ya Kulipa: *${dueStr}*` +
+          bankInfo +
+          `\n\n✅ Baada ya kulipa, pakia ushahidi hapa:\n${proofUrl}\n\n` +
+          `_NyumbaFasta — Usimamizi wa Mali_ 🏢`
+
+        const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
+        sendTextMessage(formatPhoneNumber(tenant.phone), msg).catch(() => {})
+      }
+
+      // Mark invoice as sent
+      await admin.from('lease_payments')
+        .update({ invoice_sent_at: now })
+        .eq('id', payment.id)
+      sent++
+    }
+    results.push(`✅ Rent invoices sent to tenants: ${sent}`)
+  } catch (e) {
+    errors.push(`❌ Rent invoice notifications: ${String(e)}`)
+  }
+
+  // ── 28. Overdue rent alerts to org owners ─────────────────────────────────────
+  // For pending payments past due_date, notify org owner.
+  try {
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    const { data: overduePayments } = await admin
+      .from('lease_payments')
+      .select('id, lease_id, amount_due, due_date')
+      .in('status', ['pending', 'partial'])
+      .lt('due_date', yesterday.toISOString().split('T')[0])
+      .is('invoice_sent_at', null)   // only alert once per overdue (reuse invoice_sent_at as alert flag)
+      .limit(50)
+
+    let alerted = 0
+    for (const payment of overduePayments ?? []) {
+      const { data: lease } = await admin
+        .from('leases')
+        .select('org_id, tenant_id, unit:property_units(unit_number)')
+        .eq('id', payment.lease_id)
+        .maybeSingle()
+
+      if (!lease) continue
+
+      const { data: ownerRow } = await admin
+        .from('organization_members')
+        .select('user:users(id, phone, full_name)')
+        .eq('organization_id', lease.org_id)
+        .eq('role', 'owner')
+        .maybeSingle()
+
+      const owner = ownerRow?.user as unknown as { id: string; phone: string | null; full_name: string } | null
+      if (!owner) continue
+
+      const { data: tenant } = await admin.from('users').select('full_name').eq('id', lease.tenant_id).maybeSingle()
+      const unitLabel = (lease.unit as unknown as { unit_number: string } | null)?.unit_number ?? 'kitengo'
+      const dueStr    = new Date(payment.due_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long' })
+      const amount    = `TZS ${payment.amount_due.toLocaleString()}`
+
+      try {
+        await admin.from('notifications').insert({
+          user_id: owner.id,
+          title:   `⚠️ Kodi Imechelewa — ${unitLabel}`,
+          body:    `${tenant?.full_name ?? 'Mpangaji'} hajalipa kodi ya ${amount} iliyostahili tarehe ${dueStr}.`,
+          type:    'rent_overdue',
+          is_read: false,
+          data:    JSON.stringify({ payment_id: payment.id, lease_id: payment.lease_id }),
+        })
+      } catch { /* non-fatal */ }
+
+      if (owner.phone) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const msg =
+          `⚠️ *NyumbaFasta — Kodi Imechelewa*\n\n` +
+          `${tenant?.full_name ?? 'Mpangaji'} (${unitLabel}) hajalipa kodi ya *${amount}*\n` +
+          `iliyostahili tarehe *${dueStr}*.\n\n` +
+          `Angalia dashibodini yako:\n${appUrl}/property/wapangaji/${payment.lease_id}`
+        const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
+        sendTextMessage(formatPhoneNumber(owner.phone), msg).catch(() => {})
+      }
+
+      // Mark invoice_sent_at to prevent duplicate overdue alerts for same payment
+      await admin.from('lease_payments')
+        .update({ invoice_sent_at: now })
+        .eq('id', payment.id)
+      alerted++
+    }
+    results.push(`✅ Overdue rent alerts sent: ${alerted}`)
+  } catch (e) {
+    errors.push(`❌ Overdue rent alerts: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,

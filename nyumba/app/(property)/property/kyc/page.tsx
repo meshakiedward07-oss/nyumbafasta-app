@@ -4,6 +4,125 @@ import { useRouter } from 'next/navigation'
 
 type KycStatus = 'pending' | 'approved' | 'rejected' | 'needs_more_info'
 
+interface Banking {
+  bank_name: string; account_name: string; account_number: string
+  branch: string | null; mobile_money_number: string | null
+  mobile_money_provider: string | null; additional_instructions: string | null
+}
+
+function BankingSection({ orgId }: { orgId: string }) {
+  const [banking,  setBanking]  = useState<Banking | null>(null)
+  const [editing,  setEditing]  = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [error,    setError]    = useState<string | null>(null)
+  const [success,  setSuccess]  = useState(false)
+  const [form, setForm] = useState<Banking>({
+    bank_name: '', account_name: '', account_number: '',
+    branch: '', mobile_money_number: '', mobile_money_provider: '', additional_instructions: '',
+  })
+
+  useEffect(() => {
+    fetch(`/api/v1/organizations/${orgId}/banking`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.banking) {
+          setBanking(d.banking)
+          setForm({ ...d.banking, branch: d.banking.branch ?? '', mobile_money_number: d.banking.mobile_money_number ?? '', mobile_money_provider: d.banking.mobile_money_provider ?? '', additional_instructions: d.banking.additional_instructions ?? '' })
+        } else {
+          setEditing(true)
+        }
+      })
+      .catch(() => {})
+  }, [orgId])
+
+  async function save() {
+    if (!form.bank_name.trim() || !form.account_name.trim() || !form.account_number.trim()) {
+      setError('Benki, jina la akaunti, na namba ya akaunti zinahitajika'); return
+    }
+    setSaving(true); setError(null)
+    const res  = await fetch(`/api/v1/organizations/${orgId}/banking`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+    })
+    const data = await res.json()
+    if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); setSaving(false); return }
+    setBanking(data.banking); setEditing(false); setSuccess(true)
+    setSaving(false); setTimeout(() => setSuccess(false), 3000)
+  }
+
+  return (
+    <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="p-4 border-b border-gray-50 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <i className="ti ti-building-bank text-primary-500 text-lg" aria-hidden="true" />
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Maelezo ya Benki / Malipo</h2>
+            <p className="text-xs text-gray-400">Wapangaji watatumia habari hii kulipa kodi</p>
+          </div>
+        </div>
+        {banking && !editing && (
+          <button onClick={() => setEditing(true)} className="text-xs text-primary-600 hover:underline">Badilisha</button>
+        )}
+      </div>
+
+      <div className="p-4">
+        {!editing && banking ? (
+          <div className="space-y-2">
+            {[
+              { label: 'Benki',          value: banking.bank_name },
+              { label: 'Jina la Akaunti', value: banking.account_name },
+              { label: 'Namba ya Akaunti', value: banking.account_number },
+              { label: 'Tawi',           value: banking.branch },
+              { label: 'Mobile Money',   value: banking.mobile_money_number ? `${banking.mobile_money_number} (${banking.mobile_money_provider ?? ''})` : null },
+              { label: 'Maelezo Zaidi',  value: banking.additional_instructions },
+            ].filter(r => r.value).map(r => (
+              <div key={r.label} className="flex gap-2 text-sm">
+                <span className="text-gray-400 w-32 flex-shrink-0">{r.label}</span>
+                <span className="font-medium text-gray-900">{r.value}</span>
+              </div>
+            ))}
+            {success && <p className="text-xs text-green-600 mt-2"><i className="ti ti-check" /> Imehifadhiwa</p>}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {[
+              { key: 'bank_name',     label: 'Jina la Benki *',          ph: 'mfano: CRDB Bank, NMB Bank' },
+              { key: 'account_name',  label: 'Jina la Akaunti *',         ph: 'Jina kama linavyoonekana benki' },
+              { key: 'account_number',label: 'Namba ya Akaunti *',        ph: 'mfano: 0150123456789' },
+              { key: 'branch',        label: 'Tawi (hiari)',              ph: 'mfano: Kariakoo Branch' },
+              { key: 'mobile_money_number', label: 'Namba ya Mobile Money (hiari)', ph: 'mfano: 0755123456' },
+              { key: 'mobile_money_provider', label: 'Mtoa Huduma wa MM (hiari)', ph: 'mpesa / airtel / tigo / halopesa' },
+              { key: 'additional_instructions', label: 'Maelezo ya Ziada (hiari)', ph: 'mfano: Tuma kisha tuma picha ya receipt' },
+            ].map(f => (
+              <div key={f.key}>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{f.label}</label>
+                <input
+                  value={(form as unknown as Record<string, string>)[f.key] ?? ''}
+                  onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                  placeholder={f.ph}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                />
+              </div>
+            ))}
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <div className="flex gap-2">
+              <button onClick={save} disabled={saving}
+                className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
+                {saving ? 'Inahifadhi...' : 'Hifadhi Maelezo ya Benki'}
+              </button>
+              {banking && (
+                <button onClick={() => { setEditing(false); setError(null) }}
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+                  Ghairi
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 interface Submission {
   id:               string
   status:           KycStatus
@@ -30,6 +149,7 @@ export default function KycSubmitPage() {
   const [submitting,  setSubmitting]  = useState(false)
   const [error,       setError]       = useState<string | null>(null)
   const [success,     setSuccess]     = useState(false)
+  const [orgId,       setOrgId]       = useState<string | null>(null)
   const [form, setForm] = useState({
     id_document_url:  '',
     title_deed_url:   '',
@@ -38,6 +158,15 @@ export default function KycSubmitPage() {
   })
 
   useEffect(() => {
+    fetch('/api/v1/organizations')
+      .then(r => r.json())
+      .then(d => {
+        const orgs = d.organizations ?? []
+        const primary = orgs.find((o: { role: string }) => o.role === 'owner') ?? orgs[0]
+        if (primary) setOrgId(primary.organization.id)
+      })
+      .catch(() => {})
+
     fetch('/api/v1/kyc')
       .then(r => r.json())
       .then(d => {
@@ -213,6 +342,9 @@ export default function KycSubmitPage() {
           )}
         </>
       )}
+
+      {/* Banking details — always available to org owners regardless of KYC status */}
+      {orgId && <BankingSection orgId={orgId} />}
     </div>
   )
 }
