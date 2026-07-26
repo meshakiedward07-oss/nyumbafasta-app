@@ -385,6 +385,13 @@ export default function UsajiliPage() {
   const [tab,      setTab]      = useState<Tab>('mpango')
   const [selected, setSelected] = useState<SubscriptionPlan | null>(null)
 
+  // Cancellation state
+  const [showCancel,  setShowCancel]  = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [cancelling,  setCancelling]  = useState(false)
+  const [cancelMsg,   setCancelMsg]   = useState<string | null>(null)
+  const [cancelErr,   setCancelErr]   = useState<string | null>(null)
+
   useEffect(() => {
     async function load() {
       try {
@@ -549,6 +556,81 @@ export default function UsajiliPage() {
           loading={invLoad}
           onProofUploaded={handleProofUploaded}
         />
+      )}
+
+      {/* ── Danger zone: cancel subscription ── */}
+      {sub && ['trial', 'active', 'past_due', 'grace_period'].includes(sub.status) && (
+        <div className="mt-10 pt-6 border-t border-gray-100">
+          {sub.cancelled_at ? (
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex items-start gap-3">
+              <i className="ti ti-info-circle text-gray-400 text-lg flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-semibold text-gray-700">Ughairi Umepangwa</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Usajili wako utakwisha {sub.current_period_end
+                    ? new Date(sub.current_period_end).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
+                    : 'mwisho wa mzunguko'}. Unaweza kuanzisha mpango mpya wakati wowote.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <button
+                onClick={() => setShowCancel(v => !v)}
+                className="flex items-center gap-2 text-sm text-gray-400 hover:text-red-500 transition"
+              >
+                <i className="ti ti-chevron-right text-xs" style={{ transform: showCancel ? 'rotate(90deg)' : undefined }} aria-hidden="true" />
+                Ghairi Usajili
+              </button>
+
+              {showCancel && (
+                <div className="mt-3 bg-red-50 border border-red-100 rounded-2xl p-4 space-y-3">
+                  <p className="text-sm text-red-700 font-medium">Una uhakika unataka kughairi?</p>
+                  <p className="text-xs text-red-600">
+                    {sub.status === 'trial'
+                      ? 'Usajili utakwisha mara moja na huwezi kurudisha kipindi cha majaribio.'
+                      : `Utaendelea kupata huduma kamili hadi ${sub.current_period_end ? new Date(sub.current_period_end).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long' }) : 'mwisho wa mzunguko'}, kisha mpango utashuka hadi toleo la bure.`}
+                  </p>
+                  <textarea
+                    value={cancelReason}
+                    onChange={e => setCancelReason(e.target.value)}
+                    rows={2}
+                    placeholder="Sababu ya kughairi (hiari)..."
+                    className="w-full border border-red-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-300"
+                  />
+                  {cancelErr && <p className="text-xs text-red-600">{cancelErr}</p>}
+                  {cancelMsg && <p className="text-xs text-green-600">{cancelMsg}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!orgId) return
+                        setCancelling(true); setCancelErr(null); setCancelMsg(null)
+                        const res  = await fetch(`/api/v1/organizations/${orgId}/subscription/cancel`, {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ reason: cancelReason.trim() || undefined }),
+                        })
+                        const data = await res.json()
+                        if (!res.ok) { setCancelErr(data.error ?? 'Hitilafu'); setCancelling(false); return }
+                        setSub(data.subscription)
+                        setCancelMsg(data.message)
+                        setShowCancel(false)
+                        setCancelling(false)
+                      }}
+                      disabled={cancelling}
+                      className="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-600 disabled:opacity-40 transition"
+                    >
+                      {cancelling ? 'Inaghairi...' : 'Thibitisha Ughairi'}
+                    </button>
+                    <button onClick={() => setShowCancel(false)}
+                      className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+                      Rudi
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

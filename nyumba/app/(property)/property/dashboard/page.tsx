@@ -31,13 +31,17 @@ export default async function PropertyDashboardPage() {
   const orgId     = org.id
 
   // Stats in parallel (includes KYC status for org owner)
-  const [membersRes, agreementsRes, listingsRes, kycRes] = await Promise.all([
+  const [membersRes, agreementsRes, listingsRes, kycRes, subRes] = await Promise.all([
     admin.from('organization_members').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
     admin.from('management_agreements').select('id, status, scope, landlord:users!landlord_id(full_name, phone), listing:listings(id, title, district)').eq('managing_org_id', orgId).order('created_at', { ascending: false }).limit(5),
     admin.from('listings').select('id, title, district, region, status, lifecycle_status, listing_source', { count: 'exact' }).eq('managing_org_id', orgId).limit(5),
     orgRole === 'owner'
       ? admin.from('kyc_submissions').select('id, status').eq('landlord_id', user.id).order('submitted_at', { ascending: false }).limit(1)
       : Promise.resolve({ data: null }),
+    admin.from('organization_subscriptions')
+      .select('status, trial_ends_at, current_period_end, cancelled_at, plan:subscription_plans(name)')
+      .eq('org_id', orgId)
+      .maybeSingle(),
   ])
 
   const memberCount      = membersRes.count ?? 0
@@ -47,6 +51,76 @@ export default async function PropertyDashboardPage() {
   const activeAgreements = agreements.filter(a => a.status === 'active').length
   const kycStatus        = (kycRes.data as Array<{ id: string; status: string }> | null)?.[0] ?? null
   const showKycBanner    = orgRole === 'owner' && (!kycStatus || kycStatus.status === 'needs_more_info')
+
+  const sub = subRes.data as {
+    status: string; trial_ends_at: string | null; current_period_end: string | null;
+    cancelled_at: string | null; plan: { name: string } | null
+  } | null
+  const subStatus   = sub?.status ?? null
+  const planName    = (sub?.plan as unknown as { name: string } | null)?.name ?? null
+  const trialDaysLeft = sub?.trial_ends_at
+    ? Math.max(0, Math.ceil((new Date(sub.trial_ends_at).getTime() - Date.now()) / 86_400_000))
+    : null
+
+  type SubBanner = { color: string; icon: string; title: string; detail: string; cta: string; ctaHref: string; urgent: boolean }
+  let subBanner: SubBanner | null = null
+  if (subStatus === 'trial' && trialDaysLeft !== null) {
+    const urgent = trialDaysLeft <= 3
+    subBanner = {
+      color:   urgent ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100',
+      icon:    'clock',
+      title:   urgent ? `Majaribio yanakwisha LEO!` : `Majaribio yamebaki siku ${trialDaysLeft}`,
+      detail:  urgent
+        ? 'Weka usajili ili usipoteze data na vipengele vyako vyote.'
+        : `Furahia vipengele vyote vya ${planName ?? 'mpango'} hadi mwisho wa majaribio yako.`,
+      cta:     'Panda Mpango',
+      ctaHref: '/property/usajili',
+      urgent,
+    }
+  } else if (subStatus === 'past_due') {
+    subBanner = {
+      color:   'bg-amber-50 border-amber-100',
+      icon:    'alert-circle',
+      title:   'Malipo ya Usajili Yamechelewa',
+      detail:  'Fanya malipo ya upya haraka ili kuepuka kupoteza ufikiaji wa vipengele vyako.',
+      cta:     'Fanya Malipo',
+      ctaHref: '/property/usajili',
+      urgent:  false,
+    }
+  } else if (subStatus === 'grace_period') {
+    subBanner = {
+      color:   'bg-orange-50 border-orange-100',
+      icon:    'hourglass',
+      title:   'Muda wa Neema — Hatua ya Haraka Inahitajika',
+      detail:  'Uko katika muda wa neema. Fanya malipo leo kabla huduma hazijasimamishwa.',
+      cta:     'Lipa Sasa',
+      ctaHref: '/property/usajili',
+      urgent:  true,
+    }
+  } else if (subStatus === 'expired' || subStatus === 'cancelled') {
+    subBanner = {
+      color:   'bg-red-50 border-red-200',
+      icon:    'lock',
+      title:   subStatus === 'cancelled' ? 'Usajili Umeghairiwa' : 'Usajili Umesimamishwa',
+      detail:  'Baadhi ya vipengele vimezuiwa. Fanya malipo ya mpango mpya ili kuendelea.',
+      cta:     'Rejea Usajili',
+      ctaHref: '/property/usajili',
+      urgent:  true,
+    }
+  } else if (sub?.cancelled_at && subStatus === 'active') {
+    const periodEnd = sub.current_period_end
+      ? new Date(sub.current_period_end).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
+      : 'mwisho wa mzunguko'
+    subBanner = {
+      color:   'bg-gray-50 border-gray-200',
+      icon:    'info-circle',
+      title:   'Ughairi Umepangwa',
+      detail:  `Usajili wako utakwisha ${periodEnd}. Unaweza kubadilisha uamuzi wako wakati wowote.`,
+      cta:     'Angalia Usajili',
+      ctaHref: '/property/usajili',
+      urgent:  false,
+    }
+  }
 
   const userProfile = await admin.from('users').select('full_name').eq('id', user.id).single()
   const firstName = (userProfile.data?.full_name as string | null)?.split(' ')[0] ?? 'Karibu'
@@ -80,6 +154,21 @@ export default async function PropertyDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Subscription banner */}
+      {subBanner && (
+        <div className={`flex items-center gap-3 rounded-2xl p-4 mb-5 border ${subBanner.color}`}>
+          <i className={`ti ti-${subBanner.icon} text-xl flex-shrink-0 ${subBanner.urgent ? 'text-red-500' : 'text-blue-500'}`} aria-hidden="true" />
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-semibold ${subBanner.urgent ? 'text-red-700' : 'text-gray-800'}`}>{subBanner.title}</p>
+            <p className={`text-xs mt-0.5 ${subBanner.urgent ? 'text-red-600' : 'text-gray-500'}`}>{subBanner.detail}</p>
+          </div>
+          <Link href={subBanner.ctaHref}
+            className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition ${subBanner.urgent ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-primary-500 text-white hover:bg-primary-600'}`}>
+            {subBanner.cta}
+          </Link>
+        </div>
+      )}
 
       {/* KYC banner */}
       {showKycBanner && (

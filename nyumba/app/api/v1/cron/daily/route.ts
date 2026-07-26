@@ -1109,12 +1109,24 @@ async function runDailyTasks() {
     }
     results.push(`✅ Org sub expiry warnings: ${subWarnings}`)
 
-    // b) Auto-transition: active → past_due (period ended)
+    // b1) Auto-transition: active + cancelled_at set → cancelled (period ended, user requested cancel)
+    const { data: nowCancelled } = await admin
+      .from('organization_subscriptions')
+      .update({ status: 'cancelled', updated_at: now })
+      .eq('status', 'active')
+      .lt('current_period_end', now)
+      .not('cancelled_at', 'is', null)
+      .select('org_id, plan:subscription_plans(name)')
+
+    results.push(`✅ Org active→cancelled (user-requested): ${nowCancelled?.length ?? 0}`)
+
+    // b2) Auto-transition: active → past_due (period ended, no cancellation request)
     const { data: nowPastDue } = await admin
       .from('organization_subscriptions')
       .update({ status: 'past_due', updated_at: now })
       .eq('status', 'active')
       .lt('current_period_end', now)
+      .is('cancelled_at', null)
       .select('org_id, plan:subscription_plans(name)')
 
     if (nowPastDue?.length) {
