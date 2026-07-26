@@ -174,3 +174,112 @@ export const COLLECTION_STATUS_LABELS: Record<CollectionStatus, string> = {
   collected: 'Imekusanywa',
   overdue:  'Imechelewa',
 }
+
+// ── Phase 2 types ─────────────────────────────────────────────────────────────
+
+export type UnitType   = 'whole' | 'room' | 'floor' | 'apartment' | 'shop' | 'office'
+export type UnitStatus = 'vacant' | 'occupied' | 'maintenance' | 'reserved'
+export type LeaseStatus        = 'draft' | 'active' | 'expired' | 'terminated' | 'renewed'
+export type PaymentStatus      = 'pending' | 'paid' | 'late' | 'partial' | 'waived'
+export type PaymentMethod      = 'mpesa' | 'cash' | 'bank_transfer' | 'airtel' | 'tigo'
+
+export interface PropertyUnit {
+  id:             string
+  listing_id:     string
+  org_id:         string | null
+  unit_number:    string
+  unit_type:      UnitType
+  bedrooms:       number | null
+  bathrooms:      number | null
+  floor_number:   number | null
+  monthly_rent:   number
+  deposit_months: number
+  status:         UnitStatus
+  description:    string | null
+  created_at:     string
+  updated_at:     string
+  // Joined
+  listing?: { title: string; district: string; region: string; images: string[] }
+  active_lease?: Lease | null
+}
+
+export interface Lease {
+  id:                 string
+  unit_id:            string
+  listing_id:         string | null
+  org_id:             string | null
+  tenant_id:          string
+  landlord_id:        string
+  monthly_rent:       number
+  deposit_amount:     number | null
+  deposit_paid:       boolean
+  deposit_paid_at:    string | null
+  start_date:         string
+  end_date:           string | null
+  status:             LeaseStatus
+  termination_reason: string | null
+  document_url:       string | null
+  notes:              string | null
+  created_at:         string
+  updated_at:         string
+  // Joined
+  tenant?:  { id: string; full_name: string | null; phone: string | null; email: string | null }
+  landlord?: { full_name: string | null; phone: string | null }
+  unit?:    { unit_number: string; unit_type: UnitType; monthly_rent: number }
+  listing?: { title: string; district: string }
+}
+
+export interface LeasePayment {
+  id:             string
+  lease_id:       string
+  amount_due:     number
+  amount_paid:    number | null
+  due_date:       string
+  paid_date:      string | null
+  status:         PaymentStatus
+  payment_method: PaymentMethod | null
+  reference:      string | null
+  notes:          string | null
+  recorded_by:    string | null
+  created_at:     string
+}
+
+export const UNIT_TYPE_LABELS: Record<UnitType, string> = {
+  whole:     'Nyumba Yote',
+  room:      'Chumba',
+  floor:     'Ghorofa',
+  apartment: 'Apartment',
+  shop:      'Duka',
+  office:    'Ofisi',
+}
+
+export const UNIT_STATUS_LABELS: Record<UnitStatus, string> = {
+  vacant:      'Iko Wazi',
+  occupied:    'Imepangishwa',
+  maintenance: 'Matengenezo',
+  reserved:    'Imehifadhiwa',
+}
+
+export const LEASE_STATUS_LABELS: Record<LeaseStatus, string> = {
+  draft:       'Rasimu',
+  active:      'Inaendelea',
+  expired:     'Imekwisha',
+  terminated:  'Imesimamishwa',
+  renewed:     'Imefanywa Upya',
+}
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  pending: 'Inasubiri',
+  paid:    'Imelipwa',
+  late:    'Imechelewa',
+  partial: 'Sehemu',
+  waived:  'Imesamehewa',
+}
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  mpesa:        'M-Pesa',
+  cash:         'Pesa Taslimu',
+  bank_transfer:'Uhamisho wa Benki',
+  airtel:       'Airtel Money',
+  tigo:         'Tigo Pesa',
+}
