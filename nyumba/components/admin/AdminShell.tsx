@@ -125,6 +125,16 @@ const NAV_SECTIONS = [
       { href: '/admin/legal', label: 'Makubaliano & Malalamiko', icon: 'scale', exact: false },
     ],
   },
+  {
+    title: 'Usimamizi wa Mali',
+    items: [
+      { href: '/admin/property-management', label: 'Muhtasari',           icon: 'building',    exact: true  },
+      { href: '/admin/property-management/organizations', label: 'Mashirika', icon: 'building-community', exact: false },
+      { href: '/admin/property-management/kyc',          label: 'KYC',       icon: 'id',         exact: false },
+      { href: '/admin/property-management/commissions',  label: 'Kamisheni', icon: 'coin',       exact: false },
+      { href: '/admin/property-management/workload',     label: 'Mzigo wa Wafanyakazi', icon: 'user-check', exact: false },
+    ],
+  },
 ]
 
 const BOTTOM_NAV = [
