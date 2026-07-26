@@ -24,21 +24,25 @@ export async function GET(_req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
     }
 
-    const [{ data: subscription }, { data: plans }] = await Promise.all([
-      admin
-        .from('organization_subscriptions')
-        .select('*, plan:subscription_plans(*)')
-        .eq('org_id', id)
-        .maybeSingle(),
-      admin
-        .from('subscription_plans')
-        .select('*')
-        .eq('is_active', true)
-        .eq('is_public', true)
-        .order('price_tzs', { ascending: true }),
+    const [
+      { data: subscription },
+      { data: plans },
+      { count: propCount },
+      { count: unitCount },
+      { count: memberCount },
+    ] = await Promise.all([
+      admin.from('organization_subscriptions').select('*, plan:subscription_plans(*)').eq('org_id', id).maybeSingle(),
+      admin.from('subscription_plans').select('*').eq('is_active', true).eq('is_public', true).order('price_tzs', { ascending: true }),
+      admin.from('listings').select('id', { count: 'exact', head: true }).eq('managing_org_id', id),
+      admin.from('property_units').select('id', { count: 'exact', head: true }).eq('org_id', id),
+      admin.from('organization_members').select('id', { count: 'exact', head: true }).eq('organization_id', id),
     ])
 
-    return NextResponse.json({ subscription: subscription ?? null, plans: plans ?? [] })
+    return NextResponse.json({
+      subscription: subscription ?? null,
+      plans: plans ?? [],
+      usage: { properties: propCount ?? 0, units: unitCount ?? 0, members: memberCount ?? 0 },
+    })
   } catch (err) {
     console.error('[GET /organizations/[id]/subscription]', err)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

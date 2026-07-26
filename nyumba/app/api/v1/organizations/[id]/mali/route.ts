@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { getOrgFeatures, checkLimit } from '@/lib/subscription/featureGate'
 
 type Params = { params: { id: string } }
 
@@ -81,6 +82,16 @@ export async function POST(req: NextRequest, { params }: Params) {
     const isAdminStaff = ['admin', 'staff'].includes(profile?.role ?? '')
     const canWrite = isAdminStaff || ['owner', 'branch_manager'].includes(membership?.role ?? '')
     if (!canWrite) return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
+
+    // Feature gate: check max_properties limit
+    if (!isAdminStaff) {
+      const [features, { count: propCount }] = await Promise.all([
+        getOrgFeatures(orgId),
+        admin.from('listings').select('id', { count: 'exact', head: true }).eq('managing_org_id', orgId),
+      ])
+      const gate = checkLimit(propCount ?? 0, features.max_properties, 'mali')
+      if (!gate.ok) return NextResponse.json({ error: gate.error, upgrade_required: true }, { status: gate.status })
+    }
 
     const body = await req.json()
     const { title, type = 'nyumba', district, region, price_monthly,

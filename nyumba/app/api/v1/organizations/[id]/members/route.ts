@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { getOrgFeatures, checkLimit } from '@/lib/subscription/featureGate'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -41,8 +42,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     const admin = createAdminClient()
     const { data: m } = await admin.from('organization_members').select('role').eq('organization_id', id).eq('user_id', user.id).maybeSingle()
     const { data: u } = await admin.from('users').select('role').eq('id', user.id).single()
-    const canManage = m?.role === 'owner' || ['admin', 'staff'].includes(u?.role ?? '')
+    const isAdminStaff = ['admin', 'staff'].includes(u?.role ?? '')
+    const canManage = m?.role === 'owner' || isAdminStaff
     if (!canManage) return NextResponse.json({ error: 'Mwenye shirika peke yake anaweza kuongeza wanachama' }, { status: 403 })
+
+    // Feature gate: check max_members limit
+    if (!isAdminStaff) {
+      const [features, { count: memberCount }] = await Promise.all([
+        getOrgFeatures(id),
+        admin.from('organization_members').select('id', { count: 'exact', head: true }).eq('organization_id', id),
+      ])
+      const gate = checkLimit(memberCount ?? 0, features.max_members, 'wanachama')
+      if (!gate.ok) return NextResponse.json({ error: gate.error, upgrade_required: true }, { status: gate.status })
+    }
 
     const body = await req.json()
     const { role, phone, email } = body

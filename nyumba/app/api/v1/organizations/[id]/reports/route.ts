@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { getOrgFeatures, checkFeature } from '@/lib/subscription/featureGate'
 
 type Params = { params: { id: string } }
 
@@ -21,6 +22,13 @@ export async function GET(req: NextRequest, { params }: Params) {
     const { data: profile } = await admin.from('users').select('role').eq('id', user.id).single()
     const isAdminStaff = ['admin', 'staff'].includes(profile?.role ?? '')
     if (!membership && !isAdminStaff) return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
+
+    // Feature gate: has_reports
+    if (!isAdminStaff) {
+      const features = await getOrgFeatures(orgId)
+      const gate = checkFeature(features, 'has_reports', 'Ripoti na Takwimu')
+      if (!gate.ok) return NextResponse.json({ error: gate.error, upgrade_required: true }, { status: gate.status })
+    }
 
     // Determine month range
     const monthParam  = req.nextUrl.searchParams.get('month') // e.g. "2026-07"

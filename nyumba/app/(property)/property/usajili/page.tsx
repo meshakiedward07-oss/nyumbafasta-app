@@ -342,13 +342,44 @@ function InvoicesTab({ orgId, invoices, loading, onProofUploaded }: {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+const ACTIVE_STATUSES = new Set(['trial', 'active', 'past_due', 'grace_period'])
+const FREE_LIMITS = { max_properties: 2, max_units: 5, max_members: 2 }
+
+function UsageBar({ label, current, max, icon }: { label: string; current: number; max: number; icon: string }) {
+  const pct    = max === -1 ? 0 : Math.min(100, Math.round((current / max) * 100))
+  const isOver = max !== -1 && current >= max
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <i className={`ti ti-${icon} text-sm text-gray-400`} aria-hidden="true" />
+          <span className="text-xs text-gray-600 font-medium">{label}</span>
+        </div>
+        <span className={`text-xs font-bold tabular-nums ${isOver ? 'text-red-600' : 'text-gray-800'}`}>
+          {current} / {max === -1 ? '∞' : max}
+        </span>
+      </div>
+      {max !== -1 && (
+        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${isOver ? 'bg-red-400' : pct >= 80 ? 'bg-amber-400' : 'bg-primary-400'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 type Tab = 'mpango' | 'ankara'
+type Usage = { properties: number; units: number; members: number }
 
 export default function UsajiliPage() {
   const [orgId,    setOrgId]    = useState<string | null>(null)
   const [sub,      setSub]      = useState<OrganizationSubscription | null>(null)
   const [plans,    setPlans]    = useState<SubscriptionPlan[]>([])
   const [invoices, setInvoices] = useState<SubscriptionInvoice[]>([])
+  const [usage,    setUsage]    = useState<Usage | null>(null)
   const [loading,  setLoading]  = useState(true)
   const [invLoad,  setInvLoad]  = useState(false)
   const [tab,      setTab]      = useState<Tab>('mpango')
@@ -371,6 +402,7 @@ export default function UsajiliPage() {
         const [subData, invData] = await Promise.all([subRes.json(), invRes.json()])
         setSub(subData.subscription)
         setPlans(subData.plans ?? [])
+        setUsage(subData.usage ?? null)
         setInvoices(invData.invoices ?? [])
       } catch { /* silent */ }
       finally { setLoading(false) }
@@ -422,6 +454,15 @@ export default function UsajiliPage() {
 
   const pendingCount = invoices.filter(i => i.status === 'pending' || i.status === 'proof_uploaded').length
 
+  // Effective limits — use plan features when status is active-like, otherwise FREE_LIMITS
+  const isActiveSub = status ? ACTIVE_STATUSES.has(status) : false
+  const planFeatures = planObj?.features as PlanFeatures | null
+  const limits = {
+    max_properties: isActiveSub ? (planFeatures?.max_properties ?? FREE_LIMITS.max_properties) : FREE_LIMITS.max_properties,
+    max_units:      isActiveSub ? (planFeatures?.max_units      ?? FREE_LIMITS.max_units)      : FREE_LIMITS.max_units,
+    max_members:    isActiveSub ? (planFeatures?.max_members    ?? FREE_LIMITS.max_members)     : FREE_LIMITS.max_members,
+  }
+
   return (
     <div className="p-4 lg:p-6 max-w-4xl mx-auto">
       {selected && orgId && (
@@ -448,6 +489,21 @@ export default function UsajiliPage() {
                 <i className="ti ti-clock" /> Mpango utabadilika {dateFmt(sub.pending_plan_starts_at)}
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Usage widget */}
+      {usage && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <i className="ti ti-chart-bar text-primary-500 text-lg" aria-hidden="true" />
+            <h2 className="font-semibold text-gray-900 text-sm">Matumizi ya Mpango</h2>
+          </div>
+          <div className="space-y-4">
+            <UsageBar label="Mali"              current={usage.properties} max={limits.max_properties} icon="building"  />
+            <UsageBar label="Vitengo"           current={usage.units}      max={limits.max_units}      icon="layout"    />
+            <UsageBar label="Wanachama wa Timu" current={usage.members}    max={limits.max_members}    icon="users"     />
           </div>
         </div>
       )}

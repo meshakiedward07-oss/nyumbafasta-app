@@ -46,13 +46,17 @@ export default function TaarifaPage() {
   const [data,  setData]    = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState<string | null>(null)
+  const [locked,  setLocked]  = useState(false)
 
   async function loadReport(id: string, m: string) {
-    setLoading(true); setError(null)
+    setLoading(true); setError(null); setLocked(false)
     try {
       const res  = await fetch(`/api/v1/organizations/${id}/reports?month=${m}`)
       const json = await res.json()
-      if (!res.ok) { setError(json.error ?? 'Hitilafu'); return }
+      if (!res.ok) {
+        if (json.upgrade_required) { setLocked(true); return }
+        setError(json.error ?? 'Hitilafu'); return
+      }
       setData(json)
     } catch { setError('Haikuweza kupakia taarifa.') }
     finally { setLoading(false) }
@@ -112,6 +116,20 @@ export default function TaarifaPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-gray-100 animate-pulse rounded-2xl" />)}
+          </div>
+        ) : locked ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center gap-4 px-4">
+            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center">
+              <i className="ti ti-lock text-amber-500 text-3xl" aria-hidden="true" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Ripoti Hazipo Kwenye Mpango Wako</h2>
+            <p className="text-sm text-gray-500 max-w-xs">
+              Kipengele cha Ripoti na Takwimu kinahitaji mpango wa juu. Panda mpango ili kupata uchanganuzi kamili wa biashara yako.
+            </p>
+            <a href="/property/usajili"
+              className="mt-2 px-6 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
+              Angalia Mipango
+            </a>
           </div>
         ) : error ? (
           <div className="text-center py-12">
