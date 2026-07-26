@@ -412,20 +412,24 @@ export interface MaintenanceRequest {
 }
 
 export interface Vendor {
-  id:             string
-  org_id:         string
-  name:           string
-  category:       string
-  phone:          string | null
-  email:          string | null
-  specialty:      string | null
-  location:       string | null
-  notes:          string | null
-  is_active:      boolean
-  jobs_completed: number
-  rating_avg:     number | null
-  created_at:     string
-  updated_at:     string
+  id:                  string
+  org_id:              string
+  name:                string
+  category:            string
+  phone:               string | null
+  email:               string | null
+  specialty:           string | null
+  location:            string | null
+  notes:               string | null
+  is_active:           boolean
+  jobs_completed:      number
+  rating_avg:          number | null
+  verification_status: 'pending' | 'verified' | 'rejected'
+  verified_by:         string | null
+  verified_at:         string | null
+  rejection_reason:    string | null
+  created_at:          string
+  updated_at:          string
 }
 
 export interface MaintenanceComment {

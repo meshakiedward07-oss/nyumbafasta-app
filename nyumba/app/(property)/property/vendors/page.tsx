@@ -8,26 +8,26 @@ const CATEGORIES = [
 ] as const
 type CatFilter = (typeof CATEGORIES)[number]
 
-function fmt(n: number) { return `TZS ${n.toLocaleString()}` }
-
 const EMPTY_FORM = {
   name: '', category: 'other', phone: '', email: '', specialty: '', location: '', notes: '',
 }
 
 export default function VendorsPage() {
-  const [orgId,      setOrgId]      = useState<string | null>(null)
-  const [vendors,    setVendors]    = useState<Vendor[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [catFilter,  setCatFilter]  = useState<CatFilter>('all')
-  const [search,     setSearch]     = useState('')
+  const [orgId,        setOrgId]        = useState<string | null>(null)
+  const [vendors,      setVendors]      = useState<Vendor[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [catFilter,    setCatFilter]    = useState<CatFilter>('all')
+  const [search,       setSearch]       = useState('')
 
-  const [modal,      setModal]      = useState<'add' | 'edit' | null>(null)
-  const [editTarget, setEditTarget] = useState<Vendor | null>(null)
-  const [form,       setForm]       = useState({ ...EMPTY_FORM })
-  const [saving,     setSaving]     = useState(false)
-  const [formErr,    setFormErr]    = useState<string | null>(null)
+  const [modal,        setModal]        = useState<'add' | 'edit' | null>(null)
+  const [editTarget,   setEditTarget]   = useState<Vendor | null>(null)
+  const [form,         setForm]         = useState({ ...EMPTY_FORM })
+  const [saving,       setSaving]       = useState(false)
+  const [formErr,      setFormErr]      = useState<string | null>(null)
+  const [successMsg,   setSuccessMsg]   = useState<string | null>(null)
 
   async function load(id: string) {
+    // API returns only verified vendors for org members
     const res  = await fetch(`/api/v1/organizations/${id}/vendors?active=false`)
     const data = await res.json()
     setVendors(data.vendors ?? [])
@@ -52,7 +52,7 @@ export default function VendorsPage() {
   }, [])
 
   function openAdd() {
-    setForm({ ...EMPTY_FORM }); setEditTarget(null); setFormErr(null); setModal('add')
+    setForm({ ...EMPTY_FORM }); setEditTarget(null); setFormErr(null); setSuccessMsg(null); setModal('add')
   }
   function openEdit(v: Vendor) {
     setForm({
@@ -60,7 +60,7 @@ export default function VendorsPage() {
       email: v.email ?? '', specialty: v.specialty ?? '',
       location: v.location ?? '', notes: v.notes ?? '',
     })
-    setEditTarget(v); setFormErr(null); setModal('edit')
+    setEditTarget(v); setFormErr(null); setSuccessMsg(null); setModal('edit')
   }
 
   async function handleSave() {
@@ -90,6 +90,9 @@ export default function VendorsPage() {
       if (!res.ok) { setFormErr(data.error ?? 'Kuna tatizo'); return }
       await load(orgId)
       setModal(null)
+      if (modal === 'add') {
+        setSuccessMsg(`${form.name.trim()} amepokelewa na ataonekana hapa baada ya uthibitisho wa admin.`)
+      }
     } catch { setFormErr('Haikuweza kuhifadhi. Jaribu tena.') }
     finally { setSaving(false) }
   }
@@ -121,13 +124,19 @@ export default function VendorsPage() {
   return (
     <div className="p-4 lg:p-6 max-w-3xl mx-auto">
 
-      {/* Modal */}
+      {/* Add/Edit Modal */}
       {modal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">
               {modal === 'add' ? 'Ongeza Mchezaji' : `Hariri — ${editTarget?.name}`}
             </h2>
+            {modal === 'add' && (
+              <p className="text-xs text-amber-600 mb-4 flex items-center gap-1.5">
+                <i className="ti ti-info-circle" aria-hidden="true" />
+                Mchezaji mpya atapitiwa na admin kabla ya kuonekana kwenye orodha.
+              </p>
+            )}
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-gray-600 block mb-1">Jina *</label>
@@ -197,7 +206,7 @@ export default function VendorsPage() {
         <div>
           <h1 className="text-xl font-bold text-gray-900">Wachuuzi</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {activeCount} wachuuzi hai · {vendors.length} wote
+            {activeCount} wachuuzi wamethibitishwa
           </p>
         </div>
         <button onClick={openAdd}
@@ -206,6 +215,33 @@ export default function VendorsPage() {
           Ongeza
         </button>
       </div>
+
+      {/* Pending verification notice */}
+      {successMsg && (
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3 mb-4">
+          <i className="ti ti-clock text-amber-500 text-xl flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-800">Ombi Limepokelewa</p>
+            <p className="text-xs text-amber-600 mt-0.5">{successMsg}</p>
+          </div>
+          <button onClick={() => setSuccessMsg(null)} className="text-amber-400 hover:text-amber-600">
+            <i className="ti ti-x text-sm" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
+      {/* Verification info banner (only when list is empty to explain why) */}
+      {!loading && vendors.length === 0 && !successMsg && (
+        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3 mb-4">
+          <i className="ti ti-shield-check text-blue-500 text-xl flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-medium text-blue-800">Wachuuzi Wanapitiwa</p>
+            <p className="text-xs text-blue-600 mt-0.5">
+              Wachuuzi wanapitiwa na timu yetu kabla ya kuonekana hapa ili kuhakikisha ubora na usalama.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <input type="text" value={search} onChange={e => setSearch(e.target.value)}
@@ -241,7 +277,7 @@ export default function VendorsPage() {
           </p>
           <p className="text-sm text-gray-400 mt-1">
             {vendors.length === 0
-              ? 'Ongeza mchezaji wa kwanza ili uweze kumpa kazi za matengenezo.'
+              ? 'Ongeza mchezaji wa kwanza. Atahitaji uthibitisho wa admin kabla ya kuonekana.'
               : 'Badilisha utafutaji au kichujio.'}
           </p>
           {vendors.length === 0 && (
@@ -270,6 +306,11 @@ export default function VendorsPage() {
                       <p className="font-semibold text-gray-900 text-sm">{vendor.name}</p>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary-50 text-primary-600 font-medium">
                         {catLabel}
+                      </span>
+                      {/* Verification badge — only verified vendors appear here, so always show ✓ */}
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium flex items-center gap-0.5">
+                        <i className="ti ti-shield-check text-[9px]" aria-hidden="true" />
+                        Imethibitishwa
                       </span>
                       {!vendor.is_active && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">Amefutwa</span>

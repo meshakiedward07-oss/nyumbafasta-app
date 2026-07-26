@@ -22,10 +22,12 @@ export async function GET(req: NextRequest, { params }: Params) {
     const isAdminStaff = ['admin', 'staff'].includes(profile?.role ?? '')
     if (!membership && !isAdminStaff) return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
 
-    const url      = req.nextUrl
-    const category = url.searchParams.get('category')
-    const search   = url.searchParams.get('search')
+    const url        = req.nextUrl
+    const category   = url.searchParams.get('category')
+    const search     = url.searchParams.get('search')
     const activeOnly = url.searchParams.get('active') !== 'false'
+    // verified_only=true: only return verified vendors (used by maintenance assignment dropdown)
+    const verifiedOnly = url.searchParams.get('verified_only') === 'true'
 
     let query = admin
       .from('vendors')
@@ -36,6 +38,20 @@ export async function GET(req: NextRequest, { params }: Params) {
     if (activeOnly) query = query.eq('is_active', true)
     if (category && category !== 'all') query = query.eq('category', category)
     if (search?.trim()) query = query.ilike('name', `%${search.trim()}%`)
+
+    // Non-admin org members only see verified vendors (unless asking for their own pending/rejected)
+    // Admin/staff can see all statuses.
+    // The vendor directory page passes active=false (to see all active states) — org members get only verified.
+    // The maintenance dropdown passes verified_only=true explicitly.
+    if (!isAdminStaff) {
+      query = query.eq('verification_status', 'verified')
+    } else {
+      // Admin can filter by verification status
+      const verificationStatus = url.searchParams.get('verification_status')
+      if (verificationStatus) query = query.eq('verification_status', verificationStatus)
+    }
+
+    if (verifiedOnly) query = query.eq('verification_status', 'verified')
 
     const { data, error } = await query
     if (error) throw error
@@ -76,20 +92,46 @@ export async function POST(req: NextRequest, { params }: Params) {
     const { data: vendor, error } = await admin
       .from('vendors')
       .insert({
-        org_id:    orgId,
-        name:      name.trim(),
+        org_id:              orgId,
+        name:                name.trim(),
         category,
-        phone:     phone?.trim()    || null,
-        email:     email?.trim()    || null,
-        specialty: specialty?.trim()|| null,
-        location:  location?.trim() || null,
-        notes:     notes?.trim()    || null,
-        is_active: true,
+        phone:               phone?.trim()     || null,
+        email:               email?.trim()     || null,
+        specialty:           specialty?.trim() || null,
+        location:            location?.trim()  || null,
+        notes:               notes?.trim()     || null,
+        is_active:           true,
+        verification_status: 'pending',
       })
       .select()
       .single()
 
     if (error) throw error
+
+    // Notify all admin/staff users about the new pending vendor
+    ;(async () => {
+      try {
+        const { data: admins } = await admin
+          .from('users')
+          .select('id')
+          .in('role', ['admin', 'staff'])
+          .eq('is_active', true)
+        if (admins && admins.length > 0) {
+          const { data: org } = await admin.from('organizations').select('name').eq('id', orgId).maybeSingle()
+          await admin.from('notifications').insert(
+            admins.map(a => ({
+              user_id:  a.id,
+              type:     'vendor_pending_verification',
+              title:    'Mchezaji Mpya Anasubiri Uthibitisho',
+              body:     `${name.trim()} kutoka ${org?.name ?? 'shirika'} anasubiri uthibitisho wako.`,
+              data:     { vendor_id: vendor.id, org_id: orgId },
+              read:     false,
+            }))
+          )
+        }
+      } catch { /* non-fatal */ }
+    })().catch(() => {})
+
     return NextResponse.json({ vendor }, { status: 201 })
   } catch (err) {
     console.error('[POST /organizations/:id/vendors]', err)

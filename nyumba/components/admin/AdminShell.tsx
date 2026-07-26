@@ -132,8 +132,9 @@ const NAV_SECTIONS = [
       { href: '/admin/property-management/organizations', label: 'Mashirika', icon: 'building-community', exact: false },
       { href: '/admin/property-management/kyc',          label: 'KYC',       icon: 'id',         exact: false },
       { href: '/admin/property-management/commissions',  label: 'Kamisheni', icon: 'coin',       exact: false },
-      { href: '/admin/property-management/workload',     label: 'Mzigo wa Wafanyakazi', icon: 'user-check', exact: false },
-      { href: '/admin/subscriptions',                    label: 'Usajili',              icon: 'credit-card', exact: false },
+      { href: '/admin/property-management/workload',  label: 'Mzigo wa Wafanyakazi', icon: 'user-check',    exact: false },
+      { href: '/admin/property-management/vendors',  label: 'Wachuuzi',             icon: 'address-book', exact: false },
+      { href: '/admin/subscriptions',                label: 'Usajili',              icon: 'credit-card',  exact: false },
     ],
   },
 ]

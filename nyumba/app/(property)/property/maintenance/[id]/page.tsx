@@ -67,7 +67,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
   async function load(oid: string) {
     const [res, vendorRes] = await Promise.all([
       fetch(`/api/v1/organizations/${oid}/maintenance/${id}`),
-      fetch(`/api/v1/organizations/${oid}/vendors`),
+      fetch(`/api/v1/organizations/${oid}/vendors?verified_only=true`),
     ])
     if (!res.ok) { setError('Ombi halipatikani.'); return }
     const data       = await res.json()
