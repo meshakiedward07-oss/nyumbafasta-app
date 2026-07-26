@@ -30,18 +30,23 @@ export default async function PropertyDashboardPage() {
   const orgRole   = primary.role
   const orgId     = org.id
 
-  // Stats in parallel
-  const [membersRes, agreementsRes, listingsRes] = await Promise.all([
+  // Stats in parallel (includes KYC status for org owner)
+  const [membersRes, agreementsRes, listingsRes, kycRes] = await Promise.all([
     admin.from('organization_members').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
     admin.from('management_agreements').select('id, status, scope, landlord:users!landlord_id(full_name, phone), listing:listings(id, title, district)').eq('managing_org_id', orgId).order('created_at', { ascending: false }).limit(5),
     admin.from('listings').select('id, title, district, region, status, lifecycle_status, listing_source', { count: 'exact' }).eq('managing_org_id', orgId).limit(5),
+    orgRole === 'owner'
+      ? admin.from('kyc_submissions').select('id, status').eq('landlord_id', user.id).order('submitted_at', { ascending: false }).limit(1)
+      : Promise.resolve({ data: null }),
   ])
 
-  const memberCount     = membersRes.count ?? 0
-  const agreements      = (agreementsRes.data ?? []) as unknown as ManagementAgreement[]
-  const listings        = listingsRes.data ?? []
-  const listingCount    = listingsRes.count ?? 0
+  const memberCount      = membersRes.count ?? 0
+  const agreements       = (agreementsRes.data ?? []) as unknown as ManagementAgreement[]
+  const listings         = listingsRes.data ?? []
+  const listingCount     = listingsRes.count ?? 0
   const activeAgreements = agreements.filter(a => a.status === 'active').length
+  const kycStatus        = (kycRes.data as Array<{ id: string; status: string }> | null)?.[0] ?? null
+  const showKycBanner    = orgRole === 'owner' && (!kycStatus || kycStatus.status === 'needs_more_info')
 
   const userProfile = await admin.from('users').select('full_name').eq('id', user.id).single()
   const firstName = (userProfile.data?.full_name as string | null)?.split(' ')[0] ?? 'Karibu'
@@ -75,6 +80,35 @@ export default async function PropertyDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* KYC banner */}
+      {showKycBanner && (
+        <div className={`flex items-center gap-3 rounded-2xl p-4 mb-5 border ${
+          kycStatus?.status === 'needs_more_info'
+            ? 'bg-blue-50 border-blue-100'
+            : 'bg-amber-50 border-amber-100'
+        }`}>
+          <i className={`ti ti-id text-xl flex-shrink-0 ${kycStatus?.status === 'needs_more_info' ? 'text-blue-500' : 'text-amber-500'}`} aria-hidden="true" />
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-semibold ${kycStatus?.status === 'needs_more_info' ? 'text-blue-700' : 'text-amber-700'}`}>
+              {kycStatus?.status === 'needs_more_info' ? 'Tuma nyaraka zaidi za KYC' : 'Thibitisha akaunti yako (KYC)'}
+            </p>
+            <p className={`text-xs mt-0.5 ${kycStatus?.status === 'needs_more_info' ? 'text-blue-500' : 'text-amber-500'}`}>
+              {kycStatus?.status === 'needs_more_info'
+                ? 'Admin amehitaji nyaraka zaidi. Tuma hati zilizokosekana.'
+                : 'Wasilisha hati za umiliki ili kuthibitisha shirika lako na kupata huduma kamili.'}
+            </p>
+          </div>
+          <Link href="/property/kyc"
+            className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+              kycStatus?.status === 'needs_more_info'
+                ? 'bg-blue-500 text-white hover:bg-blue-600'
+                : 'bg-amber-500 text-white hover:bg-amber-600'
+            }`}>
+            {kycStatus?.status === 'needs_more_info' ? 'Tuma Zaidi' : 'Thibitisha Sasa'}
+          </Link>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
