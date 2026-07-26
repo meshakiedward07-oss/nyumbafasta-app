@@ -366,3 +366,104 @@ export const CONV_TYPE_ICONS: Record<ConvType, string> = {
   maintenance:     'tool',
   general:         'message',
 }
+
+// ── Phase 4: Maintenance ──────────────────────────────────────────────────
+
+export type MaintenanceCategory = 'plumbing' | 'electrical' | 'structural' | 'cleaning' | 'security' | 'appliance' | 'other'
+export type MaintenancePriority = 'low' | 'medium' | 'high' | 'urgent'
+export type MaintenanceStatus   = 'open' | 'assigned' | 'in_progress' | 'awaiting_parts' | 'resolved' | 'closed' | 'cancelled'
+
+export interface MaintenanceRequest {
+  id:              string
+  org_id:          string
+  unit_id:         string | null
+  lease_id:        string | null
+  title:           string
+  description:     string | null
+  category:        MaintenanceCategory
+  priority:        MaintenancePriority
+  status:          MaintenanceStatus
+  reported_by:     string
+  assigned_to:     string | null
+  estimated_cost:  number | null
+  actual_cost:     number | null
+  images:          string[]
+  scheduled_at:    string | null
+  resolved_at:     string | null
+  notes:           string | null
+  conversation_id: string | null
+  created_at:      string
+  updated_at:      string
+}
+
+export interface MaintenanceComment {
+  id:            string
+  request_id:    string
+  author_id:     string
+  body:          string
+  is_internal:   boolean
+  status_change: string | null
+  created_at:    string
+}
+
+export const MAINTENANCE_CATEGORY_LABELS: Record<MaintenanceCategory, string> = {
+  plumbing:   'Mabomba',
+  electrical: 'Umeme',
+  structural: 'Ujenzi',
+  cleaning:   'Usafi',
+  security:   'Usalama',
+  appliance:  'Vifaa vya Nyumba',
+  other:      'Nyingine',
+}
+
+export const MAINTENANCE_CATEGORY_ICONS: Record<MaintenanceCategory, string> = {
+  plumbing:   'droplet',
+  electrical: 'bolt',
+  structural: 'building',
+  cleaning:   'brush',
+  security:   'shield',
+  appliance:  'device-floppy',
+  other:      'tool',
+}
+
+export const MAINTENANCE_PRIORITY_LABELS: Record<MaintenancePriority, string> = {
+  low:    'Chini',
+  medium: 'Wastani',
+  high:   'Juu',
+  urgent: 'Dharura',
+}
+
+export const MAINTENANCE_STATUS_LABELS: Record<MaintenanceStatus, string> = {
+  open:           'Wazi',
+  assigned:       'Imepewa',
+  in_progress:    'Inaendelea',
+  awaiting_parts: 'Inasubiri Vifaa',
+  resolved:       'Imeshughulikiwa',
+  closed:         'Imefungwa',
+  cancelled:      'Imesitishwa',
+}
+
+export const MAINTENANCE_STATUS_NEXT: Partial<Record<MaintenanceStatus, MaintenanceStatus[]>> = {
+  open:           ['assigned', 'in_progress', 'cancelled'],
+  assigned:       ['in_progress', 'cancelled'],
+  in_progress:    ['awaiting_parts', 'resolved'],
+  awaiting_parts: ['in_progress', 'resolved'],
+  resolved:       ['closed'],
+}
+
+export const PRIORITY_COLORS: Record<MaintenancePriority, string> = {
+  urgent: 'bg-red-100 text-red-700 border-red-200',
+  high:   'bg-orange-100 text-orange-700 border-orange-200',
+  medium: 'bg-amber-100 text-amber-700 border-amber-200',
+  low:    'bg-gray-100 text-gray-500 border-gray-200',
+}
+
+export const STATUS_COLORS: Record<MaintenanceStatus, string> = {
+  open:           'bg-blue-100 text-blue-700',
+  assigned:       'bg-purple-100 text-purple-700',
+  in_progress:    'bg-amber-100 text-amber-700',
+  awaiting_parts: 'bg-orange-100 text-orange-700',
+  resolved:       'bg-green-100 text-green-700',
+  closed:         'bg-gray-100 text-gray-500',
+  cancelled:      'bg-red-100 text-red-400',
+}
