@@ -533,3 +533,37 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
   cancelled:    'Imesitishwa',
   expired:      'Imekwisha',
 }
+
+export type InvoiceStatus = 'pending' | 'proof_uploaded' | 'confirmed' | 'void'
+
+export interface SubscriptionInvoice {
+  id:                  string
+  org_id:              string
+  plan_id:             string | null
+  amount_tzs:          number
+  billing_cycle:       SubscriptionBillingCycle
+  status:              InvoiceStatus
+  due_date:            string | null
+  notes:               string | null
+  payment_reference:   string | null
+  proof_url:           string | null
+  proof_note:          string | null
+  proof_uploaded_at:   string | null
+  confirmed_by:        string | null
+  confirmed_at:        string | null
+  voided_by:           string | null
+  voided_at:           string | null
+  void_reason:         string | null
+  created_by:          string | null
+  created_at:          string
+  updated_at:          string
+  plan?:               SubscriptionPlan | null
+  org?:                { id: string; name: string } | null
+}
+
+export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  pending:        'Inasubiri Malipo',
+  proof_uploaded: 'Ushahidi Umepakiwa',
+  confirmed:      'Imethibitishwa',
+  void:           'Imebatilishwa',
+}

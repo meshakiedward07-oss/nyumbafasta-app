@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import type { SubscriptionPlan, SubscriptionStatus, PlanFeatures } from '@/lib/types/property'
+import type { SubscriptionPlan, SubscriptionStatus, PlanFeatures, SubscriptionInvoice, InvoiceStatus } from '@/lib/types/property'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -301,9 +301,233 @@ function OrgSubActions({ sub, plans, onUpdated }: {
   )
 }
 
+// ── Invoice Status badge ──────────────────────────────────────────────────────
+
+const INV_STATUS: Record<InvoiceStatus, { label: string; cls: string }> = {
+  pending:        { label: 'Inasubiri',     cls: 'bg-amber-100 text-amber-700'  },
+  proof_uploaded: { label: 'Ushahidi',      cls: 'bg-blue-100 text-blue-700'    },
+  confirmed:      { label: 'Imethibitishwa', cls: 'bg-green-100 text-green-700' },
+  void:           { label: 'Imebatilishwa', cls: 'bg-gray-100 text-gray-400'    },
+}
+
+interface AdminInvoice extends SubscriptionInvoice {
+  confirmer?: { id: string; full_name: string | null } | null
+}
+
+interface InvSummary { total: number; pending: number; proof_uploaded: number; confirmed: number; void: number }
+
+function InvoicesTab({ plans }: { plans: SubscriptionPlan[] }) {
+  const [invoices,  setInvoices]  = useState<AdminInvoice[]>([])
+  const [summary,   setSummary]   = useState<InvSummary | null>(null)
+  const [loading,   setLoading]   = useState(true)
+  const [search,    setSearch]    = useState('')
+  const [statusFlt, setStatusFlt] = useState('')
+  const [acting,    setActing]    = useState<string | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
+  // Create form
+  const [cOrg,  setCOrg]  = useState('')
+  const [cPlan, setCPlan] = useState('')
+  const [cCycle, setCCycle] = useState('monthly')
+  const [cNote, setCNote] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createErr, setCreateErr] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const p = new URLSearchParams({ limit: '100' })
+      if (search)    p.set('q', search)
+      if (statusFlt) p.set('status', statusFlt)
+      const res  = await fetch(`/api/v1/admin/invoices?${p}`)
+      const data = await res.json()
+      setInvoices(data.invoices ?? [])
+      setSummary(data.summary ?? null)
+    } catch { /* silent */ }
+    finally { setLoading(false) }
+  }, [search, statusFlt])
+
+  useEffect(() => { load() }, [load])
+
+  async function act(id: string, action: 'confirm' | 'void') {
+    const reason = action === 'void' ? prompt('Sababu ya kubatilisha?') ?? '' : ''
+    setActing(id)
+    const res  = await fetch(`/api/v1/admin/invoices/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, void_reason: reason }),
+    })
+    const data = await res.json()
+    if (!res.ok) { alert(data.error); setActing(null); return }
+    setInvoices(prev => prev.map(i => i.id === id ? { ...i, ...data.invoice } : i))
+    setActing(null)
+  }
+
+  async function createInvoice() {
+    setCreating(true); setCreateErr(null)
+    const res  = await fetch('/api/v1/admin/invoices', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ org_id: cOrg.trim(), plan_id: cPlan, billing_cycle: cCycle, notes: cNote.trim() || undefined }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setCreateErr(data.error ?? 'Kuna tatizo'); setCreating(false); return }
+    setInvoices(prev => [data.invoice, ...prev])
+    setShowCreate(false); setCOrg(''); setCPlan(''); setCNote(''); setCreating(false)
+  }
+
+  const STATUS_FILTERS = [
+    { v: '',             label: `Yote (${summary?.total ?? 0})`            },
+    { v: 'pending',      label: `Inasubiri (${summary?.pending ?? 0})`     },
+    { v: 'proof_uploaded', label: `Ushahidi (${summary?.proof_uploaded ?? 0})` },
+    { v: 'confirmed',    label: `Imethibitishwa (${summary?.confirmed ?? 0})`  },
+    { v: 'void',         label: `Imebatilishwa (${summary?.void ?? 0})`    },
+  ]
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-2 flex-1 flex-wrap">
+          <form onSubmit={e => { e.preventDefault(); load() }} className="flex gap-2 flex-1 min-w-[200px]">
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tafuta shirika..."
+              className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+            <button type="submit" className="px-4 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800">
+              <i className="ti ti-search" />
+            </button>
+          </form>
+        </div>
+        <button onClick={() => setShowCreate(p => !p)}
+          className="ml-2 flex items-center gap-1 bg-primary-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600">
+          <i className="ti ti-plus" /> Unda
+        </button>
+      </div>
+
+      {showCreate && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 shadow-sm">
+          <h3 className="font-semibold text-gray-900 mb-3">Unda Ankara Mpya</h3>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Org ID</label>
+              <input value={cOrg} onChange={e => setCOrg(e.target.value)} placeholder="uuid wa shirika"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Mpango</label>
+              <select value={cPlan} onChange={e => setCPlan(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-300">
+                <option value="">Chagua mpango</option>
+                {plans.filter(p => p.is_active && p.price_tzs > 0).map(p => (
+                  <option key={p.id} value={p.id}>{p.name} — Tsh {p.price_tzs.toLocaleString()}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Mzunguko</label>
+              <select value={cCycle} onChange={e => setCCycle(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-300">
+                <option value="monthly">Kila Mwezi</option>
+                <option value="quarterly">Kila Robo Mwaka</option>
+                <option value="annual">Kila Mwaka</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Maelezo</label>
+              <input value={cNote} onChange={e => setCNote(e.target.value)} placeholder="Hiari"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+            </div>
+          </div>
+          {createErr && <p className="text-sm text-red-600 mb-2">{createErr}</p>}
+          <div className="flex gap-2">
+            <button onClick={createInvoice} disabled={creating || !cOrg.trim() || !cPlan}
+              className="flex-1 bg-primary-500 text-white py-2 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40">
+              {creating ? 'Inaunda...' : 'Unda Ankara'}
+            </button>
+            <button onClick={() => setShowCreate(false)} className="px-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-1 overflow-x-auto pb-1 mb-4">
+        {STATUS_FILTERS.map(s => (
+          <button key={s.v} onClick={() => setStatusFlt(s.v)}
+            className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-medium transition ${statusFlt === s.v ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-14 bg-gray-100 animate-pulse rounded-2xl" />)}</div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {invoices.length === 0 ? (
+            <div className="p-12 text-center">
+              <i className="ti ti-receipt text-5xl text-gray-200" aria-hidden="true" />
+              <p className="text-gray-500 font-medium mt-3">Hakuna ankara</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    {['Shirika', 'Mpango', 'Kiasi', 'Hali', 'Tarehe', 'Ushahidi', ''].map(h => (
+                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {invoices.map(inv => {
+                    const s   = INV_STATUS[inv.status as InvoiceStatus]
+                    const org = inv.org as { name: string } | null
+                    const plan = inv.plan as { name: string } | null
+                    const isActing = acting === inv.id
+                    const canAct = inv.status === 'pending' || inv.status === 'proof_uploaded'
+                    return (
+                      <tr key={inv.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium text-gray-900">{org?.name ?? '—'}</td>
+                        <td className="px-4 py-3 text-gray-600">{plan?.name ?? '—'}</td>
+                        <td className="px-4 py-3 font-mono text-gray-700">Tsh {inv.amount_tzs.toLocaleString()}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${s.cls}`}>{s.label}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400">
+                          {new Date(inv.created_at).toLocaleDateString('sw-TZ')}
+                        </td>
+                        <td className="px-4 py-3">
+                          {inv.proof_url ? (
+                            <a href={inv.proof_url} target="_blank" rel="noopener noreferrer"
+                              className="text-xs text-primary-600 hover:underline flex items-center gap-1">
+                              <i className="ti ti-external-link" /> Angalia
+                            </a>
+                          ) : <span className="text-xs text-gray-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {canAct && (
+                            <div className="flex gap-1.5 justify-end">
+                              <button onClick={() => act(inv.id, 'confirm')} disabled={!!acting}
+                                className="text-xs px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-40">
+                                {isActing ? '...' : 'Thibitisha'}
+                              </button>
+                              <button onClick={() => act(inv.id, 'void')} disabled={!!acting}
+                                className="text-xs px-3 py-1.5 border border-red-200 text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-40">
+                                Batilisha
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-type Tab = 'plans' | 'subscriptions'
+type Tab = 'plans' | 'subscriptions' | 'invoices'
 
 export default function AdminSubscriptionsPage() {
   const [tab,     setTab]     = useState<Tab>('subscriptions')
@@ -394,13 +618,17 @@ export default function AdminSubscriptionsPage() {
 
       {/* Tab switcher */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl mb-6 w-fit">
-        {(['subscriptions', 'plans'] as Tab[]).map(t => (
+        {([
+          { id: 'subscriptions', label: 'Usajili' },
+          { id: 'invoices',      label: 'Ankara'  },
+          { id: 'plans',         label: 'Mipango' },
+        ] as { id: Tab; label: string }[]).map(t => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition ${tab === t ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition ${tab === t.id ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            {t === 'plans' ? 'Mipango' : 'Usajili wa Mashirika'}
+            {t.label}
           </button>
         ))}
       </div>
@@ -578,6 +806,9 @@ export default function AdminSubscriptionsPage() {
           )}
         </div>
       )}
+
+      {/* ── Invoices Tab ── */}
+      {tab === 'invoices' && <InvoicesTab plans={plans} />}
 
       {/* Plan create/edit modal */}
       {planModal && (
