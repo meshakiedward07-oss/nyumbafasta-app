@@ -31,7 +31,7 @@ export default async function PropertyDashboardPage() {
   const orgId     = org.id
 
   // Stats in parallel (includes KYC status for org owner)
-  const [membersRes, agreementsRes, listingsRes, kycRes, subRes] = await Promise.all([
+  const [membersRes, agreementsRes, listingsRes, kycRes, subRes, leasesRes, rentRes] = await Promise.all([
     admin.from('organization_members').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
     admin.from('management_agreements').select('id, status, scope, landlord:users!landlord_id(full_name, phone), listing:listings(id, title, district)').eq('managing_org_id', orgId).order('created_at', { ascending: false }).limit(5),
     admin.from('listings').select('id, title, district, region, status, lifecycle_status, listing_source', { count: 'exact' }).eq('managing_org_id', orgId).limit(5),
@@ -42,6 +42,9 @@ export default async function PropertyDashboardPage() {
       .select('status, trial_ends_at, current_period_end, cancelled_at, plan:subscription_plans(name)')
       .eq('org_id', orgId)
       .maybeSingle(),
+    admin.from('leases').select('id, status', { count: 'exact', head: false }).eq('org_id', orgId).eq('status', 'active'),
+    // Rent: pending + proof_uploaded payment counts for this org's leases
+    admin.from('leases').select('id').eq('org_id', orgId),
   ])
 
   const memberCount      = membersRes.count ?? 0
@@ -51,6 +54,27 @@ export default async function PropertyDashboardPage() {
   const activeAgreements = agreements.filter(a => a.status === 'active').length
   const kycStatus        = (kycRes.data as Array<{ id: string; status: string }> | null)?.[0] ?? null
   const showKycBanner    = orgRole === 'owner' && (!kycStatus || kycStatus.status === 'needs_more_info')
+  const activeLeaseCount = leasesRes.data?.length ?? 0
+
+  // Rent mini-stats: count pending + overdue payments across org leases
+  const leaseIds = (rentRes.data ?? []).map((l: { id: string }) => l.id)
+  let pendingRentCount = 0
+  let overdueRentCount = 0
+  let proofUpCount = 0
+  if (leaseIds.length > 0) {
+    const today = new Date().toISOString().split('T')[0]
+    const [pendingRes, overdueRes, proofRes] = await Promise.all([
+      admin.from('lease_payments').select('*', { count: 'exact', head: true })
+        .in('lease_id', leaseIds).in('status', ['pending', 'partial']),
+      admin.from('lease_payments').select('*', { count: 'exact', head: true })
+        .in('lease_id', leaseIds).in('status', ['pending', 'partial']).lt('due_date', today),
+      admin.from('lease_payments').select('*', { count: 'exact', head: true })
+        .in('lease_id', leaseIds).eq('status', 'proof_uploaded'),
+    ])
+    pendingRentCount = pendingRes.count ?? 0
+    overdueRentCount = overdueRes.count ?? 0
+    proofUpCount     = proofRes.count ?? 0
+  }
 
   const sub = subRes.data as {
     status: string; trial_ends_at: string | null; current_period_end: string | null;
@@ -126,10 +150,10 @@ export default async function PropertyDashboardPage() {
   const firstName = (userProfile.data?.full_name as string | null)?.split(' ')[0] ?? 'Karibu'
 
   const stats = [
-    { label: 'Mali Zilizosajiliwa',  value: listingCount,      icon: 'building',    color: 'bg-blue-50 text-blue-600'   },
-    { label: 'Makubaliano Hai',      value: activeAgreements,  icon: 'file-check',  color: 'bg-green-50 text-green-600' },
-    { label: 'Wanachama wa Timu',    value: memberCount,       icon: 'users',       color: 'bg-purple-50 text-purple-600'},
-    { label: 'Wapangaji',            value: 0,                 icon: 'home-heart',  color: 'bg-amber-50 text-amber-600'  },
+    { label: 'Mali Zilizosajiliwa',  value: listingCount,       icon: 'building',    color: 'bg-blue-50 text-blue-600'    },
+    { label: 'Wapangaji Hai',        value: activeLeaseCount,   icon: 'home-heart',  color: 'bg-amber-50 text-amber-600'  },
+    { label: 'Wanachama wa Timu',    value: memberCount,        icon: 'users',       color: 'bg-purple-50 text-purple-600'},
+    { label: 'Makubaliano Hai',      value: activeAgreements,   icon: 'file-check',  color: 'bg-green-50 text-green-600'  },
   ]
 
   return (
@@ -215,10 +239,10 @@ export default async function PropertyDashboardPage() {
       {/* Quick actions */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { href: '/property/mali/ongeza',  icon: 'building-plus',  label: 'Ongeza Mali',      color: 'bg-primary-500 text-white' },
-          { href: '/property/agreements/ongeza', icon: 'file-plus', label: 'Unda Mkataba',    color: 'bg-blue-500 text-white'    },
-          { href: '/property/team',          icon: 'user-plus',      label: 'Alika Mwanachama', color: 'bg-purple-500 text-white'  },
-          { href: '/property/wapangaji',     icon: 'users',          label: 'Angalia Wapangaji', color: 'bg-amber-500 text-white'  },
+          { href: '/property/mali/ongeza',       icon: 'building-plus', label: 'Ongeza Mali',       color: 'bg-primary-500 text-white' },
+          { href: '/property/wapangaji',         icon: 'users',         label: 'Wapangaji',         color: 'bg-amber-500 text-white'   },
+          { href: '/property/kodi',              icon: 'cash',          label: 'Malipo ya Kodi',    color: 'bg-green-600 text-white'   },
+          { href: '/property/agreements/ongeza', icon: 'file-plus',     label: 'Unda Mkataba',      color: 'bg-blue-500 text-white'    },
         ].map(a => (
           <Link key={a.href} href={a.href}>
             <div className={`${a.color} rounded-xl p-4 flex flex-col items-center gap-2 text-center hover:opacity-90 transition`}>
@@ -318,27 +342,79 @@ export default async function PropertyDashboardPage() {
         </div>
       </div>
 
-      {/* Phase coming soon banners */}
+      {/* Rent collection mini-widget */}
+      {leaseIds.length > 0 && (
+        <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+              <i className="ti ti-cash text-primary-500" aria-hidden="true" />
+              Hali ya Kodi
+            </h2>
+            <Link href="/property/kodi" className="text-xs text-primary-600 hover:underline">
+              Angalia Zote
+            </Link>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Link href="/property/kodi" className="block">
+              <div className={`rounded-xl p-3 text-center ${overdueRentCount > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+                <p className={`text-2xl font-bold tabular-nums ${overdueRentCount > 0 ? 'text-red-600' : 'text-gray-700'}`}>
+                  {overdueRentCount}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-0.5">Zimechelewa</p>
+              </div>
+            </Link>
+            <Link href="/property/kodi" className="block">
+              <div className={`rounded-xl p-3 text-center ${proofUpCount > 0 ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                <p className={`text-2xl font-bold tabular-nums ${proofUpCount > 0 ? 'text-blue-600' : 'text-gray-700'}`}>
+                  {proofUpCount}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-0.5">Ushahidi</p>
+              </div>
+            </Link>
+            <Link href="/property/kodi" className="block">
+              <div className="bg-gray-50 rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-gray-700 tabular-nums">{pendingRentCount}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">Zinasubiri</p>
+              </div>
+            </Link>
+          </div>
+          {(overdueRentCount > 0 || proofUpCount > 0) && (
+            <Link href="/property/kodi">
+              <div className={`mt-3 rounded-xl px-4 py-2.5 text-sm font-medium text-center transition ${
+                proofUpCount > 0
+                  ? 'bg-blue-500 text-white hover:bg-blue-600'
+                  : 'bg-red-500 text-white hover:bg-red-600'
+              }`}>
+                {proofUpCount > 0
+                  ? `Thibitisha ushahidi ${proofUpCount} wa malipo`
+                  : `Angalia malipo ${overdueRentCount} yaliyochelewa`}
+              </div>
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Live feature shortcut cards */}
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
         {[
-          { icon: 'users', title: 'Wapangaji & Mikataba ya Upangaji', desc: 'Fuatilia wapangaji, mikataba, na malipo ya kumbukumbu.', phase: 2 },
-          { icon: 'tool',  title: 'Matengenezo ya Nyumba',            desc: 'Pokea maombi ya matengenezo na wapeleke mafundi sahihi.', phase: 4 },
-          { icon: 'chart-bar', title: 'Taarifa za Mapato',            desc: 'Angalia mwenendo wa mapato na matumizi ya mali zako.',  phase: 9 },
+          { href: '/property/wapangaji', icon: 'users',     color: 'bg-amber-50 text-amber-600',   title: 'Wapangaji',        desc: 'Angalia mikataba, malipo na mawasiliano ya wapangaji wako.' },
+          { href: '/property/maintenance', icon: 'tool',    color: 'bg-orange-50 text-orange-600', title: 'Matengenezo',      desc: 'Fuatilia maombi ya matengenezo na wapeleke mafundi sahihi.' },
+          { href: '/property/taarifa',   icon: 'chart-bar', color: 'bg-purple-50 text-purple-600', title: 'Taarifa za Mapato', desc: 'Angalia mwenendo wa mapato na matumizi ya mali zako.' },
         ].map(f => (
-          <div key={f.title} className="bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-200">
-                <i className={`ti ti-${f.icon} text-gray-400 text-base`} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700">{f.title}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{f.desc}</p>
-                <span className="inline-block mt-1.5 text-[10px] bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full font-medium">
-                  Inakuja — Awamu {f.phase}
-                </span>
+          <Link key={f.href} href={f.href}>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:border-primary-200 hover:shadow-sm transition group">
+              <div className="flex items-start gap-3">
+                <div className={`w-9 h-9 ${f.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  <i className={`ti ti-${f.icon} text-base`} aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-800">{f.title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{f.desc}</p>
+                </div>
+                <i className="ti ti-chevron-right text-gray-300 text-base flex-shrink-0 opacity-0 group-hover:opacity-100 transition mt-0.5" aria-hidden="true" />
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

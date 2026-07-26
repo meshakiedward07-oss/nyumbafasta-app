@@ -1,0 +1,445 @@
+'use client'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Payment {
+  id: string; status: string
+  amount_due: number; amount_paid: number | null
+  due_date: string; paid_date: string | null
+  proof_url: string | null; proof_note: string | null
+  proof_uploaded_at: string | null; verified_at: string | null
+  invoice_sent_at: string | null
+}
+
+interface Banking {
+  bank_name: string; account_name: string; account_number: string
+  branch: string | null; mobile_money_number: string | null
+  mobile_money_provider: string | null; additional_instructions: string | null
+}
+
+interface LeaseUnit { id: string; unit_number: string; unit_type: string }
+interface LeaseListing { id: string; title: string; district: string; region: string; images: string[] | null }
+
+interface EnrichedLease {
+  lease: {
+    id: string; org_id: string; monthly_rent: number; deposit_amount: number | null
+    deposit_paid: boolean; start_date: string; end_date: string | null; status: string
+    unit: LeaseUnit | null; listing: LeaseListing | null
+  }
+  payments: Payment[]
+  banking: Banking | null
+  org_name: string | null
+  org_id: string
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function dateFmt(iso: string | null) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+function daysUntil(iso: string) {
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000)
+}
+
+const PAYMENT_STATUS: Record<string, { label: string; cls: string; icon: string }> = {
+  pending:        { label: 'Inasubiri Malipo',   cls: 'bg-amber-50 text-amber-700',   icon: 'clock'        },
+  partial:        { label: 'Ilipwa Kidogo',       cls: 'bg-orange-50 text-orange-700', icon: 'circle-half'  },
+  proof_uploaded: { label: 'Ushahidi Umepakiwa', cls: 'bg-blue-50 text-blue-700',     icon: 'upload'       },
+  paid:           { label: 'Imelipwa',            cls: 'bg-green-50 text-green-700',   icon: 'circle-check' },
+  void:           { label: 'Imebatilishwa',       cls: 'bg-gray-100 text-gray-400',    icon: 'ban'          },
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function BankingCard({ banking }: { banking: Banking }) {
+  const [copied, setCopied] = useState(false)
+  function copyAccount() {
+    navigator.clipboard.writeText(banking.account_number).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+        <i className="ti ti-building-bank" aria-hidden="true" /> Lipa Kodi Kwenye Akaunti Hii
+      </p>
+      <div className="space-y-2">
+        <BRow label="Benki"           value={banking.bank_name} />
+        <BRow label="Jina la Akaunti" value={banking.account_name} />
+        <div className="flex justify-between items-center">
+          <BRow label="Nambari ya Akaunti" value={banking.account_number} bold />
+          <button onClick={copyAccount}
+            className="ml-2 text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1">
+            <i className={`ti ti-${copied ? 'check' : 'copy'}`} aria-hidden="true" />
+            {copied ? 'Imenakiliwa' : 'Nakili'}
+          </button>
+        </div>
+        {banking.branch && <BRow label="Tawi" value={banking.branch} />}
+        {banking.mobile_money_number && (
+          <BRow
+            label={`${banking.mobile_money_provider ?? 'Simu'}`}
+            value={banking.mobile_money_number}
+            bold
+          />
+        )}
+        {banking.additional_instructions && (
+          <div className="pt-2 border-t border-gray-50">
+            <p className="text-xs text-gray-400 mb-0.5">Maelezo Zaidi</p>
+            <p className="text-sm text-gray-600">{banking.additional_instructions}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function BRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <div className="flex justify-between items-start gap-4">
+      <p className="text-xs text-gray-400 flex-shrink-0">{label}</p>
+      <p className={`text-sm text-right ${bold ? 'font-bold text-gray-900' : 'text-gray-700'}`}>{value}</p>
+    </div>
+  )
+}
+
+function PaymentCard({ p, leaseId }: { p: Payment; leaseId: string }) {
+  const isOverdue = ['pending', 'partial'].includes(p.status) && new Date(p.due_date) < new Date()
+  const daysLeft  = daysUntil(p.due_date)
+  const s = PAYMENT_STATUS[p.status] ?? PAYMENT_STATUS.pending
+
+  return (
+    <div className={`rounded-2xl border p-4 ${
+      isOverdue                 ? 'border-red-100 bg-red-50/40' :
+      p.status === 'paid'       ? 'border-green-100 bg-green-50/20' :
+      p.status === 'proof_uploaded' ? 'border-blue-100 bg-blue-50/20' :
+      'border-gray-100 bg-white'
+    }`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-gray-400 mb-0.5">Kodi ya Mwezi</p>
+          <p className="text-xl font-bold text-gray-900 tabular-nums">
+            TZS {p.amount_due.toLocaleString()}
+          </p>
+          <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-gray-500">
+            <span>Inastahili: <strong className={isOverdue ? 'text-red-600' : ''}>{dateFmt(p.due_date)}</strong></span>
+            {isOverdue && (
+              <span className="text-red-500 font-medium">
+                (siku {Math.abs(daysLeft)} zimepita)
+              </span>
+            )}
+            {!isOverdue && daysLeft >= 0 && daysLeft <= 7 && p.status === 'pending' && (
+              <span className="text-amber-500 font-medium">
+                (siku {daysLeft} zimebaki)
+              </span>
+            )}
+          </div>
+          {p.paid_date && (
+            <p className="text-xs text-green-600 mt-1">
+              <i className="ti ti-circle-check" aria-hidden="true" /> Ilipwa: {dateFmt(p.paid_date)}
+            </p>
+          )}
+          {p.verified_at && (
+            <p className="text-xs text-green-500 mt-0.5">
+              <i className="ti ti-shield-check" aria-hidden="true" /> Imethibitishwa: {dateFmt(p.verified_at)}
+            </p>
+          )}
+        </div>
+        <span className={`flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${s.cls}`}>
+          <i className={`ti ti-${s.icon}`} aria-hidden="true" />
+          {s.label}
+        </span>
+      </div>
+
+      {/* Proof uploaded confirmation */}
+      {p.status === 'proof_uploaded' && (
+        <div className="mt-3 bg-blue-50 rounded-xl p-3 text-xs text-blue-700">
+          <p className="font-medium mb-0.5">
+            <i className="ti ti-upload mr-1" aria-hidden="true" />Ushahidi umepakiwa
+          </p>
+          <p className="text-blue-500">Mmiliki ataona na atathibitisha hivi karibuni.</p>
+          {p.proof_url && (
+            <a href={p.proof_url} target="_blank" rel="noopener noreferrer"
+               className="mt-1 block text-blue-600 underline truncate">{p.proof_url}</a>
+          )}
+        </div>
+      )}
+
+      {/* Action button */}
+      {['pending', 'partial'].includes(p.status) && (
+        <Link href={`/rent/proof/${p.id}`}
+          className="mt-3 flex items-center justify-center gap-2 w-full bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
+          <i className="ti ti-upload" aria-hidden="true" />
+          Pakia Ushahidi wa Malipo
+        </Link>
+      )}
+    </div>
+  )
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+export default function TenantPage() {
+  const router = useRouter()
+  const [leases,  setLeases]  = useState<EnrichedLease[]>([])
+  const [loading, setLoading] = useState(true)
+  const [authErr, setAuthErr] = useState(false)
+  const [activeLeaseIdx, setActiveLeaseIdx] = useState(0)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/my-lease')
+        if (res.status === 401) { setAuthErr(true); return }
+        const data = await res.json()
+        setLeases(data.leases ?? [])
+      } catch { /* silent */ }
+      finally { setLoading(false) }
+    }
+    load()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 max-w-xl mx-auto">
+        <div className="space-y-3 pt-8">
+          {[1, 2, 3].map(i => <div key={i} className="h-28 bg-white rounded-2xl animate-pulse border border-gray-100" />)}
+        </div>
+      </div>
+    )
+  }
+
+  if (authErr) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl border border-gray-100 p-8 max-w-sm w-full text-center">
+          <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i className="ti ti-lock text-3xl text-primary-400" aria-hidden="true" />
+          </div>
+          <h2 className="font-bold text-gray-900 text-lg mb-2">Ingia kwanza</h2>
+          <p className="text-sm text-gray-500 mb-6">
+            Unahitaji kuingia katika akaunti yako ya mpangaji ili kuona malipo yako.
+          </p>
+          <Link href="/login?redirect=/tenant">
+            <button className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold hover:bg-primary-600 transition">
+              Ingia Sasa
+            </button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (leases.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl border border-gray-100 p-8 max-w-sm w-full text-center">
+          <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i className="ti ti-home-off text-3xl text-amber-400" aria-hidden="true" />
+          </div>
+          <h2 className="font-bold text-gray-900 text-lg mb-2">Huna mkataba bado</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Akaunti yako bado haijaunganishwa na mkataba wowote wa upangaji.
+          </p>
+          <p className="text-xs text-gray-400">
+            Mwambie mmiliki wako nambari yako ya simu ili akusajilishe kwenye mfumo huu.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const current = leases[activeLeaseIdx]
+  const { lease, payments, banking, org_name } = current
+
+  const unit    = lease.unit    as unknown as LeaseUnit | null
+  const listing = lease.listing as unknown as LeaseListing | null
+
+  // Split payments: upcoming/pending first, then historical
+  const pendingPayments = payments.filter(p => ['pending', 'partial', 'proof_uploaded'].includes(p.status))
+  const pastPayments    = payments.filter(p => ['paid', 'void'].includes(p.status))
+  const overdueCount    = pendingPayments.filter(p =>
+    ['pending', 'partial'].includes(p.status) && new Date(p.due_date) < new Date()
+  ).length
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-primary-500 text-white px-4 pt-10 pb-6">
+        <div className="max-w-xl mx-auto">
+          <p className="text-primary-200 text-xs mb-1">{org_name ?? 'NyumbaFasta'}</p>
+          <h1 className="text-xl font-bold">Malipo Yangu ya Kodi</h1>
+          <div className="flex items-center gap-2 mt-1.5 text-primary-100 text-sm">
+            {unit && (
+              <span className="flex items-center gap-1">
+                <i className="ti ti-door text-xs" aria-hidden="true" /> {unit.unit_number}
+              </span>
+            )}
+            {listing && (
+              <>
+                <span>·</span>
+                <span className="truncate">{listing.title}</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Multiple leases switcher */}
+      {leases.length > 1 && (
+        <div className="bg-white border-b border-gray-100 px-4 py-2">
+          <div className="max-w-xl mx-auto flex gap-2 overflow-x-auto scrollbar-hide">
+            {leases.map((l, i) => {
+              const u = l.lease.unit as unknown as LeaseUnit | null
+              return (
+                <button key={l.lease.id} onClick={() => setActiveLeaseIdx(i)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                    activeLeaseIdx === i ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                  {u?.unit_number ?? `Mkataba ${i + 1}`}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-xl mx-auto p-4 space-y-4">
+
+        {/* Lease summary card */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <div>
+              <p className="text-xs text-gray-400">Kodi ya Mwezi</p>
+              <p className="font-bold text-primary-600 text-lg tabular-nums">
+                TZS {lease.monthly_rent.toLocaleString()}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Hali ya Mkataba</p>
+              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                lease.status === 'active' ? 'bg-green-50 text-green-700' :
+                lease.status === 'expired' ? 'bg-amber-50 text-amber-700' :
+                'bg-gray-100 text-gray-500'
+              }`}>
+                <i className="ti ti-circle-filled text-[6px]" aria-hidden="true" />
+                {lease.status === 'active' ? 'Inaendelea' : lease.status === 'expired' ? 'Imekwisha' : lease.status}
+              </span>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Ilianza</p>
+              <p className="font-medium text-gray-700">{dateFmt(lease.start_date)}</p>
+            </div>
+            {lease.end_date && (
+              <div>
+                <p className="text-xs text-gray-400">Muda wa Mwisho</p>
+                <p className="font-medium text-gray-700">{dateFmt(lease.end_date)}</p>
+              </div>
+            )}
+            {lease.deposit_amount && (
+              <div>
+                <p className="text-xs text-gray-400">Amana</p>
+                <p className={`font-medium text-sm ${lease.deposit_paid ? 'text-green-600' : 'text-amber-600'}`}>
+                  TZS {lease.deposit_amount.toLocaleString()}
+                  {' '}
+                  <span className="text-xs">({lease.deposit_paid ? '✓ Imelipwa' : '✗ Haijalipiwa'})</span>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Overdue alert */}
+        {overdueCount > 0 && (
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3">
+            <i className="ti ti-alert-triangle text-red-500 text-xl mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-red-700 text-sm">Malipo {overdueCount} Yamechelewa</p>
+              <p className="text-xs text-red-500 mt-0.5">
+                Tafadhali lipa na upaki ushahidi haraka ili kuepuka matatizo.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Banking info */}
+        {banking && <BankingCard banking={banking} />}
+
+        {/* No banking set */}
+        {!banking && pendingPayments.length > 0 && (
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3">
+            <i className="ti ti-info-circle text-amber-500 text-xl flex-shrink-0" aria-hidden="true" />
+            <p className="text-sm text-amber-700">
+              Mmiliki bado hajaweka taarifa za akaunti ya benki. Wasiliana nao moja kwa moja.
+            </p>
+          </div>
+        )}
+
+        {/* Pending / upcoming payments */}
+        {pendingPayments.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">
+              Malipo Yanayosubiri ({pendingPayments.length})
+            </p>
+            <div className="space-y-3">
+              {pendingPayments.map(p => <PaymentCard key={p.id} p={p} leaseId={lease.id} />)}
+            </div>
+          </div>
+        )}
+
+        {/* Payment history */}
+        {pastPayments.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">
+              Historia ya Malipo
+            </p>
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              {pastPayments.map((p, i) => (
+                <div key={p.id} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-gray-50' : ''}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    p.status === 'paid' ? 'bg-green-50' : 'bg-gray-100'
+                  }`}>
+                    <i className={`ti ti-${p.status === 'paid' ? 'circle-check text-green-500' : 'ban text-gray-400'} text-sm`} aria-hidden="true" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800">TZS {p.amount_due.toLocaleString()}</p>
+                    <p className="text-xs text-gray-400">{dateFmt(p.due_date)}</p>
+                  </div>
+                  <div className="text-right">
+                    {p.paid_date && <p className="text-xs text-green-600">{dateFmt(p.paid_date)}</p>}
+                    {p.verified_at && (
+                      <p className="text-[10px] text-green-400 flex items-center gap-0.5 justify-end">
+                        <i className="ti ti-shield-check" aria-hidden="true" /> Imethibitishwa
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* All clear state */}
+        {pendingPayments.length === 0 && pastPayments.length === 0 && (
+          <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+            <i className="ti ti-calendar-event text-5xl text-gray-200" aria-hidden="true" />
+            <p className="text-gray-500 font-medium mt-3">Hakuna malipo bado</p>
+            <p className="text-sm text-gray-400 mt-1">
+              Malipo ya kodi yataonekana hapa punde tu yatakapotengenezwa na mmiliki wako.
+            </p>
+          </div>
+        )}
+
+        {/* Footer */}
+        <p className="text-center text-xs text-gray-400 pb-6">
+          NyumbaFasta · Msaada: <a href="https://wa.me/255665831694" className="underline">WhatsApp</a>
+        </p>
+      </div>
+    </div>
+  )
+}
