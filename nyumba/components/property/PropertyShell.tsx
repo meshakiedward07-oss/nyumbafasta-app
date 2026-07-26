@@ -31,6 +31,36 @@ function UnreadBadge() {
   )
 }
 
+function NotifBell() {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/notifications?unread=1')
+        if (!res.ok) return
+        const d = await res.json()
+        if (!cancelled) setCount(d.unread_count ?? 0)
+      } catch { /* silent */ }
+    }
+    load()
+    const t = setInterval(load, 60_000)
+    return () => { cancelled = true; clearInterval(t) }
+  }, [])
+
+  return (
+    <Link href="/notifications" className="relative p-2 rounded-xl hover:bg-gray-100 transition" aria-label="Arifa">
+      <i className="ti ti-bell text-xl text-gray-500" aria-hidden="true" />
+      {count > 0 && (
+        <span className="absolute top-1 right-1 min-w-[14px] h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full px-0.5 flex items-center justify-center leading-none">
+          {count > 9 ? '9+' : count}
+        </span>
+      )}
+    </Link>
+  )
+}
+
 const NAV_ITEMS = [
   { href: '/property/dashboard',    icon: 'layout-dashboard', label: 'Muhtasari',    exact: true  },
   { href: '/property/mali',         icon: 'building',          label: 'Mali Zangu',   exact: false },
@@ -134,12 +164,15 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
               <span>Rudi Kwenye App</span>
             </div>
           </Link>
-          <Link href="/property/mipangilio" onClick={onClose}>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 text-sm">
-              <i className="ti ti-settings" aria-hidden="true" />
-              <span>Mipangilio ya Shirika</span>
-            </div>
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link href="/property/mipangilio" onClick={onClose} className="flex-1">
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 text-sm">
+                <i className="ti ti-settings" aria-hidden="true" />
+                <span>Mipangilio ya Shirika</span>
+              </div>
+            </Link>
+            <NotifBell />
+          </div>
           <button onClick={handleLogout} className="w-full text-left">
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
               <i className="ti ti-door-exit" aria-hidden="true" />
@@ -170,17 +203,20 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
               {org?.name ?? 'Mali'}
             </span>
           </Link>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="p-2 rounded-xl bg-gray-100"
-            aria-label="Fungua menyu"
-          >
-            <div className="space-y-1">
-              <div className="w-5 h-0.5 bg-gray-600 rounded" />
-              <div className="w-5 h-0.5 bg-gray-600 rounded" />
-              <div className="w-5 h-0.5 bg-gray-600 rounded" />
-            </div>
-          </button>
+          <div className="flex items-center gap-1">
+            <NotifBell />
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="p-2 rounded-xl bg-gray-100"
+              aria-label="Fungua menyu"
+            >
+              <div className="space-y-1">
+                <div className="w-5 h-0.5 bg-gray-600 rounded" />
+                <div className="w-5 h-0.5 bg-gray-600 rounded" />
+                <div className="w-5 h-0.5 bg-gray-600 rounded" />
+              </div>
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">

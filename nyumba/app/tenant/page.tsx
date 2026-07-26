@@ -5,6 +5,32 @@ import { useRouter } from 'next/navigation'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface MaintenanceRequest {
+  id: string; title: string; description: string | null
+  category: string; priority: string; status: string
+  created_at: string; resolved_at: string | null
+  images: string[] | null; notes: string | null
+  unit: { id: string; unit_number: string } | null
+  assignee: { id: string; full_name: string | null; avatar_url: string | null } | null
+}
+
+const MAINT_STATUS: Record<string, { label: string; cls: string }> = {
+  open:        { label: 'Wazi',            cls: 'bg-amber-50 text-amber-700'  },
+  in_progress: { label: 'Inaendelea',      cls: 'bg-blue-50 text-blue-700'    },
+  resolved:    { label: 'Imeshughulikiwa', cls: 'bg-green-50 text-green-700'  },
+  closed:      { label: 'Imefungwa',       cls: 'bg-gray-100 text-gray-500'   },
+}
+
+const MAINT_CATEGORIES: { value: string; label: string }[] = [
+  { value: 'plumbing',    label: 'Mabomba / Maji'     },
+  { value: 'electrical',  label: 'Umeme'               },
+  { value: 'structural',  label: 'Jengo / Miundo'     },
+  { value: 'cleaning',    label: 'Usafi'               },
+  { value: 'security',    label: 'Usalama'             },
+  { value: 'appliance',   label: 'Vifaa / Majiko'     },
+  { value: 'other',       label: 'Nyingine'            },
+]
+
 interface Payment {
   id: string; status: string
   amount_due: number; amount_paid: number | null
@@ -190,6 +216,15 @@ export default function TenantPage() {
   const [loading, setLoading] = useState(true)
   const [authErr, setAuthErr] = useState(false)
   const [activeLeaseIdx, setActiveLeaseIdx] = useState(0)
+  const [activeTab, setActiveTab] = useState<'malipo' | 'matengenezo'>('malipo')
+
+  // Maintenance state
+  const [requests,    setRequests]    = useState<MaintenanceRequest[]>([])
+  const [maintLoaded, setMaintLoaded] = useState(false)
+  const [showMaintForm, setShowMaintForm] = useState(false)
+  const [maintForm, setMaintForm] = useState({ title: '', description: '', category: 'other', priority: 'medium' })
+  const [maintSubmitting, setMaintSubmitting] = useState(false)
+  const [maintErr, setMaintErr] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -203,6 +238,35 @@ export default function TenantPage() {
     }
     load()
   }, [])
+
+  async function loadMaintenance() {
+    if (maintLoaded) return
+    try {
+      const res  = await fetch('/api/v1/my-maintenance')
+      const data = await res.json()
+      setRequests(data.requests ?? [])
+    } catch { /* silent */ }
+    finally { setMaintLoaded(true) }
+  }
+
+  async function handleMaintSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!maintForm.title.trim()) { setMaintErr('Kichwa cha tatizo kinahitajika.'); return }
+    setMaintSubmitting(true); setMaintErr(null)
+    try {
+      const res  = await fetch('/api/v1/my-maintenance', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(maintForm),
+      })
+      const data = await res.json()
+      if (!res.ok) { setMaintErr(data.error ?? 'Imeshindwa kutuma.'); return }
+      setRequests(prev => [data.request, ...prev])
+      setMaintForm({ title: '', description: '', category: 'other', priority: 'medium' })
+      setShowMaintForm(false)
+    } catch { setMaintErr('Imeshindwa kutuma. Angalia muunganiko wako.') }
+    finally { setMaintSubmitting(false) }
+  }
 
   if (loading) {
     return (
@@ -354,6 +418,31 @@ export default function TenantPage() {
           </div>
         </div>
 
+        {/* Tab switcher */}
+        <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+          <button
+            onClick={() => setActiveTab('malipo')}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
+              activeTab === 'malipo' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            <i className="ti ti-cash mr-1.5" aria-hidden="true" />
+            Malipo ya Kodi
+          </button>
+          <button
+            onClick={() => { setActiveTab('matengenezo'); loadMaintenance() }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
+              activeTab === 'matengenezo' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            <i className="ti ti-tool mr-1.5" aria-hidden="true" />
+            Matengenezo
+          </button>
+        </div>
+
+        {/* ══ MALIPO TAB ══════════════════════════════════════════════════════ */}
+        {activeTab === 'malipo' && <>
+
         {/* Overdue alert */}
         {overdueCount > 0 && (
           <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3">
@@ -432,6 +521,157 @@ export default function TenantPage() {
             <p className="text-sm text-gray-400 mt-1">
               Malipo ya kodi yataonekana hapa punde tu yatakapotengenezwa na mmiliki wako.
             </p>
+          </div>
+        )}
+
+        </> /* end malipo tab */}
+
+        {/* ══ MATENGENEZO TAB ═════════════════════════════════════════════════ */}
+        {activeTab === 'matengenezo' && (
+          <div className="space-y-4">
+
+            {/* Submit button */}
+            <button
+              onClick={() => setShowMaintForm(v => !v)}
+              className="w-full flex items-center justify-center gap-2 bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary-600 transition"
+            >
+              <i className={`ti ti-${showMaintForm ? 'x' : 'plus'}`} aria-hidden="true" />
+              {showMaintForm ? 'Funga Fomu' : 'Wasilisha Tatizo Jipya'}
+            </button>
+
+            {/* Submit form */}
+            {showMaintForm && (
+              <form onSubmit={handleMaintSubmit} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+                <p className="text-sm font-semibold text-gray-700">Maelezo ya Tatizo</p>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Kichwa cha Tatizo <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={maintForm.title}
+                    onChange={e => setMaintForm(p => ({ ...p, title: e.target.value }))}
+                    placeholder="mfano: Bomba linachuruzika bafuni"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Maelezo ya Ziada
+                  </label>
+                  <textarea
+                    value={maintForm.description}
+                    onChange={e => setMaintForm(p => ({ ...p, description: e.target.value }))}
+                    placeholder="Elezea tatizo kwa undani zaidi..."
+                    rows={3}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Aina ya Tatizo</label>
+                    <select
+                      value={maintForm.category}
+                      onChange={e => setMaintForm(p => ({ ...p, category: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                    >
+                      {MAINT_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Haraka</label>
+                    <select
+                      value={maintForm.priority}
+                      onChange={e => setMaintForm(p => ({ ...p, priority: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                    >
+                      <option value="urgent">Dharura</option>
+                      <option value="high">Juu</option>
+                      <option value="medium">Kati</option>
+                      <option value="low">Chini</option>
+                    </select>
+                  </div>
+                </div>
+
+                {maintErr && (
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-600 flex items-center gap-2">
+                    <i className="ti ti-alert-circle flex-shrink-0" aria-hidden="true" />
+                    {maintErr}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={maintSubmitting}
+                  className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-60 hover:bg-primary-600 transition flex items-center justify-center gap-2"
+                >
+                  {maintSubmitting
+                    ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />Inatuma...</>
+                    : <><i className="ti ti-send" aria-hidden="true" />Tuma Ombi</>
+                  }
+                </button>
+              </form>
+            )}
+
+            {/* Requests list */}
+            {!maintLoaded ? (
+              <div className="space-y-3">
+                {[1, 2].map(i => <div key={i} className="h-20 bg-white rounded-2xl animate-pulse border border-gray-100" />)}
+              </div>
+            ) : requests.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+                <i className="ti ti-tool text-5xl text-gray-200" aria-hidden="true" />
+                <p className="text-gray-500 font-medium mt-3">Hakuna maombi bado</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Kama una tatizo lolote la nyumba, bonyeza kitufe hapo juu.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {requests.map(r => {
+                  const s = MAINT_STATUS[r.status] ?? MAINT_STATUS.open
+                  const catLabel = MAINT_CATEGORIES.find(c => c.value === r.category)?.label ?? r.category
+                  return (
+                    <div key={r.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <p className="font-semibold text-gray-900 text-sm flex-1">{r.title}</p>
+                        <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${s.cls}`}>
+                          {s.label}
+                        </span>
+                      </div>
+                      {r.description && (
+                        <p className="text-xs text-gray-500 mb-2 line-clamp-2">{r.description}</p>
+                      )}
+                      <div className="flex items-center gap-3 text-[10px] text-gray-400 flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <i className="ti ti-tag" aria-hidden="true" />{catLabel}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <i className="ti ti-calendar" aria-hidden="true" />
+                          {new Date(r.created_at).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                        {r.assignee?.full_name && (
+                          <span className="flex items-center gap-1 text-primary-600">
+                            <i className="ti ti-user" aria-hidden="true" />
+                            {r.assignee.full_name}
+                          </span>
+                        )}
+                        {r.resolved_at && (
+                          <span className="flex items-center gap-1 text-green-500">
+                            <i className="ti ti-circle-check" aria-hidden="true" />
+                            Imeshughulikiwa
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
