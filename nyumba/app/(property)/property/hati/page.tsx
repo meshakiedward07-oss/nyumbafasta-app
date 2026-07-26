@@ -1,35 +1,216 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-const PAGES: Record<string, { title: string; icon: string; phase: number; desc: string }> = {
-  mali:        { title: 'Mali Zangu',          icon: 'building',    phase: 2, desc: 'Angalia na simamia nyumba na vitengo vyako vya kukodisha.' },
-  wapangaji:   { title: 'Wapangaji',           icon: 'users',       phase: 2, desc: 'Simamia wapangaji, mikataba ya upangaji, na historia.' },
-  maintenance: { title: 'Matengenezo',         icon: 'tool',        phase: 4, desc: 'Pokea na fuatilia maombi ya matengenezo na mafundi.' },
-  hati:        { title: 'Hati na Nyaraka',     icon: 'folder',      phase: 2, desc: 'Hifadhi hati zote za mali, mikataba, na leseni.' },
-  taarifa:     { title: 'Taarifa na Takwimu',  icon: 'chart-bar',   phase: 9, desc: 'Angalia uchambuzi wa mapato, matumizi, na mwenendo.' },
-  mipangilio:  { title: 'Mipangilio ya Shirika', icon: 'settings',  phase: 1, desc: 'Badilisha taarifa za shirika lako na mipangilio ya akaunti.' },
+// Documents are aggregated from existing records that have document_url fields:
+// leases.document_url, management_agreements.document_url, kyc_submissions.*_url
+
+type HatiSource = 'mkataba' | 'makubaliano' | 'kyc'
+
+interface HatiItem {
+  id:        string
+  title:     string
+  type:      HatiSource
+  url:       string
+  date:      string
+  related:   string | null  // e.g. tenant name or listing title
 }
 
-export default function PlaceholderPage() {
-  const path = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() ?? '' : ''
-  const page = PAGES[path] ?? { title: 'Ukurasa huu', icon: 'clock', phase: 2, desc: 'Kipengele hiki kinakuja hivi karibuni.' }
+const SOURCE_LABELS: Record<HatiSource, string> = {
+  mkataba:    'Mkataba wa Upangaji',
+  makubaliano:'Makubaliano ya Usimamizi',
+  kyc:        'Hati ya Utambulisho',
+}
+
+const SOURCE_ICONS: Record<HatiSource, string> = {
+  mkataba:    'file-text',
+  makubaliano:'file-check',
+  kyc:        'id',
+}
+
+const SOURCE_COLORS: Record<HatiSource, string> = {
+  mkataba:    'bg-blue-50 text-blue-600',
+  makubaliano:'bg-green-50 text-green-600',
+  kyc:        'bg-purple-50 text-purple-600',
+}
+
+const FILTERS: { value: HatiSource | 'all'; label: string }[] = [
+  { value: 'all',         label: 'Zote'         },
+  { value: 'mkataba',     label: 'Mikataba'     },
+  { value: 'makubaliano', label: 'Makubaliano'  },
+  { value: 'kyc',         label: 'KYC/Utambulisho' },
+]
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function fileExtension(url: string) {
+  const part = url.split('?')[0].split('.').pop()?.toUpperCase() ?? 'FILE'
+  return part.length <= 5 ? part : 'FILE'
+}
+
+export default function HatiPage() {
+  const router = useRouter()
+  const [hati,     setHati]    = useState<HatiItem[]>([])
+  const [loading,  setLoading] = useState(true)
+  const [filter,   setFilter]  = useState<HatiSource | 'all'>('all')
+  const [search,   setSearch]  = useState('')
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const orgRes  = await fetch('/api/v1/organizations')
+        const orgData = await orgRes.json()
+        const orgs    = orgData.organizations ?? []
+        const primary = orgs.find((o: { role: string }) => o.role === 'owner') ?? orgs[0]
+        if (!primary) { router.push('/property/setup'); return }
+        const orgId = primary.organization.id
+
+        // Fetch leases with document_url
+        const leasesRes  = await fetch(`/api/v1/organizations/${orgId}/leases`)
+        const leasesData = await leasesRes.json()
+
+        // Fetch agreements
+        const agreeRes  = await fetch(`/api/v1/organizations/${orgId}/agreements`)
+        const agreeData = await agreeRes.json()
+
+        const items: HatiItem[] = []
+
+        // Leases with documents
+        for (const l of leasesData.leases ?? []) {
+          if (l.document_url) {
+            const tenant = (l.tenant as { full_name: string | null } | null)?.full_name ?? 'Mpangaji'
+            items.push({
+              id:      `lease-${l.id}`,
+              title:   `Mkataba — ${tenant}`,
+              type:    'mkataba',
+              url:     l.document_url,
+              date:    l.created_at,
+              related: tenant,
+            })
+          }
+        }
+
+        // Agreements with documents
+        for (const a of agreeData.agreements ?? []) {
+          if (a.document_url) {
+            items.push({
+              id:      `agree-${a.id}`,
+              title:   `Makubaliano ya Usimamizi`,
+              type:    'makubaliano',
+              url:     a.document_url,
+              date:    a.created_at,
+              related: a.listing?.title ?? null,
+            })
+          }
+        }
+
+        // Sort by date descending
+        items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        setHati(items)
+      } catch { /* silent */ }
+      finally { setLoading(false) }
+    }
+    load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const filtered = hati.filter(h => {
+    const matchType   = filter === 'all' || h.type === filter
+    const matchSearch = !search.trim() ||
+      h.title.toLowerCase().includes(search.toLowerCase()) ||
+      (h.related ?? '').toLowerCase().includes(search.toLowerCase())
+    return matchType && matchSearch
+  })
+
   return (
-    <div className="p-4 lg:p-6 max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
-        <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <i className={`ti ti-${page.icon} text-3xl text-gray-300`} aria-hidden="true" />
+    <div className="flex flex-col h-full max-w-2xl mx-auto">
+      {/* Header */}
+      <div className="p-4 lg:p-5 border-b border-gray-100 bg-white flex-shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Hati na Nyaraka</h1>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {loading ? '...' : `Nyaraka ${hati.length} zilizopatikana`}
+            </p>
+          </div>
         </div>
-        <h1 className="text-xl font-bold text-gray-900 mb-2">{page.title}</h1>
-        <p className="text-sm text-gray-500 mb-4 max-w-xs mx-auto">{page.desc}</p>
-        <span className="inline-block text-xs bg-primary-50 text-primary-700 px-3 py-1.5 rounded-full font-medium">
-          Inakuja — Awamu {page.phase}
-        </span>
-        <div className="mt-6">
-          <Link href="/property/dashboard">
-            <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-              ← Rudi Dashibodini
+
+        <input
+          type="text" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Tafuta hati..."
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 mb-2"
+        />
+
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+          {FILTERS.map(f => (
+            <button key={f.value} onClick={() => setFilter(f.value)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                filter === f.value ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}>
+              {f.label}
             </button>
-          </Link>
+          ))}
         </div>
+      </div>
+
+      {/* List */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        {loading ? (
+          [1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-2xl" />)
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16 px-6">
+            <i className="ti ti-folder text-5xl text-gray-200" aria-hidden="true" />
+            <p className="text-gray-500 font-medium mt-3">
+              {hati.length === 0 ? 'Hakuna hati bado' : 'Hakuna matokeo'}
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              {hati.length === 0
+                ? 'Hati za mikataba na makubaliano zitaonekana hapa.'
+                : 'Badilisha utafutaji au kichujio.'}
+            </p>
+            {hati.length === 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs text-gray-400 font-semibold">Ongeza hati kwa:</p>
+                <Link href="/property/wapangaji" className="block text-sm text-primary-600 hover:underline">
+                  → Mikataba ya wapangaji
+                </Link>
+                <Link href="/property/agreements" className="block text-sm text-primary-600 hover:underline">
+                  → Makubaliano ya usimamizi
+                </Link>
+              </div>
+            )}
+          </div>
+        ) : (
+          filtered.map(h => (
+            <a key={h.id} href={h.url} target="_blank" rel="noopener noreferrer">
+              <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-4 py-3.5 hover:border-primary-200 hover:bg-primary-50/20 transition cursor-pointer">
+                {/* File type icon */}
+                <div className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${SOURCE_COLORS[h.type]}`}>
+                  <i className={`ti ti-${SOURCE_ICONS[h.type]} text-lg`} aria-hidden="true" />
+                  <span className="text-[9px] font-bold mt-0.5 leading-none">{fileExtension(h.url)}</span>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-gray-900 truncate">{h.title}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${SOURCE_COLORS[h.type]}`}>
+                      {SOURCE_LABELS[h.type]}
+                    </span>
+                    <span className="text-[10px] text-gray-400">{fmtDate(h.date)}</span>
+                  </div>
+                  {h.related && (
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{h.related}</p>
+                  )}
+                </div>
+
+                <i className="ti ti-external-link text-gray-300 flex-shrink-0" aria-hidden="true" />
+              </div>
+            </a>
+          ))
+        )}
       </div>
     </div>
   )
