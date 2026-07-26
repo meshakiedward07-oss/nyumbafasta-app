@@ -87,7 +87,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     // Verify unit belongs to this org and is vacant
     const { data: unit } = await admin
       .from('property_units')
-      .select('id, status, listing_id, org_id')
+      .select('id, status, listing_id, org_id, unit_number')
       .eq('id', unit_id)
       .single()
 
@@ -136,12 +136,12 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     // Auto-generate first payment record
     const firstDue = new Date(start_date)
-    await admin.from('lease_payments').insert({
+    const { data: firstPayment } = await admin.from('lease_payments').insert({
       lease_id: lease.id,
       amount_due: monthly_rent,
       due_date: firstDue.toISOString().split('T')[0],
       status: 'pending',
-    })
+    }).select('id').single()
 
     // Auto-create a lease conversation between tenant and org
     try {
@@ -177,6 +177,31 @@ export async function POST(req: NextRequest, { params }: Params) {
         })
       }
     } catch { /* conversation creation is non-critical */ }
+
+    // Non-fatal: welcome tenant via in-app + WhatsApp
+    ;(async () => {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const unitLabel = (unit as unknown as { unit_number?: string } | null)?.unit_number ?? 'kitengo chako'
+      const startStr = new Date(start_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
+      const rentStr = `TZS ${monthly_rent.toLocaleString()}`
+      try {
+        await admin.from('notifications').insert({
+          user_id: tenantProfile.id,
+          title: '🏠 Karibu NyumbaFasta!',
+          body: `Mkataba wako wa ${unitLabel} umeanza tarehe ${startStr}. Kodi ya kwanza ya ${rentStr} inasubiri malipo.`,
+          type: 'lease_created',
+          is_read: false,
+          data: JSON.stringify({ lease_id: lease.id, payment_id: firstPayment?.id }),
+        })
+      } catch { /* non-fatal */ }
+      if (tenantProfile.phone) {
+        const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
+        let msg = `🏠 *NyumbaFasta — Karibu!*\n\nHabari ${tenantProfile.full_name ?? ''}!\n\nMkataba wako wa *${unitLabel}* umeanzishwa:\n💰 Kodi: *${rentStr}/mwezi*\n📅 Ilianza: *${startStr}*`
+        if (end_date) msg += `\n📅 Inaisha: *${new Date(end_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })}*`
+        if (firstPayment?.id) msg += `\n\nLipa kodi ya kwanza hapa:\n${appUrl}/rent/proof/${firstPayment.id}`
+        sendTextMessage(formatPhoneNumber(tenantProfile.phone), msg).catch(() => {})
+      }
+    })().catch(() => {})
 
     return NextResponse.json({ lease, tenant: tenantProfile }, { status: 201 })
   } catch (err) {

@@ -1483,6 +1483,54 @@ async function runDailyTasks() {
     errors.push(`❌ Mark overdue as late: ${String(e)}`)
   }
 
+  // ── 30. Lease expiry alerts at 7, 14, 30 days ────────────────────────────────
+  try {
+    const today = now.split('T')[0]
+    const addDays = (d: string, n: number) => {
+      const dt = new Date(d); dt.setDate(dt.getDate() + n); return dt.toISOString().split('T')[0]
+    }
+    const target7  = addDays(today, 7)
+    const target14 = addDays(today, 14)
+    const target30 = addDays(today, 30)
+
+    const { data: expiringLeases } = await admin
+      .from('leases')
+      .select('id, tenant_id, landlord_id, end_date, unit:property_units(unit_number)')
+      .eq('status', 'active')
+      .in('end_date', [target7, target14, target30])
+
+    let alertsSent = 0
+    for (const lease of expiringLeases ?? []) {
+      const daysLeft = (lease.end_date as string) === target7 ? 7 : (lease.end_date as string) === target14 ? 14 : 30
+      const unitLabel = (lease.unit as unknown as { unit_number?: string } | null)?.unit_number ?? 'kitengo'
+      const endStr = new Date(lease.end_date as string).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
+      const tenantId = lease.tenant_id as string
+      const landlordId = lease.landlord_id as string
+
+      const toNotify = [
+        {
+          user_id: tenantId,
+          title: `⚠️ Mkataba Unakwisha Siku ${daysLeft}`,
+          body: `Mkataba wako wa ${unitLabel} unakwisha tarehe ${endStr} (siku ${daysLeft} zilizobaki). Wasiliana na mmiliki kukubaliana upya.`,
+          type: 'lease_expiry', is_read: false,
+          data: JSON.stringify({ lease_id: lease.id, days_left: daysLeft }),
+        },
+        ...(landlordId !== tenantId ? [{
+          user_id: landlordId,
+          title: `⚠️ Mkataba Unakwisha Siku ${daysLeft}`,
+          body: `Mkataba wa ${unitLabel} unakwisha tarehe ${endStr} (siku ${daysLeft} zilizobaki). Fanya maamuzi ya upya au kukomesha.`,
+          type: 'lease_expiry', is_read: false,
+          data: JSON.stringify({ lease_id: lease.id, days_left: daysLeft }),
+        }] : []),
+      ]
+      await admin.from('notifications').insert(toNotify)
+      alertsSent++
+    }
+    results.push(`✅ Lease expiry alerts sent: ${alertsSent}`)
+  } catch (e) {
+    errors.push(`❌ Lease expiry alerts: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,

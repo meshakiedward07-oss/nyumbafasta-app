@@ -74,6 +74,17 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
   const [voiding,        setVoiding]        = useState<string | null>(null)
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null)
 
+  // Lifecycle action states
+  const [renewModal,     setRenewModal]     = useState(false)
+  const [renewForm,      setRenewForm]      = useState({ new_end_date: '', new_monthly_rent: '', notes: '' })
+  const [renewing,       setRenewing]       = useState(false)
+  const [renewErr,       setRenewErr]       = useState<string | null>(null)
+  const [terminateModal, setTerminateModal] = useState(false)
+  const [terminateForm,  setTerminateForm]  = useState({ termination_reason: '', deposit_refund_amount: '' })
+  const [terminating,    setTerminating]    = useState(false)
+  const [terminateErr,   setTerminateErr]   = useState<string | null>(null)
+  const [depositLoading, setDepositLoading] = useState(false)
+
   useEffect(() => {
     async function load() {
       try {
@@ -206,6 +217,70 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
     const data = await res.json()
     if (res.ok) setPayments(prev => prev.map(p => p.id === payment.id ? data.payment : p))
     setVoiding(null)
+  }
+
+  async function handleDepositReceived() {
+    if (!orgId || !confirm('Rekodi kwamba mpangaji amelipa amana?')) return
+    setDepositLoading(true)
+    const res = await fetch(`/api/v1/organizations/${orgId}/leases/${leaseId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deposit_received' }),
+    })
+    const data = await res.json()
+    if (res.ok) setLease(data.lease)
+    setDepositLoading(false)
+  }
+
+  async function handleDepositRefund() {
+    if (!orgId) return
+    setTerminateForm(f => ({ ...f, deposit_refund_amount: String(lease?.deposit_amount ?? '') }))
+    // Use the terminate modal's deposit field as a quick entry point
+    const amount = prompt(`Kiasi cha amana inayorudishwa (TZS) — acha tupu kwa ${fmt(lease?.deposit_amount ?? 0)}:`)
+    if (amount === null) return
+    setDepositLoading(true)
+    const body: Record<string, unknown> = { action: 'deposit_refund' }
+    if (amount.trim()) body.deposit_refund_amount = parseFloat(amount)
+    const res = await fetch(`/api/v1/organizations/${orgId}/leases/${leaseId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    if (res.ok) setLease(data.lease)
+    setDepositLoading(false)
+  }
+
+  async function submitRenew() {
+    if (!orgId || !renewForm.new_end_date) return
+    setRenewing(true); setRenewErr(null)
+    const body: Record<string, unknown> = { action: 'renew', new_end_date: renewForm.new_end_date }
+    if (renewForm.new_monthly_rent.trim()) body.new_monthly_rent = parseFloat(renewForm.new_monthly_rent)
+    if (renewForm.notes.trim()) body.notes = renewForm.notes.trim()
+    const res = await fetch(`/api/v1/organizations/${orgId}/leases/${leaseId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    if (!res.ok) { setRenewErr(data.error ?? 'Kuna tatizo'); setRenewing(false); return }
+    setLease(data.lease)
+    setRenewModal(false)
+    setRenewForm({ new_end_date: '', new_monthly_rent: '', notes: '' })
+    setRenewing(false)
+  }
+
+  async function submitTerminate() {
+    if (!orgId || !terminateForm.termination_reason) return
+    setTerminating(true); setTerminateErr(null)
+    const body: Record<string, unknown> = { action: 'terminate', termination_reason: terminateForm.termination_reason }
+    if (terminateForm.deposit_refund_amount.trim()) body.deposit_refund_amount = parseFloat(terminateForm.deposit_refund_amount)
+    const res = await fetch(`/api/v1/organizations/${orgId}/leases/${leaseId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    if (!res.ok) { setTerminateErr(data.error ?? 'Kuna tatizo'); setTerminating(false); return }
+    setLease(data.lease)
+    setPayments(prev => prev.map(p => ['pending', 'partial', 'late', 'proof_uploaded'].includes(p.status) ? { ...p, status: 'void' } : p))
+    setTerminateModal(false)
+    setTerminateForm({ termination_reason: '', deposit_refund_amount: '' })
+    setTerminating(false)
   }
 
   if (loading) return (
@@ -381,6 +456,95 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
+      {/* ── Renew modal ───────────────────────────────────────────────────────── */}
+      {renewModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Fanya Upya Mkataba</h2>
+            <p className="text-sm text-gray-500 mb-4">{tenant?.full_name} · {unit?.unit_number}</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Tarehe Mpya ya Kumalizika *</label>
+                <input type="date" value={renewForm.new_end_date}
+                  onChange={e => setRenewForm(f => ({ ...f, new_end_date: e.target.value }))}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Kodi Mpya (TZS) — hiari</label>
+                <input type="number" value={renewForm.new_monthly_rent}
+                  onChange={e => setRenewForm(f => ({ ...f, new_monthly_rent: e.target.value }))}
+                  placeholder={String(lease?.monthly_rent ?? '')}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Maelezo — hiari</label>
+                <input value={renewForm.notes}
+                  onChange={e => setRenewForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Mabadiliko yoyote ya mkataba..."
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              {renewErr && <p className="text-sm text-red-600">{renewErr}</p>}
+              <div className="flex gap-2">
+                <button onClick={submitRenew} disabled={renewing || !renewForm.new_end_date}
+                  className="flex-1 bg-blue-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-600 disabled:opacity-40 transition">
+                  {renewing ? 'Inasasisha...' : '🔄 Fanya Upya'}
+                </button>
+                <button onClick={() => { setRenewModal(false); setRenewErr(null) }}
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Terminate modal ───────────────────────────────────────────────────── */}
+      {terminateModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Simamisha Mkataba</h2>
+            <p className="text-sm text-red-500 mb-4">Hatua hii itabatilisha malipo yote yanayosubiri na kuacha kitengo huru.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Sababu *</label>
+                <select value={terminateForm.termination_reason}
+                  onChange={e => setTerminateForm(f => ({ ...f, termination_reason: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                  <option value="">— Chagua sababu —</option>
+                  <option value="tenant_request">Ombi la Mpangaji</option>
+                  <option value="landlord_request">Ombi la Mmiliki</option>
+                  <option value="non_payment">Kutolipa Kodi</option>
+                  <option value="lease_ended">Mkataba Umekwisha</option>
+                  <option value="property_sold">Mali Iliuzwa</option>
+                  <option value="other">Nyingine</option>
+                </select>
+              </div>
+              {lease?.deposit_paid && !lease?.deposit_refunded_at && (
+                <div>
+                  <label className="text-xs font-medium text-gray-600 block mb-1">
+                    Amana Inayorudishwa (TZS) — hiari
+                  </label>
+                  <input type="number" value={terminateForm.deposit_refund_amount}
+                    onChange={e => setTerminateForm(f => ({ ...f, deposit_refund_amount: e.target.value }))}
+                    placeholder={String(lease?.deposit_amount ?? '')}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+                  <p className="text-[10px] text-gray-400 mt-1">Acha tupu ili usirudishe amana sasa.</p>
+                </div>
+              )}
+              {terminateErr && <p className="text-sm text-red-600">{terminateErr}</p>}
+              <div className="flex gap-2">
+                <button onClick={submitTerminate} disabled={terminating || !terminateForm.termination_reason}
+                  className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-red-600 disabled:opacity-40 transition">
+                  {terminating ? 'Inasimamisha...' : '⚠️ Simamisha Mkataba'}
+                </button>
+                <button onClick={() => { setTerminateModal(false); setTerminateErr(null) }}
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Back + header */}
       <div>
         <Link href="/property/wapangaji"
@@ -404,6 +568,32 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
+      {/* Expiry warning banner */}
+      {lease.end_date && lease.status === 'active' && (() => {
+        const daysLeft = Math.ceil((new Date(lease.end_date).getTime() - Date.now()) / 86400000)
+        if (daysLeft > 30) return null
+        const urgent = daysLeft <= 7
+        return (
+          <div className={`rounded-2xl p-4 flex items-center gap-3 ${urgent ? 'bg-red-50 border border-red-100' : 'bg-amber-50 border border-amber-100'}`}>
+            <i className={`ti ti-alert-triangle text-xl flex-shrink-0 ${urgent ? 'text-red-500' : 'text-amber-500'}`} aria-hidden="true" />
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold ${urgent ? 'text-red-700' : 'text-amber-700'}`}>
+                Mkataba Unakwisha — Siku {daysLeft} Zilizobaki
+              </p>
+              <p className={`text-xs mt-0.5 ${urgent ? 'text-red-500' : 'text-amber-500'}`}>
+                Unaisha {dateFmt(lease.end_date)}
+              </p>
+            </div>
+            {isOwner && (
+              <button onClick={() => setRenewModal(true)}
+                className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl transition ${urgent ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-amber-500 text-white hover:bg-amber-600'}`}>
+                Fanya Upya
+              </button>
+            )}
+          </div>
+        )
+      })()}
+
       {/* Lease details */}
       <div className="grid sm:grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
@@ -415,8 +605,14 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Deposit</span>
-              <span className="font-medium">{lease.deposit_amount ? fmt(lease.deposit_amount) : '—'}
-                {lease.deposit_paid && <span className="ml-1 text-xs text-green-600">(Imelipwa)</span>}</span>
+              <span className="font-medium">
+                {lease.deposit_amount ? fmt(lease.deposit_amount) : '—'}
+                {lease.deposit_refunded_at
+                  ? <span className="ml-1 text-xs text-blue-600">(Imerudishwa)</span>
+                  : lease.deposit_paid
+                    ? <span className="ml-1 text-xs text-green-600">(Imelipwa)</span>
+                    : null}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Ilianza</span>
@@ -469,6 +665,44 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
       </div>
+
+      {/* Lifecycle actions */}
+      {isOwner && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+          <p className="text-xs text-gray-400 mb-3 font-medium">Vitendo vya Mkataba</p>
+          <div className="flex flex-wrap gap-2">
+            {lease.status === 'active' && (
+              <button onClick={() => setRenewModal(true)}
+                className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-blue-100 transition">
+                <i className="ti ti-refresh text-sm" aria-hidden="true" /> Fanya Upya
+              </button>
+            )}
+            {lease.status === 'active' && (
+              <button onClick={() => setTerminateModal(true)}
+                className="flex items-center gap-1.5 bg-red-50 text-red-600 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-red-100 transition">
+                <i className="ti ti-x text-sm" aria-hidden="true" /> Simamisha
+              </button>
+            )}
+            {!lease.deposit_paid && lease.deposit_amount && (
+              <button onClick={handleDepositReceived} disabled={depositLoading}
+                className="flex items-center gap-1.5 bg-green-50 text-green-700 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-green-100 disabled:opacity-50 transition">
+                <i className="ti ti-coin text-sm" aria-hidden="true" />
+                {depositLoading ? 'Inarekodi...' : 'Amana Imelipwa'}
+              </button>
+            )}
+            {lease.deposit_paid && !lease.deposit_refunded_at && (
+              <button onClick={handleDepositRefund} disabled={depositLoading}
+                className="flex items-center gap-1.5 bg-amber-50 text-amber-700 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-amber-100 disabled:opacity-50 transition">
+                <i className="ti ti-arrow-back-up text-sm" aria-hidden="true" />
+                {depositLoading ? 'Inarekodi...' : 'Rudisha Amana'}
+              </button>
+            )}
+          </div>
+          {lease.renewal_count > 0 && (
+            <p className="text-xs text-gray-400 mt-3">Imefanywa upya mara {lease.renewal_count}</p>
+          )}
+        </div>
+      )}
 
       {/* Payment records */}
       <div>

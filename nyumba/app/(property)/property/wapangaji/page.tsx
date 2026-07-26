@@ -160,6 +160,15 @@ export default function WapangajiPage() {
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[lease.status] ?? 'bg-gray-100 text-gray-500'}`}>
                           {STATUS_LABELS[lease.status] ?? lease.status}
                         </span>
+                        {lease.end_date && lease.status === 'active' && (() => {
+                          const days = Math.ceil((new Date(lease.end_date).getTime() - Date.now()) / 86400000)
+                          if (days > 30) return null
+                          return (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${days <= 7 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}`}>
+                              Siku {days}
+                            </span>
+                          )
+                        })()}
                       </div>
                       {tenant?.phone && (
                         <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">

@@ -225,10 +225,16 @@ export interface Lease {
   end_date:           string | null
   status:             LeaseStatus
   termination_reason: string | null
-  document_url:       string | null
-  notes:              string | null
-  created_at:         string
-  updated_at:         string
+  document_url:          string | null
+  notes:                 string | null
+  terminated_at:         string | null
+  renewed_at:            string | null
+  renewal_count:         number
+  deposit_refund_amount: number | null
+  deposit_refunded_at:   string | null
+  deposit_refund_notes:  string | null
+  created_at:            string
+  updated_at:            string
   // Joined
   tenant?:  { id: string; full_name: string | null; phone: string | null; email: string | null }
   landlord?: { full_name: string | null; phone: string | null }
