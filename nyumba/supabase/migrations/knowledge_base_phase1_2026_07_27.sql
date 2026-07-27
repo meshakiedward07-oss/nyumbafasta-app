@@ -8,6 +8,13 @@
 -- pg_trgm: trigram similarity for cache near-duplicate lookup
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
+-- Drop pgvector extension if it was enabled by the previous migration attempt
+-- (safe no-op if it was never enabled or if other tables depend on it)
+-- We no longer use vector columns — pg_trgm + FTS replace them.
+DO $$ BEGIN
+  DROP EXTENSION IF EXISTS vector CASCADE;
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
 -- ── knowledge_base ────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS knowledge_base (
@@ -27,6 +34,19 @@ CREATE TABLE IF NOT EXISTS knowledge_base (
   updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Patch: if table existed from the previous migration run (had embedding column),
+-- drop it and add fts_vector if missing.
+DO $$ BEGIN
+  ALTER TABLE knowledge_base DROP COLUMN IF EXISTS embedding;
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE knowledge_base
+    ADD COLUMN fts_vector TSVECTOR GENERATED ALWAYS AS (
+      to_tsvector('simple', title || ' ' || body)
+    ) STORED;
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
 -- ── knowledge_cache ───────────────────────────────────────────────────────────
 -- Auto-grows as Amina answers questions; trigram index enables similarity lookup.
 
@@ -41,6 +61,11 @@ CREATE TABLE IF NOT EXISTS knowledge_cache (
   last_hit_at TIMESTAMPTZ DEFAULT NOW(),
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Patch: drop old embedding column if this table existed from a prior run.
+DO $$ BEGIN
+  ALTER TABLE knowledge_cache DROP COLUMN IF EXISTS embedding;
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 -- ── cascade_miss_log ──────────────────────────────────────────────────────────
 
@@ -77,9 +102,11 @@ CREATE TABLE IF NOT EXISTS cascade_pattern_groups (
   updated_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE cascade_miss_log
-  ADD CONSTRAINT fk_miss_pattern
-  FOREIGN KEY (pattern_group_id) REFERENCES cascade_pattern_groups(id) ON DELETE SET NULL;
+DO $$ BEGIN
+  ALTER TABLE cascade_miss_log
+    ADD CONSTRAINT fk_miss_pattern
+    FOREIGN KEY (pattern_group_id) REFERENCES cascade_pattern_groups(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── cascade_config ────────────────────────────────────────────────────────────
 
