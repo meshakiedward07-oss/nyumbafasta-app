@@ -53,6 +53,47 @@ export const STAFF_PERMISSIONS = {
     icon: 'ban',
     category: 'content' as const,
   },
+  // ── Property Management ─────────────────────────────────────
+  kyc_review: {
+    key: 'kyc_review',
+    label: 'Ukaguzi wa KYC',
+    description: 'Kagua hati za wamiliki wa mali, thibitisha au omba nyaraka zaidi',
+    adminPath: '/admin/property-management',
+    icon: 'id',
+    category: 'property' as const,
+  },
+  org_management: {
+    key: 'org_management',
+    label: 'Usimamizi wa Mashirika',
+    description: 'Simamia mashirika yaliyosajiliwa, angalia hali, wanachama na aina',
+    adminPath: '/admin/property-management',
+    icon: 'building',
+    category: 'property' as const,
+  },
+  maintenance_oversight: {
+    key: 'maintenance_oversight',
+    label: 'Usimamizi wa Matengenezo',
+    description: 'Fuatilia na usasishe hali ya maombi ya matengenezo kutoka mashirika yote',
+    adminPath: '/admin/property-management',
+    icon: 'tool',
+    category: 'property' as const,
+  },
+  vendor_verification: {
+    key: 'vendor_verification',
+    label: 'Uthibitisho wa Mawakala',
+    description: 'Thibitisha au kataa maombi ya mawakala wa matengenezo',
+    adminPath: '/admin/property-management',
+    icon: 'address-book',
+    category: 'property' as const,
+  },
+  rent_audit: {
+    key: 'rent_audit',
+    label: 'Ukaguzi wa Kodi',
+    description: 'Angalia hali ya malipo ya kodi kutoka mashirika yote na kagua madeni',
+    adminPath: '/admin/property-management',
+    icon: 'receipt',
+    category: 'property' as const,
+  },
   // ── Admin Tasks (Platform Operations) ───────────────────────
   approve_listings: {
     key: 'approve_listings',
@@ -153,6 +194,10 @@ export const STAFF_ROLE_TEMPLATES = {
     label: 'Ads Moderator',
     permissions: ['review_ads'] as PermissionKey[],
   },
+  property_manager: {
+    label: 'Property Manager',
+    permissions: ['kyc_review', 'org_management', 'maintenance_oversight', 'vendor_verification', 'rent_audit'] as PermissionKey[],
+  },
   team_lead: {
     label: 'Team Lead (Full Access)',
     permissions: [
@@ -168,10 +213,11 @@ export type RoleTemplate = keyof typeof STAFF_ROLE_TEMPLATES
 
 // Map admin route prefixes → required permission key (for nav filtering)
 export const ROUTE_PERMISSION_MAP: Record<string, PermissionKey> = {
-  '/admin/staff-leads':     'leads',
-  '/admin/whatsapp':        'whatsapp_support',
-  '/admin/social':          'social_media',
-  '/admin/legal':           'legal_violations',
-  '/admin/leads':           'listing_analytics',
-  '/admin/adverts':         'review_ads',
+  '/admin/staff-leads':            'leads',
+  '/admin/whatsapp':               'whatsapp_support',
+  '/admin/social':                 'social_media',
+  '/admin/legal':                  'legal_violations',
+  '/admin/leads':                  'listing_analytics',
+  '/admin/adverts':                'review_ads',
+  '/admin/property-management':    'org_management',
 }

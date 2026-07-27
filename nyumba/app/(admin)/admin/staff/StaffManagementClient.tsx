@@ -691,6 +691,9 @@ function AddStaffModal({
               <optgroup label="— Ads —">
                 <option value="ads_moderator">Ads Moderator — Ukaguzi wa Matangazo</option>
               </optgroup>
+              <optgroup label="— Usimamizi wa Mali —">
+                <option value="property_manager">Property Manager — KYC + Mashirika + Matengenezo + Mawakala + Kodi</option>
+              </optgroup>
               <optgroup label="— Support / Content —">
                 <option value="customer_support">Customer Support — WhatsApp + Violations</option>
                 <option value="social_media_manager">Social Media Manager — Social + Spam</option>
@@ -1312,9 +1315,10 @@ function TeamPerformanceView({ staff, onSelect }: { staff: StaffMember[]; onSele
 
 // ─── Activity Chips — inline permission display + quick add/remove ────────────
 const CATEGORY_STYLE: Record<string, { bg: string; text: string; border: string }> = {
-  support: { bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200' },
-  content: { bg: 'bg-purple-50',  text: 'text-purple-700', border: 'border-purple-200' },
-  admin:   { bg: 'bg-primary-50', text: 'text-primary-700',border: 'border-primary-200' },
+  support:  { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200'  },
+  content:  { bg: 'bg-purple-50',  text: 'text-purple-700',  border: 'border-purple-200' },
+  admin:    { bg: 'bg-primary-50', text: 'text-primary-700', border: 'border-primary-200'},
+  property: { bg: 'bg-teal-50',    text: 'text-teal-700',    border: 'border-teal-200'   },
 }
 
 function ActivityChips({

@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import OverviewTab          from './tabs/OverviewTab'
 import OrgsTab              from './tabs/OrgsTab'
 import KycTab               from './tabs/KycTab'
@@ -56,6 +57,7 @@ const ALL_NAV_ITEMS = SIDEBAR_GROUPS.flatMap(g => g.items)
 export default function PropertyDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const activeTabInfo = ALL_NAV_ITEMS.find(t => t.id === activeTab)
+  const router = useRouter()
 
   return (
     <div className="h-screen flex overflow-hidden" style={{ background: '#f4f4f0' }}>
@@ -79,14 +81,14 @@ export default function PropertyDashboard() {
               <p className="text-[10px] leading-tight" style={{ color: '#999992' }}>NyumbaFasta</p>
             </div>
           </div>
-          <a
-            href="/admin"
-            className="mt-3 flex items-center gap-1.5 text-[11px] font-medium rounded-lg px-2 py-1.5 transition-all hover:bg-gray-100"
+          <button
+            onClick={() => router.back()}
+            className="mt-3 flex items-center gap-1.5 text-[11px] font-medium rounded-lg px-2 py-1.5 transition-all hover:bg-gray-100 w-full text-left"
             style={{ color: '#666660' }}
           >
             <i className="ti ti-arrow-left text-xs" aria-hidden="true" />
-            Admin Panel
-          </a>
+            Rudi Nyuma
+          </button>
         </div>
 
         {/* Nav groups */}
@@ -131,14 +133,14 @@ export default function PropertyDashboard() {
           className="bg-white border-b px-4 lg:px-6 py-3 lg:py-4 flex items-center gap-3 flex-shrink-0"
           style={{ borderColor: '#e5e5e0' }}
         >
-          <a
-            href="/admin"
+          <button
+            onClick={() => router.back()}
             className="lg:hidden flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100"
             style={{ color: '#666660' }}
-            aria-label="Rudi Admin"
+            aria-label="Rudi Nyuma"
           >
             <i className="ti ti-arrow-left" aria-hidden="true" />
-          </a>
+          </button>
           <div className="min-w-0">
             <h1 className="text-sm lg:text-base font-bold leading-tight truncate" style={{ color: '#1a1a18' }}>
               {activeTabInfo?.label ?? 'Usimamizi wa Mali'}
