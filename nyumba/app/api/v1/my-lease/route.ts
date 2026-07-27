@@ -41,14 +41,16 @@ export async function GET() {
           .select('bank_name, account_name, account_number, branch, mobile_money_number, mobile_money_provider, additional_instructions')
           .eq('org_id', orgId)
           .maybeSingle(),
-        admin.from('organizations').select('name').eq('id', orgId).maybeSingle(),
+        admin.from('organizations').select('name, phone, email').eq('id', orgId).maybeSingle(),
       ])
 
       return {
         lease,
         payments:  paymentsRes.data  ?? [],
         banking:   bankingRes.data   ?? null,
-        org_name:  orgRes.data?.name ?? null,
+        org_name:  orgRes.data?.name  ?? null,
+        org_phone: orgRes.data?.phone ?? null,
+        org_email: orgRes.data?.email ?? null,
         org_id:    orgId,
       }
     }))

@@ -5,8 +5,10 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import ResendEmailButton from '@/components/auth/ResendEmailButton'
+import { useLanguage } from '@/lib/i18n/context'
 
 function LoginForm() {
+  const { t } = useLanguage()
   const supabase = createClient()
   const searchParams = useSearchParams()
   const redirectTo    = searchParams.get('redirect') || ''
@@ -356,7 +358,7 @@ function LoginForm() {
                 <form onSubmit={handleEmailLogin} className="space-y-4">
 
                   <div>
-                    <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1"><i className="ti ti-mail" aria-hidden="true" />Barua pepe</label>
+                    <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1"><i className="ti ti-mail" aria-hidden="true" />{t('auth_email')}</label>
                     <input
                       type="email"
                       required
@@ -370,7 +372,7 @@ function LoginForm() {
                   </div>
 
                   <div>
-                    <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1"><i className="ti ti-lock" aria-hidden="true" />Nenosiri</label>
+                    <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1"><i className="ti ti-lock" aria-hidden="true" />{t('auth_password')}</label>
                     <div className="relative">
                       <input
                         type={showPass ? 'text' : 'password'}
@@ -385,7 +387,7 @@ function LoginForm() {
                       <button
                         type="button"
                         onClick={() => setShowPass(p => !p)}
-                        aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
+                        aria-label={showPass ? t('auth_hide_pass') : t('auth_show_pass')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
                       >
                         {showPass ? <i className="ti ti-eye-off" aria-hidden="true" /> : <i className="ti ti-eye" aria-hidden="true" />}
@@ -400,7 +402,7 @@ function LoginForm() {
                       onClick={() => { setForgotMode(true); setResetEmail(email); setError('') }}
                       className="text-xs text-primary-500 font-medium min-h-[44px] px-2 inline-flex items-center active:opacity-70"
                     >
-                      Umesahau nenosiri?
+                      {t('auth_forgot_password')}
                     </button>
                   </div>
 
@@ -414,14 +416,14 @@ function LoginForm() {
                       boxShadow: loading ? 'none' : '0 4px 14px rgba(29,158,117,0.40), 0 1px 3px rgba(29,158,117,0.20)',
                     }}
                   >
-                    {loading ? 'Inaingia...' : 'Ingia'}
+                    {loading ? t('auth_signing_in') : t('auth_login_button')}
                   </button>
                 </form>
 
                 {/* Divider */}
                 <div className="flex items-center gap-3 my-5">
                   <div className="flex-1 h-px bg-gray-100" />
-                  <span className="text-xs text-gray-400">au endelea na</span>
+                  <span className="text-xs text-gray-400">{t('common_or')} endelea na</span>
                   <div className="flex-1 h-px bg-gray-100" />
                 </div>
 
@@ -441,7 +443,7 @@ function LoginForm() {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  Ingia na Google
+                  {t('auth_google')}
                 </button>
 
                 {/* Hint */}
@@ -457,9 +459,9 @@ function LoginForm() {
         {!forgotMode && (
           <div className="mt-5 pb-8 flex flex-col items-center gap-3">
             <p className="text-center text-sm text-gray-500">
-              Bado huna akaunti?{' '}
+              {t('auth_no_account')}{' '}
               <Link href="/register" className="text-primary-600 font-medium">
-                Jisajili hapa
+                {t('auth_register_button')}
               </Link>
             </p>
 
@@ -470,7 +472,7 @@ function LoginForm() {
               style={{ color: '#7C3AED', borderColor: '#DDD6FE', background: '#F5F3FF' }}
             >
               <i className="ti ti-building-estate text-[11px]" aria-hidden="true" />
-              Shirika / Mpangaji / Fundi
+              {t('auth_portal_link')}
             </Link>
 
             {/* Staff / Admin portal — subtle, not meant for regular users */}

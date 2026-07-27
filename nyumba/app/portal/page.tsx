@@ -1,43 +1,59 @@
+'use client'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
-const PORTAL_ROLES = [
-  {
-    key:        'org',
-    icon:       'building-estate',
-    label:      'Shirika / Mmiliki / PM',
-    sub:        'Simamia mali yako — wapangaji, malipo ya kodi, na matengenezo mahali pamoja.',
-    color:      '#7C3AED',
-    bg:         '#F5F3FF',
-    loginHref:  '/portal/login?type=org',
-    registerHref: '/register?role=org_owner',
-    features:   ['Dashibodi ya mali yako', 'Malipo ya kodi', 'Mafundi & matengenezo', 'Ripoti na takwimu'],
-  },
-  {
-    key:        'tenant',
-    icon:       'key',
-    label:      'Mpangaji',
-    sub:        'Angalia malipo yako ya kodi, toa ushahidi wa malipo, na ripoti matatizo ya nyumba.',
-    color:      '#D97706',
-    bg:         '#FFFBEB',
-    loginHref:  '/portal/login?type=tenant',
-    registerHref: '/register?role=tenant',
-    features:   ['Malipo ya kodi', 'Historia ya malipo', 'Ripoti matatizo'],
-  },
-  {
-    key:        'fundi',
-    icon:       'tools',
-    label:      'Fundi / Mchezaji',
-    sub:        'Pokea kazi kutoka mashirika, toa taarifa za kazi, na simamia wasifu wako.',
-    color:      '#059669',
-    bg:         '#ECFDF5',
-    loginHref:  '/fundi/login',
-    registerHref: '/fundi/register',
-    features:   ['Orodha ya kazi', 'Toa taarifa za kazi', 'Wasifu & KYC'],
-  },
-]
+type PortalRole = {
+  key:          string
+  icon:         string
+  label:        string
+  sub:          string
+  color:        string
+  bg:           string
+  loginHref:    string
+  registerHref: string
+  features:     string[]
+}
 
 export default function PortalPage() {
+  const { t } = useLanguage()
+
+  const PORTAL_ROLES: PortalRole[] = [
+    {
+      key:          'org',
+      icon:         'building-estate',
+      label:        t('portal_org_label'),
+      sub:          t('portal_org_sub'),
+      color:        '#7C3AED',
+      bg:           '#F5F3FF',
+      loginHref:    '/portal/login?type=org',
+      registerHref: '/register?role=org_owner',
+      features:     [t('portal_org_f1'), t('portal_org_f2'), t('portal_org_f3'), t('portal_org_f4')],
+    },
+    {
+      key:          'tenant',
+      icon:         'key',
+      label:        t('portal_tenant_label'),
+      sub:          t('portal_tenant_sub'),
+      color:        '#D97706',
+      bg:           '#FFFBEB',
+      loginHref:    '/portal/login?type=tenant',
+      registerHref: '/register?role=tenant',
+      features:     [t('portal_tenant_f1'), t('portal_tenant_f2'), t('portal_tenant_f3')],
+    },
+    {
+      key:          'fundi',
+      icon:         'tools',
+      label:        t('portal_fundi_label'),
+      sub:          t('portal_fundi_sub'),
+      color:        '#059669',
+      bg:           '#ECFDF5',
+      loginHref:    '/fundi/login',
+      registerHref: '/fundi/register',
+      features:     [t('portal_fundi_f1'), t('portal_fundi_f2'), t('portal_fundi_f3')],
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
 
@@ -49,8 +65,8 @@ export default function PortalPage() {
         <div className="relative h-16 w-44 mb-4">
           <Image src="/transparent_logo_nyumbafasta.png" alt="NyumbaFasta" fill priority className="object-contain" sizes="176px" />
         </div>
-        <h1 className="text-white text-xl font-bold mt-1">Portal ya Usimamizi</h1>
-        <p className="text-white/75 text-sm mt-1">Chagua aina ya akaunti yako ili kuendelea</p>
+        <h1 className="text-white text-xl font-bold mt-1">{t('portal_title')}</h1>
+        <p className="text-white/75 text-sm mt-1">{t('portal_subtitle')}</p>
       </div>
 
       {/* Role cards */}
@@ -83,12 +99,12 @@ export default function PortalPage() {
               <Link href={p.loginHref}
                 className="flex-1 flex items-center justify-center gap-2 text-white text-sm font-semibold py-3 rounded-xl transition hover:opacity-90 active:scale-[0.98]"
                 style={{ background: p.color }}>
-                <i className="ti ti-login text-sm" aria-hidden="true" /> Ingia
+                <i className="ti ti-login text-sm" aria-hidden="true" /> {t('portal_login')}
               </Link>
               <Link href={p.registerHref}
                 className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold py-3 rounded-xl border-2 transition hover:bg-gray-50 active:scale-[0.98]"
                 style={{ borderColor: p.color, color: p.color }}>
-                <i className="ti ti-user-plus text-sm" aria-hidden="true" /> Jisajili
+                <i className="ti ti-user-plus text-sm" aria-hidden="true" /> {t('portal_register')}
               </Link>
             </div>
           </div>
@@ -100,16 +116,16 @@ export default function PortalPage() {
             <i className="ti ti-home-search text-primary-600 text-xl" aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-800">Soko la Nyumba</p>
-            <p className="text-xs text-gray-500">Tafuta nyumba au dalali</p>
+            <p className="text-sm font-semibold text-gray-800">{t('portal_market_label')}</p>
+            <p className="text-xs text-gray-500">{t('portal_market_sub')}</p>
           </div>
           <Link href="/login" className="text-xs font-semibold text-primary-600 hover:underline flex items-center gap-1 flex-shrink-0">
-            Ingia <i className="ti ti-arrow-right text-xs" aria-hidden="true" />
+            {t('portal_market_link')} <i className="ti ti-arrow-right text-xs" aria-hidden="true" />
           </Link>
         </div>
 
         <p className="text-center text-xs text-gray-400 pb-2">
-          NyumbaFasta · Msaada:{' '}
+          NyumbaFasta · {t('portal_support')}:{' '}
           <a href="https://wa.me/255665831694" className="underline text-green-600">WhatsApp</a>
         </p>
       </div>

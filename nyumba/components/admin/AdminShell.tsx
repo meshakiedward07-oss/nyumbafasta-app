@@ -128,14 +128,9 @@ const NAV_SECTIONS = [
   {
     title: 'Usimamizi wa Mali',
     items: [
-      { href: '/admin/property-management', label: 'Muhtasari',           icon: 'building',    exact: true  },
-      { href: '/admin/property-management/organizations', label: 'Mashirika', icon: 'building-community', exact: false },
-      { href: '/admin/property-management/kyc',          label: 'KYC',       icon: 'id',         exact: false },
-      { href: '/admin/property-management/commissions',  label: 'Kamisheni', icon: 'coin',       exact: false },
-      { href: '/admin/property-management/workload',  label: 'Mzigo wa Wafanyakazi', icon: 'user-check',    exact: false },
-      { href: '/admin/property-management/vendors',  label: 'Mafundi (Org)',       icon: 'address-book', exact: false },
-      { href: '/admin/fundi',                        label: 'Akaunti za Mafundi',  icon: 'tools',        exact: false },
-      { href: '/admin/subscriptions',                label: 'Usajili',              icon: 'credit-card',  exact: false },
+      { href: '/admin/property-management', label: 'Dashibodi ya Mali', icon: 'building', exact: true },
+      { href: '/admin/fundi',               label: 'Akaunti za Mafundi',   icon: 'tools',        exact: false },
+      { href: '/admin/subscriptions',       label: 'Usajili wa Mashirika', icon: 'credit-card',  exact: false },
     ],
   },
 ]
@@ -436,8 +431,8 @@ export default function AdminShell({
 
   const isStaff = userRole === 'staff'
 
-  // Social dashboard: fixed full-viewport overlay — hides everything (sidebar, footer, body scroll)
-  if (pathname.startsWith('/admin/social')) {
+  // Full-viewport overlays — hides sidebar, footer, body scroll
+  if (pathname.startsWith('/admin/social') || pathname === '/admin/property-management') {
     return <div className="fixed inset-0 overflow-hidden bg-[#f4f4f0] z-10">{children}</div>
   }
 

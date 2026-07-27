@@ -4,6 +4,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/react'
 import ClientProviders from '@/components/shared/ClientProviders'
 import SiteFooter from '@/components/shared/SiteFooter'
+import { LanguageProvider } from '@/lib/i18n/context'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import './globals.css'
 
@@ -145,9 +146,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className={`${geistSans.variable} ${geistMono.variable} font-sans bg-gray-50 min-h-screen antialiased`}
         suppressHydrationWarning
       >
-        {children}
-        <SiteFooter />
-        <ClientProviders />
+        <LanguageProvider>
+          {children}
+          <SiteFooter />
+          <ClientProviders />
+        </LanguageProvider>
         <GoogleAnalytics />
         <SpeedInsights />
         <Analytics />

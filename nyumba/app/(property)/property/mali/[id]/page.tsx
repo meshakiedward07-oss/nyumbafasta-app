@@ -52,6 +52,8 @@ export default function MaliDetailPage() {
   const [tenantError,  setTenantError]  = useState<string | null>(null)
   const [foundTenant,  setFoundTenant]  = useState<{ id: string; full_name: string | null; phone: string | null } | null>(null)
   const [lookingUp,    setLookingUp]    = useState(false)
+  const [inviting,     setInviting]     = useState(false)
+  const [inviteMsg,    setInviteMsg]    = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -99,6 +101,31 @@ export default function MaliDetailPage() {
     } catch {
       setTenantError('Hitilafu ya mtandao. Jaribu tena.')
     } finally { setLookingUp(false) }
+  }
+
+  async function handleInviteTenant() {
+    if (!orgId || !tPhone.trim()) return
+    setInviting(true); setInviteMsg(null)
+    try {
+      const res  = await fetch(`/api/v1/organizations/${orgId}/invite-tenant`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ phone: tPhone.trim() }),
+      })
+      const data = await res.json()
+      if (res.status === 409 && data.already_registered) {
+        setTenantError('Nambari hii tayari ina akaunti. Jaribu tena kupata mpangaji.')
+        setInviteMsg(null)
+      } else if (!res.ok) {
+        setTenantError(data.error ?? 'Imeshindwa kutuma mwaliko.')
+        setInviteMsg(null)
+      } else {
+        setInviteMsg(data.message ?? 'Mwaliko umetumwa kwa mafanikio.')
+        setTenantError(null)
+      }
+    } catch {
+      setTenantError('Hitilafu ya mtandao. Jaribu tena.')
+    } finally { setInviting(false) }
   }
 
   async function handleAddUnit() {
@@ -397,7 +424,7 @@ export default function MaliDetailPage() {
                   <h3 className="font-bold text-gray-900">Ongeza Mpangaji</h3>
                   <p className="text-xs text-gray-400">Kitengo: {tenantUnit.unit_number}</p>
                 </div>
-                <button onClick={() => { setTenantUnit(null); setFoundTenant(null); setTenantError(null) }}
+                <button onClick={() => { setTenantUnit(null); setFoundTenant(null); setTenantError(null); setInviteMsg(null) }}
                   className="text-gray-400 hover:text-gray-600">
                   <i className="ti ti-x text-xl" aria-hidden="true" />
                 </button>
@@ -411,7 +438,7 @@ export default function MaliDetailPage() {
                     <input
                       type="tel"
                       value={tPhone}
-                      onChange={e => { setTPhone(e.target.value); setFoundTenant(null); setTenantError(null) }}
+                      onChange={e => { setTPhone(e.target.value); setFoundTenant(null); setTenantError(null); setInviteMsg(null) }}
                       placeholder="+255 7XX XXX XXX"
                       className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                     />
@@ -432,7 +459,27 @@ export default function MaliDetailPage() {
                       </div>
                     </div>
                   )}
-                  {tenantError && <p className="text-xs text-red-600 mt-1">{tenantError}</p>}
+                  {tenantError && (
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs text-red-600">{tenantError}</p>
+                      {tenantError.includes('hajapatikana') && tPhone.trim() && (
+                        <button
+                          onClick={handleInviteTenant}
+                          disabled={inviting}
+                          className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg px-3 py-2 transition disabled:opacity-50"
+                        >
+                          <i className={`ti ti-${inviting ? 'loader-2 animate-spin' : 'brand-whatsapp'}`} aria-hidden="true" />
+                          {inviting ? 'Inatuma...' : `Mtumie ${tPhone} mwaliko wa kujisajili`}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {inviteMsg && (
+                    <div className="mt-2 flex items-start gap-2 bg-green-50 border border-green-100 rounded-xl p-2.5">
+                      <i className="ti ti-circle-check text-green-500 text-lg flex-shrink-0" aria-hidden="true" />
+                      <p className="text-xs text-green-700">{inviteMsg} Mpangaji atakapojisajili, unaweza kumuongeza hapa.</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -470,7 +517,7 @@ export default function MaliDetailPage() {
                 </div>
 
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => { setTenantUnit(null); setFoundTenant(null); setTenantError(null) }}
+                  <button onClick={() => { setTenantUnit(null); setFoundTenant(null); setTenantError(null); setInviteMsg(null) }}
                     className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">
                     Ghairi
                   </button>

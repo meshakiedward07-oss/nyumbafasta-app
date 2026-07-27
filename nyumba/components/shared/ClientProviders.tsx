@@ -12,9 +12,15 @@ const PushSetup = dynamic(
   { ssr: false }
 )
 
+const LanguagePicker = dynamic(
+  () => import('@/components/LanguagePicker'),
+  { ssr: false }
+)
+
 export default function ClientProviders() {
   return (
     <>
+      <LanguagePicker />
       <WhatsAppSupportButton />
       <PushSetup />
     </>

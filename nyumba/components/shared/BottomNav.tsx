@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import NotificationBell from '@/components/shared/NotificationBell'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Role = 'client' | 'dalali' | 'admin' | string
 
@@ -13,23 +14,22 @@ const ACTIVE_ICONS: Record<string, string> = {
   user:   'user-filled',
 }
 
-function getItems(role: Role) {
-  const mid =
-    role === 'admin'  ? { href: '/admin',        icon: 'shield',    label: 'Admin'     } :
-    role === 'dalali' ? { href: '/dashboard',     icon: 'chart-bar', label: 'Dashibodi' } :
-                        { href: '/notifications', icon: null,        label: 'Arifa'     }
-  return [
-    { href: '/',           icon: 'search',    label: 'Tafuta'    },
-    { href: '/saved',      icon: 'heart',     label: 'Hifadhi'   },
-    mid,
-    { href: '/directory',  icon: 'building-store', label: 'Soko'  },
-    { href: '/account',    icon: 'user',      label: 'Akaunti'   },
-  ]
-}
-
 export default function BottomNav({ role = 'client' }: { role?: Role }) {
-  const pathname = usePathname()
-  const items    = getItems(role)
+  const pathname  = usePathname()
+  const { t }     = useLanguage()
+
+  const mid =
+    role === 'admin'  ? { href: '/admin',        icon: 'shield',         label: t('nav_admin')         } :
+    role === 'dalali' ? { href: '/dashboard',     icon: 'chart-bar',      label: t('nav_dashboard')     } :
+                        { href: '/notifications', icon: null,             label: t('nav_notifications') }
+
+  const items = [
+    { href: '/',          icon: 'search',         label: t('nav_search')    },
+    { href: '/saved',     icon: 'heart',          label: t('nav_saved')     },
+    mid,
+    { href: '/directory', icon: 'building-store', label: t('nav_directory') },
+    { href: '/account',   icon: 'user',           label: t('nav_account')   },
+  ]
 
   return (
     <nav
