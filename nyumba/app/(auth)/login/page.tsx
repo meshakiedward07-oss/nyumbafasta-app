@@ -94,6 +94,7 @@ function LoginForm() {
       : profileData?.role === 'admin'  ? '/admin'
       : profileData?.role === 'staff'  ? '/admin/staff-dashboard'
       : profileData?.role === 'dalali' ? '/dashboard'
+      : profileData?.role === 'fundi'  ? '/fundi/dashboard'
       : '/'
 
     window.location.href = dest

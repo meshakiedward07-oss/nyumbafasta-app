@@ -3,13 +3,15 @@ import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Routes zinazohitaji login
-const PROTECTED_ROUTES = ['/dashboard', '/admin', '/saved', '/account', '/subscription', '/notifications', '/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile']
+const PROTECTED_ROUTES = ['/dashboard', '/admin', '/saved', '/account', '/subscription', '/notifications', '/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile', '/fundi/dashboard', '/fundi/profile', '/fundi/kyc', '/fundi/jobs']
 // Routes za watumiaji walioingia tu (usiende tena)
 const AUTH_ROUTES = ['/login', '/register', '/staff-login']
 // Routes za admin peke yake
 const ADMIN_ONLY_ROUTES = ['/admin']
 // Routes za wafanyabiashara — zinaelekeza /advertising/login badala ya /login
 const ADVERTISING_PROTECTED_ROUTES = ['/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile']
+// Routes za mafundi — zinaelekeza /fundi/login badala ya /login
+const FUNDI_PROTECTED_ROUTES = ['/fundi/dashboard', '/fundi/profile', '/fundi/kyc', '/fundi/jobs']
 // Routes za dalali na admin
 const DALALI_ROUTES = ['/dashboard']
 // Routes ambazo hazizuiwi na account_status au agreement check
@@ -70,6 +72,9 @@ export async function middleware(request: NextRequest) {
   // are created with admin.createUser() which triggers handle_new_user and sets
   // agreement_accepted=false (the column default), causing a permanent redirect loop.
   const isAdvertisingRoute = ADVERTISING_PROTECTED_ROUTES.some(r => path.startsWith(r))
+  // Fundi routes are guarded by (fundi)/layout.tsx — skip the dalali/admin agreement
+  // and status checks here (fundi users are not in the same onboarding funnel).
+  const isFundiRoute = FUNDI_PROTECTED_ROUTES.some(r => path.startsWith(r))
 
   // Redirect kwenda login kama hana session.
   // Admin paths → /staff-login (staff bookmarks land in the right portal).
@@ -78,7 +83,8 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     const isAdminPath       = ADMIN_ONLY_ROUTES.some(r => path.startsWith(r))
     const isAdvertisingPath = ADVERTISING_PROTECTED_ROUTES.some(r => path.startsWith(r))
-    url.pathname = isAdminPath ? '/staff-login' : isAdvertisingPath ? '/advertising/login' : '/login'
+    const isFundiPath       = FUNDI_PROTECTED_ROUTES.some(r => path.startsWith(r))
+    url.pathname = isAdminPath ? '/staff-login' : isAdvertisingPath ? '/advertising/login' : isFundiPath ? '/fundi/login' : '/login'
     url.searchParams.set('redirect', path)
     return redirectWithCookies(url, supabaseResponse)
   }
@@ -152,7 +158,7 @@ export async function middleware(request: NextRequest) {
   // Kwa routes zilizo na ulinzi — angalia is_active NA role kwa query moja.
   // Advertising routes skip this block entirely: their auth is enforced at the API layer
   // by requireAdvertiserAuth(), which checks the advertisers table directly.
-  if (user && (isProtected || needsRoleCheck) && !isAdvertisingRoute) {
+  if (user && (isProtected || needsRoleCheck) && !isAdvertisingRoute && !isFundiRoute) {
     const { data: userData, error: profileErr } = await supabase
       .from('users')
       .select('role, is_active, staff_active, must_change_password, account_status, agreement_accepted')
