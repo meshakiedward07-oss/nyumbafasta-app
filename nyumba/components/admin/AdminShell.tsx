@@ -100,6 +100,7 @@ const NAV_SECTIONS = [
     items: [
       { href: '/admin/email',         label: 'Barua Pepe',       icon: 'mail',  exact: false },
       { href: '/admin/inbox',         label: 'Inbox ya Ujumbe',  icon: 'inbox', exact: false, badge: 'inbox' as const },
+      { href: '/admin/knowledge',     label: 'Maarifa ya Amina', icon: 'academic-cap', exact: false },
     ],
   },
   {
