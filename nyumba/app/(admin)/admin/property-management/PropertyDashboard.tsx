@@ -143,7 +143,7 @@ export default function PropertyDashboard() {
         >
           <button
             onClick={() => router.back()}
-            className="lg:hidden flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100"
+            className="lg:hidden flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition"
             style={{ color: '#666660' }}
             aria-label="Rudi Nyuma"
           >
@@ -169,7 +169,7 @@ export default function PropertyDashboard() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                   activeTab === item.id ? 'text-white' : 'text-gray-600'
                 }`}
                 style={{ background: activeTab === item.id ? '#1D9E75' : '#f4f4f0' }}

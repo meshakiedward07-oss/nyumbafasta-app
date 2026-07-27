@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
     const url    = req.nextUrl
     const status = url.searchParams.get('status') ?? ''
     const search = url.searchParams.get('q')?.trim() ?? ''
+    const mine   = url.searchParams.get('mine') === '1'
     const limit  = Math.min(parseInt(url.searchParams.get('limit') ?? '50'), 100)
     const offset = parseInt(url.searchParams.get('offset') ?? '0')
 
@@ -32,6 +33,7 @@ export async function GET(req: NextRequest) {
       .range(offset, offset + limit - 1)
 
     if (status) query = query.eq('status', status)
+    if (mine)   query = query.eq('posted_by', auth.userId)
 
     const { data, count, error } = await query
     if (error) throw error

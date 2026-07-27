@@ -132,9 +132,14 @@ function PaymentRow({
   const [markErr,    setMarkErr]    = useState<string | null>(null)
 
   const overdueFlag = isLate(p)
+  const overdueDays = daysOverdue(p.due_date)
 
-  async function handleVerify(e: React.MouseEvent) {
-    e.preventDefault()
+  const hasActions = isOwner && (
+    p.status === 'proof_uploaded' ||
+    ['pending', 'partial', 'late'].includes(p.status)
+  )
+
+  async function handleVerify() {
     if (!confirm('Thibitisha malipo haya kama yaliyolipwa?')) return
     setVerifying(true)
     try {
@@ -145,8 +150,7 @@ function PaymentRow({
     } finally { setVerifying(false) }
   }
 
-  async function handleRemind(e: React.MouseEvent) {
-    e.preventDefault()
+  async function handleRemind() {
     setReminding(true)
     try {
       await fetch(`/api/v1/organizations/${orgId}/leases/${p.lease_id}/payments/${p.id}`, {
@@ -157,8 +161,7 @@ function PaymentRow({
     } finally { setReminding(false) }
   }
 
-  async function handleSendInvoice(e: React.MouseEvent) {
-    e.preventDefault()
+  async function handleSendInvoice() {
     setSendingInvoice(true)
     try {
       await fetch(`/api/v1/organizations/${orgId}/leases/${p.lease_id}/payments/${p.id}`, {
@@ -184,30 +187,29 @@ function PaymentRow({
     } finally { setMarking(false) }
   }
 
-  const overdueDays = daysOverdue(p.due_date)
-
   return (
     <>
-      {/* Mark-paid inline modal */}
+      {/* Mark-paid bottom-sheet modal */}
       {markModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setMarkModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-gray-900 mb-1">Rekodi Malipo ya Fedha Taslimu</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50" onClick={() => setMarkModal(false)}>
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl p-5 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4 sm:hidden" />
+            <h3 className="font-bold text-gray-900 mb-1">Rekodi Malipo</h3>
             <p className="text-sm text-gray-500 mb-4">
-              {p.tenant_name} · TZS {p.amount_due.toLocaleString()} · {dateFmt(p.due_date)}
+              {p.tenant_name} · <span className="font-semibold text-gray-700">TZS {p.amount_due.toLocaleString()}</span> · {dateFmt(p.due_date)}
             </p>
             <form onSubmit={handleMarkPaid} className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-gray-600 block mb-1">Tarehe ya Malipo</label>
                 <input type="date" value={markForm.paid_date}
                   onChange={e => setMarkForm(f => ({ ...f, paid_date: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-600 block mb-1">Njia ya Malipo</label>
                 <select value={markForm.payment_method}
                   onChange={e => setMarkForm(f => ({ ...f, payment_method: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm bg-white">
                   <option value="bank">Benki</option>
                   <option value="cash">Fedha Taslimu</option>
                   <option value="mpesa">M-Pesa</option>
@@ -221,23 +223,23 @@ function PaymentRow({
                 <input type="text" value={markForm.reference}
                   onChange={e => setMarkForm(f => ({ ...f, reference: e.target.value }))}
                   placeholder="Namba ya risiti / muamala"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-600 block mb-1">Maelezo (hiari)</label>
                 <input type="text" value={markForm.notes}
                   onChange={e => setMarkForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="Maelezo ya ziada..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm" />
               </div>
               {markErr && <p className="text-sm text-red-600">{markErr}</p>}
               <div className="flex gap-2 pt-1">
                 <button type="submit" disabled={marking}
-                  className="flex-1 bg-green-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-green-600 disabled:opacity-50 transition">
+                  className="flex-1 bg-green-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-green-600 disabled:opacity-50 transition">
                   {marking ? 'Inarekodi...' : '✓ Rekodi Malipo'}
                 </button>
                 <button type="button" onClick={() => setMarkModal(false)}
-                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-3">
                   Ghairi
                 </button>
               </div>
@@ -246,72 +248,72 @@ function PaymentRow({
         </div>
       )}
 
-      <Link href={`/property/wapangaji/${p.lease_id}`} className="block">
-        <div className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition group">
-          <div className="w-9 h-9 bg-primary-50 rounded-full flex items-center justify-center flex-shrink-0 text-primary-600 font-bold text-sm">
+      <div className="px-3 py-3 hover:bg-gray-50 rounded-xl transition">
+        {/* Primary row — tappable link to lease detail */}
+        <Link href={`/property/wapangaji/${p.lease_id}`} className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center flex-shrink-0 text-primary-600 font-bold text-sm">
             {p.tenant_name?.charAt(0)?.toUpperCase() ?? '?'}
           </div>
-
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-medium text-gray-900 truncate">{p.tenant_name ?? 'Mpangaji'}</p>
+              <p className="text-sm font-semibold text-gray-900">{p.tenant_name ?? 'Mpangaji'}</p>
               {p.unit_number && (
                 <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{p.unit_number}</span>
               )}
             </div>
-            <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5 flex-wrap">
-              <span>TZS {p.amount_due.toLocaleString()}</span>
-              <span>·</span>
-              <span className={overdueFlag && p.status !== 'paid' ? 'text-red-400 font-medium' : ''}>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <span className="text-sm font-bold text-primary-600 tabular-nums">TZS {p.amount_due.toLocaleString()}</span>
+              <span className={`text-xs ${overdueFlag && p.status !== 'paid' ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
                 {dateFmt(p.due_date)}
-                {overdueFlag && p.status !== 'paid' && ` (siku ${overdueDays})`}
+                {overdueFlag && p.status !== 'paid' && ` · siku ${overdueDays}`}
               </span>
-              {p.status === 'paid' && (
-                <span className="text-green-500 font-medium flex items-center gap-0.5">
-                  <i className="ti ti-circle-check text-xs" />Imelipwa
-                </span>
-              )}
-              {p.status === 'proof_uploaded' && (
-                <span className="text-blue-500 font-medium flex items-center gap-0.5">
-                  <i className="ti ti-upload text-xs" />Ushahidi umepakiwa
-                </span>
-              )}
             </div>
+            {p.status === 'paid' && (
+              <span className="text-xs text-green-600 font-medium flex items-center gap-0.5 mt-0.5">
+                <i className="ti ti-circle-check text-xs" /> Imelipwa {dateFmt(p.paid_date)}
+              </span>
+            )}
+            {p.status === 'proof_uploaded' && (
+              <span className="text-xs text-blue-600 font-medium flex items-center gap-0.5 mt-0.5">
+                <i className="ti ti-upload text-xs" /> Ushahidi umepakiwa — linahitaji uthibitisho
+              </span>
+            )}
           </div>
+          <i className="ti ti-chevron-right text-gray-300 text-sm flex-shrink-0" aria-hidden="true" />
+        </Link>
 
-          {/* Action buttons */}
-          {isOwner && (
-            <div className="flex gap-1.5 flex-shrink-0" onClick={e => e.preventDefault()}>
-              {p.status === 'proof_uploaded' && (
-                <button onClick={handleVerify} disabled={verifying}
-                  className="bg-green-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-green-600 disabled:opacity-60 transition whitespace-nowrap">
-                  {verifying ? '...' : 'Thibitisha'}
+        {/* Action buttons — second row, full-width friendly */}
+        {hasActions && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {p.status === 'proof_uploaded' && (
+              <button onClick={handleVerify} disabled={verifying}
+                className="flex-1 min-w-[120px] bg-green-500 text-white text-sm font-semibold px-3 py-2.5 rounded-xl hover:bg-green-600 disabled:opacity-60 transition text-center">
+                {verifying ? 'Inathibitisha...' : '✓ Thibitisha Malipo'}
+              </button>
+            )}
+            {['pending', 'partial', 'late'].includes(p.status) && (
+              <>
+                <button onClick={() => setMarkModal(true)}
+                  className="flex-1 min-w-[100px] bg-primary-500 text-white text-sm font-semibold px-3 py-2.5 rounded-xl hover:bg-primary-600 transition text-center">
+                  ✓ Imelipwa
                 </button>
-              )}
-              {['pending', 'partial', 'late'].includes(p.status) && (
-                <>
-                  {!p.invoice_sent_at && (
-                    <button onClick={handleSendInvoice} disabled={sendingInvoice}
-                      className="bg-blue-50 text-blue-700 text-xs font-medium px-2.5 py-1.5 rounded-lg hover:bg-blue-100 disabled:opacity-60 transition whitespace-nowrap">
-                      {sendingInvoice ? '...' : 'Tuma Ankara'}
-                    </button>
-                  )}
-                  <button onClick={(e) => { e.preventDefault(); setMarkModal(true) }}
-                    className="bg-primary-50 text-primary-700 text-xs font-medium px-2.5 py-1.5 rounded-lg hover:bg-primary-100 transition whitespace-nowrap">
-                    Imelipwa
+                {!p.invoice_sent_at && (
+                  <button onClick={handleSendInvoice} disabled={sendingInvoice}
+                    className="flex-1 min-w-[100px] bg-blue-50 text-blue-700 text-sm font-medium px-3 py-2.5 rounded-xl hover:bg-blue-100 disabled:opacity-60 transition text-center">
+                    {sendingInvoice ? '...' : 'Tuma Ankara'}
                   </button>
-                  {(overdueFlag || p.status === 'late') && (
-                    <button onClick={handleRemind} disabled={reminding}
-                      className="bg-amber-50 text-amber-700 text-xs font-medium px-2.5 py-1.5 rounded-lg hover:bg-amber-100 disabled:opacity-60 transition whitespace-nowrap">
-                      {reminding ? '...' : 'Kumbusha'}
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </Link>
+                )}
+                {(overdueFlag || p.status === 'late') && (
+                  <button onClick={handleRemind} disabled={reminding}
+                    className="flex-1 min-w-[100px] bg-amber-50 text-amber-700 text-sm font-medium px-3 py-2.5 rounded-xl hover:bg-amber-100 disabled:opacity-60 transition text-center">
+                    {reminding ? '...' : '🔔 Kumbusha'}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </>
   )
 }

@@ -340,6 +340,56 @@ export async function recordIncomeFromOrgSubscription(invoiceId: string): Promis
   }
 }
 
+// ── Record income from a fundi subscription payment ──────────────────────
+// Called after a fundi_subscriptions row is activated (webhook).
+export async function recordIncomeFromFundiSubscription(subscriptionId: string): Promise<void> {
+  const { data: sub } = await supabaseAdmin
+    .from('fundi_subscriptions')
+    .select(`
+      id, amount_paid, payment_method, starts_at, created_at,
+      plan:fundi_subscription_plans!plan_id(id, name, billing_cycle),
+      fundi:users!fundi_user_id(id, full_name)
+    `)
+    .eq('id', subscriptionId)
+    .eq('status', 'active')
+    .single()
+
+  if (!sub) {
+    console.log('[Accounting] Fundi subscription not found or not active:', subscriptionId)
+    return
+  }
+
+  const amount    = Number(sub.amount_paid)
+  const fee       = amount * AZAMPAY_FEE_PERCENT
+  const txDate    = new Date(sub.starts_at ?? sub.created_at)
+  const planName  = (sub.plan as unknown as { name: string } | null)?.name  ?? 'Mpango'
+  const cycle     = (sub.plan as unknown as { billing_cycle: string } | null)?.billing_cycle
+  const cycleStr  = cycle === 'quarterly' ? 'kila robo mwaka' : cycle === 'annual' ? 'kila mwaka' : 'kila mwezi'
+  const fundiName = (sub.fundi as unknown as { full_name: string } | null)?.full_name ?? 'Fundi'
+
+  const { error } = await supabaseAdmin.from('income_records').insert({
+    source:           'fundi_subscription',
+    source_ref_id:    sub.id,
+    amount_tzs:       amount,
+    platform_fee_tzs: parseFloat(fee.toFixed(2)),
+    net_amount_tzs:   parseFloat((amount - fee).toFixed(2)),
+    description:      `Usajili wa fundi — ${fundiName} — ${planName} (${cycleStr})`,
+    reference_number: sub.id,
+    payment_method:   sub.payment_method ?? 'azampay',
+    transaction_date: txDate.toISOString().split('T')[0],
+    month:            txDate.getMonth() + 1,
+    year:             txDate.getFullYear(),
+    week:             getWeekNumber(txDate),
+    status:           'confirmed',
+  })
+
+  if (error && error.code !== '23505') {
+    console.error('[Accounting] recordIncomeFromFundiSubscription error:', error.message)
+  } else {
+    console.log('[Accounting] Fundi subscription income recorded — sub:', subscriptionId, 'TZS', amount)
+  }
+}
+
 // ── Sync all completed payments to income_records ─────────────────────────
 // Uses a bulk set-membership check instead of N individual SELECTs — O(n+4) queries.
 export async function syncAllPaymentsToIncome(): Promise<{ synced: number; skipped: number }> {
@@ -448,6 +498,18 @@ export async function syncAllPaymentsToIncome(): Promise<{ synced: number; skipp
   for (const inv of confirmedInvs ?? []) {
     if (existing.has(`org_subscription:${inv.id}`)) { skipped++; continue }
     await recordIncomeFromOrgSubscription(inv.id)
+    synced++
+  }
+
+  // ── 8. Fundi subscriptions active ─────────────────────────────────────
+  const { data: fundiSubs } = await supabaseAdmin
+    .from('fundi_subscriptions')
+    .select('id')
+    .eq('status', 'active')
+
+  for (const fs of fundiSubs ?? []) {
+    if (existing.has(`fundi_subscription:${fs.id}`)) { skipped++; continue }
+    await recordIncomeFromFundiSubscription(fs.id)
     synced++
   }
 

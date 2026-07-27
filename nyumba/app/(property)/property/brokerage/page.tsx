@@ -39,17 +39,36 @@ const COMMISSION_CONFIG: Record<string, { label: string; color: string }> = {
 function fmt(n: number) { return `TZS ${n.toLocaleString()}` }
 
 export default function BrokeragePage() {
-  const [requests, setRequests] = useState<BrokerageRequest[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [filter,  setFilter]    = useState('')
+  const [requests,   setRequests]   = useState<BrokerageRequest[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [filter,     setFilter]     = useState('')
+  const [cancelling, setCancelling] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/v1/org/brokerage-requests')
-      .then(r => r.json())
-      .then(d => setRequests(d.requests ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+  async function loadRequests() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/v1/org/brokerage-requests')
+      const d   = await res.json()
+      setRequests(d.requests ?? [])
+    } catch { /* silent */ }
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { loadRequests() }, [])
+
+  async function handleCancel(id: string) {
+    if (!confirm('Una uhakika wa kufuta ombi hili?')) return
+    setCancelling(id)
+    try {
+      const res = await fetch(`/api/v1/org/brokerage-requests/${id}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action: 'cancel' }),
+      })
+      if (res.ok) await loadRequests()
+    } catch { /* silent */ }
+    finally { setCancelling(null) }
+  }
 
   const filtered = filter
     ? requests.filter(r => r.status === filter)
@@ -101,7 +120,7 @@ export default function BrokeragePage() {
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition ${
+              className={`flex-shrink-0 text-xs px-3 py-2 rounded-full border font-medium transition ${
                 filter === s ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-200'
               }`}
             >
@@ -214,6 +233,16 @@ export default function BrokeragePage() {
                 <span className="text-[10px] text-gray-400">
                   Imewasilishwa: {new Date(req.created_at).toLocaleDateString('sw-TZ')}
                 </span>
+                {req.status === 'pending' && (
+                  <button
+                    onClick={() => handleCancel(req.id)}
+                    disabled={cancelling === req.id}
+                    className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-40 transition"
+                  >
+                    <i className="ti ti-x" aria-hidden="true" />
+                    {cancelling === req.id ? 'Inafuta...' : 'Futa Ombi'}
+                  </button>
+                )}
                 {req.status === 'deal_closed' && req.deal_closed_at && (
                   <span className="text-[10px] text-purple-500">
                     Imefungwa: {new Date(req.deal_closed_at).toLocaleDateString('sw-TZ')}

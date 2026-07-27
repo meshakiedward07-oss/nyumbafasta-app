@@ -13,6 +13,7 @@ interface Broker {
     id: string
     full_name: string | null
     email: string | null
+    username: string | null
   } | null
 }
 
@@ -93,10 +94,18 @@ function StatCard({ label, value, sub, color = '#1D9E75' }: {
   )
 }
 
+interface Me {
+  id: string
+  role: string
+  username: string | null
+  is_platform_broker: boolean
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function BrokerageTab() {
-  const [activeSection, setActiveSection] = useState<'requests' | 'brokers'>('requests')
+  const [activeSection, setActiveSection] = useState<'requests' | 'brokers' | 'mine'>('requests')
+  const [me, setMe] = useState<Me | null>(null)
 
   const [requests, setRequests] = useState<BrokerageRequest[]>([])
   const [summary,  setSummary]  = useState<Summary | null>(null)
@@ -128,6 +137,13 @@ export default function BrokerageTab() {
   const [brokerWa,     setBrokerWa]     = useState('')
   const [creatingBroker, setCreatingBroker] = useState(false)
   const [brokerError,  setBrokerError]  = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/v1/auth/me')
+      .then(r => r.json())
+      .then(d => { if (d.user) setMe(d.user) })
+      .catch(() => {})
+  }, [])
 
   async function loadBrokers() {
     setBrokersLoad(true)
@@ -178,15 +194,18 @@ export default function BrokerageTab() {
       const params = new URLSearchParams()
       if (filter) params.set('status', filter)
       if (search) params.set('q', search)
+      if (activeSection === 'mine') params.set('mine', '1')
       const res  = await fetch(`/api/v1/admin/brokerage-requests?${params}`)
       const data = await res.json()
       setRequests(data.requests ?? [])
       setSummary(data.summary ?? null)
     } catch { /* silent */ }
     finally { setLoading(false) }
-  }, [filter, search])
+  }, [filter, search, activeSection])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (activeSection !== 'brokers') load()
+  }, [load, activeSection])
 
   async function openDetail(req: BrokerageRequest) {
     setDetail(req); setDetailLoad(true); setLeads([]); setActionError(null); setSelectedBroker('')
@@ -227,11 +246,11 @@ export default function BrokerageTab() {
   return (
     <div>
       {/* ── Section toggle ─────────────────────────────────────────────── */}
-      <div className="flex gap-2 mb-6">
-        {(['requests', 'brokers'] as const).map(s => (
+      <div className="flex flex-wrap gap-2 mb-6">
+        {(['requests', 'brokers', ...(me?.is_platform_broker ? ['mine' as const] : [])] as const).map(s => (
           <button
             key={s}
-            onClick={() => setActiveSection(s)}
+            onClick={() => setActiveSection(s as typeof activeSection)}
             className="px-4 py-2 rounded-xl text-sm font-semibold border transition"
             style={{
               background:  activeSection === s ? '#1a1a18' : 'white',
@@ -239,9 +258,35 @@ export default function BrokerageTab() {
               borderColor: activeSection === s ? '#1a1a18' : '#e5e5e0',
             }}
           >
-            {s === 'requests' ? 'Maombi ya Brokerage' : 'Brokers'}
+            {s === 'requests' ? 'Maombi ya Brokerage' : s === 'brokers' ? 'Brokers' : 'Maombi Yangu'}
           </button>
         ))}
+
+        {/* Broker quick links */}
+        {me?.is_platform_broker && (
+          <div className="ml-auto flex items-center gap-2">
+            <a
+              href="/dashboard"
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border font-medium hover:bg-gray-50 transition"
+              style={{ borderColor: '#e5e5e0', color: '#1D9E75' }}
+            >
+              <i className="ti ti-layout-dashboard text-sm" />
+              Dalali Dashboard
+            </a>
+            {me.username && (
+              <a
+                href={`/agent/${me.username}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border font-medium hover:bg-gray-50 transition"
+                style={{ borderColor: '#e5e5e0', color: '#1D9E75' }}
+              >
+                <i className="ti ti-world text-sm" />
+                Microsite Yangu
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Brokers panel ──────────────────────────────────────────────── */}
@@ -360,7 +405,7 @@ export default function BrokerageTab() {
                     </p>
                     <p className="text-xs truncate" style={{ color: '#999992' }}>{b.broker_user?.email}</p>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right flex-shrink-0 space-y-1">
                     <a
                       href={`https://wa.me/${(b.broker_whatsapp ?? b.whatsapp_number ?? '').replace(/\D/g, '')}`}
                       target="_blank" rel="noopener noreferrer"
@@ -370,7 +415,18 @@ export default function BrokerageTab() {
                       <i className="ti ti-brand-whatsapp" />
                       {b.broker_whatsapp ?? b.whatsapp_number ?? '—'}
                     </a>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium mt-1 inline-block bg-green-50 text-green-700">
+                    {b.broker_user?.username && (
+                      <a
+                        href={`/agent/${b.broker_user.username}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-[10px] flex items-center gap-1 justify-end hover:underline"
+                        style={{ color: '#999992' }}
+                      >
+                        <i className="ti ti-world text-xs" />
+                        /agent/{b.broker_user.username}
+                      </a>
+                    )}
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium inline-block bg-green-50 text-green-700">
                       Platform Broker
                     </span>
                   </div>
@@ -381,7 +437,7 @@ export default function BrokerageTab() {
         </div>
       )}
 
-      {activeSection === 'requests' && <>
+      {(activeSection === 'requests' || activeSection === 'mine') && <>
       {/* ── Summary cards ──────────────────────────────────────────────── */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">

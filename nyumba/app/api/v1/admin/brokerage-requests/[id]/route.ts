@@ -3,6 +3,35 @@ import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { recordIncomeFromBrokerageCommission } from '@/lib/accounting/incomeTracker'
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+
+// Fire-and-forget: notify the org contact (WhatsApp + in-app) when staff acts
+async function notifyOrg(
+  admin: ReturnType<typeof createAdminClient>,
+  req_: Record<string, unknown>,
+  message: string,
+  notifTitle: string,
+  notifBody: string,
+) {
+  try {
+    const submittedBy = req_.submitted_by as string | null
+    if (submittedBy) {
+      await admin.from('notifications').insert({
+        user_id:  submittedBy,
+        title:    notifTitle,
+        body:     notifBody,
+        type:     'brokerage_update',
+        is_read:  false,
+      })
+    }
+    const phone = req_.org_contact_phone as string | null
+    if (phone) {
+      const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
+      await sendTextMessage(formatPhoneNumber(phone), message).catch(() => {})
+    }
+  } catch { /* non-fatal */ }
+}
+
 type Params = { params: Promise<{ id: string }> }
 
 // PATCH /api/v1/admin/brokerage-requests/[id]
@@ -36,6 +65,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         .eq('id', id).select().single()
 
       if (error) throw error
+      notifyOrg(
+        admin, req_,
+        `✅ *Ombi lako la Brokerage Limeidhinishwa!*\n\nHabari!\n\nOmbi lako la brokerage kwa *${req_.title}* limeidhinishwa na NyumbaFasta. Tutaanza kutangaza hivi karibuni.\n\n👉 ${APP_URL}/property/brokerage`,
+        '✅ Ombi la Brokerage Limeidhinishwa',
+        `Ombi lako la brokerage kwa "${req_.title}" limeidhinishwa. Tutaanza kutangaza hivi karibuni.`,
+      ).catch(() => {})
       return NextResponse.json({ request: data })
     }
 
@@ -55,6 +90,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         .eq('id', id).select().single()
 
       if (error) throw error
+      const reason = rejection_reason?.trim() || 'Maombi hayakukidhi mahitaji yetu'
+      notifyOrg(
+        admin, req_,
+        `❌ *Ombi la Brokerage Limekataliwa*\n\nHabari!\n\nOmbi lako la brokerage kwa *${req_.title}* limekataliwa.\n\n📝 Sababu: ${reason}\n\nUnaweza kuwasilisha ombi jipya ukiboresha maelezo.\n\n👉 ${APP_URL}/property/brokerage`,
+        '❌ Ombi la Brokerage Limekataliwa',
+        `Ombi lako kwa "${req_.title}" limekataliwa. Sababu: ${reason}`,
+      ).catch(() => {})
       return NextResponse.json({ request: data })
     }
 
@@ -136,6 +178,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         .eq('id', id).select().single()
 
       if (updErr) throw updErr
+      notifyOrg(
+        admin, req_,
+        `🏠 *Tangazo Lako Limeandaliwa!*\n\nHabari!\n\nNyumbaFasta sasa inatangaza nyumba yako.\n\n🔗 Angalia tangazo: ${APP_URL}/listings/${listing.id}\n\nWapangaji watapowasiliana, staff wetu watakupiga simu.\n\n👉 ${APP_URL}/property/brokerage`,
+        '🏠 Tangazo Limeandaliwa na NyumbaFasta',
+        `NyumbaFasta sasa inatangaza "${req_.title}". Watapata mpangaji haraka!`,
+      ).catch(() => {})
       return NextResponse.json({ request: updated, listing })
     }
 
@@ -179,6 +227,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           notes:             `Brokerage ombi #${id.slice(0, 8)} — ${req_.title} — kamisheni ya mwezi 1 wa kodi`,
         }).single()
       }
+
+      notifyOrg(
+        admin, req_,
+        `🎉 *Deal Imefungwa!*\n\nHabari!\n\nDeal ya *${req_.title}* imefungwa. Asante kwa kuamini NyumbaFasta.\n\nKamisheni itakuwasiliana nawe hivi karibuni.\n\n👉 ${APP_URL}/property/brokerage`,
+        '🎉 Deal Imefungwa!',
+        `Deal ya "${req_.title}" imefungwa kikamilifu. Asante kwa kutumia NyumbaFasta Brokerage.`,
+      ).catch(() => {})
 
       return NextResponse.json({ request: updated })
     }

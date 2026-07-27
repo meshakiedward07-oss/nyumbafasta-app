@@ -186,26 +186,33 @@ export default function BrokerageNewPage() {
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-lg mx-auto pb-20">
+    <div className="p-4 lg:p-6 max-w-lg mx-auto pb-24">
       {/* Header */}
-      <button onClick={() => step > 1 ? setStep(s => s - 1) : router.back()}
-        className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 mb-5">
-        <i className="ti ti-arrow-left" aria-hidden="true" />
+      <button
+        onClick={() => step > 1 ? setStep(s => s - 1) : router.back()}
+        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-5 min-h-[44px] -ml-1 px-1 rounded-xl active:bg-gray-100 transition"
+      >
+        <i className="ti ti-arrow-left text-base" aria-hidden="true" />
         {step > 1 ? 'Nyuma' : 'Brokerage'}
       </button>
 
-      <h1 className="font-bold text-gray-900 text-lg">Ombi la Kutafuta Mpangaji</h1>
-      <p className="text-xs text-gray-400 mt-0.5 mb-5">NyumbaFasta itatangaza na kukupata mpangaji</p>
+      <h1 className="font-bold text-gray-900 text-xl">Ombi la Kutafuta Mpangaji</h1>
+      <p className="text-sm text-gray-400 mt-0.5 mb-5">NyumbaFasta itatangaza na kukupata mpangaji</p>
 
-      {/* Step indicators */}
-      <div className="flex gap-2 mb-6">
-        {[1, 2, 3].map(s => (
-          <div
-            key={s}
-            className={`flex-1 h-1.5 rounded-full transition-all ${
-              s <= step ? 'bg-primary-500' : 'bg-gray-200'
-            }`}
-          />
+      {/* Step indicators with labels */}
+      <div className="flex items-center gap-2 mb-6">
+        {[
+          { n: 1, label: 'Mali' },
+          { n: 2, label: 'Mawasiliano' },
+          { n: 3, label: 'Kukubaliana' },
+        ].map(({ n, label }, idx) => (
+          <div key={n} className="flex items-center gap-2 flex-1">
+            <div className="flex flex-col items-center flex-1">
+              <div className={`w-full h-2 rounded-full transition-all ${n <= step ? 'bg-primary-500' : 'bg-gray-200'}`} />
+              <span className={`text-[9px] mt-1 font-semibold ${n <= step ? 'text-primary-600' : 'text-gray-300'}`}>{label}</span>
+            </div>
+            {idx < 2 && <div className="w-2 flex-shrink-0" />}
+          </div>
         ))}
       </div>
 
@@ -249,25 +256,27 @@ export default function BrokerageNewPage() {
             </div>
           </div>
 
-          {/* Price + Bedrooms + Deposit */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Price — full width */}
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">Bei/Mwezi (TZS) *</label>
+            <input type="number" value={priceMonthly} onChange={e => setPriceMonthly(e.target.value)}
+              placeholder="0" min="0"
+              className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+          </div>
+
+          {/* Bedrooms + Deposit — side by side */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Bei/Mwezi (TZS) *</label>
-              <input type="number" value={priceMonthly} onChange={e => setPriceMonthly(e.target.value)}
-                placeholder="0" min="0"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Vyumba</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Vyumba vya Kulala</label>
               <input type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)}
                 placeholder="—" min="0"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
             <div>
               <label className="text-xs font-medium text-gray-700 mb-1 block">Amana (miezi)</label>
               <input type="number" value={depositMonths} onChange={e => setDepositMonths(e.target.value)}
                 placeholder="1" min="0"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
           </div>
 
@@ -322,7 +331,7 @@ export default function BrokerageNewPage() {
                   key={a}
                   type="button"
                   onClick={() => toggleAmenity(a)}
-                  className={`text-xs px-3 py-1.5 rounded-full border font-medium transition ${
+                  className={`text-xs px-3 py-2 rounded-full border font-medium transition active:scale-95 ${
                     amenities.includes(a)
                       ? 'bg-primary-500 text-white border-primary-500'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'
@@ -346,11 +355,11 @@ export default function BrokerageNewPage() {
                     value={url}
                     onChange={e => handleImageChange(i, e.target.value)}
                     placeholder={`URL ya picha ${i + 1}...`}
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                   />
                   {images.length > 1 && (
                     <button type="button" onClick={() => removeImageRow(i)}
-                      className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                      className="w-10 h-10 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition flex-shrink-0">
                       <i className="ti ti-trash text-sm" aria-hidden="true" />
                     </button>
                   )}

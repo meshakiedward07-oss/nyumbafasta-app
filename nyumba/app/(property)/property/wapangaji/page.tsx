@@ -139,74 +139,74 @@ export default function WapangajiPage() {
 
             return (
               <Link key={lease.id} href={`/property/wapangaji/${lease.id}`} className="block">
-                <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-sm hover:border-primary-200 transition">
-                  <div className="flex items-center gap-4">
-                    {/* Avatar */}
-                    <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-sm hover:border-primary-200 transition active:bg-gray-50">
+                  {/* Top row: avatar + details + chevron */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 bg-primary-50 rounded-full flex items-center justify-center flex-shrink-0">
                       {tenant?.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={tenant.avatar_url} alt={tenant.full_name ?? ''} className="w-10 h-10 rounded-full object-cover" />
+                        <img src={tenant.avatar_url} alt={tenant.full_name ?? ''} className="w-11 h-11 rounded-full object-cover" />
                       ) : (
-                        <span className="text-primary-600 font-bold text-sm">
+                        <span className="text-primary-600 font-bold text-base">
                           {tenant?.full_name?.charAt(0)?.toUpperCase() ?? '?'}
                         </span>
                       )}
                     </div>
 
-                    {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-gray-900 text-sm">{tenant?.full_name ?? 'Mpangaji'}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[lease.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-bold text-gray-900 text-sm">{tenant?.full_name ?? 'Mpangaji'}</p>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[lease.status] ?? 'bg-gray-100 text-gray-500'}`}>
                           {STATUS_LABELS[lease.status] ?? lease.status}
                         </span>
                         {lease.end_date && lease.status === 'active' && (() => {
                           const days = Math.ceil((new Date(lease.end_date).getTime() - Date.now()) / 86400000)
                           if (days > 30) return null
                           return (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${days <= 7 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}`}>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${days <= 7 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}`}>
                               Siku {days}
                             </span>
                           )
                         })()}
                       </div>
-                      {tenant?.phone && (
-                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                          <i className="ti ti-phone" aria-hidden="true" /> {tenant.phone}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap text-xs text-gray-400">
+                        {tenant?.phone && (
+                          <span className="flex items-center gap-0.5">
+                            <i className="ti ti-phone text-[10px]" aria-hidden="true" /> {tenant.phone}
+                          </span>
+                        )}
                         {unit && (
-                          <span className="flex items-center gap-1">
-                            <i className="ti ti-door" aria-hidden="true" />
-                            {unit.unit_number}
+                          <span className="flex items-center gap-0.5">
+                            <i className="ti ti-door text-[10px]" aria-hidden="true" /> {unit.unit_number}
                           </span>
                         )}
                         {listing && (
-                          <span className="flex items-center gap-1 truncate max-w-[160px]">
-                            <i className="ti ti-building" aria-hidden="true" />
+                          <span className="flex items-center gap-0.5 truncate max-w-[140px]">
+                            <i className="ti ti-building text-[10px]" aria-hidden="true" />
                             <span className="truncate">{listing.title}</span>
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Rent + dates + chevron */}
-                    <div className="text-right flex-shrink-0 flex items-center gap-2">
-                      <div>
-                        <p className="font-bold text-primary-600 text-sm">
-                          TZS {lease.monthly_rent.toLocaleString()}
-                        </p>
-                        <p className="text-[10px] text-gray-400">/mwezi</p>
-                        <p className="text-[10px] text-gray-400 mt-1">
-                          {new Date(lease.start_date).toLocaleDateString('sw-TZ', { month: 'short', year: 'numeric' })}
-                          {lease.end_date && ` – ${new Date(lease.end_date).toLocaleDateString('sw-TZ', { month: 'short', year: 'numeric' })}`}
-                        </p>
-                        {!lease.deposit_paid && lease.deposit_amount && (
-                          <span className="text-[10px] text-amber-500 font-medium">Amana haijalipiwa</span>
-                        )}
-                      </div>
-                      <i className="ti ti-chevron-right text-gray-300 text-base" aria-hidden="true" />
+                    <i className="ti ti-chevron-right text-gray-300 text-base flex-shrink-0" aria-hidden="true" />
+                  </div>
+
+                  {/* Bottom row: rent + dates + deposit alert */}
+                  <div className="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
+                    <p className="font-bold text-primary-600 text-sm tabular-nums">
+                      TZS {lease.monthly_rent.toLocaleString()}<span className="font-normal text-gray-400 text-xs">/mwezi</span>
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      {!lease.deposit_paid && lease.deposit_amount && (
+                        <span className="text-[10px] bg-amber-50 text-amber-600 font-semibold px-2 py-0.5 rounded-full">
+                          Amana haijalipiwa
+                        </span>
+                      )}
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(lease.start_date).toLocaleDateString('sw-TZ', { month: 'short', year: 'numeric' })}
+                        {lease.end_date && ` → ${new Date(lease.end_date).toLocaleDateString('sw-TZ', { month: 'short', year: 'numeric' })}`}
+                      </span>
                     </div>
                   </div>
                 </div>

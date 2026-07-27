@@ -181,6 +181,36 @@ export async function GET(req: NextRequest) {
     errors.push(`❌ Stale listings: ${String(e)}`)
   }
 
+  // ── Stale brokerage requests (pending > 7 days) ───────
+  try {
+    const admin = getAdmin()
+    const { count: stalePending } = await admin
+      .from('brokerage_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .lt('created_at', weekAgo.toISOString())
+
+    if ((stalePending ?? 0) > 0) {
+      // In-app notifications for all admins
+      const { data: admins } = await admin
+        .from('users')
+        .select('id')
+        .eq('role', 'admin')
+
+      const notifs = (admins ?? []).map(a => ({
+        user_id:  a.id,
+        title:    `⚠️ Maombi ya Brokerage Yaliyokwama: ${stalePending}`,
+        body:     `Kuna maombi ${stalePending} ya brokerage ambayo yamekuwa katika hali ya "pending" kwa zaidi ya wiki moja. Tafadhali yafuatilie.`,
+        type:     'brokerage_stale',
+        is_read:  false,
+      }))
+      if (notifs.length > 0) await admin.from('notifications').insert(notifs)
+    }
+    results.push(`✅ Stale brokerage check: ${stalePending ?? 0} pending > 7 days`)
+  } catch (e) {
+    errors.push(`❌ Stale brokerage: ${String(e)}`)
+  }
+
   return NextResponse.json({
     success: true,
     timestamp: now.toISOString(),

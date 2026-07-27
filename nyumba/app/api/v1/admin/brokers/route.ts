@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 
+function nameToSlug(name: string): string {
+  return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '_').slice(0, 16) || 'broker'
+}
+
+function randomSuffix(): string {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789'
+  return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
 // GET /api/v1/admin/brokers
 // List all NyumbaFasta platform broker accounts
 export async function GET() {
@@ -20,7 +30,7 @@ export async function GET() {
         is_verified,
         subscription_plan,
         created_at,
-        broker_user:users!user_id(id, full_name, email, phone, created_at)
+        broker_user:users!user_id(id, full_name, email, phone, username, created_at)
       `)
       .eq('is_platform_broker', true)
       .order('created_at', { ascending: true })
@@ -98,7 +108,23 @@ export async function POST(req: NextRequest) {
       { onConflict: 'staff_id, permission_key' }
     )
 
-    return NextResponse.json({ broker: { user_id: userId, ...profile } }, { status: 201 })
+    // 5. Auto-generate microsite username — broker gets /agent/{username} link automatically
+    const base = nameToSlug(full_name.trim())
+    let generatedUsername: string | null = null
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const candidate = `${base}_${randomSuffix()}`
+      const { data: taken } = await admin.from('users').select('id').eq('username', candidate).maybeSingle()
+      if (taken) continue
+      const { error: usernameErr } = await admin.from('users').update({ username: candidate }).eq('id', userId)
+      if (!usernameErr) { generatedUsername = candidate; break }
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    return NextResponse.json({
+      broker:     { user_id: userId, ...profile },
+      username:   generatedUsername,
+      microsite:  generatedUsername ? `${appUrl}/agent/${generatedUsername}` : null,
+    }, { status: 201 })
   } catch (err) {
     console.error('[POST /admin/brokers]', err)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

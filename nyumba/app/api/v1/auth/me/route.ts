@@ -10,15 +10,19 @@ export async function GET() {
     }
 
     const admin = createAdminClient()
-    const { data: profile, error } = await admin
-      .from('users')
-      .select('id, full_name, phone, role, created_at')
-      .eq('id', user.id)
-      .single()
+    const [profileRes, dpRes] = await Promise.all([
+      admin.from('users').select('id, full_name, phone, role, username, created_at').eq('id', user.id).single(),
+      admin.from('dalali_profiles').select('is_platform_broker').eq('user_id', user.id).maybeSingle(),
+    ])
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (profileRes.error) return NextResponse.json({ error: profileRes.error.message }, { status: 500 })
 
-    return NextResponse.json({ user: profile })
+    return NextResponse.json({
+      user: {
+        ...profileRes.data,
+        is_platform_broker: dpRes.data?.is_platform_broker ?? false,
+      },
+    })
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }

@@ -170,69 +170,92 @@ export default function MaintenancePage() {
         </div>
       </div>
 
-      {/* New request form */}
+      {/* New request form — bottom sheet on mobile, inline on desktop */}
       {showForm && (
-        <div className="mx-4 mt-3 bg-white rounded-2xl border border-gray-100 p-4 flex-shrink-0 overflow-y-auto max-h-[70vh]">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-semibold text-gray-900">Ombi Jipya la Matengenezo</h3>
-            <button onClick={() => { setShowForm(false); setFormError(null) }} className="text-gray-400 hover:text-gray-600">
-              <i className="ti ti-x" aria-hidden="true" />
-            </button>
+        <>
+          {/* Mobile backdrop */}
+          <div
+            className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+            onClick={() => { setShowForm(false); setFormError(null) }}
+          />
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl lg:static lg:shadow-none lg:mx-4 lg:mt-3 lg:rounded-2xl lg:border lg:border-gray-100 overflow-y-auto max-h-[88vh] lg:max-h-[70vh]">
+            {/* Drag handle (mobile) */}
+            <div className="flex justify-center pt-3 pb-1 lg:hidden">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+            </div>
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-gray-900">Ombi Jipya la Matengenezo</h3>
+                <button
+                  onClick={() => { setShowForm(false); setFormError(null) }}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
+                  aria-label="Funga"
+                >
+                  <i className="ti ti-x text-sm" aria-hidden="true" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <input type="text" placeholder="Kichwa cha tatizo *"
+                  value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <select value={form.category}
+                    onChange={e => setForm(p => ({ ...p, category: e.target.value as MaintenanceCategory }))}
+                    className="border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
+                    {CATEGORIES.map(c => <option key={c} value={c}>{MAINTENANCE_CATEGORY_LABELS[c]}</option>)}
+                  </select>
+                  <select value={form.priority}
+                    onChange={e => setForm(p => ({ ...p, priority: e.target.value as MaintenancePriority }))}
+                    className="border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
+                    {PRIORITIES.map(pr => <option key={pr} value={pr}>{MAINTENANCE_PRIORITY_LABELS[pr]}</option>)}
+                  </select>
+                </div>
+
+                {units.length > 0 && (
+                  <select value={form.unit_id} onChange={e => setForm(p => ({ ...p, unit_id: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
+                    <option value="">Chagua kitengo (hiari)</option>
+                    {units.map(u => <option key={u.id} value={u.id}>{u.unit_number}</option>)}
+                  </select>
+                )}
+
+                <input type="tel" placeholder="Simu ya mpangaji (+255...) — hiari"
+                  value={form.tenant_phone} onChange={e => setForm(p => ({ ...p, tenant_phone: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+
+                <textarea rows={3} placeholder="Maelezo ya tatizo..."
+                  value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="number" placeholder="Gharama (Tsh)"
+                    value={form.estimated_cost} onChange={e => setForm(p => ({ ...p, estimated_cost: e.target.value }))}
+                    className="border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                  <input type="datetime-local"
+                    value={form.scheduled_at} onChange={e => setForm(p => ({ ...p, scheduled_at: e.target.value }))}
+                    className="border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+
+                {formError && (
+                  <p className="text-sm text-red-600 flex items-center gap-1.5">
+                    <i className="ti ti-alert-circle" aria-hidden="true" /> {formError}
+                  </p>
+                )}
+                <div className="flex gap-2 pb-2">
+                  <button onClick={() => { setShowForm(false); setFormError(null) }}
+                    className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-3">
+                    Ghairi
+                  </button>
+                  <button onClick={handleSubmit} disabled={submitting}
+                    className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-bold hover:bg-primary-600 transition disabled:opacity-40">
+                    {submitting ? 'Inatuma...' : 'Wasilisha Ombi'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2.5">
-            <input type="text" placeholder="Kichwa cha tatizo *"
-              value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-
-            <div className="grid grid-cols-2 gap-2">
-              <select value={form.category}
-                onChange={e => setForm(p => ({ ...p, category: e.target.value as MaintenanceCategory }))}
-                className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                {CATEGORIES.map(c => <option key={c} value={c}>{MAINTENANCE_CATEGORY_LABELS[c]}</option>)}
-              </select>
-              <select value={form.priority}
-                onChange={e => setForm(p => ({ ...p, priority: e.target.value as MaintenancePriority }))}
-                className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                {PRIORITIES.map(pr => <option key={pr} value={pr}>{MAINTENANCE_PRIORITY_LABELS[pr]}</option>)}
-              </select>
-            </div>
-
-            {units.length > 0 && (
-              <select value={form.unit_id} onChange={e => setForm(p => ({ ...p, unit_id: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                <option value="">Chagua kitengo (hiari)</option>
-                {units.map(u => <option key={u.id} value={u.id}>{u.unit_number}</option>)}
-              </select>
-            )}
-
-            <input type="tel" placeholder="Simu ya mpangaji (+255...) — hiari"
-              value={form.tenant_phone} onChange={e => setForm(p => ({ ...p, tenant_phone: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-
-            <textarea rows={2} placeholder="Maelezo ya tatizo..."
-              value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
-
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" placeholder="Gharama (Tsh)"
-                value={form.estimated_cost} onChange={e => setForm(p => ({ ...p, estimated_cost: e.target.value }))}
-                className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-              <input type="datetime-local"
-                value={form.scheduled_at} onChange={e => setForm(p => ({ ...p, scheduled_at: e.target.value }))}
-                className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-            </div>
-
-            {formError && <p className="text-xs text-red-600">{formError}</p>}
-            <div className="flex gap-2">
-              <button onClick={() => { setShowForm(false); setFormError(null) }}
-                className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">Ghairi</button>
-              <button onClick={handleSubmit} disabled={submitting}
-                className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40">
-                {submitting ? 'Inatuma...' : 'Wasilisha Ombi'}
-              </button>
-            </div>
-          </div>
-        </div>
+        </>
       )}
 
       {/* List */}

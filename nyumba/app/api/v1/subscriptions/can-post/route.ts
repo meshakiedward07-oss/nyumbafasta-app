@@ -16,6 +16,17 @@ export async function GET() {
 
     const admin = createAdminClient()
 
+    // Platform brokers bypass the subscription check — they post on behalf of NyumbaFasta
+    const { data: dp } = await admin
+      .from('dalali_profiles')
+      .select('is_platform_broker')
+      .eq('user_id', user.id)
+      .eq('is_platform_broker', true)
+      .maybeSingle()
+    if (dp) {
+      return NextResponse.json({ can_post: true, limit: 999, plan: 'platform_broker' })
+    }
+
     const [subRes, countRes, pricing] = await Promise.all([
       admin
         .from('subscriptions')

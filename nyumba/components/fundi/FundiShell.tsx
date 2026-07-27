@@ -5,9 +5,10 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const NAV_ITEMS = [
-  { href: '/fundi/dashboard', icon: 'layout-dashboard', label: 'Kazi Zangu',  exact: false },
-  { href: '/fundi/profile',   icon: 'user-circle',      label: 'Wasifu',       exact: false },
-  { href: '/fundi/kyc',       icon: 'id',                label: 'Hati / KYC',  exact: false },
+  { href: '/fundi/dashboard',    icon: 'layout-dashboard', label: 'Kazi Zangu'  },
+  { href: '/fundi/profile',      icon: 'user-circle',      label: 'Wasifu'      },
+  { href: '/fundi/kyc',          icon: 'id',               label: 'Hati / KYC'  },
+  { href: '/fundi/subscription', icon: 'star',             label: 'Usajili'     },
 ]
 
 type Props = { children: React.ReactNode; fundiName: string | null }
