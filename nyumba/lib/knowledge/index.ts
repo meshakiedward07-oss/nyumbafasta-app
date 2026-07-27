@@ -24,41 +24,62 @@ export interface CacheEntry {
   created_at:  string
 }
 
-export interface SearchResult {
+export interface CacheLookupResult {
   id:         string
-  source:     'cache' | 'knowledge_base'
-  content:    string   // the answer (cache) or formatted article body (KB)
-  title?:     string   // KB articles have a title
+  answer:     string
   similarity: number
 }
 
-// ── Semantic search via pgvector ──────────────────────────────────────────────
-// Calls nf_semantic_search() which UNIONs knowledge_base + knowledge_cache
-// and returns results ordered by cosine similarity descending.
+// ── Cache lookup — pg_trgm trigram similarity, pure DB, no AI ────────────────
+// Returns the best-matching cached answer if similarity ≥ threshold.
 
-export async function semanticSearch(
-  embedding: number[],
-  threshold: number,
-  limit = 5,
-): Promise<SearchResult[]> {
-  const { data, error } = await supabaseAdmin.rpc('nf_semantic_search', {
-    p_embedding: JSON.stringify(embedding),
+export async function lookupCache(
+  messageText: string,
+  threshold = 0.40,  // pg_trgm similarity scale: 0=no match, 1=identical
+  limit      = 1,
+): Promise<CacheLookupResult | null> {
+  const { data, error } = await supabaseAdmin.rpc('nf_cache_lookup', {
+    p_question:  messageText,
     p_threshold: threshold,
     p_limit:     limit,
   })
 
   if (error) {
-    console.error('[KB] nf_semantic_search error:', error.message)
-    return []
+    console.error('[KB] nf_cache_lookup error:', error.message)
+    return null
   }
-
-  return (data ?? []) as SearchResult[]
+  if (!data || data.length === 0) return null
+  return data[0] as CacheLookupResult
 }
 
-// ── Knowledge-base article CRUD ───────────────────────────────────────────────
+export async function recordCacheHit(id: string): Promise<void> {
+  void supabaseAdmin.rpc('nf_increment_cache_hit', { p_cache_id: id }).then(() => null, () => null)
+}
+
+// ── Cache write ───────────────────────────────────────────────────────────────
+
+export async function addToCache(
+  question:  string,
+  answer:    string,
+  source:    'amina_answer' | 'admin_authored' = 'amina_answer',
+): Promise<string | null> {
+  const { data, error } = await supabaseAdmin
+    .from('knowledge_cache')
+    .insert({ question, answer, source })
+    .select('id')
+    .single()
+
+  if (error) {
+    console.error('[KB] cache insert failed:', error.message)
+    return null
+  }
+  return data?.id ?? null
+}
+
+// ── Knowledge-base CRUD ───────────────────────────────────────────────────────
 
 export async function createArticle(
-  article: Omit<KBArticle, 'id' | 'created_at' | 'updated_at'> & { embedding: number[] },
+  article: Omit<KBArticle, 'id' | 'created_at' | 'updated_at'>,
 ): Promise<KBArticle> {
   const { data, error } = await supabaseAdmin
     .from('knowledge_base')
@@ -68,10 +89,10 @@ export async function createArticle(
       body:      article.body,
       category:  article.category,
       language:  article.language ?? 'sw',
-      embedding: JSON.stringify(article.embedding),
       is_active: article.is_active ?? true,
+      created_by: article.created_by ?? null,
     })
-    .select('id, slug, title, body, category, language, is_active, created_at, updated_at')
+    .select('id, slug, title, body, category, language, is_active, created_by, created_at, updated_at')
     .single()
 
   if (error) throw new Error(`KB create failed: ${error.message}`)
@@ -80,12 +101,12 @@ export async function createArticle(
 
 export async function listArticles(options?: {
   category?: string
-  limit?: number
-  offset?: number
+  limit?:    number
+  offset?:   number
 }): Promise<KBArticle[]> {
   let q = supabaseAdmin
     .from('knowledge_base')
-    .select('id, slug, title, body, category, language, is_active, created_at, updated_at')
+    .select('id, slug, title, body, category, language, is_active, created_by, created_at, updated_at')
     .order('created_at', { ascending: false })
     .limit(options?.limit ?? 50)
 
@@ -98,62 +119,29 @@ export async function listArticles(options?: {
 }
 
 export async function updateArticle(
-  id: string,
-  fields: Partial<KBArticle> & { embedding?: number[] },
+  id:     string,
+  fields: Partial<Omit<KBArticle, 'id' | 'created_at'>>,
 ): Promise<void> {
-  const update: Record<string, unknown> = { ...fields, updated_at: new Date().toISOString() }
-  if (fields.embedding) update.embedding = JSON.stringify(fields.embedding)
-
   const { error } = await supabaseAdmin
     .from('knowledge_base')
-    .update(update)
+    .update({ ...fields, updated_at: new Date().toISOString() })
     .eq('id', id)
 
   if (error) throw new Error(`KB update failed: ${error.message}`)
 }
 
-// ── Cache operations ──────────────────────────────────────────────────────────
-
-export async function addToCache(
-  question:  string,
-  answer:    string,
-  embedding: number[],
-  source:    'amina_answer' | 'admin_authored' = 'amina_answer',
-): Promise<string | null> {
-  const { data, error } = await supabaseAdmin
-    .from('knowledge_cache')
-    .insert({
-      question,
-      answer,
-      embedding: JSON.stringify(embedding),
-      source,
-    })
-    .select('id')
-    .single()
-
-  if (error) {
-    console.error('[KB] cache insert failed:', error.message)
-    return null
-  }
-  return data?.id ?? null
-}
-
-export async function recordCacheHit(id: string): Promise<void> {
-  void supabaseAdmin.rpc('nf_increment_cache_hit', { p_cache_id: id }).then(() => null, () => null)
-}
-
 // ── Config ────────────────────────────────────────────────────────────────────
 
 export interface CascadeConfig {
-  cache_threshold:    number  // 0.85
-  kb_threshold:       number  // 0.80
-  max_context_items:  number  // 3 (items injected into Amina prompt in Phase 4)
+  cache_similarity_threshold: number  // pg_trgm scale 0-1; default 0.40
+  kb_confidence_threshold:    number  // Haiku confidence 0-1; default 0.75
+  max_context_items:          number  // items injected into Amina prompt; default 3
 }
 
 const DEFAULT_CONFIG: CascadeConfig = {
-  cache_threshold:   0.85,
-  kb_threshold:      0.80,
-  max_context_items: 3,
+  cache_similarity_threshold: 0.40,
+  kb_confidence_threshold:    0.75,
+  max_context_items:          3,
 }
 
 export async function getCascadeConfig(): Promise<CascadeConfig> {

@@ -255,7 +255,7 @@ export async function handleWhatsAppMessage(
       const guidedFlow = await isInGuidedFlow(from)
       console.log(`[Amina] guidedFlow=${guidedFlow} (${Date.now() - t0}ms)`)
 
-      if (!guidedFlow && process.env.OPENAI_API_KEY) {
+      if (!guidedFlow) {
         // 6a. Run knowledge cascade: cache → knowledge_base
         const cascade = await runCascade(messageText, {
           phoneNumber: from,
@@ -311,9 +311,7 @@ export async function handleWhatsAppMessage(
       console.log(`[Amina] AI done (${Date.now() - t0}ms)`)
 
       // Cache Amina's answer so the same question is answered from KB next time
-      if (process.env.OPENAI_API_KEY) {
-        cacheAminaAnswer(messageText, response)
-      }
+      cacheAminaAnswer(messageText, response)
 
       // Save classification record for analytics (fire-and-forget)
       void saveClassification(classCtx, classification, 'auto_replied', response).catch(() => null)

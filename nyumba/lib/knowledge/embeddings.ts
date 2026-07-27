@@ -1,51 +1,95 @@
-import OpenAI from 'openai'
+// Haiku-based semantic KB article picker.
+// Step 1: PostgreSQL FTS narrows the full KB to ≤10 candidates (no AI, pure DB).
+// Step 2: Claude Haiku picks the best candidate from that short list (cheap AI).
+// No external API — uses the same Anthropic SDK as Amina.
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+import Anthropic from '@anthropic-ai/sdk'
+import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 
-// In-process cache: saves API calls for identical strings within the same request
-const cache = new Map<string, number[]>()
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-export const EMBEDDING_DIMENSIONS = 1536
-export const EMBEDDING_MODEL = 'text-embedding-3-small'
-
-export async function embed(text: string): Promise<number[]> {
-  const key = text.slice(0, 512)
-  const hit = cache.get(key)
-  if (hit) return hit
-
-  const response = await openai.embeddings.create({
-    model: EMBEDDING_MODEL,
-    input: text.slice(0, 8191), // model max
-    dimensions: EMBEDDING_DIMENSIONS,
-  })
-
-  const vector = response.data[0].embedding
-  if (cache.size > 500) cache.clear() // prevent unbounded growth
-  cache.set(key, vector)
-  return vector
+export interface KBCandidate {
+  id:    string
+  slug:  string
+  title: string
+  body:  string
 }
 
-// Normalise Kiswahili / English synonyms before embedding so the vector
-// space is tighter for multilingual queries. This is not a rule engine —
-// it just canonicalises obvious phonetic/abbreviation variants so the
-// embedding model sees consistent tokens.
-export function normaliseQuery(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/\broom\b/g, 'chumba')
-    .replace(/\bhouse\b/g, 'nyumba')
-    .replace(/\bapartment\b/g, 'nyumba')
-    .replace(/\bflat\b/g, 'nyumba')
-    .replace(/\bbedsit\b/g, 'chumba kimoja')
-    .replace(/\bbedroom(s?)\b/g, 'chumba$1')
-    .replace(/\brent\b/g, 'kodi')
-    .replace(/\bagent\b/g, 'dalali')
-    .replace(/\bbroker\b/g, 'dalali')
-    .replace(/\bprice\b/g, 'bei')
-    .replace(/\bpay\b/g, 'lipa')
-    .replace(/\bpayment\b/g, 'malipo')
-    .replace(/\bcontact\b/g, 'mawasiliano')
-    .replace(/\bsubscription\b/g, 'usajili')
-    .replace(/\bunlock\b/g, 'fungua')
-    .trim()
+export interface KBPickResult {
+  candidate:  KBCandidate | null
+  confidence: number
+}
+
+// ── Step 1: FTS candidate retrieval (pure DB, no AI) ─────────────────────────
+
+export async function fetchKBCandidates(
+  messageText: string,
+  limit = 10,
+): Promise<KBCandidate[]> {
+  const { data, error } = await supabaseAdmin.rpc('nf_kb_candidates', {
+    p_query: messageText,
+    p_limit: limit,
+  })
+  if (error) {
+    console.error('[KB] nf_kb_candidates error:', error.message)
+    return []
+  }
+  return (data ?? []) as KBCandidate[]
+}
+
+// ── Step 2: Haiku picks the best candidate ───────────────────────────────────
+
+export async function pickBestArticle(
+  messageText: string,
+  candidates:  KBCandidate[],
+): Promise<KBPickResult> {
+  if (candidates.length === 0) return { candidate: null, confidence: 0 }
+
+  const articleList = candidates
+    .map((c, i) => `${i + 1}. [${c.slug}] "${c.title}"`)
+    .join('\n')
+
+  const prompt = `You route WhatsApp messages for NyumbaFasta, a property platform in Tanzania.
+
+User message: "${messageText.slice(0, 400)}"
+
+Knowledge base articles (titles only):
+${articleList}
+
+Which article number (1-${candidates.length}) best answers this message?
+Reply with JSON only — nothing else: {"choice": <number or 0>, "confidence": <0.0-1.0>}
+Use choice=0 if no article clearly answers the question.`
+
+  try {
+    const res = await anthropic.messages.create({
+      model:      'claude-haiku-4-5',
+      max_tokens: 60,
+      messages:   [{ role: 'user', content: prompt }],
+    })
+
+    const text  = res.content[0].type === 'text' ? res.content[0].text.trim() : '{}'
+    const clean = text.replace(/```[a-z]*/g, '').replace(/```/g, '').trim()
+    const parsed = JSON.parse(clean) as { choice: number; confidence: number }
+
+    const idx = (parsed.choice ?? 0) - 1
+    if (idx < 0 || idx >= candidates.length) return { candidate: null, confidence: 0 }
+
+    return {
+      candidate:  candidates[idx],
+      confidence: Math.min(1, Math.max(0, parseFloat(String(parsed.confidence)) || 0)),
+    }
+  } catch (err) {
+    console.error('[KB] Haiku pick failed:', err)
+    return { candidate: null, confidence: 0 }
+  }
+}
+
+// ── Combined: FTS candidates → Haiku pick ────────────────────────────────────
+
+export async function findBestKBArticle(
+  messageText: string,
+): Promise<KBPickResult> {
+  const candidates = await fetchKBCandidates(messageText)
+  if (candidates.length === 0) return { candidate: null, confidence: 0 }
+  return pickBestArticle(messageText, candidates)
 }

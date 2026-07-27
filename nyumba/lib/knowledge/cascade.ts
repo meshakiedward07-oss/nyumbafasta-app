@@ -1,14 +1,14 @@
-import { embed, normaliseQuery } from '@/lib/knowledge/embeddings'
-import { semanticSearch, getCascadeConfig, addToCache, recordCacheHit } from '@/lib/knowledge/index'
+import { findBestKBArticle } from '@/lib/knowledge/embeddings'
+import { lookupCache, recordCacheHit, addToCache, getCascadeConfig } from '@/lib/knowledge/index'
 import { logMiss } from '@/lib/knowledge/missLog'
 
 export interface CascadeResult {
-  answered:     boolean
-  answer:       string
-  confidence:   number
+  answered:      boolean
+  answer:        string
+  confidence:    number
   layerAnswered: 'cache' | 'knowledge_base' | null
-  // Top retrieved items (used in Phase 4 to inject context into Amina)
-  retrieved:    Array<{ source: string; content: string; similarity: number }>
+  // Closest KB content, passed as retrieved context to Amina (Phase 4)
+  retrieved:     Array<{ source: string; content: string; confidence: number }>
 }
 
 export interface CascadeOptions {
@@ -18,96 +18,77 @@ export interface CascadeOptions {
 }
 
 // ── Cascade: cache → knowledge_base → miss log ────────────────────────────────
-// Returns a result with answered=true if a confident match was found,
-// or answered=false with retrieved[] populated for Amina to use as context.
+// 1. pg_trgm cache lookup (pure DB, no AI)
+// 2. PostgreSQL FTS candidates → Haiku picks best (cheap AI)
+// 3. Miss: log + return retrieved items for Amina to use as context
 
 export async function runCascade(
   messageText: string,
   options: CascadeOptions = {},
 ): Promise<CascadeResult> {
-  const t0 = Date.now()
-
-  // 1. Get config (cached at function level — low DB cost)
+  const t0  = Date.now()
   const cfg = await getCascadeConfig()
 
-  // 2. Embed the query
-  const normalised = normaliseQuery(messageText)
-  let embedding: number[]
-  try {
-    embedding = await embed(normalised)
-  } catch (err) {
-    console.error('[Cascade] embed failed (falling through to Amina):', err)
-    return { answered: false, answer: '', confidence: 0, layerAnswered: null, retrieved: [] }
-  }
-  console.log(`[Cascade] embed done (${Date.now() - t0}ms)`)
+  // ── 1. Cache lookup (pg_trgm, no AI call) ────────────────────────────────
+  const cacheHit = await lookupCache(messageText, cfg.cache_similarity_threshold)
+  console.log(`[Cascade] cache sim=${cacheHit?.similarity?.toFixed(3) ?? '—'} threshold=${cfg.cache_similarity_threshold} (${Date.now() - t0}ms)`)
 
-  // 3. Search cache + knowledge_base together via the unified RPC
-  //    We fetch up to 5 results so the top ones can be fed to Amina as context
-  const results = await semanticSearch(embedding, Math.min(cfg.cache_threshold, cfg.kb_threshold) - 0.05, 5)
-  console.log(`[Cascade] search done (${Date.now() - t0}ms) results=${results.length}`)
-
-  const bestCacheSim = results.find(r => r.source === 'cache')?.similarity ?? 0
-  const bestKbSim    = results.find(r => r.source === 'knowledge_base')?.similarity ?? 0
-
-  // 4a. Cache hit — highest bar (near-exact answer)
-  const cacheHit = results.find(r => r.source === 'cache' && r.similarity >= cfg.cache_threshold)
-  if (cacheHit) {
-    console.log(`[Cascade] cache HIT sim=${cacheHit.similarity.toFixed(3)} (${Date.now() - t0}ms)`)
+  if (cacheHit && cacheHit.similarity >= cfg.cache_similarity_threshold) {
     void recordCacheHit(cacheHit.id)
     return {
-      answered:     true,
-      answer:       cacheHit.content,
-      confidence:   cacheHit.similarity,
+      answered:      true,
+      answer:        cacheHit.answer,
+      confidence:    cacheHit.similarity,
       layerAnswered: 'cache',
-      retrieved:    results.map(r => ({ source: r.source, content: r.content, similarity: r.similarity })),
+      retrieved:     [{ source: 'cache', content: cacheHit.answer, confidence: cacheHit.similarity }],
     }
   }
 
-  // 4b. Knowledge-base hit — slightly lower bar (article needs to be returned as-is)
-  const kbHit = results.find(r => r.source === 'knowledge_base' && r.similarity >= cfg.kb_threshold)
-  if (kbHit) {
-    console.log(`[Cascade] kb HIT sim=${kbHit.similarity.toFixed(3)} (${Date.now() - t0}ms)`)
-    const answer = kbHit.title ? `*${kbHit.title}*\n\n${kbHit.content}` : kbHit.content
+  // ── 2. KB lookup: FTS candidates → Haiku pick ────────────────────────────
+  const kbResult = await findBestKBArticle(messageText)
+  console.log(`[Cascade] kb conf=${kbResult.confidence.toFixed(3)} threshold=${cfg.kb_confidence_threshold} slug=${kbResult.candidate?.slug ?? '—'} (${Date.now() - t0}ms)`)
+
+  if (kbResult.candidate && kbResult.confidence >= cfg.kb_confidence_threshold) {
+    const { title, body } = kbResult.candidate
+    const answer = title ? `*${title}*\n\n${body}` : body
     return {
-      answered:     true,
+      answered:      true,
       answer,
-      confidence:   kbHit.similarity,
+      confidence:    kbResult.confidence,
       layerAnswered: 'knowledge_base',
-      retrieved:    results.map(r => ({ source: r.source, content: r.content, similarity: r.similarity })),
+      retrieved:     [{ source: 'knowledge_base', content: body, confidence: kbResult.confidence }],
     }
   }
 
-  // 5. Nothing cleared threshold — log miss and return context for Amina
-  console.log(`[Cascade] MISS bestCache=${bestCacheSim.toFixed(3)} bestKb=${bestKbSim.toFixed(3)} (${Date.now() - t0}ms)`)
+  // ── 3. Miss — log and hand off ────────────────────────────────────────────
+  console.log(`[Cascade] MISS (${Date.now() - t0}ms)`)
 
-  void logMiss(messageText, bestCacheSim > bestKbSim ? 'cache' : 'knowledge_base', {
-    phoneNumber:  options.phoneNumber,
-    sessionId:    options.sessionId,
-    flowType:     options.flowType,
-    bestCacheSim,
-    bestKbSim,
-    searchHadResults: results.length > 0,
+  void logMiss(messageText, 'knowledge_base', {
+    phoneNumber:      options.phoneNumber,
+    sessionId:        options.sessionId,
+    flowType:         options.flowType,
+    bestCacheSim:     cacheHit?.similarity ?? 0,
+    bestKbSim:        kbResult.confidence,
+    searchHadResults: !!kbResult.candidate,
   })
 
+  const retrieved = kbResult.candidate
+    ? [{ source: 'knowledge_base', content: kbResult.candidate.body, confidence: kbResult.confidence }]
+    : []
+
   return {
-    answered:     false,
-    answer:       '',
-    confidence:   Math.max(bestCacheSim, bestKbSim),
+    answered:      false,
+    answer:        '',
+    confidence:    Math.max(cacheHit?.similarity ?? 0, kbResult.confidence),
     layerAnswered: null,
-    // Pass top results to Amina even though none cleared the threshold —
-    // these become the "retrieved context" in Phase 4
-    retrieved:    results.slice(0, 3).map(r => ({ source: r.source, content: r.content, similarity: r.similarity })),
+    retrieved,
   }
 }
 
-// ── Cache Amina's answer so similar questions get a direct hit next time ──────
-// Called after Amina responds. Non-blocking.
+// ── Cache Amina's answer for future identical questions ───────────────────────
+// Fire-and-forget — never awaited in the hot path.
 
-export function cacheAminaAnswer(
-  question:  string,
-  answer:    string,
-): void {
-  embed(normaliseQuery(question))
-    .then(embedding => addToCache(question, answer, embedding, 'amina_answer'))
+export function cacheAminaAnswer(question: string, answer: string): void {
+  addToCache(question, answer, 'amina_answer')
     .catch(err => console.error('[Cascade] cache write failed (non-fatal):', err))
 }
