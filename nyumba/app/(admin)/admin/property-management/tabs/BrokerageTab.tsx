@@ -3,6 +3,19 @@ import { useEffect, useState, useCallback } from 'react'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+interface Broker {
+  user_id: string
+  broker_whatsapp: string | null
+  whatsapp_number: string | null
+  is_verified: boolean
+  subscription_plan: string | null
+  broker_user: {
+    id: string
+    full_name: string | null
+    email: string | null
+  } | null
+}
+
 interface BrokerageRequest {
   id: string
   title: string
@@ -83,6 +96,8 @@ function StatCard({ label, value, sub, color = '#1D9E75' }: {
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function BrokerageTab() {
+  const [activeSection, setActiveSection] = useState<'requests' | 'brokers'>('requests')
+
   const [requests, setRequests] = useState<BrokerageRequest[]>([])
   const [summary,  setSummary]  = useState<Summary | null>(null)
   const [loading,  setLoading]  = useState(true)
@@ -101,6 +116,61 @@ export default function BrokerageTab() {
   const [showRejectBox, setShowRejectBox] = useState(false)
   const [commAmount,    setCommAmount]    = useState('')
   const [commNotes,     setCommNotes]     = useState('')
+  const [selectedBroker, setSelectedBroker] = useState('')
+
+  // Brokers management
+  const [brokers,      setBrokers]      = useState<Broker[]>([])
+  const [brokersLoad,  setBrokersLoad]  = useState(false)
+  const [showBrokerForm, setShowBrokerForm] = useState(false)
+  const [brokerName,   setBrokerName]   = useState('')
+  const [brokerEmail,  setBrokerEmail]  = useState('')
+  const [brokerPass,   setBrokerPass]   = useState('')
+  const [brokerWa,     setBrokerWa]     = useState('')
+  const [creatingBroker, setCreatingBroker] = useState(false)
+  const [brokerError,  setBrokerError]  = useState<string | null>(null)
+
+  async function loadBrokers() {
+    setBrokersLoad(true)
+    try {
+      const res  = await fetch('/api/v1/admin/brokers')
+      const data = await res.json()
+      setBrokers(data.brokers ?? [])
+    } catch { /* silent */ }
+    finally { setBrokersLoad(false) }
+  }
+
+  useEffect(() => {
+    if (activeSection === 'brokers') loadBrokers()
+  }, [activeSection])
+
+  async function handleCreateBroker() {
+    setBrokerError(null)
+    if (!brokerName.trim() || !brokerEmail.trim() || !brokerPass || !brokerWa.trim()) {
+      setBrokerError('Jaza sehemu zote'); return
+    }
+    setCreatingBroker(true)
+    try {
+      const res  = await fetch('/api/v1/admin/brokers', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          full_name:       brokerName.trim(),
+          email:           brokerEmail.trim(),
+          password:        brokerPass,
+          whatsapp_number: brokerWa.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setBrokerError(data.error ?? 'Hitilafu'); return }
+      setShowBrokerForm(false)
+      setBrokerName(''); setBrokerEmail(''); setBrokerPass(''); setBrokerWa('')
+      await loadBrokers()
+    } catch {
+      setBrokerError('Hitilafu ya mtandao')
+    } finally {
+      setCreatingBroker(false)
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -119,7 +189,9 @@ export default function BrokerageTab() {
   useEffect(() => { load() }, [load])
 
   async function openDetail(req: BrokerageRequest) {
-    setDetail(req); setDetailLoad(true); setLeads([]); setActionError(null)
+    setDetail(req); setDetailLoad(true); setLeads([]); setActionError(null); setSelectedBroker('')
+    // Pre-load brokers so the picker is ready
+    if (brokers.length === 0) loadBrokers()
     try {
       const res  = await fetch(`/api/v1/admin/brokerage-requests/${req.id}`)
       const data = await res.json()
@@ -154,6 +226,162 @@ export default function BrokerageTab() {
 
   return (
     <div>
+      {/* ── Section toggle ─────────────────────────────────────────────── */}
+      <div className="flex gap-2 mb-6">
+        {(['requests', 'brokers'] as const).map(s => (
+          <button
+            key={s}
+            onClick={() => setActiveSection(s)}
+            className="px-4 py-2 rounded-xl text-sm font-semibold border transition"
+            style={{
+              background:  activeSection === s ? '#1a1a18' : 'white',
+              color:       activeSection === s ? 'white'   : '#666660',
+              borderColor: activeSection === s ? '#1a1a18' : '#e5e5e0',
+            }}
+          >
+            {s === 'requests' ? 'Maombi ya Brokerage' : 'Brokers'}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Brokers panel ──────────────────────────────────────────────── */}
+      {activeSection === 'brokers' && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="font-semibold text-sm" style={{ color: '#1a1a18' }}>Brokers wa NyumbaFasta</p>
+              <p className="text-xs mt-0.5" style={{ color: '#999992' }}>
+                Kila broker ana akaunti ya dalali inayoweza kutangaza bila kikwacho
+              </p>
+            </div>
+            <button
+              onClick={() => { setShowBrokerForm(v => !v); setBrokerError(null) }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition"
+              style={{ background: '#1D9E75' }}
+            >
+              <i className="ti ti-plus" />
+              Broker Mpya
+            </button>
+          </div>
+
+          {/* Create broker form */}
+          {showBrokerForm && (
+            <div className="bg-white rounded-2xl border p-5 mb-4" style={{ borderColor: '#e5e5e0' }}>
+              <p className="font-semibold text-sm mb-4" style={{ color: '#1a1a18' }}>Unda Akaunti ya Broker</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: '#666660' }}>Jina Kamili *</label>
+                  <input
+                    value={brokerName} onChange={e => setBrokerName(e.target.value)}
+                    placeholder="mfano: Hamisi Juma"
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+                    style={{ borderColor: '#e5e5e0' }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: '#666660' }}>Barua Pepe *</label>
+                  <input
+                    type="email" value={brokerEmail} onChange={e => setBrokerEmail(e.target.value)}
+                    placeholder="broker@nyumbafasta.com"
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+                    style={{ borderColor: '#e5e5e0' }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: '#666660' }}>Nenosiri * (hadi 8+)</label>
+                  <input
+                    type="password" value={brokerPass} onChange={e => setBrokerPass(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+                    style={{ borderColor: '#e5e5e0' }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: '#666660' }}>WhatsApp ya Brokerage *</label>
+                  <input
+                    type="tel" value={brokerWa} onChange={e => setBrokerWa(e.target.value)}
+                    placeholder="+255 7XX XXX XXX"
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30"
+                    style={{ borderColor: '#e5e5e0' }}
+                  />
+                </div>
+              </div>
+              {brokerError && (
+                <p className="text-sm text-red-600 mt-3">
+                  <i className="ti ti-alert-circle mr-1" />{brokerError}
+                </p>
+              )}
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => { setShowBrokerForm(false); setBrokerError(null) }}
+                  className="px-4 py-2.5 border rounded-xl text-sm font-medium"
+                  style={{ borderColor: '#e5e5e0', color: '#666660' }}
+                >
+                  Ghairi
+                </button>
+                <button
+                  onClick={handleCreateBroker}
+                  disabled={creatingBroker}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-40"
+                  style={{ background: '#1D9E75' }}
+                >
+                  {creatingBroker ? 'Inaunda...' : 'Unda Broker'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Brokers list */}
+          {brokersLoad ? (
+            <div className="space-y-3">
+              {[1, 2].map(i => (
+                <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: '#e5e5e0' }} />
+              ))}
+            </div>
+          ) : brokers.length === 0 ? (
+            <div className="text-center py-14 bg-white rounded-2xl border" style={{ borderColor: '#e5e5e0' }}>
+              <i className="ti ti-user-check text-5xl" style={{ color: '#e5e5e0' }} />
+              <p className="text-sm font-semibold mt-3" style={{ color: '#1a1a18' }}>Hakuna brokers bado</p>
+              <p className="text-xs mt-1" style={{ color: '#999992' }}>Unda akaunti ya broker wa kwanza.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {brokers.map(b => (
+                <div key={b.user_id} className="bg-white rounded-2xl border p-4 flex items-center gap-4" style={{ borderColor: '#e5e5e0' }}>
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm text-white"
+                    style={{ background: '#1D9E75' }}
+                  >
+                    {(b.broker_user?.full_name ?? 'B')[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate" style={{ color: '#1a1a18' }}>
+                      {b.broker_user?.full_name ?? '—'}
+                    </p>
+                    <p className="text-xs truncate" style={{ color: '#999992' }}>{b.broker_user?.email}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <a
+                      href={`https://wa.me/${(b.broker_whatsapp ?? b.whatsapp_number ?? '').replace(/\D/g, '')}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-medium hover:underline flex items-center gap-1 justify-end"
+                      style={{ color: '#1D9E75' }}
+                    >
+                      <i className="ti ti-brand-whatsapp" />
+                      {b.broker_whatsapp ?? b.whatsapp_number ?? '—'}
+                    </a>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium mt-1 inline-block bg-green-50 text-green-700">
+                      Platform Broker
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeSection === 'requests' && <>
       {/* ── Summary cards ──────────────────────────────────────────────── */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
@@ -501,20 +729,47 @@ export default function BrokerageTab() {
                 </div>
               )}
 
-              {/* Post listing */}
+              {/* Post listing — broker picker */}
               {detail.status === 'approved' && (
-                <button
-                  onClick={() => doAction(detail.id, { action: 'post' })}
-                  disabled={acting}
-                  className="w-full py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-40 flex items-center justify-center gap-2"
-                  style={{ background: '#1D9E75' }}
-                >
-                  {acting ? (
-                    <><i className="ti ti-loader-2 animate-spin" /> Inaweka...</>
-                  ) : (
-                    <><i className="ti ti-speakerphone" /> Tangaza Kupitia NyumbaFasta</>
-                  )}
-                </button>
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs font-medium mb-1 block" style={{ color: '#666660' }}>
+                      Chagua Broker *
+                    </label>
+                    <select
+                      value={selectedBroker}
+                      onChange={e => setSelectedBroker(e.target.value)}
+                      className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]/30 bg-white"
+                      style={{ borderColor: '#e5e5e0' }}
+                    >
+                      <option value="">— Broker yoyote wa kwanza —</option>
+                      {brokers.map(b => (
+                        <option key={b.user_id} value={b.user_id}>
+                          {b.broker_user?.full_name ?? b.broker_user?.email ?? b.user_id}
+                          {b.broker_whatsapp ? ` (${b.broker_whatsapp})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {brokers.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        <i className="ti ti-alert-triangle mr-1" />
+                        Hakuna brokers. Unda broker kwenye tab ya "Brokers" kwanza.
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => doAction(detail.id, { action: 'post', broker_id: selectedBroker || undefined })}
+                    disabled={acting}
+                    className="w-full py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-40 flex items-center justify-center gap-2"
+                    style={{ background: '#1D9E75' }}
+                  >
+                    {acting ? (
+                      <><i className="ti ti-loader-2 animate-spin" /> Inaweka...</>
+                    ) : (
+                      <><i className="ti ti-speakerphone" /> Tangaza Kupitia NyumbaFasta</>
+                    )}
+                  </button>
+                </div>
               )}
 
               {/* Close deal */}
@@ -588,6 +843,7 @@ export default function BrokerageTab() {
           </div>
         </div>
       )}
+      </>}
     </div>
   )
 }

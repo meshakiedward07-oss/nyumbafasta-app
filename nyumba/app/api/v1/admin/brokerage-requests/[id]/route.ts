@@ -63,17 +63,25 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         return NextResponse.json({ error: 'Idhini ombi kwanza kabla ya kutangaza' }, { status: 409 })
       }
 
-      // Find platform broker dalali
-      const { data: broker } = await admin
+      const { broker_id } = body
+
+      // Find platform broker — use specified one or fall back to first available
+      let brokerQuery = admin
         .from('dalali_profiles')
         .select('user_id, whatsapp_number, broker_whatsapp')
         .eq('is_platform_broker', true)
-        .limit(1)
-        .single()
+
+      if (broker_id) {
+        brokerQuery = brokerQuery.eq('user_id', broker_id)
+      }
+
+      const { data: broker } = await brokerQuery.limit(1).single()
 
       if (!broker) {
         return NextResponse.json({
-          error: 'Hakuna akaunti ya NyumbaFasta Broker iliyowekwa. Weka is_platform_broker=true kwenye dalali_profiles.'
+          error: broker_id
+            ? 'Broker aliyechaguliwa haipatikani. Chagua broker mwingine.'
+            : 'Hakuna akaunti ya NyumbaFasta Broker. Unda broker kwanza kwenye sehemu ya Brokers.',
         }, { status: 422 })
       }
 
