@@ -239,7 +239,7 @@ function PatternsTab() {
                 {p.count}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-800 font-medium truncate">"{p.text}"</p>
+                <p className="text-sm text-gray-800 font-medium truncate">&ldquo;{p.text}&rdquo;</p>
                 <div className="flex gap-2 mt-1">
                   <LayerBadge layer={p.layer} />
                   {p.invoked_amina && (
