@@ -15,7 +15,7 @@ import {
   saveClassification,
   notifyOwnerPersonalMessage,
 } from '@/lib/inbox/messageClassifier'
-import { runCascade, cacheAminaAnswer } from '@/lib/knowledge/cascade'
+import { runCascade, cacheAminaAnswer, formatKBContext } from '@/lib/knowledge/cascade'
 
 // Returns true when the user is mid-way through a guided multi-step flow
 // (dalali registration or listing submission). The cascade must not
@@ -255,8 +255,10 @@ export async function handleWhatsAppMessage(
       const guidedFlow = await isInGuidedFlow(from)
       console.log(`[Amina] guidedFlow=${guidedFlow} (${Date.now() - t0}ms)`)
 
+      let kbContextForAmina: string | undefined
+
       if (!guidedFlow) {
-        // 6a. Run knowledge cascade: cache → knowledge_base
+        // 6a. Run knowledge cascade: cache → search → action → knowledge_base
         const cascade = await runCascade(messageText, {
           phoneNumber: from,
           flowType:    classification.subCategory,
@@ -275,7 +277,12 @@ export async function handleWhatsAppMessage(
           console.log(`[Amina] KB answered total=${Date.now() - t0}ms`)
           return clean
         }
-        // Cascade didn't answer — fall through to Amina below
+
+        // Cascade didn't answer — pass retrieved KB snippets to Amina as context
+        kbContextForAmina = formatKBContext(cascade.retrieved)
+        if (kbContextForAmina) {
+          console.log(`[Amina] KB context injected (${cascade.retrieved.length} items)`)
+        }
       }
 
       // 7. Fetch any admin instructions for this conversation
@@ -297,7 +304,7 @@ export async function handleWhatsAppMessage(
         }
       }).catch(() => { /* non-fatal */ })
 
-      // 8. Route through Amina's full AI flow
+      // 8. Route through Amina's full AI flow (with KB context injected)
       console.log(`[Amina] calling handleIncomingMessage (${Date.now() - t0}ms)`)
       response = await handleIncomingMessage(
         'whatsapp',
@@ -307,6 +314,7 @@ export async function handleWhatsAppMessage(
         profileName,
         undefined,
         adminInstructions || undefined,
+        kbContextForAmina,
       )
       console.log(`[Amina] AI done (${Date.now() - t0}ms)`)
 

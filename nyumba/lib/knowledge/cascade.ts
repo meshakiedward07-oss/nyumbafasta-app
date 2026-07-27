@@ -220,3 +220,19 @@ export function cacheAminaAnswer(question: string, answer: string): void {
   addToCache(question, answer, 'amina_answer')
     .catch(err => console.error('[Cascade] cache write failed (non-fatal):', err))
 }
+
+// ── Format retrieved KB items for injection into Amina's system prompt ────────
+// Returns undefined when the retrieved array is empty (no context to inject).
+
+export function formatKBContext(
+  retrieved: CascadeResult['retrieved'],
+): string | undefined {
+  if (!retrieved || retrieved.length === 0) return undefined
+
+  const sections = retrieved
+    .filter(r => r.content && r.content.trim().length > 0)
+    .map(r => r.content.trim())
+
+  if (sections.length === 0) return undefined
+  return sections.join('\n---\n')
+}

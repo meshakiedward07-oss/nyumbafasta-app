@@ -738,9 +738,14 @@ export async function handleCustomerCare(
   session: ChatSession,
   message: string,
   adminInstructions?: string,
+  kbContext?: string,
 ): Promise<string> {
   const history = await getHistory(session.id, 8)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+
+  const kbBlock = kbContext
+    ? `\n\nMAALUMU YA ZIADA (yametafutwa kutoka maktaba ya maarifa yetu — tumia kama rejeo, sio kunakili neno kwa neno):\n${kbContext}`
+    : ''
 
   const adminBlock = adminInstructions
     ? `\n\nMAELEKEZO MAALUM YA ADMIN (fuata haya katika jibu lako lijalo):\n${adminInstructions}`
@@ -807,7 +812,7 @@ JINSI YA KUJIBU:
 - Jibu max mistari 10 — fupi na wazi
 - Kama tatizo gumu → peleka: +255665831694
 - Usiseme "sijui" — toa mbadala daima
-- Onyesha nia — "Tutarekebisha hili!", "Usijali, niko hapa!"${adminBlock}
+- Onyesha nia — "Tutarekebisha hili!", "Usijali, niko hapa!"${kbBlock}${adminBlock}
     `,
     messages: [
       ...history.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content })),
@@ -867,6 +872,7 @@ export async function handleIncomingMessage(
   name?: string,
   mediaUrls?: string[],
   adminInstructions?: string,
+  kbContext?: string,
 ): Promise<string> {
   try {
     const session = await getOrCreateSession(platform, userId, phone, name)
@@ -901,7 +907,7 @@ export async function handleIncomingMessage(
 
     // ── Active customer care session ───────────────────────────
     } else if (session.flow_type === 'customer_care') {
-      response = await handleCustomerCare(session, message, adminInstructions)
+      response = await handleCustomerCare(session, message, adminInstructions, kbContext)
 
     // ── Greeting / first message ───────────────────────────────
     } else if (session.flow_step === 'greeting') {
@@ -923,7 +929,7 @@ export async function handleIncomingMessage(
 
       } else if (isCustomerCareQuery(message)) {
         await updateSession(session.id, { flow_type: 'customer_care', flow_step: 'care_active' })
-        response = await handleCustomerCare({ ...session, flow_type: 'customer_care', flow_step: 'care_active' }, message, adminInstructions)
+        response = await handleCustomerCare({ ...session, flow_type: 'customer_care', flow_step: 'care_active' }, message, adminInstructions, kbContext)
 
       } else if (intent.intent === 'find_house') {
         await updateSession(session.id, { flow_type: 'client', flow_step: 'ask_location' })
