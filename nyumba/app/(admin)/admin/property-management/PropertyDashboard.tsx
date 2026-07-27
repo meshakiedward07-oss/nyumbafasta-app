@@ -10,10 +10,12 @@ import RentTab              from './tabs/RentTab'
 import MaintenanceTab       from './tabs/MaintenanceTab'
 import WorkloadTab          from './tabs/WorkloadTab'
 import SubscriptionPlansTab from './tabs/SubscriptionPlansTab'
+import BrokerageTab        from './tabs/BrokerageTab'
 
 type Tab =
   | 'overview' | 'organizations' | 'kyc' | 'vendors'
   | 'commissions' | 'rent' | 'maintenance' | 'workload' | 'subscription_plans'
+  | 'brokerage'
 
 const SIDEBAR_GROUPS: { title: string; items: { id: Tab; label: string; icon: string }[] }[] = [
   {
@@ -42,6 +44,12 @@ const SIDEBAR_GROUPS: { title: string; items: { id: Tab; label: string; icon: st
     items: [
       { id: 'maintenance', label: 'Matengenezo Yote', icon: 'tool'  },
       { id: 'workload',    label: 'Mzigo wa Kazi',    icon: 'users' },
+    ],
+  },
+  {
+    title: 'Brokerage',
+    items: [
+      { id: 'brokerage', label: 'Brokerage & Kamisheni', icon: 'building-store' },
     ],
   },
   {
@@ -184,6 +192,7 @@ export default function PropertyDashboard() {
           {activeTab === 'maintenance'         && <MaintenanceTab />}
           {activeTab === 'workload'            && <WorkloadTab />}
           {activeTab === 'subscription_plans'  && <SubscriptionPlansTab />}
+          {activeTab === 'brokerage'            && <BrokerageTab />}
         </div>
       </div>
     </div>

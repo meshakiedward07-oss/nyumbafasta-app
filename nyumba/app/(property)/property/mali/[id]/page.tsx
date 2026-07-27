@@ -389,14 +389,23 @@ export default function MaliDetailPage() {
 
                   {/* Actions */}
                   {canManage && (
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
                       {unit.status === 'vacant' ? (
-                        <button
-                          onClick={() => { setTenantUnit(unit); setTRent(String(unit.monthly_rent)); setTenantError(null) }}
-                          className="text-xs bg-primary-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-primary-600 transition"
-                        >
-                          + Mpangaji
-                        </button>
+                        <>
+                          <button
+                            onClick={() => { setTenantUnit(unit); setTRent(String(unit.monthly_rent)); setTenantError(null) }}
+                            className="text-xs bg-primary-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-primary-600 transition"
+                          >
+                            + Mpangaji
+                          </button>
+                          <a
+                            href={`/property/brokerage/new?unit_id=${unit.id}`}
+                            className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1.5 rounded-lg font-medium hover:bg-amber-100 transition whitespace-nowrap"
+                            title="Omba NyumbaFasta kupata mpangaji kwa niaba yako"
+                          >
+                            🤝 NF Broker
+                          </a>
+                        </>
                       ) : (
                         <button
                           onClick={() => handleEndLease(unit)}
