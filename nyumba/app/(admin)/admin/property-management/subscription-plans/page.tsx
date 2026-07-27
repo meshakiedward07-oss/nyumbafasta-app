@@ -327,7 +327,7 @@ export default function SubscriptionPlansPage() {
     } catch { alert('Imeshindwa kubadilisha.') }
   }
 
-  function handleSaved(p: SubscriptionPlan) {
+  function handleSaved() {
     setModal(null)
     load()
   }

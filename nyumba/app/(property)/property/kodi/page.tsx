@@ -412,7 +412,7 @@ export default function KodiPage() {
     setPayments(prev => prev.filter(p => p.id !== paymentId))
   }
 
-  function handleReminded(_paymentId: string) {
+  function handleReminded() {
     // no-op state change needed; just a fire-and-forget notification
   }
 

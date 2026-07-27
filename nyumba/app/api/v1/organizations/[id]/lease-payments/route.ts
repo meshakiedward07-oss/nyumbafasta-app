@@ -50,14 +50,6 @@ export async function GET(req: NextRequest, { params }: Params) {
     today.setHours(0, 0, 0, 0)
     const todayStr = today.toISOString().split('T')[0]
 
-    function applyStatusFilter<T extends ReturnType<typeof admin.from>>(q: T): T {
-      if (status === 'pending') return (q as unknown as { in: (col: string, vals: string[]) => T }).in('status', ['pending', 'partial', 'late']) as T
-      if (status === 'proof')   return (q as unknown as { eq: (col: string, val: string) => T }).eq('status', 'proof_uploaded') as T
-      if (status === 'paid')    return (q as unknown as { eq: (col: string, val: string) => T }).eq('status', 'paid') as T
-      if (status === 'overdue') return (q as unknown as { in: (col: string, vals: string[]) => unknown; lt: (col: string, val: string) => T }).in('status', ['pending', 'partial', 'late']) as T
-      return q
-    }
-
     // ── CSV export (no pagination, all matching rows) ─────────────────────────
     if (format === 'csv') {
       let csvQuery = admin

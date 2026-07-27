@@ -46,6 +46,7 @@ export default function OverviewTab({ onNavigate }: { onNavigate: (tab: Tab) => 
           commRes.status  === 'fulfilled' ? commRes.value.json().catch(() => ({}))  : {},
           workRes.status  === 'fulfilled' ? workRes.value.json().catch(() => ({}))  : {},
           vendRes.status  === 'fulfilled' ? vendRes.value.json().catch(() => ({}))  : {},
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ])) as Record<string, any>[]
 
         setData({

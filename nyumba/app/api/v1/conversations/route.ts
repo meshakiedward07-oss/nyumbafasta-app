@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     // Attach participant details for the full list view
     const convIds = conversations.map((c: { id: string }) => c.id)
-    let participantsMap: Record<string, unknown[]> = {}
+    const participantsMap: Record<string, unknown[]> = {}
     if (convIds.length > 0) {
       const { data: pRows } = await admin
         .from('conversation_participants')

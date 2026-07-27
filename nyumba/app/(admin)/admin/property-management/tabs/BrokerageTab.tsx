@@ -809,7 +809,7 @@ export default function BrokerageTab() {
                     {brokers.length === 0 && (
                       <p className="text-xs text-amber-600 mt-1">
                         <i className="ti ti-alert-triangle mr-1" />
-                        Hakuna brokers. Unda broker kwenye tab ya "Brokers" kwanza.
+                        Hakuna brokers. Unda broker kwenye tab ya &quot;Brokers&quot; kwanza.
                       </p>
                     )}
                   </div>

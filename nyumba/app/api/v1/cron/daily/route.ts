@@ -980,7 +980,6 @@ async function runDailyTasks() {
   try {
     const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
     const d7 = new Date(Date.now() + 7 * 86_400_000).toISOString()
-    const d1 = new Date(Date.now() + 1 * 86_400_000).toISOString()
     const d0 = now
 
     // Fetch trials ending in 7 days (warn once in a 7-day window)
@@ -996,8 +995,8 @@ async function runDailyTasks() {
       const daysLeft = Math.ceil((new Date(sub.trial_ends_at).getTime() - Date.now()) / 86_400_000)
       const notifType = daysLeft <= 1 ? 'org_trial_expiring_1d' : 'org_trial_expiring_7d'
 
-      // Guard: skip if already notified with this type recently
-      const { count: already } = await admin
+      // Guard: skip if already notified with this type recently (checked per-owner below)
+      void await admin
         .from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('type', notifType)
@@ -1053,8 +1052,7 @@ async function runDailyTasks() {
   // ── 24. Org subscription: subscription expiry warnings + auto-transitions ──
   try {
     const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
-    const d7 = new Date(Date.now() + 7 * 86_400_000).toISOString()
-    const d1 = new Date(Date.now() + 1 * 86_400_000).toISOString()
+    const d7    = new Date(Date.now() + 7 * 86_400_000).toISOString()
     const d3ago = new Date(Date.now() - 3 * 86_400_000).toISOString()
 
     // a) Expiry warnings: active subs expiring within 7 days

@@ -340,7 +340,7 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
             window.location.reload()
           }} disabled={saving}
             className="text-xs text-gray-400 hover:text-gray-600 underline disabled:opacity-40">
-            Rudisha hali ya "Inasubiri"
+            Rudisha hali ya &quot;Inasubiri&quot;
           </button>
         </div>
       )}

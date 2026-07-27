@@ -166,7 +166,6 @@ export default function WorkloadTab() {
               <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#999992' }}>Wanaofanya Kazi ({active.length})</p>
               <div className="grid md:grid-cols-2 gap-3">
                 {active.map(s => {
-                  const propPct      = pct(s.active_managed_properties, s.max_property_capacity)
                   const isOverloaded = (s.max_property_capacity > 0 && s.active_managed_properties >= s.max_property_capacity)
                                     || (s.max_leads_capacity > 0 && s.active_leads >= s.max_leads_capacity)
 

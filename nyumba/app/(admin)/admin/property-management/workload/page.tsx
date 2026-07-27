@@ -169,8 +169,6 @@ export default function WorkloadPage() {
               <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Wanaofanya Kazi ({active.length})</p>
               <div className="grid md:grid-cols-2 gap-3">
                 {active.map(s => {
-                  const propPct  = pct(s.active_managed_properties, s.max_property_capacity)
-                  const leadPct  = pct(s.active_leads, s.max_leads_capacity)
                   const isOverloaded = (s.max_property_capacity > 0 && s.active_managed_properties >= s.max_property_capacity)
                                     || (s.max_leads_capacity > 0 && s.active_leads >= s.max_leads_capacity)
 

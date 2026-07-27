@@ -64,11 +64,6 @@ const FEATURE_LABELS: [keyof PlanFeatures, string][] = [
   ['trial_days',                 'Siku za Majaribio'],
 ]
 
-function featureVal(key: keyof PlanFeatures, val: number | boolean) {
-  if (typeof val === 'boolean') return val ? <i className="ti ti-check text-green-500" /> : <i className="ti ti-x text-gray-300" />
-  if (val === -1) return <span className="text-primary-600 font-semibold">∞</span>
-  return <span className="font-mono text-sm">{val}</span>
-}
 
 // ── Plan Form Modal ────────────────────────────────────────────────────────────
 

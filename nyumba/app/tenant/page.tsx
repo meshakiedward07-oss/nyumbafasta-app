@@ -1,18 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface MaintenanceRequest {
-  id: string; title: string; description: string | null
-  category: string; priority: string; status: string
-  created_at: string; resolved_at: string | null
-  images: string[] | null; notes: string | null
-  unit: { id: string; unit_number: string } | null
-  assignee: { id: string; full_name: string | null; avatar_url: string | null } | null
-}
 
 interface Payment {
   id: string; status: string
@@ -188,7 +176,7 @@ function BankingCard({ banking }: { banking: Banking }) {
   )
 }
 
-function PaymentCard({ p, leaseId }: { p: Payment; leaseId: string }) {
+function PaymentCard({ p }: { p: Payment; leaseId: string }) {
   const isOverdue = ['pending', 'partial'].includes(p.status) && new Date(p.due_date) < new Date()
   const daysLeft  = daysUntil(p.due_date)
   const s = PAYMENT_STATUS[p.status] ?? PAYMENT_STATUS.pending
@@ -259,8 +247,6 @@ function PaymentCard({ p, leaseId }: { p: Payment; leaseId: string }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function TenantPage() {
-  const router = useRouter()
-
   // Lease data
   const [leases,        setLeases]        = useState<EnrichedLease[]>([])
   const [loading,       setLoading]       = useState(true)

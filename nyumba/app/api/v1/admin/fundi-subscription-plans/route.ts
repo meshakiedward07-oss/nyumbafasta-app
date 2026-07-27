@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 
 // GET /api/v1/admin/fundi-subscription-plans
 // Returns all plans (including inactive) for admin management
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const auth = await requireAdminAuth()
     if (!auth.ok) return auth.response
