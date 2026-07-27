@@ -239,6 +239,107 @@ export async function recordIncomeFromAdCampaign(adPaymentId: string): Promise<v
   }
 }
 
+// ── Record income from a brokerage commission ─────────────────────────────
+// Called when action='commission_received' on a brokerage request.
+export async function recordIncomeFromBrokerageCommission(
+  brokerageRequestId: string,
+  overrideAmount?: number,
+): Promise<void> {
+  const { data: req } = await supabaseAdmin
+    .from('brokerage_requests')
+    .select(`
+      id, title, commission_amount, commission_received_amount,
+      commission_received_at, org_contact_phone,
+      org:organizations!org_id(id, name),
+      listing_id
+    `)
+    .eq('id', brokerageRequestId)
+    .eq('commission_status', 'received')
+    .single()
+
+  if (!req) {
+    console.log('[Accounting] Brokerage request not found or commission not received:', brokerageRequestId)
+    return
+  }
+
+  const amount  = overrideAmount ?? req.commission_received_amount ?? req.commission_amount
+  const txDate  = new Date(req.commission_received_at ?? new Date())
+  const orgName = (req.org as unknown as { name: string } | null)?.name ?? 'Shirika'
+
+  const { error } = await supabaseAdmin.from('income_records').insert({
+    source:           'brokerage_commission',
+    source_ref_id:    req.id,
+    listing_id:       req.listing_id ?? null,
+    amount_tzs:       amount,
+    platform_fee_tzs: 0,           // no payment-gateway fee — cash/transfer commission
+    net_amount_tzs:   amount,
+    description:      `Kamisheni ya brokerage — ${orgName} — ${req.title}`,
+    reference_number: req.id,
+    payment_method:   'manual',
+    transaction_date: txDate.toISOString().split('T')[0],
+    month:            txDate.getMonth() + 1,
+    year:             txDate.getFullYear(),
+    week:             getWeekNumber(txDate),
+    status:           'confirmed',
+  })
+
+  if (error && error.code !== '23505') {
+    console.error('[Accounting] recordIncomeFromBrokerageCommission error:', error.message)
+  } else {
+    console.log('[Accounting] Brokerage commission recorded — req:', brokerageRequestId, 'TZS', amount)
+  }
+}
+
+// ── Record income from an org subscription payment ────────────────────────
+// Called after a subscription_invoices row is confirmed (webhook or manual).
+export async function recordIncomeFromOrgSubscription(invoiceId: string): Promise<void> {
+  const { data: inv } = await supabaseAdmin
+    .from('subscription_invoices')
+    .select(`
+      id, amount_tzs, billing_cycle, confirmed_at, created_at,
+      org:organizations!org_id(id, name),
+      plan:subscription_plans!plan_id(id, name, price_tzs)
+    `)
+    .eq('id', invoiceId)
+    .eq('status', 'confirmed')
+    .single()
+
+  if (!inv) {
+    console.log('[Accounting] Invoice not found or not confirmed:', invoiceId)
+    return
+  }
+
+  const amount   = Number(inv.amount_tzs)
+  const fee      = amount * AZAMPAY_FEE_PERCENT
+  const txDate   = new Date(inv.confirmed_at ?? inv.created_at)
+  const orgName  = (inv.org  as unknown as { name: string }  | null)?.name  ?? 'Shirika'
+  const planName = (inv.plan as unknown as { name: string }  | null)?.name  ?? 'Plan'
+  const cycle    = inv.billing_cycle === 'monthly' ? 'kila mwezi' :
+                   inv.billing_cycle === 'quarterly' ? 'kila robo mwaka' : 'kila mwaka'
+
+  const { error } = await supabaseAdmin.from('income_records').insert({
+    source:           'org_subscription',
+    source_ref_id:    inv.id,
+    amount_tzs:       amount,
+    platform_fee_tzs: parseFloat(fee.toFixed(2)),
+    net_amount_tzs:   parseFloat((amount - fee).toFixed(2)),
+    description:      `Usajili wa shirika — ${orgName} — ${planName} (${cycle})`,
+    reference_number: inv.id,
+    payment_method:   'azampay',
+    transaction_date: txDate.toISOString().split('T')[0],
+    month:            txDate.getMonth() + 1,
+    year:             txDate.getFullYear(),
+    week:             getWeekNumber(txDate),
+    status:           'confirmed',
+  })
+
+  if (error && error.code !== '23505') {
+    console.error('[Accounting] recordIncomeFromOrgSubscription error:', error.message)
+  } else {
+    console.log('[Accounting] Org subscription recorded — invoice:', invoiceId, 'TZS', amount)
+  }
+}
+
 // ── Sync all completed payments to income_records ─────────────────────────
 // Uses a bulk set-membership check instead of N individual SELECTs — O(n+4) queries.
 export async function syncAllPaymentsToIncome(): Promise<{ synced: number; skipped: number }> {
@@ -323,6 +424,30 @@ export async function syncAllPaymentsToIncome(): Promise<{ synced: number; skipp
   for (const ap of adPays ?? []) {
     if (existing.has(`ad_campaign:${ap.id}`)) { skipped++; continue }
     await recordIncomeFromAdCampaign(ap.id)
+    synced++
+  }
+
+  // ── 6. Brokerage commissions received ──────────────────────────────────
+  const { data: brokerageReqs } = await supabaseAdmin
+    .from('brokerage_requests')
+    .select('id')
+    .eq('commission_status', 'received')
+
+  for (const br of brokerageReqs ?? []) {
+    if (existing.has(`brokerage_commission:${br.id}`)) { skipped++; continue }
+    await recordIncomeFromBrokerageCommission(br.id)
+    synced++
+  }
+
+  // ── 7. Org subscription invoices confirmed ─────────────────────────────
+  const { data: confirmedInvs } = await supabaseAdmin
+    .from('subscription_invoices')
+    .select('id')
+    .eq('status', 'confirmed')
+
+  for (const inv of confirmedInvs ?? []) {
+    if (existing.has(`org_subscription:${inv.id}`)) { skipped++; continue }
+    await recordIncomeFromOrgSubscription(inv.id)
     synced++
   }
 

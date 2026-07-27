@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { notifyOrgInvoiceConfirmed, notifyOrgInvoiceVoided } from '@/lib/subscription/notifications'
+import { recordIncomeFromOrgSubscription } from '@/lib/accounting/incomeTracker'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -106,6 +107,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       .eq('id', invoice.plan_id)
       .maybeSingle()
     notifyOrgInvoiceConfirmed(invoice.org_id, planRow?.name ?? 'Mpango').catch(() => {})
+    recordIncomeFromOrgSubscription(id).catch(err =>
+      console.error('[InvoiceConfirm] Income record error (non-fatal):', err)
+    )
 
     return NextResponse.json({ invoice: updatedInvoice, message: 'Ankara imethibitishwa. Usajili umesasishwa.' })
   } catch (err) {

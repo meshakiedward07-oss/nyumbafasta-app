@@ -6,6 +6,7 @@ import {
   type WebhookPayload,
 } from '@/lib/payments/azampay'
 import { formatPhoneNumber, sendTextMessage } from '@/lib/whatsapp/client'
+import { recordIncomeFromOrgSubscription } from '@/lib/accounting/incomeTracker'
 
 // POST /api/v1/payments/org-subscription/webhook?whsec=...
 // AzamPay callback for organization subscription payments.
@@ -115,6 +116,10 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[OrgSubWebhook] Activated org subscription. org:', invoice.org_id, 'period_end:', periodEnd.toISOString())
+
+    // ── Record in central income_records (fire-and-forget) ───────────────────
+    recordIncomeFromOrgSubscription(confirmedInv.id)
+      .catch(err => console.error('[OrgSubWebhook] Income record error (non-fatal):', err))
 
     // ── Notify org owner (best-effort) ────────────────────────────────────────
     ;(async () => {

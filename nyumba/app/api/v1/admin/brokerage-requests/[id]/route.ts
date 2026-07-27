@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
+import { recordIncomeFromBrokerageCommission } from '@/lib/accounting/incomeTracker'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -236,6 +237,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           })
           .eq('listing_id', req_.listing_id)
       }
+
+      // Record in central income_records (fire-and-forget — non-fatal)
+      recordIncomeFromBrokerageCommission(
+        id,
+        amount ? Number(amount) : undefined,
+      ).catch(err => console.error('[BrokerageIncome] Non-fatal record error:', err))
 
       return NextResponse.json({ request: data })
     }
