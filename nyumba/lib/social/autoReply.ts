@@ -9,6 +9,8 @@ import {
   saveClassification,
   notifyOwnerPersonalMessage,
 } from '@/lib/inbox/messageClassifier'
+import { runCascade, cacheAminaAnswer, formatKBContext } from '@/lib/knowledge/cascade'
+import { logMiss } from '@/lib/knowledge/missLog'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -128,7 +130,36 @@ export async function handleNewComment(
     return
   }
 
-  const replyText = getAutoReply(commentType)
+  // For question/inquiry comments: try cascade first for a factual short answer.
+  // Comments must be concise — truncate to 200 chars and always invite to DM.
+  let replyText: string | null = null
+
+  if (commentType === 'question' || commentType === 'inquiry') {
+    try {
+      const cascade = await runCascade(data.commentText, {
+        sessionId: `${platform}-comment-${data.commentId}`,
+        flowType:  commentType,
+      })
+      if (cascade.answered && cascade.answer) {
+        // Strip WhatsApp-specific markdown (*bold*, _italic_) for IG/FB comments
+        const stripped = cascade.answer.replace(/[*_]/g, '').trim()
+        // Truncate to 180 chars, add DM invite
+        const short = stripped.length > 180
+          ? stripped.slice(0, 177) + '...'
+          : stripped
+        replyText = `${short}\n\n👉 Tuma DM kwa maelezo zaidi!`
+        console.log(`[Social] Comment answered by cascade layer=${cascade.layerAnswered}`)
+      }
+    } catch (err) {
+      console.error('[Social] Cascade for comment failed (non-fatal):', err)
+    }
+  }
+
+  // Fallback to template if cascade didn't answer (or not question/inquiry type)
+  if (!replyText) {
+    replyText = getAutoReply(commentType)
+  }
+
   if (!replyText) return
 
   // Send reply on the platform (with 500ms delay to be safe)
@@ -235,16 +266,46 @@ export async function handleSocialDM(
     }
   }).catch(() => { /* non-fatal */ })
 
-  // Route through Amina (category === 'nyumbafasta' or low-confidence unclear)
+  // ── Knowledge cascade (same layers as WhatsApp) ───────────────────────────
+  // Social DMs have no phone number, so maintenance actions won't fire,
+  // but cache, KB, search, viewing, and subscription layers all work.
   let replyText: string
   try {
-    replyText = await handleIncomingMessage(
-      platform,
-      data.senderId,
-      data.messageText,
-      undefined,
-      data.senderName,
-    )
+    const cascade = await runCascade(data.messageText, {
+      sessionId: `${platform}-${data.senderId}`,
+      flowType:  classification.subCategory,
+    })
+    console.log(`[Social] cascade answered=${cascade.answered} conf=${cascade.confidence.toFixed(3)} layer=${cascade.layerAnswered}`)
+
+    if (cascade.answered) {
+      replyText = cascade.answer
+      // Cache for future identical DMs on any platform
+      cacheAminaAnswer(data.messageText, replyText)
+      void saveClassification(classCtx, classification, 'kb_answered', replyText).catch(() => null)
+    } else {
+      // Pass KB context to Amina so she has factual grounding
+      const kbContext = formatKBContext(cascade.retrieved)
+
+      replyText = await handleIncomingMessage(
+        platform,
+        data.senderId,
+        data.messageText,
+        undefined,
+        data.senderName,
+        undefined,
+        undefined,
+        kbContext,
+      )
+
+      // Cache and log Amina's response
+      cacheAminaAnswer(data.messageText, replyText)
+      void logMiss(data.messageText, 'amina', {
+        sessionId:    `${platform}-${data.senderId}`,
+        invokedAmina: true,
+        aminaResponse: replyText.slice(0, 500),
+      }).catch(() => null)
+      void saveClassification(classCtx, classification, 'auto_replied', replyText).catch(() => null)
+    }
   } catch (err) {
     console.error('[Social] Amina DM reply failed:', err)
     return
@@ -272,9 +333,6 @@ export async function handleSocialDM(
         .update({ reply_sent: true, reply_text: replyText, replied_at: new Date().toISOString() })
         .eq('message_id', data.messageId)
     }
-
-    // Save classification record for analytics
-    void saveClassification(classCtx, classification, 'auto_replied', replyText).catch(() => null)
 
     console.log(`[Social] DM replied on ${platform} to ${data.senderId.slice(0, 6)}***`)
   } catch (err) {
