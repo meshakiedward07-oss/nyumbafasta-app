@@ -15,6 +15,24 @@ import {
   saveClassification,
   notifyOwnerPersonalMessage,
 } from '@/lib/inbox/messageClassifier'
+import { runCascade, cacheAminaAnswer } from '@/lib/knowledge/cascade'
+
+// Returns true when the user is mid-way through a guided multi-step flow
+// (dalali registration or listing submission). The cascade must not
+// intercept these flows — every step needs Amina's deterministic handlers.
+async function isInGuidedFlow(phone: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from('chat_sessions')
+    .select('flow_type, flow_step')
+    .eq('platform', 'whatsapp')
+    .eq('user_id', phone)
+    .maybeSingle()
+  if (!data) return false
+  return (
+    data.flow_type === 'dalali_register' ||
+    data.flow_type === 'dalali_listing'
+  )
+}
 
 // ── Deduplication (uses existing whatsapp_conversations for dedup key) ────────
 
@@ -232,12 +250,39 @@ export async function handleWhatsAppMessage(
         return ''
       }
 
-      // category === 'nyumbafasta' (or unclear with low confidence) → Amina handles
-      // 6. Fetch any admin instructions for this conversation
+      // category === 'nyumbafasta' (or unclear with low confidence) → try cascade first
+      // 6. Guard: skip cascade when user is mid guided flow (dalali_register / dalali_listing)
+      const guidedFlow = await isInGuidedFlow(from)
+      console.log(`[Amina] guidedFlow=${guidedFlow} (${Date.now() - t0}ms)`)
+
+      if (!guidedFlow && process.env.OPENAI_API_KEY) {
+        // 6a. Run knowledge cascade: cache → knowledge_base
+        const cascade = await runCascade(messageText, {
+          phoneNumber: from,
+          flowType:    classification.subCategory,
+        })
+        console.log(`[Amina] cascade answered=${cascade.answered} conf=${cascade.confidence.toFixed(3)} layer=${cascade.layerAnswered}`)
+
+        if (cascade.answered) {
+          response = cascade.answer
+          void saveClassification(classCtx, classification, 'kb_answered', response).catch(() => null)
+          // Skip straight to sanitise + save — no Amina call needed
+          const clean = sanitiseForWhatsApp(response)
+          await Promise.all([
+            saveConversationEntry(from, 'assistant', clean),
+            saveWAMessage(from, 'outbound', 'amina', clean),
+          ])
+          console.log(`[Amina] KB answered total=${Date.now() - t0}ms`)
+          return clean
+        }
+        // Cascade didn't answer — fall through to Amina below
+      }
+
+      // 7. Fetch any admin instructions for this conversation
       const adminInstructions = await getAminaInstructions(from)
       console.log(`[Amina] instructions fetched (${Date.now() - t0}ms), has=${!!adminInstructions}`)
 
-      // 6b. Dalali lead detection — runs before Amina replies, capture is fire-and-forget
+      // 7b. Dalali lead detection — fire-and-forget
       detectDalaliIntent(messageText, []).then(signal => {
         if (signal.isDalaliProspect && signal.confidence >= 60) {
           console.log(`[Amina] Dalali signal detected: ${signal.signal} (${signal.confidence}%)`)
@@ -252,7 +297,7 @@ export async function handleWhatsAppMessage(
         }
       }).catch(() => { /* non-fatal */ })
 
-      // 7. Route through Amina's full AI flow
+      // 8. Route through Amina's full AI flow
       console.log(`[Amina] calling handleIncomingMessage (${Date.now() - t0}ms)`)
       response = await handleIncomingMessage(
         'whatsapp',
@@ -264,6 +309,11 @@ export async function handleWhatsAppMessage(
         adminInstructions || undefined,
       )
       console.log(`[Amina] AI done (${Date.now() - t0}ms)`)
+
+      // Cache Amina's answer so the same question is answered from KB next time
+      if (process.env.OPENAI_API_KEY) {
+        cacheAminaAnswer(messageText, response)
+      }
 
       // Save classification record for analytics (fire-and-forget)
       void saveClassification(classCtx, classification, 'auto_replied', response).catch(() => null)
