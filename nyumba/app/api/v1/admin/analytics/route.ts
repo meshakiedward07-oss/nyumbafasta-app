@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { cache, TTL } from '@/lib/cache/memoryCache'
+import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -14,6 +15,15 @@ export async function GET() {
       .from('users').select('role').eq('id', user.id).single()
     if (!me || !['admin', 'staff'].includes(me.role))
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+    // Rate limit: 20 req/min per user (cache means cache-misses cost most)
+    const rl = await rateLimit(`analytics:${user.id}:${getClientIp(req)}`, 20, 60_000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Maombi mengi sana. Subiri kidogo.' }, {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil(rl.resetIn / 1000)) },
+      })
+    }
 
     // Return cached analytics — expensive multi-query route, 5-min TTL is acceptable for a dashboard
     const CACHE_KEY = 'admin:analytics'
@@ -80,10 +90,12 @@ export async function GET() {
     }, { total: 0, subscription: 0, contact_unlock: 0, boost_listing: 0, extra_listing: 0 } as Record<string, number>)
 
     // ── 4. Subscription metrics ───────────────────────────────────
+    // Limit to 10 000 rows — at this scale use nf_subscription_stats() RPC instead.
     const { data: allSubs } = await admin
       .from('subscriptions')
       .select('id, plan, status, created_at, expires_at, dalali_id')
       .neq('plan', 'free')
+      .limit(10000)
 
     const activeSubs      = (allSubs ?? []).filter(s => s.status === 'active')
     const basicActive     = activeSubs.filter(s => s.plan === 'basic').length
@@ -125,9 +137,19 @@ export async function GET() {
     }).length
 
     // ── 5. Unlock metrics ─────────────────────────────────────────
+    // Scoped to last 13 months for month-over-month metrics; total is counted separately.
+    const thirteenMonthsAgo = new Date(now)
+    thirteenMonthsAgo.setMonth(now.getMonth() - 12)
     const { data: unlocks } = await admin
       .from('contact_unlocks')
       .select('id, listing_id, created_at, status')
+      .eq('status', 'completed')
+      .gte('created_at', thirteenMonthsAgo.toISOString())
+      .limit(50000)
+
+    const { count: totalUnlocks } = await admin
+      .from('contact_unlocks')
+      .select('*', { count: 'exact', head: true })
       .eq('status', 'completed')
 
     const unlocksThisMonth = (unlocks ?? []).filter(u => {
@@ -216,7 +238,7 @@ export async function GET() {
         totalUnique: totalUniqueSubscribers,
       },
       unlocks: {
-        total: (unlocks ?? []).length,
+        total: totalUnlocks ?? (unlocks ?? []).length,
         thisMonth: unlocksThisMonth,
         lastMonth: unlocksLastMonth,
         topListings,

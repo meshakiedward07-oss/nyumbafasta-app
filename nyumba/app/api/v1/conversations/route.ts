@@ -15,75 +15,45 @@ export async function GET(req: NextRequest) {
 
     const admin = createAdminClient()
 
-    // Get conversations the user is a participant of
-    const { data: participantRows } = await admin
-      .from('conversation_participants')
-      .select('conversation_id, last_read_at')
-      .eq('user_id', user.id)
-
-    const convIds = (participantRows ?? []).map(p => p.conversation_id)
-
-    if (convIds.length === 0 && unreadOnly) {
-      return NextResponse.json({ conversations: [], unread_count: 0 })
-    }
-
-    // Build conversation query
-    let query = admin
-      .from('conversations')
-      .select(`
-        id, title, conv_type, status, context_type, context_id, org_id,
-        created_by, last_message_at, created_at,
-        participants:conversation_participants(
-          user_id, role, last_read_at,
-          user:users(id, full_name, avatar_url, phone)
-        )
-      `)
-      .order('last_message_at', { ascending: false, nullsFirst: false })
-
-    if (convIds.length > 0) {
-      query = query.in('id', convIds)
-    }
-    if (orgId) query = query.eq('org_id', orgId)
-    if (type)  query = query.eq('conv_type', type)
-
-    const { data: conversations, error } = await query
+    // Single DB round-trip: nf_get_conversations uses DISTINCT ON + GROUP BY
+    // to return last_message + unread_count without per-conversation queries.
+    const { data: enriched, error } = await admin.rpc('nf_get_conversations', {
+      p_user_id: user.id,
+      p_org_id:  orgId  ?? null,
+      p_type:    type   ?? null,
+      p_limit:   50,
+    })
     if (error) throw error
 
-    // Attach last message and unread count per conversation
-    const participantMap = Object.fromEntries(
-      (participantRows ?? []).map(p => [p.conversation_id, p.last_read_at])
-    )
-
-    const enriched = await Promise.all(
-      (conversations ?? []).map(async conv => {
-        const { data: msgs } = await admin
-          .from('messages')
-          .select('id, body, sender_id, created_at, message_type, is_internal')
-          .eq('conversation_id', conv.id)
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false })
-          .limit(1)
-
-        const lastMsg        = msgs?.[0] ?? null
-        const lastReadAt     = participantMap[conv.id]
-        const { count: unread } = await admin
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('conversation_id', conv.id)
-          .is('deleted_at', null)
-          .gt('created_at', lastReadAt ?? '1970-01-01')
-
-        return { ...conv, last_message: lastMsg, unread_count: unread ?? 0 }
-      })
-    )
-
-    const totalUnread = enriched.reduce((s, c) => s + (c.unread_count ?? 0), 0)
+    // Participants are fetched separately only when needed (not for unread-only requests)
+    const conversations = enriched ?? []
+    const totalUnread   = conversations.reduce((s: number, c: { unread_count: number }) => s + (c.unread_count ?? 0), 0)
 
     if (unreadOnly) {
       return NextResponse.json({ unread_count: totalUnread })
     }
 
-    return NextResponse.json({ conversations: enriched, unread_count: totalUnread })
+    // Attach participant details for the full list view
+    const convIds = conversations.map((c: { id: string }) => c.id)
+    let participantsMap: Record<string, unknown[]> = {}
+    if (convIds.length > 0) {
+      const { data: pRows } = await admin
+        .from('conversation_participants')
+        .select('conversation_id, user_id, role, last_read_at, user:users(id, full_name, avatar_url, phone)')
+        .in('conversation_id', convIds)
+      for (const p of pRows ?? []) {
+        const cid = (p as { conversation_id: string }).conversation_id
+        if (!participantsMap[cid]) participantsMap[cid] = []
+        participantsMap[cid].push(p)
+      }
+    }
+
+    const withParticipants = conversations.map((c: { id: string }) => ({
+      ...c,
+      participants: participantsMap[c.id] ?? [],
+    }))
+
+    return NextResponse.json({ conversations: withParticipants, unread_count: totalUnread })
   } catch (err) {
     console.error('[GET /conversations]', err)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

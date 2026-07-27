@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { ORG_TYPE_LABELS, ORG_ROLE_LABELS } from '@/lib/types/property'
 import type { Organization, ManagementAgreement } from '@/lib/types/property'
+import { withTimeout } from '@/lib/utils/apiGuard'
 
 export const metadata = { title: 'Dashibodi — NyumbaFasta Mali' }
 export const revalidate = 60
@@ -30,22 +31,25 @@ export default async function PropertyDashboardPage() {
   const orgRole   = primary.role
   const orgId     = org.id
 
-  // Stats in parallel (includes KYC status for org owner)
-  const [membersRes, agreementsRes, listingsRes, kycRes, subRes, leasesRes, rentRes] = await Promise.all([
-    admin.from('organization_members').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
-    admin.from('management_agreements').select('id, status, scope, landlord:users!landlord_id(full_name, phone), listing:listings(id, title, district)').eq('managing_org_id', orgId).order('created_at', { ascending: false }).limit(5),
-    admin.from('listings').select('id, title, district, region, status, lifecycle_status, listing_source', { count: 'exact' }).eq('managing_org_id', orgId).limit(5),
-    orgRole === 'owner'
-      ? admin.from('kyc_submissions').select('id, status').eq('landlord_id', user.id).order('submitted_at', { ascending: false }).limit(1)
-      : Promise.resolve({ data: null }),
-    admin.from('organization_subscriptions')
-      .select('status, trial_ends_at, current_period_end, cancelled_at, plan:subscription_plans(name)')
-      .eq('org_id', orgId)
-      .maybeSingle(),
-    admin.from('leases').select('id, status', { count: 'exact', head: false }).eq('org_id', orgId).eq('status', 'active'),
-    // Rent: pending + proof_uploaded payment counts for this org's leases
-    admin.from('leases').select('id').eq('org_id', orgId),
-  ])
+  // Stats in parallel with 10s timeout guard — prevents SSR hanging at Vercel limit
+  const [membersRes, agreementsRes, listingsRes, kycRes, subRes, leasesRes, rentRes] = await withTimeout(
+    Promise.all([
+      admin.from('organization_members').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
+      admin.from('management_agreements').select('id, status, scope, landlord:users!landlord_id(full_name, phone), listing:listings(id, title, district)').eq('managing_org_id', orgId).order('created_at', { ascending: false }).limit(5),
+      admin.from('listings').select('id, title, district, region, status, lifecycle_status, listing_source', { count: 'exact' }).eq('managing_org_id', orgId).limit(5),
+      orgRole === 'owner'
+        ? admin.from('kyc_submissions').select('id, status').eq('landlord_id', user.id).order('submitted_at', { ascending: false }).limit(1)
+        : Promise.resolve({ data: null }),
+      admin.from('organization_subscriptions')
+        .select('status, trial_ends_at, current_period_end, cancelled_at, plan:subscription_plans(name)')
+        .eq('org_id', orgId)
+        .maybeSingle(),
+      admin.from('leases').select('id, status', { count: 'exact', head: false }).eq('org_id', orgId).eq('status', 'active'),
+      // Rent: pending + proof_uploaded payment counts for this org's leases
+      admin.from('leases').select('id').eq('org_id', orgId),
+    ]),
+    10_000,
+  )
 
   const memberCount      = membersRes.count ?? 0
   const agreements       = (agreementsRes.data ?? []) as unknown as ManagementAgreement[]

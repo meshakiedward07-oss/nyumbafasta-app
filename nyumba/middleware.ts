@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
+import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 
 // Routes zinazohitaji login
 const PROTECTED_ROUTES = ['/dashboard', '/admin', '/saved', '/account', '/subscription', '/notifications', '/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile', '/fundi/dashboard', '/fundi/profile', '/fundi/kyc', '/fundi/jobs']
@@ -275,6 +276,19 @@ export async function middleware(request: NextRequest) {
         url.searchParams.set('upgrade', 'analytics')
         return redirectWithCookies(url, supabaseResponse)
       }
+    }
+  }
+
+  // ── Rate limiting for admin API routes ───────────────────────────────────
+  // Applied at middleware level so ALL /api/v1/admin/* routes are protected
+  // without needing per-route rate-limit code. 60 req/min per authenticated user.
+  if (path.startsWith('/api/v1/admin/') && user) {
+    const rl = await rateLimit(`mw:admin:${user.id}`, 60, 60_000)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Maombi mengi sana. Subiri kidogo.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetIn / 1000)) } },
+      )
     }
   }
 

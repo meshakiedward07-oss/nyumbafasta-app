@@ -3,39 +3,42 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // GET /api/v1/reviews?listing_id=xxx  — fetch reviews for a listing (via dalali_id)
 export async function GET(req: NextRequest) {
-  const listingId = req.nextUrl.searchParams.get('listing_id')
-  if (!listingId) {
-    return NextResponse.json({ error: 'listing_id inahitajika' }, { status: 400 })
+  try {
+    const listingId = req.nextUrl.searchParams.get('listing_id')
+    if (!listingId) {
+      return NextResponse.json({ error: 'listing_id inahitajika' }, { status: 400 })
+    }
+
+    const supabase = await createClient()
+
+    const { data: listing } = await supabase
+      .from('listings')
+      .select('dalali_id')
+      .eq('id', listingId)
+      .single()
+
+    if (!listing) {
+      return NextResponse.json({ reviews: [] })
+    }
+
+    const { data: reviews, error } = await supabase
+      .from('reviews')
+      .select(`
+        id, rating, comment, created_at,
+        reviewer:reviewer_id ( full_name )
+      `)
+      .eq('dalali_id', listing.dalali_id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ reviews: reviews ?? [] })
+  } catch {
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
-
-  const supabase = await createClient()
-
-  // Get dalali_id from listing
-  const { data: listing } = await supabase
-    .from('listings')
-    .select('dalali_id')
-    .eq('id', listingId)
-    .single()
-
-  if (!listing) {
-    return NextResponse.json({ reviews: [] })
-  }
-
-  const { data: reviews, error } = await supabase
-    .from('reviews')
-    .select(`
-      id, rating, comment, created_at,
-      reviewer:reviewer_id ( full_name )
-    `)
-    .eq('dalali_id', listing.dalali_id)
-    .order('created_at', { ascending: false })
-    .limit(20)
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ reviews: reviews ?? [] })
 }
 
 // POST /api/v1/reviews — submit a review after successful unlock
@@ -102,23 +105,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
-    // Recalculate rating_avg and rating_count for the dalali
+    // rating_avg and rating_count are updated automatically by the
+    // trg_update_dalali_rating DB trigger (scale_resilience_2026_07_27.sql).
     const admin = createAdminClient()
-    const { data: allReviews } = await admin
-      .from('reviews')
-      .select('rating')
-      .eq('dalali_id', unlock.dalali_id)
-
-    if (allReviews && allReviews.length > 0) {
-      const avg = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
-      await admin
-        .from('dalali_profiles')
-        .update({
-          rating_avg: Math.round(avg * 10) / 10,
-          rating_count: allReviews.length,
-        })
-        .eq('user_id', unlock.dalali_id)
-    }
 
     // Remove scheduled review reminders — review imekwisha tolewa
     await admin

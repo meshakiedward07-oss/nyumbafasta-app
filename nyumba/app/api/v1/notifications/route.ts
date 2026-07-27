@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { guardUserRateLimit } from '@/lib/utils/apiGuard'
 
 // GET /api/v1/notifications — fetch notifications for current user
 export async function GET(req: NextRequest) {
@@ -9,6 +10,9 @@ export async function GET(req: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
+
+    const rl = await guardUserRateLimit(req, user.id, 120, 60_000)
+    if (rl) return rl
 
     const countOnly = req.nextUrl.searchParams.get('count') === 'true'
 
