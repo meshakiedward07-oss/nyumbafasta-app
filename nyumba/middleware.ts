@@ -142,6 +142,13 @@ export async function middleware(request: NextRequest) {
   // Redirect kwenda role-appropriate page kama tayari ameingia
   // Use exact match — startsWith would incorrectly intercept /register/complete
   if (user && AUTH_ROUTES.includes(path)) {
+    // Fast path for portal users — check user_metadata (no DB query needed)
+    const meta        = (user.user_metadata ?? {}) as Record<string, string>
+    const portalType  = meta.portal_type ?? meta.role
+    if (portalType === 'org_owner') return redirectWithCookies(new URL('/property/dashboard', request.url), supabaseResponse)
+    if (portalType === 'tenant')    return redirectWithCookies(new URL('/tenant', request.url), supabaseResponse)
+    if (portalType === 'fundi')     return redirectWithCookies(new URL('/fundi/dashboard', request.url), supabaseResponse)
+
     const { data: me } = await supabase
       .from('users')
       .select('role')
@@ -151,6 +158,7 @@ export async function middleware(request: NextRequest) {
     url.pathname = me?.role === 'admin'  ? '/admin'
       : me?.role === 'staff'  ? '/admin/staff-dashboard'
       : me?.role === 'dalali' ? '/dashboard'
+      : me?.role === 'fundi'  ? '/fundi/dashboard'
       : '/'
     return redirectWithCookies(url, supabaseResponse)
   }

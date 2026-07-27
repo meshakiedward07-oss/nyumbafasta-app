@@ -31,7 +31,18 @@ function LoginForm() {
   const [resetSent, setResetSent]     = useState(false)
 
   // ── Role-based redirect ───────────────────────────────
-  async function redirectByRole(userId: string) {
+  async function redirectByRole(userId: string, userMeta?: Record<string, unknown>) {
+    // Fast path: portal users store their type in auth user_metadata (no DB query needed).
+    const portalType = (userMeta?.portal_type ?? userMeta?.role) as string | undefined
+    if (portalType === 'org_owner') {
+      window.location.href = (redirectTo && !redirectTo.startsWith('/admin')) ? redirectTo : '/property/dashboard'
+      return
+    }
+    if (portalType === 'tenant') {
+      window.location.href = redirectTo || '/tenant'
+      return
+    }
+
     // Try full query first; fall back to minimal columns if any column is missing
     // (e.g. staff_active / must_change_password not yet added to live DB).
     let profileData: {
@@ -146,7 +157,7 @@ function LoginForm() {
 
         throw error
       }
-      await redirectByRole(data.user.id)
+      await redirectByRole(data.user.id, data.user.user_metadata ?? {})
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message.toLowerCase() : ''
       const kiswahili =
@@ -451,6 +462,16 @@ function LoginForm() {
                 Jisajili hapa
               </Link>
             </p>
+
+            {/* Property management portal — org owners, tenants, fundi */}
+            <Link
+              href="/portal"
+              className="flex items-center gap-1.5 text-[11px] hover:opacity-80 transition-opacity py-1.5 px-4 rounded-full border font-medium"
+              style={{ color: '#7C3AED', borderColor: '#DDD6FE', background: '#F5F3FF' }}
+            >
+              <i className="ti ti-building-estate text-[11px]" aria-hidden="true" />
+              Shirika / Mpangaji / Fundi
+            </Link>
 
             {/* Staff / Admin portal — subtle, not meant for regular users */}
             <Link
