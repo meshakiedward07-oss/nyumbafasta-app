@@ -16,6 +16,7 @@ import {
   notifyOwnerPersonalMessage,
 } from '@/lib/inbox/messageClassifier'
 import { runCascade, cacheAminaAnswer, formatKBContext } from '@/lib/knowledge/cascade'
+import { logMiss } from '@/lib/knowledge/missLog'
 
 // Returns true when the user is mid-way through a guided multi-step flow
 // (dalali registration or listing submission). The cascade must not
@@ -205,6 +206,7 @@ export async function handleWhatsAppMessage(
 
   } else if (command === 'human_agent') {
     await escalateToAdmin(from, profileName, 'Mteja aliomba msaada wa mtu moja kwa moja')
+    void logMiss(messageText, 'handover', { phoneNumber: from, handoverTriggered: true })
     response = ESCALATION_MESSAGE
 
   } else if (command === 'stop') {
@@ -215,6 +217,7 @@ export async function handleWhatsAppMessage(
     const escalationReason = detectEscalation(messageText)
     if (escalationReason) {
       await escalateToAdmin(from, profileName, escalationReason)
+      void logMiss(messageText, 'handover', { phoneNumber: from, handoverTriggered: true })
       response = ESCALATION_MESSAGE
     } else {
       // 5b. AI message classification — gate before Amina
@@ -320,6 +323,14 @@ export async function handleWhatsAppMessage(
 
       // Cache Amina's answer so the same question is answered from KB next time
       cacheAminaAnswer(messageText, response)
+
+      // Log that Amina was invoked (updates cascade analytics)
+      void logMiss(messageText, 'amina', {
+        phoneNumber:      from,
+        invokedAmina:     true,
+        aminaResponse:    response.slice(0, 500),
+        handoverTriggered: false,
+      }).catch(() => null)
 
       // Save classification record for analytics (fire-and-forget)
       void saveClassification(classCtx, classification, 'auto_replied', response).catch(() => null)

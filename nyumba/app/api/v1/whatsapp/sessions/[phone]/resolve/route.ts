@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateWASession, saveWAMessage } from '@/lib/whatsapp/sessionManager'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
+import { createAdminClient } from '@/lib/supabase/server'
 
 // POST /api/v1/whatsapp/sessions/[phone]/resolve
 export async function POST(
@@ -26,6 +27,16 @@ export async function POST(
       'system',
       `Tatizo limeshughulikiwa na ${admin.full_name ?? 'Admin'}. Mazungumzo yamefungwa.`,
     )
+
+    // Mark all handover-layer miss-log entries for this phone as reviewed
+    // so they don't show up in the admin learning loop as pending patterns.
+    void createAdminClient()
+      .from('cascade_miss_log')
+      .update({ reviewed: true })
+      .eq('phone_number', phone)
+      .eq('handover_triggered', true)
+      .eq('reviewed', false)
+      .then(() => null, () => null)
 
     return NextResponse.json({ ok: true, status: 'resolved' })
 
