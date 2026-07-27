@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
-import { handleIncomingMessage } from '@/lib/chat/aiAgent'
+import { handleIncomingMessage, getOrCreateSession, updateSession } from '@/lib/chat/aiAgent'
 import { replyToIGComment, replyToFBComment, sendIGDM, sendFBMessage } from './metaClient'
 import { detectDalaliIntent } from '@/lib/leads/dalaliDetection'
 import { captureDalaliLead } from '@/lib/leads/captureFromWhatsApp'
@@ -11,6 +11,12 @@ import {
 } from '@/lib/inbox/messageClassifier'
 import { runCascade, cacheAminaAnswer, formatKBContext } from '@/lib/knowledge/cascade'
 import { logMiss } from '@/lib/knowledge/missLog'
+import { checkRateLimit } from '@/lib/knowledge/rateLimiter'
+import {
+  getOrCreateSocialSession,
+  detectSocialEscalation,
+  escalateSocialToAdmin,
+} from './socialHandover'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -199,7 +205,14 @@ export async function handleSocialDM(
   data: DMData,
   platform: Platform,
 ): Promise<void> {
-  // Dedup by message ID
+  // ── Rate limit check — 15 messages per 60 seconds per sender ─────────────
+  const rl = await checkRateLimit(data.senderId, platform)
+  if (!rl.allowed) {
+    console.warn(`[Social] Rate limited: ${platform}:${data.senderId.slice(0, 6)}*** (${rl.currentCount} msgs/min)`)
+    return
+  }
+
+  // ── Dedup by message ID ───────────────────────────────────────────────────
   if (data.messageId) {
     const { data: existing } = await supabaseAdmin
       .from('social_dms')
@@ -207,6 +220,50 @@ export async function handleSocialDM(
       .eq('message_id', data.messageId)
       .maybeSingle()
     if (existing) return
+  }
+
+  // ── Check session status — skip Amina when admin has taken over ───────────
+  const session = await getOrCreateSocialSession(platform, data.senderId, data.senderName)
+  if (session.status === 'admin') {
+    console.log(`[Social] Session in admin mode — Amina silent for ${platform}:${data.senderId.slice(0, 6)}***`)
+    // Still save the incoming message for admin context
+    await supabaseAdmin.from('social_dms').insert({
+      platform,
+      sender_id:   data.senderId,
+      sender_name: data.senderName ?? null,
+      message_id:  data.messageId ?? null,
+      message_text: data.messageText,
+      reply_sent:  false,
+    }).select('id').single()
+    return
+  }
+  if (session.status === 'resolved') {
+    // Reopen the session on new message
+    await supabaseAdmin
+      .from('social_sessions')
+      .update({ status: 'amina', resolved_at: null, updated_at: new Date().toISOString() })
+      .eq('platform', platform)
+      .eq('sender_id', data.senderId)
+    console.log(`[Social] Reopened resolved session for ${platform}:${data.senderId.slice(0, 6)}***`)
+  }
+
+  // ── Escalation detection before classification ────────────────────────────
+  const escalationReason = detectSocialEscalation(data.messageText)
+  if (escalationReason) {
+    await escalateSocialToAdmin(platform, data.senderId, data.senderName, escalationReason)
+    console.log(`[Social] Escalated to pending: ${escalationReason}`)
+    // Send acknowledgement
+    try {
+      const ack = `Naelewa tatizo lako. 🙏 Mfanyakazi wetu atawasiliana nawe hivi karibuni. Asante kwa uvumilivu wako.`
+      if (platform === 'instagram') {
+        const { sendIGDM } = await import('./metaClient')
+        await sendIGDM(data.senderId, ack)
+      } else {
+        const { sendFBMessage } = await import('./metaClient')
+        await sendFBMessage(data.senderId, ack)
+      }
+    } catch { /* non-fatal */ }
+    return
   }
 
   // Save incoming DM — capture id for reliable update later
@@ -285,6 +342,16 @@ export async function handleSocialDM(
     } else {
       // Pass KB context to Amina so she has factual grounding
       const kbContext = formatKBContext(cascade.retrieved)
+
+      // Force social DMs into customer_care flow — never show the guided menu
+      const chatSession = await getOrCreateSession(platform, data.senderId, undefined, data.senderName)
+      if (chatSession.flow_type !== 'customer_care') {
+        await updateSession(chatSession.id, {
+          flow_type: 'customer_care',
+          flow_step:  'care_active',
+          flow_data:  {},
+        })
+      }
 
       replyText = await handleIncomingMessage(
         platform,

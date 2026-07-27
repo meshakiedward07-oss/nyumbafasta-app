@@ -17,6 +17,7 @@ import {
 } from '@/lib/inbox/messageClassifier'
 import { runCascade, cacheAminaAnswer, formatKBContext } from '@/lib/knowledge/cascade'
 import { logMiss } from '@/lib/knowledge/missLog'
+import { checkRateLimit } from '@/lib/knowledge/rateLimiter'
 
 // Returns true when the user is mid-way through a guided multi-step flow
 // (dalali registration or listing submission). The cascade must not
@@ -175,7 +176,14 @@ export async function handleWhatsAppMessage(
 ): Promise<string> {
   const t0 = Date.now()
 
-  // 1. Deduplication — Meta delivers webhooks at least once
+  // 1. Rate limiting — 15 messages per 60 seconds per number
+  const rl = await checkRateLimit(from, 'whatsapp')
+  if (!rl.allowed) {
+    console.warn(`[Amina] Rate limited: ${from.slice(0, 5)}**** (${rl.currentCount} msgs/min)`)
+    return ''
+  }
+
+  // 2. Deduplication — Meta delivers webhooks at least once
   if (await isMessageProcessed(messageId)) {
     console.log('[Amina] Duplicate skipped:', messageId)
     return ''
@@ -261,10 +269,30 @@ export async function handleWhatsAppMessage(
       let kbContextForAmina: string | undefined
 
       if (!guidedFlow) {
+        // Resolve org_id from active lease for vendor search context
+        let tenantOrgId: string | undefined
+        try {
+          const { data: userRow } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .ilike('phone', `%${from.replace(/^\+/, '').slice(-9)}%`)
+            .maybeSingle()
+          if (userRow?.id) {
+            const { data: lease } = await supabaseAdmin
+              .from('leases')
+              .select('org_id')
+              .eq('user_id', userRow.id)
+              .eq('status', 'active')
+              .maybeSingle()
+            tenantOrgId = lease?.org_id ?? undefined
+          }
+        } catch { /* non-fatal — vendor search works without org_id */ }
+
         // 6a. Run knowledge cascade: cache → search → action → knowledge_base
         const cascade = await runCascade(messageText, {
           phoneNumber: from,
           flowType:    classification.subCategory,
+          orgId:       tenantOrgId,
         })
         console.log(`[Amina] cascade answered=${cascade.answered} conf=${cascade.confidence.toFixed(3)} layer=${cascade.layerAnswered}`)
 
