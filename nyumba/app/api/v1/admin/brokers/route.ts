@@ -68,29 +68,35 @@ export async function POST(req: NextRequest) {
 
     const userId = authData.user.id
 
-    // 2. Upsert into public.users (trigger may have already created the row)
+    // 2. Upsert into public.users with role=staff so they can access the staff dashboard
     await admin.from('users').upsert({
       id:        userId,
       full_name: full_name.trim(),
       email:     email.trim().toLowerCase(),
-      role:      'dalali',
+      role:      'staff',
     }, { onConflict: 'id' })
 
-    // 3. Create dalali_profiles with platform broker flag
+    // 3. Create dalali_profiles with platform broker flag (needed for posting listings)
     const { data: profile, error: profileErr } = await admin
       .from('dalali_profiles')
       .upsert({
-        user_id:           userId,
+        user_id:            userId,
         is_platform_broker: true,
-        broker_whatsapp:   whatsapp_number.trim(),
-        whatsapp_number:   whatsapp_number.trim(),
-        is_verified:       true,
-        subscription_plan: 'premium',
+        broker_whatsapp:    whatsapp_number.trim(),
+        whatsapp_number:    whatsapp_number.trim(),
+        is_verified:        true,
+        subscription_plan:  'premium',
       }, { onConflict: 'user_id' })
       .select()
       .single()
 
     if (profileErr) throw profileErr
+
+    // 4. Auto-grant brokerage staff permission so the staff dashboard shows the brokerage tab
+    await admin.from('staff_permissions').upsert(
+      { staff_id: userId, permission_key: 'brokerage' },
+      { onConflict: 'staff_id, permission_key' }
+    )
 
     return NextResponse.json({ broker: { user_id: userId, ...profile } }, { status: 201 })
   } catch (err) {

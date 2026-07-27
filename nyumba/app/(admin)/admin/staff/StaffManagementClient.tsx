@@ -693,6 +693,7 @@ function AddStaffModal({
               </optgroup>
               <optgroup label="— Usimamizi wa Mali —">
                 <option value="property_manager">Property Manager — KYC + Mashirika + Matengenezo + Mawakala + Kodi</option>
+                <option value="broker">NF Broker — Brokerage &amp; Kamisheni tu</option>
               </optgroup>
               <optgroup label="— Support / Content —">
                 <option value="customer_support">Customer Support — WhatsApp + Violations</option>

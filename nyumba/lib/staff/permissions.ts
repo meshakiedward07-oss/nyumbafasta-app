@@ -94,6 +94,14 @@ export const STAFF_PERMISSIONS = {
     icon: 'receipt',
     category: 'property' as const,
   },
+  brokerage: {
+    key: 'brokerage',
+    label: 'Brokerage & Kamisheni',
+    description: 'Simamia maombi ya brokerage kutoka mashirika, tangaza kupitia akaunti ya NF, funga deals na fuatilia kamisheni',
+    adminPath: '/admin/property-management',
+    icon: 'building-store',
+    category: 'property' as const,
+  },
   // ── Admin Tasks (Platform Operations) ───────────────────────
   approve_listings: {
     key: 'approve_listings',
@@ -197,6 +205,10 @@ export const STAFF_ROLE_TEMPLATES = {
   property_manager: {
     label: 'Property Manager',
     permissions: ['kyc_review', 'org_management', 'maintenance_oversight', 'vendor_verification', 'rent_audit'] as PermissionKey[],
+  },
+  broker: {
+    label: 'NF Broker',
+    permissions: ['brokerage'] as PermissionKey[],
   },
   team_lead: {
     label: 'Team Lead (Full Access)',
