@@ -2,13 +2,17 @@ import { findBestKBArticle } from '@/lib/knowledge/embeddings'
 import { lookupCache, recordCacheHit, addToCache, getCascadeConfig } from '@/lib/knowledge/index'
 import { logMiss } from '@/lib/knowledge/missLog'
 import { extractEntities } from '@/lib/knowledge/entities'
+import { extractActionIntent } from '@/lib/knowledge/actionIntent'
 import { searchListings, searchVendors, noResultsMessage } from '@/lib/knowledge/structuredSearch'
+import { executeMaintenanceAction } from '@/lib/knowledge/actions/maintenance'
+import { executeViewingAction } from '@/lib/knowledge/actions/viewing'
+import { executeSubscriptionAction } from '@/lib/knowledge/actions/subscription'
 
 export interface CascadeResult {
   answered:      boolean
   answer:        string
   confidence:    number
-  layerAnswered: 'cache' | 'knowledge_base' | 'search' | null
+  layerAnswered: 'cache' | 'knowledge_base' | 'search' | 'action' | null
   // Closest KB content passed to Amina as context (Phase 4)
   retrieved:     Array<{ source: string; content: string; confidence: number }>
 }
@@ -20,14 +24,17 @@ export interface CascadeOptions {
   orgId?:       string   // set when user has a known org context (property management)
 }
 
-// ── Cascade: cache → (KB ∥ entities) → structured search → miss ──────────────
+// ── Cascade: cache → (KB ∥ entities ∥ action) → search → action → KB → Amina ─
 //
 // Layer order:
 //   1. pg_trgm cache lookup           (pure DB, no AI)
-//   2a. KB FTS candidates → Haiku     (cheap AI, parallel with 2b)
-//   2b. Entity extraction → Haiku     (cheap AI, parallel with 2a)
-//   3. Structured DB search           (pure DB, if entities say it's a search)
-//   4. Miss → Amina gets context      (full AI, only when all above fail)
+//   2a. KB FTS candidates → Haiku     (cheap AI, parallel with 2b + 2c)
+//   2b. Entity extraction → Haiku     (cheap AI, parallel with 2a + 2c)
+//   2c. Action intent → Haiku         (cheap AI, parallel with 2a + 2b)
+//   3a. Structured DB search          (pure DB, if entities say it's a search)
+//   3b. Action engine                 (DB write, if action intent is high confidence)
+//   4. KB hit                         (if article confidence ≥ threshold)
+//   5. Miss → Amina gets context      (full AI, only when all above fail)
 
 export async function runCascade(
   messageText: string,
@@ -51,12 +58,13 @@ export async function runCascade(
     }
   }
 
-  // ── 2. KB lookup and entity extraction run in parallel ────────────────────
-  const [kbResult, entities] = await Promise.all([
+  // ── 2. KB lookup, entity extraction, and action intent run in parallel ───
+  const [kbResult, entities, actionIntent] = await Promise.all([
     findBestKBArticle(messageText),
     extractEntities(messageText),
+    extractActionIntent(messageText),
   ])
-  console.log(`[Cascade] kb conf=${kbResult.confidence.toFixed(3)} slug=${kbResult.candidate?.slug ?? '—'} | search=${entities.is_search} type=${entities.search_type} conf=${entities.confidence.toFixed(2)} (${Date.now() - t0}ms)`)
+  console.log(`[Cascade] kb conf=${kbResult.confidence.toFixed(3)} slug=${kbResult.candidate?.slug ?? '—'} | search=${entities.is_search} type=${entities.search_type} conf=${entities.confidence.toFixed(2)} | action=${actionIntent.action_type} conf=${actionIntent.confidence.toFixed(2)} (${Date.now() - t0}ms)`)
 
   // ── 3. Structured search — takes priority when intent is clear ────────────
   // The spec says: a search request should be routed to structured search
@@ -110,6 +118,61 @@ export async function runCascade(
         }
       }
       // No org context or no vendor results → fall through to KB / Amina
+    }
+  }
+
+  // ── 3b. Action engine — executes real actions when intent is clear ────────
+  // Only runs when the phone number is available (we can look up the user).
+  // Actions require confidence ≥ 0.7 so we don't misfire on vague messages.
+  if (actionIntent.is_action && actionIntent.confidence >= 0.7) {
+
+    if (actionIntent.action_type === 'maintenance') {
+      // Maintenance requests need a description to be actionable.
+      // If intent is clear but detail is missing, let Amina ask for clarification.
+      if (actionIntent.maintenance_has_enough_detail && actionIntent.maintenance_description && options.phoneNumber) {
+        const result = await executeMaintenanceAction(
+          options.phoneNumber,
+          actionIntent.maintenance_description,
+          actionIntent.maintenance_category,
+          actionIntent.maintenance_priority,
+        )
+        if (result) {
+          console.log(`[Cascade] action maintenance → ${result.success ? 'CREATED' : 'NO_LEASE'} (${Date.now() - t0}ms)`)
+          return {
+            answered:      true,
+            answer:        result.message,
+            confidence:    actionIntent.confidence,
+            layerAnswered: 'action',
+            retrieved:     [],
+          }
+        }
+        // null means user not found in DB → fall to Amina
+      }
+      // Not enough detail or no phone → fall through so Amina can ask
+    }
+
+    if (actionIntent.action_type === 'viewing') {
+      const answer = await executeViewingAction(actionIntent.viewing_listing_hint)
+      console.log(`[Cascade] action viewing → answered (${Date.now() - t0}ms)`)
+      return {
+        answered:      true,
+        answer,
+        confidence:    actionIntent.confidence,
+        layerAnswered: 'action',
+        retrieved:     [],
+      }
+    }
+
+    if (actionIntent.action_type === 'subscription') {
+      const answer = await executeSubscriptionAction(options.phoneNumber)
+      console.log(`[Cascade] action subscription → answered (${Date.now() - t0}ms)`)
+      return {
+        answered:      true,
+        answer,
+        confidence:    actionIntent.confidence,
+        layerAnswered: 'action',
+        retrieved:     [],
+      }
     }
   }
 

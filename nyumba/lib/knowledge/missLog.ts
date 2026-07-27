@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 
-export type CascadeLayer = 'cache' | 'knowledge_base' | 'search' | 'amina' | 'handover'
+export type CascadeLayer = 'cache' | 'knowledge_base' | 'search' | 'action' | 'amina' | 'handover'
 
 export interface MissContext {
   phoneNumber?:     string
