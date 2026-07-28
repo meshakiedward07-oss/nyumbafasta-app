@@ -116,12 +116,12 @@ export async function POST(req: NextRequest) {
       if (ok) {
         sentCount++
         // Log broadcast in activity log (fire-and-forget)
-        supabaseAdmin.from('lead_activity_log').insert({
+        void Promise.resolve(supabaseAdmin.from('lead_activity_log').insert({
           lead_id:     lead.id,
           actor_name:  'Broadcast',
           action_type: 'broadcast_sent',
           new_value:   text.substring(0, 120),
-        }).then(() => {}).catch(() => {})
+        }))
       } else {
         failedCount++
         failedNames.push(lead.full_name || phone)

@@ -190,14 +190,14 @@ export async function PATCH(req: NextRequest) {
 
     // Auto-log status changes to activity log
     if (updates.status && oldLead && updates.status !== oldLead.status) {
-      await supabaseAdmin.from('lead_activity_log').insert({
+      void Promise.resolve(supabaseAdmin.from('lead_activity_log').insert({
         lead_id:     id as string,
         actor_id:    auth.userId,
         actor_name:  auth.fullName ?? 'Mfanyakazi',
         action_type: 'status_change',
         old_value:   oldLead.status,
         new_value:   updates.status as string,
-      }).then(() => {}).catch(() => {}) // fire-and-forget, don't fail the main update
+      }))
     }
 
     cache.delete('leads:stats:global')
