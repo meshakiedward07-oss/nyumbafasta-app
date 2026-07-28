@@ -1,6 +1,19 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { createAdminClient } from '@/lib/supabase/server'
+
+export const metadata: Metadata = {
+  title: 'Tangaza Biashara Yako — NyumbaFasta Ads',
+  description: 'Fikia wapangaji na wamiliki wa nyumba Tanzania. Tangaza biashara yako kwenye NyumbaFasta na upate wateja zaidi.',
+  alternates: { canonical: 'https://nyumbafasta.co/advertising' },
+  openGraph: {
+    title: 'Tangaza Biashara Yako — NyumbaFasta Ads',
+    description: 'Fikia wapangaji na wamiliki wa nyumba Tanzania kupitia matangazo ya NyumbaFasta.',
+    url: 'https://nyumbafasta.co/advertising',
+    type: 'website',
+  },
+}
 
 async function getPlans() {
   const admin = createAdminClient()

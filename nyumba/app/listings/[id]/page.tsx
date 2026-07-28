@@ -72,13 +72,19 @@ export async function generateMetadata({
     ? [{ url: listing.images[0], width: 800, height: 600, alt: title }]
     : []
 
+  const canonicalUrl = `https://nyumbafasta.co/listings/${listing.id}`
   return {
     title,
     description,
+    alternates: { canonical: canonicalUrl },
+    robots: listing.status === 'active'
+      ? { index: true, follow: true }
+      : { index: false, follow: false },
     openGraph: {
       title,
       description: `Tsh ${fmtPrice(listing.price_monthly)}/mwezi · ${listing.district}, ${listing.region}`,
       images: ogImages,
+      url: canonicalUrl,
       type: 'website',
     },
     twitter: {

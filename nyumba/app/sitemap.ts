@@ -84,12 +84,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // ── Static pages ──────────────────────────────────────────
   const staticUrls: MetadataRoute.Sitemap = [
-    { url: APP_URL, lastModified: now, changeFrequency: 'hourly', priority: 1 },
-    { url: `${APP_URL}/register`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${APP_URL}/login`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${APP_URL}/terms`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${APP_URL}/privacy`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${APP_URL}/data-deletion`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: APP_URL,                              lastModified: now, changeFrequency: 'hourly',  priority: 1.0 },
+    { url: `${APP_URL}/register`,                lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${APP_URL}/directory`,               lastModified: now, changeFrequency: 'daily',   priority: 0.8 },
+    { url: `${APP_URL}/advertising`,             lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${APP_URL}/terms`,                   lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${APP_URL}/privacy`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${APP_URL}/data-deletion`,           lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
+    // /login intentionally excluded — blocked in robots.txt
   ]
 
   return [

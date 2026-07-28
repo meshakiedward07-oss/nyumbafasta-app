@@ -1,7 +1,21 @@
+import type { Metadata } from 'next'
 import { createAdminClient } from '@/lib/supabase/server'
 import HomeClient from '@/components/home/HomeClient'
 import RegionLinks from '@/components/seo/RegionLinks'
 import type { ListingWithDalali } from '@/lib/types/database'
+
+export const metadata: Metadata = {
+  title: 'NyumbaFasta — Pata Nyumba Haraka Tanzania',
+  description: 'Tafuta vyumba, apartments na nyumba Tanzania kwa urahisi. Zungumza na dalali moja kwa moja. Listings mpya kila siku — Dar es Salaam, Arusha, Mwanza na mikoa yote Tanzania.',
+  keywords: ['nyumba Tanzania', 'vyumba Dar es Salaam', 'apartment kupanga', 'chumba Kinondoni', 'dalali nyumba', 'nyumba ya kupanga Tanzania'],
+  alternates: { canonical: 'https://nyumbafasta.co' },
+  openGraph: {
+    title: 'NyumbaFasta — Pata Nyumba Haraka Tanzania',
+    description: 'Tafuta vyumba na apartments Tanzania kwa urahisi. Listings mpya kila siku.',
+    url: 'https://nyumbafasta.co',
+    type: 'website',
+  },
+}
 
 // ISR: re-render at most every 60 seconds — fresh listings without full SSR on every request
 export const revalidate = 60

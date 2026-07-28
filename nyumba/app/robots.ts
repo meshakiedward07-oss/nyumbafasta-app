@@ -2,8 +2,24 @@ import type { MetadataRoute } from 'next'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 
-// Private/auth-only areas — kept out of all crawlers
-const DISALLOW = ['/admin/', '/dashboard/', '/api/', '/account/', '/saved/', '/login']
+// Private/auth-only areas — kept out of all crawlers.
+// /login has no SEO value (auth wall); /register is intentionally NOT listed (public conversion page).
+const DISALLOW = [
+  '/admin/',
+  '/api/',
+  '/account/',
+  '/saved/',
+  '/login',
+  '/staff-login',
+  '/notifications',
+  '/dalali/',
+  '/tenant/',
+  '/portal/',
+  '/verify-email',
+  '/agreement-required',
+  '/account-banned',
+  '/account-suspended',
+]
 
 export default function robots(): MetadataRoute.Robots {
   return {

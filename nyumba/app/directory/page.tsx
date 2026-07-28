@@ -2,7 +2,12 @@ import { createAdminClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { REGION_NAMES } from '@/lib/data/tanzania-locations'
 
-export const metadata = { title: 'Biashara Zilizoangaziwa — NyumbaFasta' }
+export const metadata = {
+  title: 'Biashara Zilizoangaziwa — NyumbaFasta',
+  description: 'Pata madalali wa nyumba walioangaziwa Tanzania. Dalali wa kuaminika katika Dar es Salaam, Arusha, Mwanza na mikoa yote.',
+  alternates: { canonical: 'https://nyumbafasta.co/directory' },
+  robots: { index: true, follow: true },
+}
 export const revalidate = 3600
 
 async function getCitiesWithFeatured(): Promise<string[]> {
