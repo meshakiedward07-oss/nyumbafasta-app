@@ -9,6 +9,7 @@ import NotificationBell from '@/components/shared/NotificationBell'
 import { PLAN_BADGES, getListingLimit, getPlan } from '@/lib/config/subscription-plans'
 import { STATUS_LABELS } from '@/lib/config/listing-status'
 import { ListingDeadlineBanner } from '@/components/dalali/ListingDeadlineBanner'
+import { useLanguage } from '@/lib/i18n/context'
 
 type DalaliProfile = {
   whatsapp_number: string | null
@@ -60,6 +61,7 @@ function formatPrice(amount: number): string {
 export default function DashboardClient({ dalaliName, profile, subscription, listings, stats }: Omit<Props, 'username'> & { username?: string | null }) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useLanguage()
   const [basicPrice, setBasicPrice] = useState(10_000)
   useEffect(() => {
     fetch('/api/v1/pricing').then(r => r.json()).then(p => setBasicPrice(p?.subscription?.basic ?? 10_000)).catch(() => {})
@@ -116,7 +118,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
 
         <div className="relative flex justify-between items-start mb-5">
           <div>
-            <p className="text-green-100 text-xs mb-0.5 opacity-80">Karibu,</p>
+            <p className="text-green-100 text-xs mb-0.5 opacity-80">{t('dash_welcome_greeting')}</p>
             <h1 className="text-white text-xl font-bold drop-shadow-sm">{dalaliName}</h1>
             {(() => {
               const plan = subscription?.plan ?? 'free'
@@ -136,7 +138,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
               </p>
             ) : (
               <a href="/dashboard/profile" className="text-amber-200 text-xs mt-1.5 inline-flex items-center gap-1 underline">
-                <i className="ti ti-plus text-xs" aria-hidden="true" /> Weka WhatsApp yako
+                <i className="ti ti-plus text-xs" aria-hidden="true" /> {t('dash_add_whatsapp')}
               </a>
             )}
           </div>
@@ -151,7 +153,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 <span className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
               )}
               <i className="ti ti-logout text-sm" aria-hidden="true" />
-              {loggingOut ? 'Inatoka...' : 'Toka'}
+              {loggingOut ? t('dash_logging_out') : t('dash_logout_btn')}
             </button>
           </div>
         </div>
@@ -159,10 +161,10 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         {/* Stats row — individual colored glass cards */}
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
-            { label: 'Matangazo',      value: stats.totalListings, icon: 'ti-home-2',        accent: 'bg-white/10'        },
-            { label: 'Zinafanya kazi', value: stats.activeCount,   icon: 'ti-circle-check',  accent: 'bg-emerald-400/25'  },
-            { label: 'Waliotazama',    value: stats.totalViews,    icon: 'ti-eye',           accent: 'bg-blue-400/20'     },
-            { label: 'Maombi',         value: stats.totalLeads,    icon: 'ti-users',         accent: 'bg-amber-400/20'    },
+            { label: t('dash_stat_listings'), value: stats.totalListings, icon: 'ti-home-2',       accent: 'bg-white/10'       },
+            { label: t('dash_stat_active'),   value: stats.activeCount,   icon: 'ti-circle-check', accent: 'bg-emerald-400/25' },
+            { label: t('dash_stat_views'),    value: stats.totalViews,    icon: 'ti-eye',          accent: 'bg-blue-400/20'    },
+            { label: t('dash_stat_leads'),    value: stats.totalLeads,    icon: 'ti-users',        accent: 'bg-amber-400/20'   },
           ].map(s => (
             <div key={s.label} className={`${s.accent} rounded-2xl p-3 border border-white/15 backdrop-blur-sm`}>
               <i className={`ti ${s.icon} text-white/70 text-sm`} aria-hidden="true" />
@@ -185,16 +187,14 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
               <i className="ti ti-eye-off text-amber-600 text-lg" aria-hidden="true" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-amber-800 text-sm">Huna listing hai sasa hivi</p>
-              <p className="text-xs text-amber-700 mt-0.5 leading-snug">
-                Wateja hawawezi kukupata. Ongeza listing mpya au subiri idhini ya listing iliyowasilishwa.
-              </p>
+              <p className="font-bold text-amber-800 text-sm">{t('dash_no_active_title')}</p>
+              <p className="text-xs text-amber-700 mt-0.5 leading-snug">{t('dash_no_active_sub')}</p>
             </div>
             <Link
               href="/dashboard/listings/new"
               className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 active:scale-[0.97] text-white text-xs font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all"
             >
-              Ongeza Listing
+              {t('dash_add_listing')}
             </Link>
           </div>
         )}
@@ -212,16 +212,16 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
               <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-1">
                   <div>
-                    <p className="font-bold text-base flex items-center gap-1.5"><i className="ti ti-confetti" aria-hidden="true" /> Trial ya Bure</p>
+                    <p className="font-bold text-base flex items-center gap-1.5"><i className="ti ti-confetti" aria-hidden="true" /> {t('dash_trial_title')}</p>
                     <p className="text-green-100 text-xs">
-                      {trialDaysLeft > 0 ? `Siku ${trialDaysLeft} zimebaki kati ya 14` : 'Leo ni siku ya mwisho!'}
+                      {trialDaysLeft > 0 ? `${t('dash_trial_days')} ${trialDaysLeft} ${t('dash_trial_days_of')}` : t('dash_trial_today_last')}
                     </p>
                   </div>
                   <div className="text-right">
                     <div className={`text-3xl font-bold ${trialDaysLeft <= 3 ? 'text-red-200' : ''}`}>
                       {trialDaysLeft}
                     </div>
-                    <div className="text-green-100 text-xs">siku</div>
+                    <div className="text-green-100 text-xs">{t('dash_trial_days')}</div>
                   </div>
                 </div>
                 <div className="bg-white/20 rounded-full h-1.5 my-3 overflow-hidden">
@@ -232,7 +232,9 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 </div>
                 {trialDaysLeft <= 7 && (
                   <p className="text-yellow-200 text-xs mb-2 text-center">
-                    {trialDaysLeft <= 3 ? <><i className="ti ti-alert-octagon" aria-hidden="true" /> Haraka! Siku chache zimebaki</> : <><i className="ti ti-clock" aria-hidden="true" /> Lipa kabla trial haijamalizika</>}
+                    {trialDaysLeft <= 3
+                      ? <><i className="ti ti-alert-octagon" aria-hidden="true" /> {t('dash_trial_hurry')}</>
+                      : <><i className="ti ti-clock" aria-hidden="true" /> {t('dash_trial_pay_before')}</>}
                   </p>
                 )}
                 <Link
@@ -240,7 +242,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
                              bg-white text-primary-600 font-bold text-sm active:scale-[0.97] transition-all"
                 >
-                  <i className="ti ti-credit-card" aria-hidden="true" /> Endelea na Subscription — Tsh {basicPrice.toLocaleString()}/mwezi
+                  <i className="ti ti-credit-card" aria-hidden="true" /> {t('dash_continue_sub')} — Tsh {basicPrice.toLocaleString()}/mwezi
                 </Link>
               </div>
             )
@@ -250,24 +252,22 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           if (subscription?.status === 'trial_expired') {
             return (
               <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4">
-                <p className="font-bold text-red-700 text-base mb-1 flex items-center gap-1.5"><i className="ti ti-circle-x" aria-hidden="true" /> Trial Yako Imekwisha</p>
-                <p className="text-red-600 text-xs mb-4">
-                  Listings zako zimesimamishwa kwa muda. Lipa sasa uendelee kupata wateja.
-                </p>
+                <p className="font-bold text-red-700 text-base mb-1 flex items-center gap-1.5"><i className="ti ti-circle-x" aria-hidden="true" /> {t('dash_trial_expired_title')}</p>
+                <p className="text-red-600 text-xs mb-4">{t('dash_trial_expired_sub')}</p>
                 <div className="grid grid-cols-2 gap-3">
                   <Link href="/dashboard/subscription"
                     className="flex flex-col items-center py-3 rounded-xl border-2 border-primary-400 bg-white
                                text-primary-700 font-bold text-xs active:scale-[0.97] transition-all text-center">
                     <span className="font-semibold">Basic</span>
                     <span className="text-lg font-bold">Tsh 10k</span>
-                    <span className="text-xs text-gray-400">/mwezi</span>
+                    <span className="text-xs text-gray-400">{t('dash_per_month')}</span>
                   </Link>
                   <Link href="/dashboard/subscription?plan=premium"
                     className="flex flex-col items-center py-3 rounded-xl bg-amber-500 text-white
                                font-bold text-xs active:scale-[0.97] transition-all text-center">
                     <span className="font-semibold flex items-center gap-1"><i className="ti ti-star-filled" aria-hidden="true" /> Premium</span>
                     <span className="text-lg font-bold">Tsh 25k</span>
-                    <span className="text-xs text-amber-100">/mwezi</span>
+                    <span className="text-xs text-amber-100">{t('dash_per_month')}</span>
                   </Link>
                 </div>
               </div>
@@ -278,16 +278,16 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           if (subscription?.status === 'grace_period') {
             return (
               <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-4">
-                <p className="text-sm font-bold text-yellow-800 mb-1 flex items-center gap-1.5"><i className="ti ti-alert-triangle" aria-hidden="true" /> Subscription Imekwisha!</p>
+                <p className="text-sm font-bold text-yellow-800 mb-1 flex items-center gap-1.5"><i className="ti ti-alert-triangle" aria-hidden="true" /> {t('dash_grace_title')}</p>
                 {subscription.grace_period_until && (
                   <p className="text-xs text-yellow-700 mb-1">
-                    Grace period: siku {mounted ? Math.max(0, Math.ceil((new Date(subscription.grace_period_until).getTime() - Date.now()) / 86_400_000)) : '...'} zimebaki
+                    {t('dash_grace_days_left')} {mounted ? Math.max(0, Math.ceil((new Date(subscription.grace_period_until).getTime() - Date.now()) / 86_400_000)) : '...'} {t('dash_grace_days_unit')}
                   </p>
                 )}
-                <p className="text-xs text-yellow-600 mb-3">Listings zako bado zinaonekana — zitasimama grace period ikiisha.</p>
+                <p className="text-xs text-yellow-600 mb-3">{t('dash_grace_still_visible')}</p>
                 <Link href="/dashboard/subscription"
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-yellow-500 text-white text-sm font-bold">
-                  <i className="ti ti-refresh" aria-hidden="true" /> Huisha Sasa
+                  <i className="ti ti-refresh" aria-hidden="true" /> {t('dash_renew_now')}
                 </Link>
               </div>
             )
@@ -315,33 +315,37 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                           daysLeft !== null && daysLeft <= 3 ? 'text-red-600' :
                           daysLeft !== null && daysLeft <= 7 ? 'text-amber-600' : 'text-gray-400'
                         }`}>
-                          {daysLeft !== null && daysLeft > 0 ? `siku ${daysLeft} zimebaki` : 'Imeisha'}
+                          {daysLeft !== null && daysLeft > 0
+                            ? `${t('dash_siku')} ${daysLeft} ${t('dash_days_left_label')}`
+                            : t('dash_expired_label')}
                         </span>
                       )}
                       {isFree && daysLeft !== null && (
                         <span className={`text-xs font-medium ${
                           daysLeft <= 7 ? 'text-red-500' : daysLeft <= 14 ? 'text-amber-500' : 'text-gray-400'
                         }`}>
-                          siku {Math.max(0, daysLeft)} zimebaki
+                          {t('dash_siku')} {Math.max(0, daysLeft)} {t('dash_days_left_label')}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500">Inaisha: {subExpiry}</p>
+                    <p className="text-xs text-gray-500">{t('dash_expires')} {subExpiry}</p>
                   </div>
                   <Link href="/dashboard/subscription"
                     className="text-xs font-medium px-3 py-1.5 rounded-full text-white"
                     style={{ backgroundColor: badge.color }}>
-                    {isFree ? 'Panda Daraja' : 'Simamia'}
+                    {isFree ? t('dash_upgrade') : t('dash_manage')}
                   </Link>
                 </div>
                 {isFree && daysLeft !== null && daysLeft <= 14 && daysLeft > 0 && (
                   <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
                     <p className="text-xs text-amber-700 font-semibold mb-2">
-                      {daysLeft <= 3 ? <><i className="ti ti-alert-octagon" aria-hidden="true" /> Siku chache tu zimebaki!</> : <><i className="ti ti-alert-triangle" aria-hidden="true" /> Kipindi cha bure kinaisha hivi karibuni!</>}
+                      {daysLeft <= 3
+                        ? <><i className="ti ti-alert-octagon" aria-hidden="true" /> {t('dash_few_days_left')}</>
+                        : <><i className="ti ti-alert-triangle" aria-hidden="true" /> {t('dash_ending_soon')}</>}
                     </p>
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-bold">
-                      <i className="ti ti-rocket" aria-hidden="true" /> Upgrade Sasa — Tsh {basicPrice.toLocaleString()}/mwezi
+                      <i className="ti ti-rocket" aria-hidden="true" /> {t('dash_upgrade_now')} — Tsh {basicPrice.toLocaleString()}/mwezi
                     </Link>
                   </div>
                 )}
@@ -349,7 +353,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                   <div className="mt-3">
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold">
-                      <i className="ti ti-refresh" aria-hidden="true" /> Huisha Sasa — Usipoteze Wateja
+                      <i className="ti ti-refresh" aria-hidden="true" /> {t('dash_renew_urgently')}
                     </Link>
                   </div>
                 )}
@@ -358,7 +362,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-xs font-bold"
                       style={{ backgroundColor: planData.color }}>
-                      <i className="ti ti-star-filled" aria-hidden="true" /> Upgrade kwenda Basic — Tsh {basicPrice.toLocaleString()}/mwezi
+                      <i className="ti ti-star-filled" aria-hidden="true" /> {t('dash_upgrade_basic')} — Tsh {basicPrice.toLocaleString()}/mwezi
                     </Link>
                   </div>
                 )}
@@ -369,11 +373,11 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           // ── No subscription ───────────────────────────
           return (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-              <p className="text-sm font-semibold text-amber-800 mb-1">Huna subscription</p>
-              <p className="text-xs text-amber-600 mb-3">Chagua plan kuanza kutangaza listings zako na kupata wateja.</p>
+              <p className="text-sm font-semibold text-amber-800 mb-1">{t('dash_no_sub_title')}</p>
+              <p className="text-xs text-amber-600 mb-3">{t('dash_no_sub_sub')}</p>
               <Link href="/dashboard/subscription"
                 className="inline-flex items-center gap-1 bg-amber-500 text-white text-xs font-semibold px-4 py-2 rounded-full">
-                Chagua Plan →
+                {t('dash_choose_plan')}
               </Link>
             </div>
           )
@@ -383,28 +387,28 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         {profile !== null && (profile?.verification_status === 'unverified' || !profile?.verification_status) ? (
           <div className="bg-red-50 border border-red-100 rounded-2xl p-3 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-red-800 flex items-center gap-1.5"><i className="ti ti-id-badge" aria-hidden="true" /> Thibitisha utambulisho wako</p>
-              <p className="text-xs text-red-600 mt-0.5">Pata badge ya Verified — wateja wanakuamini zaidi</p>
+              <p className="text-sm font-semibold text-red-800 flex items-center gap-1.5"><i className="ti ti-id-badge" aria-hidden="true" /> {t('dash_verify_id_title')}</p>
+              <p className="text-xs text-red-600 mt-0.5">{t('dash_verify_id_sub')}</p>
             </div>
             <Link href="/dashboard/verify"
               className="flex-shrink-0 bg-red-500 text-white text-xs font-semibold px-3 py-2 rounded-full whitespace-nowrap">
-              Thibitisha →
+              {t('dash_verify_btn')}
             </Link>
           </div>
         ) : profile?.verification_status === 'pending' ? (
           <div className="bg-amber-50 border border-amber-100 rounded-2xl p-3">
-            <p className="text-sm font-semibold text-amber-800 flex items-center gap-1.5"><i className="ti ti-clock-hour-4" aria-hidden="true" /> Hati zinakaguliwa</p>
-            <p className="text-xs text-amber-600 mt-0.5">Admin anakagua — masaa 24. Utapata notification.</p>
+            <p className="text-sm font-semibold text-amber-800 flex items-center gap-1.5"><i className="ti ti-clock-hour-4" aria-hidden="true" /> {t('dash_pending_docs')}</p>
+            <p className="text-xs text-amber-600 mt-0.5">{t('dash_pending_docs_sub')}</p>
           </div>
         ) : profile?.verification_status === 'rejected' ? (
           <div className="bg-red-50 border border-red-100 rounded-2xl p-3 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-red-800 flex items-center gap-1.5"><i className="ti ti-circle-x" aria-hidden="true" /> Ombi limekataliwa</p>
-              <p className="text-xs text-red-600 mt-0.5">{profile.verification_rejected_reason ?? 'Wasilisha tena na hati sahihi.'}</p>
+              <p className="text-sm font-semibold text-red-800 flex items-center gap-1.5"><i className="ti ti-circle-x" aria-hidden="true" /> {t('dash_rejected_title')}</p>
+              <p className="text-xs text-red-600 mt-0.5">{profile.verification_rejected_reason ?? t('dash_resubmit_btn')}</p>
             </div>
             <Link href="/dashboard/verify"
               className="flex-shrink-0 bg-red-500 text-white text-xs font-semibold px-3 py-2 rounded-full whitespace-nowrap">
-              Wasilisha Tena →
+              {t('dash_resubmit_btn')}
             </Link>
           </div>
         ) : null}
@@ -420,7 +424,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           return (
             <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
               <div className="flex justify-between items-center mb-2">
-                <p className="text-sm font-semibold text-gray-700">Matumizi ya Listings</p>
+                <p className="text-sm font-semibold text-gray-700">{t('dash_listing_usage')}</p>
                 <span className="text-sm font-bold text-gray-800">{current}/{limit}</span>
               </div>
               <div className="bg-gray-100 rounded-full h-2.5 overflow-hidden">
@@ -428,16 +432,16 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                   role="progressbar"
                   aria-valuenow={current}
                   aria-valuemax={limit}
-                  aria-label="Matumizi ya listings"
+                  aria-label={t('dash_listing_usage')}
                   className={`${barColor} rounded-full h-full transition-all`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
               {remaining <= 2 && remaining > 0 && (
-                <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" /> Zimebaki {remaining} tu — ongeza au upgrade plan</p>
+                <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" /> {t('dash_trial_days')} {remaining} {t('dash_few_remaining')}</p>
               )}
               {remaining === 0 && (
-                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><i className="ti ti-ban" aria-hidden="true" /> Umefika limit — futa listing moja au ongeza za ziada</p>
+                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><i className="ti ti-ban" aria-hidden="true" /> {t('dash_limit_reached')}</p>
               )}
             </div>
           )
@@ -450,8 +454,8 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         >
           <i className="ti ti-chart-bar text-3xl flex-shrink-0" aria-hidden="true" />
           <div className="flex-1 min-w-0">
-            <p className="font-bold">Takwimu Zangu</p>
-            <p className="text-green-100 text-xs">Mwonekano, ukuaji na contacts za microsite yako</p>
+            <p className="font-bold">{t('dash_my_stats')}</p>
+            <p className="text-green-100 text-xs">{t('dash_stats_sub')}</p>
           </div>
           <span className="flex-shrink-0 text-green-100">→</span>
         </Link>
@@ -460,18 +464,18 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         {/* ── Listings section ── */}
         <div>
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-sm font-bold text-gray-800">Listings Zangu</h2>
+            <h2 className="text-sm font-bold text-gray-800">{t('dash_my_listings')}</h2>
             <Link href="/dashboard/listings/new" className="text-xs text-primary-600 font-medium">
-              + Ongeza
+              {t('dash_add_btn')}
             </Link>
           </div>
 
           {/* Tabs */}
           <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-none -mx-4 px-4">
             {([
-              { key: 'active', label: `Zinafanya kazi (${stats.activeCount})` },
-              { key: 'pending', label: `Zinasubiri (${stats.pendingCount})` },
-              { key: 'all', label: `Zote (${stats.totalListings})` },
+              { key: 'active',  label: `${t('dash_tab_active')} (${stats.activeCount})`  },
+              { key: 'pending', label: `${t('dash_tab_pending')} (${stats.pendingCount})` },
+              { key: 'all',     label: `${t('dash_tab_all')} (${stats.totalListings})`    },
             ] as const).map(tab => (
               <button
                 key={tab.key}
@@ -491,22 +495,20 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
             <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
               <div className="text-4xl mb-3"><i className="ti ti-home-2 text-4xl text-gray-300" aria-hidden="true" /></div>
               <p className="text-sm font-semibold text-gray-600 mb-1">
-                {activeTab === 'active' ? 'Huna listings zinazofanya kazi'
-                : activeTab === 'pending' ? 'Hakuna listings zinazosubiri'
-                : 'Bado hujaweka listing yoyote'}
+                {activeTab === 'active'  ? t('dash_empty_active')
+                : activeTab === 'pending' ? t('dash_empty_pending')
+                : t('dash_empty_all')}
               </p>
               <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-                {activeTab === 'active'
-                  ? 'Listings zilizoidhinishwa na admin zinaonekana hapa. Ongeza listing ili wateja wakupate.'
-                : activeTab === 'pending'
-                  ? 'Listings zako zote zimeshaidhinishwa na admin. Vizuri sana!'
-                  : 'Ongeza nyumba au chumba unachotaka kukodisha. Wateja zaidi ya 10,000 wanasubiri!'}
+                {activeTab === 'active'  ? t('dash_empty_active_sub')
+                : activeTab === 'pending' ? t('dash_empty_pending_sub')
+                : t('dash_empty_all_sub')}
               </p>
               <Link
                 href="/dashboard/listings/new"
                 className="inline-block text-xs text-white font-semibold bg-primary-500 px-5 py-2.5 rounded-full"
               >
-                <i className="ti ti-circle-plus" aria-hidden="true" /> Ongeza Listing ya Kwanza
+                <i className="ti ti-circle-plus" aria-hidden="true" /> {t('dash_add_first')}
               </Link>
             </div>
           ) : (
@@ -554,21 +556,21 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                       href={`/listings/${listing.id}`}
                       className="flex-1 text-center py-2.5 text-xs text-gray-500 min-h-[44px] flex items-center justify-center gap-1 active:bg-gray-50"
                     >
-                      <i className="ti ti-eye text-xs" aria-hidden="true" /> Angalia
+                      <i className="ti ti-eye text-xs" aria-hidden="true" /> {t('dash_view')}
                     </Link>
                     <div className="w-px bg-gray-50" />
                     <Link
                       href={`/listings/${listing.id}/edit`}
                       className="flex-1 text-center py-2.5 text-xs text-primary-600 font-medium min-h-[44px] flex items-center justify-center gap-1 active:bg-primary-50"
                     >
-                      <i className="ti ti-pencil text-xs" aria-hidden="true" /> Hariri
+                      <i className="ti ti-pencil text-xs" aria-hidden="true" /> {t('dash_edit')}
                     </Link>
                     <div className="w-px bg-gray-50" />
                     <Link
                       href="/dashboard/listings"
                       className="flex-1 text-center py-2.5 text-xs text-amber-600 font-medium min-h-[44px] flex items-center justify-center gap-1 active:bg-amber-50"
                     >
-                      <i className="ti ti-dots-vertical text-xs" aria-hidden="true" /> Zaidi
+                      <i className="ti ti-dots-vertical text-xs" aria-hidden="true" /> {t('dash_more')}
                     </Link>
                   </div>
                 </div>
@@ -580,7 +582,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         {/* ── Rating section ── */}
         {profile && profile.rating_count > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <h3 className="text-sm font-bold text-gray-800 mb-2">Maoni ya Wateja</h3>
+            <h3 className="text-sm font-bold text-gray-800 mb-2">{t('dash_reviews_title')}</h3>
             <div className="flex items-center gap-3">
               <div className="text-center">
                 <p className="text-3xl font-bold text-gray-900">{profile.rating_avg.toFixed(1)}</p>
@@ -591,7 +593,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 </div>
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-500">{profile.rating_count} maoni kutoka kwa wateja</p>
+                <p className="text-xs text-gray-500">{profile.rating_count} {t('dash_reviews_from')}</p>
               </div>
             </div>
           </div>
@@ -604,20 +606,20 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           onClick={() => setShowLogoutConfirm(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-xs text-center shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="text-4xl mb-3"><i className="ti ti-hand-stop text-4xl text-gray-300" aria-hidden="true" /></div>
-            <h2 className="font-bold text-gray-900 mb-2">Toka kwenye akaunti?</h2>
-            <p className="text-gray-500 text-sm mb-5">Utahitaji kuingia tena baadaye.</p>
+            <h2 className="font-bold text-gray-900 mb-2">{t('dash_logout_confirm_title')}</h2>
+            <p className="text-gray-500 text-sm mb-5">{t('dash_logout_confirm_sub')}</p>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
                 className="py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold"
               >
-                Hapana
+                {t('dash_logout_no')}
               </button>
               <button
                 onClick={handleLogout}
                 className="py-3 rounded-xl bg-red-500 text-white text-sm font-semibold"
               >
-                Ndiyo, toka
+                {t('dash_logout_yes')}
               </button>
             </div>
           </div>
@@ -642,18 +644,18 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
               <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
                 <i className="ti ti-rosette-discount-check text-white text-3xl" aria-hidden="true" />
               </div>
-              <h2 className="font-bold text-lg text-white">Akaunti Imethibitishwa</h2>
-              <p className="text-primary-100 text-sm mt-0.5">Karibu NyumbaFasta Tanzania</p>
+              <h2 className="font-bold text-lg text-white">{t('dash_welcome_modal_title')}</h2>
+              <p className="text-primary-100 text-sm mt-0.5">{t('dash_welcome_modal_sub')}</p>
             </div>
             <div className="px-6 py-5 text-center">
               <p className="text-gray-600 text-sm leading-relaxed">
-                Uko tayari kuongeza listings zako na kupata wateja wako wa kwanza.
+                {t('dash_welcome_modal_body')}
               </p>
               <button
                 onClick={dismissWelcome}
                 className="mt-4 w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
               >
-                Anza Kutumia
+                {t('dash_welcome_modal_btn')}
               </button>
             </div>
           </div>

@@ -6,8 +6,125 @@ import { createClient } from '@/lib/supabase/client'
 import { STAFF_PERMISSIONS, ADMIN_TASK_PERMISSIONS } from '@/lib/staff/permissions'
 import type { PermissionKey } from '@/lib/staff/permissions'
 import { PlatformLogo } from '@/components/shared/PlatformLogo'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 const BRAND_PLATFORMS = new Set(['whatsapp', 'instagram', 'facebook', 'tiktok'])
+
+type NavItem = {
+  href: string
+  labelKey: TKey
+  icon: string
+  exact: boolean
+  badge?: true | 'inbox'
+}
+
+type NavSection = {
+  titleKey: TKey
+  items: NavItem[]
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    titleKey: 'admin_nav_sec_overview',
+    items: [
+      { href: '/admin', labelKey: 'admin_nav_dashboard', icon: 'chart-bar', exact: true },
+    ],
+  },
+  {
+    titleKey: 'admin_nav_sec_whatsapp',
+    items: [
+      { href: '/admin/whatsapp',           labelKey: 'admin_nav_conversations', icon: 'brand-whatsapp', exact: false, badge: true },
+      { href: '/admin/whatsapp/broadcast', labelKey: 'admin_nav_broadcast',     icon: 'speakerphone',   exact: false },
+    ],
+  },
+  {
+    titleKey: 'admin_nav_sec_social',
+    items: [
+      { href: '/admin/social',             labelKey: 'admin_nav_social_overview', icon: 'chart-bar', exact: true  },
+      { href: '/admin/social?tab=postnow', labelKey: 'admin_nav_publish',         icon: 'pencil',    exact: false },
+    ],
+  },
+  {
+    titleKey: 'admin_nav_sec_leads',
+    items: [
+      { href: '/admin/leads', labelKey: 'admin_nav_leads_mgmt', icon: 'users', exact: false },
+    ],
+  },
+  {
+    titleKey: 'admin_nav_sec_comms',
+    items: [
+      { href: '/admin/email',     labelKey: 'admin_nav_email',     icon: 'mail',         exact: false },
+      { href: '/admin/inbox',     labelKey: 'admin_nav_inbox',     icon: 'inbox',        exact: false, badge: 'inbox' as const },
+      { href: '/admin/knowledge', labelKey: 'admin_nav_knowledge', icon: 'academic-cap', exact: false },
+    ],
+  },
+  {
+    titleKey: 'admin_nav_sec_management',
+    items: [
+      { href: '/admin/staff',         labelKey: 'admin_nav_staff',         icon: 'user-tie',    exact: false },
+      { href: '/admin/users',         labelKey: 'admin_nav_users',         icon: 'users',       exact: false },
+      { href: '/admin/listings',      labelKey: 'admin_nav_listings',      icon: 'home',        exact: false },
+      { href: '/admin/verifications', labelKey: 'admin_nav_verifications', icon: 'check',       exact: false },
+      { href: '/admin/accounting',    labelKey: 'admin_nav_accounting',    icon: 'credit-card', exact: false },
+    ],
+  },
+  {
+    titleKey: 'admin_nav_sec_advertising',
+    items: [
+      { href: '/admin/adverts',       labelKey: 'admin_nav_campaigns', icon: 'speakerphone', exact: false },
+      { href: '/admin/adverts/plans', labelKey: 'admin_nav_plans',     icon: 'list',         exact: false },
+    ],
+  },
+  {
+    titleKey: 'admin_nav_sec_legal',
+    items: [
+      { href: '/admin/legal', labelKey: 'admin_nav_legal_agreements', icon: 'scale', exact: false },
+    ],
+  },
+  {
+    titleKey: 'admin_nav_sec_property',
+    items: [
+      { href: '/admin/property-management', labelKey: 'admin_nav_property_dash',  icon: 'building',     exact: true  },
+      { href: '/admin/fundi',               labelKey: 'admin_nav_fundi_accounts', icon: 'tools',        exact: false },
+      { href: '/admin/subscriptions',       labelKey: 'admin_nav_org_subs',       icon: 'credit-card',  exact: false },
+    ],
+  },
+]
+
+type BottomNavItem = { href: string; icon: string; labelKey: TKey; exact: boolean }
+
+const BOTTOM_NAV: BottomNavItem[] = [
+  { href: '/admin',          icon: 'chart-bar',      labelKey: 'admin_nav_home',        exact: true  },
+  { href: '/admin/whatsapp', icon: 'brand-whatsapp', labelKey: 'admin_nav_conversations', exact: false },
+  { href: '/admin/email',    icon: 'mail',           labelKey: 'admin_nav_email_short', exact: false },
+  { href: '/admin/leads',    icon: 'users',          labelKey: 'admin_nav_leads_mgmt',  exact: false },
+]
+
+type StaffNavItem = { href: string; icon: string; labelKey: TKey; exact: boolean; permission: 'leads' | null }
+
+const STAFF_BOTTOM_NAV_BASE: StaffNavItem[] = [
+  { href: '/admin/staff-dashboard', icon: 'layout-dashboard', labelKey: 'admin_my_dashboard', exact: false, permission: null },
+  { href: '/admin/email',           icon: 'mail',             labelKey: 'admin_nav_email',    exact: false, permission: null },
+  { href: '/admin/staff-leads',     icon: 'target',           labelKey: 'admin_nav_leads_mgmt', exact: false, permission: 'leads' as const },
+]
+
+function LangToggle() {
+  const { lang, setLang } = useLanguage()
+  return (
+    <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs">
+      {(['sw', 'en'] as const).map(l => (
+        <button
+          key={l}
+          onClick={() => setLang(l)}
+          className={`flex-1 py-1.5 font-semibold transition-colors ${lang === l ? 'bg-primary-500 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+        >
+          {l === 'sw' ? '🇹🇿 SW' : '🇬🇧 EN'}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 // Polls every 30s — avoids Supabase realtime channel conflicts across mounts
 function PendingBadge() {
@@ -68,86 +185,6 @@ function InboxBadge() {
   )
 }
 
-const NAV_SECTIONS = [
-  {
-    title: 'Muhtasari',
-    items: [
-      { href: '/admin', label: 'Dashibodi', icon: 'chart-bar', exact: true },
-    ],
-  },
-  {
-    title: 'WhatsApp',
-    items: [
-      { href: '/admin/whatsapp',           label: 'Mazungumzo',  icon: 'brand-whatsapp', exact: false, badge: true },
-      { href: '/admin/whatsapp/broadcast', label: 'Tuma Ujumbe', icon: 'speakerphone', exact: false },
-    ],
-  },
-  {
-    title: 'Mitandao ya Jamii',
-    items: [
-      { href: '/admin/social',            label: 'Muhtasari',  icon: 'chart-bar', exact: true  },
-      { href: '/admin/social?tab=postnow',label: 'Chapisha',   icon: 'pencil', exact: false },
-    ],
-  },
-  {
-    title: 'Leads',
-    items: [
-      { href: '/admin/leads', label: 'Leads Management', icon: 'users', exact: false },
-    ],
-  },
-  {
-    title: 'Mawasiliano',
-    items: [
-      { href: '/admin/email',         label: 'Barua Pepe',       icon: 'mail',  exact: false },
-      { href: '/admin/inbox',         label: 'Inbox ya Ujumbe',  icon: 'inbox', exact: false, badge: 'inbox' as const },
-      { href: '/admin/knowledge',     label: 'Maarifa ya Amina', icon: 'academic-cap', exact: false },
-    ],
-  },
-  {
-    title: 'Usimamizi',
-    items: [
-      { href: '/admin/staff',         label: 'Wafanyakazi',      icon: 'user-tie', exact: false },
-      { href: '/admin/users',         label: 'Watumiaji',        icon: 'users', exact: false },
-      { href: '/admin/listings',      label: 'Matangazo',        icon: 'home', exact: false },
-      { href: '/admin/verifications', label: 'Uthibitisho',      icon: 'check', exact: false },
-      { href: '/admin/accounting',    label: 'Usajili / Hesabu', icon: 'credit-card', exact: false },
-    ],
-  },
-  {
-    title: 'Matangazo ya Biashara',
-    items: [
-      { href: '/admin/adverts',        label: 'Kampeni',       icon: 'speakerphone', exact: false },
-      { href: '/admin/adverts/plans',  label: 'Mipango',       icon: 'list',         exact: false },
-    ],
-  },
-  {
-    title: 'Kisheria',
-    items: [
-      { href: '/admin/legal', label: 'Makubaliano & Malalamiko', icon: 'scale', exact: false },
-    ],
-  },
-  {
-    title: 'Usimamizi wa Mali',
-    items: [
-      { href: '/admin/property-management', label: 'Dashibodi ya Mali', icon: 'building', exact: true },
-      { href: '/admin/fundi',               label: 'Akaunti za Mafundi',   icon: 'tools',        exact: false },
-      { href: '/admin/subscriptions',       label: 'Usajili wa Mashirika', icon: 'credit-card',  exact: false },
-    ],
-  },
-]
-
-const BOTTOM_NAV = [
-  { href: '/admin',            icon: 'chart-bar',      label: 'Nyumbani', exact: true  },
-  { href: '/admin/whatsapp',   icon: 'brand-whatsapp', label: 'WhatsApp', exact: false },
-  { href: '/admin/email',      icon: 'mail',           label: 'Barua',    exact: false },
-  { href: '/admin/leads',      icon: 'users',          label: 'Leads',    exact: false },
-]
-
-const STAFF_BOTTOM_NAV_BASE = [
-  { href: '/admin/staff-dashboard', icon: 'layout-dashboard', label: 'Dashboard', exact: false, permission: null },
-  { href: '/admin/email',           icon: 'mail',             label: 'Barua',     exact: false, permission: null },
-  { href: '/admin/staff-leads',     icon: 'target',           label: 'Leads',     exact: false, permission: 'leads' as const },
-]
 
 // ── Staff dynamic sidebar ──────────────────────────────────────────────────
 function StaffSidebar({
@@ -159,6 +196,7 @@ function StaffSidebar({
   onLinkClick: () => void
   onLogout: () => void
 }) {
+  const { t } = useLanguage()
   const [granted, setGranted] = useState<PermissionKey[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -185,14 +223,14 @@ function StaffSidebar({
             </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">NyumbaFasta</p>
-              <p className="text-xs text-gray-400">Jopo la Wafanyakazi</p>
+              <p className="text-xs text-gray-400">{t('admin_staff_panel')}</p>
             </div>
           </div>
         </Link>
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-1.5">
-          Vipengele Vyangu
+          {t('admin_my_features')}
         </p>
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
@@ -200,11 +238,10 @@ function StaffSidebar({
           ))
         ) : granted.length === 0 ? (
           <p className="text-xs text-gray-400 px-3 py-2">
-            Huna ruhusa bado. Wasiliana na admin.
+            {t('admin_no_permission')}
           </p>
         ) : (
           <>
-            {/* Staff Dashboard — shown once if any admin-task permission is granted */}
             {granted.some(k => ADMIN_TASK_PERMISSIONS.includes(k)) && (
               <Link href="/admin/staff-dashboard" onClick={onLinkClick}>
                 <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
@@ -213,14 +250,13 @@ function StaffSidebar({
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}>
                   <i className="ti ti-layout-dashboard text-base w-5 text-center flex-shrink-0" aria-hidden="true" />
-                  <span>Dashboard Yangu</span>
+                  <span>{t('admin_my_dashboard')}</span>
                   {isActive('/admin/staff-dashboard') && (
                     <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
                   )}
                 </div>
               </Link>
             )}
-            {/* Email — always shown to all staff */}
             <Link href="/admin/email" onClick={onLinkClick}>
               <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
                 isActive('/admin/email')
@@ -228,13 +264,12 @@ function StaffSidebar({
                   : 'text-gray-600 hover:bg-gray-100'
               }`}>
                 <i className="ti ti-mail text-base w-5 text-center flex-shrink-0" aria-hidden="true" />
-                <span>Barua Pepe</span>
+                <span>{t('admin_nav_email')}</span>
                 {isActive('/admin/email') && (
                   <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
                 )}
               </div>
             </Link>
-            {/* Individual non-admin-task permissions — deduplicated by adminPath */}
             {(() => {
               const seen = new Set<string>()
               return granted
@@ -263,10 +298,11 @@ function StaffSidebar({
           </>
         )}
       </nav>
-      <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-0.5">
+      <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-1.5">
+        <LangToggle />
         <button onClick={onLogout} className="w-full text-left">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
-<i className="ti ti-door-exit" aria-hidden="true" /><span>Toka</span>
+            <i className="ti ti-door-exit" aria-hidden="true" /><span>{t('admin_logout')}</span>
           </div>
         </button>
       </div>
@@ -282,6 +318,7 @@ type SidebarProps = {
 }
 
 function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
+  const { t } = useLanguage()
   const searchParams = useSearchParams()
 
   function isActive(href: string, exact: boolean) {
@@ -327,7 +364,7 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
             </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">NyumbaFasta</p>
-              <p className="text-xs text-gray-400">Jopo la Msimamizi</p>
+              <p className="text-xs text-gray-400">{t('admin_panel_label')}</p>
             </div>
           </div>
         </Link>
@@ -335,15 +372,15 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {NAV_SECTIONS.map(section => (
-          <div key={section.title} className="mb-5">
+        {NAV_SECTIONS.map((section, si) => (
+          <div key={si} className="mb-5">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-1.5">
-              {section.title}
+              {t(section.titleKey)}
             </p>
             <div className="space-y-0.5">
               {section.items.map(item => (
                 <Link
-                  key={item.href + item.label}
+                  key={item.href + item.labelKey}
                   href={item.href}
                   onClick={onLinkClick}
                 >
@@ -352,11 +389,11 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
                       ? 'bg-primary-500 text-white'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}>
-{item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
+                    {item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
                       ? <PlatformLogo platform={item.icon.replace('brand-', '')} size={16} className="flex-shrink-0" />
                       : <i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />}
-                    <span>{item.label}</span>
-                    {('badge' in item && item.badge) && !isActive(item.href, item.exact) && (
+                    <span>{t(item.labelKey)}</span>
+                    {item.badge && !isActive(item.href, item.exact) && (
                       item.badge === 'inbox' ? <InboxBadge /> : <PendingBadge />
                     )}
                     {isActive(item.href, item.exact) && (
@@ -371,15 +408,16 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
       </nav>
 
       {/* Bottom links */}
-      <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-0.5">
+      <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-1.5">
+        <LangToggle />
         <Link href="/" onClick={onLinkClick}>
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 text-sm">
-<i className="ti ti-world" aria-hidden="true" /><span>Rudi Kwenye App</span>
+            <i className="ti ti-world" aria-hidden="true" /><span>{t('admin_return_app')}</span>
           </div>
         </Link>
         <button onClick={onLogout} className="w-full text-left">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
-<i className="ti ti-door-exit" aria-hidden="true" /><span>Toka</span>
+            <i className="ti ti-door-exit" aria-hidden="true" /><span>{t('admin_logout')}</span>
           </div>
         </button>
       </div>
@@ -397,6 +435,7 @@ export default function AdminShell({
 }) {
   const pathname = usePathname()
   const router   = useRouter()
+  const { t }    = useLanguage()
   const [drawerOpen,       setDrawerOpen]       = useState(false)
   const [userRole,         setUserRole]         = useState<string>(initialRole)
   const [staffPermissions, setStaffPermissions] = useState<string[]>([])
@@ -484,7 +523,6 @@ export default function AdminShell({
            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-stretch h-16">
           {isStaff ? (
-            // Staff-specific bottom nav — only show items the staff member has permission for
             STAFF_BOTTOM_NAV_BASE
               .filter(item => !item.permission || staffPermissions.includes(item.permission))
               .map(item => {
@@ -504,18 +542,17 @@ export default function AdminShell({
                   <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
                     active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
                   }`}>
-                    {item.label}
+                    {t(item.labelKey)}
                   </span>
                 </Link>
               )
             })
           ) : (
-            // Admin bottom nav
             BOTTOM_NAV.map(item => {
               const active = isActive(item.href, item.exact)
               return (
                 <Link
-                  key={item.href + item.label}
+                  key={item.href + item.labelKey}
                   href={item.href}
                   className="flex-1 flex flex-col items-center justify-center gap-0.5 relative group"
                 >
@@ -543,7 +580,7 @@ export default function AdminShell({
                   <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
                     active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
                   }`}>
-                    {item.label}
+                    {t(item.labelKey)}
                   </span>
                 </Link>
               )

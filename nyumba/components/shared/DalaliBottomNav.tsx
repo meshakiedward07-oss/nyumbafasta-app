@@ -1,17 +1,20 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
-const ITEMS = [
-  { href: '/dashboard',              icon: 'layout-dashboard', iconActive: 'layout-dashboard', label: 'Nyumbani',  isAdd: false },
-  { href: '/dashboard/listings',     icon: 'home',             iconActive: 'home-filled',      label: 'Matangazo', isAdd: false },
-  { href: '/dashboard/listings/new', icon: 'plus',             iconActive: 'plus',             label: 'Ongeza',    isAdd: true  },
-  { href: '/dashboard/hesabu',       icon: 'coins',            iconActive: 'coins',            label: 'Hesabu',    isAdd: false },
-  { href: '/dashboard/profile',      icon: 'user',             iconActive: 'user-filled',      label: 'Akaunti',   isAdd: false },
+const ITEMS: { href: string; icon: string; iconActive: string; labelKey: TKey; isAdd: boolean }[] = [
+  { href: '/dashboard',              icon: 'layout-dashboard', iconActive: 'layout-dashboard', labelKey: 'dal_nav_home',     isAdd: false },
+  { href: '/dashboard/listings',     icon: 'home',             iconActive: 'home-filled',      labelKey: 'dal_nav_listings', isAdd: false },
+  { href: '/dashboard/listings/new', icon: 'plus',             iconActive: 'plus',             labelKey: 'dal_nav_add',      isAdd: true  },
+  { href: '/dashboard/hesabu',       icon: 'coins',            iconActive: 'coins',            labelKey: 'dal_nav_accounts', isAdd: false },
+  { href: '/dashboard/profile',      icon: 'user',             iconActive: 'user-filled',      labelKey: 'nav_account',      isAdd: false },
 ]
 
 export default function DalaliBottomNav() {
   const pathname = usePathname()
+  const { t } = useLanguage()
 
   return (
     <nav
@@ -23,7 +26,7 @@ export default function DalaliBottomNav() {
       <div className="absolute inset-0 bg-white/95 backdrop-blur-xl border-t border-gray-100/80 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]" />
 
       <div className="relative flex justify-around items-end max-w-lg mx-auto px-1 py-2">
-        {ITEMS.map(({ href, icon, iconActive, label, isAdd }) => {
+        {ITEMS.map(({ href, icon, iconActive, labelKey, isAdd }) => {
           const active =
             href === '/dashboard'
               ? pathname === '/dashboard'
@@ -46,7 +49,7 @@ export default function DalaliBottomNav() {
                   border-4 border-white transition-transform duration-150">
                   <i className="ti ti-plus text-2xl text-white font-bold" aria-hidden="true" />
                 </div>
-                <span className="text-[10px] font-semibold text-primary-600 leading-none">{label}</span>
+                <span className="text-[10px] font-semibold text-primary-600 leading-none">{t(labelKey)}</span>
               </Link>
             )
           }
@@ -70,7 +73,7 @@ export default function DalaliBottomNav() {
               <span className={`text-[10px] leading-none transition-colors duration-150 ${
                 active ? 'text-primary-600 font-semibold' : 'text-gray-400 font-medium'
               }`}>
-                {label}
+                {t(labelKey)}
               </span>
             </Link>
           )
