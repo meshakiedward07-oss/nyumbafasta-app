@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface Listing {
   id: string
@@ -105,8 +106,7 @@ export default function MaliPage() {
                 <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition flex gap-4 cursor-pointer">
                   <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                     {thumb ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={thumb} alt={l.title} className="w-full h-full object-cover" />
+                      <Image src={thumb} alt={l.title} fill sizes="80px" className="object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <i className="ti ti-building text-2xl text-gray-300" aria-hidden="true" />

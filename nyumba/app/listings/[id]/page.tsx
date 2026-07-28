@@ -236,7 +236,7 @@ export default async function ListingDetailPage({
 
     supabase
       .from('listings')
-      .select('id, title, type, price_monthly, district, region, images, is_boosted, view_count, lead_count, status, dalali_id, furnished, amenities, description, bedrooms, street, dalali:dalali_id ( id, full_name, avatar_url, dalali_profiles ( rating_avg, is_premium_verified, is_favourite_dalali ) )')
+      .select('id, title, type, price_monthly, district, region, images, is_boosted, view_count, lead_count, status, dalali_id, dalali:dalali_id ( id, full_name, avatar_url, dalali_profiles ( rating_avg, is_premium_verified, is_favourite_dalali ) )')
       .eq('region', listing.region)
       .eq('status', 'active')
       .neq('id', listing.id)

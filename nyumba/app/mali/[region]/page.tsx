@@ -25,7 +25,7 @@ export function generateStaticParams() {
   return TANZANIA_REGIONS.map(r => ({ region: regionToSlug(r.name) }))
 }
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 3600
 
 export async function generateMetadata({
   params,

@@ -46,11 +46,31 @@ export async function GET(req: NextRequest) {
     twelveMonthsAgo.setMonth(now.getMonth() - 11)
     const startDate = `${twelveMonthsAgo.getFullYear()}-${String(twelveMonthsAgo.getMonth() + 1).padStart(2, '0')}-01`
 
-    const { data: incomeRows } = await admin
-      .from('income_records')
-      .select('amount_tzs, platform_fee_tzs, net_amount_tzs, source, month, year, transaction_date')
-      .gte('transaction_date', startDate)
-      .eq('status', 'confirmed')
+    // Parallelize all independent DB queries
+    const thirteenMonthsAgo = new Date(now)
+    thirteenMonthsAgo.setMonth(now.getMonth() - 12)
+
+    const [
+      { data: incomeRows },
+      { data: allSubs },
+      { data: unlocks },
+      { count: totalUnlocks },
+      { data: unlocksFull },
+      { data: expensesData },
+      { data: recurringData },
+    ] = await Promise.all([
+      admin
+        .from('income_records')
+        .select('amount_tzs, platform_fee_tzs, net_amount_tzs, source, month, year, transaction_date')
+        .gte('transaction_date', startDate)
+        .eq('status', 'confirmed'),
+      admin.from('subscriptions').select('id, plan, status, created_at, expires_at, dalali_id').neq('plan', 'free').limit(10000),
+      admin.from('contact_unlocks').select('id, listing_id, created_at, status').eq('status', 'completed').gte('created_at', thirteenMonthsAgo.toISOString()).limit(50000),
+      admin.from('contact_unlocks').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+      admin.from('contact_unlocks').select('listing_id, amount_paid, status, listings(district, region)').eq('status', 'completed').limit(500),
+      admin.from('expense_records').select('amount_tzs, category').eq('month', thisMonth).eq('year', thisYear),
+      admin.from('recurring_expenses').select('amount_tzs, category').eq('is_active', true),
+    ])
 
     // Build monthly revenue series
     const monthMap: Record<string, { label: string; income: number; net: number; fees: number; subscription: number; unlock: number; boost: number; extra: number }> = {}
@@ -90,12 +110,6 @@ export async function GET(req: NextRequest) {
     }, { total: 0, subscription: 0, contact_unlock: 0, boost_listing: 0, extra_listing: 0 } as Record<string, number>)
 
     // ── 4. Subscription metrics ───────────────────────────────────
-    // Limit to 10 000 rows — at this scale use nf_subscription_stats() RPC instead.
-    const { data: allSubs } = await admin
-      .from('subscriptions')
-      .select('id, plan, status, created_at, expires_at, dalali_id')
-      .neq('plan', 'free')
-      .limit(10000)
 
     const activeSubs      = (allSubs ?? []).filter(s => s.status === 'active')
     const basicActive     = activeSubs.filter(s => s.plan === 'basic').length
@@ -137,20 +151,6 @@ export async function GET(req: NextRequest) {
     }).length
 
     // ── 5. Unlock metrics ─────────────────────────────────────────
-    // Scoped to last 13 months for month-over-month metrics; total is counted separately.
-    const thirteenMonthsAgo = new Date(now)
-    thirteenMonthsAgo.setMonth(now.getMonth() - 12)
-    const { data: unlocks } = await admin
-      .from('contact_unlocks')
-      .select('id, listing_id, created_at, status')
-      .eq('status', 'completed')
-      .gte('created_at', thirteenMonthsAgo.toISOString())
-      .limit(50000)
-
-    const { count: totalUnlocks } = await admin
-      .from('contact_unlocks')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'completed')
 
     const unlocksThisMonth = (unlocks ?? []).filter(u => {
       const d = new Date(u.created_at)
@@ -183,11 +183,6 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 6. District performance (revenue per region from unlocks) ──
-    const { data: unlocksFull } = await admin
-      .from('contact_unlocks')
-      .select('listing_id, amount_paid, status, listings(district, region)')
-      .eq('status', 'completed')
-      .limit(500)
 
     const regionMap: Record<string, { revenue: number; count: number }> = {}
     for (const u of unlocksFull ?? []) {
@@ -203,16 +198,6 @@ export async function GET(req: NextRequest) {
       .slice(0, 8)
 
     // ── 7. Expenses this month ─────────────────────────────────────
-    const { data: expensesData } = await admin
-      .from('expense_records')
-      .select('amount_tzs, category')
-      .eq('month', thisMonth)
-      .eq('year', thisYear)
-
-    const { data: recurringData } = await admin
-      .from('recurring_expenses')
-      .select('amount_tzs, category')
-      .eq('is_active', true)
 
     const expensesThisMonth = (expensesData ?? []).reduce((s, e) => s + Number(e.amount_tzs), 0)
     const recurringTotal    = (recurringData ?? []).reduce((s, e) => s + Number(e.amount_tzs), 0)

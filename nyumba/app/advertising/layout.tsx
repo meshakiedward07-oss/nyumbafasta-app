@@ -15,7 +15,7 @@ export default async function AdvertisingLayout({ children }: { children: ReactN
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-2 sticky top-0 z-50">
         <Link href="/" className="flex items-center mr-2">
           <div className="relative h-10 w-36">
-            <Image src="/transparent_logo_nyumbafasta.png" alt="NyumbaFasta" fill priority className="object-contain object-left" />
+            <Image src="/transparent_logo_nyumbafasta.png" alt="NyumbaFasta" fill priority sizes="144px" className="object-contain object-left" />
           </div>
         </Link>
 

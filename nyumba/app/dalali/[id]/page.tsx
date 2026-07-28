@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -31,7 +32,7 @@ function pickProfile(p: DalaliRow['dalali_profiles']): DalaliProfileRow | null {
   return Array.isArray(p) ? (p[0] ?? null) : p
 }
 
-async function getDalali(id: string): Promise<DalaliRow | null> {
+const getDalali = cache(async function getDalali(id: string): Promise<DalaliRow | null> {
   try {
     const admin = createAdminClient()
     const { data } = await admin
@@ -45,7 +46,7 @@ async function getDalali(id: string): Promise<DalaliRow | null> {
   } catch {
     return null
   }
-}
+})
 
 export async function generateMetadata({
   params,
