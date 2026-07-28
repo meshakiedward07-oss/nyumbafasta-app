@@ -113,8 +113,19 @@ export async function POST(req: NextRequest) {
 
       const text = buildMsg(lead.full_name || 'Rafiki')
       const ok   = await sendTextMessage(phone, text)
-      if (ok) sentCount++
-      else { failedCount++; failedNames.push(lead.full_name || phone) }
+      if (ok) {
+        sentCount++
+        // Log broadcast in activity log (fire-and-forget)
+        supabaseAdmin.from('lead_activity_log').insert({
+          lead_id:     lead.id,
+          actor_name:  'Broadcast',
+          action_type: 'broadcast_sent',
+          new_value:   text.substring(0, 120),
+        }).then(() => {}).catch(() => {})
+      } else {
+        failedCount++
+        failedNames.push(lead.full_name || phone)
+      }
 
       // 200ms delay — ~5 msg/s, within Meta's rate limit
       await new Promise(r => setTimeout(r, 200))

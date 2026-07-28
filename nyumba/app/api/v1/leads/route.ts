@@ -24,15 +24,18 @@ export async function GET(req: NextRequest) {
     const status       = searchParams.get('status')  || ''
     const socialFilter = searchParams.get('social')  || ''
     const ward         = searchParams.get('ward')    || ''
+    const region       = searchParams.get('region')  || ''
     const batchId      = searchParams.get('batch')   || ''
     const showDups     = searchParams.get('duplicates') === 'true'
     const showDead     = searchParams.get('dead')       === 'true'
     const hasAssigned  = searchParams.get('has_assigned') === 'true'
     const assignedTo   = searchParams.get('assigned_to') || ''
+    const createdFrom  = searchParams.get('created_from') || ''
+    const createdTo    = searchParams.get('created_to')   || ''
 
     let q = supabaseAdmin
       .from('leads')
-      .select('id,full_name,phone,phone_2,email,ward,district,region,lead_type,source,notes,facebook_url,instagram_url,tiktok_url,whatsapp_number,facebook_status,instagram_status,tiktok_status,whatsapp_status,social_score,contact_quality,has_valid_phone,has_any_social,is_dead_lead,is_duplicate,duplicate_reason,name_similarity_score,status,contacted_at,registered_at,assigned_to,import_batch_id,created_at', { count: 'exact' })
+      .select('id,full_name,phone,phone_2,email,ward,district,region,lead_type,source,notes,facebook_url,instagram_url,tiktok_url,whatsapp_number,facebook_status,instagram_status,tiktok_status,whatsapp_status,social_score,contact_quality,has_valid_phone,has_any_social,is_dead_lead,is_duplicate,duplicate_reason,name_similarity_score,status,contacted_at,registered_at,assigned_to,linked_user_id,import_batch_id,created_at,assigned_user:assigned_to(id,full_name)', { count: 'exact' })
 
     // Explicit filter so "duplicates" view shows ONLY duplicates, not everything
     if (showDups) q = q.eq('is_duplicate', true)
@@ -42,6 +45,9 @@ export async function GET(req: NextRequest) {
     if (leadType)   q = q.eq('lead_type', leadType)
     if (status)     q = q.eq('status', status)
     if (ward)       q = q.ilike('ward', `%${ward}%`)
+    if (region)     q = q.eq('region', region)
+    if (createdFrom) q = q.gte('created_at', createdFrom)
+    if (createdTo)   q = q.lte('created_at', createdTo + 'T23:59:59Z')
     if (batchId)      q = q.eq('import_batch_id', batchId)
     if (hasAssigned)  q = q.not('assigned_to', 'is', null)
     if (assignedTo)   q = q.eq('assigned_to', assignedTo)
@@ -147,6 +153,32 @@ export async function PATCH(req: NextRequest) {
     const { id, ...updates } = await req.json() as Record<string, unknown>
     if (!id) return NextResponse.json({ error: 'ID inahitajika' }, { status: 400 })
 
+    // Fetch old lead to capture previous status for activity log
+    const { data: oldLead } = await supabaseAdmin
+      .from('leads')
+      .select('status, phone, email')
+      .eq('id', id as string)
+      .single()
+
+    // When status changes to 'registered', set registered_at and auto-link user
+    if (updates.status === 'registered') {
+      updates.registered_at = new Date().toISOString()
+      if (oldLead?.phone || oldLead?.email) {
+        let userQ = supabaseAdmin.from('users').select('id').limit(1)
+        if (oldLead.phone && oldLead.email) {
+          userQ = userQ.or(`phone.eq.${oldLead.phone},email.eq.${oldLead.email}`)
+        } else if (oldLead.phone) {
+          userQ = userQ.eq('phone', oldLead.phone)
+        } else if (oldLead.email) {
+          userQ = userQ.eq('email', oldLead.email)
+        }
+        const { data: matchedUser } = await userQ.maybeSingle()
+        if (matchedUser) {
+          updates.linked_user_id = matchedUser.id
+        }
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('leads')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -155,6 +187,19 @@ export async function PATCH(req: NextRequest) {
       .single()
 
     if (error) throw error
+
+    // Auto-log status changes to activity log
+    if (updates.status && oldLead && updates.status !== oldLead.status) {
+      await supabaseAdmin.from('lead_activity_log').insert({
+        lead_id:     id as string,
+        actor_id:    auth.userId,
+        actor_name:  auth.fullName ?? 'Mfanyakazi',
+        action_type: 'status_change',
+        old_value:   oldLead.status,
+        new_value:   updates.status as string,
+      }).then(() => {}).catch(() => {}) // fire-and-forget, don't fail the main update
+    }
+
     cache.delete('leads:stats:global')
     return NextResponse.json({ success: true, lead: data })
   } catch (err) {

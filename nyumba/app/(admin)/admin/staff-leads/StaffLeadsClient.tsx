@@ -72,6 +72,14 @@ const STATUSES = [
   { id: 'rejected',   label: 'Amekataa',      icon: 'ti-x' },
 ]
 
+const TANZANIA_REGIONS = [
+  'Dar es Salaam','Arusha','Kilimanjaro','Tanga','Morogoro','Pwani','Dodoma',
+  'Mwanza','Mara','Kagera','Shinyanga','Tabora','Kigoma','Rukwa','Katavi',
+  'Mbeya','Songwe','Iringa','Njombe','Ruvuma','Lindi','Mtwara','Singida',
+  'Geita','Simiyu','Manyara','Zanzibar Mjini Magharibi','Zanzibar Kaskazini Unguja',
+  'Zanzibar Kusini Unguja','Zanzibar Kaskazini Pemba','Zanzibar Kusini Pemba',
+]
+
 function timeAgo(iso: string) {
   const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
   if (d < 60)    return `${d}s`
@@ -99,17 +107,24 @@ export default function StaffLeadsClient({
   const [stats, setStats]           = useState({ total: 0, high: 0, contacted: 0, registered: 0 })
 
   // Filters
-  const [page,          setPage]          = useState(1)
-  const [searchInput,   setSearchInput]   = useState('')
-  const [search,        setSearch]        = useState('')
-  const [qualityFilter, setQualityFilter] = useState('')
-  const [statusFilter,  setStatusFilter]  = useState('')
+  const [page,           setPage]           = useState(1)
+  const [searchInput,    setSearchInput]    = useState('')
+  const [search,         setSearch]         = useState('')
+  const [qualityFilter,  setQualityFilter]  = useState('')
+  const [statusFilter,   setStatusFilter]   = useState('')
+  const [leadTypeFilter, setLeadTypeFilter] = useState('')
+  const [regionFilter,   setRegionFilter]   = useState('')
 
   // Detail modal
   const [detailLead,   setDetailLead]   = useState<Lead | null>(null)
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue,   setNotesValue]   = useState('')
   const [savingNotes,  setSavingNotes]  = useState(false)
+
+  // Edit lead (admin only — B1)
+  const [editingLead, setEditingLead] = useState(false)
+  const [editForm,    setEditForm]    = useState<Partial<Lead>>({})
+  const [savingEdit,  setSavingEdit]  = useState(false)
 
   // Toast
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
@@ -125,26 +140,31 @@ export default function StaffLeadsClient({
     try {
       const p = new URLSearchParams({
         page: String(page), limit: '50',
-        ...(search        && { search }),
-        ...(qualityFilter && { quality: qualityFilter }),
-        ...(statusFilter  && { status:  statusFilter }),
-        // admin can see all assigned; staff auto-filtered server-side
+        ...(search         && { search }),
+        ...(qualityFilter  && { quality: qualityFilter }),
+        ...(statusFilter   && { status:  statusFilter }),
+        ...(leadTypeFilter && { type:    leadTypeFilter }),
+        ...(regionFilter   && { region:  regionFilter }),
       })
       const res  = await fetch(`/api/v1/staff/leads?${p}`)
       const data = await res.json()
-      const rows: Lead[] = data.leads || []
-      setLeads(rows)
+      setLeads(data.leads || [])
       setTotal(data.pagination?.total || 0)
       setTotalPages(data.pagination?.totalPages || 1)
-      // Derive stats from current page (approximate)
-      setStats({
-        total:      data.pagination?.total || 0,
-        high:       rows.filter(l => l.contact_quality === 'high').length,
-        contacted:  rows.filter(l => l.status === 'contacted').length,
-        registered: rows.filter(l => l.status === 'registered').length,
-      })
+      // Use server-side stats (A2 fix)
+      if (data.stats) {
+        setStats(data.stats)
+      } else {
+        const rows: Lead[] = data.leads || []
+        setStats({
+          total:      data.pagination?.total || 0,
+          high:       rows.filter(l => l.contact_quality === 'high').length,
+          contacted:  rows.filter(l => l.status === 'contacted').length,
+          registered: rows.filter(l => l.status === 'registered').length,
+        })
+      }
     } catch { /* silent */ } finally { setLoading(false) }
-  }, [page, search, qualityFilter, statusFilter])
+  }, [page, search, qualityFilter, statusFilter, leadTypeFilter, regionFilter])
 
   useEffect(() => {
     const t = setTimeout(() => { setSearch(searchInput); setPage(1) }, 400)
@@ -154,7 +174,11 @@ export default function StaffLeadsClient({
   useEffect(() => { fetchLeads() }, [fetchLeads])
 
   useEffect(() => {
-    if (detailLead) { setNotesValue(detailLead.notes ?? ''); setEditingNotes(false) }
+    if (detailLead) {
+      setNotesValue(detailLead.notes ?? '')
+      setEditingNotes(false)
+      setEditingLead(false)
+    }
   }, [detailLead?.id])
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -184,12 +208,35 @@ export default function StaffLeadsClient({
       setDetailLead(prev => prev ? { ...prev, notes: notesValue } : null)
       setLeads(prev => prev.map(l => l.id === detailLead.id ? { ...l, notes: notesValue } : l))
       setEditingNotes(false)
-      showToast('✅ Maelezo yamehifadhiwa')
+      showToast('Maelezo yamehifadhiwa')
     } catch { showToast('Imeshindwa kuhifadhi', false) }
     finally { setSavingNotes(false) }
   }
 
-  const activeFilterCount = [qualityFilter, statusFilter].filter(Boolean).length
+  async function handleSaveEdit() {
+    if (!detailLead || !isAdmin) return
+    setSavingEdit(true)
+    try {
+      const res = await fetch('/api/v1/leads', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: detailLead.id, ...editForm }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        const updated = { ...detailLead, ...editForm } as Lead
+        setDetailLead(updated)
+        setLeads(prev => prev.map(l => l.id === detailLead.id ? { ...l, ...editForm } as Lead : l))
+        setEditingLead(false)
+        showToast('Lead imehifadhiwa')
+      } else {
+        showToast(data.error || 'Imeshindwa kuhifadhi', false)
+      }
+    } catch { showToast('Hitilafu ya mtandao', false) }
+    finally { setSavingEdit(false) }
+  }
+
+  const activeFilterCount = [qualityFilter, statusFilter, leadTypeFilter, regionFilter].filter(Boolean).length
 
   // ── JSX ───────────────────────────────────────────────────────────────────
   return (
@@ -219,9 +266,9 @@ export default function StaffLeadsClient({
             </div>
           </div>
           {isAdmin && (
-            <a href="/admin/leads?tab=staff"
+            <a href="/admin/leads"
               className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
-              <i className="ti ti-arrow-left" /> Rudi Leads Management
+              <i className="ti ti-arrow-left" /> Rudi Leads
             </a>
           )}
         </div>
@@ -229,17 +276,28 @@ export default function StaffLeadsClient({
 
       <div className="max-w-screen-2xl mx-auto px-4 py-4 flex-1 w-full">
 
-        {/* ── STATS CARDS ─────────────────────────────────────────────────── */}
+        {/* ── STATS CARDS (A1 fix: correct toggle logic) ───────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
           {[
-            { label: 'Jumla',       val: stats.total,      bg: 'bg-slate-50',   border: 'border-slate-200',   text: 'text-slate-800', small: 'text-slate-500',   f: null },
-            { label: 'Ubora Juu',   val: stats.high,       bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', small: 'text-emerald-600', f: 'high' },
-            { label: 'Amewasiliana',val: stats.contacted,  bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-800', small: 'text-amber-600',   f: 'contacted' },
-            { label: 'Amesajili',   val: stats.registered, bg: 'bg-blue-50',    border: 'border-blue-200',    text: 'text-blue-800',  small: 'text-blue-600',    f: 'registered' },
+            { label: 'Jumla',        val: stats.total,      bg: 'bg-slate-50',   border: 'border-slate-200',   text: 'text-slate-800',  small: 'text-slate-500',   fType: null as null,                        fVal: null as null },
+            { label: 'Ubora Juu',    val: stats.high,       bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800',small: 'text-emerald-600', fType: 'quality' as const,  fVal: 'high' as string },
+            { label: 'Amewasiliana', val: stats.contacted,  bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-800',  small: 'text-amber-600',   fType: 'status' as const,   fVal: 'contacted' as string },
+            { label: 'Amesajili',    val: stats.registered, bg: 'bg-blue-50',    border: 'border-blue-200',    text: 'text-blue-800',   small: 'text-blue-600',    fType: 'status' as const,   fVal: 'registered' as string },
           ].map(s => (
             <button key={s.label}
-              onClick={() => { if (s.f) { setQualityFilter(q => q === s.f && s.f === 'high' ? '' : ''); setStatusFilter(q => q === s.f && s.f !== 'high' ? '' : (s.f && s.f !== 'high' ? s.f : q)); setPage(1) } }}
-              className={`${s.bg} border ${s.border} rounded-2xl p-3 text-left`}>
+              onClick={() => {
+                setPage(1)
+                if (!s.fType || !s.fVal) {
+                  // Jumla card — clear all filters
+                  setQualityFilter('')
+                  setStatusFilter('')
+                } else if (s.fType === 'quality') {
+                  setQualityFilter(q => q === s.fVal ? '' : s.fVal!)
+                } else if (s.fType === 'status') {
+                  setStatusFilter(q => q === s.fVal ? '' : s.fVal!)
+                }
+              }}
+              className={`${s.bg} border ${s.border} rounded-2xl p-3 text-left cursor-pointer hover:opacity-80 active:scale-95 transition-all`}>
               <p className={`text-xl font-extrabold tabular-nums ${s.text}`}>{loading ? '—' : s.val.toLocaleString()}</p>
               <p className={`text-[10px] font-semibold uppercase tracking-wide mt-0.5 ${s.small}`}>{s.label}</p>
             </button>
@@ -247,7 +305,7 @@ export default function StaffLeadsClient({
         </div>
 
         {/* ── FILTER BAR ──────────────────────────────────────────────────── */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-3 mb-4 shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-2xl p-3 mb-4 shadow-sm space-y-2">
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
@@ -257,26 +315,38 @@ export default function StaffLeadsClient({
                 className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary-300"
               />
             </div>
-            <div className="hidden sm:flex gap-2">
-              <select value={qualityFilter} onChange={e => { setQualityFilter(e.target.value); setPage(1) }}
-                className="px-2.5 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none">
-                <option value="">Ubora wote</option>
-                <option value="high">Juu</option>
-                <option value="medium">Wastani</option>
-                <option value="low">Chini</option>
-              </select>
-              <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-                className="px-2.5 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none">
-                <option value="">Status zote</option>
-                {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
-              {activeFilterCount > 0 && (
-                <button onClick={() => { setSearchInput(''); setSearch(''); setQualityFilter(''); setStatusFilter(''); setPage(1) }}
-                  className="px-2.5 py-2 text-xs text-red-500 border border-red-100 rounded-xl hover:bg-red-50">
-                  <i className="ti ti-x" /> Futa
-                </button>
-              )}
-            </div>
+            {activeFilterCount > 0 && (
+              <button onClick={() => { setSearchInput(''); setSearch(''); setQualityFilter(''); setStatusFilter(''); setLeadTypeFilter(''); setRegionFilter(''); setPage(1) }}
+                className="px-2.5 py-2 text-xs text-red-500 border border-red-100 rounded-xl hover:bg-red-50">
+                <i className="ti ti-x" /> Futa
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <select value={qualityFilter} onChange={e => { setQualityFilter(e.target.value); setPage(1) }}
+              className="px-2.5 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none">
+              <option value="">Ubora wote</option>
+              <option value="high">Juu</option>
+              <option value="medium">Wastani</option>
+              <option value="low">Chini</option>
+            </select>
+            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
+              className="px-2.5 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none">
+              <option value="">Status zote</option>
+              {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+            <select value={leadTypeFilter} onChange={e => { setLeadTypeFilter(e.target.value); setPage(1) }}
+              className="px-2.5 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none">
+              <option value="">Aina zote</option>
+              <option value="dalali">Madalali</option>
+              <option value="mteja">Wateja</option>
+              <option value="owner">Wamiliki</option>
+            </select>
+            <select value={regionFilter} onChange={e => { setRegionFilter(e.target.value); setPage(1) }}
+              className="px-2.5 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none">
+              <option value="">Mikoa yote</option>
+              {TANZANIA_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
           </div>
         </div>
 
@@ -286,7 +356,7 @@ export default function StaffLeadsClient({
             <p className="text-xs font-semibold text-gray-600">
               {loading
                 ? <span className="flex items-center gap-1.5"><i className="ti ti-loader-2 animate-spin text-primary-400" /> Inapakia…</span>
-                : <>{total.toLocaleString()} lead{total !== 1 ? 's' : ''} zilizogawiwa kwangu</>
+                : <>{total.toLocaleString()} leads zilizogawiwa</>
               }
             </p>
           </div>
@@ -449,67 +519,142 @@ export default function StaffLeadsClient({
           <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl overflow-y-auto max-h-[92vh]">
             {/* Header */}
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${(QUALITY_CFG[detailLead.contact_quality] || QUALITY_CFG.unknown).dot}`} />
-                <div>
-                  <h3 className="font-bold text-base">{detailLead.full_name}</h3>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${(QUALITY_CFG[detailLead.contact_quality] || QUALITY_CFG.unknown).dot}`} />
+                <div className="min-w-0">
+                  <h3 className="font-bold text-base truncate">{detailLead.full_name}</h3>
                   <p className="text-xs text-gray-400 capitalize">{detailLead.lead_type} · {detailLead.source}</p>
                 </div>
               </div>
-              <button onClick={() => setDetailLead(null)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
-                <i className="ti ti-x" />
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {isAdmin && !editingLead && (
+                  <button
+                    onClick={() => {
+                      setEditingLead(true)
+                      setEditForm({
+                        full_name: detailLead.full_name, phone: detailLead.phone,
+                        phone_2: detailLead.phone_2, email: detailLead.email,
+                        whatsapp_number: detailLead.whatsapp_number,
+                        facebook_url: detailLead.facebook_url, instagram_url: detailLead.instagram_url,
+                        tiktok_url: detailLead.tiktok_url, ward: detailLead.ward,
+                        district: detailLead.district, region: detailLead.region,
+                        lead_type: detailLead.lead_type,
+                      })
+                    }}
+                    className="px-3 py-1.5 bg-primary-50 border border-primary-200 text-primary-700 text-xs font-semibold rounded-xl hover:bg-primary-100">
+                    <i className="ti ti-edit mr-0.5" />Hariri Lead
+                  </button>
+                )}
+                {editingLead && (
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditingLead(false)} className="px-2 py-1.5 border border-gray-200 text-gray-600 text-xs rounded-xl">Ghairi</button>
+                    <button onClick={handleSaveEdit} disabled={savingEdit} className="px-3 py-1.5 bg-primary-500 text-white text-xs font-semibold rounded-xl disabled:opacity-50">
+                      {savingEdit ? 'Inahifadhi…' : 'Hifadhi'}
+                    </button>
+                  </div>
+                )}
+                <button onClick={() => setDetailLead(null)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
+                  <i className="ti ti-x" />
+                </button>
+              </div>
             </div>
 
             <div className="p-5 space-y-4">
 
               {/* Quick contact actions */}
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => handleStatusChange(detailLead.id, 'contacted')}
-                  disabled={detailLead.status === 'contacted'}
-                  className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-semibold hover:bg-amber-100 disabled:opacity-40">
-                  <i className="ti ti-phone text-base" /> Amewasiliana
-                </button>
-                <button onClick={() => handleStatusChange(detailLead.id, 'interested')}
-                  disabled={detailLead.status === 'interested'}
-                  className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-purple-50 border border-purple-100 text-purple-700 text-[10px] font-semibold hover:bg-purple-100 disabled:opacity-40">
-                  <i className="ti ti-heart text-base" /> Ana Nia
-                </button>
-                <button onClick={() => handleStatusChange(detailLead.id, 'registered')}
-                  disabled={detailLead.status === 'registered'}
-                  className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-semibold hover:bg-emerald-100 disabled:opacity-40">
-                  <i className="ti ti-circle-check text-base" /> Amesajili
-                </button>
-                <button onClick={() => handleStatusChange(detailLead.id, 'rejected')}
-                  disabled={detailLead.status === 'rejected'}
-                  className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-red-50 border border-red-100 text-red-600 text-[10px] font-semibold hover:bg-red-100 disabled:opacity-40">
-                  <i className="ti ti-x text-base" /> Amekataa
-                </button>
-              </div>
+              {!editingLead && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => handleStatusChange(detailLead.id, 'contacted')}
+                    disabled={detailLead.status === 'contacted'}
+                    className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-semibold hover:bg-amber-100 disabled:opacity-40">
+                    <i className="ti ti-phone text-base" /> Amewasiliana
+                  </button>
+                  <button onClick={() => handleStatusChange(detailLead.id, 'interested')}
+                    disabled={detailLead.status === 'interested'}
+                    className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-purple-50 border border-purple-100 text-purple-700 text-[10px] font-semibold hover:bg-purple-100 disabled:opacity-40">
+                    <i className="ti ti-heart text-base" /> Ana Nia
+                  </button>
+                  <button onClick={() => handleStatusChange(detailLead.id, 'registered')}
+                    disabled={detailLead.status === 'registered'}
+                    className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-semibold hover:bg-emerald-100 disabled:opacity-40">
+                    <i className="ti ti-circle-check text-base" /> Amesajili
+                  </button>
+                  <button onClick={() => handleStatusChange(detailLead.id, 'rejected')}
+                    disabled={detailLead.status === 'rejected'}
+                    className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-red-50 border border-red-100 text-red-600 text-[10px] font-semibold hover:bg-red-100 disabled:opacity-40">
+                    <i className="ti ti-x text-base" /> Amekataa
+                  </button>
+                </div>
+              )}
 
-              {/* Contact info */}
-              <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5">
-                {[
-                  { label: 'Simu',   val: detailLead.phone,   href: `tel:${detailLead.phone}` },
-                  { label: 'Simu 2', val: detailLead.phone_2, href: `tel:${detailLead.phone_2}` },
-                  { label: 'Email',  val: detailLead.email,   href: `mailto:${detailLead.email}` },
-                  { label: 'Ward',   val: detailLead.ward },
-                  { label: 'Wilaya', val: detailLead.district },
-                  { label: 'Mkoa',   val: detailLead.region },
-                  { label: 'Imewasiliana', val: detailLead.contacted_at ? new Date(detailLead.contacted_at).toLocaleString('sw-TZ') : null },
-                ].filter(r => r.val).map(row => (
-                  <div key={row.label} className="flex items-center justify-between gap-3">
-                    <span className="text-xs text-gray-500">{row.label}</span>
-                    {row.href
-                      ? <a href={row.href} className="text-xs font-semibold text-blue-600 hover:underline">{row.val}</a>
-                      : <span className="text-xs font-semibold text-gray-800">{row.val}</span>
-                    }
+              {/* Admin edit form (B1) */}
+              {editingLead && isAdmin ? (
+                <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Hariri Maelezo</p>
+                  {([
+                    { key: 'full_name',       label: 'Jina',           type: 'text' },
+                    { key: 'phone',           label: 'Simu',           type: 'tel' },
+                    { key: 'phone_2',         label: 'Simu 2',         type: 'tel' },
+                    { key: 'email',           label: 'Email',          type: 'email' },
+                    { key: 'whatsapp_number', label: 'WhatsApp Namba', type: 'tel' },
+                    { key: 'facebook_url',    label: 'Facebook URL',   type: 'url' },
+                    { key: 'instagram_url',   label: 'Instagram URL',  type: 'url' },
+                    { key: 'tiktok_url',      label: 'TikTok URL',     type: 'url' },
+                    { key: 'ward',            label: 'Ward',           type: 'text' },
+                    { key: 'district',        label: 'Wilaya',         type: 'text' },
+                  ] as { key: keyof Lead; label: string; type: string }[]).map(f => (
+                    <div key={f.key}>
+                      <label className="text-[10px] text-gray-500 font-medium block mb-1">{f.label}</label>
+                      <input type={f.type} value={(editForm[f.key] as string) ?? ''}
+                        onChange={e => setEditForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                    </div>
+                  ))}
+                  <div>
+                    <label className="text-[10px] text-gray-500 font-medium block mb-1">Mkoa</label>
+                    <select value={(editForm.region as string) ?? ''}
+                      onChange={e => setEditForm(prev => ({ ...prev, region: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none bg-white">
+                      <option value="">— Chagua Mkoa —</option>
+                      {TANZANIA_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
                   </div>
-                ))}
-              </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500 font-medium block mb-1">Aina ya Lead</label>
+                    <select value={(editForm.lead_type as string) ?? ''}
+                      onChange={e => setEditForm(prev => ({ ...prev, lead_type: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none bg-white">
+                      <option value="dalali">Dalali</option>
+                      <option value="mteja">Mteja</option>
+                      <option value="owner">Mwenye nyumba</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                /* Contact info view */
+                <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5">
+                  {[
+                    { label: 'Simu',          val: detailLead.phone,       href: `tel:${detailLead.phone}` },
+                    { label: 'Simu 2',        val: detailLead.phone_2,     href: `tel:${detailLead.phone_2}` },
+                    { label: 'Email',         val: detailLead.email,       href: `mailto:${detailLead.email}` },
+                    { label: 'Ward',          val: detailLead.ward },
+                    { label: 'Wilaya',        val: detailLead.district },
+                    { label: 'Mkoa',          val: detailLead.region },
+                    { label: 'Imewasiliana', val: detailLead.contacted_at ? new Date(detailLead.contacted_at).toLocaleString('sw-TZ') : null },
+                  ].filter(r => r.val).map(row => (
+                    <div key={row.label} className="flex items-center justify-between gap-3">
+                      <span className="text-xs text-gray-500">{row.label}</span>
+                      {row.href
+                        ? <a href={row.href} className="text-xs font-semibold text-blue-600 hover:underline">{row.val}</a>
+                        : <span className="text-xs font-semibold text-gray-800">{row.val}</span>
+                      }
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Social media */}
-              {detailLead.has_any_social && (
+              {detailLead.has_any_social && !editingLead && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Social Media</p>
                   <div className="grid grid-cols-2 gap-2">
@@ -548,42 +693,46 @@ export default function StaffLeadsClient({
               )}
 
               {/* Notes */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Maelezo / Notes</p>
-                  {!editingNotes
-                    ? <button onClick={() => setEditingNotes(true)} className="text-[10px] text-primary-600 font-semibold hover:underline"><i className="ti ti-edit mr-0.5" />Hariri</button>
-                    : <div className="flex gap-2">
-                        <button onClick={() => setEditingNotes(false)} className="text-[10px] text-gray-500 hover:underline">Ghairi</button>
-                        <button onClick={handleSaveNotes} disabled={savingNotes} className="text-[10px] text-primary-600 font-semibold hover:underline disabled:opacity-50">
-                          {savingNotes ? 'Inahifadhi…' : 'Hifadhi'}
-                        </button>
+              {!editingLead && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Maelezo / Notes</p>
+                    {!editingNotes
+                      ? <button onClick={() => setEditingNotes(true)} className="text-[10px] text-primary-600 font-semibold hover:underline"><i className="ti ti-edit mr-0.5" />Hariri</button>
+                      : <div className="flex gap-2">
+                          <button onClick={() => setEditingNotes(false)} className="text-[10px] text-gray-500 hover:underline">Ghairi</button>
+                          <button onClick={handleSaveNotes} disabled={savingNotes} className="text-[10px] text-primary-600 font-semibold hover:underline disabled:opacity-50">
+                            {savingNotes ? 'Inahifadhi…' : 'Hifadhi'}
+                          </button>
+                        </div>
+                    }
+                  </div>
+                  {editingNotes
+                    ? <textarea value={notesValue} onChange={e => setNotesValue(e.target.value)} rows={4}
+                        placeholder="Andika maelezo, logi ya mawasiliano, au maelezo yoyote…"
+                        className="w-full border border-primary-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
+                    : <div className={`rounded-xl px-3 py-2.5 text-xs ${detailLead.notes ? 'bg-purple-50 text-purple-800 border border-purple-100' : 'bg-gray-50 text-gray-400 border border-dashed border-gray-200'}`}>
+                        {detailLead.notes || 'Bonyeza Hariri kuongeza maelezo au logi ya mawasiliano…'}
                       </div>
                   }
                 </div>
-                {editingNotes
-                  ? <textarea value={notesValue} onChange={e => setNotesValue(e.target.value)} rows={4}
-                      placeholder="Andika maelezo, logi ya mawasiliano, au maelezo yoyote…"
-                      className="w-full border border-primary-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
-                  : <div className={`rounded-xl px-3 py-2.5 text-xs ${detailLead.notes ? 'bg-purple-50 text-purple-800 border border-purple-100' : 'bg-gray-50 text-gray-400 border border-dashed border-gray-200'}`}>
-                      {detailLead.notes || 'Bonyeza Hariri kuongeza maelezo au logi ya mawasiliano…'}
-                    </div>
-                }
-              </div>
+              )}
 
               {/* Status grid */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Hatua ya Pipeline</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {STATUSES.map(s => (
-                    <button key={s.id} onClick={() => handleStatusChange(detailLead.id, s.id)}
-                      className={`py-2 rounded-xl text-[10px] font-bold transition-all flex flex-col items-center gap-1 ${STATUS_PILL[s.id] || 'bg-gray-100 text-gray-600'} ${detailLead.status === s.id ? 'ring-2 ring-offset-1 ring-gray-400 scale-95' : 'hover:opacity-80'}`}>
-                      <i className={`ti ${s.icon} text-base`} />
-                      {s.label}
-                    </button>
-                  ))}
+              {!editingLead && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Hatua ya Pipeline</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {STATUSES.map(s => (
+                      <button key={s.id} onClick={() => handleStatusChange(detailLead.id, s.id)}
+                        className={`py-2 rounded-xl text-[10px] font-bold transition-all flex flex-col items-center gap-1 ${STATUS_PILL[s.id] || 'bg-gray-100 text-gray-600'} ${detailLead.status === s.id ? 'ring-2 ring-offset-1 ring-gray-400 scale-95' : 'hover:opacity-80'}`}>
+                        <i className={`ti ${s.icon} text-base`} />
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Primary WA button */}
               {(detailLead.whatsapp_number || detailLead.phone) && (

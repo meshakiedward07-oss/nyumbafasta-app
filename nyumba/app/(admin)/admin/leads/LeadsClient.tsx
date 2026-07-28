@@ -20,7 +20,14 @@ type Lead = {
   is_dead_lead: boolean; is_duplicate: boolean; duplicate_reason: string | null
   status: string; contacted_at: string | null; assigned_to: string | null
   address: string | null; created_at: string
+  assigned_user: { id: string; full_name: string } | null
+  linked_user_id: string | null
+  registered_at: string | null
 }
+
+type ActivityEntry = { id: string; actor_name: string; action_type: string; old_value: string | null; new_value: string | null; notes: string | null; created_at: string }
+type WorkloadRow  = { staff_id: string; full_name: string; total: number; new_count: number; contacted: number; interested: number; registered: number; high_quality: number }
+type BatchRow     = { id: string; file_name: string | null; total_rows: number; imported_count: number; duplicate_count: number; error_count: number; status: string; created_at: string }
 
 type Stats = {
   total: number; high: number; medium: number; low: number; dead: number; duplicates: number
@@ -89,6 +96,14 @@ const TABS: { id: View; label: string; icon: string }[] = [
   { id: 'ripoti',   label: 'Ripoti',   icon: 'ti-file-analytics' },
 ]
 
+const TANZANIA_REGIONS = [
+  'Dar es Salaam','Arusha','Kilimanjaro','Tanga','Morogoro','Pwani','Dodoma',
+  'Mwanza','Mara','Kagera','Shinyanga','Tabora','Kigoma','Rukwa','Katavi',
+  'Mbeya','Songwe','Iringa','Njombe','Ruvuma','Lindi','Mtwara','Singida',
+  'Geita','Simiyu','Manyara','Zanzibar Mjini Magharibi','Zanzibar Kaskazini Unguja',
+  'Zanzibar Kusini Unguja','Zanzibar Kaskazini Pemba','Zanzibar Kusini Pemba',
+]
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function timeAgo(iso: string) {
   const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -150,6 +165,9 @@ export default function LeadsClient() {
   const [typeFilter,    setTypeFilter]    = useState('')
   const [statusFilter,  setStatusFilter]  = useState('')
   const [socialFilter,  setSocialFilter]  = useState('')
+  const [regionFilter,  setRegionFilter]  = useState('')
+  const [dateFrom,      setDateFrom]      = useState('')
+  const [dateTo,        setDateTo]        = useState('')
   const [showDups,      setShowDups]      = useState(false)
   const [showDead,      setShowDead]      = useState(false)
   const [showFilters,   setShowFilters]   = useState(false)
@@ -181,6 +199,35 @@ export default function LeadsClient() {
   const [broadcastForm, setBroadcastForm] = useState({ target: 'has_whatsapp', tone: 'personal', message: '' })
   const [broadcasting,    setBroadcasting]    = useState(false)
   const [broadcastResult, setBroadcastResult] = useState<{ sent: number; failed: number; total: number; failedNames: string[] } | null>(null)
+  const [broadcastHistory, setBroadcastHistory] = useState<{ id: string; target: string; message: string; recipients_count: number; sent_count: number; failed_count: number; status: string; created_at: string }[]>([])
+  const [broadcastHistoryLoading, setBroadcastHistoryLoading] = useState(false)
+
+  // Lead edit
+  const [editingLead, setEditingLead] = useState(false)
+  const [editForm,    setEditForm]    = useState<Partial<Lead>>({})
+  const [savingEdit,  setSavingEdit]  = useState(false)
+
+  // Activity log
+  const [activityLog,     setActivityLog]     = useState<ActivityEntry[]>([])
+  const [activityLoading, setActivityLoading] = useState(false)
+  const [activityLoaded,  setActivityLoaded]  = useState<string | null>(null)
+
+  // Workload
+  const [workload,        setWorkload]        = useState<WorkloadRow[]>([])
+  const [workloadLoading, setWorkloadLoading] = useState(false)
+  const [workloadLoaded,  setWorkloadLoaded]  = useState(false)
+
+  // Batch history
+  const [batches,        setBatches]        = useState<BatchRow[]>([])
+  const [batchesLoading, setBatchesLoading] = useState(false)
+  const [batchesLoaded,  setBatchesLoaded]  = useState(false)
+
+  // Drag-and-drop kanban
+  const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null)
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null)
+
+  // Quality inline edit
+  const [savingQuality, setSavingQuality] = useState(false)
 
   // Add manual
   const [showAddModal, setShowAddModal] = useState(false)
@@ -234,6 +281,9 @@ export default function LeadsClient() {
         ...(typeFilter    && { type: typeFilter }),
         ...(statusFilter  && { status: statusFilter }),
         ...(socialFilter  && { social: socialFilter }),
+        ...(regionFilter  && { region: regionFilter }),
+        ...(dateFrom      && { created_from: dateFrom }),
+        ...(dateTo        && { created_to: dateTo }),
       })
       const res  = await fetch(`/api/v1/leads?${p}`)
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `Hitilafu ${res.status}`)
@@ -245,7 +295,7 @@ export default function LeadsClient() {
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Imeshindwa kupakia leads')
     } finally { setLoading(false) }
-  }, [view, page, search, qualityFilter, typeFilter, statusFilter, socialFilter, showDups, showDead])
+  }, [view, page, search, qualityFilter, typeFilter, statusFilter, socialFilter, regionFilter, dateFrom, dateTo, showDups, showDead])
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true)
@@ -268,6 +318,44 @@ export default function LeadsClient() {
     } catch { /* silent */ } finally { setReportLoading(false) }
   }, [reportPeriod])
 
+  const fetchBroadcastHistory = useCallback(async () => {
+    setBroadcastHistoryLoading(true)
+    try {
+      const data = await fetch('/api/v1/leads/broadcast').then(r => r.json())
+      setBroadcastHistory(data.broadcasts ?? [])
+    } catch { /* silent */ } finally { setBroadcastHistoryLoading(false) }
+  }, [])
+
+  const fetchActivity = useCallback(async (leadId: string) => {
+    if (activityLoaded === leadId) return
+    setActivityLoading(true)
+    try {
+      const data = await fetch(`/api/v1/leads/${leadId}/activity`).then(r => r.json())
+      setActivityLog(data.activity ?? [])
+      setActivityLoaded(leadId)
+    } catch { /* silent */ } finally { setActivityLoading(false) }
+  }, [activityLoaded])
+
+  const fetchWorkload = useCallback(async () => {
+    if (workloadLoaded) return
+    setWorkloadLoading(true)
+    try {
+      const data = await fetch('/api/v1/leads/workload').then(r => r.json())
+      setWorkload(data.workload ?? [])
+      setWorkloadLoaded(true)
+    } catch { /* silent */ } finally { setWorkloadLoading(false) }
+  }, [workloadLoaded])
+
+  const fetchBatches = useCallback(async () => {
+    if (batchesLoaded) return
+    setBatchesLoading(true)
+    try {
+      const data = await fetch('/api/v1/leads/batches').then(r => r.json())
+      setBatches(data.batches ?? [])
+      setBatchesLoaded(true)
+    } catch { /* silent */ } finally { setBatchesLoading(false) }
+  }, [batchesLoaded])
+
   useEffect(() => {
     const t = setTimeout(() => { setSearch(searchInput); setPage(1) }, 400)
     return () => clearTimeout(t)
@@ -284,8 +372,27 @@ export default function LeadsClient() {
   }, [])
 
   useEffect(() => {
-    if (detailLead) { setNotesValue(detailLead.notes ?? ''); setEditingNotes(false) }
+    if (detailLead) {
+      setNotesValue(detailLead.notes ?? '')
+      setEditingNotes(false)
+      setEditingLead(false)
+      setEditForm({})
+      fetchActivity(detailLead.id)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailLead?.id])
+
+  useEffect(() => {
+    if (showBroadcastModal) fetchBroadcastHistory()
+  }, [showBroadcastModal, fetchBroadcastHistory])
+
+  useEffect(() => {
+    if (view === 'takwimu') fetchWorkload()
+  }, [view, fetchWorkload])
+
+  useEffect(() => {
+    if (view === 'ripoti') fetchBatches()
+  }, [view, fetchBatches])
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   async function handleImport() {
@@ -486,6 +593,59 @@ export default function LeadsClient() {
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Leads'); XLSX.writeFile(wb, `leads-${new Date().toISOString().slice(0,10)}.xlsx`)
   }
 
+  async function handleSaveEdit() {
+    if (!detailLead || !Object.keys(editForm).length) return
+    setSavingEdit(true)
+    try {
+      const res  = await fetch('/api/v1/leads', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: detailLead.id, ...editForm }) })
+      const data = await res.json()
+      if (data.success) {
+        const updated = { ...detailLead, ...editForm }
+        setDetailLead(updated as Lead)
+        setLeads(prev => prev.map(l => l.id === detailLead.id ? updated as Lead : l))
+        setEditingLead(false); setEditForm({})
+        showToast('Lead imehifadhiwa')
+      } else showToast(data.error || 'Imeshindwa kuhifadhi', false)
+    } catch { showToast('Hitilafu ya mtandao', false) }
+    finally { setSavingEdit(false) }
+  }
+
+  async function handleQualityOverride(id: string, quality: string) {
+    setSavingQuality(true)
+    try {
+      await fetch('/api/v1/leads', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, contact_quality: quality }) })
+      setDetailLead(prev => prev ? { ...prev, contact_quality: quality } : null)
+      setLeads(prev => prev.map(l => l.id === id ? { ...l, contact_quality: quality } : l))
+      showToast('Ubora umebadilishwa')
+    } catch { showToast('Imeshindwa kubadilisha ubora', false) }
+    finally { setSavingQuality(false) }
+  }
+
+  function handleDragStart(e: React.DragEvent, leadId: string) {
+    setDraggedLeadId(leadId)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  function handleDragOver(e: React.DragEvent, stage: string) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverStage(stage)
+  }
+
+  function handleDragLeave() {
+    setDragOverStage(null)
+  }
+
+  async function handleDrop(e: React.DragEvent, stage: string) {
+    e.preventDefault()
+    setDragOverStage(null)
+    if (!draggedLeadId) return
+    const lead = leads.find(l => l.id === draggedLeadId)
+    if (!lead || lead.status === stage) { setDraggedLeadId(null); return }
+    setDraggedLeadId(null)
+    await handleStatusChange(draggedLeadId, stage)
+  }
+
   async function handleBroadcast() {
     if (!broadcastForm.message.trim()) { showToast('Andika ujumbe kwanza', false); return }
     setBroadcasting(true); setBroadcastResult(null)
@@ -500,7 +660,7 @@ export default function LeadsClient() {
   }
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const activeFilterCount = [qualityFilter, typeFilter, statusFilter, socialFilter].filter(Boolean).length + (showDups ? 1 : 0) + (showDead ? 1 : 0)
+  const activeFilterCount = [qualityFilter, typeFilter, statusFilter, socialFilter, regionFilter, dateFrom, dateTo].filter(Boolean).length + (showDups ? 1 : 0) + (showDead ? 1 : 0)
 
   const pipelineGroups = PIPELINE_STAGES.map(stage => ({
     stage,
@@ -636,11 +796,14 @@ export default function LeadsClient() {
                 {verifying ? <i className="ti ti-loader-2 animate-spin text-sm" /> : <i className="ti ti-refresh text-sm" />}
                 <span className="hidden sm:inline">{verifying ? 'Inacheki…' : 'Check Social'}</span>
               </button>
-              <button onClick={handleRevalidateWhatsapp} disabled={revalidatingWa}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white border border-green-200 rounded-xl text-xs font-semibold text-green-700 hover:bg-green-50 shadow-sm disabled:opacity-50">
-                {revalidatingWa ? <i className="ti ti-loader-2 animate-spin text-sm" /> : <i className="ti ti-brand-whatsapp text-sm" />}
-                <span className="hidden sm:inline">{revalidatingWa ? 'Inafanya…' : 'Fix WA'}</span>
-              </button>
+              <div className="flex flex-col items-start">
+                <button onClick={handleRevalidateWhatsapp} disabled={revalidatingWa}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white border border-green-200 rounded-xl text-xs font-semibold text-green-700 hover:bg-green-50 shadow-sm disabled:opacity-50">
+                  {revalidatingWa ? <i className="ti ti-loader-2 animate-spin text-sm" /> : <i className="ti ti-brand-whatsapp text-sm" />}
+                  <span className="hidden sm:inline">{revalidatingWa ? 'Inafanya…' : 'Fix WA'}</span>
+                </button>
+                <span className="hidden sm:block text-[9px] text-gray-400 mt-0.5 ml-1">Ukaguzi wa muundo tu — haijathibitisha WhatsApp halisi</span>
+              </div>
 
               {/* Delete actions — always visible */}
               <div className="ml-auto flex items-center gap-2">
@@ -714,7 +877,7 @@ export default function LeadsClient() {
                 </button>
                 {activeFilterCount > 0 && (
                   <button
-                    onClick={() => { setSearchInput(''); setSearch(''); setQualityFilter(''); setTypeFilter(''); setStatusFilter(''); setSocialFilter(''); setShowDups(false); setShowDead(false); setPage(1) }}
+                    onClick={() => { setSearchInput(''); setSearch(''); setQualityFilter(''); setTypeFilter(''); setStatusFilter(''); setSocialFilter(''); setRegionFilter(''); setDateFrom(''); setDateTo(''); setShowDups(false); setShowDead(false); setPage(1) }}
                     className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-red-500 border border-red-200 rounded-xl hover:bg-red-50">
                     <i className="ti ti-x text-sm" />
                     <span className="hidden sm:inline">Reset</span>
@@ -746,6 +909,20 @@ export default function LeadsClient() {
                     <option value="">Status zote</option>
                     {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                   </select>
+                  <select value={regionFilter} onChange={e => { setRegionFilter(e.target.value); setPage(1) }}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/40">
+                    <option value="">Mikoa yote</option>
+                    {TANZANIA_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <div className="flex items-center gap-1">
+                    <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1) }}
+                      className="flex-1 px-2 py-2.5 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                      placeholder="Kutoka" />
+                    <span className="text-gray-400 text-xs">—</span>
+                    <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1) }}
+                      className="flex-1 px-2 py-2.5 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                      placeholder="Hadi" />
+                  </div>
                 </div>
               )}
             </div>
@@ -768,7 +945,7 @@ export default function LeadsClient() {
                           onChange={e => setSelectedIds(e.target.checked ? new Set(leads.map(l => l.id)) : new Set())}
                           checked={selectedIds.size === leads.length && leads.length > 0} />
                       </th>
-                      {['Jina & Aina','Simu','Eneo','Social','Ubora','Status','Tarehe',''].map((h,i) => (
+                      {['Jina & Aina','Simu','Eneo','Social','Ubora','Status','Amepewa','Tarehe',''].map((h,i) => (
                         <th key={i} className="text-left px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -824,6 +1001,9 @@ export default function LeadsClient() {
                                   className={`text-[10px] px-2 py-1 rounded-lg border-0 font-semibold cursor-pointer appearance-none ${STATUS_PILL[lead.status] || 'bg-gray-100 text-gray-600'}`}>
                                   {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                                 </select>
+                              </td>
+                              <td className="px-3 py-3">
+                                <span className="text-[10px] text-gray-700 font-medium truncate max-w-[100px] block">{(lead as any).assigned_user?.full_name ?? <span className="text-gray-300">—</span>}</span>
                               </td>
                               <td className="px-3 py-3">
                                 <span className="text-[10px] text-gray-400 tabular-nums">{timeAgo(lead.created_at)}</span>
@@ -987,7 +1167,11 @@ export default function LeadsClient() {
                     </div>
 
                     {/* Cards */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 min-h-[60px]"
+                      onDragOver={e => handleDragOver(e, group.stage)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={e => handleDrop(e, group.stage)}
+                      style={{ outline: dragOverStage === group.stage ? '2px dashed #1D9E75' : undefined, borderRadius: 16 }}>
                       {loading && Array.from({length:3}).map((_,i) => (
                         <div key={i} className="bg-white rounded-2xl border border-gray-100 p-3 animate-pulse">
                           <div className="h-3 bg-gray-100 rounded-full w-3/4 mb-2" />
@@ -995,7 +1179,7 @@ export default function LeadsClient() {
                         </div>
                       ))}
                       {!loading && group.leads.length === 0 && (
-                        <div className="bg-white/60 border border-dashed border-gray-200 rounded-2xl py-8 text-center">
+                        <div className={`bg-white/60 border border-dashed rounded-2xl py-8 text-center transition-colors ${dragOverStage === group.stage ? 'border-primary-400 bg-primary-50/30' : 'border-gray-200'}`}>
                           <i className={`ti ${group.icon} text-2xl text-gray-300 block mb-1`} />
                           <p className="text-[10px] text-gray-400">Hakuna leads</p>
                         </div>
@@ -1004,8 +1188,12 @@ export default function LeadsClient() {
                         const q = QUALITY_CFG[lead.contact_quality] || QUALITY_CFG.unknown
                         const waNum = lead.whatsapp_number || lead.phone
                         return (
-                          <div key={lead.id} onClick={() => setDetailLead(lead)}
-                            className={`bg-white rounded-2xl border border-gray-100 border-l-4 ${q.border} shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all p-3`}>
+                          <div key={lead.id}
+                            draggable
+                            onDragStart={e => handleDragStart(e, lead.id)}
+                            onDragEnd={() => { setDraggedLeadId(null); setDragOverStage(null) }}
+                            onClick={() => setDetailLead(lead)}
+                            className={`bg-white rounded-2xl border border-gray-100 border-l-4 ${q.border} shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5 transition-all p-3 ${draggedLeadId === lead.id ? 'opacity-40' : ''}`}>
                             {/* Name row */}
                             <div className="flex items-start gap-2 mb-2">
                               <div className={`w-2 h-2 rounded-full ${q.dot} mt-1 flex-shrink-0`} />
@@ -1183,6 +1371,52 @@ export default function LeadsClient() {
               </div>
             </div>
 
+            {/* Staff Workload (B3) */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800">Mzigo wa Wafanyakazi</h3>
+                  <p className="text-xs text-gray-400">Idadi ya leads kwa kila mfanyakazi</p>
+                </div>
+                <button onClick={() => { setWorkloadLoaded(false); fetchWorkload() }} disabled={workloadLoading}
+                  className="text-xs text-gray-400 hover:text-primary-500">
+                  <i className={`ti ${workloadLoading ? 'ti-loader-2 animate-spin' : 'ti-refresh'}`} />
+                </button>
+              </div>
+              {workloadLoading
+                ? <div className="space-y-2">{Array.from({length:4}).map((_,i) => <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+                : workload.length === 0
+                  ? <p className="text-xs text-gray-400 text-center py-8">Hakuna data ya mzigo</p>
+                  : <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-100">
+                            {['Mfanyakazi','Jumla','Mpya','Amewasiliana','Ana Nia','Amesajili','Ubora Juu'].map(h => (
+                              <th key={h} className="text-left py-2 px-2 font-semibold text-gray-500 text-[10px] uppercase tracking-wide whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {workload.map(row => (
+                            <tr key={row.staff_id} onClick={() => { setView('leads'); setTimeout(() => {}, 0) }}
+                              className="hover:bg-primary-50/40 cursor-pointer transition-colors">
+                              <td className="py-2.5 px-2 font-semibold text-gray-800">{row.full_name}</td>
+                              <td className="py-2.5 px-2 font-bold text-gray-900 tabular-nums">{row.total}</td>
+                              <td className="py-2.5 px-2 text-blue-600 tabular-nums">{row.new_count}</td>
+                              <td className="py-2.5 px-2 text-amber-600 tabular-nums">{row.contacted}</td>
+                              <td className="py-2.5 px-2 text-purple-600 tabular-nums">{row.interested}</td>
+                              <td className="py-2.5 px-2 text-emerald-600 tabular-nums">{row.registered}</td>
+                              <td className="py-2.5 px-2">
+                                <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg tabular-nums">{row.high_quality}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+              }
+            </div>
+
             {/* Refresh hint */}
             <div className="text-center pb-2">
               <button onClick={fetchStats} disabled={statsLoading} className="text-xs text-gray-400 hover:text-primary-500 transition-colors">
@@ -1339,6 +1573,53 @@ export default function LeadsClient() {
                 <button onClick={fetchReportStats} className="text-xs px-4 py-2 bg-primary-500 text-white rounded-xl font-bold">Jaribu tena</button>
               </div>
             )}
+
+            {/* Import Batch History (B4) */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm mt-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800">Historia ya Uingizaji</h3>
+                  <p className="text-xs text-gray-400">Faili za Excel zilizoingizwa hivi karibuni</p>
+                </div>
+                <button onClick={() => { setBatchesLoaded(false); fetchBatches() }} disabled={batchesLoading}
+                  className="text-xs text-gray-400 hover:text-primary-500">
+                  <i className={`ti ${batchesLoading ? 'ti-loader-2 animate-spin' : 'ti-refresh'}`} />
+                </button>
+              </div>
+              {batchesLoading
+                ? <div className="space-y-2">{Array.from({length:3}).map((_,i) => <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+                : batches.length === 0
+                  ? <p className="text-xs text-gray-400 text-center py-6">Hakuna uingizaji bado</p>
+                  : <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-100">
+                            {['Faili','Jumla','Zilizoingizwa','Duplicates','Makosa','Status','Tarehe'].map(h => (
+                              <th key={h} className="text-left py-2 px-2 font-semibold text-gray-500 text-[10px] uppercase tracking-wide whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {batches.map(b => (
+                            <tr key={b.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="py-2.5 px-2 font-medium text-gray-800 max-w-[140px] truncate">{b.file_name || '—'}</td>
+                              <td className="py-2.5 px-2 tabular-nums text-gray-700">{b.total_rows}</td>
+                              <td className="py-2.5 px-2 tabular-nums text-emerald-600 font-semibold">{b.imported_count}</td>
+                              <td className="py-2.5 px-2 tabular-nums text-amber-600">{b.duplicate_count}</td>
+                              <td className="py-2.5 px-2 tabular-nums text-red-500">{b.error_count}</td>
+                              <td className="py-2.5 px-2">
+                                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${b.status === 'completed' ? 'bg-emerald-50 text-emerald-700' : b.status === 'failed' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}`}>
+                                  {b.status}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-2 text-gray-400 tabular-nums whitespace-nowrap">{new Date(b.created_at).toLocaleDateString('sw-TZ')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+              }
+            </div>
           </>
         )}
 
@@ -1358,9 +1639,16 @@ export default function LeadsClient() {
                   <p className="text-xs text-gray-400 capitalize">{detailLead.lead_type} · {detailLead.source}</p>
                 </div>
               </div>
-              <button onClick={() => setDetailLead(null)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
-                <i className="ti ti-x" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => { const next = !editingLead; setEditingLead(next); setEditForm(next ? { full_name: detailLead.full_name, phone: detailLead.phone, phone_2: detailLead.phone_2, email: detailLead.email, ward: detailLead.ward, district: detailLead.district, region: detailLead.region, lead_type: detailLead.lead_type, facebook_url: detailLead.facebook_url, instagram_url: detailLead.instagram_url, tiktok_url: detailLead.tiktok_url, whatsapp_number: detailLead.whatsapp_number } : {}) }}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${editingLead ? 'bg-gray-100 text-gray-600 border-gray-200' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}>
+                  <i className={`ti ${editingLead ? 'ti-x' : 'ti-edit'} text-sm`} />
+                  {editingLead ? 'Ghairi' : 'Hariri'}
+                </button>
+                <button onClick={() => setDetailLead(null)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
+                  <i className="ti ti-x" />
+                </button>
+              </div>
             </div>
             <div className="p-5 space-y-4">
               {detailLead.is_duplicate && (
@@ -1409,6 +1697,55 @@ export default function LeadsClient() {
                   }
                 </div>
               )}
+              {/* Inline edit form (B1) */}
+              {editingLead && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+                  <p className="text-xs font-bold text-amber-800 uppercase tracking-wide"><i className="ti ti-edit mr-1" />Hariri Lead</p>
+                  {([
+                    { key:'full_name', label:'Jina Kamili', type:'text' },
+                    { key:'phone',     label:'Simu',        type:'tel' },
+                    { key:'phone_2',   label:'Simu 2',      type:'tel' },
+                    { key:'email',     label:'Email',       type:'email' },
+                    { key:'ward',      label:'Ward/Mtaa',   type:'text' },
+                    { key:'district',  label:'Wilaya',      type:'text' },
+                    { key:'whatsapp_number', label:'WhatsApp', type:'tel' },
+                    { key:'facebook_url',    label:'Facebook URL', type:'url' },
+                    { key:'instagram_url',   label:'Instagram URL', type:'url' },
+                    { key:'tiktok_url',      label:'TikTok URL', type:'url' },
+                  ] as { key: keyof Lead; label: string; type: string }[]).map(f => (
+                    <div key={String(f.key)}>
+                      <label className="text-[10px] text-gray-600 font-medium block mb-0.5">{f.label}</label>
+                      <input type={f.type} value={(editForm[f.key] as string) ?? ''}
+                        onChange={e => setEditForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                        className="w-full border border-amber-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white" />
+                    </div>
+                  ))}
+                  <div>
+                    <label className="text-[10px] text-gray-600 font-medium block mb-0.5">Mkoa</label>
+                    <select value={(editForm.region as string) ?? ''}
+                      onChange={e => setEditForm(prev => ({ ...prev, region: e.target.value }))}
+                      className="w-full border border-amber-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
+                      <option value="">— Chagua mkoa —</option>
+                      {TANZANIA_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-600 font-medium block mb-0.5">Aina</label>
+                    <select value={(editForm.lead_type as string) ?? ''}
+                      onChange={e => setEditForm(prev => ({ ...prev, lead_type: e.target.value }))}
+                      className="w-full border border-amber-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
+                      <option value="dalali">Dalali</option>
+                      <option value="mteja">Mteja</option>
+                      <option value="owner">Mwenye nyumba</option>
+                    </select>
+                  </div>
+                  <button onClick={handleSaveEdit} disabled={savingEdit}
+                    className="w-full bg-amber-500 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-1">
+                    {savingEdit ? <><i className="ti ti-loader-2 animate-spin" /> Inahifadhi…</> : <><i className="ti ti-check" /> Hifadhi Mabadiliko</>}
+                  </button>
+                </div>
+              )}
+
               {/* Check social */}
               <button onClick={() => handleVerify()} disabled={verifying || !detailLead.has_any_social}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-50 border border-purple-100 text-purple-700 text-xs font-semibold hover:bg-purple-100 disabled:opacity-40">
@@ -1434,6 +1771,32 @@ export default function LeadsClient() {
                       : <span className="text-xs font-semibold text-gray-800">{row.val}</span>}
                   </div>
                 ))}
+                {/* Amepewa (B2) */}
+                {detailLead.assigned_user && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-gray-500">Amepewa</span>
+                    <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg">{detailLead.assigned_user.full_name}</span>
+                  </div>
+                )}
+                {/* Quality override (B9) */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-gray-500">Ubora</span>
+                  <select value={detailLead.contact_quality} disabled={savingQuality}
+                    onChange={e => handleQualityOverride(detailLead.id, e.target.value)}
+                    className={`text-[10px] px-2 py-1 rounded-lg border-0 font-semibold cursor-pointer appearance-none disabled:opacity-60 ${(QUALITY_CFG[detailLead.contact_quality]||QUALITY_CFG.unknown).pill}`}>
+                    {['high','medium','low','unknown'].map(q => <option key={q} value={q}>{QUALITY_CFG[q]?.label ?? q}</option>)}
+                  </select>
+                </div>
+                {/* Linked user badge (B10) */}
+                {detailLead.linked_user_id && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-gray-500">Akaunti</span>
+                    <a href={`/admin/users?search=${encodeURIComponent(detailLead.phone ?? detailLead.email ?? '')}`}
+                      className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 hover:bg-emerald-100 flex items-center gap-1">
+                      <i className="ti ti-user-check text-xs" /> Amesajili
+                    </a>
+                  </div>
+                )}
               </div>
               {/* Social media */}
               {detailLead.has_any_social && (
@@ -1485,6 +1848,32 @@ export default function LeadsClient() {
                   <i className="ti ti-brand-whatsapp text-xl" /> Wasiliana WhatsApp
                 </a>
               )}
+              {/* Activity log (B5) */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2"><i className="ti ti-history mr-1" />Historia ya Shughuli</p>
+                {activityLoading && <div className="space-y-2">{Array.from({length:3}).map((_,i) => <div key={i} className="h-8 bg-gray-100 rounded-xl animate-pulse" />)}</div>}
+                {!activityLoading && activityLog.length === 0 && (
+                  <p className="text-[10px] text-gray-400 text-center py-3 bg-gray-50 rounded-xl">Hakuna historia bado</p>
+                )}
+                {!activityLoading && activityLog.length > 0 && (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {activityLog.map(entry => (
+                      <div key={entry.id} className="flex items-start gap-2.5 px-3 py-2 bg-gray-50 rounded-xl">
+                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] text-gray-700 font-medium">
+                            {entry.action_type === 'status_change' ? `${entry.old_value} → ${entry.new_value}` :
+                             entry.action_type === 'broadcast_sent' ? `Broadcast: ${entry.new_value?.slice(0,40)}…` :
+                             entry.action_type}
+                          </p>
+                          <p className="text-[9px] text-gray-400">{entry.actor_name} · {new Date(entry.created_at).toLocaleDateString('sw-TZ')}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Delete */}
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => handleDelete(detailLead.id, false)} className="py-2.5 border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">Futa (soft)</button>
@@ -1813,6 +2202,32 @@ export default function LeadsClient() {
                   <i className="ti ti-send" /> Tuma ujumbe
                 </button>
                 <p className="text-[10px] text-center text-gray-400">Kiwango cha juu: leads 200 kwa broadcast · 200ms kati ya ujumbe</p>
+
+                {/* Broadcast History (A3) */}
+                {(broadcastHistoryLoading || broadcastHistory.length > 0) && (
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                      <i className="ti ti-history mr-1" />Historia ya Broadcasts
+                    </p>
+                    {broadcastHistoryLoading
+                      ? <div className="h-12 bg-gray-100 rounded-xl animate-pulse" />
+                      : <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                          {broadcastHistory.map(b => (
+                            <div key={b.id} className="bg-gray-50 rounded-xl p-3 flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-gray-700 truncate">{b.message.slice(0,60)}{b.message.length > 60 ? '…' : ''}</p>
+                                <p className="text-[10px] text-gray-400 mt-0.5">{b.target.replace('leads_','')} · {new Date(b.created_at).toLocaleDateString('sw-TZ')}</p>
+                              </div>
+                              <div className="flex-shrink-0 text-right">
+                                <p className="text-xs font-bold text-emerald-600">{b.sent_count ?? 0}</p>
+                                <p className="text-[10px] text-gray-400">imetumwa</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                    }
+                  </div>
+                )}
               </div>
             )}
           </div>
