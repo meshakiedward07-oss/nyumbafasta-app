@@ -102,7 +102,9 @@ export async function POST(req: NextRequest) {
       }
 
       // Step 4: Anzisha trial ya siku 14 kwa dalali mpya
-      await admin.rpc('start_dalali_trial', { dalali_user_id: user.id })
+      // Non-fatal: if RPC missing, the fix_dalali_onboarding migration back-fills subscriptions.
+      const { error: trialErr } = await admin.rpc('start_dalali_trial', { dalali_user_id: user.id })
+      if (trialErr) console.error('[Register] start_dalali_trial failed (non-fatal):', trialErr.message)
 
       // Step 5: Welcome notification
       await admin.from('notifications').insert({
