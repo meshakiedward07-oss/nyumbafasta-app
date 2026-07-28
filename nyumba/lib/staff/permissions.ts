@@ -11,14 +11,6 @@ export const STAFF_PERMISSIONS = {
     icon: 'target',
     category: 'crm' as const,
   },
-  listing_analytics: {
-    key: 'listing_analytics',
-    label: 'Listing Analytics',
-    description: 'Kuangalia listings zenye performance ndogo, CRM analytics',
-    adminPath: '/admin/leads',
-    icon: 'chart-bar',
-    category: 'crm' as const,
-  },
   // ── Support ──────────────────────────────────────────────────
   whatsapp_support: {
     key: 'whatsapp_support',
@@ -189,7 +181,7 @@ export const STAFF_ROLE_TEMPLATES = {
   },
   quality_control: {
     label: 'Quality Control',
-    permissions: ['spam_moderation', 'legal_violations', 'listing_analytics', 'handle_reports'] as PermissionKey[],
+    permissions: ['spam_moderation', 'legal_violations', 'handle_reports'] as PermissionKey[],
   },
   platform_manager: {
     label: 'Platform Manager',
@@ -214,7 +206,7 @@ export const STAFF_ROLE_TEMPLATES = {
     label: 'Team Lead (Full Access)',
     permissions: [
       'leads', 'whatsapp_support', 'social_media', 'legal_violations',
-      'listing_analytics', 'spam_moderation',
+      'spam_moderation',
       'approve_listings', 'manage_users', 'handle_reports',
       'manage_subscriptions', 'manage_verifications', 'review_ads',
     ] as PermissionKey[],
@@ -229,7 +221,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, PermissionKey> = {
   '/admin/whatsapp':               'whatsapp_support',
   '/admin/social':                 'social_media',
   '/admin/legal':                  'legal_violations',
-  '/admin/leads':                  'listing_analytics',
   '/admin/adverts':                'review_ads',
   '/admin/property-management':    'org_management',
 }
