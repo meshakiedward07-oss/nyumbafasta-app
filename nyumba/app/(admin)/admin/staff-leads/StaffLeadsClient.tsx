@@ -179,6 +179,7 @@ export default function StaffLeadsClient({
       setEditingNotes(false)
       setEditingLead(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailLead?.id])
 
   // ── Actions ───────────────────────────────────────────────────────────────
