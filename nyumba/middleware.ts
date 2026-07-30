@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
-import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
+import { rateLimit } from '@/lib/security/rateLimit'
 
 // Routes zinazohitaji login
 const PROTECTED_ROUTES = ['/dashboard', '/admin', '/saved', '/account', '/subscription', '/notifications', '/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile', '/fundi/dashboard', '/fundi/profile', '/fundi/kyc', '/fundi/jobs']

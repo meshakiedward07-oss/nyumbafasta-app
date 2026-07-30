@@ -177,6 +177,9 @@ export default function SocialDashboard() {
 
   // Listings for the "Chapisha Kwenye Platforms Zote" quick-post in the overview tab
   const [listings, setListings] = useState<Listing[]>([])
+  const [replyComment, setReplyComment] = useState<Comment | null>(null)
+  const [replyText,    setReplyText]    = useState('')
+  const [replying,     setReplying]     = useState(false)
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -269,6 +272,37 @@ export default function SocialDashboard() {
     if (activeTab === 'yote') fetchUnified(unifiedPeriod)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unifiedPeriod])
+
+  async function handleCommentReply() {
+    if (!replyComment || !replyText.trim()) return
+    setReplying(true)
+    try {
+      const res = await fetch('/api/v1/social/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commentId: replyComment.comment_id,
+          platform:  replyComment.platform,
+          message:   replyText.trim(),
+        }),
+      })
+      const d = await res.json() as { ok?: boolean; error?: string }
+      if (d.ok) {
+        setComments(prev => prev.map(c =>
+          c.id === replyComment.id
+            ? { ...c, reply_sent: true, reply_text: replyText.trim() }
+            : c
+        ))
+        setReplyComment(null)
+        setReplyText('')
+        showToast('Jibu limetumwa!')
+      } else {
+        showToast(d.error ?? 'Imeshindwa kutuma jibu')
+      }
+    } finally {
+      setReplying(false)
+    }
+  }
 
   async function handlePostAll() {
     if (!postAllListing) { showToast('Chagua listing kwanza'); return }
@@ -844,11 +878,22 @@ export default function SocialDashboard() {
                         <p className="text-sm mt-1" style={{ color: '#1a1a18' }}>{comment.comment_text}</p>
                         {comment.reply_text && (
                           <div className="mt-2 pl-3 border-l-2 border-primary-400">
-                            <p className="text-xs font-medium" style={{ color: '#999992' }}>Jibu la Amina:</p>
+                            <p className="text-xs font-medium" style={{ color: '#999992' }}>
+                              {comment.reply_sent ? 'Jibu lililotumwa:' : 'Jibu la Amina:'}
+                            </p>
                             <p className="text-xs" style={{ color: '#666660' }}>{comment.reply_text}</p>
                           </div>
                         )}
                       </div>
+                      {!comment.reply_sent && (comment.platform === 'instagram' || comment.platform === 'facebook') && (
+                        <button
+                          onClick={() => { setReplyComment(comment); setReplyText('') }}
+                          className="text-xs px-2 py-1 rounded-lg font-medium flex-shrink-0 mt-0.5"
+                          style={{ background: '#e6f1fb', color: '#185fa5' }}
+                        >
+                          Jibu
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -946,6 +991,47 @@ export default function SocialDashboard() {
 
         </div>{/* end .p-6 */}
       </div>{/* end main */}
+
+      {/* ── Comment reply modal ─────────────────────────────────────────── */}
+      {replyComment && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-0 md:p-4"
+          onClick={e => { if (e.target === e.currentTarget) setReplyComment(null) }}
+        >
+          <div className="bg-white rounded-t-3xl md:rounded-2xl w-full max-w-lg">
+            <div className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-bold text-gray-900 text-base">Jibu Maoni</h2>
+                <button onClick={() => setReplyComment(null)} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-500">
+                  <i className="ti ti-x" aria-hidden="true" />
+                </button>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <PlatformIcon platform={replyComment.platform} />
+                  {replyComment.commenter_name && <span className="text-xs font-medium text-gray-700">@{replyComment.commenter_name}</span>}
+                </div>
+                <p className="text-sm text-gray-800">{replyComment.comment_text}</p>
+              </div>
+              <textarea
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                rows={3}
+                placeholder="Andika jibu lako..."
+                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary-500 resize-none"
+              />
+              <button
+                onClick={handleCommentReply}
+                disabled={replying || !replyText.trim()}
+                className="w-full bg-gray-900 text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40"
+              >
+                {replying ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <i className="ti ti-send" aria-hidden="true" />}
+                {replying ? 'Inatuma...' : 'Tuma Jibu'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

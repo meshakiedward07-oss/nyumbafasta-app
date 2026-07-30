@@ -162,7 +162,7 @@ export default function RankedAdSlot({
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [region, category, adType, limit])
+  }, [region, category, adType, limit, placement])
 
   useEffect(() => { load() }, [load])
 

@@ -59,6 +59,10 @@ export default function InboxPage() {
   const [sending,        setSending]        = useState(false)
   const [toast,          setToast]          = useState<{ msg: string; ok: boolean } | null>(null)
   const [stats,          setStats]          = useState({ flagged: 0, autoReplied: 0, ownerReplied: 0, spam: 0 })
+  const [showTemplates,  setShowTemplates]  = useState(false)
+  const [newTmplLabel,   setNewTmplLabel]   = useState('')
+  const [newTmplMsg,     setNewTmplMsg]     = useState('')
+  const [savingTmpl,     setSavingTmpl]     = useState(false)
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok })
@@ -113,6 +117,39 @@ export default function InboxPage() {
     return () => { void supabase.removeChannel(channel) }
   }, [loadMessages, loadStats])
 
+  async function handleSaveTemplate() {
+    if (!newTmplLabel.trim() || !newTmplMsg.trim()) return
+    setSavingTmpl(true)
+    try {
+      const res = await fetch('/api/v1/inbox/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: newTmplLabel, message: newTmplMsg }),
+      })
+      const d = await res.json() as { template?: Template; error?: string }
+      if (d.template) {
+        setTemplates(prev => [d.template!, ...prev])
+        setNewTmplLabel('')
+        setNewTmplMsg('')
+        showToast('Kiolezo kimeongezwa!')
+      } else {
+        showToast(d.error ?? 'Imeshindwa', false)
+      }
+    } finally {
+      setSavingTmpl(false)
+    }
+  }
+
+  async function handleDeleteTemplate(id: string) {
+    const res = await fetch(`/api/v1/inbox/templates?id=${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setTemplates(prev => prev.filter(t => t.id !== id))
+      showToast('Kiolezo kimefutwa!')
+    } else {
+      showToast('Imeshindwa kufuta', false)
+    }
+  }
+
   async function handleReply() {
     if (!selected || !replyText.trim()) return
     setSending(true)
@@ -166,12 +203,77 @@ export default function InboxPage() {
               Amina anashughulikia biashara — wewe unashughulikia kibinafsi
             </p>
           </div>
-          {stats.flagged > 0 && (
-            <div className="flex-shrink-0 bg-amber-500 text-white px-4 py-2 rounded-xl font-bold text-sm animate-pulse">
-              <i className="ti ti-circle-dot text-red-500" aria-hidden="true" /> {stats.flagged} zinahitaji jibu lako
-            </div>
-          )}
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => setShowTemplates(v => !v)}
+              className="bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-1.5 hover:bg-gray-50"
+            >
+              <i className="ti ti-template" aria-hidden="true" /> Violezo
+            </button>
+            {stats.flagged > 0 && (
+              <div className="bg-amber-500 text-white px-4 py-2 rounded-xl font-bold text-sm animate-pulse">
+                <i className="ti ti-circle-dot text-red-500" aria-hidden="true" /> {stats.flagged} zinahitaji jibu lako
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Template management panel */}
+        {showTemplates && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <i className="ti ti-template text-primary-500" aria-hidden="true" /> Violezo vya Jibu la Haraka
+            </h2>
+
+            {/* Existing templates */}
+            {templates.length > 0 ? (
+              <div className="space-y-2">
+                {templates.map(t => (
+                  <div key={t.id} className="flex items-start gap-3 bg-gray-50 rounded-xl p-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-700">{t.label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{t.message}</p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteTemplate(t.id)}
+                      className="text-red-400 hover:text-red-600 text-xs flex-shrink-0 mt-0.5"
+                    >
+                      <i className="ti ti-trash" aria-hidden="true" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">Hakuna violezo bado</p>
+            )}
+
+            {/* Add new template */}
+            <div className="border-t pt-4 space-y-2">
+              <p className="text-xs font-semibold text-gray-700">Ongeza Kiolezo Kipya</p>
+              <input
+                type="text"
+                value={newTmplLabel}
+                onChange={e => setNewTmplLabel(e.target.value)}
+                placeholder="Jina fupi (k.m. Asante kwa kuwasiliana)"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-primary-500"
+              />
+              <textarea
+                value={newTmplMsg}
+                onChange={e => setNewTmplMsg(e.target.value)}
+                rows={3}
+                placeholder="Ujumbe kamili wa kiolezo..."
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs resize-none outline-none focus:border-primary-500"
+              />
+              <button
+                onClick={handleSaveTemplate}
+                disabled={savingTmpl || !newTmplLabel.trim() || !newTmplMsg.trim()}
+                className="bg-primary-500 text-white px-4 py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
+              >
+                {savingTmpl ? 'Inahifadhi...' : 'Hifadhi Kiolezo'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Filter tabs */}
         <div className="flex gap-2 flex-wrap">

@@ -16,7 +16,7 @@ type NavItem = {
   labelKey: TKey
   icon: string
   exact: boolean
-  badge?: true | 'inbox'
+  badge?: true | 'inbox' | 'social'
 }
 
 type NavSection = {
@@ -41,8 +41,9 @@ const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: 'admin_nav_sec_social',
     items: [
-      { href: '/admin/social',             labelKey: 'admin_nav_social_overview', icon: 'chart-bar', exact: true  },
-      { href: '/admin/social?tab=postnow', labelKey: 'admin_nav_publish',         icon: 'pencil',    exact: false },
+      { href: '/admin/social',             labelKey: 'admin_nav_social_overview', icon: 'chart-bar',    exact: true  },
+      { href: '/admin/social?tab=postnow', labelKey: 'admin_nav_publish',         icon: 'pencil',       exact: false },
+      { href: '/admin/social-inbox',       labelKey: 'admin_nav_social_inbox',    icon: 'message-dots', exact: false, badge: 'social' as const },
     ],
   },
   {
@@ -56,6 +57,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/admin/email',     labelKey: 'admin_nav_email',     icon: 'mail',         exact: false },
       { href: '/admin/inbox',     labelKey: 'admin_nav_inbox',     icon: 'inbox',        exact: false, badge: 'inbox' as const },
+      { href: '/admin/messages',  labelKey: 'admin_nav_messages',  icon: 'messages',     exact: false },
       { href: '/admin/knowledge', labelKey: 'admin_nav_knowledge', icon: 'academic-cap', exact: false },
     ],
   },
@@ -154,6 +156,32 @@ function PendingBadge() {
   if (count === 0) return null
   return (
     <span className="ml-auto min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 flex items-center justify-center">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
+function SocialPendingBadge() {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/social/sessions?status=pending')
+        if (!res.ok) return
+        const d = await res.json()
+        if (!cancelled) setCount((d.sessions ?? []).length)
+      } catch { /* silent */ }
+    }
+    load()
+    const timer = setInterval(load, 60_000)
+    return () => { cancelled = true; clearInterval(timer) }
+  }, [])
+
+  if (count === 0) return null
+  return (
+    <span className="ml-auto min-w-[20px] h-5 bg-pink-500 text-white text-[10px] font-bold rounded-full px-1.5 flex items-center justify-center">
       {count > 99 ? '99+' : count}
     </span>
   )
@@ -394,7 +422,9 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
                       : <i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />}
                     <span>{t(item.labelKey)}</span>
                     {item.badge && !isActive(item.href, item.exact) && (
-                      item.badge === 'inbox' ? <InboxBadge /> : <PendingBadge />
+                      item.badge === 'inbox' ? <InboxBadge /> :
+                      item.badge === 'social' ? <SocialPendingBadge /> :
+                      <PendingBadge />
                     )}
                     {isActive(item.href, item.exact) && (
                       <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />

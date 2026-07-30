@@ -64,7 +64,9 @@ export default function BroadcastClient() {
     all_dalali: null, active_dalali: null, new_dalali: null,
     all_clients: null, active_clients: null,
   })
-  const [history, setHistory] = useState<BroadcastRecord[]>([])
+  const [history,      setHistory]      = useState<BroadcastRecord[]>([])
+  const [scheduleMode, setScheduleMode] = useState(false)
+  const [scheduledAt,  setScheduledAt]  = useState('')
 
   useEffect(() => { fetchHistory() }, [])
   useEffect(() => { fetchCounts() }, [])
@@ -126,10 +128,13 @@ export default function BroadcastClient() {
     setSendError('')
     setStage('sending')
 
+    const body: Record<string, unknown> = { target, message: draft.trim(), tone }
+    if (scheduleMode && scheduledAt) body.scheduled_at = new Date(scheduledAt).toISOString()
+
     const res = await fetch('/api/v1/whatsapp/broadcast', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ target, message: draft.trim(), tone }),
+      body: JSON.stringify(body),
     })
 
     const data = await res.json() as { sent_count?: number; failed_count?: number; recipients_count?: number; error?: string }
@@ -327,6 +332,28 @@ export default function BroadcastClient() {
             </div>
           )}
 
+          {/* Schedule toggle */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-2">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div
+                onClick={() => setScheduleMode(v => !v)}
+                className={`w-10 h-5 rounded-full transition-colors flex-shrink-0 ${scheduleMode ? 'bg-primary-500' : 'bg-gray-300'}`}
+              >
+                <div className={`w-4 h-4 bg-white rounded-full shadow mt-0.5 transition-transform ${scheduleMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-800">Panga Muda wa Kutuma</span>
+            </label>
+            {scheduleMode && (
+              <input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={e => setScheduledAt(e.target.value)}
+                min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary-500"
+              />
+            )}
+          </div>
+
           {/* Actions */}
           <div className="flex gap-3">
             <button
@@ -338,11 +365,11 @@ export default function BroadcastClient() {
             </button>
             <button
               onClick={handleSend}
-              disabled={!draft.trim()}
+              disabled={!draft.trim() || (scheduleMode && !scheduledAt)}
               className="flex-[2] bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-bold shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              <i className="ti ti-send" aria-hidden="true" />
-              Tuma kwa {targetCount != null ? `${targetCount}` : ''} Watu
+              <i className={`ti ti-${scheduleMode ? 'calendar' : 'send'}`} aria-hidden="true" />
+              {scheduleMode ? 'Hifadhi Ratiba' : `Tuma kwa ${targetCount != null ? `${targetCount}` : ''} Watu`}
             </button>
           </div>
         </div>

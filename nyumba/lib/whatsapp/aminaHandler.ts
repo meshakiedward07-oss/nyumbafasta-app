@@ -191,7 +191,7 @@ export async function handleWhatsAppMessage(
   console.log(`[Amina] dedup done (${Date.now() - t0}ms)`)
 
   // 2. Ensure WA session exists and update last_message_at
-  await getOrCreateWASession(from)
+  await getOrCreateWASession(from, profileName)
 
   // 3. Save user message to both tables in parallel
   await Promise.all([

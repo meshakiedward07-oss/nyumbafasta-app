@@ -7,6 +7,7 @@ export type WASessionStatus = 'amina' | 'pending' | 'admin' | 'resolved'
 export interface WASession {
   id: string
   phone_number: string
+  profile_name: string | null
   status: WASessionStatus
   assigned_admin_id: string | null
   escalation_reason: string | null
@@ -40,7 +41,7 @@ export async function getWASession(phone: string): Promise<WASession | null> {
   return (data as WASession) ?? null
 }
 
-export async function getOrCreateWASession(phone: string): Promise<WASession> {
+export async function getOrCreateWASession(phone: string, profileName?: string): Promise<WASession> {
   const now = new Date().toISOString()
 
   const { data: existing } = await supabaseAdmin
@@ -50,16 +51,18 @@ export async function getOrCreateWASession(phone: string): Promise<WASession> {
     .maybeSingle()
 
   if (existing) {
+    const upd: Record<string, string | null> = { last_message_at: now, updated_at: now }
+    if (profileName && !existing.profile_name) upd.profile_name = profileName
     await supabaseAdmin
       .from('whatsapp_sessions')
-      .update({ last_message_at: now, updated_at: now })
+      .update(upd)
       .eq('phone_number', phone)
-    return existing as WASession
+    return { ...existing, profile_name: profileName ?? existing.profile_name ?? null } as WASession
   }
 
   const { data, error } = await supabaseAdmin
     .from('whatsapp_sessions')
-    .insert({ phone_number: phone, status: 'amina', last_message_at: now })
+    .insert({ phone_number: phone, profile_name: profileName ?? null, status: 'amina', last_message_at: now })
     .select()
     .single()
 

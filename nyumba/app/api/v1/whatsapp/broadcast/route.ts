@@ -30,11 +30,13 @@ export async function POST(req: NextRequest) {
     message,
     tone = 'personal',
     phones: specificPhones,
+    scheduled_at,
   } = await req.json() as {
     target: string
     message: string
     tone?: string
     phones?: string[]
+    scheduled_at?: string
   }
 
   if (!message?.trim() || !target) {
@@ -132,12 +134,22 @@ export async function POST(req: NextRequest) {
       message:          message.trim(),
       tone,
       recipients_count: recipients.length,
-      status:           'sending',
+      status:           scheduled_at ? 'scheduled' : 'sending',
+      ...(scheduled_at ? { scheduled_at } : {}),
     })
     .select()
     .single()
 
   if (bErr) return NextResponse.json({ error: bErr.message }, { status: 500 })
+
+  // ── Scheduled: save and return without sending ────────────────────────────
+  if (scheduled_at) {
+    return NextResponse.json({
+      scheduled:    true,
+      broadcast_id: broadcast.id,
+      scheduled_at,
+    })
+  }
 
   // ── Tone prefix ───────────────────────────────────────────────────────────
 

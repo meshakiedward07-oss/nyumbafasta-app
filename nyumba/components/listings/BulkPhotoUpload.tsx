@@ -85,9 +85,11 @@ export function BulkPhotoUpload({
 
   // Revoke all blob URLs on unmount to free memory
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const blobUrls = blobUrlsRef.current
     return () => {
-      blobUrlsRef.current.forEach(url => { try { URL.revokeObjectURL(url) } catch {} })
-      blobUrlsRef.current.clear()
+      blobUrls.forEach(url => { try { URL.revokeObjectURL(url) } catch {} })
+      blobUrls.clear()
     }
   }, [])
 

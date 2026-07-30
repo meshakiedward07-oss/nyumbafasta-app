@@ -10,6 +10,7 @@ type Status = 'amina' | 'pending' | 'admin' | 'resolved'
 interface WASession {
   id: string
   phone_number: string
+  profile_name: string | null
   status: Status
   assigned_admin_id: string | null
   escalation_reason: string | null
@@ -422,11 +423,14 @@ export default function WhatsAppPanel() {
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <span className="text-xs font-semibold text-gray-800 font-mono">
-                    +{session.phone_number}
+                  <span className="text-xs font-semibold text-gray-800 truncate">
+                    {session.profile_name ?? `+${session.phone_number}`}
                   </span>
                   <StatusBadge status={session.status} />
                 </div>
+                {session.profile_name && (
+                  <p className="text-[9px] text-gray-400 font-mono mb-0.5">+{session.phone_number}</p>
+                )}
                 {session.last_message && (
                   <p className="text-[10px] text-gray-500 truncate">
                     {session.last_message.sender === 'admin' ? '(Admin) ' : ''}
@@ -458,7 +462,8 @@ export default function WhatsAppPanel() {
                 ←
               </button>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 text-sm font-mono">+{selected.phone_number}</p>
+                <p className="font-semibold text-gray-900 text-sm">{selected.profile_name ?? `+${selected.phone_number}`}</p>
+                {selected.profile_name && <p className="text-[10px] text-gray-400 font-mono">+{selected.phone_number}</p>}
                 {selected.escalation_reason && (
                   <p className="text-[10px] text-red-600 truncate">Sababu: {selected.escalation_reason}</p>
                 )}

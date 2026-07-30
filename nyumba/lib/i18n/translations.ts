@@ -257,6 +257,8 @@ const T = {
   admin_nav_conversations:     { sw: 'Mazungumzo',             en: 'Conversations'         },
   admin_nav_broadcast:         { sw: 'Tuma Ujumbe',            en: 'Broadcast'             },
   admin_nav_social_overview:   { sw: 'Muhtasari',              en: 'Overview'              },
+  admin_nav_social_inbox:      { sw: 'DM za Kijamii',          en: 'Social DMs'            },
+  admin_nav_messages:          { sw: 'Ujumbe wa Ndani',        en: 'Internal Messages'     },
   admin_nav_publish:           { sw: 'Chapisha',               en: 'Publish'               },
   admin_nav_leads_mgmt:        { sw: 'Leads Management',       en: 'Leads Management'      },
   admin_nav_email:             { sw: 'Barua Pepe',             en: 'Email'                 },
