@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/v1/cron/broadcast",
-      "schedule": "0 * * * *"
+      "schedule": "0 1 * * *"
     },
     {
       "path": "/api/v1/cron/daily",
