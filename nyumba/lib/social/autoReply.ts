@@ -269,44 +269,13 @@ export async function handleSocialDM(
   // Save incoming DM — capture id for reliable update later
   const { data: inserted } = await supabaseAdmin.from('social_dms').insert({
     platform,
-    sender_id:   data.senderId,
-    sender_name: data.senderName ?? null,
-    message_id:  data.messageId ?? null,
+    sender_id:    data.senderId,
+    sender_name:  data.senderName ?? null,
+    message_id:   data.messageId ?? null,
     message_text: data.messageText,
-    reply_sent:  false,
+    reply_sent:   false,
   }).select('id').single()
   const dmId = inserted?.id as string | undefined
-
-  // ── AI classification gate — runs before Amina ───────────────────────────
-  const classCtx = {
-    messageId:   data.messageId  ?? `${platform}-${data.senderId}-${Date.now()}`,
-    platform,
-    senderId:    data.senderId,
-    senderName:  data.senderName,
-    messageText: data.messageText,
-    messageType: 'text',
-  }
-  const classification = await classifyMessage(classCtx)
-  console.log(`[Social] classify=${classification.category} conf=${classification.confidence.toFixed(2)} on ${platform}`)
-
-  if (classification.category === 'spam') {
-    await saveClassification(classCtx, classification, 'ignored')
-    return
-  }
-
-  if (classification.category === 'personal' && classification.shouldNotifyOwner) {
-    const classId = await saveClassification(classCtx, classification, 'flagged')
-    if (classId) await notifyOwnerPersonalMessage(classCtx, classification, classId)
-    console.log('[Social] Personal msg — owner notified, Amina silent')
-    return
-  }
-
-  if (classification.category === 'unclear' && classification.confidence >= 0.7) {
-    const classId = await saveClassification(classCtx, classification, 'flagged')
-    if (classId) await notifyOwnerPersonalMessage(classCtx, classification, classId)
-    console.log('[Social] Unclear msg — owner notified, Amina silent')
-    return
-  }
 
   // Dalali lead detection — fire-and-forget, does not affect reply
   detectDalaliIntent(data.messageText, []).then(signal => {
@@ -323,48 +292,58 @@ export async function handleSocialDM(
     }
   }).catch(() => { /* non-fatal */ })
 
-  // ── Knowledge cascade (same layers as WhatsApp) ───────────────────────────
-  // Social DMs have no phone number, so maintenance actions won't fire,
-  // but cache, KB, search, viewing, and subscription layers all work.
+  // ── CASCADE FIRST — cache → search → action → knowledge_base ─────────────
+  // Classifier only runs when cascade misses (avoids burning Haiku on every DM).
   let replyText: string
   try {
     const cascade = await runCascade(data.messageText, {
       sessionId: `${platform}-${data.senderId}`,
-      flowType:  classification.subCategory,
     })
     console.log(`[Social] cascade answered=${cascade.answered} conf=${cascade.confidence.toFixed(3)} layer=${cascade.layerAnswered}`)
 
     if (cascade.answered) {
       replyText = cascade.answer
-      // Cache for future identical DMs on any platform
       cacheAminaAnswer(data.messageText, replyText)
-      void saveClassification(classCtx, classification, 'kb_answered', replyText).catch(() => null)
     } else {
-      // Pass KB context to Amina so she has factual grounding
+      // Cascade missed — classify to detect spam/personal before calling Amina
+      const classCtx = {
+        messageId:   data.messageId ?? `${platform}-${data.senderId}-${Date.now()}`,
+        platform,
+        senderId:    data.senderId,
+        senderName:  data.senderName,
+        messageText: data.messageText,
+        messageType: 'text',
+      }
+      const classification = await classifyMessage(classCtx)
+      console.log(`[Social] classify=${classification.category} conf=${classification.confidence.toFixed(2)} on ${platform}`)
+
+      if (classification.category === 'spam') {
+        void saveClassification(classCtx, classification, 'ignored').catch(() => null)
+        return
+      }
+
+      if (classification.category === 'personal' && classification.confidence >= 0.8) {
+        // Only silence when very confident it's personal — don't gate valid business messages
+        const classId = await saveClassification(classCtx, classification, 'flagged')
+        if (classId) await notifyOwnerPersonalMessage(classCtx, classification, classId)
+        console.log('[Social] Personal msg (high conf) — owner notified, silent')
+        return
+      }
+
+      // "unclear", "nyumbafasta", low-confidence personal → Amina
       const kbContext = formatKBContext(cascade.retrieved)
 
       // Force social DMs into customer_care flow — never show the guided menu
       const chatSession = await getOrCreateSession(platform, data.senderId, undefined, data.senderName)
       if (chatSession.flow_type !== 'customer_care') {
-        await updateSession(chatSession.id, {
-          flow_type: 'customer_care',
-          flow_step:  'care_active',
-          flow_data:  {},
-        })
+        await updateSession(chatSession.id, { flow_type: 'customer_care', flow_step: 'care_active', flow_data: {} })
       }
 
       replyText = await handleIncomingMessage(
-        platform,
-        data.senderId,
-        data.messageText,
-        undefined,
-        data.senderName,
-        undefined,
-        undefined,
-        kbContext,
+        platform, data.senderId, data.messageText,
+        undefined, data.senderName, undefined, undefined, kbContext,
       )
 
-      // Cache and log Amina's response
       cacheAminaAnswer(data.messageText, replyText)
       void logMiss(data.messageText, 'amina', {
         sessionId:    `${platform}-${data.senderId}`,

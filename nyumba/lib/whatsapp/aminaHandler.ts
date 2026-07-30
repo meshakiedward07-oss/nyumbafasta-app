@@ -176,206 +176,195 @@ export async function handleWhatsAppMessage(
 ): Promise<string> {
   const t0 = Date.now()
 
-  // 1. Rate limiting — 15 messages per 60 seconds per number
-  const rl = await checkRateLimit(from, 'whatsapp')
-  if (!rl.allowed) {
-    console.warn(`[Amina] Rate limited: ${from.slice(0, 5)}**** (${rl.currentCount} msgs/min)`)
-    return ''
-  }
+  try {
+    // 1. Rate limiting — 15 messages per 60 seconds per number
+    const rl = await checkRateLimit(from, 'whatsapp')
+    if (!rl.allowed) {
+      console.warn(`[Amina] Rate limited: ${from.slice(0, 5)}**** (${rl.currentCount} msgs/min)`)
+      return ''
+    }
 
-  // 2. Deduplication — Meta delivers webhooks at least once
-  if (await isMessageProcessed(messageId)) {
-    console.log('[Amina] Duplicate skipped:', messageId)
-    return ''
-  }
-  console.log(`[Amina] dedup done (${Date.now() - t0}ms)`)
+    // 2. Deduplication — Meta delivers webhooks at least once
+    if (await isMessageProcessed(messageId)) {
+      console.log('[Amina] Duplicate skipped:', messageId)
+      return ''
+    }
 
-  // 2. Ensure WA session exists and update last_message_at
-  await getOrCreateWASession(from, profileName)
+    // 3. Ensure WA session exists and save user message
+    await getOrCreateWASession(from, profileName)
+    await Promise.all([
+      saveConversationEntry(from, 'user', messageText, messageId),
+      saveWAMessage(from, 'inbound', 'user', messageText, messageId),
+    ])
+    console.log(`[Amina] saved (${Date.now() - t0}ms)`)
 
-  // 3. Save user message to both tables in parallel
-  await Promise.all([
-    saveConversationEntry(from, 'user', messageText, messageId),
-    saveWAMessage(from, 'inbound', 'user', messageText, messageId),
-  ])
-  console.log(`[Amina] user saved (${Date.now() - t0}ms)`)
+    let response: string
 
-  let response: string
+    // 4. Special commands — deterministic, no AI needed
+    const command = detectSpecialCommand(messageText)
 
-  // 4. Special commands take priority
-  const command = detectSpecialCommand(messageText)
+    if (command === 'reset') {
+      await resetSession(from)
+      response = RESET_MESSAGE
 
-  if (command === 'reset') {
-    await resetSession(from)
-    response = RESET_MESSAGE
+    } else if (command === 'help') {
+      response = HELP_MESSAGE
 
-  } else if (command === 'help') {
-    response = HELP_MESSAGE
-
-  } else if (command === 'human_agent') {
-    await escalateToAdmin(from, profileName, 'Mteja aliomba msaada wa mtu moja kwa moja')
-    void logMiss(messageText, 'handover', { phoneNumber: from, handoverTriggered: true })
-    response = ESCALATION_MESSAGE
-
-  } else if (command === 'stop') {
-    response = STOP_MESSAGE
-
-  } else {
-    // 5. Check for escalation keywords
-    const escalationReason = detectEscalation(messageText)
-    if (escalationReason) {
-      await escalateToAdmin(from, profileName, escalationReason)
+    } else if (command === 'human_agent') {
+      await escalateToAdmin(from, profileName, 'Mteja aliomba msaada wa mtu moja kwa moja')
       void logMiss(messageText, 'handover', { phoneNumber: from, handoverTriggered: true })
       response = ESCALATION_MESSAGE
+
+    } else if (command === 'stop') {
+      response = STOP_MESSAGE
+
     } else {
-      // 5b. AI message classification — gate before Amina
-      const classCtx = {
-        messageId:   messageId,
-        platform:    'whatsapp' as const,
-        senderPhone: from,
-        senderName:  profileName,
-        messageText,
-        messageType: 'text',
-      }
-      const classification = await classifyMessage(classCtx)
-      console.log(`[Amina] classify=${classification.category} conf=${classification.confidence.toFixed(2)}`)
+      // 5. Escalation keywords — deterministic
+      const escalationReason = detectEscalation(messageText)
+      if (escalationReason) {
+        await escalateToAdmin(from, profileName, escalationReason)
+        void logMiss(messageText, 'handover', { phoneNumber: from, handoverTriggered: true })
+        response = ESCALATION_MESSAGE
+      } else {
+        // 6. Skip cascade when user is mid guided flow (dalali_register / dalali_listing)
+        const guidedFlow = await isInGuidedFlow(from)
+        console.log(`[Amina] guidedFlow=${guidedFlow} (${Date.now() - t0}ms)`)
 
-      if (classification.category === 'spam') {
-        await saveClassification(classCtx, classification, 'ignored')
-        console.log('[Amina] Spam ignored:', from.slice(0, 5) + '****')
-        return ''
-      }
+        let kbContextForAmina: string | undefined
 
-      if (classification.category === 'personal' && classification.shouldNotifyOwner) {
-        const classId = await saveClassification(classCtx, classification, 'flagged')
-        if (classId) await notifyOwnerPersonalMessage(classCtx, classification, classId)
-        console.log('[Amina] Personal msg — owner notified, Amina silent')
-        return ''
-      }
-
-      if (classification.category === 'unclear' && classification.confidence >= 0.7) {
-        // High-confidence unclear means it's likely NOT a business message
-        const classId = await saveClassification(classCtx, classification, 'flagged')
-        if (classId) await notifyOwnerPersonalMessage(classCtx, classification, classId)
-        console.log('[Amina] Unclear (high conf) — owner notified, Amina silent')
-        return ''
-      }
-
-      // category === 'nyumbafasta' (or unclear with low confidence) → try cascade first
-      // 6. Guard: skip cascade when user is mid guided flow (dalali_register / dalali_listing)
-      const guidedFlow = await isInGuidedFlow(from)
-      console.log(`[Amina] guidedFlow=${guidedFlow} (${Date.now() - t0}ms)`)
-
-      let kbContextForAmina: string | undefined
-
-      if (!guidedFlow) {
-        // Resolve org_id from active lease for vendor search context
-        let tenantOrgId: string | undefined
-        try {
-          const { data: userRow } = await supabaseAdmin
-            .from('users')
-            .select('id')
-            .ilike('phone', `%${from.replace(/^\+/, '').slice(-9)}%`)
-            .maybeSingle()
-          if (userRow?.id) {
-            const { data: lease } = await supabaseAdmin
-              .from('leases')
-              .select('org_id')
-              .eq('user_id', userRow.id)
-              .eq('status', 'active')
+        if (!guidedFlow) {
+          // Resolve org_id from active lease for vendor search context
+          let tenantOrgId: string | undefined
+          try {
+            const { data: userRow } = await supabaseAdmin
+              .from('users')
+              .select('id')
+              .ilike('phone', `%${from.replace(/^\+/, '').slice(-9)}%`)
               .maybeSingle()
-            tenantOrgId = lease?.org_id ?? undefined
-          }
-        } catch { /* non-fatal — vendor search works without org_id */ }
+            if (userRow?.id) {
+              const { data: lease } = await supabaseAdmin
+                .from('leases')
+                .select('org_id')
+                .eq('user_id', userRow.id)
+                .eq('status', 'active')
+                .maybeSingle()
+              tenantOrgId = lease?.org_id ?? undefined
+            }
+          } catch { /* non-fatal */ }
 
-        // 6a. Run knowledge cascade: cache → search → action → knowledge_base
-        const cascade = await runCascade(messageText, {
-          phoneNumber: from,
-          flowType:    classification.subCategory,
-          orgId:       tenantOrgId,
-        })
-        console.log(`[Amina] cascade answered=${cascade.answered} conf=${cascade.confidence.toFixed(3)} layer=${cascade.layerAnswered}`)
-
-        if (cascade.answered) {
-          response = cascade.answer
-          void saveClassification(classCtx, classification, 'kb_answered', response).catch(() => null)
-          // Skip straight to sanitise + save — no Amina call needed
-          const clean = sanitiseForWhatsApp(response)
-          await Promise.all([
-            saveConversationEntry(from, 'assistant', clean),
-            saveWAMessage(from, 'outbound', 'amina', clean),
-          ])
-          console.log(`[Amina] KB answered total=${Date.now() - t0}ms`)
-          return clean
-        }
-
-        // Cascade didn't answer — pass retrieved KB snippets to Amina as context
-        kbContextForAmina = formatKBContext(cascade.retrieved)
-        if (kbContextForAmina) {
-          console.log(`[Amina] KB context injected (${cascade.retrieved.length} items)`)
-        }
-      }
-
-      // 7. Fetch any admin instructions for this conversation
-      const adminInstructions = await getAminaInstructions(from)
-      console.log(`[Amina] instructions fetched (${Date.now() - t0}ms), has=${!!adminInstructions}`)
-
-      // 7b. Dalali lead detection — fire-and-forget
-      detectDalaliIntent(messageText, []).then(signal => {
-        if (signal.isDalaliProspect && signal.confidence >= 60) {
-          console.log(`[Amina] Dalali signal detected: ${signal.signal} (${signal.confidence}%)`)
-          captureDalaliLead({
+          // 7. CASCADE FIRST — cache → search → action → knowledge_base
+          // This runs before the classifier so cache/search hits need zero extra AI calls.
+          const cascade = await runCascade(messageText, {
             phoneNumber: from,
-            name: profileName,
-            conversationSummary: messageText,
-            signal: signal.signal,
-            confidence: signal.confidence,
-            source: 'whatsapp_amina',
-          }).catch(err => console.error('[Amina] Lead capture failed:', err))
+            orgId:       tenantOrgId,
+          })
+          console.log(`[Amina] cascade answered=${cascade.answered} conf=${cascade.confidence.toFixed(3)} layer=${cascade.layerAnswered} (${Date.now() - t0}ms)`)
+
+          if (cascade.answered) {
+            // Cascade answered — no classifier, no Amina needed
+            const clean = sanitiseForWhatsApp(cascade.answer)
+            await Promise.all([
+              saveConversationEntry(from, 'assistant', clean),
+              saveWAMessage(from, 'outbound', 'amina', clean),
+            ])
+            console.log(`[Amina] cascade answered total=${Date.now() - t0}ms`)
+            return clean
+          }
+
+          // 8. Cascade missed — classify to detect spam/personal before calling Amina
+          // Only gates spam (drop) and high-confidence personal (notify owner, stay silent).
+          // "unclear" and low-confidence personal still reach Amina.
+          const classCtx = {
+            messageId,
+            platform:    'whatsapp' as const,
+            senderPhone: from,
+            senderName:  profileName,
+            messageText,
+            messageType: 'text',
+          }
+          const classification = await classifyMessage(classCtx)
+          console.log(`[Amina] classify=${classification.category} conf=${classification.confidence.toFixed(2)} (${Date.now() - t0}ms)`)
+
+          if (classification.category === 'spam') {
+            void saveClassification(classCtx, classification, 'ignored').catch(() => null)
+            console.log('[Amina] Spam dropped:', from.slice(0, 5) + '****')
+            return ''
+          }
+
+          if (classification.category === 'personal' && classification.confidence >= 0.8) {
+            // Only silence Amina when we're very confident it's a personal message
+            const classId = await saveClassification(classCtx, classification, 'flagged')
+            if (classId) await notifyOwnerPersonalMessage(classCtx, classification, classId)
+            console.log('[Amina] Personal msg (high conf) — owner notified, silent')
+            return ''
+          }
+
+          // "unclear", "nyumbafasta", low-confidence personal → all go to Amina
+          kbContextForAmina = formatKBContext(cascade.retrieved)
+          if (kbContextForAmina) {
+            console.log(`[Amina] KB context injected (${cascade.retrieved.length} items)`)
+          }
+          void saveClassification(classCtx, classification, 'amina_pending').catch(() => null)
         }
-      }).catch(() => { /* non-fatal */ })
 
-      // 8. Route through Amina's full AI flow (with KB context injected)
-      console.log(`[Amina] calling handleIncomingMessage (${Date.now() - t0}ms)`)
-      response = await handleIncomingMessage(
-        'whatsapp',
-        from,
-        messageText,
-        from,
-        profileName,
-        undefined,
-        adminInstructions || undefined,
-        kbContextForAmina,
-      )
-      console.log(`[Amina] AI done (${Date.now() - t0}ms)`)
+        // 9. Fetch any admin instructions for this conversation
+        const adminInstructions = await getAminaInstructions(from)
+        console.log(`[Amina] instructions (${Date.now() - t0}ms), has=${!!adminInstructions}`)
 
-      // Cache Amina's answer so the same question is answered from KB next time
-      cacheAminaAnswer(messageText, response)
+        // 10. Dalali lead detection — fire-and-forget
+        detectDalaliIntent(messageText, []).then(signal => {
+          if (signal.isDalaliProspect && signal.confidence >= 60) {
+            console.log(`[Amina] Dalali signal: ${signal.signal} (${signal.confidence}%)`)
+            captureDalaliLead({
+              phoneNumber: from,
+              name:        profileName,
+              conversationSummary: messageText,
+              signal:      signal.signal,
+              confidence:  signal.confidence,
+              source:      'whatsapp_amina',
+            }).catch(err => console.error('[Amina] Lead capture failed:', err))
+          }
+        }).catch(() => { /* non-fatal */ })
 
-      // Log that Amina was invoked (updates cascade analytics)
-      void logMiss(messageText, 'amina', {
-        phoneNumber:      from,
-        invokedAmina:     true,
-        aminaResponse:    response.slice(0, 500),
-        handoverTriggered: false,
-      }).catch(() => null)
+        // 11. Full Amina AI (KB context injected for grounding)
+        console.log(`[Amina] calling handleIncomingMessage (${Date.now() - t0}ms)`)
+        response = await handleIncomingMessage(
+          'whatsapp',
+          from,
+          messageText,
+          from,
+          profileName,
+          undefined,
+          adminInstructions || undefined,
+          kbContextForAmina,
+        )
+        console.log(`[Amina] AI done (${Date.now() - t0}ms)`)
 
-      // Save classification record for analytics (fire-and-forget)
-      void saveClassification(classCtx, classification, 'auto_replied', response).catch(() => null)
+        cacheAminaAnswer(messageText, response)
+        void logMiss(messageText, 'amina', {
+          phoneNumber:       from,
+          invokedAmina:      true,
+          aminaResponse:     response.slice(0, 500),
+          handoverTriggered: false,
+        }).catch(() => null)
+      }
     }
+
+    // 12. Sanitise + save assistant response
+    const clean = sanitiseForWhatsApp(response)
+    await Promise.all([
+      saveConversationEntry(from, 'assistant', clean),
+      saveWAMessage(from, 'outbound', 'amina', clean),
+    ])
+    console.log(`[Amina] done total=${Date.now() - t0}ms`)
+    return clean
+
+  } catch (err) {
+    // Top-level safety net — log but do NOT send error text to the user.
+    // Returning '' means the webhook sends no reply (user sees silence, not an error).
+    console.error('[Amina] handleWhatsAppMessage uncaught error:', err)
+    return ''
   }
-
-  // 8. Sanitise markdown for WhatsApp
-  const clean = sanitiseForWhatsApp(response)
-
-  // 9. Save assistant response to both tables
-  await Promise.all([
-    saveConversationEntry(from, 'assistant', clean),
-    saveWAMessage(from, 'outbound', 'amina', clean),
-  ])
-  console.log(`[Amina] done total=${Date.now() - t0}ms`)
-
-  return clean
 }
 
 // ── Acknowledgement for 'pending' sessions ────────────────────────────────────

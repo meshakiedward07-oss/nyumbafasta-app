@@ -30,7 +30,7 @@ export async function getOrCreateSession(
     .select('*')
     .eq('platform', platform)
     .eq('user_id', userId)
-    .single()
+    .maybeSingle()
 
   if (existing) {
     await supabaseAdmin
@@ -53,6 +53,17 @@ export async function getOrCreateSession(
     })
     .select()
     .single()
+
+  // Race condition: another concurrent request created the session first
+  if (insertErr?.code === '23505') {
+    const { data: concurrent } = await supabaseAdmin
+      .from('chat_sessions')
+      .select('*')
+      .eq('platform', platform)
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (concurrent) return concurrent as ChatSession
+  }
 
   if (insertErr) throw new Error(`Session insert failed: ${insertErr.message}`)
   return newSession as ChatSession
