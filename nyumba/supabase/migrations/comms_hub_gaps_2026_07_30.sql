@@ -11,9 +11,10 @@ ALTER TABLE social_comments
   ADD COLUMN IF NOT EXISTS replied_at  TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS replied_by  UUID REFERENCES users(id) ON DELETE SET NULL;
 
--- 3. WhatsApp Broadcasts: support scheduled sends
+-- 3. WhatsApp Broadcasts: support scheduled sends + store specific phone targets
 ALTER TABLE whatsapp_broadcasts
-  ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ;
+  ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS phones_json  JSONB;   -- stored for 'specific' target cron re-resolution
 
 -- Update the status check constraint to allow 'scheduled' status
 -- (safe to run multiple times — ALTER CONSTRAINT is idempotent via DROP + ADD)

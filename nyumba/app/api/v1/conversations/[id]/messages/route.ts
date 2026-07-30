@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { sendPushToUser } from '@/lib/notifications/send'
 
 type Params = { params: { id: string } }
 
@@ -25,7 +26,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!count && !isAdminStaff) return NextResponse.json({ error: 'Huna ruhusa ya kutuma ujumbe' }, { status: 403 })
 
     const body = await req.json()
-    const { message, message_type = 'text', is_internal = false } = body
+    const { message, message_type = 'text', is_internal = false, attachments } = body as {
+      message: string; message_type?: string; is_internal?: boolean
+      attachments?: Array<{ file_url: string; file_name?: string; file_type?: string; file_size?: number }>
+    }
 
     if (!message?.trim()) return NextResponse.json({ error: 'Ujumbe hauwezi kuwa tupu' }, { status: 400 })
 
@@ -49,6 +53,19 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     if (msgErr) throw msgErr
 
+    // Save attachments if provided
+    if (attachments?.length) {
+      await admin.from('message_attachments').insert(
+        attachments.map((a) => ({
+          message_id: msg.id,
+          file_url:   a.file_url,
+          file_name:  a.file_name ?? null,
+          file_type:  a.file_type ?? null,
+          file_size:  a.file_size ?? null,
+        }))
+      )
+    }
+
     // Update conversation last_message_at
     await admin
       .from('conversations')
@@ -61,6 +78,27 @@ export async function POST(req: NextRequest, { params }: Params) {
       .update({ last_read_at: now })
       .eq('conversation_id', conversationId)
       .eq('user_id', user.id)
+
+    // Push notifications — fire-and-forget for all other participants
+    const senderName = (msg.sender as { full_name?: string } | null)?.full_name ?? 'Mtumiaji'
+    const pushBody = message.trim().slice(0, 120)
+
+    admin
+      .from('conversation_participants')
+      .select('user_id, user:users!user_id(role)')
+      .eq('conversation_id', conversationId)
+      .neq('user_id', user.id)
+      .then(({ data: others }) => {
+        for (const p of others ?? []) {
+          const role = (p.user as { role?: string } | null)?.role ?? ''
+          const url =
+            role === 'dalali'    ? '/dashboard/messages' :
+            role === 'tenant'    ? '/tenant' :
+            role === 'org_owner' ? '/property/mazungumzo' :
+                                   '/admin/messages'
+          sendPushToUser(p.user_id, `Ujumbe: ${senderName}`, pushBody, url)
+        }
+      })
 
     return NextResponse.json({ message: msg }, { status: 201 })
   } catch (err) {

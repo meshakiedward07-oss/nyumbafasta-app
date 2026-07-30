@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import AttachmentCompose, { type PendingAttachment } from '@/components/messages/AttachmentCompose'
+import AttachmentDisplay from '@/components/messages/AttachmentDisplay'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -22,12 +24,21 @@ interface Conversation {
   participants: Participant[]
 }
 
+interface Attachment {
+  id?: string
+  file_url: string
+  file_name: string | null
+  file_type: string | null
+  file_size: number | null
+}
+
 interface Message {
   id: string
   sender_id: string
   body: string
   created_at: string
   sender: { id: string; full_name: string | null; avatar_url: string | null } | null
+  attachments?: Attachment[]
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -73,6 +84,7 @@ export default function DalaliMessagesPage() {
   const [selected, setSelected] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [draft, setDraft] = useState('')
+  const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null)
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingThread, setLoadingThread] = useState(false)
@@ -139,24 +151,32 @@ export default function DalaliMessagesPage() {
   }, [messages])
 
   async function handleSend() {
-    if (!draft.trim() || !selected || sending || !uid) return
+    if ((!draft.trim() && !pendingAttachment) || !selected || sending || !uid) return
     setSending(true)
     const body = draft.trim()
+    const attachment = pendingAttachment
     setDraft('')
+    setPendingAttachment(null)
     const res = await fetch(`/api/v1/conversations/${selected.id}/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: body }),
+      body: JSON.stringify({
+        message: body || (attachment ? attachment.file_name ?? 'Faili' : ''),
+        attachments: attachment ? [attachment] : undefined,
+      }),
     })
     if (res.ok) {
       const json = await res.json()
       const msg: Message = json.message
       if (msg) {
         setMessages((prev) => prev.find((m) => m.id === msg.id) ? prev : [...prev, {
-          ...msg, sender: msg.sender ?? { id: uid, full_name: userName, avatar_url: userAvatar },
+          ...msg,
+          sender: msg.sender ?? { id: uid, full_name: userName, avatar_url: userAvatar },
+          attachments: attachment ? [{ file_url: attachment.url, file_name: attachment.file_name, file_type: attachment.file_type, file_size: attachment.file_size }] : [],
         }])
       }
     } else {
       setDraft(body)
+      setPendingAttachment(attachment)
     }
     setSending(false)
   }
@@ -267,6 +287,7 @@ export default function DalaliMessagesPage() {
                       {!isMe && <span className="text-xs text-gray-400 px-1">{name}</span>}
                       <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${isMe ? 'bg-primary-500 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-900 rounded-tl-sm'}`}>
                         {msg.body}
+                        {msg.attachments?.length ? <AttachmentDisplay attachments={msg.attachments} /> : null}
                       </div>
                       <span className="text-xs text-gray-300 px-1">
                         {new Date(msg.created_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
@@ -279,8 +300,20 @@ export default function DalaliMessagesPage() {
             <div ref={bottomRef} />
           </div>
 
-          <div className="p-3 border-t border-gray-100">
+          <div className="p-3 border-t border-gray-100 space-y-2">
+            {pendingAttachment && (
+              <AttachmentCompose
+                attachment={pendingAttachment}
+                onAttach={setPendingAttachment}
+                onRemove={() => setPendingAttachment(null)}
+              />
+            )}
             <div className="flex items-end gap-2">
+              <AttachmentCompose
+                attachment={null}
+                onAttach={setPendingAttachment}
+                onRemove={() => setPendingAttachment(null)}
+              />
               <textarea
                 className="flex-1 resize-none px-3 py-2 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-300 max-h-28"
                 rows={1}
@@ -291,7 +324,7 @@ export default function DalaliMessagesPage() {
               />
               <button
                 onClick={handleSend}
-                disabled={!draft.trim() || sending}
+                disabled={(!draft.trim() && !pendingAttachment) || sending}
                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-40 transition-colors flex-shrink-0"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

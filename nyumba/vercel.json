@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/v1/cron/broadcast",
+      "schedule": "0 * * * *"
+    },
+    {
       "path": "/api/v1/cron/daily",
       "schedule": "0 3 * * *"
     },
@@ -49,6 +53,7 @@
     "app/api/v1/social/best-time/route.ts":           { "maxDuration": 60 },
     "app/api/v1/social/caption/route.ts":             { "maxDuration": 30 },
     "app/api/v1/agent/run/route.ts":                  { "maxDuration": 60 },
+    "app/api/v1/cron/broadcast/route.ts":             { "maxDuration": 300 },
     "app/api/v1/cron/daily/route.ts":                 { "maxDuration": 300 },
     "app/api/v1/cron/weekly/route.ts":                { "maxDuration": 60 },
     "app/api/v1/cron/hourly/route.ts":                { "maxDuration": 30 },
