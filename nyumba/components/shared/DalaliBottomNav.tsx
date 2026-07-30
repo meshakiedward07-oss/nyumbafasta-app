@@ -9,6 +9,7 @@ const ITEMS: { href: string; icon: string; iconActive: string; labelKey: TKey; i
   { href: '/dashboard/listings',     icon: 'home',             iconActive: 'home-filled',      labelKey: 'dal_nav_listings', isAdd: false },
   { href: '/dashboard/listings/new', icon: 'plus',             iconActive: 'plus',             labelKey: 'dal_nav_add',      isAdd: true  },
   { href: '/dashboard/hesabu',       icon: 'coins',            iconActive: 'coins',            labelKey: 'dal_nav_accounts', isAdd: false },
+  { href: '/dashboard/messages',     icon: 'message',          iconActive: 'message-filled',   labelKey: 'dal_nav_messages', isAdd: false },
   { href: '/dashboard/profile',      icon: 'user',             iconActive: 'user-filled',      labelKey: 'nav_account',      isAdd: false },
 ]
 

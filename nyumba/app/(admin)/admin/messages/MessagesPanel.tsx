@@ -9,7 +9,7 @@ interface Participant {
   user_id: string
   role: string
   last_read_at: string | null
-  user: { id: string; full_name: string | null; avatar_url: string | null }
+  user: { id: string; full_name: string | null; avatar_url: string | null } | null
 }
 
 interface Conversation {
@@ -17,11 +17,11 @@ interface Conversation {
   title: string | null
   conv_type: string
   status: string
+  org_id: string | null
   last_message_at: string | null
   created_at: string
   unread_count: number
   last_message_body: string | null
-  last_message_sender: string | null
   participants: Participant[]
 }
 
@@ -31,19 +31,44 @@ interface Message {
   sender_id: string
   body: string
   message_type: string
-  is_internal: boolean
   created_at: string
   sender: { id: string; full_name: string | null; avatar_url: string | null } | null
 }
 
-interface StaffUser {
+interface Contact {
   id: string
-  full_name: string | null
+  name: string
+  subtitle: string | null
   avatar_url: string | null
-  role: string
+  type: string         // role or 'org'
+  user_id?: string     // for user contacts
+  org_id?: string      // for org contacts
+  owner_id?: string    // for org contacts
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const CONTACT_TABS = [
+  { key: 'staff',  label: 'Wafanyakazi', icon: 'users' },
+  { key: 'dalali', label: 'Madalali',    icon: 'home'  },
+  { key: 'org',    label: 'Mashirika',   icon: 'building' },
+  { key: 'tenant', label: 'Wapangaji',   icon: 'key' },
+]
+
+const ROLE_BADGE: Record<string, { label: string; cls: string }> = {
+  admin:     { label: 'Admin',     cls: 'bg-purple-100 text-purple-700' },
+  staff:     { label: 'Staff',     cls: 'bg-blue-100 text-blue-700' },
+  dalali:    { label: 'Dalali',    cls: 'bg-amber-100 text-amber-700' },
+  org:       { label: 'Shirika',   cls: 'bg-green-100 text-green-700' },
+  org_owner: { label: 'Mmiliki',   cls: 'bg-teal-100 text-teal-700' },
+  tenant:    { label: 'Mpangaji',  cls: 'bg-rose-100 text-rose-700' },
+}
+
+function roleBadge(type: string) {
+  const b = ROLE_BADGE[type]
+  if (!b) return null
+  return <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${b.cls}`}>{b.label}</span>
+}
 
 function relativeTime(iso: string | null): string {
   if (!iso) return ''
@@ -52,7 +77,7 @@ function relativeTime(iso: string | null): string {
   if (m < 1) return 'Sasa hivi'
   if (m < 60) return `Dakika ${m} zilizopita`
   const h = Math.floor(m / 60)
-  if (h < 24) return `Masaa ${h} yaliyopita`
+  if (h < 24) return `Saa ${h} zilizopita`
   return `Siku ${Math.floor(h / 24)} zilizopita`
 }
 
@@ -68,16 +93,22 @@ function Avatar({ src, name, size = 8 }: { src?: string | null; name: string | n
   return <div className={`${cls} bg-primary-100 text-primary-700`}>{initials(name)}</div>
 }
 
-function convTitle(conv: Conversation, currentUserId: string): string {
+function convLabel(conv: Conversation, currentUserId: string): string {
   if (conv.title) return conv.title
-  const others = conv.participants
-    ?.filter((p) => p.user_id !== currentUserId)
+  const others = (conv.participants ?? [])
+    .filter((p) => p.user_id !== currentUserId)
     .map((p) => p.user?.full_name ?? 'Mtumiaji')
-  if (!others?.length) return 'Mazungumzo'
-  return others.slice(0, 3).join(', ')
+  return others.length ? others.slice(0, 2).join(', ') : 'Mazungumzo'
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
+function convTypeTag(conv: Conversation) {
+  if (conv.org_id) return roleBadge('org')
+  const firstRole = (conv.participants ?? []).find((p) => p.role !== 'owner')?.role
+  if (firstRole && ROLE_BADGE[firstRole]) return roleBadge(firstRole)
+  return null
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
 
 interface Props {
   currentUserId: string
@@ -93,12 +124,18 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingThread, setLoadingThread] = useState(false)
+
+  // New conversation
   const [showNewConv, setShowNewConv] = useState(false)
-  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([])
+  const [contactTab, setContactTab] = useState('staff')
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [contactSearch, setContactSearch] = useState('')
+  const [contactsLoading, setContactsLoading] = useState(false)
+  const [pickedContact, setPickedContact] = useState<Contact | null>(null)
   const [newTitle, setNewTitle] = useState('')
-  const [newParticipants, setNewParticipants] = useState<string[]>([])
   const [newFirstMsg, setNewFirstMsg] = useState('')
   const [creating, setCreating] = useState(false)
+
   const [searchQ, setSearchQ] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
@@ -118,41 +155,34 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
     const json = await res.json()
     setMessages(json.messages ?? [])
     setLoadingThread(false)
-    // Mark as read
     await fetch(`/api/v1/conversations/${convId}/read`, { method: 'POST' })
     setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, unread_count: 0 } : c))
   }, [])
 
+  const loadContacts = useCallback(async (type: string, q = '') => {
+    setContactsLoading(true)
+    const params = new URLSearchParams({ type })
+    if (q) params.set('q', q)
+    const res = await fetch(`/api/v1/conversations/contacts?${params}`)
+    if (res.ok) { const json = await res.json(); setContacts(json.contacts ?? []) }
+    setContactsLoading(false)
+  }, [])
+
   useEffect(() => { loadConversations() }, [loadConversations])
 
-  // Supabase realtime: listen for new messages in the selected conversation
   useEffect(() => {
     if (!selected) return
     const channel = supabase
-      .channel(`messages-${selected.id}`)
+      .channel(`admin-messages-${selected.id}`)
       .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
+        event: 'INSERT', schema: 'public', table: 'messages',
         filter: `conversation_id=eq.${selected.id}`,
-      }, (payload) => {
-        const newMsg = payload.new as Message
-        setMessages((prev) => {
-          if (prev.find((m) => m.id === newMsg.id)) return prev
-          // sender name may not be in the payload; reload thread to get it
-          loadThread(selected.id)
-          return prev
-        })
-        // Also refresh conversation list for last_message
-        loadConversations()
-      })
+      }, () => { loadThread(selected.id); loadConversations() })
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id])
 
-  // Poll as fallback every 30s
   useEffect(() => {
     if (!selected) return
     const t = setInterval(() => { loadThread(selected.id); loadConversations() }, 30000)
@@ -160,20 +190,22 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
   }, [selected, loadThread, loadConversations])
 
   useEffect(() => {
-    if (selected) { loadThread(selected.id) }
+    if (selected) loadThread(selected.id)
   }, [selected, loadThread])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  async function loadStaffUsers() {
-    const res = await fetch('/api/v1/conversations/staff-users')
-    if (res.ok) {
-      const json = await res.json()
-      setStaffUsers(json.users ?? [])
-    }
-  }
+  useEffect(() => {
+    if (showNewConv) { setPickedContact(null); loadContacts(contactTab) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showNewConv])
+
+  useEffect(() => {
+    if (showNewConv) { setContacts([]); loadContacts(contactTab, contactSearch) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contactTab, contactSearch])
 
   async function handleSend() {
     if (!draft.trim() || !selected || sending) return
@@ -181,66 +213,75 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
     const body = draft.trim()
     setDraft('')
     const res = await fetch(`/api/v1/conversations/${selected.id}/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: body }),
     })
     if (res.ok) {
       const json = await res.json()
       const msg: Message = json.message
       if (msg) {
-        setMessages((prev) => {
-          if (prev.find((m) => m.id === msg.id)) return prev
-          return [...prev, { ...msg, sender: msg.sender ?? { id: currentUserId, full_name: currentUserName, avatar_url: currentUserAvatar } }]
-        })
+        setMessages((prev) => prev.find((m) => m.id === msg.id) ? prev : [...prev, {
+          ...msg, sender: msg.sender ?? { id: currentUserId, full_name: currentUserName, avatar_url: currentUserAvatar },
+        }])
         setConversations((prev) => prev.map((c) =>
           c.id === selected.id ? { ...c, last_message_at: msg.created_at, last_message_body: body } : c
         ))
       }
     } else {
-      setDraft(body) // restore on failure
+      setDraft(body)
     }
     setSending(false)
   }
 
   async function handleCreate() {
-    if (!newParticipants.length || !newFirstMsg.trim() || creating) return
+    if (!pickedContact || !newFirstMsg.trim() || creating) return
     setCreating(true)
+
+    const isOrg = pickedContact.type === 'org'
+    const body: Record<string, unknown> = {
+      title: newTitle.trim() || null,
+      conv_type: 'general',
+      first_message: newFirstMsg.trim(),
+    }
+
+    if (isOrg) {
+      // For organizations: set org_id and add the org owner as participant
+      body.org_id = pickedContact.org_id
+      body.participant_ids = pickedContact.owner_id ? [pickedContact.owner_id] : []
+    } else {
+      body.participant_ids = [pickedContact.user_id!]
+    }
+
     const res = await fetch('/api/v1/conversations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: newTitle.trim() || null,
-        conv_type: 'general',
-        participant_ids: newParticipants,
-        first_message: newFirstMsg.trim(),
-      }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     })
     setCreating(false)
     if (!res.ok) return
+
     const json = await res.json()
     setShowNewConv(false)
-    setNewTitle(''); setNewParticipants([]); setNewFirstMsg('')
+    setNewTitle(''); setNewFirstMsg(''); setPickedContact(null)
     await loadConversations()
-    if (json.conversation) setSelected(json.conversation)
+    if (json.conversation) {
+      setSelected(json.conversation)
+    }
   }
 
   const filtered = conversations.filter((c) => {
     if (!searchQ) return true
-    const title = convTitle(c, currentUserId).toLowerCase()
-    return title.includes(searchQ.toLowerCase())
+    return convLabel(c, currentUserId).toLowerCase().includes(searchQ.toLowerCase())
   })
 
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-white dark:bg-gray-900">
-      {/* ── Left: Conversation List ─────────────────────────────────────────── */}
+      {/* ── Conversation List ─────────────────────────────────────────────────── */}
       <div className="w-72 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-        {/* Header */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-gray-900 dark:text-gray-100">Ujumbe wa Ndani</h2>
             <button
-              onClick={() => { setShowNewConv(true); loadStaffUsers() }}
+              onClick={() => setShowNewConv(true)}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-primary-500 text-white hover:bg-primary-600 transition-colors"
               title="Mazungumzo Mapya"
             >
@@ -257,47 +298,46 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
           />
         </div>
 
-        {/* List */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="p-4 text-sm text-gray-400 text-center">Inapakia...</div>
           ) : filtered.length === 0 ? (
             <div className="p-6 text-center">
               <p className="text-sm text-gray-400">Hakuna mazungumzo bado</p>
-              <button
-                onClick={() => { setShowNewConv(true); loadStaffUsers() }}
-                className="mt-3 text-xs text-primary-600 hover:underline"
-              >
+              <button onClick={() => setShowNewConv(true)} className="mt-2 text-xs text-primary-600 hover:underline">
                 Anza mazungumzo mapya
               </button>
             </div>
           ) : (
             filtered.map((conv) => {
               const isActive = selected?.id === conv.id
-              const title = convTitle(conv, currentUserId)
-              const otherParticipant = conv.participants?.find((p) => p.user_id !== currentUserId)
+              const label = convLabel(conv, currentUserId)
+              const otherP = (conv.participants ?? []).find((p) => p.user_id !== currentUserId)
               return (
                 <button
                   key={conv.id}
                   onClick={() => setSelected(conv)}
-                  className={`w-full text-left p-3 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-800 ${isActive ? 'bg-primary-50 dark:bg-primary-900/20' : ''}`}
+                  className={`w-full text-left p-3 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800 transition-colors ${isActive ? 'bg-primary-50 dark:bg-primary-900/20' : ''}`}
                 >
-                  <Avatar src={otherParticipant?.user?.avatar_url} name={otherParticipant?.user?.full_name ?? title} />
+                  <Avatar src={otherP?.user?.avatar_url} name={otherP?.user?.full_name ?? label} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className={`text-sm truncate ${conv.unread_count > 0 ? 'font-semibold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>
-                        {title}
+                    <div className="flex items-center gap-1">
+                      <span className={`text-sm truncate flex-1 ${conv.unread_count > 0 ? 'font-semibold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>
+                        {label}
                       </span>
                       {conv.unread_count > 0 && (
-                        <span className="flex-shrink-0 bg-primary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                        <span className="flex-shrink-0 bg-primary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                           {conv.unread_count > 9 ? '9+' : conv.unread_count}
                         </span>
                       )}
                     </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {convTypeTag(conv)}
+                    </div>
                     <p className="text-xs text-gray-400 truncate mt-0.5">
-                      {conv.last_message_body ?? 'Hakuna ujumbe bado'}
+                      {conv.last_message_body ?? 'Bonyeza kuanza'}
                     </p>
-                    <p className="text-xs text-gray-300 mt-0.5">{relativeTime(conv.last_message_at)}</p>
+                    <p className="text-xs text-gray-300">{relativeTime(conv.last_message_at)}</p>
                   </div>
                 </button>
               )
@@ -306,11 +346,11 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
         </div>
       </div>
 
-      {/* ── Right: Thread ─────────────────────────────────────────────────────── */}
+      {/* ── Thread ─────────────────────────────────────────────────────────────── */}
       {!selected ? (
         <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
           <div className="text-center">
-            <svg className="w-16 h-16 text-gray-200 dark:text-gray-700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-16 h-16 text-gray-200 dark:text-gray-700 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
             <p className="text-gray-400 text-sm">Chagua mazungumzo kuanza</p>
@@ -318,42 +358,35 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
         </div>
       ) : (
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Thread header */}
           <div className="h-14 flex items-center px-4 border-b border-gray-200 dark:border-gray-700 gap-3">
             <Avatar
-              src={selected.participants?.find((p) => p.user_id !== currentUserId)?.user?.avatar_url}
-              name={convTitle(selected, currentUserId)}
+              src={(selected.participants ?? []).find((p) => p.user_id !== currentUserId)?.user?.avatar_url}
+              name={convLabel(selected, currentUserId)}
             />
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{convTitle(selected, currentUserId)}</p>
-              <p className="text-xs text-gray-400">
-                {selected.participants?.length ?? 0} washiriki
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{convLabel(selected, currentUserId)}</p>
+                {convTypeTag(selected)}
+              </div>
+              <p className="text-xs text-gray-400">{(selected.participants ?? []).length} washiriki</p>
             </div>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {loadingThread ? (
               <div className="text-center text-sm text-gray-400 py-8">Inapakia...</div>
             ) : messages.length === 0 ? (
-              <div className="text-center text-sm text-gray-400 py-8">Hakuna ujumbe bado. Anza mazungumzo!</div>
+              <div className="text-center text-sm text-gray-400 py-8">Hakuna ujumbe. Anza mazungumzo!</div>
             ) : (
               messages.map((msg) => {
                 const isMe = msg.sender_id === currentUserId
-                const senderName = isMe ? currentUserName : (msg.sender?.full_name ?? 'Mtumiaji')
+                const name = isMe ? currentUserName : (msg.sender?.full_name ?? 'Mtumiaji')
                 return (
-                  <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {!isMe && <Avatar src={msg.sender?.avatar_url} name={senderName} size={7} />}
-                    <div className={`max-w-xs lg:max-w-md ${isMe ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-                      {!isMe && (
-                        <span className="text-xs text-gray-400 px-1">{senderName}</span>
-                      )}
-                      <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${
-                        isMe
-                          ? 'bg-primary-500 text-white rounded-tr-sm'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-sm'
-                      }`}>
+                  <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                    {!isMe && <Avatar src={msg.sender?.avatar_url} name={name} size={7} />}
+                    <div className={`flex flex-col gap-1 max-w-xs lg:max-w-md ${isMe ? 'items-end' : 'items-start'}`}>
+                      {!isMe && <span className="text-xs text-gray-400 px-1">{name}</span>}
+                      <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${isMe ? 'bg-primary-500 text-white rounded-tr-sm' : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-sm'}`}>
                         {msg.body}
                       </div>
                       <span className="text-xs text-gray-300 px-1">
@@ -367,7 +400,6 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
             <div ref={bottomRef} />
           </div>
 
-          {/* Compose bar */}
           <div className="p-3 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-end gap-2">
               <textarea
@@ -376,9 +408,7 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
                 placeholder="Andika ujumbe..."
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
-                }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
               />
               <button
                 onClick={handleSend}
@@ -394,11 +424,12 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
         </div>
       )}
 
-      {/* ── New Conversation Modal ────────────────────────────────────────────── */}
+      {/* ── New Conversation Modal ─────────────────────────────────────────────── */}
       {showNewConv && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-5">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">Mazungumzo Mapya</h3>
               <button onClick={() => setShowNewConv(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -407,45 +438,88 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Contact type tabs */}
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Aina ya Mpokeaji</p>
+                <div className="grid grid-cols-4 gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+                  {CONTACT_TABS.map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => { setContactTab(tab.key); setPickedContact(null); setContactSearch('') }}
+                      className={`text-xs py-2 px-1 rounded-lg font-medium transition-colors text-center ${
+                        contactTab === tab.key
+                          ? 'bg-white dark:bg-gray-700 text-primary-600 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contact search + pick */}
+              <div>
+                <input
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                  placeholder={`Tafuta ${CONTACT_TABS.find((t) => t.key === contactTab)?.label ?? ''}...`}
+                  value={contactSearch}
+                  onChange={(e) => setContactSearch(e.target.value)}
+                />
+
+                {pickedContact ? (
+                  <div className="mt-2 flex items-center gap-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg px-3 py-2">
+                    <Avatar src={pickedContact.avatar_url} name={pickedContact.name} size={6} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{pickedContact.name}</p>
+                      {pickedContact.subtitle && <p className="text-xs text-gray-400">{pickedContact.subtitle}</p>}
+                    </div>
+                    {roleBadge(pickedContact.type)}
+                    <button onClick={() => setPickedContact(null)} className="text-gray-400 hover:text-gray-600 ml-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 max-h-44 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                    {contactsLoading ? (
+                      <div className="p-3 text-xs text-gray-400 text-center">Inapakia...</div>
+                    ) : contacts.length === 0 ? (
+                      <div className="p-3 text-xs text-gray-400 text-center">Hakuna matokeo</div>
+                    ) : (
+                      contacts.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => setPickedContact(c)}
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-left border-b border-gray-100 dark:border-gray-800 last:border-0"
+                        >
+                          <Avatar src={c.avatar_url} name={c.name} size={6} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-800 dark:text-gray-200 truncate">{c.name}</p>
+                            {c.subtitle && <p className="text-xs text-gray-400 truncate">{c.subtitle}</p>}
+                          </div>
+                          {roleBadge(c.type)}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Title (optional) */}
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Kichwa (hiari)</label>
                 <input
                   className="mt-1 w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-400"
-                  placeholder="Mfano: Mkutano wa timu..."
+                  placeholder="Mfano: Tatizo la malipo..."
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Washiriki</label>
-                {staffUsers.length === 0 ? (
-                  <p className="mt-1 text-xs text-gray-400">Inapakia wafanyakazi...</p>
-                ) : (
-                  <div className="mt-1 max-h-48 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                    {staffUsers
-                      .filter((u) => u.id !== currentUserId)
-                      .map((u) => (
-                        <label key={u.id} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={newParticipants.includes(u.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) setNewParticipants((p) => [...p, u.id])
-                              else setNewParticipants((p) => p.filter((id) => id !== u.id))
-                            }}
-                            className="accent-primary-500"
-                          />
-                          <Avatar src={u.avatar_url} name={u.full_name} size={6} />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{u.full_name ?? 'Mtumiaji'}</span>
-                          <span className="text-xs text-gray-400 ml-auto">{u.role}</span>
-                        </label>
-                      ))}
-                  </div>
-                )}
-              </div>
-
+              {/* First message */}
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Ujumbe wa Kwanza</label>
                 <textarea
@@ -458,7 +532,7 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
               </div>
             </div>
 
-            <div className="mt-5 flex gap-3 justify-end">
+            <div className="p-5 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
               <button
                 onClick={() => setShowNewConv(false)}
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
@@ -467,7 +541,7 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
               </button>
               <button
                 onClick={handleCreate}
-                disabled={!newParticipants.length || !newFirstMsg.trim() || creating}
+                disabled={!pickedContact || !newFirstMsg.trim() || creating}
                 className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-40 transition-colors"
               >
                 {creating ? 'Inaunda...' : 'Anza Mazungumzo'}
