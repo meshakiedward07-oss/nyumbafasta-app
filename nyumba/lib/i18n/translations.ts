@@ -277,6 +277,14 @@ const T = {
   admin_nav_org_subs:          { sw: 'Usajili wa Mashirika',   en: 'Org Subscriptions'     },
   admin_nav_home:              { sw: 'Nyumbani',               en: 'Home'                  },
   admin_nav_email_short:       { sw: 'Barua',                  en: 'Email'                 },
+  admin_nav_dalali_subs:       { sw: 'Usajili wa Madalali',    en: 'Dalali Subscriptions'  },
+  admin_nav_unlocks:           { sw: 'Malipo ya Mawasiliano',  en: 'Contact Unlocks'       },
+  admin_nav_reviews:           { sw: 'Mapitio ya Wateja',      en: 'Customer Reviews'      },
+  admin_nav_boosts:            { sw: 'Matangazo Yaliyoimarishwa', en: 'Boosted Listings'  },
+  admin_nav_notify_broadcast:  { sw: 'Taarifa & Broadcast',    en: 'Notifications & Broadcast' },
+  admin_nav_crons:             { sw: 'Kazi za Mfumo',          en: 'System Jobs'           },
+  admin_nav_settings:          { sw: 'Mipangilio ya Mfumo',    en: 'Platform Settings'     },
+  admin_nav_sec_platform:      { sw: 'Mfumo',                  en: 'Platform'              },
 
   // ── Admin shell — misc labels ─────────────────────────────────────────────
   admin_panel_label:      { sw: 'Jopo la Msimamizi',   en: 'Admin Panel'                  },
