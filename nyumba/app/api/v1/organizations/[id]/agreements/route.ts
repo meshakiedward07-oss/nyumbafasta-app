@@ -34,6 +34,49 @@ export async function GET(_req: NextRequest, { params }: Params) {
   }
 }
 
+// PATCH /api/v1/organizations/[id]/agreements?agreementId=... — update status/fields
+export async function PATCH(req: NextRequest, { params }: Params) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Haujaingia' }, { status: 401 })
+
+    const admin = createAdminClient()
+    const { data: m } = await admin.from('organization_members').select('role').eq('organization_id', id).eq('user_id', user.id).maybeSingle()
+    const { data: u } = await admin.from('users').select('role').eq('id', user.id).single()
+    const canEdit = ['owner', 'branch_manager'].includes(m?.role ?? '') || ['admin', 'staff'].includes(u?.role ?? '')
+    if (!canEdit) return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
+
+    const agreementId = req.nextUrl.searchParams.get('agreementId')
+    if (!agreementId) return NextResponse.json({ error: 'agreementId inahitajika' }, { status: 400 })
+
+    const body = await req.json()
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    const ALLOWED_STATUSES = ['pending', 'active', 'ended', 'cancelled']
+    if (body.status && ALLOWED_STATUSES.includes(body.status)) updates.status = body.status
+    if ('notes'            in body) updates.notes            = body.notes ?? null
+    if ('commission_type'  in body) updates.commission_type  = body.commission_type ?? null
+    if ('commission_value' in body) updates.commission_value = body.commission_value ?? null
+    if ('start_date'       in body) updates.start_date       = body.start_date ?? null
+    if ('end_date'         in body) updates.end_date         = body.end_date ?? null
+
+    const { data, error } = await admin
+      .from('management_agreements')
+      .update(updates)
+      .eq('id', agreementId)
+      .eq('managing_org_id', id)
+      .select('*, landlord:users!landlord_id(id, full_name, phone), listing:listings(id, title)')
+      .single()
+
+    if (error) throw error
+    return NextResponse.json({ agreement: data })
+  } catch (err) {
+    console.error('[PATCH /organizations/[id]/agreements]', err)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
+}
+
 // POST /api/v1/organizations/[id]/agreements — create agreement
 export async function POST(req: NextRequest, { params }: Params) {
   try {

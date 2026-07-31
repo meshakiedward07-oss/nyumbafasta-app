@@ -72,9 +72,13 @@ export default function HatiPage() {
         const leasesRes  = await fetch(`/api/v1/organizations/${orgId}/leases`)
         const leasesData = await leasesRes.json()
 
-        // Fetch agreements
-        const agreeRes  = await fetch(`/api/v1/organizations/${orgId}/agreements`)
+        // Fetch agreements + KYC in parallel
+        const [agreeRes, kycRes] = await Promise.all([
+          fetch(`/api/v1/organizations/${orgId}/agreements`),
+          fetch('/api/v1/kyc'),
+        ])
         const agreeData = await agreeRes.json()
+        const kycData   = await kycRes.json()
 
         const items: HatiItem[] = []
 
@@ -105,6 +109,14 @@ export default function HatiPage() {
               related: a.listing?.title ?? null,
             })
           }
+        }
+
+        // KYC submissions
+        const kyc = kycData.submission as { id: string; submitted_at: string; id_document_url?: string; title_deed_url?: string; tax_cert_url?: string } | null
+        if (kyc) {
+          if (kyc.id_document_url) items.push({ id: `kyc-id-${kyc.id}`, title: 'Kitambulisho cha Taifa (NIN)', type: 'kyc', url: kyc.id_document_url, date: kyc.submitted_at, related: 'KYC' })
+          if (kyc.title_deed_url)  items.push({ id: `kyc-deed-${kyc.id}`, title: 'Hati ya Umiliki (Title Deed)', type: 'kyc', url: kyc.title_deed_url, date: kyc.submitted_at, related: 'KYC' })
+          if (kyc.tax_cert_url)    items.push({ id: `kyc-tax-${kyc.id}`, title: 'Cheti cha Kodi (TIN)', type: 'kyc', url: kyc.tax_cert_url, date: kyc.submitted_at, related: 'KYC' })
         }
 
         // Sort by date descending

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { AGREEMENT_SCOPE_LABELS, AGREEMENT_STATUS_LABELS } from '@/lib/types/property'
 import type { ManagementAgreement } from '@/lib/types/property'
+import { ConfirmAgreementButton } from '@/components/property/ConfirmAgreementButton'
 
 export const metadata = { title: 'Makubaliano — NyumbaFasta Mali' }
 export const revalidate = 60
@@ -122,16 +123,9 @@ export default async function AgreementsPage() {
                     </div>
                   </div>
 
-                  {canCreate && (
+                  {canCreate && a.status === 'pending' && (
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {a.status === 'pending' && (
-                        <button
-                          className="text-xs bg-green-50 text-green-700 px-3 py-1.5 rounded-lg font-medium hover:bg-green-100 transition"
-                          onClick={() => {}}
-                        >
-                          Thibitisha
-                        </button>
-                      )}
+                      <ConfirmAgreementButton agreementId={a.id} orgId={orgId} />
                     </div>
                   )}
                 </div>

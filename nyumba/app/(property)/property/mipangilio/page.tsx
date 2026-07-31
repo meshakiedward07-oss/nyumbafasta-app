@@ -9,7 +9,16 @@ const ORG_TYPE_OPTIONS: { value: OrgType; label: string; desc: string }[] = [
   { value: 'firm',             label: 'Kampuni ya Mali',      desc: 'Kampuni rasmi ya usimamizi wa mali' },
 ]
 
-type Tab = 'profile' | 'billing' | 'danger'
+type Tab = 'profile' | 'billing' | 'reminders' | 'danger'
+
+type ReminderSettings = {
+  remindDaysBefore: number
+  remindDaysOverdue: number
+  enableWhatsApp: boolean
+}
+
+const LS_REMINDERS_KEY = 'nf_reminder_settings'
+const DEFAULT_REMINDERS: ReminderSettings = { remindDaysBefore: 3, remindDaysOverdue: 1, enableWhatsApp: true }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -49,6 +58,10 @@ export default function MipangilioPage() {
   const [billSaved,      setBillSaved]      = useState(false)
   const [billErr,        setBillErr]        = useState<string | null>(null)
 
+  // Reminders
+  const [reminders,      setReminders]      = useState<ReminderSettings>(DEFAULT_REMINDERS)
+  const [reminderSaved,  setReminderSaved]  = useState(false)
+
   // Danger zone
   const [reason,     setReason]     = useState('')
   const [deactivating, setDeactivating] = useState(false)
@@ -57,6 +70,11 @@ export default function MipangilioPage() {
   const districts = region ? (TANZANIA_REGIONS.find(r => r.name === region)?.districts ?? []) : []
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LS_REMINDERS_KEY)
+      if (stored) setReminders(JSON.parse(stored))
+    } catch { /* silent */ }
+
     async function load() {
       try {
         const res  = await fetch('/api/v1/organizations')
@@ -138,10 +156,17 @@ export default function MipangilioPage() {
     window.location.href = '/property/dashboard'
   }
 
+  function saveReminders() {
+    localStorage.setItem(LS_REMINDERS_KEY, JSON.stringify(reminders))
+    setReminderSaved(true)
+    setTimeout(() => setReminderSaved(false), 3000)
+  }
+
   const TABS: { id: Tab; label: string; icon: string }[] = [
-    { id: 'profile', label: 'Taarifa za Shirika', icon: 'building' },
-    { id: 'billing', label: 'Maelezo ya Malipo',  icon: 'receipt'  },
-    { id: 'danger',  label: 'Hatua za Hatari',    icon: 'alert-triangle' },
+    { id: 'profile',   label: 'Taarifa za Shirika', icon: 'building'       },
+    { id: 'billing',   label: 'Maelezo ya Malipo',  icon: 'receipt'        },
+    { id: 'reminders', label: 'Vikumbusho',          icon: 'bell'           },
+    { id: 'danger',    label: 'Hatua za Hatari',     icon: 'alert-triangle' },
   ]
 
   if (loading) {
@@ -300,6 +325,76 @@ export default function MipangilioPage() {
               ) : 'Hifadhi Taarifa za Malipo'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Reminders tab */}
+      {tab === 'reminders' && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm space-y-5">
+          <div>
+            <h2 className="font-semibold text-gray-900 mb-1">Mipangilio ya Vikumbusho</h2>
+            <p className="text-sm text-gray-400">Vikumbusho vya WhatsApp vitumwe kiotomatiki kwa wapangaji.</p>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Vikumbusho vya WhatsApp</p>
+              <p className="text-xs text-gray-500 mt-0.5">Tuma arifa kwa wapangaji kupitia WhatsApp</p>
+            </div>
+            <button
+              onClick={() => setReminders(r => ({ ...r, enableWhatsApp: !r.enableWhatsApp }))}
+              className={`relative w-12 h-6 rounded-full transition-colors ${reminders.enableWhatsApp ? 'bg-primary-500' : 'bg-gray-300'}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${reminders.enableWhatsApp ? 'translate-x-6' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          <Field label="Tuma Kikumbusho Kabla ya Siku Ngapi za Kulipa Kodi">
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={0}
+                max={30}
+                value={reminders.remindDaysBefore}
+                onChange={e => setReminders(r => ({ ...r, remindDaysBefore: Number(e.target.value) }))}
+                className={`${inputCls} w-24`}
+              />
+              <span className="text-sm text-gray-500">siku kabla ya tarehe ya kulipa</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">0 = siku hiyo hiyo ya kulipa. Kikumbusho kitumwe saa 9 asubuhi.</p>
+          </Field>
+
+          <Field label="Tuma Onyo Baada ya Siku Ngapi za Kuchelewa">
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={reminders.remindDaysOverdue}
+                onChange={e => setReminders(r => ({ ...r, remindDaysOverdue: Number(e.target.value) }))}
+                className={`${inputCls} w-24`}
+              />
+              <span className="text-sm text-gray-500">siku baada ya kuchelewa</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Onyo litumwe kwa wapangaji ambao hawajalipa baada ya siku hizi.</p>
+          </Field>
+
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-xs text-amber-700 space-y-1">
+            <p className="font-semibold">Muhtasari wa Mipangilio ya Sasa:</p>
+            <p>• Kikumbusho siku {reminders.remindDaysBefore} kabla ya tarehe ya malipo</p>
+            <p>• Onyo siku {reminders.remindDaysOverdue} baada ya kuchelewa</p>
+            <p>• WhatsApp: {reminders.enableWhatsApp ? 'Imewezeshwa ✓' : 'Imezimwa ✗'}</p>
+          </div>
+
+          <button
+            onClick={saveReminders}
+            className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition flex items-center justify-center gap-2"
+          >
+            {reminderSaved
+              ? <><i className="ti ti-check" aria-hidden="true" /> Imeokolewa!</>
+              : 'Hifadhi Mipangilio ya Vikumbusho'
+            }
+          </button>
         </div>
       )}
 

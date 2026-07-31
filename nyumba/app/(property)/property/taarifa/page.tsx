@@ -49,11 +49,15 @@ export default function TaarifaPage() {
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState<string | null>(null)
   const [locked,  setLocked]  = useState(false)
+  const [listings, setListings] = useState<{ id: string; title: string; district: string }[]>([])
+  const [listingId, setListingId] = useState('')
 
-  async function loadReport(id: string, m: string) {
+  async function loadReport(id: string, m: string, lid?: string) {
     setLoading(true); setError(null); setLocked(false)
     try {
-      const res  = await fetch(`/api/v1/organizations/${id}/reports?month=${m}`)
+      const params = new URLSearchParams({ month: m })
+      if (lid) params.set('listing_id', lid)
+      const res  = await fetch(`/api/v1/organizations/${id}/reports?${params}`)
       const json = await res.json()
       if (!res.ok) {
         if (json.upgrade_required) { setLocked(true); return }
@@ -74,6 +78,9 @@ export default function TaarifaPage() {
         if (!primary) { router.push('/property/setup'); return }
         const id = primary.organization.id
         setOrgId(id)
+        const lRes  = await fetch(`/api/v1/organizations/${id}/mali`)
+        const lData = await lRes.json()
+        setListings(lData.listings ?? [])
         await loadReport(id, month)
       } catch { setError('Hitilafu ya mtandao.') }
     }
@@ -84,7 +91,12 @@ export default function TaarifaPage() {
   function handleMonthChange(e: React.ChangeEvent<HTMLInputElement>) {
     const m = e.target.value
     setMonth(m)
-    if (orgId) loadReport(orgId, m)
+    if (orgId) loadReport(orgId, m, listingId || undefined)
+  }
+
+  function handleListingChange(lid: string) {
+    setListingId(lid)
+    if (orgId) loadReport(orgId, month, lid || undefined)
   }
 
   const monthLabel = (() => {
@@ -116,7 +128,17 @@ export default function TaarifaPage() {
             <h1 className="text-xl font-bold text-gray-900">Taarifa</h1>
             <p className="text-xs text-gray-400 mt-0.5">{monthLabel}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {listings.length > 0 && (
+              <select
+                value={listingId}
+                onChange={e => handleListingChange(e.target.value)}
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white max-w-[160px]"
+              >
+                <option value="">Mali Zote</option>
+                {listings.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+              </select>
+            )}
             <input
               type="month"
               value={month}

@@ -30,6 +30,14 @@ export async function GET(req: NextRequest, { params }: Params) {
       if (!gate.ok) return NextResponse.json({ error: gate.error, upgrade_required: true }, { status: gate.status })
     }
 
+    // Optional listing filter
+    const listingId = req.nextUrl.searchParams.get('listing_id') || null
+    let listingUnitIds: string[] | null = null
+    if (listingId) {
+      const { data: lu } = await admin.from('property_units').select('id').eq('listing_id', listingId).eq('org_id', orgId)
+      listingUnitIds = (lu ?? []).map(u => u.id)
+    }
+
     // Determine month range
     const monthParam  = req.nextUrl.searchParams.get('month') // e.g. "2026-07"
     const now         = new Date()
@@ -41,18 +49,15 @@ export async function GET(req: NextRequest, { params }: Params) {
     const in60Days    = new Date(now.getTime() + 60 * 86400000).toISOString().split('T')[0]
 
     // Fetch all org lease IDs first (needed to filter payments)
-    const { data: orgLeases } = await admin
-      .from('leases')
-      .select('id')
-      .eq('org_id', orgId)
+    let orgLeasesQuery = admin.from('leases').select('id').eq('org_id', orgId)
+    if (listingUnitIds) orgLeasesQuery = orgLeasesQuery.in('unit_id', listingUnitIds.length > 0 ? listingUnitIds : ['__none__'])
+    const { data: orgLeases } = await orgLeasesQuery
 
     const allLeaseIds    = (orgLeases ?? []).map(l => l.id)
 
-    const { data: activeLeases } = await admin
-      .from('leases')
-      .select('id, monthly_rent')
-      .eq('org_id', orgId)
-      .eq('status', 'active')
+    let activeLeasesQuery = admin.from('leases').select('id, monthly_rent').eq('org_id', orgId).eq('status', 'active')
+    if (listingUnitIds) activeLeasesQuery = activeLeasesQuery.in('unit_id', listingUnitIds.length > 0 ? listingUnitIds : ['__none__'])
+    const { data: activeLeases } = await activeLeasesQuery
 
     const activeLeaseIds = (activeLeases ?? []).map(l => l.id)
 
@@ -67,7 +72,9 @@ export async function GET(req: NextRequest, { params }: Params) {
       maintCostRes,
       orgExpensesRes,
     ] = await Promise.all([
-      admin.from('property_units').select('id, status').eq('org_id', orgId),
+      listingUnitIds
+        ? admin.from('property_units').select('id, status').in('id', listingUnitIds.length > 0 ? listingUnitIds : ['__none__'])
+        : admin.from('property_units').select('id, status').eq('org_id', orgId),
 
       admin
         .from('leases')

@@ -39,6 +39,12 @@ export default function MaliDetailPage() {
   const [addingUnit,   setAddingUnit]   = useState(false)
   const [unitError,    setUnitError]    = useState<string | null>(null)
 
+  // Edit unit form
+  const [editUnit,    setEditUnit]    = useState<UnitWithLease | null>(null)
+  const [editForm,    setEditForm]    = useState({ unit_number: '', unit_type: 'whole', monthly_rent: '', bedrooms: '', deposit_months: '1', description: '' })
+  const [editSaving,  setEditSaving]  = useState(false)
+  const [editError,   setEditError]   = useState<string | null>(null)
+
   // Add tenant form
   const [tenantUnit,   setTenantUnit]   = useState<UnitWithLease | null>(null)
   const [tPhone,       setTPhone]       = useState('')
@@ -185,6 +191,46 @@ export default function MaliDetailPage() {
     } catch {
       setTenantError('Haikuweza kuunganika. Jaribu tena.')
     } finally { setAddingTenant(false) }
+  }
+
+  function openEditUnit(unit: UnitWithLease) {
+    setEditUnit(unit)
+    setEditForm({
+      unit_number:    unit.unit_number,
+      unit_type:      unit.unit_type,
+      monthly_rent:   String(unit.monthly_rent),
+      bedrooms:       unit.bedrooms != null ? String(unit.bedrooms) : '',
+      deposit_months: String(unit.deposit_months),
+      description:    unit.description ?? '',
+    })
+    setEditError(null)
+  }
+
+  async function handleEditUnit() {
+    if (!orgId || !editUnit || !editForm.unit_number.trim() || !editForm.monthly_rent) {
+      setEditError('Jaza sehemu zinazohitajika'); return
+    }
+    setEditSaving(true); setEditError(null)
+    try {
+      const res = await fetch(`/api/v1/organizations/${orgId}/units/${editUnit.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          unit_number:    editForm.unit_number.trim(),
+          unit_type:      editForm.unit_type,
+          monthly_rent:   Number(editForm.monthly_rent),
+          bedrooms:       editForm.bedrooms ? Number(editForm.bedrooms) : null,
+          deposit_months: Number(editForm.deposit_months) || 1,
+          description:    editForm.description.trim() || null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setEditError(data.error ?? 'Kuna tatizo'); return }
+      setUnits(prev => prev.map(u => u.id === editUnit.id ? { ...u, ...data.unit } : u))
+      setEditUnit(null)
+    } catch {
+      setEditError('Haikuweza kuunganika. Jaribu tena.')
+    } finally { setEditSaving(false) }
   }
 
   async function handleEndLease(unit: UnitWithLease) {
@@ -390,6 +436,12 @@ export default function MaliDetailPage() {
                   {/* Actions */}
                   {canManage && (
                     <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                      <button
+                        onClick={() => openEditUnit(unit)}
+                        className="text-xs border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
+                      >
+                        <i className="ti ti-pencil mr-1" />Hariri
+                      </button>
                       {unit.status === 'vacant' ? (
                         <>
                           <button
@@ -420,6 +472,67 @@ export default function MaliDetailPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Edit unit modal */}
+      {editUnit && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end lg:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Hariri Kitengo: {editUnit.unit_number}</h3>
+              <button onClick={() => setEditUnit(null)} className="text-gray-400 hover:text-gray-600">
+                <i className="ti ti-x text-xl" />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Nambari ya Kitengo *</label>
+                  <input value={editForm.unit_number} onChange={e => setEditForm(f => ({ ...f, unit_number: e.target.value }))} placeholder="A1"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Aina</label>
+                  <select value={editForm.unit_type} onChange={e => setEditForm(f => ({ ...f, unit_type: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
+                    {Object.entries(UNIT_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Kodi (TZS/mwezi) *</label>
+                  <input type="number" value={editForm.monthly_rent} onChange={e => setEditForm(f => ({ ...f, monthly_rent: e.target.value }))} min="0"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Vyumba vya Kulala</label>
+                  <input type="number" value={editForm.bedrooms} onChange={e => setEditForm(f => ({ ...f, bedrooms: e.target.value }))} placeholder="—" min="0"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Amana (miezi)</label>
+                  <input type="number" value={editForm.deposit_months} onChange={e => setEditForm(f => ({ ...f, deposit_months: e.target.value }))} min="0"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Maelezo (hiari)</label>
+                  <input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} placeholder="..."
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+              </div>
+              {editError && <p className="text-sm text-red-600">{editError}</p>}
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setEditUnit(null)}
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">
+                  Ghairi
+                </button>
+                <button onClick={handleEditUnit} disabled={editSaving}
+                  className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40">
+                  {editSaving ? 'Inahifadhi...' : 'Hifadhi Mabadiliko'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

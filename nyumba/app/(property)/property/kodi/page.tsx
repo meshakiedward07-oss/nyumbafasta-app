@@ -395,6 +395,48 @@ export default function KodiPage() {
     loadPayments(tab, orgId, 0)
   }, [tab, orgId, loadPayments])
 
+  const [bulkReminding,  setBulkReminding]  = useState(false)
+  const [bulkInvoicing,  setBulkInvoicing]  = useState(false)
+  const [bulkResult,     setBulkResult]     = useState<string | null>(null)
+
+  async function handleBulkRemind() {
+    if (!orgId || !isOwner) return
+    const targets = tab === 'overview' ? (analytics?.overdue_list ?? []) : payments.filter(p => ['pending', 'partial', 'late'].includes(p.status))
+    if (targets.length === 0) return
+    setBulkReminding(true); setBulkResult(null)
+    let done = 0
+    for (const p of targets) {
+      try {
+        await fetch(`/api/v1/organizations/${orgId}/leases/${p.lease_id}/payments/${p.id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'remind' }),
+        })
+        done++
+      } catch { /* continue */ }
+    }
+    setBulkResult(`Vikumbusho ${done} vimetumwa`)
+    setBulkReminding(false)
+  }
+
+  async function handleBulkInvoice() {
+    if (!orgId || !isOwner) return
+    const targets = (tab === 'overview' ? (analytics?.overdue_list ?? []) : payments).filter(p => ['pending', 'partial'].includes(p.status) && !p.invoice_sent_at)
+    if (targets.length === 0) return
+    setBulkInvoicing(true); setBulkResult(null)
+    let done = 0
+    for (const p of targets) {
+      try {
+        await fetch(`/api/v1/organizations/${orgId}/leases/${p.lease_id}/payments/${p.id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'send_invoice' }),
+        })
+        done++
+      } catch { /* continue */ }
+    }
+    setBulkResult(`Ankara ${done} zimetumwa`)
+    setBulkInvoicing(false)
+  }
+
   // Optimistic updates for overview tab
   function handleVerified(paymentId: string) {
     setAnalytics(prev => {
@@ -486,6 +528,35 @@ export default function KodiPage() {
             </a>
           )}
         </div>
+        {isOwner && orgId && (
+          <div className="flex gap-2 mt-3 flex-wrap">
+            <button
+              onClick={handleBulkRemind}
+              disabled={bulkReminding || bulkInvoicing}
+              className="flex items-center gap-1.5 text-xs font-medium border border-amber-200 bg-amber-50 text-amber-700 px-3 py-2 rounded-xl hover:bg-amber-100 transition disabled:opacity-50"
+            >
+              {bulkReminding
+                ? <><i className="ti ti-loader-2 animate-spin" /> Inatuma...</>
+                : <><i className="ti ti-bell" /> Kumbusha Wote Wanaodaiwa</>
+              }
+            </button>
+            <button
+              onClick={handleBulkInvoice}
+              disabled={bulkReminding || bulkInvoicing}
+              className="flex items-center gap-1.5 text-xs font-medium border border-blue-200 bg-blue-50 text-blue-700 px-3 py-2 rounded-xl hover:bg-blue-100 transition disabled:opacity-50"
+            >
+              {bulkInvoicing
+                ? <><i className="ti ti-loader-2 animate-spin" /> Inatuma...</>
+                : <><i className="ti ti-file-invoice" /> Tuma Ankara Zote Zinazosalia</>
+              }
+            </button>
+          </div>
+        )}
+        {bulkResult && (
+          <p className="text-xs text-green-600 font-medium mt-2 flex items-center gap-1">
+            <i className="ti ti-circle-check" /> {bulkResult}
+          </p>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

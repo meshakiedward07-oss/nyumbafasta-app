@@ -55,6 +55,8 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
   const [error,    setError]    = useState<string | null>(null)
   const [comment,  setComment]  = useState('')
   const [addingComment, setAddingComment] = useState(false)
+  const [creatingExpense,  setCreatingExpense]  = useState(false)
+  const [expenseCreated,   setExpenseCreated]   = useState(false)
 
   // Inline edits
   const [editAssignee,  setEditAssignee]  = useState<string>('')
@@ -142,6 +144,27 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
       await load(orgId)
     } catch { setError('Haikuweza kuhifadhi.') }
     finally { setSaving(false) }
+  }
+
+  async function handleCreateExpense() {
+    if (!orgId || !request?.actual_cost) return
+    setCreatingExpense(true)
+    try {
+      const res = await fetch(`/api/v1/organizations/${orgId}/expenses`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount_tzs:     request.actual_cost,
+          category:       'maintenance',
+          description:    `Matengenezo: ${request.title}`,
+          expense_date:   new Date().toISOString().split('T')[0],
+          payment_method: 'cash',
+          notes:          `Imetoka kwenye ombi #${id}`,
+        }),
+      })
+      if (res.ok) setExpenseCreated(true)
+    } catch { /* silent */ }
+    finally { setCreatingExpense(false) }
   }
 
   async function handleAddComment() {
@@ -348,6 +371,32 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
             </dl>
           )}
         </div>
+
+        {/* Create expense from actual cost */}
+        {request.actual_cost && !expenseCreated && (
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-800">
+                <i className="ti ti-receipt mr-1" />
+                Gharama Halisi: Tsh {request.actual_cost.toLocaleString()}
+              </p>
+              <p className="text-xs text-amber-600 mt-0.5">Unda rekodi ya matumizi kutoka kwa gharama hii</p>
+            </div>
+            <button
+              onClick={handleCreateExpense}
+              disabled={creatingExpense}
+              className="flex-shrink-0 text-xs font-semibold bg-amber-500 text-white px-3 py-2 rounded-xl hover:bg-amber-600 transition disabled:opacity-50"
+            >
+              {creatingExpense ? '...' : '+ Matumizi'}
+            </button>
+          </div>
+        )}
+        {expenseCreated && (
+          <div className="bg-green-50 border border-green-100 rounded-2xl p-3 text-sm text-green-700 flex items-center gap-2">
+            <i className="ti ti-circle-check" />
+            Rekodi ya matumizi imeundwa. <a href="/property/matumizi" className="underline font-medium">Angalia →</a>
+          </div>
+        )}
 
         {/* Tenant / Unit info */}
         {(request.unit || request.lease?.tenant) && (
