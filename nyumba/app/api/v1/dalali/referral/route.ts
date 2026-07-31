@@ -32,7 +32,7 @@ function generateCode(userId: string): string {
 }
 
 // GET — return my referral code + stats
-export async function GET(_req: NextRequest) {
+export async function GET(): Promise<Response> {
   const supabase = await createClient()
   const { data: { user }, error: authErr } = await supabase.auth.getUser()
   if (authErr || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
