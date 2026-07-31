@@ -9,6 +9,10 @@
       "schedule": "0 2 1 * *"
     },
     {
+      "path": "/api/v1/cron/recurring-expenses",
+      "schedule": "0 3 1 * *"
+    },
+    {
       "path": "/api/v1/cron/daily",
       "schedule": "0 3 * * *"
     },
@@ -74,6 +78,7 @@
     "app/api/v1/email/contacts/route.ts":             { "maxDuration": 30 },
     "app/api/v1/email/inbound/route.ts":              { "maxDuration": 30 },
     "app/api/v1/cron/lease-payments/route.ts":        { "maxDuration": 60 },
+    "app/api/v1/cron/recurring-expenses/route.ts":    { "maxDuration": 60 },
     "app/api/v1/organizations/[id]/expenses/route.ts":        { "maxDuration": 30 },
     "app/api/v1/organizations/[id]/reports/download/route.ts":{ "maxDuration": 60 },
     "app/api/v1/dalali/invoices/route.ts":            { "maxDuration": 30 },

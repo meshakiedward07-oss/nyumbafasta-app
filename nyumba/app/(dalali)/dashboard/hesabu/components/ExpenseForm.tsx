@@ -24,7 +24,7 @@ export default function ExpenseForm({ onClose, onSuccess }: Props) {
   const [form, setForm] = useState({
     amount: '', category: 'transport',
     date: new Date().toISOString().split('T')[0],
-    description: '', vendor: '', payment_method: 'cash',
+    description: '', vendor: '', payment_method: 'cash', receipt_url: '',
   })
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState('')
@@ -38,7 +38,7 @@ export default function ExpenseForm({ onClose, onSuccess }: Props) {
       const res = await fetch('/api/v1/dalali/finance/expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, amount: parseInt(form.amount) }),
+        body: JSON.stringify({ ...form, amount: parseInt(form.amount), receipt_url: form.receipt_url || null }),
       })
       const data = await res.json()
       if (data.success) onSuccess()
@@ -103,6 +103,13 @@ export default function ExpenseForm({ onClose, onSuccess }: Props) {
               <input type="text" placeholder="Nini hasa..." value={form.description} onChange={e => set('description', e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
+          </div>
+
+          {/* Receipt URL */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Risiti (URL — hiari)</label>
+            <input type="url" placeholder="https://..." value={form.receipt_url} onChange={e => set('receipt_url', e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
           </div>
 
           {/* Payment method chips */}

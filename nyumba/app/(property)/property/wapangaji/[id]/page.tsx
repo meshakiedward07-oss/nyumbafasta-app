@@ -558,13 +558,21 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
               {unit?.unit_number ?? ''} · {listing?.title ?? ''} · {listing?.district}
             </p>
           </div>
-          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${
-            lease.status === 'active'     ? 'bg-green-50 text-green-700' :
-            lease.status === 'terminated' ? 'bg-red-50 text-red-600' :
-            'bg-gray-100 text-gray-500'
-          }`}>
-            {lease.status === 'active' ? 'Inaendelea' : lease.status === 'terminated' ? 'Imesimamishwa' : lease.status}
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link
+              href={`/property/wapangaji/${leaseId}/statement`}
+              className="text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1"
+            >
+              <i className="ti ti-file-text text-sm" /> Taarifa
+            </Link>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+              lease.status === 'active'     ? 'bg-green-50 text-green-700' :
+              lease.status === 'terminated' ? 'bg-red-50 text-red-600' :
+              'bg-gray-100 text-gray-500'
+            }`}>
+              {lease.status === 'active' ? 'Inaendelea' : lease.status === 'terminated' ? 'Imesimamishwa' : lease.status}
+            </span>
+          </div>
         </div>
       </div>
 
