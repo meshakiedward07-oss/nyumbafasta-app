@@ -83,6 +83,9 @@
     "app/api/v1/organizations/[id]/reports/download/route.ts":{ "maxDuration": 60 },
     "app/api/v1/dalali/invoices/route.ts":            { "maxDuration": 30 },
     "app/api/v1/dalali/invoices/[id]/route.ts":       { "maxDuration": 30 },
-    "app/api/v1/dalali/finance/export/route.ts":      { "maxDuration": 60 }
+    "app/api/v1/dalali/finance/export/route.ts":      { "maxDuration": 60 },
+    "app/api/v1/dalali/leads/route.ts":               { "maxDuration": 30 },
+    "app/api/v1/dalali/referral/route.ts":            { "maxDuration": 30 },
+    "app/api/v1/listings/[id]/duplicate/route.ts":    { "maxDuration": 30 }
   }
 }

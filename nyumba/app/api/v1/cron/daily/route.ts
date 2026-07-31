@@ -3,6 +3,7 @@ import { type NextRequest } from 'next/server'
 import { sendMail } from '@/lib/email/resend'
 import { monitorDalaliAccounts } from '@/lib/dalali/accountMonitor'
 import { emailBase, listingExpiredEmail, subscriptionExpiryEmail } from '@/lib/email/templates'
+import { formatPhoneNumber, sendTextMessage } from '@/lib/whatsapp/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -370,6 +371,31 @@ async function runDailyTasks() {
             is_read:  false,
           }))
         )
+
+        // Also send WhatsApp to each dalali
+        const dalaliIds = toNotify.map(s => s.dalali_id)
+        const { data: dalaliProfiles } = await admin
+          .from('users')
+          .select('id, full_name, phone, dalali_profiles(whatsapp_number)')
+          .in('id', dalaliIds)
+
+        for (const sub of toNotify) {
+          const dp = dalaliProfiles?.find(d => d.id === sub.dalali_id)
+          if (!dp) continue
+          const waProfile = dp.dalali_profiles as unknown as { whatsapp_number: string | null } | null
+          const rawPhone  = waProfile?.whatsapp_number ?? dp.phone
+          if (!rawPhone) continue
+          const planLabel = sub.plan === 'premium' ? 'Premium' : sub.plan === 'enterprise' ? 'Enterprise' : 'Basic'
+          sendTextMessage(
+            formatPhoneNumber(rawPhone),
+            `⏰ *Subscription Karibu Kuisha — NyumbaFasta*\n\n` +
+            `Habari ${dp.full_name ?? 'Dalali'}!\n\n` +
+            `Plan yako ya *${planLabel}* itaisha ndani ya siku 3.\n\n` +
+            `✅ Huisha sasa ili matangazo yako yaendelee kuonekana kwa wateja:\n` +
+            `${APP_URL}/dashboard/subscription\n\n` +
+            `_Asante kwa kutumia NyumbaFasta!_ 🏠`
+          ).catch(() => {})
+        }
       }
       results.push(`✅ Subscription reminders: ${toNotify.length} zimetumwa`)
     } else {

@@ -119,6 +119,29 @@ export default function InvoicesPage() {
     if (viewInvoice?.id === id) setViewInvoice(v => v ? { ...v, status } : v)
   }
 
+  // ── Share invoice via WhatsApp ────────────────────────────────────────────
+  function shareInvoiceWhatsApp(inv: typeof viewInvoice) {
+    if (!inv) return
+    const items = inv.items?.map(it => `  • ${it.description}: ${fmt(it.amount)}`).join('\n') ?? ''
+    const msg =
+      `🧾 *Invoice ${inv.invoice_number}*\n` +
+      `━━━━━━━━━━━━━━━\n` +
+      `Mteja: ${inv.client_name}\n` +
+      `Tarehe: ${dateFmt(inv.issue_date)}\n` +
+      (inv.due_date ? `Mwisho wa kulipa: ${dateFmt(inv.due_date)}\n` : '') +
+      `\n*Huduma:*\n${items}\n` +
+      `━━━━━━━━━━━━━━━\n` +
+      `*JUMLA: ${fmt(inv.total_tzs)}*\n` +
+      (inv.notes ? `\n_${inv.notes}_\n` : '') +
+      `\nNyumbaFasta — nyumbafasta.co`
+
+    const phone = inv.client_phone?.replace(/\D/g, '').replace(/^0/, '255') ?? ''
+    const url = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`
+    window.open(url, '_blank')
+  }
+
   // ── Delete draft ─────────────────────────────────────────────────────────
   async function deleteDraft(id: string) {
     if (!confirm('Futa invoice hii?')) return
@@ -362,6 +385,10 @@ export default function InvoicesPage() {
                 <h2 className="font-semibold text-gray-900">{viewInvoice.client_name}</h2>
               </div>
               <div className="flex items-center gap-2">
+                <button onClick={() => shareInvoiceWhatsApp(viewInvoice)}
+                  className="text-xs bg-green-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-green-600 flex items-center gap-1">
+                  <i className="ti ti-brand-whatsapp text-sm" /> Tuma
+                </button>
                 <button onClick={() => window.print()}
                   className="text-xs border border-gray-200 px-2.5 py-1.5 rounded-lg text-gray-600 hover:bg-gray-50">
                   🖨 Chapisha

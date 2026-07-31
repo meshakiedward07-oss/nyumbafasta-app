@@ -208,6 +208,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [loading, setLoading] = useState<string | null>(null)
+  const [duplicating, setDuplicating] = useState<string | null>(null)
   const [boostListing, setBoostListing] = useState<Listing | null>(null)
   const [editListing, setEditListing] = useState<Listing | null>(null)
   const [expandedAnalytics, setExpandedAnalytics] = useState<string | null>(null)
@@ -260,6 +261,17 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
     } finally {
       setLoading(null)
     }
+  }
+
+  async function duplicateListing(id: string) {
+    setOpenMenu(null)
+    setDuplicating(id)
+    try {
+      const res  = await fetch(`/api/v1/listings/${id}/duplicate`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error ?? 'Imeshindwa kunakili'); return }
+      router.refresh()
+    } finally { setDuplicating(null) }
   }
 
   async function deleteListing(id: string) {
@@ -488,6 +500,15 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                             >
                               <i className="ti ti-pencil text-base text-gray-400" aria-hidden="true" /> Hariri Listing
                             </Link>
+
+                            <button
+                              onClick={() => duplicateListing(listing.id)}
+                              disabled={duplicating === listing.id}
+                              className="flex items-center gap-3 px-4 py-3.5 text-sm text-blue-600 hover:bg-blue-50 active:bg-blue-50 w-full text-left disabled:opacity-50"
+                            >
+                              <i className="ti ti-copy text-base text-blue-400" aria-hidden="true" />
+                              {duplicating === listing.id ? 'Inanakili...' : 'Nakili Listing'}
+                            </button>
 
                             {listing.status === 'active' && (
                               <button

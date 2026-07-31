@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { useLanguage } from '@/lib/i18n/context'
 import type { TKey } from '@/lib/i18n/translations'
 
@@ -16,6 +17,21 @@ const ITEMS: { href: string; icon: string; iconActive: string; labelKey: TKey; i
 export default function DalaliBottomNav() {
   const pathname = usePathname()
   const { t } = useLanguage()
+  const [unread, setUnread] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const res  = await fetch('/api/v1/notifications?count=true')
+        const json = await res.json()
+        if (!cancelled) setUnread(json.unread_count ?? 0)
+      } catch { /* non-fatal */ }
+    }
+    poll()
+    const id = setInterval(poll, 60_000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [])
 
   return (
     <nav
@@ -55,13 +71,15 @@ export default function DalaliBottomNav() {
             )
           }
 
+          const showBadge = href === '/dashboard/profile' && unread > 0
+
           return (
             <Link
               key={href}
               href={href}
               className="flex flex-col items-center gap-1 py-1 px-3 min-w-[52px] justify-center transition-all duration-200 active:scale-90 tap-highlight-none"
             >
-              <div className={`w-12 h-8 flex items-center justify-center rounded-full transition-all duration-200 ${
+              <div className={`relative w-12 h-8 flex items-center justify-center rounded-full transition-all duration-200 ${
                 active ? 'bg-primary-500 shadow-[0_2px_10px_rgba(29,158,117,0.35)]' : ''
               }`}>
                 <i
@@ -70,6 +88,11 @@ export default function DalaliBottomNav() {
                     active ? 'text-white' : 'text-gray-400'
                   }`}
                 />
+                {showBadge && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 leading-none">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
               </div>
               <span className={`text-[10px] leading-none transition-colors duration-150 ${
                 active ? 'text-primary-600 font-semibold' : 'text-gray-400 font-medium'
