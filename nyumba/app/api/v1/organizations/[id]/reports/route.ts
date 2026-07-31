@@ -65,6 +65,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       leasesEndingSoonRes,
       maintRes,
       maintCostRes,
+      orgExpensesRes,
     ] = await Promise.all([
       admin.from('property_units').select('id, status').eq('org_id', orgId),
 
@@ -120,6 +121,14 @@ export async function GET(req: NextRequest, { params }: Params) {
         .not('actual_cost', 'is', null)
         .gte('updated_at', monthStart)
         .lte('updated_at', monthEnd + 'T23:59:59'),
+
+      // org_expenses for this month
+      admin
+        .from('org_expenses')
+        .select('amount_tzs, category')
+        .eq('organization_id', orgId)
+        .gte('expense_date', monthStart)
+        .lte('expense_date', monthEnd),
     ])
 
     // ── Income summary ───────────────────────────────────────────────────────
@@ -145,29 +154,41 @@ export async function GET(req: NextRequest, { params }: Params) {
     const maintCostItems = maintCostRes.data ?? []
     const totalMaintCost = maintCostItems.reduce((s, m) => s + (m.actual_cost ?? 0), 0)
 
-    // ── Monthly income trend (last 6 months) ─────────────────────────────────
-    const monthlyIncome: Array<{ month: string; due: number; collected: number }> = []
-    for (let i = 5; i >= 0; i--) {
-      const d  = new Date(targetYear, targetMonth - i, 1)
-      const mS = d.toISOString().split('T')[0]
-      const mE = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]
-      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-
-      let mDue = 0, mCollected = 0
-      if (allLeaseIds.length > 0) {
-        const { data: mPay } = await admin
-          .from('lease_payments')
-          .select('amount_due, amount_paid, status')
-          .gte('due_date', mS)
-          .lte('due_date', mE)
-          .in('lease_id', allLeaseIds)
-
-        mDue       = (mPay ?? []).reduce((s, p) => s + (p.amount_due ?? 0), 0)
-        mCollected = (mPay ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid ?? p.amount_due ?? 0), 0)
-      }
-
-      monthlyIncome.push({ month: monthKey, due: mDue, collected: mCollected })
+    // ── Expenses summary ─────────────────────────────────────────────────────
+    const expenseRows      = orgExpensesRes.data ?? []
+    const totalExpenses    = expenseRows.reduce((s, e) => s + Number(e.amount_tzs ?? 0), 0)
+    const expenseByCategory: Record<string, number> = {}
+    for (const e of expenseRows) {
+      expenseByCategory[e.category] = (expenseByCategory[e.category] ?? 0) + Number(e.amount_tzs)
     }
+
+    // ── Monthly income + expense trend (last 6 months) — run in parallel ──────
+    const last6 = Array.from({ length: 6 }, (_, i) => {
+      const d  = new Date(targetYear, targetMonth - (5 - i), 1)
+      return {
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        start: d.toISOString().split('T')[0],
+        end:   new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0],
+      }
+    })
+
+    const trendResults = await Promise.all(
+      last6.map(async ({ key, start, end }) => {
+        const [payRes, expRes] = await Promise.all([
+          allLeaseIds.length > 0
+            ? admin.from('lease_payments').select('amount_due, amount_paid, status')
+                .gte('due_date', start).lte('due_date', end).in('lease_id', allLeaseIds)
+            : Promise.resolve({ data: [] as { amount_due: number; amount_paid: number; status: string }[] }),
+          admin.from('org_expenses').select('amount_tzs')
+            .eq('organization_id', orgId).gte('expense_date', start).lte('expense_date', end),
+        ])
+        const pays      = payRes.data ?? []
+        const due       = pays.reduce((s, p) => s + (p.amount_due ?? 0), 0)
+        const collected = pays.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount_paid ?? p.amount_due ?? 0), 0)
+        const expenses  = (expRes.data ?? []).reduce((s, e) => s + Number(e.amount_tzs ?? 0), 0)
+        return { month: key, due, collected, expenses }
+      })
+    )
 
     return NextResponse.json({
       month:  `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`,
@@ -193,9 +214,18 @@ export async function GET(req: NextRequest, { params }: Params) {
         resolved_this_month: maintItems.filter(m => ['resolved','closed'].includes(m.status)).length,
         total_actual_cost:   totalMaintCost,
       },
-      monthly_income:      monthlyIncome,
-      leases_ending_soon:  leasesEndingSoonRes.data ?? [],
-      overdue_payments:    overduePaymentsRes.data ?? [],
+      expenses: {
+        total:       totalExpenses,
+        by_category: expenseByCategory,
+      },
+      profit_loss: {
+        income:   totalCollected,
+        expenses: totalExpenses,
+        net:      totalCollected - totalExpenses,
+      },
+      monthly_income:     trendResults,
+      leases_ending_soon: leasesEndingSoonRes.data ?? [],
+      overdue_payments:   overduePaymentsRes.data ?? [],
     })
   } catch (err) {
     console.error('[GET /organizations/:id/reports]', err)

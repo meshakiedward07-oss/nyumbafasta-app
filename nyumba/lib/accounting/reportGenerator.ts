@@ -56,8 +56,9 @@ function fmtTZS(amount: number): string {
   return `TZS ${amount.toLocaleString('en-TZ', { minimumFractionDigits: 2 })}`
 }
 
-// ── Generate PDF report (HTML → Puppeteer) ────────────────────────────────
-// NOTE: In production on Vercel, replace puppeteer with @sparticuz/chromium + puppeteer-core.
+// ── Generate PDF report (HTML → browser print) ────────────────────────────
+// Returns a self-contained HTML page; caller sets Content-Type: text/html.
+// The page auto-triggers window.print() so the user can save as PDF.
 export async function generatePDFReport(params: {
   period: 'daily' | 'weekly' | 'monthly' | 'yearly'
   date?:  Date
@@ -190,17 +191,14 @@ ${methodRows ? `<h2>💳 Mapato kwa Njia ya Malipo</h2>
 </div>
 </body></html>`
 
-  const puppeteer = await import('puppeteer')
-  const browser   = await puppeteer.default.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] })
-  const page      = await browser.newPage()
-  await page.setContent(html, { waitUntil: 'domcontentloaded' })
-  const pdf = await page.pdf({
-    format:          'A4',
-    printBackground: true,
-    margin:          { top: '15mm', bottom: '15mm', left: '12mm', right: '12mm' },
-  })
-  await browser.close()
-  return Buffer.from(pdf)
+  // Inject auto-print and print-media styles — no Puppeteer needed on Vercel
+  const printHtml = html.replace(
+    '</head>',
+    `<style>@media print{body{margin:0}.footer{page-break-inside:avoid}}</style>
+<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),400))</script>
+</head>`,
+  )
+  return Buffer.from(printHtml, 'utf8')
 }
 
 // ── Generate Excel report (3 sheets) ─────────────────────────────────────

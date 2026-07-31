@@ -43,12 +43,11 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // PDF
+    // PDF — rendered as HTML; browser auto-prints so user can save as PDF
     const buf = await generatePDFReport({ period, date })
     return new NextResponse(buf as unknown as BodyInit, {
       headers: {
-        'Content-Type':        'application/pdf',
-        'Content-Disposition': `attachment; filename="nyumbafasta_ripoti_${monthLabel}.pdf"`,
+        'Content-Type': 'text/html; charset=utf-8',
       },
     })
   } catch (err) {

@@ -33,6 +33,8 @@ interface ReportData {
   income:              IncomeData
   occupancy:           OccupancyData
   maintenance_summary: MaintSummary
+  expenses:            { total: number; by_category: Record<string, number> }
+  profit_loss:         { income: number; expenses: number; net: number }
   monthly_income:      MonthlyBar[]
   leases_ending_soon:  unknown[]
   overdue_payments:    unknown[]
@@ -94,6 +96,17 @@ export default function TaarifaPage() {
     ? Math.max(...data.monthly_income.map(b => b.due), 1)
     : 1
 
+  async function handleDownload() {
+    if (!orgId) return
+    const url = `/api/v1/organizations/${orgId}/reports/download?month=${month}`
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `taarifa_${month}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto overflow-y-auto">
       {/* Header */}
@@ -103,12 +116,23 @@ export default function TaarifaPage() {
             <h1 className="text-xl font-bold text-gray-900">Taarifa</h1>
             <p className="text-xs text-gray-400 mt-0.5">{monthLabel}</p>
           </div>
-          <input
-            type="month"
-            value={month}
-            onChange={handleMonthChange}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              type="month"
+              value={month}
+              onChange={handleMonthChange}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+            />
+            {data && (
+              <button
+                onClick={handleDownload}
+                className="border border-gray-200 bg-white text-gray-600 px-3 py-2 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+                title="Pakua Excel"
+              >
+                ⬇
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -280,6 +304,56 @@ export default function TaarifaPage() {
                 </div>
               )}
             </div>
+
+            {/* ── Expenses & P&L ──────────────────────────────────────── */}
+            {data.expenses && (
+              <div className="bg-white border border-gray-100 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <i className="ti ti-receipt text-red-500 text-lg" aria-hidden="true" />
+                    <h2 className="font-semibold text-gray-900 text-sm">Matumizi</h2>
+                  </div>
+                  <a href="/property/matumizi" className="text-xs text-primary-500 font-medium">Simamia →</a>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="bg-red-50 rounded-xl p-3 text-center">
+                    <p className="text-xs text-gray-500 mb-1">Jumla Matumizi</p>
+                    <p className="text-base font-bold text-red-600">Tsh {fmtMoney(data.expenses.total)}</p>
+                  </div>
+                  <div className={`rounded-xl p-3 text-center ${data.profit_loss.net >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                    <p className="text-xs text-gray-500 mb-1">{data.profit_loss.net >= 0 ? 'Faida' : 'Hasara'}</p>
+                    <p className={`text-base font-bold ${data.profit_loss.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      Tsh {fmtMoney(Math.abs(data.profit_loss.net))}
+                    </p>
+                  </div>
+                </div>
+
+                {Object.keys(data.expenses.by_category).length > 0 && (
+                  <div className="space-y-1.5">
+                    {Object.entries(data.expenses.by_category)
+                      .sort(([,a],[,b]) => b - a)
+                      .map(([cat, amt]) => {
+                        const pct = data.expenses.total > 0 ? Math.round((amt / data.expenses.total) * 100) : 0
+                        const CATS: Record<string,string> = {
+                          maintenance:'Matengenezo', utilities:'Huduma', salaries:'Mishahara',
+                          marketing:'Masoko', legal:'Kisheria', insurance:'Bima',
+                          taxes:'Kodi', office:'Ofisi', other:'Mengine',
+                        }
+                        return (
+                          <div key={cat} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 w-20 flex-shrink-0">{CATS[cat] ?? cat}</span>
+                            <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                              <div className="bg-red-400 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-xs font-medium text-gray-700 w-16 text-right">{fmtMoney(amt)}</span>
+                          </div>
+                        )
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ── Leases ending soon ───────────────────────────────────── */}
             {(data.leases_ending_soon as unknown as Array<{

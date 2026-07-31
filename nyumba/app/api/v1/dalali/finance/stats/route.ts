@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
         monthExp, yearExp,
         commissions, goal,
         allIncome, allExpenses,
+        billingHistory, unlockStats,
       ] = await Promise.all([
         // Today income (no bound needed — exact date match)
         admin.from('dalali_income').select('amount').eq('dalali_id', id).eq('date', today),
@@ -66,11 +67,26 @@ export async function GET(req: NextRequest) {
           .limit(500),
         // ALL expense records for this month — used in the Matumizi tab
         admin.from('dalali_expenses')
-          .select('id, amount, category, date, description, vendor, payment_method')
+          .select('id, amount, category, date, description, vendor, payment_method, receipt_url')
           .eq('dalali_id', id)
           .gte('date', monthStart).lt('date', monthEnd)
           .order('date', { ascending: false })
           .limit(500),
+
+        // Billing history — subscription invoices the dalali has paid to NyumbaFasta
+        admin.from('subscription_invoices')
+          .select('id, amount, status, created_at, period_start, period_end, plan_name')
+          .eq('user_id', id)
+          .order('created_at', { ascending: false })
+          .limit(24),
+
+        // Platform unlock earnings — how many clients unlocked this dalali's contact this month
+        admin.from('contact_unlocks')
+          .select('id, amount_paid, created_at')
+          .eq('dalali_id', id)
+          .gte('created_at', monthStart + 'T00:00:00')
+          .lt('created_at', monthEnd + 'T00:00:00')
+          .eq('status', 'completed'),
       ])
 
       const sum = (arr: { amount: number }[] | null) =>
@@ -99,6 +115,20 @@ export async function GET(req: NextRequest) {
         void admin.from('dalali_goals').update({ current_amount: monthIncomeTotal }).eq('id', goal.data.id)
       }
 
+      const unlocks      = unlockStats.data ?? []
+      const unlockCount  = unlocks.length
+      const unlockTotal  = unlocks.reduce((s, u) => s + (u.amount_paid ?? 0), 0)
+
+      const billing = (billingHistory.data ?? []).map(b => ({
+        id:           b.id,
+        amount:       b.amount,
+        status:       b.status,
+        created_at:   b.created_at,
+        period_start: b.period_start,
+        period_end:   b.period_end,
+        plan_name:    b.plan_name,
+      }))
+
       return {
         summary: {
           today:         sum(todayInc.data),
@@ -110,13 +140,15 @@ export async function GET(req: NextRequest) {
           yearExpenses:  yearExpenseTotal,
           yearProfit:    yearIncomeTotal - yearExpenseTotal,
         },
-        commissions: { pending: commPending, paid: commPaid, overdue: commOverdue, list: comms },
-        goal: goal.data ?? null,
-        recentIncome:    allIncome.data   ?? [],
-        recentExpenses:  allExpenses.data ?? [],
+        commissions:  { pending: commPending, paid: commPaid, overdue: commOverdue, list: comms },
+        goal:         goal.data ?? null,
+        recentIncome:     allIncome.data   ?? [],
+        recentExpenses:   allExpenses.data ?? [],
         incomeByCategory,
         expenseByCategory,
-        period: { month, year, today },
+        billing:  { history: billing },
+        unlocks:  { count: unlockCount, total_value: unlockTotal, this_month: unlocks },
+        period:   { month, year, today },
       }
     })
 

@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null)
     if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
 
-    const { amount, category, date, description, vendor, payment_method } = body
+    const { amount, category, date, description, vendor, payment_method, receipt_url } = body
     if (!amount || !category || !date)
       return NextResponse.json({ error: 'amount, category, date zinahitajika' }, { status: 400 })
 
@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
         description:    typeof description === 'string' ? description.slice(0, 500) : null,
         vendor:         typeof vendor === 'string'      ? vendor.slice(0, 200)       : null,
         payment_method: safePaymentMethod,
+        receipt_url:    typeof receipt_url === 'string' ? receipt_url.slice(0, 1000) : null,
       })
       .select()
       .single()
@@ -92,6 +93,37 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[POST app/api/v1/dalali/finance/expenses]', msg)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const user = await getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const id = req.nextUrl.searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'ID inahitajika' }, { status: 400 })
+
+    const body = await req.json().catch(() => null)
+    if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+
+    const allowed = ['amount', 'category', 'date', 'description', 'vendor', 'payment_method', 'receipt_url']
+    const patch: Record<string, unknown> = {}
+    for (const k of allowed) if (k in body) patch[k] = body[k]
+    if (typeof patch.receipt_url === 'string') patch.receipt_url = (patch.receipt_url as string).slice(0, 1000)
+
+    const admin = createAdminClient()
+    const { data, error } = await admin.from('dalali_expenses')
+      .update(patch).eq('id', id).eq('dalali_id', user.id).select().single()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    cache.invalidatePrefix(`finance-stats:${user.id}:`)
+    return NextResponse.json({ success: true, expense: data })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[PATCH app/api/v1/dalali/finance/expenses]', msg)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
 }
