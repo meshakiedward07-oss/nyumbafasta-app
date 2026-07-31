@@ -155,15 +155,48 @@ export default function UsernamePage() {
               <i className="ti ti-external-link text-xs" aria-hidden="true" />
               Angalia profile yako
             </a>
-            <span className="text-gray-300">·</span>
-            <a
-              href={`/api/v1/profile/qr?u=${current}`}
-              download={`nyumbafasta-${current}-qr.png`}
-              className="flex items-center gap-1.5 text-xs text-green-700 font-medium hover:underline"
-            >
-              <i className="ti ti-qrcode text-xs" aria-hidden="true" />
-              Pakua QR Code
-            </a>
+          </div>
+
+          {/* QR Code */}
+          <div className="mt-4 pt-4 border-t border-green-200 flex items-center gap-4">
+            <div className="w-28 h-28 rounded-xl overflow-hidden bg-white border border-green-200 flex-shrink-0 shadow-sm">
+              <img
+                src={`/api/v1/profile/qr?u=${current}`}
+                alt="QR Code ya profile yako"
+                className="w-full h-full object-contain"
+                loading="lazy"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-green-800 mb-1 flex items-center gap-1.5">
+                <i className="ti ti-qrcode text-sm" aria-hidden="true" />
+                QR Code ya Profile
+              </p>
+              <p className="text-[11px] text-green-700 leading-relaxed mb-3">
+                Chapisha na uweke kwenye mlango, business card, au share kwenye story yako. Wateja wakiscan wataona listings zako zote.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <a
+                  href={`/api/v1/profile/qr?u=${current}`}
+                  download={`nyumbafasta-${current}-qr.png`}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-white bg-green-600
+                             px-3 py-1.5 rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <i className="ti ti-download text-xs" aria-hidden="true" />
+                  Pakua PNG
+                </a>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`Angalia listings zangu za nyumba kwenye NyumbaFasta:\n${profileUrl}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs font-medium text-green-800 border border-green-300
+                             bg-white px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
+                >
+                  <i className="ti ti-brand-whatsapp text-xs" aria-hidden="true" />
+                  Shiriki
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       )}

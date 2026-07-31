@@ -248,6 +248,48 @@ export default function DalaliProfileClient({
                 </a>
               </div>
 
+              {/* QR Code */}
+              <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                <div className="w-20 h-20 rounded-lg overflow-hidden bg-white border border-gray-200 flex-shrink-0">
+                  <img
+                    src={`/api/v1/profile/qr?u=${username}`}
+                    alt="QR Code ya profile yako"
+                    className="w-full h-full object-contain"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-700 mb-1">
+                    <i className="ti ti-qrcode text-primary-500 mr-1" aria-hidden="true" />
+                    QR Code yako
+                  </p>
+                  <p className="text-[11px] text-gray-500 leading-relaxed mb-2">
+                    Chapisha au weka kwenye story — wateja wakiscan watafikia profile yako.
+                  </p>
+                  <div className="flex gap-2">
+                    <a
+                      href={`/api/v1/profile/qr?u=${username}`}
+                      download={`nyumbafasta-${username}-qr.png`}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-white bg-primary-500
+                                 px-2.5 py-1.5 rounded-lg active:scale-95 transition-all"
+                    >
+                      <i className="ti ti-download" aria-hidden="true" />
+                      Pakua
+                    </a>
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`Angalia listings zangu za nyumba kwenye NyumbaFasta:\n${profileUrl}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-[11px] font-medium text-gray-700 border border-gray-300
+                                 bg-white px-2.5 py-1.5 rounded-lg active:scale-95 transition-all"
+                    >
+                      <i className="ti ti-brand-whatsapp text-green-600" aria-hidden="true" />
+                      Shiriki
+                    </a>
+                  </div>
+                </div>
+              </div>
+
               <p className="text-[10px] text-gray-400 leading-relaxed">
                 Shiriki kiungo hiki kwa wateja — wataona listings zako zote na wasiliana nawe.
                 Username inaweza kubadilishwa mara moja kila siku 30.
