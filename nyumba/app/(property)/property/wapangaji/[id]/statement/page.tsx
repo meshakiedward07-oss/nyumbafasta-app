@@ -36,7 +36,6 @@ interface Lease {
 
 export default function TenantStatementPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: leaseId } = use(params)
-  const [orgId,     setOrgId]     = useState<string | null>(null)
   const [lease,     setLease]     = useState<Lease | null>(null)
   const [payments,  setPayments]  = useState<Payment[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -51,7 +50,6 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
         const primary = orgs.find((o: { role: string }) => o.role === 'owner') ?? orgs[0]
         if (!primary) { setError('Shirika halipatikani'); setLoading(false); return }
         const id = primary.organization.id
-        setOrgId(id)
 
         const [leaseRes, paymentsRes] = await Promise.all([
           fetch(`/api/v1/organizations/${id}/leases/${leaseId}`),
