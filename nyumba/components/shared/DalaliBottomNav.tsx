@@ -36,7 +36,7 @@ export default function DalaliBottomNav() {
   return (
     <nav
       aria-label="Urambazaji mkuu"
-      className="fixed bottom-0 left-0 right-0 z-40"
+      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {/* Frosted glass backdrop with upward shadow */}

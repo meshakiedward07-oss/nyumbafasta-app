@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import ListingCard from '@/components/listings/ListingCard'
 import { ListingGridSkeleton } from '@/components/shared/ListingCardSkeleton'
@@ -63,7 +64,6 @@ type Props = {
 export default function ListingsSection({ initialListings, initialTotal }: Props = {}) {
   const supabase = createClient()
 
-  // Start with server-fetched data if provided — avoids client-side waterfall on first load
   const hasInitialData = !!(initialListings?.length)
   const skippedFirstFetch = useRef(hasInitialData)
 
@@ -86,7 +86,6 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
     search:    '',
   })
 
-  // Fetch current user once on mount
   useEffect(() => {
     let cancelled = false
     async function loadUser() {
@@ -109,7 +108,6 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
     return () => { cancelled = true }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch listings whenever filters or page change
   const fetchListings = useCallback(async (isNewSearch: boolean) => {
     if (isNewSearch) setLoading(true)
     const from = isNewSearch ? 0 : (page - 1) * LIMIT
@@ -140,13 +138,10 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
 
       const raw = (data as unknown as ListingWithDalali[]) ?? []
       const rows = raw.sort((a, b) => {
-        // 1. Boosted always first
         if (a.is_boosted !== b.is_boosted) return a.is_boosted ? -1 : 1
-        // 2. Fresh (within 30 days) before older listings
         const aFresh = isFresh(a.created_at)
         const bFresh = isFresh(b.created_at)
         if (aFresh !== bFresh) return aFresh ? -1 : 1
-        // 3. Newest within each group
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       })
       setListings(prev => isNewSearch ? rows : [...prev, ...rows])
@@ -159,8 +154,6 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
     }
   }, [filters, page]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When filters change → reset to page 1 and fetch fresh
-  // Skip on first mount if initial data was provided by server (avoids double-fetch)
   useEffect(() => {
     if (skippedFirstFetch.current) {
       skippedFirstFetch.current = false
@@ -170,7 +163,6 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
     fetchListings(true)
   }, [filters]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When page increments (load more) → append
   useEffect(() => {
     if (page === 1) return
     fetchListings(false)
@@ -180,7 +172,6 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
     setFilters(prev => ({ ...prev, [key]: value ?? '' }))
   }
 
-  // Debounce search — 300ms delay before firing Supabase query
   useEffect(() => {
     const t = setTimeout(() => applyFilter('search', searchInput), 300)
     return () => clearTimeout(t)
@@ -194,319 +185,367 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
   const hasExtraFilters = !!(filters?.min_price || filters?.max_price || filters?.furnished)
   const boosted = listings.filter(l => l.is_boosted)
 
+  const searchBox = (extraClass = '') => (
+    <div className={`relative ${extraClass}`}>
+      <i className="ti ti-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
+      <input
+        type="search"
+        inputMode="search"
+        placeholder="Tafuta mtaa, wilaya, mkoa..."
+        value={searchInput}
+        onChange={e => setSearchInput(e.target.value)}
+        className="w-full pl-10 pr-10 py-3 rounded-2xl bg-white text-sm
+                   text-gray-900 placeholder-gray-400 focus:outline-none
+                   focus:ring-2 focus:ring-white/60"
+        style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)' }}
+      />
+      {searchInput && (
+        <button
+          onClick={() => setSearchInput('')}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+          aria-label="Futa utafutaji"
+        >
+          <i className="ti ti-x text-sm" aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  )
+
   return (
     <div className="bg-gray-50">
 
-      {/* ── Sticky top: logo + notification + search ── */}
+      {/* ── Sticky top header ── */}
       <div className="sticky top-0 z-20 pt-[env(safe-area-inset-top,0px)]"
         style={{ background: 'linear-gradient(160deg, #27AE72 0%, #1D9E75 60%, #178A63 100%)' }}>
-        {/* Decorative dots */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/5" />
           <div className="absolute top-1 right-16 w-8 h-8 rounded-full bg-white/5" />
         </div>
-        {/* Brand row */}
-        <div className="relative flex items-center justify-between px-4 pt-2.5 pb-1">
-          <div className="relative h-9 w-[48%] sm:w-[36%]">
+
+        {/* Brand + desktop search + desktop nav */}
+        <div className="relative flex items-center gap-3 px-4 lg:px-8 pt-2.5 pb-1 lg:pb-2.5">
+          <div className="relative h-9 w-[48%] sm:w-[36%] lg:w-40 flex-shrink-0">
             <Image
               src="/transparent_logo_nyumbafasta.png"
               alt="NyumbaFasta"
               fill
               priority
               className="object-contain object-left"
-              sizes="(max-width: 640px) 48vw, 36vw"
+              sizes="(max-width: 1024px) 48vw, 160px"
             />
           </div>
+
+          {/* Desktop inline search */}
+          <div className="hidden lg:block flex-1 max-w-lg">
+            {searchBox()}
+          </div>
+
+          {/* Desktop nav links */}
+          <nav className="hidden lg:flex items-center gap-0.5 flex-shrink-0" aria-label="Urambazaji mkuu">
+            <Link href="/saved"
+              className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
+              <i className="ti ti-heart text-sm" aria-hidden="true" /> Zilizohifadhiwa
+            </Link>
+            <Link href="/directory"
+              className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
+              <i className="ti ti-building-store text-sm" aria-hidden="true" /> Madalali
+            </Link>
+            {userRole === 'dalali' && (
+              <Link href="/dashboard"
+                className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
+                <i className="ti ti-chart-bar text-sm" aria-hidden="true" /> Dashboard
+              </Link>
+            )}
+            {userRole === 'admin' && (
+              <Link href="/admin"
+                className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
+                <i className="ti ti-shield text-sm" aria-hidden="true" /> Admin
+              </Link>
+            )}
+            <Link href="/account"
+              className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
+              <i className="ti ti-user text-sm" aria-hidden="true" /> Akaunti
+            </Link>
+          </nav>
+
           <NotificationBell asLink className="text-white/90 hover:text-white" />
         </div>
-        {/* Search input */}
-        <div className="relative px-4 pb-3.5">
-          <div className="relative">
-            <i className="ti ti-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
-            <input
-              type="search"
-              inputMode="search"
-              placeholder="Tafuta mtaa, wilaya, mkoa..."
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 rounded-2xl bg-white text-sm
-                         text-gray-900 placeholder-gray-400 focus:outline-none
-                         focus:ring-2 focus:ring-white/60"
-              style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)' }}
-            />
-            {searchInput && (
-              <button
-                onClick={() => setSearchInput('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
-                aria-label="Futa utafutaji"
-              >
-                <i className="ti ti-x text-sm" aria-hidden="true" />
-              </button>
-            )}
-          </div>
+
+        {/* Mobile-only search row */}
+        <div className="relative px-4 pb-3.5 lg:hidden">
+          {searchBox()}
         </div>
       </div>
 
-      {/* ── Region tabs ── */}
-      <div className="flex gap-1.5 px-4 pt-3 pb-1 overflow-x-auto scrollbar-none">
-        <button
-          onClick={() => applyFilter('region', '')}
-          className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200
-            ${(filters?.region ?? '') === ''
-              ? 'bg-primary-500 text-white shadow-[0_2px_8px_rgba(29,158,117,0.35)]'
-              : 'bg-white text-gray-500 border border-gray-200 hover:border-primary-200 hover:text-primary-600'}`}
-        >
-          <i className="ti ti-world text-[11px]" aria-hidden="true" /> Tanzania
-        </button>
+      {/* ── Content — max-width constrained on desktop ── */}
+      <div className="max-w-screen-xl mx-auto">
 
-        {PRIORITY_REGIONS.map(r => (
+        {/* Region tabs */}
+        <div className="flex gap-1.5 px-4 lg:px-8 pt-3 pb-1 overflow-x-auto scrollbar-none">
           <button
-            key={r}
-            onClick={() => applyFilter('region', r)}
+            onClick={() => applyFilter('region', '')}
             className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200
-              ${(filters?.region ?? '') === r
+              ${(filters?.region ?? '') === ''
                 ? 'bg-primary-500 text-white shadow-[0_2px_8px_rgba(29,158,117,0.35)]'
                 : 'bg-white text-gray-500 border border-gray-200 hover:border-primary-200 hover:text-primary-600'}`}
           >
-            {shortName(r)}
+            <i className="ti ti-world text-[11px]" aria-hidden="true" /> Tanzania
           </button>
-        ))}
 
-        <select
-          value={PRIORITY_REGIONS.includes(filters?.region ?? '') ? '' : (filters?.region ?? '')}
-          onChange={e => { if (e.target.value) applyFilter('region', e.target.value) }}
-          className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold
-            focus:outline-none cursor-pointer
-            ${!PRIORITY_REGIONS.includes(filters?.region ?? '') && filters?.region
-              ? 'bg-primary-500 text-white border-primary-500'
-              : 'bg-white text-gray-500 border-gray-200'}`}
-        >
-          <option value="">Mikoa Mingine</option>
-          {TANZANIA_REGIONS.map(r => (
-            <option key={r.name} value={r.name}>{r.name}</option>
+          {PRIORITY_REGIONS.map(r => (
+            <button
+              key={r}
+              onClick={() => applyFilter('region', r)}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200
+                ${(filters?.region ?? '') === r
+                  ? 'bg-primary-500 text-white shadow-[0_2px_8px_rgba(29,158,117,0.35)]'
+                  : 'bg-white text-gray-500 border border-gray-200 hover:border-primary-200 hover:text-primary-600'}`}
+            >
+              {shortName(r)}
+            </button>
           ))}
-        </select>
-      </div>
 
-      {/* ── Filter row ── */}
-      <div className="flex gap-1.5 px-4 pb-3 pt-1.5 overflow-x-auto scrollbar-none">
-        <select
-          value={filters?.type ?? ''}
-          onChange={e => applyFilter('type', e.target.value)}
-          className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold focus:outline-none cursor-pointer transition-all duration-200
-            ${filters?.type ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-500 border-gray-200'}`}
-        >
-          {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
+          <select
+            value={PRIORITY_REGIONS.includes(filters?.region ?? '') ? '' : (filters?.region ?? '')}
+            onChange={e => { if (e.target.value) applyFilter('region', e.target.value) }}
+            className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold
+              focus:outline-none cursor-pointer
+              ${!PRIORITY_REGIONS.includes(filters?.region ?? '') && filters?.region
+                ? 'bg-primary-500 text-white border-primary-500'
+                : 'bg-white text-gray-500 border-gray-200'}`}
+          >
+            <option value="">Mikoa Mingine</option>
+            {TANZANIA_REGIONS.map(r => (
+              <option key={r.name} value={r.name}>{r.name}</option>
+            ))}
+          </select>
+        </div>
 
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex-shrink-0 text-xs px-4 py-2 rounded-full border font-semibold
-            transition-all duration-200 flex items-center gap-1.5
-            ${showFilters || hasExtraFilters ? 'bg-primary-500 text-white border-primary-500 shadow-[0_2px_8px_rgba(29,158,117,0.3)]' : 'bg-white text-gray-500 border-gray-200'}`}
-        >
-          <i className="ti ti-adjustments-horizontal text-xs" aria-hidden="true" /> Chuja
-          {hasExtraFilters && <span className="w-2 h-2 rounded-full bg-amber-400 border-2 border-white shadow" />}
-        </button>
+        {/* Filter row */}
+        <div className="flex gap-1.5 px-4 lg:px-8 pb-3 pt-1.5 overflow-x-auto scrollbar-none">
+          <select
+            value={filters?.type ?? ''}
+            onChange={e => applyFilter('type', e.target.value)}
+            className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold focus:outline-none cursor-pointer transition-all duration-200
+              ${filters?.type ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-500 border-gray-200'}`}
+          >
+            {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
 
-      </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex-shrink-0 text-xs px-4 py-2 rounded-full border font-semibold
+              transition-all duration-200 flex items-center gap-1.5
+              ${showFilters || hasExtraFilters ? 'bg-primary-500 text-white border-primary-500 shadow-[0_2px_8px_rgba(29,158,117,0.3)]' : 'bg-white text-gray-500 border-gray-200'}`}
+          >
+            <i className="ti ti-adjustments-horizontal text-xs" aria-hidden="true" /> Chuja
+            {hasExtraFilters && <span className="w-2 h-2 rounded-full bg-amber-400 border-2 border-white shadow" />}
+          </button>
+        </div>
 
-      {/* ── Expanded filters ── */}
-      {showFilters && (
-        <div className="mx-4 mb-3 bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <label className="text-xs text-gray-500 mb-1 block">Mkoa</label>
-              <select
-                value={filters?.region ?? ''}
-                onChange={e => applyFilter('region', e.target.value)}
-                className="w-full text-base border border-gray-200 rounded-xl px-3 py-2.5
-                           focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
-              >
-                <option value="">Mikoa Yote Tanzania</option>
-                {TANZANIA_REGIONS.map(r => (
-                  <option key={r.name} value={r.name}>{r.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Bei ya chini (Tsh)</label>
-              <input
-                type="number" inputMode="numeric" placeholder="50,000"
-                value={filters?.min_price ?? ''}
-                onChange={e => applyFilter('min_price', e.target.value)}
-                className="w-full text-base border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Bei ya juu (Tsh)</label>
-              <input
-                type="number" inputMode="numeric" placeholder="500,000"
-                value={filters?.max_price ?? ''}
-                onChange={e => applyFilter('max_price', e.target.value)}
-                className="w-full text-base border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="text-xs text-gray-500 mb-1 block">Hali ya samani</label>
-              <div className="grid grid-cols-2 gap-2">
-                {[{ value: '', label: 'Yote' }, { value: 'furnished', label: 'Ina Samani' }, { value: 'semi', label: 'Nusu Samani' }, { value: 'empty', label: 'Bila Samani' }].map(f => (
-                  <button
-                    key={f.value}
-                    onClick={() => applyFilter('furnished', f.value)}
-                    className={`text-xs min-h-[44px] rounded-lg border transition-all flex items-center justify-center
-                      ${(filters?.furnished ?? '') === f.value ? 'bg-primary-500 text-white border-primary-500' : 'bg-gray-50 text-gray-600 border-gray-200'}`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+        {/* Expanded filters */}
+        {showFilters && (
+          <div className="mx-4 lg:mx-8 mb-3 bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="col-span-2 lg:col-span-4">
+                <label className="text-xs text-gray-500 mb-1 block">Mkoa</label>
+                <select
+                  value={filters?.region ?? ''}
+                  onChange={e => applyFilter('region', e.target.value)}
+                  className="w-full text-base border border-gray-200 rounded-xl px-3 py-2.5
+                             focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                >
+                  <option value="">Mikoa Yote Tanzania</option>
+                  {TANZANIA_REGIONS.map(r => (
+                    <option key={r.name} value={r.name}>{r.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Bei ya chini (Tsh)</label>
+                <input
+                  type="number" inputMode="numeric" placeholder="50,000"
+                  value={filters?.min_price ?? ''}
+                  onChange={e => applyFilter('min_price', e.target.value)}
+                  className="w-full text-base border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Bei ya juu (Tsh)</label>
+                <input
+                  type="number" inputMode="numeric" placeholder="500,000"
+                  value={filters?.max_price ?? ''}
+                  onChange={e => applyFilter('max_price', e.target.value)}
+                  className="w-full text-base border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none"
+                />
+              </div>
+              <div className="col-span-2 lg:col-span-2">
+                <label className="text-xs text-gray-500 mb-1 block">Hali ya samani</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[{ value: '', label: 'Yote' }, { value: 'furnished', label: 'Ina Samani' }, { value: 'semi', label: 'Nusu Samani' }, { value: 'empty', label: 'Bila Samani' }].map(f => (
+                    <button
+                      key={f.value}
+                      onClick={() => applyFilter('furnished', f.value)}
+                      className={`text-xs min-h-[44px] rounded-lg border transition-all flex items-center justify-center
+                        ${(filters?.furnished ?? '') === f.value ? 'bg-primary-500 text-white border-primary-500' : 'bg-gray-50 text-gray-600 border-gray-200'}`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Count + view toggle ── */}
-      <div className="px-4 mb-3 flex justify-between items-center">
-        <p className="text-xs font-medium text-gray-400 truncate min-w-0 mr-2">
-          {loading
-            ? <span className="animate-pulse">Inatafuta...</span>
-            : <><span className="text-gray-700 font-bold">{total}</span> {total !== 1 ? 'nyumba' : 'nyumba'}{filters?.region ? ` – ${filters.region}` : ' Tanzania'}</>}
-        </p>
-        <div className="flex-shrink-0 flex bg-gray-100/80 rounded-xl p-0.5 gap-0.5">
-          <button
-            onClick={() => setViewMode('grid')}
-            aria-pressed={viewMode === 'grid'}
-            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
-          >
-            <i className="ti ti-layout-grid-add" aria-hidden="true" /> Grid
-          </button>
-          <button
-            onClick={() => setViewMode('map')}
-            aria-pressed={viewMode === 'map'}
-            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
-          >
-            <i className="ti ti-map-2" aria-hidden="true" /> Ramani
-          </button>
-        </div>
-      </div>
-
-      {/* ── Boosted strip — grid only ── */}
-      {viewMode === 'grid' && !loading && boosted.length > 0 && (
-        <div className="mb-2">
-          <div className="px-4 flex items-center gap-2 mb-2">
-            <i className="ti ti-star-filled text-amber-400 text-base" aria-hidden="true" />
-            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-              Zinashauriwa na NyumbaFasta
-            </p>
+        {/* Count + view toggle */}
+        <div className="px-4 lg:px-8 mb-3 flex justify-between items-center">
+          <p className="text-xs font-medium text-gray-400 truncate min-w-0 mr-2">
+            {loading
+              ? <span className="animate-pulse">Inatafuta...</span>
+              : <><span className="text-gray-700 font-bold">{total}</span> {total !== 1 ? 'nyumba' : 'nyumba'}{filters?.region ? ` – ${filters.region}` : ' Tanzania'}</>}
+          </p>
+          <div className="flex-shrink-0 flex bg-gray-100/80 rounded-xl p-0.5 gap-0.5">
+            <button
+              onClick={() => setViewMode('grid')}
+              aria-pressed={viewMode === 'grid'}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+            >
+              <i className="ti ti-layout-grid-add" aria-hidden="true" /> Grid
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              aria-pressed={viewMode === 'map'}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+            >
+              <i className="ti ti-map-2" aria-hidden="true" /> Ramani
+            </button>
           </div>
-          <div className="relative">
-            <div className="flex gap-3 px-4 overflow-x-auto scrollbar-none pb-1">
-              {boosted.map(listing => (
-                <div key={listing.id} className="flex-shrink-0 w-64">
-                  <ListingCard listing={listing} hasUnlocked={unlockedIds.includes(listing.id)} />
-                </div>
-              ))}
-            </div>
-            <div className="absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none" />
-          </div>
-          <div className="border-b border-gray-200 mt-4 mx-4" />
         </div>
-      )}
 
-      {/* ── Map view ── */}
-      {viewMode === 'map' && <MapView listings={listings} />}
-
-      {/* ── Grid view ── */}
-      {viewMode === 'grid' && (
-        <div className="px-4 grid gap-4">
-          {loading ? (
-            <ListingGridSkeleton count={6} />
-          ) : listings.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-map text-gray-400" aria-hidden="true" /></div>
-              {filters?.region ? (
-                <>
-                  <p className="text-gray-700 font-semibold mb-1">Hakuna nyumba {filters.region}</p>
-                  <p className="text-gray-400 text-sm mb-5 px-4">
-                    Hakuna listings zinazopatikana kwenye mkoa huu sasa hivi.
-                  </p>
-                  <button
-                    onClick={clearFilters}
-                    className="inline-flex items-center gap-2 bg-primary-500 text-white
-                               px-5 py-3 rounded-xl text-sm font-semibold active:scale-[0.97] transition-all"
-                  >
-                    <i className="ti ti-search" aria-hidden="true" /> Tafuta Mikoa Mingine
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-gray-600 font-medium mb-1">Hakuna listings zinazolingana</p>
-                  <p className="text-gray-400 text-sm mb-4">Jaribu kubadilisha filters au mkoa mwingine</p>
-                  <button onClick={clearFilters} className="text-primary-600 text-sm font-medium underline">
-                    Ondoa filters zote
-                  </button>
-                </>
-              )}
+        {/* Boosted strip — grid only */}
+        {viewMode === 'grid' && !loading && boosted.length > 0 && (
+          <div className="mb-2">
+            <div className="px-4 lg:px-8 flex items-center gap-2 mb-2">
+              <i className="ti ti-star-filled text-amber-400 text-base" aria-hidden="true" />
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                Zinashauriwa na NyumbaFasta
+              </p>
             </div>
-          ) : (
-            (() => {
-              // Non-boosted listings split into fresh (≤30d) and older
-              const nonBoosted = listings.filter(l => !l.is_boosted)
-              const firstOlderIdx = nonBoosted.findIndex(l => !isFresh(l.created_at))
-              // Absolute index in full listings array where "older" section starts
-              const boostedCount = listings.filter(l => l.is_boosted).length
-              const olderStartIdx = firstOlderIdx === -1
-                ? listings.length
-                : boostedCount + firstOlderIdx
+            <div className="relative">
+              <div className="flex gap-3 px-4 lg:px-8 overflow-x-auto scrollbar-none pb-1">
+                {boosted.map(listing => (
+                  <div key={listing.id} className="flex-shrink-0 w-64 lg:w-72">
+                    <ListingCard listing={listing} hasUnlocked={unlockedIds.includes(listing.id)} />
+                  </div>
+                ))}
+              </div>
+              <div className="absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none" />
+            </div>
+            <div className="border-b border-gray-200 mt-4 mx-4 lg:mx-8" />
+          </div>
+        )}
 
-              return listings.map((listing, idx) => (
-                <div key={listing.id}>
-                  {/* Section header: "Mpya — Ndani ya Siku 30" at top of fresh non-boosted */}
-                  {!listing.is_boosted && idx === boostedCount && nonBoosted.some(l => isFresh(l.created_at)) && (
-                    <div className="flex items-center gap-2 pt-1 pb-2">
+        {/* Map view */}
+        {viewMode === 'map' && <MapView listings={listings} />}
+
+        {/* Grid view */}
+        {viewMode === 'grid' && (
+          <div className="px-4 lg:px-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {loading ? (
+              <div className="col-span-full">
+                <ListingGridSkeleton count={6} />
+              </div>
+            ) : listings.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-map text-gray-400" aria-hidden="true" /></div>
+                {filters?.region ? (
+                  <>
+                    <p className="text-gray-700 font-semibold mb-1">Hakuna nyumba {filters.region}</p>
+                    <p className="text-gray-400 text-sm mb-5 px-4">
+                      Hakuna listings zinazopatikana kwenye mkoa huu sasa hivi.
+                    </p>
+                    <button
+                      onClick={clearFilters}
+                      className="inline-flex items-center gap-2 bg-primary-500 text-white
+                                 px-5 py-3 rounded-xl text-sm font-semibold active:scale-[0.97] transition-all"
+                    >
+                      <i className="ti ti-search" aria-hidden="true" /> Tafuta Mikoa Mingine
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-600 font-medium mb-1">Hakuna listings zinazolingana</p>
+                    <p className="text-gray-400 text-sm mb-4">Jaribu kubadilisha filters au mkoa mwingine</p>
+                    <button onClick={clearFilters} className="text-primary-600 text-sm font-medium underline">
+                      Ondoa filters zote
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              (() => {
+                const nonBoosted = listings.filter(l => !l.is_boosted)
+                const firstOlderIdx = nonBoosted.findIndex(l => !isFresh(l.created_at))
+                const boostedCount = listings.filter(l => l.is_boosted).length
+                const olderStartIdx = firstOlderIdx === -1
+                  ? listings.length
+                  : boostedCount + firstOlderIdx
+
+                return listings.flatMap((listing, idx) => {
+                  const showMpya = !listing.is_boosted && idx === boostedCount && nonBoosted.some(l => isFresh(l.created_at))
+                  const showOlder = idx === olderStartIdx && olderStartIdx < listings.length && olderStartIdx > 0
+                  const items = []
+
+                  if (showMpya) items.push(
+                    <div key="header-mpya" className="col-span-full flex items-center gap-2 pt-1 pb-2">
                       <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
                       <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                         Mpya — Ndani ya Siku 30
                       </p>
                       <div className="flex-1 border-t border-gray-200" />
                     </div>
-                  )}
-                  {/* Section header: "Listings Zingine" where older begins */}
-                  {idx === olderStartIdx && olderStartIdx < listings.length && olderStartIdx > 0 && (
-                    <div className="flex items-center gap-2 pt-3 pb-2">
+                  )
+                  if (showOlder) items.push(
+                    <div key="header-older" className="col-span-full flex items-center gap-2 pt-3 pb-2">
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
                         Listings Zingine
                       </p>
                       <div className="flex-1 border-t border-gray-200" />
                     </div>
-                  )}
-                  <ListingCard
-                    listing={listing}
-                    hasUnlocked={unlockedIds.includes(listing.id)}
-                    priority={idx < 3}
-                  />
-                </div>
-              ))
-            })()
-          )}
+                  )
+                  items.push(
+                    <ListingCard
+                      key={listing.id}
+                      listing={listing}
+                      hasUnlocked={unlockedIds.includes(listing.id)}
+                      priority={idx < 3}
+                    />
+                  )
+                  return items
+                })
+              })()
+            )}
 
-          {/* Load more */}
-          {!loading && total > listings.length && (
-            <button
-              onClick={() => setPage(p => p + 1)}
-              className="w-full min-h-[48px] py-3 rounded-2xl border border-primary-200
-                         text-primary-600 text-sm font-semibold bg-primary-50 hover:bg-primary-100
-                         active:bg-primary-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              <i className="ti ti-chevrons-down text-base" aria-hidden="true" />
-              Onyesha zaidi ({total - listings.length} zimebaki)
-            </button>
-          )}
-        </div>
-      )}
+            {/* Load more */}
+            {!loading && total > listings.length && (
+              <div className="col-span-full">
+                <button
+                  onClick={() => setPage(p => p + 1)}
+                  className="w-full min-h-[48px] py-3 rounded-2xl border border-primary-200
+                             text-primary-600 text-sm font-semibold bg-primary-50 hover:bg-primary-100
+                             active:bg-primary-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <i className="ti ti-chevrons-down text-base" aria-hidden="true" />
+                  Onyesha zaidi ({total - listings.length} zimebaki)
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
-      <BottomNav role={userRole ?? 'client'} />
+        <BottomNav role={userRole ?? 'client'} />
+      </div>
     </div>
   )
 }

@@ -110,9 +110,8 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
     fetch('/api/v1/pricing').then(r => r.json()).then(p => setUnlockPrice(p.unlock ?? 2000)).catch(() => {})
   }, [])
 
-  // Track in localStorage for guests
   useEffect(() => {
-    if (isLoggedIn) return // DB tracking handles logged-in users
+    if (isLoggedIn) return
     try {
       const key = 'recently_viewed'
       const prev: string[] = JSON.parse(localStorage.getItem(key) ?? '[]')
@@ -121,6 +120,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listing.id])
+
   const [imgError, setImgError] = useState(false)
   const [showUnlockModal, setShowUnlockModal]   = useState(false)
   const [showReportModal, setShowReportModal]   = useState(false)
@@ -138,7 +138,6 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   function handleTouchEnd(e: React.TouchEvent) {
     const dx = touchStartX - e.changedTouches[0].clientX
     const dy = e.changedTouches[0].clientY - touchStartY
-    // Require at least 60px horizontal movement, and the gesture must be more horizontal than vertical
     if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.75) return
     if (dx > 0) {
       setActiveImg(prev => Math.min(prev + 1, images.length - 1))
@@ -153,10 +152,8 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const isFavourite  = profile?.is_favourite_dalali ?? false
   const rating       = profile?.rating_avg ?? 0
   const ratingCount = profile?.rating_count ?? 0
-  // waPhone is only set after payment is confirmed (or for already-unlocked users)
   const waPhone = contactNumber ? (contactNumber.replace(/\D/g, '').replace(/^0/, '255') || null) : null
 
-  // Pre-filled WhatsApp message — includes listing title, location, price, link
   const dalaliDisplayName = listing.dalali?.full_name ?? 'Dalali'
   const displayTitle = listing.title || `${typeLabel[listing.type] || listing.type} – ${listing.district}`
   const locationDisplay = getFullLocation(listing)
@@ -171,128 +168,69 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
   const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
 
   const isTaken = listing.status === 'taken'
-
   const statusBadge = STATUS_LABELS[listing.status] ?? { label: listing.status, cls: 'bg-gray-100 text-gray-500' }
 
-  const images    = listing.images ?? []
-  const videoUrl  = (listing as Listing & { video_url?: string | null }).video_url ?? null
+  const images   = listing.images ?? []
+  const videoUrl = (listing as Listing & { video_url?: string | null }).video_url ?? null
 
-  return (
-    <article className="min-h-screen bg-gray-50 pb-28">
-
-      {/* ── Header ── */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 flex items-center gap-3 px-4 py-3">
+  /* ── Reusable inline CTA for desktop sidebar ── */
+  function InlineCTA() {
+    if (isTaken) {
+      return (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+          <p className="text-sm font-semibold text-amber-700 mb-3 flex items-center gap-1.5">
+            <i className="ti ti-circle-dot" aria-hidden="true" /> Nyumba hii imeshapangishwa
+          </p>
+          <a href={`/?region=${listing.region}`} className="btn-primary w-full py-3 text-sm block text-center">
+            <i className="ti ti-search" aria-hidden="true" /> Tafuta zinazofanana
+          </a>
+        </div>
+      )
+    }
+    if (localUnlocked && waPhone) {
+      return (
+        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-2">
+          <div className="grid grid-cols-2 gap-3">
+            <a href={waUrl ?? '#'} target="_blank" rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center gap-1 py-3 rounded-2xl
+                         bg-green-500 text-white font-semibold text-sm shadow-md active:scale-95 transition-transform">
+              <i className="ti ti-brand-whatsapp text-xl" aria-hidden="true" />
+              <span>WhatsApp</span>
+              <span className="text-[10px] font-normal opacity-75">Na maelezo ya listing</span>
+            </a>
+            <a href={`tel:+${waPhone}`}
+              className="flex flex-col items-center justify-center gap-1 py-3 rounded-2xl
+                         bg-blue-500 text-white font-semibold text-sm shadow-md active:scale-95 transition-transform">
+              <i className="ti ti-phone text-xl" aria-hidden="true" />
+              <span>Piga Simu</span>
+            </a>
+          </div>
+          <p className="text-center text-xs text-gray-400">Namba moja inatumika kwa njia zote mbili</p>
+        </div>
+      )
+    }
+    return (
+      <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
         <button
-          onClick={() => window.history.length > 2 ? router.back() : router.push('/')}
-          aria-label="Rudi nyuma"
-          className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"
+          onClick={() => {
+            if (!isLoggedIn) { window.location.href = `/login?redirect=/listings/${listing.id}`; return }
+            setShowUnlockModal(true)
+          }}
+          className="btn-primary w-full py-3.5 text-sm"
         >
-          ←
+          <i className="ti ti-lock-open" aria-hidden="true" /> Pata Namba ya WhatsApp ya {dalaliDisplayName} – Tsh {unlockPrice.toLocaleString()}
         </button>
-        <p aria-hidden="true" className="flex-1 text-sm font-semibold text-gray-800 truncate">
-          {displayTitle}
+        <p className="text-center text-xs text-gray-400 mt-1.5">
+          Lipa mara moja kupata nambari ya dalali
         </p>
-        <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadge.cls}`}>
-          {statusBadge.label}
-        </span>
-        <SaveButton listingId={listing.id} size="sm" />
       </div>
+    )
+  }
 
-      {/* ── Image gallery ── */}
-      {/* object-cover fills the frame — removes black bars on all orientations */}
-      <div
-        className="relative bg-gray-200 aspect-[4/3] max-h-[80vh] touch-pan-y select-none"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {images.length > 0 && !imgError ? (
-          <Image
-            fill
-            src={images[activeImg]}
-            alt={listing.title ?? `${typeLabel[listing.type] || listing.type} huko ${listing.district}`}
-            className="object-cover"
-            onError={() => setImgError(true)}
-            sizes="100vw"
-            priority
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
-            <i className="ti ti-home text-5xl text-gray-300" aria-hidden="true" />
-            <span className="text-sm">Hakuna picha</span>
-          </div>
-        )}
-
-        {/* Title + short location overlay */}
-        {images.length > 0 && !imgError && (
-          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/65 to-transparent pointer-events-none flex flex-col justify-end px-3 pb-8">
-            <p className="text-white text-sm font-semibold leading-tight truncate drop-shadow">
-              {displayTitle}
-            </p>
-            <p className="text-white/75 text-xs mt-0.5 flex items-center gap-1 truncate">
-              <i className="ti ti-map-pin text-[9px]" aria-hidden="true" />
-              {getShortLocation(listing)}
-            </p>
-          </div>
-        )}
-
-        {/* Boosted badge */}
-        {listing.is_boosted && (
-          <div className="absolute top-3 left-3 bg-primary-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-            <i className="ti ti-bolt" aria-hidden="true" /> {BOOSTED_LABEL}
-          </div>
-        )}
-
-        {/* Dot indicators + photo count */}
-        {images.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
-            <div className="flex gap-1.5 items-center bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
-              {images.map((_, i) => (
-                <button
-                  key={i}
-                  aria-label={`Picha ${i + 1} ya ${images.length}`}
-                  aria-current={i === activeImg ? 'true' : undefined}
-                  onClick={() => { setActiveImg(i); setImgError(false) }}
-                  className="min-h-[44px] min-w-[24px] flex items-center justify-center touch-manipulation"
-                >
-                  <span className={`block rounded-full transition-all ${i === activeImg ? 'w-4 h-2 bg-white' : 'w-2 h-2 bg-white/50'}`} />
-                </button>
-              ))}
-              <span className="text-white/80 text-[10px] font-medium ml-1">{activeImg + 1}/{images.length}</span>
-            </div>
-          </div>
-        )}
-
-      </div>
-
-      {/* Thumbnails */}
-      {images.length > 1 && (
-        <div className="flex gap-2 px-4 py-2 overflow-x-auto scrollbar-none bg-white border-b border-gray-100">
-          {images.map((src, i) => (
-            <button
-              key={i}
-              aria-label={`Angalia picha ${i + 1}`}
-              onClick={() => { setActiveImg(i); setImgError(false) }}
-              className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
-                activeImg === i ? 'border-primary-500' : 'border-transparent'
-              }`}
-            >
-              <Image fill src={src} alt={`Picha ${i + 1}`} className="object-cover" sizes="56px" />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Video player ── */}
-      {videoUrl && (
-        <div className="px-4 pt-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5"><i className="ti ti-video" aria-hidden="true" /> Video ya Nyumba</p>
-          <VideoPlayer src={videoUrl} poster={images[0]} />
-        </div>
-      )}
-
-      {/* ── Main content ── */}
-      <div className="px-4 pt-4 space-y-4">
-
+  /* ── Details section (shared between mobile and desktop right column) ── */
+  function DetailCards() {
+    return (
+      <div className="space-y-4">
         {/* Price + title */}
         <div className="card p-4">
           <div className="flex justify-between items-start gap-3 mb-2">
@@ -303,7 +241,6 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           <p className="text-primary-600 font-bold text-xl mb-3">
             {formatPrice(listing.price_monthly)}
           </p>
-
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
               <i className="ti ti-home" aria-hidden="true" /> {typeLabel[listing.type] || listing.type}
@@ -336,7 +273,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           </div>
         </div>
 
-        {/* Commission — always show type; value/notes only after unlock */}
+        {/* Commission */}
         {listing.commission_type && (
           <section className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
@@ -386,9 +323,9 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
         {/* Location */}
         <section className="card p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5"><i className="ti ti-map-pin" aria-hidden="true" /> Mahali</h3>
-
-          {/* Summary line — full location */}
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+            <i className="ti ti-map-pin" aria-hidden="true" /> Mahali
+          </h3>
           {(() => {
             const summary = getFullLocation(listing)
             return summary !== 'Mahali haijabainishwa' ? (
@@ -397,8 +334,6 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               </div>
             ) : null
           })()}
-
-          {/* Detail grid */}
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
             <div>
               <p className="text-xs text-gray-400 mb-0.5">Mkoa</p>
@@ -433,8 +368,6 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               </div>
             )}
           </div>
-
-          {/* Map — exact coordinates or Google Maps search fallback */}
           {!!(listing.latitude && listing.longitude) ? (
             <SingleListingMap
               latitude={listing.latitude as number}
@@ -459,8 +392,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-800">Angalia kwenye Google Maps</p>
                 <p className="text-xs text-gray-500 truncate mt-0.5">
-                  {[listing.street, listing.mtaa, listing.district, listing.region]
-                    .filter(Boolean).join(' › ')}
+                  {[listing.street, listing.mtaa, listing.district, listing.region].filter(Boolean).join(' › ')}
                 </p>
               </div>
               <span className="text-xs font-semibold text-primary-600 flex-shrink-0 bg-primary-50 px-2 py-1 rounded-lg">
@@ -473,7 +405,9 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Description */}
         {listing.description && (
           <section className="card p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5"><i className="ti ti-file-text" aria-hidden="true" /> Maelezo</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+              <i className="ti ti-file-text" aria-hidden="true" /> Maelezo
+            </h3>
             <p className="text-gray-600 text-sm leading-relaxed">{listing.description}</p>
           </section>
         )}
@@ -481,13 +415,12 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Amenities */}
         {listing.amenities?.length > 0 && (
           <div className="card p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5"><i className="ti ti-check" aria-hidden="true" /> Huduma zilizopo</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+              <i className="ti ti-check" aria-hidden="true" /> Huduma zilizopo
+            </h3>
             <div className="flex flex-wrap gap-2">
               {listing.amenities.map(a => (
-                <span
-                  key={a}
-                  className="bg-primary-50 text-primary-700 text-xs px-3 py-1.5 rounded-full border border-primary-100"
-                >
+                <span key={a} className="bg-primary-50 text-primary-700 text-xs px-3 py-1.5 rounded-full border border-primary-100">
                   <i className={`ti ti-${amenityIcon[a] ?? 'check'}`} aria-hidden="true" /> {amenityLabel[a] || a}
                 </span>
               ))}
@@ -495,7 +428,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           </div>
         )}
 
-        {/* Neighborhood info — only shown when listing has coordinates */}
+        {/* Neighborhood */}
         {!!(listing.latitude && listing.longitude) && (
           <NeighborhoodInfo listingId={listing.id} />
         )}
@@ -511,18 +444,12 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <a
-                href={waUrl ?? '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 bg-green-500 text-white text-xs px-3 py-2 rounded-xl font-semibold active:scale-95 transition-transform"
-              >
+              <a href={waUrl ?? '#'} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 bg-green-500 text-white text-xs px-3 py-2 rounded-xl font-semibold active:scale-95 transition-transform">
                 <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp
               </a>
-              <a
-                href={`tel:+${waPhone}`}
-                className="flex items-center justify-center gap-1.5 bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-semibold active:scale-95 transition-transform"
-              >
+              <a href={`tel:+${waPhone}`}
+                className="flex items-center justify-center gap-1.5 bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-semibold active:scale-95 transition-transform">
                 <i className="ti ti-phone" aria-hidden="true" /> Piga Simu
               </a>
             </div>
@@ -534,18 +461,14 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
         {/* Dalali card */}
         <div className="card p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5"><i className="ti ti-user" aria-hidden="true" /> Kuhusu Dalali</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+            <i className="ti ti-user" aria-hidden="true" /> Kuhusu Dalali
+          </h3>
           <div className="flex items-start gap-3">
-            <Avatar
-              src={listing.dalali?.avatar_url}
-              name={listing.dalali?.full_name ?? 'Dalali'}
-              size={56}
-            />
+            <Avatar src={listing.dalali?.avatar_url} name={listing.dalali?.full_name ?? 'Dalali'} size={56} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-semibold text-gray-900 text-sm">
-                  {listing.dalali?.full_name ?? 'Dalali'}
-                </span>
+                <span className="font-semibold text-gray-900 text-sm">{listing.dalali?.full_name ?? 'Dalali'}</span>
                 {isVerified && (
                   <span className="bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5">
                     <i className="ti ti-check" aria-hidden="true" /> Amethibitishwa
@@ -571,20 +494,18 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           </div>
         </div>
 
-        {/* Agent microsite link — shown for verified dalali who have a public page */}
+        {/* Agent microsite link */}
         {isVerified && agentProfileUrl && (
           <div className="mt-3">
-            <a
-              href={agentProfileUrl}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary-200 bg-primary-50 text-primary-700 text-xs font-semibold active:scale-[0.97] transition-all"
-            >
+            <a href={agentProfileUrl}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary-200 bg-primary-50 text-primary-700 text-xs font-semibold active:scale-[0.97] transition-all">
               <i className="ti ti-user-circle text-sm" aria-hidden="true" />
               Angalia listings zote za {listing.dalali?.full_name ?? 'dalali huyu'} →
             </a>
           </div>
         )}
 
-        {/* Report dalali link — only for logged-in non-dalali users */}
+        {/* Report dalali */}
         {isLoggedIn && (
           <div className="flex justify-end">
             <button
@@ -596,15 +517,19 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             </button>
           </div>
         )}
+      </div>
+    )
+  }
 
-        {/* Reviews */}
+  /* ── Reviews section ── */
+  function ReviewsSection() {
+    return (
+      <div className="space-y-4">
         <ReviewList
           reviews={reviews}
           ratingAvg={listing.dalali?.dalali_profiles?.rating_avg ?? 0}
           ratingCount={listing.dalali?.dalali_profiles?.rating_count ?? 0}
         />
-
-        {/* Review prompt — shown after unlock */}
         {localUnlocked && !reviewed && (
           unlockId
             ? <ReviewForm
@@ -624,52 +549,194 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 </div>
               </div>
         )}
+      </div>
+    )
+  }
 
+  return (
+    <article className="min-h-screen bg-gray-50 pb-28 lg:pb-12">
+
+      {/* ── Sticky header — full width ── */}
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 flex items-center gap-3 px-4 py-3">
+        <button
+          onClick={() => window.history.length > 2 ? router.back() : router.push('/')}
+          aria-label="Rudi nyuma"
+          className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 flex-shrink-0"
+        >
+          ←
+        </button>
+        <p aria-hidden="true" className="flex-1 text-sm font-semibold text-gray-800 truncate">
+          {displayTitle}
+        </p>
+        <span className={`text-xs font-medium px-2 py-1 rounded-full flex-shrink-0 ${statusBadge.cls}`}>
+          {statusBadge.label}
+        </span>
+        <SaveButton listingId={listing.id} size="sm" />
       </div>
 
-      {/* ── Similar listings (shown for all listings) ── */}
-      <SimilarListings
-        currentListingId={listing.id}
-        region={listing.region}
-        district={listing.district}
-        type={listing.type}
-        priceMonthly={listing.price_monthly}
-      />
+      {/* ── Desktop 2-column layout ── */}
+      <div className="lg:max-w-screen-xl lg:mx-auto lg:grid lg:grid-cols-[1fr_420px] lg:gap-6 lg:px-8 lg:pt-6 lg:items-start">
 
-      {/* ── Fixed bottom CTA ── */}
+        {/* ── LEFT column: media ── */}
+        <div>
+          {/* Image gallery */}
+          <div
+            className="relative bg-gray-200 aspect-[4/3] max-h-[80vh] lg:max-h-[60vh] lg:rounded-2xl overflow-hidden touch-pan-y select-none"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {images.length > 0 && !imgError ? (
+              <Image
+                fill
+                src={images[activeImg]}
+                alt={listing.title ?? `${typeLabel[listing.type] || listing.type} huko ${listing.district}`}
+                className="object-cover"
+                onError={() => setImgError(true)}
+                sizes="(max-width: 1024px) 100vw, 60vw"
+                priority
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
+                <i className="ti ti-home text-5xl text-gray-300" aria-hidden="true" />
+                <span className="text-sm">Hakuna picha</span>
+              </div>
+            )}
+
+            {/* Title + short location overlay */}
+            {images.length > 0 && !imgError && (
+              <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/65 to-transparent pointer-events-none flex flex-col justify-end px-3 pb-8">
+                <p className="text-white text-sm font-semibold leading-tight truncate drop-shadow">{displayTitle}</p>
+                <p className="text-white/75 text-xs mt-0.5 flex items-center gap-1 truncate">
+                  <i className="ti ti-map-pin text-[9px]" aria-hidden="true" />
+                  {getShortLocation(listing)}
+                </p>
+              </div>
+            )}
+
+            {/* Boosted badge */}
+            {listing.is_boosted && (
+              <div className="absolute top-3 left-3 bg-primary-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                <i className="ti ti-bolt" aria-hidden="true" /> {BOOSTED_LABEL}
+              </div>
+            )}
+
+            {/* Dot indicators */}
+            {images.length > 1 && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                <div className="flex gap-1.5 items-center bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      aria-label={`Picha ${i + 1} ya ${images.length}`}
+                      aria-current={i === activeImg ? 'true' : undefined}
+                      onClick={() => { setActiveImg(i); setImgError(false) }}
+                      className="min-h-[44px] min-w-[24px] flex items-center justify-center touch-manipulation"
+                    >
+                      <span className={`block rounded-full transition-all ${i === activeImg ? 'w-4 h-2 bg-white' : 'w-2 h-2 bg-white/50'}`} />
+                    </button>
+                  ))}
+                  <span className="text-white/80 text-[10px] font-medium ml-1">{activeImg + 1}/{images.length}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnails */}
+          {images.length > 1 && (
+            <div className="flex gap-2 px-4 lg:px-0 py-2 overflow-x-auto scrollbar-none bg-white lg:bg-transparent border-b border-gray-100 lg:border-0 lg:mt-2">
+              {images.map((src, i) => (
+                <button
+                  key={i}
+                  aria-label={`Angalia picha ${i + 1}`}
+                  onClick={() => { setActiveImg(i); setImgError(false) }}
+                  className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
+                    activeImg === i ? 'border-primary-500' : 'border-transparent'
+                  }`}
+                >
+                  <Image fill src={src} alt={`Picha ${i + 1}`} className="object-cover" sizes="56px" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Video */}
+          {videoUrl && (
+            <div className="px-4 lg:px-0 pt-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <i className="ti ti-video" aria-hidden="true" /> Video ya Nyumba
+              </p>
+              <VideoPlayer src={videoUrl} poster={images[0]} />
+            </div>
+          )}
+
+          {/* Reviews + Similar — desktop: shown in left column */}
+          <div className="hidden lg:block mt-6 space-y-4">
+            <ReviewsSection />
+            <SimilarListings
+              currentListingId={listing.id}
+              region={listing.region}
+              district={listing.district}
+              type={listing.type}
+              priceMonthly={listing.price_monthly}
+            />
+          </div>
+        </div>
+
+        {/* ── RIGHT column: CTA + details ── */}
+        <div>
+          {/* Desktop inline CTA */}
+          <div className="hidden lg:block mb-4">
+            <InlineCTA />
+          </div>
+
+          {/* Detail cards */}
+          <div className="px-4 lg:px-0 pt-4 lg:pt-0">
+            <DetailCards />
+          </div>
+
+          {/* Reviews + Similar — mobile: shown in right column after details */}
+          <div className="lg:hidden px-4 pt-4 space-y-4">
+            <ReviewsSection />
+          </div>
+          <div className="lg:hidden">
+            <SimilarListings
+              currentListingId={listing.id}
+              region={listing.region}
+              district={listing.district}
+              type={listing.type}
+              priceMonthly={listing.price_monthly}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Fixed bottom CTA — mobile only ── */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg"
+        className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg lg:hidden"
         style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
       >
         {isTaken ? (
           <div className="text-center pb-1">
-            <p className="text-sm font-semibold text-amber-700 mb-1 flex items-center gap-1.5"><i className="ti ti-circle-dot" aria-hidden="true" /> Nyumba hii imeshapangishwa</p>
-            <a href={`/?region=${listing.region}`}
-              className="btn-primary w-full py-3 text-sm">
+            <p className="text-sm font-semibold text-amber-700 mb-1 flex items-center gap-1.5">
+              <i className="ti ti-circle-dot" aria-hidden="true" /> Nyumba hii imeshapangishwa
+            </p>
+            <a href={`/?region=${listing.region}`} className="btn-primary w-full py-3 text-sm">
               <i className="ti ti-search" aria-hidden="true" /> Tafuta zinazofanana — {listing.region}
             </a>
           </div>
         ) : localUnlocked && waPhone ? (
           <div className="space-y-2 pb-1">
             <div className="grid grid-cols-2 gap-3">
-              <a
-                href={waUrl ?? '#'}
-                target="_blank"
-                rel="noopener noreferrer"
+              <a href={waUrl ?? '#'} target="_blank" rel="noopener noreferrer"
                 className="flex flex-col items-center justify-center gap-1 py-3 rounded-2xl
-                           bg-green-500 text-white font-semibold text-sm shadow-md
-                           active:scale-95 transition-transform"
-              >
+                           bg-green-500 text-white font-semibold text-sm shadow-md active:scale-95 transition-transform">
                 <i className="ti ti-brand-whatsapp text-xl" aria-hidden="true" />
                 <span>WhatsApp</span>
                 <span className="text-[10px] font-normal opacity-75">Na maelezo ya listing</span>
               </a>
-              <a
-                href={`tel:+${waPhone}`}
+              <a href={`tel:+${waPhone}`}
                 className="flex flex-col items-center justify-center gap-1 py-3 rounded-2xl
-                           bg-blue-500 text-white font-semibold text-sm shadow-md
-                           active:scale-95 transition-transform"
-              >
+                           bg-blue-500 text-white font-semibold text-sm shadow-md active:scale-95 transition-transform">
                 <i className="ti ti-phone text-xl" aria-hidden="true" />
                 <span>Piga Simu</span>
               </a>
@@ -680,10 +747,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           <div>
             <button
               onClick={() => {
-                if (!isLoggedIn) {
-                  window.location.href = `/login?redirect=/listings/${listing.id}`
-                  return
-                }
+                if (!isLoggedIn) { window.location.href = `/login?redirect=/listings/${listing.id}`; return }
                 setShowUnlockModal(true)
               }}
               className="btn-primary w-full py-3.5 text-sm"
@@ -697,7 +761,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         )}
       </div>
 
-      {/* ── Report Modal ── */}
+      {/* Modals */}
       {showReportModal && (
         <ReportDalaliModal
           listingId={listing.id}
@@ -705,8 +769,6 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           onClose={() => setShowReportModal(false)}
         />
       )}
-
-      {/* ── Unlock Modal ── */}
       {showUnlockModal && (
         <UnlockModal
           listingId={listing.id}
