@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       attachments?: Array<{ file_url: string; file_name?: string; file_type?: string; file_size?: number }>
     }
 
-    if (!message?.trim()) return NextResponse.json({ error: 'Ujumbe hauwezi kuwa tupu' }, { status: 400 })
+    if (!message?.trim() && !attachments?.length) return NextResponse.json({ error: 'Ujumbe hauwezi kuwa tupu' }, { status: 400 })
 
     const now = new Date().toISOString()
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       .insert({
         conversation_id: conversationId,
         sender_id:       user.id,
-        body:            message.trim(),
+        body:            message?.trim() || '',
         message_type,
         is_internal,
       })

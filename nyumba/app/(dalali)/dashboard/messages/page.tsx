@@ -197,7 +197,7 @@ export default function DalaliMessagesPage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: body || (attachment ? attachment.file_name ?? 'Faili' : ''),
-        attachments: attachment ? [attachment] : undefined,
+        attachments: attachment ? [{ file_url: attachment.url, file_name: attachment.file_name, file_type: attachment.file_type, file_size: attachment.file_size }] : undefined,
       }),
     })
     if (res.ok) {

@@ -112,7 +112,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
         body: JSON.stringify({
           message:     body || (attachment ? attachment.file_name ?? 'Faili' : ''),
           is_internal: isNote,
-          attachments: attachment ? [attachment] : undefined,
+          attachments: attachment ? [{ file_url: attachment.url, file_name: attachment.file_name, file_type: attachment.file_type, file_size: attachment.file_size }] : undefined,
         }),
       })
       const data = await res.json()
