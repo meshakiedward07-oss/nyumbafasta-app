@@ -2,6 +2,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 
+type DiagResult = { error?: string; [key: string]: unknown } | null
+
 type Campaign = {
   id: string; title: string; ad_type: string; status: string
   payment_status: string; target_region: string; created_at: string; admin_note: string | null
@@ -55,6 +57,26 @@ export default function AdminAdvertsPage() {
   const [assigning, setAssigning]           = useState(false)
 
   const [toast, setToast] = useState<{ msg: string; ok?: boolean } | null>(null)
+
+  // Diagnostics panel
+  const [showDiag,    setShowDiag]    = useState(false)
+  const [diagInput,   setDiagInput]   = useState('')
+  const [diagResult,  setDiagResult]  = useState<DiagResult>(null)
+  const [diagLoading, setDiagLoading] = useState(false)
+
+  async function runDiag() {
+    if (!diagInput.trim()) return
+    setDiagLoading(true)
+    setDiagResult(null)
+    try {
+      const res  = await fetch('/api/v1/admin/diag-advertiser', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body:   JSON.stringify({ advertiser_id: diagInput.trim() }),
+      })
+      setDiagResult(await res.json() as DiagResult)
+    } catch { setDiagResult({ error: 'Imeshindwa kuunganika' }) }
+    finally  { setDiagLoading(false) }
+  }
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok })
@@ -247,6 +269,10 @@ export default function AdminAdvertsPage() {
               className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl bg-primary-500 text-white hover:bg-primary-600 transition font-medium">
               ⚙️ <span className="hidden sm:inline">Nafasi</span>
             </Link>
+            <button onClick={() => { setShowDiag(v => !v); setDiagResult(null) }}
+              className={`flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl border transition font-medium ${showDiag ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+              🔍 <span className="hidden sm:inline">Diagnostics</span>
+            </button>
           </div>
         </div>
       </div>
@@ -406,6 +432,46 @@ export default function AdminAdvertsPage() {
           <p className="text-center text-xs text-gray-400 mt-4">
             Kuonyesha {campaigns.length} kati ya {total}
           </p>
+        )}
+
+        {/* ── Diagnostics panel ── */}
+        {showDiag && (
+          <div className="mt-6 bg-white border border-orange-100 rounded-2xl shadow-sm p-5 space-y-4">
+            <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+              <i className="ti ti-bug text-orange-500" /> Zana za Uchunguzi — Mwanabiashara
+            </h2>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Advertiser ID</p>
+              <div className="flex gap-2">
+                <input
+                  value={diagInput}
+                  onChange={e => setDiagInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && runDiag()}
+                  placeholder="Weka ID ya mwanabiashara..."
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-300"
+                />
+                <button onClick={runDiag} disabled={diagLoading || !diagInput.trim()}
+                  className="px-4 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-medium disabled:opacity-50 hover:bg-orange-600 transition-colors">
+                  {diagLoading ? 'Inachunguza...' : 'Chunguza'}
+                </button>
+              </div>
+            </div>
+            {diagResult && (
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Matokeo</p>
+                {diagResult.error ? (
+                  <p className="text-sm text-red-600">{diagResult.error}</p>
+                ) : (
+                  <pre className="text-xs text-gray-700 overflow-auto whitespace-pre-wrap max-h-72">
+                    {JSON.stringify(diagResult, null, 2)}
+                  </pre>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-gray-400">
+              <i className="ti ti-info-circle" /> Zana hii inatumiwa kuchunguza matatizo ya mwanabiashara maalum.
+            </p>
+          </div>
         )}
       </div>
     </div>
