@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { sendMail } from '@/lib/email/resend'
+import { advertiserInviteEmail } from '@/lib/email/templates'
 
 // Temporary diagnostic/recovery endpoint — DELETE after use
 // Auth: requires a live admin session cookie (visit while logged in as admin)
@@ -169,26 +170,8 @@ export async function POST(req: NextRequest) {
 
   // Send invite email
   if (magicLink) {
-    await sendMail({
-      to: email,
-      subject: 'Karibu NyumbaFasta — Akaunti yako ya Mfanyabiashara Imeundwa',
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a">
-          <h2 style="color:#1D9E75">Karibu NyumbaFasta! 🏪</h2>
-          <p>Habari,</p>
-          <p>Akaunti yako ya mfanyabiashara imeundwa na msimamizi wa NyumbaFasta.</p>
-          <p>Bonyeza kitufe hapa chini kuingia kwenye akaunti yako:</p>
-          <p style="margin:24px 0">
-            <a href="${magicLink}" style="background:#1D9E75;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:bold">
-              Ingia kwenye Akaunti →
-            </a>
-          </p>
-          <p style="color:#6b7280;font-size:13px">Kiungo hiki kitaisha baada ya masaa 24. Kama hukuomba akaunti hii, punguza ujumbe huu.</p>
-          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
-          <p style="color:#9ca3af;font-size:12px">NyumbaFasta — Platform ya Matangazo Tanzania</p>
-        </div>
-      `,
-    })
+    const inviteTpl = advertiserInviteEmail({ businessName: business_name ?? email, magicLink })
+    await sendMail({ to: email, ...inviteTpl })
   }
 
   return NextResponse.json({

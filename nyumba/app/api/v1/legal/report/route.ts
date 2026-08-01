@@ -3,6 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 import { sendTextMessage, formatPhoneNumber } from '@/lib/whatsapp/client'
 import { sendMail } from '@/lib/email/resend'
+import { adminLegalReportEmail } from '@/lib/email/templates'
 
 const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP_NUMBER ?? '255615261147'
 const APP_URL        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
@@ -107,20 +108,15 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Email to admin
-    sendMail({
-      to:      process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co',
-      subject: `🚨 Ripoti Mpya: ${violationLabel}`,
-      html: `
-        <h2>Ripoti ya Ukiukaji Mpya</h2>
-        <table style="border-collapse:collapse;width:100%">
-          <tr><td style="padding:8px;font-weight:bold">Aina:</td><td style="padding:8px">${violationLabel}</td></tr>
-          <tr style="background:#f9f9f9"><td style="padding:8px;font-weight:bold">Aliyeripotiwa:</td><td style="padding:8px">${reported.full_name} (${reported.role})</td></tr>
-          <tr><td style="padding:8px;font-weight:bold">Aliyeripoti:</td><td style="padding:8px">${reporter?.full_name ?? 'Haijulikani'}</td></tr>
-          <tr style="background:#f9f9f9"><td style="padding:8px;font-weight:bold">Maelezo:</td><td style="padding:8px">${description}</td></tr>
-        </table>
-        <p><a href="${adminUrl}" style="background:#1D9E75;color:white;padding:10px 20px;border-radius:8px;text-decoration:none">Angalia Ripoti</a></p>
-      `,
-    }).catch(() => {})
+    const reportTpl = adminLegalReportEmail({
+      violationLabel,
+      reportedName: reported.full_name ?? 'Haijulikani',
+      reportedRole: reported.role,
+      reporterName: reporter?.full_name ?? 'Haijulikani',
+      description:  description.slice(0, 400) + (description.length > 400 ? '…' : ''),
+      adminUrl,
+    })
+    sendMail({ to: process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co', ...reportTpl }).catch(() => {})
 
     // 3. WhatsApp warning to reported user (if they are a dalali with a WhatsApp number)
     if (reported.role === 'dalali') {

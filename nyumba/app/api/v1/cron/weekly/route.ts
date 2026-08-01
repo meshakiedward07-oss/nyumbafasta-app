@@ -1,6 +1,7 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendMail } from '@/lib/email/resend'
+import { emailBase } from '@/lib/email/templates'
 import { checkStaleListings } from '@/lib/listings/staleListingCheck'
 
 export const dynamic = 'force-dynamic'
@@ -16,9 +17,6 @@ function getAdmin() {
   )
 }
 
-async function sendEmail(to: string, subject: string, html: string) {
-  await sendMail({ to, subject, html })
-}
 
 function verifyAuth(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET
@@ -78,54 +76,61 @@ export async function GET(req: NextRequest) {
 
     const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co'
 
-    await sendEmail(
-      adminEmail,
-      `📊 Weekly Report NyumbaFasta — ${now.toLocaleDateString('sw-TZ')}`,
-      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a">
-       <h1 style="color:#1D9E75;margin-bottom:4px">📊 Weekly Report NyumbaFasta</h1>
-       <p style="color:#64748b;margin-top:0">${weekAgo.toLocaleDateString('sw-TZ')} — ${now.toLocaleDateString('sw-TZ')}</p>
+    await sendMail({
+      to: adminEmail,
+      subject: `📊 Weekly Report NyumbaFasta — ${now.toLocaleDateString('sw-TZ')}`,
+      html: emailBase(`
+        <span style="font-size:22px;font-weight:700;color:#111827;margin:0 0 4px;display:block">📊 Weekly Report NyumbaFasta</span>
+        <span style="font-size:14px;color:#64748b;display:block;margin:0 0 20px">${weekAgo.toLocaleDateString('sw-TZ')} — ${now.toLocaleDateString('sw-TZ')}</span>
 
-       <table style="width:100%;border-collapse:collapse;margin-top:16px;font-size:14px">
-         <tr style="background:#1D9E75;color:white">
-           <td style="padding:12px;font-weight:bold">Kipengele</td>
-           <td style="padding:12px;font-weight:bold;text-align:right">Wiki Hii</td>
-         </tr>
-         <tr style="background:#f9fafb"><td style="padding:10px 12px">🤖 Leads Mpya</td><td style="padding:10px 12px;text-align:right"><strong>${newLeads ?? 0}</strong></td></tr>
-         <tr><td style="padding:10px 12px">👨‍💼 Madalali Wapya</td><td style="padding:10px 12px;text-align:right"><strong>${newDalali ?? 0}</strong></td></tr>
-         <tr style="background:#f9fafb"><td style="padding:10px 12px">🏠 Listings Mpya</td><td style="padding:10px 12px;text-align:right"><strong>${newListings ?? 0}</strong></td></tr>
-         <tr><td style="padding:10px 12px">🔓 Contact Unlocks</td><td style="padding:10px 12px;text-align:right"><strong>${unlocks ?? 0}</strong></td></tr>
-         <tr style="background:#f9fafb"><td style="padding:10px 12px">✅ Deals Closed</td><td style="padding:10px 12px;text-align:right"><strong>${closedDeals ?? 0}</strong></td></tr>
-         <tr><td style="padding:10px 12px">🏪 Wafanyabiashara Wapya</td><td style="padding:10px 12px;text-align:right"><strong>${newAdvertisers ?? 0}</strong></td></tr>
-         <tr style="background:#f9fafb"><td style="padding:10px 12px">📢 Kampeni Mpya</td><td style="padding:10px 12px;text-align:right"><strong>${newCampaigns ?? 0}</strong></td></tr>
-       </table>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:14px">
+          <tr style="background:#1D9E75;color:white">
+            <td style="padding:12px;font-weight:bold">Kipengele</td>
+            <td style="padding:12px;font-weight:bold;text-align:right">Wiki Hii</td>
+          </tr>
+          <tr style="background:#f9fafb"><td style="padding:10px 12px">🤖 Leads Mpya</td><td style="padding:10px 12px;text-align:right"><strong>${newLeads ?? 0}</strong></td></tr>
+          <tr><td style="padding:10px 12px">👨‍💼 Madalali Wapya</td><td style="padding:10px 12px;text-align:right"><strong>${newDalali ?? 0}</strong></td></tr>
+          <tr style="background:#f9fafb"><td style="padding:10px 12px">🏠 Listings Mpya</td><td style="padding:10px 12px;text-align:right"><strong>${newListings ?? 0}</strong></td></tr>
+          <tr><td style="padding:10px 12px">🔓 Contact Unlocks</td><td style="padding:10px 12px;text-align:right"><strong>${unlocks ?? 0}</strong></td></tr>
+          <tr style="background:#f9fafb"><td style="padding:10px 12px">✅ Deals Closed</td><td style="padding:10px 12px;text-align:right"><strong>${closedDeals ?? 0}</strong></td></tr>
+          <tr><td style="padding:10px 12px">🏪 Wafanyabiashara Wapya</td><td style="padding:10px 12px;text-align:right"><strong>${newAdvertisers ?? 0}</strong></td></tr>
+          <tr style="background:#f9fafb"><td style="padding:10px 12px">📢 Kampeni Mpya</td><td style="padding:10px 12px;text-align:right"><strong>${newCampaigns ?? 0}</strong></td></tr>
+        </table>
 
-       <h2 style="color:#1D9E75;margin-top:24px;margin-bottom:8px">💰 Mapato ya Wiki — ${fmtTZS(income.total)}</h2>
-       <table style="width:100%;border-collapse:collapse;font-size:14px">
-         <tr style="background:#1D9E75;color:white">
-           <td style="padding:10px 12px;font-weight:bold">Chanzo cha Mapato</td>
-           <td style="padding:10px 12px;font-weight:bold;text-align:right">Kiasi</td>
-         </tr>
-         ${sourceRows || '<tr><td colspan="2" style="padding:12px;text-align:center;color:#9ca3af">Hakuna mapato wiki hii</td></tr>'}
-         <tr style="background:#dcfce7">
-           <td style="padding:10px 12px;font-weight:bold">JUMLA (kabla ya ada)</td>
-           <td style="padding:10px 12px;font-weight:bold;text-align:right">${fmtTZS(income.total)}</td>
-         </tr>
-         <tr>
-           <td style="padding:6px 12px;color:#6b7280;font-size:12px">Ada ya AzamPay (1%)</td>
-           <td style="padding:6px 12px;color:#6b7280;font-size:12px;text-align:right">-${fmtTZS(income.platformFees)}</td>
-         </tr>
-         <tr style="background:#f0fdf4">
-           <td style="padding:10px 12px;font-weight:bold">Mapato Halisi</td>
-           <td style="padding:10px 12px;font-weight:bold;color:#16a34a;text-align:right">${fmtTZS(income.netIncome)}</td>
-         </tr>
-       </table>
-       <p style="color:#9ca3af;font-size:12px">Miamala yote: ${income.transactionCount}</p>
+        <span style="font-size:18px;font-weight:700;color:#1D9E75;display:block;margin:24px 0 8px">💰 Mapato ya Wiki — ${fmtTZS(income.total)}</span>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:14px">
+          <tr style="background:#1D9E75;color:white">
+            <td style="padding:10px 12px;font-weight:bold">Chanzo cha Mapato</td>
+            <td style="padding:10px 12px;font-weight:bold;text-align:right">Kiasi</td>
+          </tr>
+          ${sourceRows || '<tr><td colspan="2" style="padding:12px;text-align:center;color:#9ca3af">Hakuna mapato wiki hii</td></tr>'}
+          <tr style="background:#dcfce7">
+            <td style="padding:10px 12px;font-weight:bold">JUMLA (kabla ya ada)</td>
+            <td style="padding:10px 12px;font-weight:bold;text-align:right">${fmtTZS(income.total)}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 12px;color:#6b7280;font-size:12px">Ada ya AzamPay (1%)</td>
+            <td style="padding:6px 12px;color:#6b7280;font-size:12px;text-align:right">-${fmtTZS(income.platformFees)}</td>
+          </tr>
+          <tr style="background:#f0fdf4">
+            <td style="padding:10px 12px;font-weight:bold">Mapato Halisi</td>
+            <td style="padding:10px 12px;font-weight:bold;color:#16a34a;text-align:right">${fmtTZS(income.netIncome)}</td>
+          </tr>
+        </table>
+        <span style="font-size:12px;color:#9ca3af;display:block;margin:8px 0 24px">Miamala yote: ${income.transactionCount}</span>
 
-       <br>
-       <a href="${APP_URL}/admin" style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Fungua Admin Panel →</a>
-       <a href="${APP_URL}/admin/accounting" style="background:#f3f4f6;color:#374151;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-left:8px">Hesabu Kamili →</a>
-       </div>`,
-    )
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding:0 8px 0 0">
+              <a href="${APP_URL}/admin" style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600;font-size:14px">Fungua Admin Panel →</a>
+            </td>
+            <td>
+              <a href="${APP_URL}/admin/accounting" style="background:#f3f4f6;color:#374151;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600;font-size:14px">Hesabu Kamili →</a>
+            </td>
+          </tr>
+        </table>
+      `, `Weekly report — ${now.toLocaleDateString('sw-TZ')}`),
+    })
     results.push('✅ Weekly report email imetumwa')
   } catch (e) {
     errors.push(`❌ Weekly report: ${String(e)}`)
@@ -159,14 +164,19 @@ export async function GET(req: NextRequest) {
       const emailAddr = r.status === 'fulfilled' ? r.value.data?.user?.email : null
       if (!emailAddr) continue
       const fullName = uniqueDalali.get(dalaliIds[i]) ?? 'Dalali'
-      await sendEmail(
-        emailAddr,
-        '📈 Una Leads Zinaokusubiri!',
-        `<h2>Habari ${fullName}!</h2>
-         <p>Una leads ambazo bado haujafuatilia wiki nzima.</p>
-         <p>Wasiliana nao leo — wateja wanakusubiri! 🏠</p>
-         <a href="${APP_URL}/admin/leads" style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Angalia Leads →</a>`,
-      )
+      await sendMail({
+        to: emailAddr,
+        subject: '📈 Una Leads Zinaokusubiri!',
+        html: emailBase(`
+          <span style="font-size:22px;font-weight:700;color:#111827;margin:0 0 12px;display:block">Habari ${fullName}!</span>
+          <span style="font-size:15px;color:#4b5563;line-height:1.7;margin:0 0 16px;display:block">Una leads ambazo bado haujafuatilia wiki nzima. Wasiliana nao leo — wateja wanakusubiri!</span>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0">
+            <tr><td align="center">
+              <a href="${APP_URL}/admin/leads" style="display:inline-block;background:#1D9E75;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 32px;border-radius:10px">🏠 Angalia Leads →</a>
+            </td></tr>
+          </table>
+        `, 'Una leads zinaokusubiri!'),
+      })
     }
     results.push(`✅ Dalali inactive alerts: ${uniqueDalali.size}`)
   } catch (e) {

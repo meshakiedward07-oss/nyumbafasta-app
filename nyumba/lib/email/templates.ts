@@ -714,3 +714,116 @@ export function subscriptionExpiryEmail(
     `, `Subscription yako ya ${planName} inaisha siku ${daysLeft}`),
   }
 }
+
+// ── Issue 7: Staff password reset (replaces mis-use of staffWelcomeEmail) ────
+export function staffPasswordResetEmail(
+  staffName: string,
+  email: string,
+  tempPassword: string,
+): { subject: string; html: string } {
+  return {
+    subject: 'Password Mpya — NyumbaFasta Staff',
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari ${staffName.split(' ')[0]},</span>
+      <span style="${styles.text}">
+        Password yako ya akaunti ya staff imewekwa upya na msimamizi.
+        Tumia nywila ya muda hapa chini kuingia, kisha ibadilishe mara moja.
+      </span>
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">📧 <strong>Barua pepe:</strong> ${email}</p>
+        <p style="margin:8px 0;font-size:14px;color:#374151">
+          🔑 <strong>Password ya Muda:</strong>
+          <code style="background:#f3f4f6;padding:4px 10px;border-radius:6px;font-size:15px;letter-spacing:1px;font-family:monospace">${tempPassword}</code>
+        </p>
+      </div>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0">
+        <tr><td align="center">
+          <a href="${APP_URL}/staff-login" style="${styles.btn}">Ingia Sasa →</a>
+        </td></tr>
+      </table>
+      <span style="${styles.textSmall}">
+        ⚠️ Badilisha password haraka iwezekanavyo baada ya kuingia.
+        Ukisahau, wasiliana na msimamizi wako.
+      </span>
+    `, 'Password yako ya NyumbaFasta Staff imewekwa upya'),
+  }
+}
+
+// ── Issue 5a: Admin notification — new legal/violation report ─────────────────
+export function adminLegalReportEmail(opts: {
+  violationLabel: string
+  reportedName: string
+  reportedRole: string
+  reporterName: string
+  description: string
+  adminUrl: string
+}): { subject: string; html: string } {
+  return {
+    subject: `🚨 Ripoti Mpya: ${opts.violationLabel}`,
+    html: emailBase(`
+      <span style="${styles.greeting}">Ripoti ya Ukiukaji Mpya</span>
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">⚠️ <strong>Aina:</strong> ${opts.violationLabel}</p>
+        <p style="${styles.infoText}">👤 <strong>Aliyeripotiwa:</strong> ${opts.reportedName} (${opts.reportedRole})</p>
+        <p style="${styles.infoText}">📝 <strong>Aliyeripoti:</strong> ${opts.reporterName}</p>
+        <p style="${styles.infoText}">💬 <strong>Maelezo:</strong> ${opts.description}</p>
+      </div>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0">
+        <tr><td align="center">
+          <a href="${opts.adminUrl}" style="${styles.btn}">Angalia Ripoti →</a>
+        </td></tr>
+      </table>
+    `, `Ripoti mpya: ${opts.violationLabel}`),
+  }
+}
+
+// ── Issue 5b: Admin notification — legal action taken ────────────────────────
+export function adminLegalActionEmail(opts: {
+  adminEmail: string
+  actionTaken: string
+  reportedName: string
+  adminUrl: string
+}): { subject: string; html: string } {
+  return {
+    subject: `Hatua Imechukuliwa: ${opts.actionTaken} kwa ${opts.reportedName}`,
+    html: emailBase(`
+      <span style="${styles.greeting}">Hatua ya Kisheria Imechukuliwa</span>
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">👨‍💼 <strong>Admin:</strong> ${opts.adminEmail}</p>
+        <p style="${styles.infoText}">⚖️ <strong>Hatua:</strong> ${opts.actionTaken}</p>
+        <p style="${styles.infoText}">👤 <strong>Dhidi ya:</strong> ${opts.reportedName}</p>
+      </div>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0">
+        <tr><td align="center">
+          <a href="${opts.adminUrl}" style="${styles.btn}">Angalia Panel →</a>
+        </td></tr>
+      </table>
+    `, `Hatua: ${opts.actionTaken}`),
+  }
+}
+
+// ── Issue 5c: Advertiser invite (magic link) ──────────────────────────────────
+export function advertiserInviteEmail(opts: {
+  businessName: string
+  magicLink: string
+}): { subject: string; html: string } {
+  return {
+    subject: 'Karibu NyumbaFasta — Akaunti yako ya Mfanyabiashara Imeundwa',
+    html: emailBase(`
+      <span style="${styles.greeting}">Karibu ${opts.businessName}! 🏪</span>
+      <span style="${styles.text}">
+        Akaunti yako ya mfanyabiashara imeundwa na msimamizi wa NyumbaFasta.
+        Bonyeza kitufe hapa chini kuingia kwenye akaunti yako mara ya kwanza.
+      </span>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0">
+        <tr><td align="center">
+          <a href="${opts.magicLink}" style="${styles.btn}">Ingia kwenye Akaunti →</a>
+        </td></tr>
+      </table>
+      <span style="${styles.textSmall}">
+        ⏰ Kiungo hiki kitaisha baada ya masaa 24.
+        Kama hukuomba akaunti hii, punguza ujumbe huu.
+      </span>
+    `, 'Akaunti yako ya NyumbaFasta imeundwa'),
+  }
+}

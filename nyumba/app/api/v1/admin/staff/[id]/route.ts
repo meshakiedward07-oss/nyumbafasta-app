@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { sendMail } from '@/lib/email/resend'
-import { staffWelcomeEmail } from '@/lib/email/templates'
+import { staffPasswordResetEmail } from '@/lib/email/templates'
 
 // ─── PATCH — update staff details or deactivate ───────────────────────────────
 export async function PATCH(
@@ -146,8 +146,8 @@ function generateTempPassword(): string {
 }
 
 async function sendResetEmail(email: string, name: string, password: string): Promise<void> {
-  const { subject, html } = staffWelcomeEmail(name, email, password)
-  await sendMail({ to: email, subject: `[Password Mpya] ${subject}`, html })
+  const { subject, html } = staffPasswordResetEmail(name, email, password)
+  await sendMail({ to: email, subject, html })
 }
 
 async function unassignStaffLeads(staffId: string): Promise<void> {

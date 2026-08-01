@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendTextMessage, formatPhoneNumber } from '@/lib/whatsapp/client'
 import { sendMail } from '@/lib/email/resend'
+import { adminLegalActionEmail } from '@/lib/email/templates'
 import { hasPermission, logStaffActivity } from '@/lib/staff/checkPermission'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
@@ -103,11 +104,13 @@ export async function PATCH(req: NextRequest) {
       }
 
       // Email notification to admin (confirmation)
-      sendMail({
-        to:      process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co',
-        subject: `Hatua Imechukuliwa: ${action_taken} kwa ${reported?.full_name}`,
-        html:    `<p>Admin <strong>${user.email}</strong> amechukua hatua ya <strong>${action_taken}</strong> dhidi ya mtumiaji <strong>${reported?.full_name}</strong>.</p><p><a href="${APP_URL}/admin/legal">Angalia Panel</a></p>`,
-      }).catch(() => {})
+      const actionTpl = adminLegalActionEmail({
+        adminEmail:   user.email!,
+        actionTaken:  action_taken,
+        reportedName: reported?.full_name ?? 'Haijulikani',
+        adminUrl:     `${APP_URL}/admin/legal`,
+      })
+      sendMail({ to: process.env.ADMIN_EMAIL ?? 'admin@nyumbafasta.co', ...actionTpl }).catch(() => {})
     }
 
     // Log staff activity

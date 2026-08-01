@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 
@@ -10,10 +11,39 @@ export async function GET() {
   return NextResponse.json({ ok: true, service: 'NyumbaFasta Inbound Email Webhook' })
 }
 
+function verifySvix(rawBody: string, req: NextRequest): boolean {
+  const secret = process.env.RESEND_WEBHOOK_SECRET
+  if (!secret) return true // skip verification when secret not configured
+
+  const svixId        = req.headers.get('svix-id') ?? ''
+  const svixTimestamp = req.headers.get('svix-timestamp') ?? ''
+  const svixSignature = req.headers.get('svix-signature') ?? ''
+
+  if (!svixId || !svixTimestamp || !svixSignature) return false
+
+  const ts = parseInt(svixTimestamp, 10)
+  if (isNaN(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false
+
+  const toSign   = `${svixId}.${svixTimestamp}.${rawBody}`
+  const keyBytes = Buffer.from(secret.replace(/^whsec_/, ''), 'base64')
+  const computed = createHmac('sha256', keyBytes).update(toSign).digest('base64')
+  const expected = `v1,${computed}`
+
+  return svixSignature.split(' ').some(sig => {
+    try { return timingSafeEqual(Buffer.from(sig), Buffer.from(expected)) }
+    catch { return false }
+  })
+}
+
 export async function POST(req: NextRequest) {
+  const rawBody = await req.text()
+  if (!verifySvix(rawBody, req)) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  }
+
   let event: { type?: string; data?: Record<string, unknown> }
   try {
-    event = await req.json()
+    event = JSON.parse(rawBody)
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
