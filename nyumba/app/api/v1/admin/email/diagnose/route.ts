@@ -78,11 +78,9 @@ export async function GET() {
   }
 
   if (apiKeyValid && domainStatus === 'verified') {
-    // Check if inbound webhook configured — we can't check this via API easily,
-    // but we can remind them
-    issues.push('Angalia inbound webhook imewekwa kwenye Resend dashboard')
-    fixes.push('Resend Dashboard → Inbound → Webhook URL: https://nyumbafasta.co/api/v1/email/inbound')
-    fixes.push('Pia hakikisha MX record ipo: nyumbafasta.co → inbound.resend.com (priority 10)')
+    // Inbound webhook can't be verified via API — just surface as advisory, not a blocking issue
+    fixes.push('Hakikisha inbound webhook imewekwa: Resend Dashboard → Inbound → Webhook URL: https://nyumbafasta.co/api/v1/email/inbound')
+    fixes.push('Hakikisha MX record ipo: nyumbafasta.co → inbound.resend.com (priority 10)')
   }
 
   return NextResponse.json({

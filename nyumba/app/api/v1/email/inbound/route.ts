@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 
 // Resend inbound webhook
-// Webhook URL: https://www.nyumbafasta.co/api/v1/email/inbound
+// Webhook URL: https://nyumbafasta.co/api/v1/email/inbound
 // Payload shape: { type: "email.received", created_at: "...", data: { from, to, subject, text, ... } }
+
+// GET is needed so browser health checks / Resend's webhook verify don't get 405
+export async function GET() {
+  return NextResponse.json({ ok: true, service: 'NyumbaFasta Inbound Email Webhook' })
+}
+
 export async function POST(req: NextRequest) {
   let event: { type?: string; data?: Record<string, unknown> }
   try {

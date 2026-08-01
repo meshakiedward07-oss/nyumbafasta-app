@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
-import { sendMail, buildEmailHtml } from '@/lib/email/resend'
+import { sendMail, buildEmailHtml, REPLY_DOMAIN } from '@/lib/email/resend'
 import { rateLimit } from '@/lib/security/rateLimit'
 import { randomUUID } from 'crypto'
 
@@ -53,11 +53,15 @@ export async function POST(req: NextRequest) {
       senderName,
     })
 
+    // Determine thread ID before sending so Reply-To header can reference it
+    const usedThreadId = thread_id ?? randomUUID()
+
     // Send via Resend — same path as every other automatic email in the system
     const result = await sendMail({
       to:      to_email.toLowerCase(),
       subject: subject.trim(),
       html,
+      replyTo: `reply+${usedThreadId}@${REPLY_DOMAIN}`,
     })
 
     if (!result.ok) {
@@ -68,7 +72,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Log to emails table non-fatally — delivery never depends on this succeeding
-    const usedThreadId = thread_id ?? randomUUID()
     admin.from('emails').insert({
       direction:      'outbound',
       subject:        subject.trim(),
