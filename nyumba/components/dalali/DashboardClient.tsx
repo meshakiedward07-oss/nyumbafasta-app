@@ -460,6 +460,24 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           <span className="flex-shrink-0 text-green-100">→</span>
         </Link>
 
+        {/* ── Matangazo Yangu shortcut ── */}
+        <Link
+          href="/dashboard/listings"
+          className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-[0.98] transition-transform"
+        >
+          <div className="w-11 h-11 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <i className="ti ti-home-2 text-2xl text-primary-600" aria-hidden="true" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-gray-900 text-sm">Matangazo Yangu</p>
+            <p className="text-gray-400 text-xs mt-0.5">
+              {stats.totalListings} tangazo
+              {stats.activeCount > 0 && <> · <span className="text-primary-600 font-medium">{stats.activeCount} yanafanya kazi</span></>}
+              {stats.pendingCount > 0 && <> · <span className="text-amber-500 font-medium">{stats.pendingCount} yanasubiri</span></>}
+            </p>
+          </div>
+          <i className="ti ti-chevron-right text-gray-300 text-xl flex-shrink-0" aria-hidden="true" />
+        </Link>
 
         {/* ── Listings section ── */}
         <div>

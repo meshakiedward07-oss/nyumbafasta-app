@@ -7,7 +7,8 @@ import type { TKey } from '@/lib/i18n/translations'
 
 const ITEMS: { href: string; icon: string; iconActive: string; labelKey: TKey; isAdd: boolean }[] = [
   { href: '/dashboard',              icon: 'layout-dashboard', iconActive: 'layout-dashboard', labelKey: 'dal_nav_home',     isAdd: false },
-  { href: '/dashboard/listings',     icon: 'home',             iconActive: 'home-filled',      labelKey: 'dal_nav_listings', isAdd: false },
+  // Moved to dashboard home page below takwimu zangu section:
+  // { href: '/dashboard/listings',  icon: 'home',             iconActive: 'home-filled',      labelKey: 'dal_nav_listings', isAdd: false },
   { href: '/dashboard/listings/new', icon: 'plus',             iconActive: 'plus',             labelKey: 'dal_nav_add',      isAdd: true  },
   { href: '/dashboard/hesabu',       icon: 'coins',            iconActive: 'coins',            labelKey: 'dal_nav_accounts', isAdd: false },
   { href: '/dashboard/messages',     icon: 'message',          iconActive: 'message-filled',   labelKey: 'dal_nav_messages', isAdd: false },
