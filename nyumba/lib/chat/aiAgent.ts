@@ -1,7 +1,89 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
+import type { ListingType } from '@/lib/knowledge/entities'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// ── Keyword-based entity parser (no AI — works even when Anthropic is down) ──
+// Detects location + property type from a message so we can search immediately
+// instead of routing the user through a multi-step guided flow.
+
+const TZ_LOCATIONS: Array<[string, string]> = [
+  // Regions
+  ['dar es salaam', 'Dar es Salaam'], ['arusha', 'Arusha'], ['mwanza', 'Mwanza'],
+  ['dodoma', 'Dodoma'], ['tanga', 'Tanga'], ['morogoro', 'Morogoro'],
+  ['zanzibar', 'Zanzibar'], ['kilimanjaro', 'Kilimanjaro'], ['mbeya', 'Mbeya'],
+  ['pwani', 'Pwani'], ['kagera', 'Kagera'], ['mara', 'Mara'],
+  ['shinyanga', 'Shinyanga'], ['tabora', 'Tabora'], ['kigoma', 'Kigoma'],
+  ['rukwa', 'Rukwa'], ['katavi', 'Katavi'], ['iringa', 'Iringa'],
+  ['njombe', 'Njombe'], ['ruvuma', 'Ruvuma'], ['lindi', 'Lindi'],
+  ['mtwara', 'Mtwara'], ['singida', 'Singida'], ['geita', 'Geita'],
+  ['simiyu', 'Simiyu'], ['manyara', 'Manyara'], ['songwe', 'Songwe'],
+  // Dar districts
+  ['kinondoni', 'Kinondoni'], ['ilala', 'Ilala'], ['temeke', 'Temeke'],
+  ['ubungo', 'Ubungo'], ['kigamboni', 'Kigamboni'],
+  // Popular mtaa / suburbs
+  ['mikocheni', 'Mikocheni'], ['mbezi', 'Mbezi'], ['msasani', 'Msasani'],
+  ['masaki', 'Masaki'], ['kariakoo', 'Kariakoo'], ['sinza', 'Sinza'],
+  ['mwenge', 'Mwenge'], ['tegeta', 'Tegeta'], ['kijitonyama', 'Kijitonyama'],
+  ['oyster bay', 'Oyster Bay'], ['osterbay', 'Oyster Bay'],
+  ['upanga', 'Upanga'], ['kibaha', 'Kibaha'], ['bagamoyo', 'Bagamoyo'],
+  ['moshi', 'Moshi'], ['musoma', 'Musoma'], ['bukoba', 'Bukoba'],
+  ['sumbawanga', 'Sumbawanga'], ['njiro', 'Njiro'], ['usa river', 'Usa River'],
+]
+
+const TYPE_KEYWORDS: Array<[RegExp, ListingType]> = [
+  [/\bchumba\b|single room|\broom\b/i, 'chumba'],
+  [/\bapartment\b|\bflat\b|bedsitter/i, 'apartment'],
+  [/nyumba nzima|full house|\bnyumba ya\b/i, 'nyumba'],
+  [/\bvilla\b|\bjumba\b/i, 'villa'],
+  [/\bofisi\b|\boffice\b/i, 'ofisi'],
+  [/\bduka\b|\bshop\b/i, 'duka'],
+]
+
+// Returns null when the message isn't clearly a housing search with a known location.
+function parseHousingSearch(message: string): {
+  location: string
+  listing_type?: ListingType
+  price_max?: number
+  bedrooms?: number
+} | null {
+  const lower = message.toLowerCase()
+
+  // Must contain a housing-search keyword to qualify
+  const isSearch = /natafuta|ninahitaji|nahitaji|nipatia|nionyeshe|pata\b|tafutia|search|looking for|nipe nyumba|nina budget|niko na budget/i.test(lower)
+    || /nyumba|chumba|apartment|villa|ofisi|duka|room|flat/i.test(lower)
+  if (!isSearch) return null
+
+  // Detect location
+  let location: string | undefined
+  for (const [kw, label] of TZ_LOCATIONS) {
+    if (lower.includes(kw)) { location = label; break }
+  }
+  if (!location) return null  // no known location — can't search usefully
+
+  // Detect property type (must be specific; plain "nyumba" alone is too generic)
+  let listing_type: ListingType | undefined
+  for (const [rx, type] of TYPE_KEYWORDS) {
+    if (rx.test(lower)) { listing_type = type; break }
+  }
+
+  // Detect price ceiling: "200k", "200,000", "laki mbili" (basic numeric forms only)
+  let price_max: number | undefined
+  const mM = lower.match(/(\d[\d,.]*)\s*m\b/)
+  const mK = lower.match(/(\d[\d,.]*)\s*k\b/)
+  const mNum = lower.match(/(\d{5,}(?:[,\s]\d{3})*)/)
+  if (mM) price_max = Math.round(parseFloat(mM[1].replace(/,/g, '')) * 1_000_000)
+  else if (mK) price_max = Math.round(parseFloat(mK[1].replace(/,/g, '')) * 1_000)
+  else if (mNum) price_max = parseInt(mNum[1].replace(/[,\s]/g, ''))
+
+  // Detect bedroom count: "vyumba 2", "2 bedrooms", "bed 3"
+  let bedrooms: number | undefined
+  const mBed = lower.match(/vyumba\s+(\d)|(\d)\s+vyumba|(\d)\s*bed|bed\s*(\d)/)
+  if (mBed) bedrooms = parseInt(mBed[1] ?? mBed[2] ?? mBed[3] ?? mBed[4])
+
+  return { location, listing_type, price_max, bedrooms }
+}
 
 export type Platform = 'whatsapp' | 'facebook' | 'instagram'
 export type FlowType = 'client' | 'dalali_register' | 'dalali_listing' | 'customer_care'
@@ -249,50 +331,102 @@ _(Andika namba tu)_`
   }
 }
 
+// ── Direct search from a parsed query (keyword-extracted, no AI needed) ───────
+async function directSearch(
+  sessionId: string,
+  parsed: { location: string; listing_type?: ListingType; price_max?: number; bedrooms?: number },
+): Promise<string> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  try {
+    let q = supabaseAdmin
+      .from('listings')
+      .select('id, title, type, price_monthly, district, region, bedrooms, furnished')
+      .eq('status', 'active')
+      .or(`district.ilike.%${parsed.location}%,region.ilike.%${parsed.location}%`)
+      .order('is_boosted', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(5)
+
+    if (parsed.listing_type)         q = q.eq('type', parsed.listing_type)
+    if (parsed.price_max)            q = q.lte('price_monthly', Math.round(parsed.price_max * 1.15))
+    if (parsed.bedrooms)             q = q.gte('bedrooms', parsed.bedrooms)
+
+    const { data: listings } = await q
+    void updateSession(sessionId, { flow_step: 'showing_results' })
+
+    if (!listings || listings.length === 0) {
+      const typeLabel = parsed.listing_type ? ` ya *${parsed.listing_type}*` : ''
+      return `Samahani, sijapata nyumba${typeLabel} huko *${parsed.location}* kwa sasa. 😔\n\n` +
+        `Jaribu:\n• Badilisha eneo au ongeza bei\n• Tembelea: ${appUrl}\n• Andika *menu* kwa msaada zaidi`
+    }
+
+    const nums = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']
+    const typeLabel = parsed.listing_type ? ` (${parsed.listing_type})` : ''
+    let response = `Nimepata nyumba *${listings.length}*${typeLabel} huko *${parsed.location}*! 🏠\n\n`
+
+    listings.forEach((listing, i) => {
+      const l = listing as Record<string, unknown>
+      const price = `Tsh ${Number(l.price_monthly).toLocaleString()}/mwezi`
+      const loc   = [l.district, l.region].filter(Boolean).join(', ')
+      const beds  = l.bedrooms ? `🛏️ ${l.bedrooms} | ` : ''
+      const furn  = l.furnished === 'furnished' ? '✅ Imekamilika | ' : ''
+      response += `${nums[i]} *${loc || String(l.title)}*\n   ${beds}${furn}💰 ${price}\n   🔗 ${appUrl}/listings/${l.id}\n\n`
+    })
+
+    response += `_Bonyeza link kuona picha na maelezo kamili._ 😊\n\n`
+    response += `Unahitaji kubadilisha? Niambie:\n• Eneo tofauti\n• Bei yako\n• Idadi ya vyumba`
+    return response
+  } catch (err) {
+    console.error('[Amina] directSearch error:', err instanceof Error ? err.message : String(err))
+    void updateSession(sessionId, { flow_step: 'greeting', flow_data: {} })
+    return `Samahani, tatizo la muda. Tafadhali jaribu tena au tembelea ${appUrl} 🙏`
+  }
+}
+
+// ── Guided flow search (used at end of 4-step flow) ───────────────────────────
 async function searchAndRespond(
   sessionId: string,
   requirements: Record<string, unknown>,
 ): Promise<string> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
   try {
     let query = supabaseAdmin
       .from('listings')
-      .select('id, title, type, price_monthly, district, region, images, bedrooms')
+      .select('id, title, type, price_monthly, district, region, bedrooms, furnished')
       .eq('status', 'active')
       .order('is_boosted', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(3)
+      .limit(5)
 
-    const budget = requirements.budget as number | undefined
+    const budget   = requirements.budget   as number | undefined
     const bedrooms = requirements.bedrooms as number | undefined
     const location = requirements.location as string | undefined
+    const type     = requirements.type     as string | undefined
 
     if (budget)   query = query.lte('price_monthly', Math.floor(budget * 1.2))
-    if (bedrooms) query = query.eq('bedrooms', bedrooms)
+    if (bedrooms) query = query.gte('bedrooms', bedrooms)
     if (location) query = query.or(`district.ilike.%${location}%,region.ilike.%${location}%`)
+    if (type)     query = query.eq('type', type)
 
     const { data: listings } = await query
     await updateSession(sessionId, { flow_step: 'showing_results' })
 
     if (!listings || listings.length === 0) {
-      return `Hmm... 🤔 Sasa hivi sijaona nyumba inayofanana kabisa na ulichotaka.
+      return `Hmm... 🤔 Sasa hivi sijaona nyumba inayofanana na ulichotaka.
 
-Usikate tamaa! Jaribu hivi:
-1️⃣ Ongeza budget kidogo
-2️⃣ Badilisha eneo lingine
-3️⃣ Niambie — nitakutafutia mwenyewe! 😊`
+Jaribu:\n1️⃣ Ongeza budget kidogo\n2️⃣ Badilisha eneo lingine\n3️⃣ Niambie tofauti — nitakutafutia! 😊`
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
-    const medals = ['🥇', '🥈', '🥉']
+    const nums = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']
     let response = `Nimepata nyumba *${listings.length}* zinazokufaa! 🎉\n\n`
 
     listings.forEach((listing, i) => {
-      const l = listing as Record<string, unknown>
-      response += `${medals[i] ?? '🏠'} *${l.title}*\n`
-      response += `💰 Tsh ${Number(l.price_monthly).toLocaleString()}/mwezi\n`
-      response += `📍 ${l.district ?? ''}, ${l.region ?? ''}\n`
-      response += `🛏️ Vyumba: ${l.bedrooms ?? 'N/A'}\n`
-      response += `🔗 ${appUrl}/listings/${l.id}\n\n`
+      const l    = listing as Record<string, unknown>
+      const price = `Tsh ${Number(l.price_monthly).toLocaleString()}/mwezi`
+      const loc   = [l.district, l.region].filter(Boolean).join(', ')
+      const beds  = l.bedrooms ? `🛏️ ${l.bedrooms} | ` : ''
+      const furn  = l.furnished === 'furnished' ? '✅ Imekamilika | ' : ''
+      response += `${nums[i]} *${loc || String(l.title)}*\n   ${beds}${furn}💰 ${price}\n   🔗 ${appUrl}/listings/${l.id}\n\n`
     })
 
     response += `Bonyeza link kuona picha na mawasiliano ya dalali. 😊\n\nUna swali? Niulize tu!`
@@ -300,7 +434,7 @@ Usikate tamaa! Jaribu hivi:
   } catch (err) {
     console.error('[Amina] searchAndRespond error:', err instanceof Error ? err.message : String(err))
     void updateSession(sessionId, { flow_step: 'greeting', flow_data: {} })
-    return `Hmm, nilishindwa kupata nyumba kwa sasa. 😔\n\nJaribu tena baadaye au tembelea:\n🔗 ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}\n\nAndika *menu* kurudi menyu kuu. 😊`
+    return `Hmm, nilishindwa kupata nyumba kwa sasa. 😔\n\nJaribu tena au tembelea:\n🔗 ${appUrl}\n\nAndika *menu* kurudi menyu kuu. 😊`
   }
 }
 
@@ -1002,33 +1136,42 @@ export async function handleIncomingMessage(
 
     // ── Greeting / first message ───────────────────────────────
     } else if (session.flow_step === 'greeting') {
-      const intent = await detectIntent(message)
-
-      if (intent.intent === 'register_dalali' ||
-          ['dalali', 'agent', 'sajili', 'register'].some((w) => lowerMsg.includes(w))) {
-        await updateSession(session.id, { flow_type: 'dalali_register', flow_step: 'register_intro' })
-        response = await handleDalaliRegisterFlow(
-          { ...session, flow_type: 'dalali_register', flow_step: 'register_intro' }, message,
-        )
-
-      } else if (intent.intent === 'post_listing' ||
-                 ['post', 'listing', 'weka nyumba', 'tuma nyumba'].some((w) => lowerMsg.includes(w))) {
-        await updateSession(session.id, { flow_type: 'dalali_listing', flow_step: 'greeting' })
-        response = await handleDalaliListingFlow(
-          { ...session, flow_type: 'dalali_listing', flow_step: 'greeting' }, message,
-        )
-
-      } else if (isCustomerCareQuery(message)) {
-        await updateSession(session.id, { flow_type: 'customer_care', flow_step: 'care_active' })
-        response = await handleCustomerCare({ ...session, flow_type: 'customer_care', flow_step: 'care_active' }, message, adminInstructions, kbContext)
-
-      } else if (intent.intent === 'find_house') {
-        await updateSession(session.id, { flow_type: 'client', flow_step: 'ask_location' })
-        response = await handleClientFlow({ ...session, flow_step: 'ask_location' }, message)
-
+      // Fast path: keyword-based housing search (no AI call, works even offline)
+      const quickSearch = parseHousingSearch(message)
+      if (quickSearch) {
+        void updateSession(session.id, { flow_type: 'client', flow_step: 'showing_results' })
+        response = await directSearch(session.id, quickSearch)
       } else {
-        await updateSession(session.id, { flow_step: 'main_menu' })
-        response = await showMainMenu(name ?? 'Karibu')
+        // Slow path: intent classification needed
+        const intent = await detectIntent(message)
+
+        if (intent.intent === 'register_dalali' ||
+            ['dalali', 'agent', 'sajili', 'register'].some((w) => lowerMsg.includes(w))) {
+          await updateSession(session.id, { flow_type: 'dalali_register', flow_step: 'register_intro' })
+          response = await handleDalaliRegisterFlow(
+            { ...session, flow_type: 'dalali_register', flow_step: 'register_intro' }, message,
+          )
+
+        } else if (intent.intent === 'post_listing' ||
+                   ['post', 'listing', 'weka nyumba', 'tuma nyumba'].some((w) => lowerMsg.includes(w))) {
+          await updateSession(session.id, { flow_type: 'dalali_listing', flow_step: 'greeting' })
+          response = await handleDalaliListingFlow(
+            { ...session, flow_type: 'dalali_listing', flow_step: 'greeting' }, message,
+          )
+
+        } else if (isCustomerCareQuery(message)) {
+          await updateSession(session.id, { flow_type: 'customer_care', flow_step: 'care_active' })
+          response = await handleCustomerCare({ ...session, flow_type: 'customer_care', flow_step: 'care_active' }, message, adminInstructions, kbContext)
+
+        } else if (intent.intent === 'find_house') {
+          // AI says house-search but no location keyword found — ask for location
+          await updateSession(session.id, { flow_type: 'client', flow_step: 'ask_location' })
+          response = await handleClientFlow({ ...session, flow_step: 'ask_location' }, message)
+
+        } else {
+          await updateSession(session.id, { flow_step: 'main_menu' })
+          response = await showMainMenu(name ?? 'Karibu')
+        }
       }
 
     // ── Continue current flow ──────────────────────────────────
@@ -1039,6 +1182,14 @@ export async function handleIncomingMessage(
         session.flow_type !== 'dalali_register' &&
         session.flow_type !== 'dalali_listing'
 
+      // New housing search mid-flow: user typed e.g. "natafuta nyumba Arusha" while in
+      // showing_results or any client step — restart search with the new criteria
+      const newSearch =
+        !interruptForCare &&
+        session.flow_type !== 'dalali_register' &&
+        session.flow_type !== 'dalali_listing' &&
+        parseHousingSearch(message)
+
       if (interruptForCare) {
         await updateSession(session.id, { flow_type: 'customer_care', flow_step: 'care_active' })
         response = await handleCustomerCare(
@@ -1047,6 +1198,9 @@ export async function handleIncomingMessage(
           adminInstructions,
           kbContext,
         )
+      } else if (newSearch) {
+        void updateSession(session.id, { flow_type: 'client', flow_step: 'showing_results', flow_data: {} })
+        response = await directSearch(session.id, newSearch)
       } else if (session.flow_type === 'dalali_register') {
         response = await handleDalaliRegisterFlow(session, message)
       } else if (session.flow_type === 'dalali_listing') {
