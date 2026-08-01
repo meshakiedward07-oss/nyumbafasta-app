@@ -50,11 +50,14 @@ export async function GET(req: NextRequest) {
     let query   = db
       .from('income_records')
       .select('*', { count: 'exact' })
-      .gte('transaction_date', startDate)
-      .lte('transaction_date', endDate)
       .eq('status', 'confirmed')
       .order('transaction_date', { ascending: false })
       .range((page - 1) * limit, page * limit - 1)
+
+    // period=all skips date filtering (used by source-specific tabs)
+    if (period !== 'all') {
+      query = query.gte('transaction_date', startDate).lte('transaction_date', endDate) as typeof query
+    }
 
     if (source) query = query.eq('source', source) as typeof query
 

@@ -29,7 +29,7 @@ function daysInMonth(yyyyMm: string) {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Period = 'daily' | 'weekly' | 'monthly' | 'yearly'
-type TabKey = 'overview' | 'takwimu' | 'mapato' | 'matumizi' | 'miamala' | 'bei' | 'usajiri' | 'mawasiliano' | 'matangazo'
+type TabKey = 'overview' | 'takwimu' | 'mapato' | 'matumizi' | 'miamala' | 'bei' | 'usajiri' | 'mawasiliano' | 'matangazo' | 'org_sub' | 'fundi_sub' | 'ad_campaign' | 'extra_listing'
 
 interface IncomeSummary {
   total:            number
@@ -141,6 +141,8 @@ interface Boost {
 }
 
 interface BoostSummary { active_boosts: number; boosted_listings: number; total_revenue: number }
+
+interface SourceMetrics { total: number; net: number; count: number; this_month: number }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function initials(name: string | null): string {
@@ -406,6 +408,18 @@ export default function AccountingClient() {
   const [boostSearch,  setBoostSearch]  = useState('')
   const [boostLoading, setBoostLoading] = useState(false)
 
+  // ── Source-based income tabs ─────────────────────────────────────────────
+  const [sourceSummary,     setSourceSummary]     = useState<Record<string, SourceMetrics> | null>(null)
+  const [orgSubRecords,     setOrgSubRecords]     = useState<IncomeRecord[] | null>(null)
+  const [fundiSubRecords,   setFundiSubRecords]   = useState<IncomeRecord[] | null>(null)
+  const [adCampaignRecords, setAdCampaignRecords] = useState<IncomeRecord[] | null>(null)
+  const [extraListRecords,  setExtraListRecords]  = useState<IncomeRecord[] | null>(null)
+  const [orgSubSearch,      setOrgSubSearch]      = useState('')
+  const [fundiSubSearch,    setFundiSubSearch]    = useState('')
+  const [adCampaignSearch,  setAdCampaignSearch]  = useState('')
+  const [extraListSearch,   setExtraListSearch]   = useState('')
+  const [srcLoadingTab,     setSrcLoadingTab]     = useState<string | null>(null)
+
   // keep period/date for legacy API compatibility
   const period = 'monthly' as Period
   const date   = `${selectedMonth}-01`
@@ -458,6 +472,57 @@ export default function AccountingClient() {
         setBoostSummary((d as { summary: BoostSummary }).summary)
       }).catch(() => {}).finally(() => setBoostLoading(false))
   }, [tab, boosts.length])
+
+  // Load source summary once on first visit to any source tab
+  useEffect(() => {
+    const srcTabs: TabKey[] = ['org_sub', 'fundi_sub', 'ad_campaign', 'extra_listing']
+    if (!srcTabs.includes(tab) || sourceSummary) return
+    fetch('/api/v1/accounting/source-summary')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setSourceSummary((d as { summary: Record<string, SourceMetrics> }).summary) })
+      .catch(() => {})
+  }, [tab, sourceSummary])
+
+  // Load per-source records lazily
+  useEffect(() => {
+    if (tab !== 'org_sub' || orgSubRecords !== null) return
+    setSrcLoadingTab('org_sub')
+    fetch('/api/v1/accounting/income?source=org_subscription&period=all&limit=200')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setOrgSubRecords(d ? (d as { records: IncomeRecord[] }).records : []))
+      .catch(() => setOrgSubRecords([]))
+      .finally(() => setSrcLoadingTab(null))
+  }, [tab, orgSubRecords])
+
+  useEffect(() => {
+    if (tab !== 'fundi_sub' || fundiSubRecords !== null) return
+    setSrcLoadingTab('fundi_sub')
+    fetch('/api/v1/accounting/income?source=fundi_subscription&period=all&limit=200')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setFundiSubRecords(d ? (d as { records: IncomeRecord[] }).records : []))
+      .catch(() => setFundiSubRecords([]))
+      .finally(() => setSrcLoadingTab(null))
+  }, [tab, fundiSubRecords])
+
+  useEffect(() => {
+    if (tab !== 'ad_campaign' || adCampaignRecords !== null) return
+    setSrcLoadingTab('ad_campaign')
+    fetch('/api/v1/accounting/income?source=ad_campaign&period=all&limit=200')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setAdCampaignRecords(d ? (d as { records: IncomeRecord[] }).records : []))
+      .catch(() => setAdCampaignRecords([]))
+      .finally(() => setSrcLoadingTab(null))
+  }, [tab, adCampaignRecords])
+
+  useEffect(() => {
+    if (tab !== 'extra_listing' || extraListRecords !== null) return
+    setSrcLoadingTab('extra_listing')
+    fetch('/api/v1/accounting/income?source=extra_listing&period=all&limit=200')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setExtraListRecords(d ? (d as { records: IncomeRecord[] }).records : []))
+      .catch(() => setExtraListRecords([]))
+      .finally(() => setSrcLoadingTab(null))
+  }, [tab, extraListRecords])
 
   function showToast(msg: string) {
     setToast(msg)
@@ -806,10 +871,14 @@ ON CONFLICT DO NOTHING;`}</pre>
           { key: 'mapato',      label: 'Mapato',      icon: 'trending-up' },
           { key: 'matumizi',    label: 'Matumizi',    icon: 'trending-down' },
           { key: 'miamala',     label: 'Miamala',     icon: 'clipboard-list' },
-          { key: 'usajiri',     label: 'Usajiri',     icon: 'id-badge' },
+          { key: 'usajiri',      label: 'Usajiri',      icon: 'id-badge' },
           { key: 'mawasiliano', label: 'Mawasiliano', icon: 'lock-open' },
           { key: 'matangazo',   label: 'Matangazo',   icon: 'rocket' },
-          { key: 'bei',         label: 'Bei',          icon: 'tag' },
+          { key: 'org_sub',     label: 'Org Sub',      icon: 'building' },
+          { key: 'fundi_sub',   label: 'Fundi Sub',    icon: 'tool' },
+          { key: 'ad_campaign', label: 'Ad Campaign',  icon: 'speakerphone' },
+          { key: 'extra_listing', label: 'Orodha Ziada', icon: 'list-plus' },
+          { key: 'bei',         label: 'Bei',           icon: 'tag' },
         ] as { key: TabKey; label: string; icon: string }[]).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
@@ -1510,6 +1579,123 @@ ON CONFLICT DO NOTHING;`}</pre>
             </>
           )
         )}
+
+        {/* ══ SOURCE INCOME TABS (reusable pattern) ═══════════════════════════ */}
+        {(['org_sub', 'fundi_sub', 'ad_campaign', 'extra_listing'] as TabKey[]).includes(tab) && (() => {
+          const cfg: Record<string, { source: string; label: string; icon: string; color: string; emptyMsg: string }> = {
+            org_sub:       { source: 'org_subscription',  label: 'Org Subscription',    icon: 'building',     color: 'indigo',  emptyMsg: 'Hakuna org subscriptions' },
+            fundi_sub:     { source: 'fundi_subscription', label: 'Fundi Subscription',  icon: 'tool',         color: 'teal',    emptyMsg: 'Hakuna fundi subscriptions' },
+            ad_campaign:   { source: 'ad_campaign',        label: 'Ad Campaigns',        icon: 'speakerphone', color: 'rose',    emptyMsg: 'Hakuna ad campaigns' },
+            extra_listing: { source: 'extra_listing',      label: 'Orodha za Ziada',     icon: 'list-plus',    color: 'violet',  emptyMsg: 'Hakuna extra listing payments' },
+          }
+          const c = cfg[tab]
+          const records = tab === 'org_sub' ? orgSubRecords
+            : tab === 'fundi_sub'   ? fundiSubRecords
+            : tab === 'ad_campaign' ? adCampaignRecords
+            : extraListRecords
+          const search = tab === 'org_sub' ? orgSubSearch
+            : tab === 'fundi_sub'   ? fundiSubSearch
+            : tab === 'ad_campaign' ? adCampaignSearch
+            : extraListSearch
+          const setSearch = tab === 'org_sub' ? setOrgSubSearch
+            : tab === 'fundi_sub'   ? setFundiSubSearch
+            : tab === 'ad_campaign' ? setAdCampaignSearch
+            : setExtraListSearch
+          const isLoading = srcLoadingTab === tab || records === null
+          const sm = sourceSummary?.[c.source]
+          const now = new Date()
+          const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+          const allRecs = records ?? []
+          const totalRev   = sm?.total      ?? allRecs.reduce((s, r) => s + Number(r.amount_tzs), 0)
+          const thisMonth  = sm?.this_month ?? allRecs.filter(r => r.transaction_date >= monthStart).reduce((s, r) => s + Number(r.amount_tzs), 0)
+          const totalCount = sm?.count      ?? allRecs.length
+          const q = search.toLowerCase()
+          const filtered = allRecs.filter(r =>
+            !q || (r.description?.toLowerCase().includes(q) || r.reference_number?.toLowerCase().includes(q))
+          )
+          const colorMap: Record<string, { bg: string; text: string; badge: string }> = {
+            indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
+            teal:   { bg: 'bg-teal-50',   text: 'text-teal-600',   badge: 'bg-teal-100 text-teal-700' },
+            rose:   { bg: 'bg-rose-50',   text: 'text-rose-600',   badge: 'bg-rose-100 text-rose-700' },
+            violet: { bg: 'bg-violet-50', text: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+          }
+          const cl = colorMap[c.color]
+
+          if (isLoading) return (
+            <div className="space-y-3">
+              {[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+            </div>
+          )
+
+          return (
+            <>
+              {/* KPI row */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">Mapato Jumla</p>
+                  <p className={`text-sm font-bold ${cl.text}`}>{fmtTsh(totalRev)}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{fmtFull(totalRev)}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">Mwezi Huu</p>
+                  <p className="text-sm font-bold text-green-600">{fmtTsh(thisMonth)}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{new Date().toLocaleDateString('sw-TZ', { month: 'short', year: '2-digit' })}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">Miamala</p>
+                  <p className="text-sm font-bold text-gray-800">{totalCount.toLocaleString()}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">jumla</p>
+                </div>
+              </div>
+
+              {/* Transaction list */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-gray-800 flex-shrink-0">{c.label}</h3>
+                  <input
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 max-w-[160px]"
+                    placeholder="Tafuta..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                </div>
+                {allRecs.length === 0 ? (
+                  <div className="px-4 py-10 text-center">
+                    <p className="text-sm text-gray-400">{c.emptyMsg}</p>
+                    <button onClick={handleSync} className="mt-3 text-xs text-primary-500 font-semibold">
+                      <i className="ti ti-refresh" aria-hidden="true" /> Sync mapato
+                    </button>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-sm text-gray-400">Hakuna matokeo</div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {filtered.map(r => (
+                      <div key={r.id} className="px-4 py-3 flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full ${cl.bg} flex items-center justify-center flex-shrink-0`}>
+                          <i className={`ti ti-${c.icon} text-sm ${cl.text}`} aria-hidden="true" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-800 truncate">
+                            {r.description || c.label}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {r.transaction_date}
+                            {r.payment_method ? ` · ${r.payment_method.toUpperCase()}` : ''}
+                            {r.reference_number ? ` · ${r.reference_number}` : ''}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-green-600 flex-shrink-0">
+                          +{fmtFull(Number(r.amount_tzs))}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )
+        })()}
 
         {/* ══ TAB: TAKWIMU (Analytics) ══════════════════════════════════ */}
         {tab === 'takwimu' && (
