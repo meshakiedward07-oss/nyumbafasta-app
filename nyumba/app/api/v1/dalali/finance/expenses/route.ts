@@ -71,18 +71,22 @@ export async function POST(req: NextRequest) {
       : 'cash'
 
     const admin = createAdminClient()
+    const insertPayload: Record<string, unknown> = {
+      dalali_id: user.id,
+      amount: parseInt(String(amount)),
+      category,
+      date,
+      description:    typeof description === 'string' ? description.slice(0, 500) : null,
+      vendor:         typeof vendor === 'string'      ? vendor.slice(0, 200)       : null,
+      payment_method: safePaymentMethod,
+    }
+    // Only include receipt_url when provided — avoids schema-cache errors if column is missing
+    if (typeof receipt_url === 'string' && receipt_url.trim()) {
+      insertPayload.receipt_url = receipt_url.slice(0, 1000)
+    }
     const { data, error } = await admin
       .from('dalali_expenses')
-      .insert({
-        dalali_id: user.id,
-        amount: parseInt(String(amount)),
-        category,
-        date,
-        description:    typeof description === 'string' ? description.slice(0, 500) : null,
-        vendor:         typeof vendor === 'string'      ? vendor.slice(0, 200)       : null,
-        payment_method: safePaymentMethod,
-        receipt_url:    typeof receipt_url === 'string' ? receipt_url.slice(0, 1000) : null,
-      })
+      .insert(insertPayload)
       .select()
       .single()
 
@@ -108,10 +112,13 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json().catch(() => null)
     if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
 
-    const allowed = ['amount', 'category', 'date', 'description', 'vendor', 'payment_method', 'receipt_url']
+    const allowed = ['amount', 'category', 'date', 'description', 'vendor', 'payment_method']
     const patch: Record<string, unknown> = {}
     for (const k of allowed) if (k in body) patch[k] = body[k]
-    if (typeof patch.receipt_url === 'string') patch.receipt_url = (patch.receipt_url as string).slice(0, 1000)
+    // Only include receipt_url when explicitly provided — avoids schema-cache errors if column is missing
+    if (typeof body.receipt_url === 'string' && body.receipt_url.trim()) {
+      patch.receipt_url = body.receipt_url.slice(0, 1000)
+    }
 
     const admin = createAdminClient()
     const { data, error } = await admin.from('dalali_expenses')
