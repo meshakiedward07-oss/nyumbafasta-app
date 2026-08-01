@@ -26,8 +26,7 @@ export async function GET(req: NextRequest) {
   const now   = new Date()
   const year  = now.getFullYear()
   const month = now.getMonth() + 1
-  const monthKey    = `${year}-${String(month).padStart(2, '0')}`
-  const monthStart  = `${monthKey}-01`
+  const monthKey = `${year}-${String(month).padStart(2, '0')}`
 
   try {
     // Fetch all active recurring expense templates

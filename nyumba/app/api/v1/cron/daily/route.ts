@@ -1559,8 +1559,6 @@ async function runDailyTasks() {
   // ── 31. Per-org WhatsApp rent reminders (pre-due + overdue) ─────────────────
   // Uses each org's remind_days_before / remind_days_overdue / enable_whatsapp_reminders settings.
   try {
-    const todayStr = now.split('T')[0]
-
     // Fetch orgs that have WhatsApp reminders enabled
     const { data: orgs } = await admin
       .from('organizations')
