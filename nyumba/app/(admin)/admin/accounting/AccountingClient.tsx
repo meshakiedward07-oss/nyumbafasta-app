@@ -29,6 +29,7 @@ function daysInMonth(yyyyMm: string) {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Period = 'daily' | 'weekly' | 'monthly' | 'yearly'
+type TabKey = 'overview' | 'takwimu' | 'mapato' | 'matumizi' | 'miamala' | 'bei' | 'usajiri' | 'mawasiliano' | 'matangazo'
 
 interface IncomeSummary {
   total:            number
@@ -94,7 +95,59 @@ interface RecurringExpense {
   is_active:        boolean
 }
 
+interface SubMetrics {
+  mrr: number
+  arr: number
+  total_revenue: number
+  status_counts: Record<string, number>
+  plan_distribution: { name: string; count: number; mrr: number }[]
+  monthly_revenue: { month: string; revenue: number; count: number }[]
+  pending_invoices: number
+  upcoming_renewals: { org_id: string; current_period_end: string; org: { name: string } | null; plan: { name: string; price_tzs: number } | null }[]
+  churned_last_30d: number
+}
+
+interface DalaliSub {
+  id: string
+  plan: string
+  status: string
+  expires_at: string | null
+  created_at: string
+  dalali: { id: string; full_name: string | null; phone: string | null; username: string | null } | null
+}
+
+interface Unlock {
+  id: string
+  amount_paid: number
+  payment_method: string | null
+  status: string
+  created_at: string
+  client:  { id: string; full_name: string | null; phone: string | null } | null
+  dalali:  { id: string; full_name: string | null; username: string | null } | null
+  listing: { id: string; title: string | null; type: string | null; district: string | null } | null
+}
+
+interface UnlockSummary { total_revenue: number; total_count: number; today_count: number }
+
+interface Boost {
+  id: string
+  amount_paid: number
+  status: string
+  boost_days: number
+  created_at: string
+  expires_at: string | null
+  dalali:  { id: string; full_name: string | null; username: string | null } | null
+  listing: { id: string; title: string | null; type: string | null; district: string | null; is_boosted: boolean } | null
+}
+
+interface BoostSummary { active_boosts: number; boosted_listings: number; total_revenue: number }
+
 // ── Helpers ────────────────────────────────────────────────────────────────
+function initials(name: string | null): string {
+  if (!name) return '?'
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
 function fmtTsh(n: number) {
   if (n >= 1_000_000) return `Tsh ${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000)     return `Tsh ${(n / 1_000).toFixed(0)}k`
@@ -318,7 +371,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
 export default function AccountingClient() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth())
   const [monthOptions,  setMonthOptions]  = useState<{ value: string; label: string }[]>([])
-  const [tab,       setTab]       = useState<'overview' | 'mapato' | 'matumizi' | 'miamala' | 'bei' | 'takwimu'>('overview')
+  const [tab,       setTab]       = useState<TabKey>('overview')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [analytics, setAnalytics] = useState<any>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
@@ -335,6 +388,24 @@ export default function AccountingClient() {
   const [downloading, setDownloading] = useState<'pdf' | 'excel' | null>(null)
   const [confirmDeleteExpId, setConfirmDeleteExpId] = useState<string | null>(null)
 
+  // ── Dalali subscriptions tab state ──────────────────────────────────────
+  const [subMetrics,   setSubMetrics]   = useState<SubMetrics | null>(null)
+  const [dalaliSubs,   setDalaliSubs]   = useState<DalaliSub[]>([])
+  const [subSearch,    setSubSearch]    = useState('')
+  const [subLoading,   setSubLoading]   = useState(false)
+
+  // ── Contact unlocks tab state ────────────────────────────────────────────
+  const [unlocks,       setUnlocks]       = useState<Unlock[]>([])
+  const [unlockSummary, setUnlockSummary] = useState<UnlockSummary | null>(null)
+  const [unlockSearch,  setUnlockSearch]  = useState('')
+  const [unlockLoading, setUnlockLoading] = useState(false)
+
+  // ── Boosts tab state ─────────────────────────────────────────────────────
+  const [boosts,       setBoosts]       = useState<Boost[]>([])
+  const [boostSummary, setBoostSummary] = useState<BoostSummary | null>(null)
+  const [boostSearch,  setBoostSearch]  = useState('')
+  const [boostLoading, setBoostLoading] = useState(false)
+
   // keep period/date for legacy API compatibility
   const period = 'monthly' as Period
   const date   = `${selectedMonth}-01`
@@ -350,6 +421,43 @@ export default function AccountingClient() {
       .catch(() => setAnalyticsError(true))
       .finally(() => setAnalyticsLoading(false))
   }, [tab, analytics, analyticsError])
+
+  // Lazy-load each revenue sub-tab on first visit
+  useEffect(() => {
+    if (tab !== 'usajiri' || subMetrics) return
+    setSubLoading(true)
+    Promise.all([
+      fetch('/api/v1/admin/subscription-metrics').then(r => r.ok ? r.json() : null),
+      fetch('/api/v1/admin/dalali/subscriptions?limit=100').then(r => r.ok ? r.json() : null),
+    ]).then(([metrics, subs]) => {
+      if (metrics) setSubMetrics(metrics as SubMetrics)
+      if (subs)    setDalaliSubs((subs as { subscriptions: DalaliSub[] }).subscriptions ?? [])
+    }).catch(() => {}).finally(() => setSubLoading(false))
+  }, [tab, subMetrics])
+
+  useEffect(() => {
+    if (tab !== 'mawasiliano' || unlocks.length > 0) return
+    setUnlockLoading(true)
+    fetch('/api/v1/admin/unlocks?limit=100')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return
+        setUnlocks((d as { unlocks: Unlock[] }).unlocks ?? [])
+        setUnlockSummary((d as { summary: UnlockSummary }).summary)
+      }).catch(() => {}).finally(() => setUnlockLoading(false))
+  }, [tab, unlocks.length])
+
+  useEffect(() => {
+    if (tab !== 'matangazo' || boosts.length > 0) return
+    setBoostLoading(true)
+    fetch('/api/v1/admin/boosts?limit=100')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return
+        setBoosts((d as { boosts: Boost[] }).boosts ?? [])
+        setBoostSummary((d as { summary: BoostSummary }).summary)
+      }).catch(() => {}).finally(() => setBoostLoading(false))
+  }, [tab, boosts.length])
 
   function showToast(msg: string) {
     setToast(msg)
@@ -693,13 +801,16 @@ ON CONFLICT DO NOTHING;`}</pre>
       {/* ── Tab nav ── */}
       <div className="bg-white border-b border-gray-100 flex overflow-x-auto scrollbar-none">
         {([
-          { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
-          { key: 'takwimu',   label: 'Takwimu',   icon: 'chart-dots' },
-          { key: 'mapato',    label: 'Mapato',    icon: 'trending-up' },
-          { key: 'matumizi',  label: 'Matumizi',  icon: 'trending-down' },
-          { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
-          { key: 'bei',       label: 'Bei',        icon: 'tag' },
-        ] as { key: typeof tab; label: string; icon: string }[]).map(t => (
+          { key: 'overview',    label: 'Muhtasari',   icon: 'chart-bar' },
+          { key: 'takwimu',     label: 'Takwimu',     icon: 'chart-dots' },
+          { key: 'mapato',      label: 'Mapato',      icon: 'trending-up' },
+          { key: 'matumizi',    label: 'Matumizi',    icon: 'trending-down' },
+          { key: 'miamala',     label: 'Miamala',     icon: 'clipboard-list' },
+          { key: 'usajiri',     label: 'Usajiri',     icon: 'id-badge' },
+          { key: 'mawasiliano', label: 'Mawasiliano', icon: 'lock-open' },
+          { key: 'matangazo',   label: 'Matangazo',   icon: 'rocket' },
+          { key: 'bei',         label: 'Bei',          icon: 'tag' },
+        ] as { key: TabKey; label: string; icon: string }[]).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
               tab === t.key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400'
@@ -1073,6 +1184,331 @@ ON CONFLICT DO NOTHING;`}</pre>
               </>
             )}
           </>
+        )}
+
+        {/* ══ TAB: USAJIRI WA MADALALI ══════════════════════════════════ */}
+        {tab === 'usajiri' && (
+          subLoading ? (
+            <div className="space-y-3">
+              {[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+            </div>
+          ) : (
+            <>
+              {/* KPI row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">MRR (Mapato/Mwezi)</p>
+                  <p className="text-lg font-bold text-primary-600">{fmtTsh(subMetrics?.mrr ?? 0)}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">ARR: {fmtTsh(subMetrics?.arr ?? 0)}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">Mapato Jumla</p>
+                  <p className="text-lg font-bold text-green-600">{fmtTsh(subMetrics?.total_revenue ?? 0)}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{subMetrics?.pending_invoices ?? 0} invois zinazongoja</p>
+                </div>
+              </div>
+
+              {/* Status distribution */}
+              {subMetrics && Object.keys(subMetrics.status_counts).length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                  <h3 className="text-sm font-bold text-gray-800 mb-3">Hali ya Usajiri</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(subMetrics.status_counts).sort(([,a],[,b]) => b-a).map(([st, cnt]) => {
+                      const cls = st === 'active' ? 'bg-green-50 text-green-700 border-green-100'
+                                : st === 'trial'  ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                : st === 'expired' || st === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100'
+                                : 'bg-gray-50 text-gray-600 border-gray-100'
+                      return (
+                        <div key={st} className={`border rounded-xl px-3 py-2 text-center flex-1 min-w-[80px] ${cls}`}>
+                          <p className="text-xl font-bold">{cnt}</p>
+                          <p className="text-[11px] font-medium capitalize">{st}</p>
+                        </div>
+                      )
+                    })}
+                    <div className="border border-orange-100 bg-orange-50 rounded-xl px-3 py-2 text-center flex-1 min-w-[80px]">
+                      <p className="text-xl font-bold text-orange-600">{subMetrics.churned_last_30d}</p>
+                      <p className="text-[11px] font-medium text-orange-600">Walioacha (30 siku)</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Plan distribution */}
+              {subMetrics && subMetrics.plan_distribution.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                  <h3 className="text-sm font-bold text-gray-800 mb-3">Usambazaji wa Mipango</h3>
+                  <div className="space-y-2.5">
+                    {subMetrics.plan_distribution.map(p => {
+                      const pct = subMetrics.mrr > 0 ? Math.round((p.mrr / subMetrics.mrr) * 100) : 0
+                      return (
+                        <div key={p.name}>
+                          <div className="flex justify-between text-xs text-gray-600 mb-1">
+                            <span className="font-medium">{p.name}</span>
+                            <span>{p.count} wanachama · {fmtFull(p.mrr)}/mwezi ({pct}%)</span>
+                          </div>
+                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Monthly revenue trend */}
+              {subMetrics && subMetrics.monthly_revenue.some(m => m.revenue > 0) && (() => {
+                const maxRev = Math.max(...subMetrics.monthly_revenue.map(m => m.revenue), 1)
+                return (
+                  <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-800 mb-3">Mapato ya Miezi 6</h3>
+                    <div className="flex items-end gap-1.5 h-24">
+                      {subMetrics.monthly_revenue.map(m => {
+                        const pct = Math.round((m.revenue / maxRev) * 100)
+                        const lbl = new Date(m.month + '-01').toLocaleDateString('sw-TZ', { month: 'short' })
+                        return (
+                          <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
+                            <div className="w-full bg-gray-100 rounded-t-lg overflow-hidden flex items-end" style={{ height: '80px' }}>
+                              <div className="w-full bg-primary-400 rounded-t-lg transition-all" style={{ height: `${pct}%` }} />
+                            </div>
+                            <p className="text-[10px] text-gray-400">{lbl}</p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Upcoming renewals */}
+              {subMetrics && subMetrics.upcoming_renewals.length > 0 && (
+                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+                  <h3 className="text-sm font-bold text-amber-800 mb-2 flex items-center gap-1">
+                    <i className="ti ti-alert-triangle" aria-hidden="true" />Upya Ujao (siku 30)
+                  </h3>
+                  <div className="space-y-1.5">
+                    {subMetrics.upcoming_renewals.map(r => (
+                      <div key={r.org_id} className="flex items-center justify-between text-xs">
+                        <span className="text-amber-800 font-medium">{(r.org as { name?: string } | null)?.name ?? r.org_id}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-600">{r.plan ? fmtFull((r.plan as { price_tzs?: number }).price_tzs ?? 0) : ''}</span>
+                          <span className="text-amber-500">{new Date(r.current_period_end).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short' })}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Dalali subscriptions list */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-gray-800 flex-shrink-0">Orodha ya Wanachama</h3>
+                  <input
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 max-w-[160px]"
+                    placeholder="Tafuta dalali..."
+                    value={subSearch}
+                    onChange={e => setSubSearch(e.target.value)}
+                  />
+                </div>
+                {(() => {
+                  const q = subSearch.toLowerCase()
+                  const filtered = dalaliSubs.filter(s => {
+                    const d = s.dalali
+                    return !q || (d?.full_name?.toLowerCase().includes(q) || d?.phone?.includes(q) || d?.username?.toLowerCase().includes(q))
+                  })
+                  return filtered.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-gray-400">Hakuna data</div>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {filtered.map(s => {
+                        const d = s.dalali
+                        const expDate = s.expires_at ? new Date(s.expires_at) : null
+                        const isExpired = expDate ? expDate < new Date() : false
+                        const statusCls = s.status === 'active' ? 'bg-green-100 text-green-700'
+                          : s.status === 'trial' ? 'bg-blue-100 text-blue-700'
+                          : 'bg-red-100 text-red-600'
+                        return (
+                          <div key={s.id} className="px-4 py-3 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-sm flex-shrink-0 font-bold text-primary-600">
+                              {initials(d?.full_name ?? null)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-800 truncate">{d?.full_name ?? '—'}</p>
+                              <p className="text-xs text-gray-400">{d?.phone ?? d?.username ?? '—'}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${statusCls}`}>
+                                {s.plan?.toUpperCase()} · {s.status}
+                              </span>
+                              <span className={`text-[10px] ${isExpired ? 'text-red-400' : 'text-gray-400'}`}>
+                                {expDate ? expDate.toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
+            </>
+          )
+        )}
+
+        {/* ══ TAB: MAWASILIANO (Contact Unlocks) ════════════════════════════ */}
+        {tab === 'mawasiliano' && (
+          unlockLoading ? (
+            <div className="space-y-3">
+              {[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+            </div>
+          ) : (
+            <>
+              {/* Summary cards */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">Mapato Jumla</p>
+                  <p className="text-sm font-bold text-green-600">{fmtTsh(unlockSummary?.total_revenue ?? 0)}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">Jumla</p>
+                  <p className="text-sm font-bold text-gray-800">{(unlockSummary?.total_count ?? 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">Leo</p>
+                  <p className="text-sm font-bold text-primary-600">{unlockSummary?.today_count ?? 0}</p>
+                </div>
+              </div>
+
+              {/* Unlocks list */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-gray-800 flex-shrink-0">Miamala ya Mawasiliano</h3>
+                  <input
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 max-w-[160px]"
+                    placeholder="Tafuta..."
+                    value={unlockSearch}
+                    onChange={e => setUnlockSearch(e.target.value)}
+                  />
+                </div>
+                {(() => {
+                  const q = unlockSearch.toLowerCase()
+                  const filtered = unlocks.filter(u => {
+                    if (!q) return true
+                    const c = u.client; const d = u.dalali; const l = u.listing
+                    return (c?.full_name?.toLowerCase().includes(q) || c?.phone?.includes(q) ||
+                      d?.full_name?.toLowerCase().includes(q) || d?.username?.toLowerCase().includes(q) ||
+                      l?.title?.toLowerCase().includes(q) || l?.district?.toLowerCase().includes(q))
+                  })
+                  return filtered.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-gray-400">Hakuna miamala</div>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {filtered.map(u => (
+                        <div key={u.id} className="px-4 py-3 flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <i className="ti ti-lock-open text-blue-500 text-sm" aria-hidden="true" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-800 truncate">
+                              {u.client?.full_name ?? '—'} → {u.dalali?.full_name ?? '—'}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">
+                              {u.listing?.title ?? '—'} · {u.listing?.district ?? ''} · {new Date(u.created_at).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short' })}
+                            </p>
+                          </div>
+                          <p className="text-sm font-semibold text-green-600 flex-shrink-0">
+                            +{fmtFull(u.amount_paid)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
+            </>
+          )
+        )}
+
+        {/* ══ TAB: MATANGAZO YALIYOIMARISHWA (Boosts) ═══════════════════════ */}
+        {tab === 'matangazo' && (
+          boostLoading ? (
+            <div className="space-y-3">
+              {[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+            </div>
+          ) : (
+            <>
+              {/* Summary */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">Mapato Jumla</p>
+                  <p className="text-sm font-bold text-green-600">{fmtTsh(boostSummary?.total_revenue ?? 0)}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">Zinazofanya Kazi</p>
+                  <p className="text-sm font-bold text-amber-600">{boostSummary?.active_boosts ?? 0}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
+                  <p className="text-xs text-gray-400 mb-1">Matangazo Boost</p>
+                  <p className="text-sm font-bold text-primary-600">{boostSummary?.boosted_listings ?? 0}</p>
+                </div>
+              </div>
+
+              {/* Boosts list */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-gray-800 flex-shrink-0">Matangazo Yaliyolipwa</h3>
+                  <input
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 max-w-[160px]"
+                    placeholder="Tafuta..."
+                    value={boostSearch}
+                    onChange={e => setBoostSearch(e.target.value)}
+                  />
+                </div>
+                {(() => {
+                  const q = boostSearch.toLowerCase()
+                  const filtered = boosts.filter(b => {
+                    if (!q) return true
+                    const d = b.dalali; const l = b.listing
+                    return (d?.full_name?.toLowerCase().includes(q) || d?.username?.toLowerCase().includes(q) ||
+                      l?.title?.toLowerCase().includes(q) || l?.district?.toLowerCase().includes(q))
+                  })
+                  return filtered.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-gray-400">Hakuna matangazo</div>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {filtered.map(b => {
+                        const isActive = b.status === 'active'
+                        const expDate  = b.expires_at ? new Date(b.expires_at) : null
+                        return (
+                          <div key={b.id} className="px-4 py-3 flex items-start gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-amber-50' : 'bg-gray-50'}`}>
+                              <i className={`ti ti-rocket text-sm ${isActive ? 'text-amber-500' : 'text-gray-400'}`} aria-hidden="true" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-800 truncate">
+                                {b.listing?.title ?? '—'} · {b.listing?.district ?? ''}
+                              </p>
+                              <p className="text-xs text-gray-400 truncate">
+                                {b.dalali?.full_name ?? '—'} · {b.boost_days} siku
+                                {expDate ? ` · malipo: ${expDate.toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short' })}` : ''}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                              <p className="text-sm font-semibold text-green-600">+{fmtFull(b.amount_paid)}</p>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                                {b.status}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
+            </>
+          )
         )}
 
         {/* ══ TAB: TAKWIMU (Analytics) ══════════════════════════════════ */}
