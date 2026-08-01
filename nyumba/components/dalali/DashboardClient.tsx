@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -76,13 +76,33 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
   }
 
   const supabase = createClient()
-  const [loggingOut, setLoggingOut] = useState(false)
+  const [loggingOut,       setLoggingOut]       = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'all'>('active')
-  const [mounted, setMounted] = useState(false)
+  const [activeTab,         setActiveTab]         = useState<'active' | 'pending' | 'all'>('active')
+  const [mounted,           setMounted]           = useState(false)
+  const [openMenu,          setOpenMenu]          = useState<string | null>(null)
+  const [deleteDialog,      setDeleteDialog]      = useState<{ id: string; title: string } | null>(null)
+  const [localListings,     setLocalListings]     = useState(listings)
 
   // Avoid hydration mismatch — date calculations run client-only
   useEffect(() => { setMounted(true) }, [])
+
+  // Close menu when clicking outside
+  const menuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!openMenu) return
+    function onOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpenMenu(null)
+    }
+    document.addEventListener('mousedown', onOutside)
+    return () => document.removeEventListener('mousedown', onOutside)
+  }, [openMenu])
+
+  const deleteListing = useCallback(async (id: string) => {
+    setDeleteDialog(null)
+    setLocalListings(prev => prev.filter(l => l.id !== id))
+    await fetch(`/api/v1/listings/${id}`, { method: 'DELETE' })
+  }, [])
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -92,7 +112,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
     router.refresh()
   }
 
-  const filteredListings = listings.filter(l => {
+  const filteredListings = localListings.filter(l => {
     if (activeTab === 'active') return l.status === 'active'
     if (activeTab === 'pending') return l.status === 'pending'
     return true
@@ -584,12 +604,47 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                       <i className="ti ti-pencil text-xs" aria-hidden="true" /> {t('dash_edit')}
                     </Link>
                     <div className="w-px bg-gray-50" />
-                    <Link
-                      href="/dashboard/listings"
-                      className="flex-1 text-center py-2.5 text-xs text-amber-600 font-medium min-h-[44px] flex items-center justify-center gap-1 active:bg-amber-50"
+                    {/* Three-dots dropdown */}
+                    <div
+                      className="relative flex-1"
+                      ref={openMenu === listing.id ? menuRef : undefined}
                     >
-                      <i className="ti ti-dots-vertical text-xs" aria-hidden="true" /> {t('dash_more')}
-                    </Link>
+                      <button
+                        onClick={() => setOpenMenu(openMenu === listing.id ? null : listing.id)}
+                        className="w-full min-h-[44px] flex items-center justify-center gap-1 text-xs text-gray-500 active:bg-gray-50"
+                      >
+                        <i className="ti ti-dots-vertical text-xs" aria-hidden="true" /> {t('dash_more')}
+                      </button>
+                      {openMenu === listing.id && (
+                        <div className="absolute right-0 bottom-full mb-1 z-30 bg-white rounded-2xl shadow-xl border border-gray-100 py-1 min-w-[180px]">
+                          <Link
+                            href={`/listings/${listing.id}`}
+                            onClick={() => setOpenMenu(null)}
+                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-50"
+                          >
+                            <i className="ti ti-eye text-base text-gray-400" aria-hidden="true" /> Angalia Listing
+                          </Link>
+                          <Link
+                            href={`/listings/${listing.id}/edit`}
+                            onClick={() => setOpenMenu(null)}
+                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-50"
+                          >
+                            <i className="ti ti-pencil text-base text-gray-400" aria-hidden="true" /> Hariri Listing
+                          </Link>
+                          <div className="border-t border-gray-100 mt-1 pt-1">
+                            <button
+                              onClick={() => {
+                                setOpenMenu(null)
+                                setDeleteDialog({ id: listing.id, title: `${typeLabel[listing.type] ?? listing.type} — ${listing.district}` })
+                              }}
+                              className="flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 active:bg-red-50 w-full text-left"
+                            >
+                              <i className="ti ti-trash text-base" aria-hidden="true" /> Futa Listing
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -617,6 +672,35 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           </div>
         )}
       </div>
+
+      {/* Delete listing confirm dialog */}
+      {deleteDialog && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
+          onClick={() => setDeleteDialog(null)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-xs text-center shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="text-4xl mb-2"><i className="ti ti-trash text-4xl text-red-500" aria-hidden="true" /></div>
+            <h2 className="font-bold text-gray-900 mb-1">Futa listing?</h2>
+            <p className="text-gray-500 text-sm mb-5">
+              <strong>{deleteDialog.title}</strong><br />
+              Listing haitaonekana tena. Hatua hii haiwezi kutenduliwa.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setDeleteDialog(null)}
+                className="py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold"
+              >
+                Hapana
+              </button>
+              <button
+                onClick={() => deleteListing(deleteDialog.id)}
+                className="py-3 rounded-xl bg-red-500 text-white text-sm font-semibold active:scale-95"
+              >
+                Ndiyo, futa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Logout confirm dialog */}
       {showLogoutConfirm && (
