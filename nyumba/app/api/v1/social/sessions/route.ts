@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { listActiveSocialSessions } from '@/lib/social/socialHandover'
 
-// GET /api/v1/social/sessions?status=pending|admin|all
+// GET /api/v1/social/sessions?status=pending|admin|amina|resolved|all&platform=instagram|facebook
 export async function GET(req: NextRequest) {
   try {
     const auth = await requireStaffAuth()
     if (!auth.ok) return auth.response
 
-    const status = req.nextUrl.searchParams.get('status') as 'pending' | 'admin' | undefined
-    const sessions = await listActiveSocialSessions(status || undefined)
+    const { searchParams } = req.nextUrl
+    const status   = (searchParams.get('status')   ?? undefined) as Parameters<typeof listActiveSocialSessions>[0]
+    const platform = (searchParams.get('platform') ?? undefined) as Parameters<typeof listActiveSocialSessions>[1]
+
+    const sessions = await listActiveSocialSessions(status, platform)
 
     return NextResponse.json({ sessions })
   } catch (err) {

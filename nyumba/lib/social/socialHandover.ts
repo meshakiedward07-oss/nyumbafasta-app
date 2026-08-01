@@ -187,8 +187,9 @@ export async function sendSocialAdminMessage(
 // ── List active sessions for admin panel ──────────────────────────────────
 
 export async function listActiveSocialSessions(
-  status?: SessionStatus,
-  limit = 50,
+  status?: SessionStatus | 'all',
+  platform?: SocialPlatform,
+  limit = 100,
 ): Promise<SocialSession[]> {
   let query = supabaseAdmin
     .from('social_sessions')
@@ -196,10 +197,16 @@ export async function listActiveSocialSessions(
     .order('last_message_at', { ascending: false })
     .limit(limit)
 
-  if (status) {
+  if (status && status !== 'all') {
     query = query.eq('status', status)
-  } else {
+  } else if (!status) {
+    // default: active conversations only
     query = query.in('status', ['pending', 'admin'])
+  }
+  // status === 'all' → no status filter (returns all including amina+resolved)
+
+  if (platform) {
+    query = query.eq('platform', platform)
   }
 
   const { data } = await query

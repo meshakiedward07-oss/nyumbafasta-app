@@ -133,10 +133,8 @@ export default function SocialInboxPanel() {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const url = statusFilter !== 'all'
-        ? `/api/v1/social/sessions?platform=${platform}&status=${statusFilter}`
-        : `/api/v1/social/sessions?platform=${platform}`
-      const res = await fetch(url)
+      const params = new URLSearchParams({ platform, status: statusFilter })
+      const res = await fetch(`/api/v1/social/sessions?${params}`)
       if (res.ok) {
         const d = await res.json()
         setSessions(d.sessions ?? [])
