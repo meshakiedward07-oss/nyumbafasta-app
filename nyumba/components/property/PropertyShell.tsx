@@ -73,8 +73,10 @@ const NAV_ITEMS = [
   { href: '/property/agreements',   icon: 'file-text',         label: 'Makubaliano',    exact: false },
   { href: '/property/team',         icon: 'user-plus',         label: 'Timu Yangu',     exact: false },
   { href: '/property/usajili',      icon: 'credit-card',       label: 'Usajili',        exact: false },
+  { href: '/property/matumizi',     icon: 'receipt',           label: 'Matumizi',       exact: false },
   { href: '/property/hati',         icon: 'folder',            label: 'Hati',           exact: false },
   { href: '/property/taarifa',      icon: 'chart-bar',         label: 'Taarifa',        exact: false },
+  { href: '/property/kyc',          icon: 'id-badge',          label: 'KYC & Benki',    exact: false },
 ]
 
 const BOTTOM_NAV = [

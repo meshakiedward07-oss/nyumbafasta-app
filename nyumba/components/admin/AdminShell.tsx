@@ -74,13 +74,16 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/admin/boosts',                 labelKey: 'admin_nav_boosts',            icon: 'rocket',         exact: false },
       { href: '/admin/reviews',                labelKey: 'admin_nav_reviews',           icon: 'star',           exact: false },
       { href: '/admin/accounting',             labelKey: 'admin_nav_accounting',        icon: 'credit-card',    exact: false },
+      { href: '/admin/fraud',                  labelKey: 'admin_nav_fraud',             icon: 'shield-lock',    exact: false },
     ],
   },
   {
     titleKey: 'admin_nav_sec_advertising',
     items: [
-      { href: '/admin/adverts',       labelKey: 'admin_nav_campaigns', icon: 'speakerphone', exact: false },
-      { href: '/admin/adverts/plans', labelKey: 'admin_nav_plans',     icon: 'list',         exact: false },
+      { href: '/admin/adverts',              labelKey: 'admin_nav_campaigns',        icon: 'speakerphone', exact: true  },
+      { href: '/admin/adverts/advertisers',  labelKey: 'admin_nav_advertisers',      icon: 'briefcase',    exact: false },
+      { href: '/admin/adverts/plans',        labelKey: 'admin_nav_plans',            icon: 'list',         exact: false },
+      { href: '/admin/adverts/analytics',    labelKey: 'admin_nav_advert_analytics', icon: 'chart-bar',    exact: false },
     ],
   },
   {
@@ -93,6 +96,7 @@ const NAV_SECTIONS: NavSection[] = [
     titleKey: 'admin_nav_sec_property',
     items: [
       { href: '/admin/property-management', labelKey: 'admin_nav_property_dash',  icon: 'building',     exact: true  },
+      { href: '/admin/organizations',       labelKey: 'admin_nav_organizations',  icon: 'sitemap',      exact: false },
       { href: '/admin/fundi',               labelKey: 'admin_nav_fundi_accounts', icon: 'tools',        exact: false },
       { href: '/admin/subscriptions',       labelKey: 'admin_nav_org_subs',       icon: 'credit-card',  exact: false },
     ],

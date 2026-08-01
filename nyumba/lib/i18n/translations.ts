@@ -285,6 +285,10 @@ const T = {
   admin_nav_crons:             { sw: 'Kazi za Mfumo',          en: 'System Jobs'           },
   admin_nav_settings:          { sw: 'Mipangilio ya Mfumo',    en: 'Platform Settings'     },
   admin_nav_sec_platform:      { sw: 'Mfumo',                  en: 'Platform'              },
+  admin_nav_fraud:             { sw: 'Ulaghai',                en: 'Fraud Detection'        },
+  admin_nav_organizations:     { sw: 'Mashirika',              en: 'Organizations'          },
+  admin_nav_advert_analytics:  { sw: 'Takwimu za Matangazo',  en: 'Advert Analytics'       },
+  admin_nav_advertisers:       { sw: 'Watangazaji',            en: 'Advertisers'            },
 
   // ── Admin shell — misc labels ─────────────────────────────────────────────
   admin_panel_label:      { sw: 'Jopo la Msimamizi',   en: 'Admin Panel'                  },
