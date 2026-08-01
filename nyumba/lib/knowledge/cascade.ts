@@ -3,7 +3,7 @@ import { lookupCache, recordCacheHit, addToCache, getCascadeConfig } from '@/lib
 import { logMiss } from '@/lib/knowledge/missLog'
 import { extractEntities } from '@/lib/knowledge/entities'
 import { extractActionIntent } from '@/lib/knowledge/actionIntent'
-import { searchListings, searchVendors, noResultsMessage } from '@/lib/knowledge/structuredSearch'
+import { searchListings, searchVendors, noResultsMessage, type ListingSearchResult } from '@/lib/knowledge/structuredSearch'
 import { executeMaintenanceAction } from '@/lib/knowledge/actions/maintenance'
 import { executeViewingAction } from '@/lib/knowledge/actions/viewing'
 import { executeSubscriptionAction } from '@/lib/knowledge/actions/subscription'
@@ -73,10 +73,10 @@ export async function runCascade(
   if (entities.is_search && entities.confidence >= 0.5) {
 
     if (entities.search_type === 'listing') {
-      const listingAnswer = await searchListings(entities)
-      console.log(`[Cascade] search listings → ${listingAnswer ? 'HIT' : 'MISS'} (${Date.now() - t0}ms)`)
+      const listingAnswer: ListingSearchResult = await searchListings(entities)
+      console.log(`[Cascade] search listings → ${listingAnswer === 'error' ? 'DB_ERROR' : listingAnswer ? 'HIT' : 'MISS'} (${Date.now() - t0}ms)`)
 
-      if (listingAnswer) {
+      if (listingAnswer && listingAnswer !== 'error') {
         return {
           answered:      true,
           answer:        listingAnswer,
@@ -86,23 +86,28 @@ export async function runCascade(
         }
       }
 
-      // Search ran but found nothing — tell the user rather than silently
-      // falling to Amina with no context about what was tried
-      const noResults = noResultsMessage(entities)
-      void logMiss(messageText, 'search', {
-        phoneNumber:      options.phoneNumber,
-        sessionId:        options.sessionId,
-        flowType:         options.flowType,
-        bestCacheSim:     cacheHit?.similarity ?? 0,
-        bestKbSim:        kbResult.confidence,
-        searchHadResults: false,
-      })
-      return {
-        answered:      true,   // we answer with "nothing found" — Amina not needed
-        answer:        noResults,
-        confidence:    entities.confidence,
-        layerAnswered: 'search',
-        retrieved:     [],
+      // DB error — fall through to Amina (aiAgent searchAndRespond handles it)
+      if (listingAnswer === 'error') {
+        console.error('[Cascade] searchListings DB error — falling through to Amina')
+        // Don't answer; let Amina handle via its own searchAndRespond
+      } else {
+        // Genuinely no results — tell the user
+        const noResults = noResultsMessage(entities)
+        void logMiss(messageText, 'search', {
+          phoneNumber:      options.phoneNumber,
+          sessionId:        options.sessionId,
+          flowType:         options.flowType,
+          bestCacheSim:     cacheHit?.similarity ?? 0,
+          bestKbSim:        kbResult.confidence,
+          searchHadResults: false,
+        })
+        return {
+          answered:      true,
+          answer:        noResults,
+          confidence:    entities.confidence,
+          layerAnswered: 'search',
+          retrieved:     [],
+        }
       }
     }
 

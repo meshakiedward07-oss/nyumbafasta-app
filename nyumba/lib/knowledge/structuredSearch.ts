@@ -9,6 +9,10 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 
 // ── Listing search ────────────────────────────────────────────────────────────
 
+// 'error' signals a DB failure so cascade can fall through to Amina rather than
+// returning a misleading "no results" message to the user.
+export type ListingSearchResult = string | 'error' | null
+
 interface ListingRow {
   id:            string
   title:         string
@@ -16,48 +20,45 @@ interface ListingRow {
   price_monthly: number
   district:      string | null
   region:        string | null
-  ward:          string | null
   bedrooms:      number | null
-  furnished:     boolean | null
+  furnished:     string | null   // TEXT: 'furnished' | 'semi' | 'empty'
   images:        string[] | null
   dalali:        { full_name: string | null } | null
 }
 
 export async function searchListings(
   entities: ExtractedEntities,
-): Promise<string | null> {
+): Promise<ListingSearchResult> {
+  // Only use columns guaranteed to exist in the base schema.
+  // is_sub_suspended and ward are added by optional migrations — omit them
+  // so the query never fails on a fresh DB or partial migration state.
   let q = supabaseAdmin
     .from('listings')
-    .select('id, title, type, price_monthly, district, region, ward, bedrooms, furnished, images, dalali:dalali_id(full_name)')
+    .select('id, title, type, price_monthly, district, region, bedrooms, furnished, images, dalali:dalali_id(full_name)')
     .eq('status', 'active')
-    .eq('is_sub_suspended', false)
     .order('is_boosted', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(3)
 
-  // Location: try district first, then region (the DB has both)
   if (entities.location) {
     const loc = entities.location
-    // Use OR across the text columns most likely to match a place name
-    q = q.or(
-      `district.ilike.%${loc}%,region.ilike.%${loc}%,ward.ilike.%${loc}%`
-    )
+    q = q.or(`district.ilike.%${loc}%,region.ilike.%${loc}%`)
   }
 
   if (entities.listing_type) q = q.eq('type', entities.listing_type)
   if (entities.bedrooms)     q = q.gte('bedrooms', entities.bedrooms)
   if (entities.price_max)    q = q.lte('price_monthly', entities.price_max)
   if (entities.price_min)    q = q.gte('price_monthly', entities.price_min)
-  if (entities.furnished != null) q = q.eq('furnished', entities.furnished)
+  // furnished: DB stores TEXT ('furnished'|'semi'|'empty'), entities gives boolean
+  if (entities.furnished === true) q = q.eq('furnished', 'furnished')
 
   const { data, error } = await q
   if (error) {
     console.error('[StructuredSearch] listings error:', error.message)
-    return null
+    return 'error'
   }
   if (!data || data.length === 0) return null
 
-  // Supabase returns joined rows as arrays; normalize dalali to a single object
   const rows = (data as unknown[]).map((r) => {
     const row = r as Record<string, unknown>
     const dalaliRaw = row.dalali
@@ -79,9 +80,9 @@ function formatListingResults(listings: ListingRow[], entities: ExtractedEntitie
 
   const items = listings.map((l, i) => {
     const price    = `Tsh ${Number(l.price_monthly).toLocaleString()}/mwezi`
-    const location = [l.district ?? l.ward, l.region].filter(Boolean).join(', ')
+    const location = [l.district, l.region].filter(Boolean).join(', ')
     const beds     = l.bedrooms ? `🛏️ Vyumba ${l.bedrooms} | ` : ''
-    const furn     = l.furnished ? '✅ Imekamilika | ' : ''
+    const furn     = l.furnished === 'furnished' ? '✅ Imekamilika | ' : ''
     const dalali   = l.dalali?.full_name ? `\n   👤 ${l.dalali.full_name}` : ''
     const link     = `${APP_URL}/listings/${l.id}`
 
