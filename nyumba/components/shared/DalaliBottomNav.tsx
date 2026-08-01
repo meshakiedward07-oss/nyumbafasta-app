@@ -19,6 +19,7 @@ export default function DalaliBottomNav() {
   const pathname = usePathname()
   const { t } = useLanguage()
   const [unread, setUnread] = useState(0)
+  const [msgUnread, setMsgUnread] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -27,6 +28,20 @@ export default function DalaliBottomNav() {
         const res  = await fetch('/api/v1/notifications?count=true')
         const json = await res.json()
         if (!cancelled) setUnread(json.unread_count ?? 0)
+      } catch { /* non-fatal */ }
+    }
+    poll()
+    const id = setInterval(poll, 60_000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const res  = await fetch('/api/v1/conversations?unread=1')
+        const json = await res.json()
+        if (!cancelled) setMsgUnread(json.unread_count ?? 0)
       } catch { /* non-fatal */ }
     }
     poll()
@@ -72,7 +87,11 @@ export default function DalaliBottomNav() {
             )
           }
 
-          const showBadge = href === '/dashboard/profile' && unread > 0
+          const badgeCount =
+            href === '/dashboard/profile'  ? unread    :
+            href === '/dashboard/messages' ? msgUnread :
+            0
+          const showBadge = badgeCount > 0
 
           return (
             <Link
@@ -91,7 +110,7 @@ export default function DalaliBottomNav() {
                 />
                 {showBadge && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 leading-none">
-                    {unread > 9 ? '9+' : unread}
+                    {badgeCount > 9 ? '9+' : badgeCount}
                   </span>
                 )}
               </div>

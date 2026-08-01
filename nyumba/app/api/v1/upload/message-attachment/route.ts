@@ -8,11 +8,13 @@ const API_SECRET = process.env.CLOUDINARY_API_SECRET!
 
 const ALLOWED_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'video/3gpp',
   'application/pdf',
 ])
-const MAX_SIZE = 20 * 1024 * 1024 // 20 MB
+const MAX_SIZE = 100 * 1024 * 1024 // 100 MB (videos can be large)
 
 function isImage(mime: string) { return mime.startsWith('image/') }
+function isVideo(mime: string) { return mime.startsWith('video/') }
 
 // POST /api/v1/upload/message-attachment
 // FormData: file — image or PDF, max 20 MB
@@ -28,18 +30,18 @@ export async function POST(req: NextRequest) {
 
     if (!ALLOWED_TYPES.has(file.type)) {
       return NextResponse.json(
-        { error: 'Aina ya faili hairelewi. Tumia picha (JPG/PNG/WEBP/GIF) au PDF.' },
+        { error: 'Aina ya faili hairelewi. Tumia picha, video (MP4/WEBM) au PDF.' },
         { status: 400 },
       )
     }
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'Faili ni kubwa sana (max 20MB)' }, { status: 400 })
+      return NextResponse.json({ error: 'Faili ni kubwa sana (max 100MB)' }, { status: 400 })
     }
 
     const fileBuffer  = Buffer.from(await file.arrayBuffer())
     const timestamp   = Math.round(Date.now() / 1000)
     const folder      = 'nyumba/message-attachments'
-    const resourceType = isImage(file.type) ? 'image' : 'raw'
+    const resourceType = isImage(file.type) ? 'image' : isVideo(file.type) ? 'video' : 'raw'
 
     const paramsToSign: Record<string, string | number> = { folder, resource_type: resourceType, timestamp }
     const paramString = Object.keys(paramsToSign).sort()

@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import AttachmentCompose, { type PendingAttachment } from '@/components/messages/AttachmentCompose'
+import AttachmentDisplay from '@/components/messages/AttachmentDisplay'
 
 interface Payment {
   id: string; status: string
@@ -33,10 +35,15 @@ interface Conversation {
   unread_count: number
 }
 
+interface MsgAttachment {
+  id?: string; file_url: string; file_name: string | null; file_type: string | null; file_size: number | null
+}
+
 interface Message {
   id: string; conversation_id: string; sender_id: string; body: string
   message_type: string; created_at: string
   sender: { id: string; full_name: string | null; avatar_url: string | null } | null
+  attachments?: MsgAttachment[]
 }
 
 interface NotificationItem {
@@ -273,8 +280,9 @@ export default function TenantPage() {
   const [convsLoaded, setConvsLoaded] = useState(false)
   const [activeConv,  setActiveConv]  = useState<Conversation | null>(null)
   const [messages,    setMessages]    = useState<Message[]>([])
-  const [newMsg,      setNewMsg]      = useState('')
-  const [sendingMsg,  setSendingMsg]  = useState(false)
+  const [newMsg,         setNewMsg]         = useState('')
+  const [sendingMsg,     setSendingMsg]     = useState(false)
+  const [tenantAttach,   setTenantAttach]   = useState<PendingAttachment | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const msgEndRef = useRef<HTMLDivElement>(null)
 
@@ -351,15 +359,20 @@ export default function TenantPage() {
   }
 
   async function handleSendMsg(convId: string) {
-    const body = newMsg.trim()
-    if (!body || sendingMsg) return
+    const body       = newMsg.trim()
+    const attachment = tenantAttach
+    if (!body && !attachment || sendingMsg) return
     setSendingMsg(true)
     setNewMsg('')
+    setTenantAttach(null)
     try {
       const res  = await fetch(`/api/v1/conversations/${convId}/messages`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ message: body }),
+        body:    JSON.stringify({
+          message:     body || (attachment ? attachment.file_name ?? 'Faili' : ''),
+          attachments: attachment ? [attachment] : undefined,
+        }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -906,7 +919,8 @@ export default function TenantPage() {
                                 ? 'bg-primary-500 text-white rounded-br-md'
                                 : 'bg-gray-100 text-gray-800 rounded-bl-md'
                             }`}>
-                              {msg.body}
+                              {msg.body && <p>{msg.body}</p>}
+                              {msg.attachments?.length ? <AttachmentDisplay attachments={msg.attachments} /> : null}
                             </div>
                             <p className={`text-[10px] text-gray-400 mt-0.5 ${isMe ? 'text-right' : 'ml-1'}`}>
                               {timeFmt(msg.created_at)}
@@ -920,25 +934,39 @@ export default function TenantPage() {
                 </div>
 
                 {/* Message input */}
-                <div className="border-t border-gray-100 p-3 flex gap-2">
-                  <input
-                    type="text"
-                    value={newMsg}
-                    onChange={e => setNewMsg(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMsg(activeConv.id) } }}
-                    placeholder="Andika ujumbe..."
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                  />
-                  <button
-                    onClick={() => handleSendMsg(activeConv.id)}
-                    disabled={!newMsg.trim() || sendingMsg}
-                    className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center disabled:opacity-40 hover:bg-primary-600 transition flex-shrink-0"
-                  >
-                    {sendingMsg
-                      ? <i className="ti ti-loader-2 animate-spin text-sm" aria-hidden="true" />
-                      : <i className="ti ti-send text-sm" aria-hidden="true" />
-                    }
-                  </button>
+                <div className="border-t border-gray-100 p-3 space-y-2">
+                  {tenantAttach && (
+                    <AttachmentCompose
+                      attachment={tenantAttach}
+                      onAttach={setTenantAttach}
+                      onRemove={() => setTenantAttach(null)}
+                    />
+                  )}
+                  <div className="flex gap-2">
+                    <AttachmentCompose
+                      attachment={null}
+                      onAttach={setTenantAttach}
+                      onRemove={() => setTenantAttach(null)}
+                    />
+                    <input
+                      type="text"
+                      value={newMsg}
+                      onChange={e => setNewMsg(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && (newMsg.trim() || tenantAttach)) { e.preventDefault(); handleSendMsg(activeConv.id) } }}
+                      placeholder="Andika ujumbe..."
+                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    />
+                    <button
+                      onClick={() => handleSendMsg(activeConv.id)}
+                      disabled={(!newMsg.trim() && !tenantAttach) || sendingMsg}
+                      className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center disabled:opacity-40 hover:bg-primary-600 transition flex-shrink-0"
+                    >
+                      {sendingMsg
+                        ? <i className="ti ti-loader-2 animate-spin text-sm" aria-hidden="true" />
+                        : <i className="ti ti-send text-sm" aria-hidden="true" />
+                      }
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (

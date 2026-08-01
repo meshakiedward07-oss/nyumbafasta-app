@@ -3,9 +3,16 @@ import { useEffect, useRef, useState, use } from 'react'
 import Link from 'next/link'
 import { CONV_TYPE_LABELS } from '@/lib/types/property'
 import type { Conversation, Message } from '@/lib/types/property'
+import AttachmentCompose, { type PendingAttachment } from '@/components/messages/AttachmentCompose'
+import AttachmentDisplay from '@/components/messages/AttachmentDisplay'
+
+interface MsgAttachment {
+  id?: string; file_url: string; file_name: string | null; file_type: string | null; file_size: number | null
+}
 
 type RawMsg = Message & {
   sender: { id: string; full_name: string | null; avatar_url: string | null } | null
+  attachments?: MsgAttachment[]
 }
 
 function formatTime(iso: string) {
@@ -36,11 +43,12 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
   const [messages, setMessages] = useState<RawMsg[]>([])
   const [userId,   setUserId]  = useState<string | null>(null)
   const [isOrgMem, setIsOrgMem] = useState(false)
-  const [loading,  setLoading] = useState(true)
-  const [sending,  setSending] = useState(false)
-  const [input,    setInput]   = useState('')
-  const [isNote,   setIsNote]  = useState(false)
-  const [error,    setError]   = useState<string | null>(null)
+  const [loading,           setLoading]           = useState(true)
+  const [sending,           setSending]           = useState(false)
+  const [input,             setInput]             = useState('')
+  const [isNote,            setIsNote]            = useState(false)
+  const [error,             setError]             = useState<string | null>(null)
+  const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null)
   const bottomRef  = useRef<HTMLDivElement>(null)
   const inputRef   = useRef<HTMLTextAreaElement>(null)
 
@@ -90,18 +98,25 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
   }, [messages.length])
 
   async function handleSend() {
-    if (!input.trim() || sending) return
+    if ((!input.trim() && !pendingAttachment) || sending) return
     setSending(true)
+    const body       = input.trim()
+    const attachment = pendingAttachment
+    setInput('')
+    setIsNote(false)
+    setPendingAttachment(null)
     try {
       const res  = await fetch(`/api/v1/conversations/${id}/messages`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input.trim(), is_internal: isNote }),
+        body: JSON.stringify({
+          message:     body || (attachment ? attachment.file_name ?? 'Faili' : ''),
+          is_internal: isNote,
+          attachments: attachment ? [attachment] : undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); return }
-      setInput('')
-      setIsNote(false)
       setMessages(prev => [...prev, data.message as RawMsg])
     } catch {
       setError('Haikuweza kutuma. Jaribu tena.')
@@ -112,7 +127,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && (input.trim() || pendingAttachment)) {
       e.preventDefault()
       handleSend()
     }
@@ -222,7 +237,8 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
                         <i className="ti ti-lock mr-1" aria-hidden="true" />Kumbukumbu ya ndani
                       </span>
                     )}
-                    {msg.body}
+                    {msg.body && <p>{msg.body}</p>}
+                    {msg.attachments?.length ? <AttachmentDisplay attachments={msg.attachments} /> : null}
                   </div>
                   <span className="text-[10px] text-gray-400 mx-0.5">{formatTime(msg.created_at)}</span>
                 </div>
@@ -258,7 +274,22 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
+          {pendingAttachment && (
+            <div className="mb-2">
+              <AttachmentCompose
+                attachment={pendingAttachment}
+                onAttach={setPendingAttachment}
+                onRemove={() => setPendingAttachment(null)}
+              />
+            </div>
+          )}
+
           <div className="flex items-end gap-2">
+            <AttachmentCompose
+              attachment={null}
+              onAttach={setPendingAttachment}
+              onRemove={() => setPendingAttachment(null)}
+            />
             <textarea
               ref={inputRef}
               value={input}
@@ -275,7 +306,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
             />
             <button
               onClick={handleSend}
-              disabled={!input.trim() || sending}
+              disabled={(!input.trim() && !pendingAttachment) || sending}
               className="w-10 h-10 bg-primary-500 text-white rounded-2xl flex items-center justify-center hover:bg-primary-600 transition disabled:opacity-40 flex-shrink-0"
               aria-label="Tuma"
             >

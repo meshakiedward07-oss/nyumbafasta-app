@@ -22,6 +22,7 @@ export default function AttachmentDisplay({ attachments }: { attachments: Attach
     <div className="mt-1.5 space-y-1.5">
       {attachments.map((a, i) => {
         const isImage = a.file_type?.startsWith('image/') ?? false
+        const isVideo = a.file_type?.startsWith('video/') ?? false
         if (isImage) {
           return (
             <a key={a.id ?? i} href={a.file_url} target="_blank" rel="noopener noreferrer" className="block">
@@ -32,6 +33,18 @@ export default function AttachmentDisplay({ attachments }: { attachments: Attach
                 className="max-w-[240px] rounded-xl border border-black/10 object-cover"
               />
             </a>
+          )
+        }
+        if (isVideo) {
+          return (
+            <video
+              key={a.id ?? i}
+              src={a.file_url}
+              controls
+              playsInline
+              className="max-w-[280px] rounded-xl border border-black/10 bg-black"
+              style={{ maxHeight: '200px' }}
+            />
           )
         }
         return (

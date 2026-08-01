@@ -31,6 +31,30 @@ function UnreadBadge() {
   )
 }
 
+function UnreadBadgeBottom() {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/conversations?unread=1')
+        if (!res.ok) return
+        const d = await res.json()
+        if (!cancelled) setCount(d.unread_count ?? 0)
+      } catch { /* silent */ }
+    }
+    load()
+    const t = setInterval(load, 30_000)
+    return () => { cancelled = true; clearInterval(t) }
+  }, [])
+  if (count === 0) return null
+  return (
+    <span className="absolute -top-1 -right-2 min-w-[16px] h-4 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 leading-none">
+      {count > 9 ? '9+' : count}
+    </span>
+  )
+}
+
 function NotifBell() {
   const [count, setCount] = useState(0)
 
@@ -238,7 +262,10 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
               <Link key={item.href} href={item.href}
                 className="flex-1 flex flex-col items-center justify-center gap-0.5 relative group">
                 {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" />}
-                <i className={`ti ti-${item.icon} text-[22px] transition-colors ${active ? 'text-primary-500' : 'text-gray-400'}`} aria-hidden="true" />
+                <div className="relative">
+                  <i className={`ti ti-${item.icon} text-[22px] transition-colors ${active ? 'text-primary-500' : 'text-gray-400'}`} aria-hidden="true" />
+                  {item.href === '/property/mazungumzo' && !active && <UnreadBadgeBottom />}
+                </div>
                 <span className={`text-[10px] font-semibold ${active ? 'text-primary-500' : 'text-gray-400'}`}>
                   {item.label}
                 </span>

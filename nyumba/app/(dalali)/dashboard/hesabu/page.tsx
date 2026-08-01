@@ -21,7 +21,8 @@ interface Commission {
 }
 interface Goal { title: string; target_amount: number; current_amount: number; month: number; year: number }
 interface IncomeRow    { id: string; date: string; category: string; amount: number; description: string | null; client_name: string | null; listing_title: string | null; payment_method: string }
-interface ExpenseRow   { id: string; date: string; category: string; amount: number; description: string | null; vendor: string | null; payment_method: string }
+interface ExpenseRow   { id: string; date: string; category: string; amount: number; description: string | null; vendor: string | null; payment_method: string; receipt_url: string | null }
+interface DownloadRecord { id: string; month: number; year: number; downloaded_at: string }
 interface StatsData {
   summary: FinanceSummary
   commissions: { pending: number; paid: number; overdue: number; list: Commission[] }
@@ -99,6 +100,8 @@ export default function HesabuPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [commPaying, setCommPaying] = useState<string | null>(null)
   const [commPayAmount, setCommPayAmount] = useState('')
+  const [downloads, setDownloads] = useState<DownloadRecord[]>([])
+  const [dlLoading, setDlLoading] = useState(false)
 
   const now = new Date()
   const [period, setPeriod] = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
@@ -113,6 +116,17 @@ export default function HesabuPage() {
   }, [period.month, period.year])
 
   useEffect(() => { loadStats() }, [loadStats])
+
+  const loadDownloads = useCallback(async () => {
+    setDlLoading(true)
+    try {
+      const res = await fetch('/api/v1/dalali/finance/report/downloads')
+      const data = await res.json()
+      if (res.ok) setDownloads(data.downloads ?? [])
+    } finally { setDlLoading(false) }
+  }, [])
+
+  useEffect(() => { if (tab === 'ripoti') loadDownloads() }, [tab, loadDownloads])
 
   async function fetchAdvice() {
     if (!stats || advLoading) return
@@ -165,8 +179,16 @@ export default function HesabuPage() {
     loadStats()
   }
 
-  function openReport() {
+  async function openReport() {
     window.open(`/api/v1/dalali/finance/report?month=${period.month}&year=${period.year}`, '_blank')
+    try {
+      await fetch('/api/v1/dalali/finance/report/downloads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month: period.month, year: period.year }),
+      })
+      loadDownloads()
+    } catch { /* non-fatal */ }
   }
 
   const profitColor = stats && stats.summary.monthProfit >= 0 ? 'text-green-600' : 'text-red-600'
@@ -435,6 +457,11 @@ export default function HesabuPage() {
                         {row.date}{row.vendor ? ` · ${row.vendor}` : ''}
                       </p>
                       {row.description && <p className="text-xs text-gray-400 truncate">{row.description}</p>}
+                      {row.receipt_url && (
+                        <a href={row.receipt_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 flex items-center gap-1 mt-0.5">
+                          <i className="ti ti-receipt text-[11px]" aria-hidden="true" />Risiti
+                        </a>
+                      )}
                     </div>
                     <button
                       onClick={() => setDeleteConfirm({ id: row.id, type: 'expense', label: CATEGORY_LABELS[row.category] ?? row.category })}
@@ -545,29 +572,6 @@ export default function HesabuPage() {
         {/* ─── RIPOTI TAB ─────────────────────────────────────────────────── */}
         {tab === 'ripoti' && (
           <div className="space-y-4">
-            {/* Summary recap */}
-            {stats && (
-              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-3">
-                <p className="text-sm font-semibold text-gray-800">Muhtasari — {MONTHS[period.month]} {period.year}</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center bg-green-50 rounded-xl py-3">
-                    <p className="text-base font-bold text-green-700">TSh {fmt(stats.summary.monthIncome)}</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Mapato</p>
-                  </div>
-                  <div className="text-center bg-red-50 rounded-xl py-3">
-                    <p className="text-base font-bold text-red-600">TSh {fmt(stats.summary.monthExpenses)}</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Matumizi</p>
-                  </div>
-                  <div className={`text-center rounded-xl py-3 ${stats.summary.monthProfit >= 0 ? 'bg-primary-50' : 'bg-red-50'}`}>
-                    <p className={`text-base font-bold ${stats.summary.monthProfit >= 0 ? 'text-primary-600' : 'text-red-600'}`}>
-                      TSh {fmt(stats.summary.monthProfit)}
-                    </p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Faida</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Print report */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
@@ -586,19 +590,34 @@ export default function HesabuPage() {
               </button>
             </div>
 
-            {/* Amina advice card */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-4 text-white">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-xs font-bold">A</div>
-                <p className="text-sm font-semibold">Amina — Ushauri wa AI</p>
-              </div>
-              {advice ? (
-                <p className="text-sm text-gray-200 whitespace-pre-line leading-relaxed">{advice}</p>
+            {/* Download history */}
+            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+              <p className="text-xs font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+                <i className="ti ti-history text-primary-500 text-sm" aria-hidden="true" />
+                Historia ya Upakuaji
+              </p>
+              {dlLoading ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : downloads.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-4">Bado hujapakua ripoti yoyote</p>
               ) : (
-                <button onClick={fetchAdvice} disabled={advLoading}
-                  className="w-full bg-white/10 hover:bg-white/20 rounded-xl py-2.5 text-sm font-medium transition-all disabled:opacity-50">
-                  {advLoading ? <span className="flex items-center justify-center gap-2"><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Amina anafikiri...</span> : <span className="flex items-center justify-center gap-1.5"><i className="ti ti-message-chatbot text-sm" aria-hidden="true" />Pata ushauri wa biashara</span>}
-                </button>
+                <div className="divide-y divide-gray-50">
+                  {downloads.map(d => (
+                    <div key={d.id} className="flex items-center justify-between py-2.5">
+                      <div className="flex items-center gap-2">
+                        <i className="ti ti-file-text text-gray-400 text-sm" aria-hidden="true" />
+                        <span className="text-xs font-medium text-gray-700">{MONTHS[d.month]} {d.year}</span>
+                      </div>
+                      <span className="text-[11px] text-gray-400">
+                        {new Date(d.downloaded_at).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>

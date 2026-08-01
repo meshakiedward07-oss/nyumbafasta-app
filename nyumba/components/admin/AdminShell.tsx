@@ -16,7 +16,7 @@ type NavItem = {
   labelKey: TKey
   icon: string
   exact: boolean
-  badge?: true | 'inbox' | 'social'
+  badge?: true | 'inbox' | 'social' | 'messages'
 }
 
 type NavSection = {
@@ -58,7 +58,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/admin/email',         labelKey: 'admin_nav_email',             icon: 'mail',         exact: false },
       { href: '/admin/inbox',         labelKey: 'admin_nav_inbox',             icon: 'inbox',        exact: false, badge: 'inbox' as const },
-      { href: '/admin/messages',      labelKey: 'admin_nav_messages',          icon: 'messages',     exact: false },
+      { href: '/admin/messages',      labelKey: 'admin_nav_messages',          icon: 'messages',     exact: false, badge: 'messages' as const },
       { href: '/admin/notifications', labelKey: 'admin_nav_notify_broadcast',  icon: 'bell',         exact: false },
       { href: '/admin/knowledge',     labelKey: 'admin_nav_knowledge',         icon: 'academic-cap', exact: false },
     ],
@@ -225,6 +225,32 @@ function InboxBadge() {
   if (count === 0) return null
   return (
     <span className="ml-auto min-w-[20px] h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full px-1.5 flex items-center justify-center">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
+function MessagesBadge() {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/conversations?unread=1')
+        if (!res.ok) return
+        const d = await res.json()
+        if (!cancelled) setCount(d.unread_count ?? 0)
+      } catch { /* silent */ }
+    }
+    load()
+    const timer = setInterval(load, 60_000)
+    return () => { cancelled = true; clearInterval(timer) }
+  }, [])
+
+  if (count === 0) return null
+  return (
+    <span className="ml-auto min-w-[20px] h-5 bg-primary-500 text-white text-[10px] font-bold rounded-full px-1.5 flex items-center justify-center">
       {count > 99 ? '99+' : count}
     </span>
   )
@@ -439,8 +465,9 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
                       : <i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />}
                     <span>{t(item.labelKey)}</span>
                     {item.badge && !isActive(item.href, item.exact) && (
-                      item.badge === 'inbox' ? <InboxBadge /> :
-                      item.badge === 'social' ? <SocialPendingBadge /> :
+                      item.badge === 'inbox'     ? <InboxBadge /> :
+                      item.badge === 'social'    ? <SocialPendingBadge /> :
+                      item.badge === 'messages'  ? <MessagesBadge /> :
                       <PendingBadge />
                     )}
                     {isActive(item.href, item.exact) && (

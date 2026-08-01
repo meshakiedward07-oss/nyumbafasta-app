@@ -77,6 +77,24 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient()
 
+    // ── Role-based initiation rules ──────────────────────────────────────────
+    const { data: callerProfile } = await admin.from('users').select('role').eq('id', user.id).single()
+    const callerRole = callerProfile?.role ?? ''
+
+    if (callerRole === 'tenant' || callerRole === 'fundi') {
+      return NextResponse.json({ error: 'Huna ruhusa ya kuanzisha mazungumzo' }, { status: 403 })
+    }
+    if (callerRole === 'dalali') {
+      // Dalali can only message staff/admin
+      if (participant_ids.length > 0) {
+        const { data: parts } = await admin.from('users').select('role').in('id', participant_ids)
+        const invalid = (parts ?? []).filter(p => !['admin', 'staff'].includes(p.role ?? ''))
+        if (invalid.length > 0) {
+          return NextResponse.json({ error: 'Dalali anaweza tu kuwasiliana na wafanyakazi wa NyumbaFasta' }, { status: 403 })
+        }
+      }
+    }
+
     // Create conversation
     const { data: conv, error: convErr } = await admin
       .from('conversations')
