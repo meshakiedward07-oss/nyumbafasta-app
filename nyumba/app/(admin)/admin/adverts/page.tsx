@@ -240,8 +240,12 @@ export default function AdminAdvertsPage() {
               🏪 <span className="hidden sm:inline">Wafanyabiashara</span>
             </Link>
             <Link href="/admin/adverts/plans"
-              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl bg-primary-500 text-white hover:bg-primary-600 transition font-medium">
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition font-medium">
               📋 <span className="hidden sm:inline">Mipango</span>
+            </Link>
+            <Link href="/admin/adverts/slots"
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl bg-primary-500 text-white hover:bg-primary-600 transition font-medium">
+              ⚙️ <span className="hidden sm:inline">Nafasi</span>
             </Link>
           </div>
         </div>

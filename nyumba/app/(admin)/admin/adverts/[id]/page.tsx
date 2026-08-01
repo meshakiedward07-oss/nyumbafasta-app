@@ -10,7 +10,7 @@ type Campaign = {
   starts_at: string | null; expires_at: string | null; admin_note: string | null
   image_url: string | null; link_url: string | null; creative_id: string | null
   body_text: string | null; cta_type: string | null; cta_value: string | null
-  advertiser: { id: string; business_name: string; contact_name: string; contact_phone: string; email: string; city: string; status: string; whatsapp_number?: string } | null
+  advertiser: { id: string; business_name: string; contact_phone: string; email: string; city: string; status: string; whatsapp_number?: string } | null
   plan: { name: string; ad_type: string; price_tzs: number; duration_days: number } | null
   payments: Payment[]
 }
@@ -182,7 +182,6 @@ export default function CampaignDetailPage() {
                 </div>
                 <div className="p-5 space-y-3">
                   <InfoRow label="Biashara" value={adv.business_name} />
-                  <InfoRow label="Jina" value={adv.contact_name} />
                   <InfoRow label="Mji" value={adv.city} />
                   <div className="grid grid-cols-2 gap-3 pt-1">
                     <a href={`tel:${adv.contact_phone}`}

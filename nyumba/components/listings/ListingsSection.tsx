@@ -8,6 +8,9 @@ import ListingCard from '@/components/listings/ListingCard'
 import { ListingGridSkeleton } from '@/components/shared/ListingCardSkeleton'
 import BottomNav from '@/components/shared/BottomNav'
 import NotificationBell from '@/components/shared/NotificationBell'
+import SearchAd from '@/components/ads/SearchAd'
+import NearbyAds from '@/components/ads/NearbyAds'
+import RankedAdSlot from '@/components/ads/RankedAdSlot'
 import { TANZANIA_REGIONS, PRIORITY_REGIONS, shortName } from '@/lib/data/tanzania-locations'
 import type { ListingWithDalali } from '@/lib/types/database'
 
@@ -398,6 +401,9 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           </div>
         )}
 
+        {/* Search-context ad — amber box, returns null if no campaign */}
+        <SearchAd region={filters?.region} />
+
         {/* Count + view toggle */}
         <div className="px-4 lg:px-8 mb-3 flex justify-between items-center">
           <p className="text-xs font-medium text-gray-400 truncate min-w-0 mr-2">
@@ -543,6 +549,19 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             )}
           </div>
         )}
+
+        {/* Nearby business ads — horizontal scroll cards, region-aware */}
+        {filters?.region && <NearbyAds region={filters.region} />}
+
+        {/* Ranked ad slot — list of sponsored businesses, desktop-friendly sidebar style */}
+        <div className="px-4 lg:px-8 mt-4 mb-2">
+          <RankedAdSlot
+            region={filters?.region || 'Dar es Salaam'}
+            placement="directory"
+            limit={4}
+            title="Biashara Zinazopendekeza"
+          />
+        </div>
 
         <BottomNav role={userRole ?? 'client'} />
       </div>

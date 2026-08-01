@@ -982,6 +982,7 @@ async function runDailyTasks() {
           const adv = w.advertiser as unknown as { business_name: string; whatsapp_number: string | null }
           if (adv?.whatsapp_number) {
             await notifyWaitingListSlotOpen(adv.whatsapp_number, adv.business_name, adType, w.region).catch(() => {})
+            admin.from('ad_waiting_list').update({ status: 'notified' }).eq('id', w.id).then(() => {}, () => {})
           }
         }
       }

@@ -3,6 +3,7 @@ import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import ListingsSection from '@/components/listings/ListingsSection'
 import BannerAd from '@/components/ads/BannerAd'
+import VideoAdCard from '@/components/ads/VideoAdCard'
 import type { ListingWithDalali } from '@/lib/types/database'
 
 // Isolated so useSearchParams doesn't block SSR of the header + listings above it
@@ -51,6 +52,9 @@ export default function HomeClient({ initialListings, initialTotal }: Props) {
 
       {/* Banner Ad — shows above listings */}
       <BannerAd />
+
+      {/* Video Ad — returns null if no active video campaign */}
+      <VideoAdCard />
 
       {/* Listings — logo + search bar + filters + cards; all in one component */}
       <ListingsSection initialListings={initialListings} initialTotal={initialTotal} />

@@ -20,6 +20,7 @@ export default function SiteFooter() {
               <Link href="/" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">Tafuta Nyumba</Link>
               <Link href="/directory" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">Madalali</Link>
               <Link href="/register" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">Jiandikishe kama Dalali</Link>
+              <Link href="/advertising" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">Tangaza Biashara Yako</Link>
             </div>
           </div>
           <div>
@@ -35,6 +36,7 @@ export default function SiteFooter() {
 
         {/* Mobile: centered links */}
         <div className="lg:hidden flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-500 mb-3">
+          <Link href="/advertising" className="hover:text-primary-600 hover:underline font-medium">Tangaza Biashara</Link>
           <Link href="/terms" className="hover:text-primary-600 hover:underline">Terms of Service</Link>
           <Link href="/privacy" className="hover:text-primary-600 hover:underline">Privacy Policy</Link>
           <Link href="/data-deletion" className="hover:text-primary-600 hover:underline">Data Deletion</Link>

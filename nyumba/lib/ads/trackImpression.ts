@@ -9,6 +9,7 @@ export async function trackImpressions(
   if (!sessionId || !campaignIds.length) return
   const admin = createAdminClient()
   const now   = new Date().toISOString()
+
   await admin.from('ad_impressions').upsert(
     campaignIds.map(id => ({
       session_id:  sessionId,
@@ -17,4 +18,19 @@ export async function trackImpressions(
     })),
     { onConflict: 'session_id,campaign_id' },
   )
+
+  // Increment aggregate impression counts (non-atomic; acceptable for analytics)
+  const { data: campaigns } = await admin
+    .from('ad_campaigns')
+    .select('id, impressions')
+    .in('id', campaignIds)
+
+  if (campaigns?.length) {
+    for (const c of campaigns) {
+      await admin
+        .from('ad_campaigns')
+        .update({ impressions: (c.impressions ?? 0) + 1 })
+        .eq('id', c.id)
+    }
+  }
 }

@@ -16,7 +16,12 @@ const TYPE_ICONS: Record<string, string> = {
   banner: '🎯', search: '🔍', nearby: '📍', video: '🎬', featured: '⭐', directory: '🏪', bundle: '📦',
 }
 
-export default async function AdvertiserDashboard() {
+export default async function AdvertiserDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ waiting?: string }>
+}) {
+  const { waiting } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/advertising/login')
@@ -82,6 +87,19 @@ export default async function AdvertiserDashboard() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4">
+
+        {/* Waiting list notified banner */}
+        {waiting === '1' && (
+          <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-3.5 text-sm text-green-800 flex items-start gap-2.5">
+            <span className="text-lg flex-shrink-0">🎉</span>
+            <div>
+              <strong>Nafasi imefunguka!</strong>
+              <p className="text-green-700 text-xs mt-0.5">
+                Nafasi ya tangazo imefunguka kwenye mkoa wako. Unda kampeni sasa kabla haijaisha.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Status banners */}
         {advertiserStatus === 'pending_review' && (

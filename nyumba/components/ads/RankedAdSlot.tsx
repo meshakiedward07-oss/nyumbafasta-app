@@ -36,6 +36,14 @@ function AdCard({ ad }: { ad: RankedAd }) {
     ? waLink(waNumber)
     : ad.cta_type === 'call' ? `tel:${ad.cta_value}` : (ad.cta_value || '#')
 
+  function handleClick() {
+    fetch('/api/v1/ads/click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaign_id: ad.id }),
+    }).catch(() => {})
+  }
+
   const ctaLabel = waNumber ? '💬 WhatsApp' :
     ad.cta_type === 'call' ? '📞 Simu' : '🌐 Tovuti'
 
@@ -46,6 +54,7 @@ function AdCard({ ad }: { ad: RankedAd }) {
   return (
     <a
       href={href}
+      onClick={handleClick}
       target={!waNumber && ad.cta_type === 'website' ? '_blank' : undefined}
       rel="noopener noreferrer"
       className={`block bg-white rounded-xl border ${
