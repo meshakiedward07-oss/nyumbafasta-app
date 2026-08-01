@@ -23,18 +23,17 @@ interface ListingRow {
   bedrooms:      number | null
   furnished:     string | null   // TEXT: 'furnished' | 'semi' | 'empty'
   images:        string[] | null
-  dalali:        { full_name: string | null } | null
 }
 
 export async function searchListings(
   entities: ExtractedEntities,
 ): Promise<ListingSearchResult> {
   // Only use columns guaranteed to exist in the base schema.
-  // is_sub_suspended and ward are added by optional migrations — omit them
-  // so the query never fails on a fresh DB or partial migration state.
+  // Avoid FK joins (dalali_id) since PostgREST schema cache may not include them,
+  // causing a PGRST200 error that masks real results.
   let q = supabaseAdmin
     .from('listings')
-    .select('id, title, type, price_monthly, district, region, bedrooms, furnished, images, dalali:dalali_id(full_name)')
+    .select('id, title, type, price_monthly, district, region, bedrooms, furnished, images')
     .eq('status', 'active')
     .order('is_boosted', { ascending: false })
     .order('created_at', { ascending: false })
@@ -59,13 +58,7 @@ export async function searchListings(
   }
   if (!data || data.length === 0) return null
 
-  const rows = (data as unknown[]).map((r) => {
-    const row = r as Record<string, unknown>
-    const dalaliRaw = row.dalali
-    row.dalali = Array.isArray(dalaliRaw) ? (dalaliRaw[0] ?? null) : dalaliRaw
-    return row as unknown as ListingRow
-  })
-  return formatListingResults(rows, entities)
+  return formatListingResults(data as ListingRow[], entities)
 }
 
 function formatListingResults(listings: ListingRow[], entities: ExtractedEntities): string {
@@ -83,10 +76,9 @@ function formatListingResults(listings: ListingRow[], entities: ExtractedEntitie
     const location = [l.district, l.region].filter(Boolean).join(', ')
     const beds     = l.bedrooms ? `🛏️ Vyumba ${l.bedrooms} | ` : ''
     const furn     = l.furnished === 'furnished' ? '✅ Imekamilika | ' : ''
-    const dalali   = l.dalali?.full_name ? `\n   👤 ${l.dalali.full_name}` : ''
     const link     = `${APP_URL}/listings/${l.id}`
 
-    return `${nums[i]} *${location || l.title}*\n   ${beds}${furn}💰 ${price}${dalali}\n   🔗 ${link}`
+    return `${nums[i]} *${location || l.title}*\n   ${beds}${furn}💰 ${price}\n   🔗 ${link}`
   }).join('\n\n')
 
   const footer = listings.length === 3

@@ -298,8 +298,9 @@ Usikate tamaa! Jaribu hivi:
     response += `Bonyeza link kuona picha na mawasiliano ya dalali. 😊\n\nUna swali? Niulize tu!`
     return response
   } catch (err) {
-    console.error('Search error:', err)
-    return `Samahani, kuna tatizo la kiufundi. Tafadhali tembelea ${process.env.NEXT_PUBLIC_APP_URL ?? 'nyumbafasta.co'} moja kwa moja. 🙏`
+    console.error('[Amina] searchAndRespond error:', err instanceof Error ? err.message : String(err))
+    void updateSession(sessionId, { flow_step: 'greeting', flow_data: {} })
+    return `Hmm, nilishindwa kupata nyumba kwa sasa. 😔\n\nJaribu tena baadaye au tembelea:\n🔗 ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}\n\nAndika *menu* kurudi menyu kuu. 😊`
   }
 }
 
@@ -1058,7 +1059,10 @@ export async function handleIncomingMessage(
     await saveMessage(session.id, 'assistant', response)
     return response
   } catch (err) {
-    console.error('Chat handler error:', err instanceof Error ? err.message : String(err))
-    return `Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye. 🙏`
+    console.error('[Amina] handleIncomingMessage uncaught:', err instanceof Error ? err.stack ?? err.message : String(err))
+    // Show main menu so user still gets a useful response instead of an error message
+    return showMainMenu(name ?? 'Karibu').catch(() =>
+      `Karibu NyumbaFasta! 🏠\n\n1️⃣ Tafuta Nyumba\n2️⃣ Jiunge kama Dalali\n3️⃣ Post Nyumba\n4️⃣ Msaada\n\n_Jibu namba 1-4_ 😊`,
+    )
   }
 }
