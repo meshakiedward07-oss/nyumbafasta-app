@@ -9,7 +9,7 @@ import AgreementModal from '@/components/legal/AgreementModal'
 
 type Role    = 'client' | 'dalali' | 'org_owner' | 'tenant' | 'fundi'
 type MktRole = 'client' | 'dalali'
-type Step    = 'role' | 'details' | 'agreement' | 'check_email'
+type Step    = 'role' | 'marketplace_check' | 'marketplace_convert' | 'details' | 'agreement' | 'check_email'
 
 interface AgreementData {
   version: string
@@ -90,6 +90,14 @@ function RegisterForm() {
   // Portal agreement checkbox
   const [agreed, setAgreed] = useState(false)
 
+  // Marketplace → tenant conversion
+  const [convertEmail,    setConvertEmail]    = useState('')
+  const [convertPassword, setConvertPassword] = useState('')
+  const [convertPhone,    setConvertPhone]    = useState('')
+  const [convertShowPass, setConvertShowPass] = useState(false)
+  const [converting,      setConverting]      = useState(false)
+  const [convertError,    setConvertError]    = useState('')
+
   // If URL has ?role=fundi, redirect immediately
   useEffect(() => {
     if (initRole === 'fundi') router.replace('/fundi/register')
@@ -167,6 +175,43 @@ function RegisterForm() {
     setMethod(m); setStep('agreement')
   }
 
+  // ── Marketplace → tenant account conversion ──────────────────────────────
+  async function handleMarketplaceConvert() {
+    if (!convertEmail.trim() || convertPassword.length < 6) {
+      setConvertError('Jaza barua pepe na nenosiri sahihi.')
+      return
+    }
+    setConverting(true); setConvertError('')
+    try {
+      // Sign in with their existing marketplace credentials
+      const { data, error: authErr } = await supabase.auth.signInWithPassword({
+        email:    convertEmail.trim(),
+        password: convertPassword,
+      })
+      if (authErr || !data.user) {
+        setConvertError('Barua pepe au nenosiri si sahihi. Jaribu tena.')
+        setConverting(false); return
+      }
+      // Convert account via API
+      const res  = await fetch('/api/v1/portal/convert-client', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ phone: convertPhone.trim() || undefined }),
+      })
+      const j = await res.json()
+      if (!res.ok) {
+        setConvertError(j.error ?? 'Imeshindwa kubadilisha akaunti.')
+        await supabase.auth.signOut()
+        setConverting(false); return
+      }
+      // Success — go to tenant dashboard
+      window.location.href = '/tenant'
+    } catch {
+      setConvertError('Hitilafu ya mtandao. Jaribu tena.')
+      setConverting(false)
+    }
+  }
+
   // ── Portal (org_owner/tenant) — simpler flow, no AgreementModal ──────────
   async function handlePortalSignup() {
     setError(''); setLoading(true)
@@ -223,6 +268,157 @@ function RegisterForm() {
           <button onClick={() => router.push('/login')} className="mt-4 min-h-[44px] px-4 text-primary-500 text-sm underline flex items-center mx-auto">
             Rudi Login →
           </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── MARKETPLACE CHECK — did they have a client account? ─────────────────
+  if (step === 'marketplace_check') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center">
+          <div className="relative h-20 w-48">
+            <Image src="/transparent_logo_nyumbafasta.png" alt="NyumbaFasta" fill priority className="object-contain" sizes="192px" />
+          </div>
+        </div>
+        <div className="flex-1 px-4 -mt-4 pb-8 max-w-sm mx-auto w-full">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-50">
+              <button onClick={() => setStep('role')} aria-label="Rudi"
+                className="text-gray-400 text-lg min-h-[44px] min-w-[44px] flex items-center justify-center">←</button>
+              <p className="text-sm font-semibold text-gray-800">Akaunti ya Mpangaji</p>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i className="ti ti-home-search text-3xl text-amber-500" aria-hidden="true" />
+                </div>
+                <h2 className="font-bold text-gray-900 text-lg">Swali Moja Kwanza</h2>
+                <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                  Je, umewahi kufungua akaunti ya NyumbaFasta ili <strong>kutafuta nyumba</strong> kwenye soko letu?
+                </p>
+              </div>
+
+              <button
+                onClick={() => setStep('marketplace_convert')}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-primary-200 bg-primary-50 hover:border-primary-400 transition text-left group"
+              >
+                <div className="w-11 h-11 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <i className="ti ti-check text-white text-xl" aria-hidden="true" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-primary-800 text-sm">Ndio, Nina Akaunti ya Zamani</p>
+                  <p className="text-xs text-primary-600 mt-0.5">Badilisha akaunti yangu ya kutafuta nyumba hadi mpangaji</p>
+                </div>
+                <i className="ti ti-arrow-right text-primary-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+              </button>
+
+              <button
+                onClick={() => setStep('details')}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 hover:border-gray-200 transition text-left group"
+              >
+                <div className="w-11 h-11 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <i className="ti ti-user-plus text-gray-500 text-xl" aria-hidden="true" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-700 text-sm">Hapana, Niunde Akaunti Mpya</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Sijawahi kutumia NyumbaFasta kutafuta nyumba</p>
+                </div>
+                <i className="ti ti-arrow-right text-gray-300 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+          <p className="text-center text-sm text-gray-500 mt-5">
+            Una akaunti ya portal tayari?{' '}
+            <Link href="/portal/login?type=tenant" className="text-primary-600 font-medium">Ingia hapa</Link>
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── MARKETPLACE CONVERT — sign in + convert existing client account ────────
+  if (step === 'marketplace_convert') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center">
+          <div className="relative h-20 w-48">
+            <Image src="/transparent_logo_nyumbafasta.png" alt="NyumbaFasta" fill priority className="object-contain" sizes="192px" />
+          </div>
+        </div>
+        <div className="flex-1 px-4 -mt-4 pb-8 max-w-sm mx-auto w-full">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-50">
+              <button onClick={() => { setConvertError(''); setStep('marketplace_check') }} aria-label="Rudi"
+                className="text-gray-400 text-lg min-h-[44px] min-w-[44px] flex items-center justify-center">←</button>
+              <p className="text-sm font-semibold text-gray-800">Badilisha Akaunti ya Zamani</p>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
+                <i className="ti ti-info-circle mt-0.5 flex-shrink-0" aria-hidden="true" />
+                <p>Tumia barua pepe na nenosiri uliokuwa ukitumia kutafuta nyumba kwenye NyumbaFasta. Akaunti yako itabadilishwa moja kwa moja.</p>
+              </div>
+
+              {convertError && (
+                <div role="alert" className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
+                  {convertError}
+                </div>
+              )}
+
+              <FieldInput label="Barua pepe ya akaunti ya zamani" icon="mail">
+                <input
+                  type="email" required autoComplete="email" placeholder="jina@gmail.com"
+                  value={convertEmail} onChange={e => setConvertEmail(e.target.value)}
+                  className={INPUT}
+                />
+              </FieldInput>
+
+              <FieldInput label="Nenosiri" icon="lock">
+                <div className="relative">
+                  <input
+                    type={convertShowPass ? 'text' : 'password'} required autoComplete="current-password"
+                    placeholder="••••••••" value={convertPassword} onChange={e => setConvertPassword(e.target.value)}
+                    className={`${INPUT} pr-11`}
+                  />
+                  <button type="button" onClick={() => setConvertShowPass(p => !p)}
+                    aria-label={convertShowPass ? 'Ficha' : 'Onyesha'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                    <i className={`ti ti-${convertShowPass ? 'eye-off' : 'eye'}`} aria-hidden="true" />
+                  </button>
+                </div>
+              </FieldInput>
+
+              <FieldInput label="Nambari ya Simu (inayopendekezwa)" icon="phone">
+                <input
+                  type="tel" autoComplete="tel" placeholder="+255 7XX XXX XXX"
+                  value={convertPhone} onChange={e => setConvertPhone(e.target.value)}
+                  className={INPUT}
+                />
+                <p className="text-xs text-gray-400 mt-1">Inasaidia mmiliki wako kukutafuta kwenye mfumo</p>
+              </FieldInput>
+
+              <button
+                onClick={handleMarketplaceConvert}
+                disabled={converting || !convertEmail.trim() || convertPassword.length < 6}
+                className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-primary-600 transition active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                {converting
+                  ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />Inabadilisha...</>
+                  : <><i className="ti ti-key" aria-hidden="true" />Badilisha Akaunti Yangu &amp; Ingia</>
+                }
+              </button>
+
+              <div className="border-t border-gray-100 pt-3 text-center">
+                <button
+                  onClick={() => { setConvertError(''); setStep('details') }}
+                  className="text-sm text-primary-600 font-medium hover:underline"
+                >
+                  Badala yake, niunde akaunti mpya kabisa →
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -388,7 +584,7 @@ function RegisterForm() {
               </div>
             )}
 
-            <button onClick={() => setStep('details')}
+            <button onClick={() => setStep(role === 'tenant' ? 'marketplace_check' : 'details')}
               className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-xl text-sm font-semibold hover:bg-primary-600 transition active:scale-[0.98]">
               Endelea →
             </button>
@@ -539,6 +735,7 @@ function RegisterForm() {
             <Link href="/login" className="text-primary-600 font-medium">Ingia hapa</Link>
           </p>
         )}
+
       </div>
     </div>
   )

@@ -445,9 +445,18 @@ export default function TenantPage() {
           <p className="text-sm text-gray-500 mb-4">
             Akaunti yako bado haijaunganishwa na mkataba wowote wa upangaji.
           </p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 mb-6">
             Mwambie mmiliki wako nambari yako ya simu ili akusajilishe kwenye mfumo huu.
           </p>
+          <div className="border-t border-gray-100 pt-5">
+            <p className="text-xs text-gray-400 mb-3">Unatafuta nyumba ya kupanga?</p>
+            <Link href="/"
+              className="inline-flex items-center gap-2 bg-primary-500 text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
+            >
+              <i className="ti ti-home-search" aria-hidden="true" />
+              Tafuta Nyumba kwenye Soko
+            </Link>
+          </div>
         </div>
       </div>
     )
@@ -1134,9 +1143,18 @@ export default function TenantPage() {
           </div>
         )}
 
-        <p className="text-center text-xs text-gray-400 pb-6">
-          NyumbaFasta · Msaada: <a href="https://wa.me/255665831694" className="underline">WhatsApp</a>
-        </p>
+        {/* Marketplace access */}
+        <div className="pb-6 space-y-3">
+          <Link href="/"
+            className="w-full flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
+          >
+            <i className="ti ti-home-search text-primary-500" aria-hidden="true" />
+            Tafuta Nyumba Nyingine kwenye Soko
+          </Link>
+          <p className="text-center text-xs text-gray-400">
+            NyumbaFasta · Msaada: <a href="https://wa.me/255665831694" className="underline">WhatsApp</a>
+          </p>
+        </div>
       </div>
     </div>
   )
