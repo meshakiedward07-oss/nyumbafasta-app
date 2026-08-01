@@ -24,10 +24,11 @@ export async function GET(req: NextRequest) {
 
   const db = createAdminClient()
 
+  // Schema: amount (int), weeks (int), boosted_until (timestamptz)
   let query = db
     .from('boost_payments')
     .select(`
-      id, amount_paid, status, boost_days, created_at, expires_at,
+      id, amount, status, weeks, created_at, boosted_until,
       dalali:dalali_id  ( id, full_name, phone, username ),
       listing:listing_id( id, title, type, district, region, is_boosted )
     `, { count: 'exact' })
@@ -55,18 +56,21 @@ export async function GET(req: NextRequest) {
   }
 
   const [activeBoosts, totalRevData] = await Promise.all([
-    db.from('boost_payments').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-    db.from('boost_payments').select('amount_paid').eq('status', 'completed'),
+    // "active" = completed payment whose boost window hasn't expired yet
+    db.from('boost_payments')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'completed')
+      .gt('boosted_until', new Date().toISOString()),
+    db.from('boost_payments').select('amount').eq('status', 'completed'),
   ])
 
-  // Also count from listings directly
   const { count: boostedListings } = await db
     .from('listings')
     .select('*', { count: 'exact', head: true })
     .eq('is_boosted', true)
 
-  const totalRevenue = ((totalRevData as unknown as Array<{ amount_paid: number }>) ?? [])
-    .reduce((s, r) => s + (r.amount_paid ?? 0), 0)
+  const totalRevenue = ((totalRevData as unknown as Array<{ amount: number }>) ?? [])
+    .reduce((s, r) => s + (r.amount ?? 0), 0)
 
   return Response.json({
     boosts,
@@ -74,8 +78,8 @@ export async function GET(req: NextRequest) {
     page,
     limit,
     summary: {
-      active_boosts:    activeBoosts.count  ?? 0,
-      boosted_listings: boostedListings      ?? 0,
+      active_boosts:    activeBoosts.count ?? 0,
+      boosted_listings: boostedListings    ?? 0,
       total_revenue:    totalRevenue,
     },
   })

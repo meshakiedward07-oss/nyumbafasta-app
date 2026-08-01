@@ -131,11 +131,11 @@ interface UnlockSummary { total_revenue: number; total_count: number; today_coun
 
 interface Boost {
   id: string
-  amount_paid: number
+  amount: number
   status: string
-  boost_days: number
+  weeks: number
   created_at: string
-  expires_at: string | null
+  boosted_until: string | null
   dalali:  { id: string; full_name: string | null; username: string | null } | null
   listing: { id: string; title: string | null; type: string | null; district: string | null; is_boosted: boolean } | null
 }
@@ -1478,8 +1478,8 @@ ON CONFLICT DO NOTHING;`}</pre>
                   ) : (
                     <div className="divide-y divide-gray-50">
                       {filtered.map(b => {
-                        const isActive = b.status === 'active'
-                        const expDate  = b.expires_at ? new Date(b.expires_at) : null
+                        const isActive = b.status === 'completed' && !!b.boosted_until && new Date(b.boosted_until) > new Date()
+                        const expDate  = b.boosted_until ? new Date(b.boosted_until) : null
                         return (
                           <div key={b.id} className="px-4 py-3 flex items-start gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-amber-50' : 'bg-gray-50'}`}>
@@ -1490,12 +1490,12 @@ ON CONFLICT DO NOTHING;`}</pre>
                                 {b.listing?.title ?? '—'} · {b.listing?.district ?? ''}
                               </p>
                               <p className="text-xs text-gray-400 truncate">
-                                {b.dalali?.full_name ?? '—'} · {b.boost_days} siku
-                                {expDate ? ` · malipo: ${expDate.toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short' })}` : ''}
+                                {b.dalali?.full_name ?? '—'} · wiki {b.weeks}
+                                {expDate ? ` · mwisho: ${expDate.toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short' })}` : ''}
                               </p>
                             </div>
                             <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                              <p className="text-sm font-semibold text-green-600">+{fmtFull(b.amount_paid)}</p>
+                              <p className="text-sm font-semibold text-green-600">+{fmtFull(b.amount)}</p>
                               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
                                 {b.status}
                               </span>
