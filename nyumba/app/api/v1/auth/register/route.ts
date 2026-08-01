@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
+import { runFraudChecks } from '@/lib/fraud/detector'
 
 interface AgreementPayload {
   version: string
@@ -82,6 +83,14 @@ export async function POST(req: NextRequest) {
         )
       }
     }
+
+    // Step 2b: Fraud checks — fire-and-forget, never block registration
+    runFraudChecks(admin, {
+      userId: user.id,
+      phone:  body.whatsapp_number ?? user.phone ?? undefined,
+      ip:     getClientIp(req),
+      userAgent: req.headers.get('user-agent') ?? undefined,
+    })
 
     // Step 3: Create dalali_profiles — safe now that parent row is guaranteed.
     if (role === 'dalali') {

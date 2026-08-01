@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
 import { sendPushToUser } from '@/lib/notifications/send'
-import { rateLimit } from '@/lib/security/rateLimit'
+import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 import { getPricing } from '@/lib/config/pricing'
+import { runUnlockFraudChecks } from '@/lib/fraud/detector'
 
 export const maxDuration = 30
 const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
@@ -127,6 +128,9 @@ export async function POST(req: NextRequest) {
           payment_ref,
           status:         'completed',
           expires_at:     mockExpiresAt.toISOString(),
+          msisdn:         normalized,
+          ip_address:     getClientIp(req),
+          user_agent:     req.headers.get('user-agent') ?? null,
         })
         .select('id')
         .single()
@@ -134,6 +138,8 @@ export async function POST(req: NextRequest) {
       if (insertError || !unlock) {
         return NextResponse.json({ error: insertError?.message ?? 'Imeshindwa kuunda unlock' }, { status: 500 })
       }
+
+      runUnlockFraudChecks(admin, { userId: user.id, ip: getClientIp(req), msisdn: normalized })
 
       await admin.rpc('increment_lead_count', { listing_id }).maybeSingle()
 
@@ -200,6 +206,9 @@ export async function POST(req: NextRequest) {
         payment_ref,
         status:         'pending',
         expires_at:     expiresAt.toISOString(),
+        msisdn:         normalized,
+        ip_address:     getClientIp(req),
+        user_agent:     req.headers.get('user-agent') ?? null,
       })
       .select('id')
       .single()
@@ -211,6 +220,8 @@ export async function POST(req: NextRequest) {
       }))
       return NextResponse.json({ error: 'Imeshindwa kuanzisha malipo. Jaribu tena.' }, { status: 500 })
     }
+
+    runUnlockFraudChecks(admin, { userId: user.id, ip: getClientIp(req), msisdn: normalized })
 
     const result = await mobileCheckout({
       accountNumber,

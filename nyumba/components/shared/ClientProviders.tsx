@@ -17,12 +17,18 @@ const LanguagePicker = dynamic(
   { ssr: false }
 )
 
+const FraudTracker = dynamic(
+  () => import('@/components/fraud/FraudTracker'),
+  { ssr: false }
+)
+
 export default function ClientProviders() {
   return (
     <>
       <LanguagePicker />
       <WhatsAppSupportButton />
       <PushSetup />
+      <FraudTracker />
     </>
   )
 }
