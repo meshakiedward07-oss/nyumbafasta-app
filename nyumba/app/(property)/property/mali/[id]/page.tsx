@@ -45,6 +45,12 @@ export default function MaliDetailPage() {
   const [editSaving,  setEditSaving]  = useState(false)
   const [editError,   setEditError]   = useState<string | null>(null)
 
+  // Edit property form
+  const [showEditProp,  setShowEditProp]  = useState(false)
+  const [propForm,      setPropForm]      = useState({ title: '', type: 'nyumba', district: '', region: '', price_monthly: '' })
+  const [propSaving,    setPropSaving]    = useState(false)
+  const [propError,     setPropError]     = useState<string | null>(null)
+
   // Add tenant form
   const [tenantUnit,   setTenantUnit]   = useState<UnitWithLease | null>(null)
   const [tPhone,       setTPhone]       = useState('')
@@ -54,6 +60,7 @@ export default function MaliDetailPage() {
   const [tEndDate,     setTEndDate]     = useState('')
   const [tDepPaid,     setTDepPaid]     = useState(false)
   const [tNotes,       setTNotes]       = useState('')
+  const [tDocUrl,      setTDocUrl]      = useState('')
   const [addingTenant, setAddingTenant] = useState(false)
   const [tenantError,  setTenantError]  = useState<string | null>(null)
   const [foundTenant,  setFoundTenant]  = useState<{ id: string; full_name: string | null; phone: string | null } | null>(null)
@@ -91,6 +98,45 @@ export default function MaliDetailPage() {
   }, [id, router])
 
   const canManage = ['owner', 'branch_manager', 'agent'].includes(orgRole ?? '')
+
+  function openEditProperty() {
+    if (!listing) return
+    setPropForm({
+      title:         listing.title,
+      type:          listing.type,
+      district:      listing.district,
+      region:        listing.region,
+      price_monthly: String(listing.price_monthly),
+    })
+    setPropError(null)
+    setShowEditProp(true)
+  }
+
+  async function handleEditProperty() {
+    if (!orgId || !listing || !propForm.title.trim() || !propForm.price_monthly) {
+      setPropError('Jaza sehemu zote zinazohitajika'); return
+    }
+    setPropSaving(true); setPropError(null)
+    try {
+      const res = await fetch(`/api/v1/organizations/${orgId}/mali/${listing.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title:         propForm.title.trim(),
+          type:          propForm.type,
+          district:      propForm.district.trim(),
+          region:        propForm.region.trim(),
+          price_monthly: Number(propForm.price_monthly),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setPropError(data.error ?? 'Kuna tatizo'); return }
+      setListing(prev => prev ? { ...prev, ...data.listing } : prev)
+      setShowEditProp(false)
+    } catch {
+      setPropError('Haikuweza kuunganika. Jaribu tena.')
+    } finally { setPropSaving(false) }
+  }
 
   async function lookupTenant() {
     if (!tPhone.trim()) return
@@ -178,6 +224,7 @@ export default function MaliDetailPage() {
           start_date:     tStartDate,
           end_date:       tEndDate || null,
           notes:          tNotes.trim() || null,
+          document_url:   tDocUrl.trim() || null,
         }),
       })
       const data = await res.json()
@@ -187,7 +234,7 @@ export default function MaliDetailPage() {
         u.id === tenantUnit.id ? { ...u, status: 'occupied', active_lease: data.lease } : u
       ))
       setTenantUnit(null); setTPhone(''); setFoundTenant(null); setTRent(''); setTDeposit('')
-      setTStartDate(new Date().toISOString().split('T')[0]); setTEndDate(''); setTNotes(''); setTDepPaid(false)
+      setTStartDate(new Date().toISOString().split('T')[0]); setTEndDate(''); setTNotes(''); setTDepPaid(false); setTDocUrl('')
     } catch {
       setTenantError('Haikuweza kuunganika. Jaribu tena.')
     } finally { setAddingTenant(false) }
@@ -283,7 +330,16 @@ export default function MaliDetailPage() {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="font-bold text-gray-900 text-lg leading-snug">{listing.title}</h1>
+            <div className="flex items-start justify-between gap-2">
+              <h1 className="font-bold text-gray-900 text-lg leading-snug">{listing.title}</h1>
+              {canManage && (
+                <button onClick={openEditProperty}
+                  className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-500 hover:text-primary-600 border border-gray-200 hover:border-primary-300 rounded-lg px-2 py-1 transition">
+                  <i className="ti ti-pencil text-sm" aria-hidden="true" />
+                  Hariri
+                </button>
+              )}
+            </div>
             <p className="text-sm text-gray-500">{listing.district}, {listing.region}</p>
             <p className="text-primary-600 font-bold mt-1">TZS {listing.price_monthly.toLocaleString()}/mwezi</p>
             <div className="flex gap-3 mt-2">
@@ -638,6 +694,12 @@ export default function MaliDetailPage() {
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
                 </div>
 
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Kiungo cha Mkataba (hiari)</label>
+                  <input type="url" value={tDocUrl} onChange={e => setTDocUrl(e.target.value)} placeholder="https://..."
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => { setTenantUnit(null); setFoundTenant(null); setTenantError(null); setInviteMsg(null) }}
                     className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">
@@ -651,6 +713,73 @@ export default function MaliDetailPage() {
                     {addingTenant ? 'Inaunda Mkataba...' : 'Unda Mkataba'}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit property modal */}
+      {showEditProp && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end lg:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-5">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-gray-900">Hariri Mali</h3>
+                <button onClick={() => setShowEditProp(false)} className="text-gray-400 hover:text-gray-600">
+                  <i className="ti ti-x text-xl" aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Jina la Mali *</label>
+                  <input value={propForm.title} onChange={e => setPropForm(f => ({ ...f, title: e.target.value }))} placeholder="Mfano: Nyumba ya Mikocheni A"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Aina</label>
+                  <select value={propForm.type} onChange={e => setPropForm(f => ({ ...f, type: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
+                    <option value="nyumba">Nyumba</option>
+                    <option value="apartment">Apartment</option>
+                    <option value="chumba">Chumba</option>
+                    <option value="studio">Studio</option>
+                    <option value="duka">Duka</option>
+                    <option value="godown">Godown</option>
+                    <option value="ofisi">Ofisi</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Mkoa</label>
+                    <input value={propForm.region} onChange={e => setPropForm(f => ({ ...f, region: e.target.value }))} placeholder="Dar es Salaam"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Wilaya</label>
+                    <input value={propForm.district} onChange={e => setPropForm(f => ({ ...f, district: e.target.value }))} placeholder="Kinondoni"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Bei ya Mwezi (TZS) *</label>
+                  <input type="number" value={propForm.price_monthly} onChange={e => setPropForm(f => ({ ...f, price_monthly: e.target.value }))} placeholder="0" min="0"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+              </div>
+
+              {propError && <p className="text-sm text-red-600 mt-3">{propError}</p>}
+
+              <div className="flex gap-2 pt-4">
+                <button onClick={() => setShowEditProp(false)}
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">
+                  Ghairi
+                </button>
+                <button onClick={handleEditProperty} disabled={propSaving}
+                  className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40">
+                  {propSaving ? 'Inahifadhi...' : 'Hifadhi Mabadiliko'}
+                </button>
               </div>
             </div>
           </div>

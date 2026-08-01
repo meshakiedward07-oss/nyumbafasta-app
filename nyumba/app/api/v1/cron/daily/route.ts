@@ -1556,6 +1556,91 @@ async function runDailyTasks() {
     errors.push(`❌ Lease expiry alerts: ${String(e)}`)
   }
 
+  // ── 31. Per-org WhatsApp rent reminders (pre-due + overdue) ─────────────────
+  // Uses each org's remind_days_before / remind_days_overdue / enable_whatsapp_reminders settings.
+  try {
+    const todayStr = now.split('T')[0]
+
+    // Fetch orgs that have WhatsApp reminders enabled
+    const { data: orgs } = await admin
+      .from('organizations')
+      .select('id, remind_days_before, remind_days_overdue, enable_whatsapp_reminders')
+      .eq('enable_whatsapp_reminders', true)
+
+    let remindersSent = 0
+    for (const org of orgs ?? []) {
+      const daysBefore  = typeof org.remind_days_before  === 'number' ? org.remind_days_before  : 3
+      const daysOverdue = typeof org.remind_days_overdue === 'number' ? org.remind_days_overdue : 1
+
+      // Pre-due: payments due in exactly daysBefore days from today
+      const targetDueDate = new Date()
+      targetDueDate.setDate(targetDueDate.getDate() + daysBefore)
+      const targetDueDateStr = targetDueDate.toISOString().split('T')[0]
+
+      const { data: upcoming } = await admin
+        .from('lease_payments')
+        .select('id, lease_id, amount_due, due_date')
+        .eq('status', 'pending')
+        .eq('due_date', targetDueDateStr)
+
+      for (const payment of upcoming ?? []) {
+        const { data: lease } = await admin
+          .from('leases')
+          .select('org_id, tenant_id, unit:property_units(unit_number)')
+          .eq('id', payment.lease_id)
+          .eq('org_id', org.id)
+          .maybeSingle()
+        if (!lease) continue
+
+        const { data: tenant } = await admin.from('users').select('full_name, phone').eq('id', lease.tenant_id).maybeSingle()
+        if (!tenant?.phone) continue
+
+        const unitLabel = (lease.unit as unknown as { unit_number: string } | null)?.unit_number ?? 'kitengo chako'
+        const dueStr    = new Date(payment.due_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
+        const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const msg = `⏰ *NyumbaFasta — Kikumbusho cha Kodi*\n\nHabari ${tenant.full_name ?? ''}!\n\nKodi ya *${unitLabel}* ya *TZS ${payment.amount_due.toLocaleString()}* inastahili tarehe *${dueStr}*.\n\nLipa kwa wakati ili kuepuka faini.\n${appUrl}/tenant`
+        const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
+        sendTextMessage(formatPhoneNumber(tenant.phone), msg).catch(() => {})
+        remindersSent++
+      }
+
+      // Overdue: payments that became overdue exactly daysOverdue days ago
+      const overdueTarget = new Date()
+      overdueTarget.setDate(overdueTarget.getDate() - daysOverdue)
+      const overdueTargetStr = overdueTarget.toISOString().split('T')[0]
+
+      const { data: overduePmts } = await admin
+        .from('lease_payments')
+        .select('id, lease_id, amount_due, due_date')
+        .in('status', ['pending', 'late'])
+        .eq('due_date', overdueTargetStr)
+
+      for (const payment of overduePmts ?? []) {
+        const { data: lease } = await admin
+          .from('leases')
+          .select('org_id, tenant_id, unit:property_units(unit_number)')
+          .eq('id', payment.lease_id)
+          .eq('org_id', org.id)
+          .maybeSingle()
+        if (!lease) continue
+
+        const { data: tenant } = await admin.from('users').select('full_name, phone').eq('id', lease.tenant_id).maybeSingle()
+        if (!tenant?.phone) continue
+
+        const unitLabel = (lease.unit as unknown as { unit_number: string } | null)?.unit_number ?? 'kitengo chako'
+        const dueStr    = new Date(payment.due_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
+        const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const msg = `🔴 *NyumbaFasta — Kodi Imechelewa*\n\nHabari ${tenant.full_name ?? ''}!\n\nKodi ya *${unitLabel}* ya *TZS ${payment.amount_due.toLocaleString()}* ilipaswa kulipwa tarehe *${dueStr}* na bado haijalipiwa.\n\nTafadhali lipa haraka ili kuepuka hatua zaidi.\n${appUrl}/tenant`
+        const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
+        sendTextMessage(formatPhoneNumber(tenant.phone), msg).catch(() => {})
+        remindersSent++
+      }
+    }
+    results.push(`✅ Per-org rent reminders sent: ${remindersSent}`)
+  } catch (e) {
+    errors.push(`❌ Per-org rent reminders: ${String(e)}`)
+  }
+
   return Response.json({
     success: errors.length === 0,
     timestamp: now,

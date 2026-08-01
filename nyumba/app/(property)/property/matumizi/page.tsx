@@ -45,10 +45,10 @@ type Expense = {
 
 type RecurringTemplate = {
   id: string
-  amount_tzs: string
+  amount_tzs: number
   category: string
   description: string
-  vendor: string
+  vendor: string | null
   payment_method: string
   day_of_month: number
 }
@@ -75,8 +75,6 @@ const EMPTY_RECUR = {
   day_of_month: 1,
 }
 
-const LS_KEY = 'nf_recurring_templates'
-
 export default function MatumiziPage() {
   const router = useRouter()
   const now    = new Date()
@@ -100,6 +98,7 @@ export default function MatumiziPage() {
   const [editRecurId,   setEditRecurId]   = useState<string | null>(null)
   const [recurForm,     setRecurForm]     = useState<typeof EMPTY_RECUR>(EMPTY_RECUR)
   const [applyingId,    setApplyingId]    = useState<string | null>(null)
+  const [recurSaving,   setRecurSaving]   = useState(false)
 
   const load = useCallback(async (id: string, m: string) => {
     setLoading(true); setError(null)
@@ -112,12 +111,15 @@ export default function MatumiziPage() {
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => {
+  const loadTemplates = useCallback(async (id: string) => {
     try {
-      const stored = localStorage.getItem(LS_KEY)
-      if (stored) setTemplates(JSON.parse(stored))
+      const res  = await fetch(`/api/v1/organizations/${id}/recurring-expenses`)
+      const json = await res.json()
+      if (res.ok) setTemplates(json.templates ?? [])
     } catch { /* silent */ }
+  }, [])
 
+  useEffect(() => {
     async function init() {
       try {
         const res  = await fetch('/api/v1/organizations')
@@ -127,17 +129,13 @@ export default function MatumiziPage() {
         if (!prim) { router.push('/property/setup'); return }
         const id = prim.organization.id
         setOrgId(id)
-        await load(id, month)
+        await Promise.all([load(id, month), loadTemplates(id)])
       } catch { setError('Hitilafu ya mtandao.') }
     }
     init()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function saveTemplates(updated: RecurringTemplate[]) {
-    setTemplates(updated)
-    localStorage.setItem(LS_KEY, JSON.stringify(updated))
-  }
 
   function handleMonthChange(e: React.ChangeEvent<HTMLInputElement>) {
     const m = e.target.value
@@ -214,25 +212,41 @@ export default function MatumiziPage() {
 
   function openEditRecur(t: RecurringTemplate) {
     setEditRecurId(t.id)
-    setRecurForm({ amount_tzs: t.amount_tzs, category: t.category, description: t.description, vendor: t.vendor, payment_method: t.payment_method, day_of_month: t.day_of_month })
+    setRecurForm({ amount_tzs: String(t.amount_tzs), category: t.category, description: t.description, vendor: t.vendor ?? '', payment_method: t.payment_method, day_of_month: t.day_of_month })
     setShowRecurForm(true)
   }
 
-  function handleSaveRecur() {
-    if (!recurForm.amount_tzs || !recurForm.description) return
-    let updated: RecurringTemplate[]
-    if (editRecurId) {
-      updated = templates.map(t => t.id === editRecurId ? { ...t, ...recurForm } : t)
-    } else {
-      updated = [...templates, { id: crypto.randomUUID(), ...recurForm }]
+  async function handleSaveRecur() {
+    if (!orgId || !recurForm.amount_tzs || !recurForm.description) return
+    setRecurSaving(true)
+    try {
+      const payload = {
+        amount_tzs:     Number(recurForm.amount_tzs),
+        category:       recurForm.category,
+        description:    recurForm.description,
+        vendor:         recurForm.vendor || null,
+        payment_method: recurForm.payment_method,
+        day_of_month:   recurForm.day_of_month,
+      }
+      const res = editRecurId
+        ? await fetch(`/api/v1/organizations/${orgId}/recurring-expenses?templateId=${editRecurId}`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+          })
+        : await fetch(`/api/v1/organizations/${orgId}/recurring-expenses`, {
+            method: 'POST',  headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+          })
+      if (!res.ok) { const j = await res.json(); alert(j.error ?? 'Imeshindwa'); return }
+      await loadTemplates(orgId)
+      setShowRecurForm(false)
+    } finally {
+      setRecurSaving(false)
     }
-    saveTemplates(updated)
-    setShowRecurForm(false)
   }
 
-  function handleDeleteRecur(id: string) {
-    if (!confirm('Futa kielezo hiki?')) return
-    saveTemplates(templates.filter(t => t.id !== id))
+  async function handleDeleteRecur(id: string) {
+    if (!orgId || !confirm('Futa kielezo hiki?')) return
+    const res = await fetch(`/api/v1/organizations/${orgId}/recurring-expenses?templateId=${id}`, { method: 'DELETE' })
+    if (res.ok) setTemplates(prev => prev.filter(t => t.id !== id))
   }
 
   async function applyTemplate(t: RecurringTemplate) {
@@ -572,10 +586,10 @@ export default function MatumiziPage() {
               </div>
               <button
                 onClick={handleSaveRecur}
-                disabled={!recurForm.amount_tzs || !recurForm.description}
+                disabled={recurSaving || !recurForm.amount_tzs || !recurForm.description}
                 className="w-full bg-primary-500 text-white py-3 rounded-xl font-medium text-sm hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {editRecurId ? 'Hifadhi Mabadiliko' : 'Unda Kielezo'}
+                {recurSaving ? 'Inahifadhi...' : editRecurId ? 'Hifadhi Mabadiliko' : 'Unda Kielezo'}
               </button>
             </div>
           </div>

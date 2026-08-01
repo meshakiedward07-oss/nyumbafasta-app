@@ -70,14 +70,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const body = await req.json()
 
     // org_type can be changed by owner (landlord → property_manager → firm as org grows)
-    const profileFields = ['name', 'description', 'phone', 'email', 'region', 'district', 'logo_url']
-    const billingFields = ['billing_name', 'billing_address', 'billing_phone', 'billing_email', 'tax_id']
+    const profileFields  = ['name', 'description', 'phone', 'email', 'region', 'district', 'logo_url']
+    const billingFields  = ['billing_name', 'billing_address', 'billing_phone', 'billing_email', 'tax_id']
+    const reminderFields = ['remind_days_before', 'remind_days_overdue', 'enable_whatsapp_reminders']
     // status only changeable by admin/staff
     const adminFields   = ['status']
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
 
     for (const key of [...profileFields, ...billingFields]) {
+      if (key in body) updates[key] = body[key] ?? null
+    }
+
+    for (const key of reminderFields) {
       if (key in body) updates[key] = body[key] ?? null
     }
 

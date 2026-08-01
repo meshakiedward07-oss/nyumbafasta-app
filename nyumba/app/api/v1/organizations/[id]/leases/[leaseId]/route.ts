@@ -218,12 +218,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     // ── Generic update (fallback) ──────────────────────────────────────────────
-    const { status, termination_reason, end_date, notes, deposit_paid } = body
+    const { status, termination_reason, end_date, notes, deposit_paid, document_url } = body
     const updates: Record<string, unknown> = { updated_at: now }
     if (status) updates.status = status
     if (termination_reason) updates.termination_reason = termination_reason
     if (end_date) updates.end_date = end_date
     if (notes !== undefined) updates.notes = notes
+    if (document_url !== undefined) updates.document_url = document_url || null
     if (deposit_paid !== undefined) {
       updates.deposit_paid = deposit_paid
       updates.deposit_paid_at = deposit_paid ? now : null

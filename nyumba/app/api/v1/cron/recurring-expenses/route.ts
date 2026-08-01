@@ -18,8 +18,7 @@ function verify(req: NextRequest): boolean {
 }
 
 // GET — called by Vercel Cron on the 1st of each month at 3:30 AM UTC
-// Finds all is_recurring=true expense_records and creates a new copy for the current month
-// if one doesn't already exist for this month.
+// Processes org_recurring_expenses and creates org_expenses entries for the current month.
 export async function GET(req: NextRequest) {
   if (!verify(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -27,85 +26,64 @@ export async function GET(req: NextRequest) {
   const now   = new Date()
   const year  = now.getFullYear()
   const month = now.getMonth() + 1
-  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`
-  const monthEnd   = new Date(year, month, 1).toISOString().split('T')[0]
+  const monthKey    = `${year}-${String(month).padStart(2, '0')}`
+  const monthStart  = `${monthKey}-01`
 
   try {
-    // Fetch all recurring expense templates
+    // Fetch all active recurring expense templates
     const { data: templates, error: fetchErr } = await admin
-      .from('expense_records')
-      .select('id, category, subcategory, description, vendor, amount_tzs, amount_usd, payment_method, recurring_period, receipt_url, added_by')
-      .eq('is_recurring', true)
-      .eq('status', 'paid')
+      .from('org_recurring_expenses')
+      .select('id, organization_id, amount_tzs, category, description, vendor, payment_method, day_of_month, last_applied_month, created_by')
+      .eq('is_active', true)
 
     if (fetchErr) {
       console.error('[cron/recurring-expenses] Fetch error:', fetchErr.message)
       return Response.json({ error: fetchErr.message }, { status: 500 })
     }
 
-    const recurring = templates ?? []
-    if (recurring.length === 0) {
-      return Response.json({ created: 0, skipped: 0, message: 'No recurring expenses configured' })
+    const toProcess = (templates ?? []).filter(t => t.last_applied_month !== monthKey)
+    if (toProcess.length === 0) {
+      return Response.json({ created: 0, skipped: templates?.length ?? 0, period: monthKey, message: 'All templates already applied this month' })
     }
 
-    // Find which ones already have an entry this month (match by description + category)
-    const { data: existing } = await admin
-      .from('expense_records')
-      .select('description, category')
-      .gte('expense_date', monthStart)
-      .lt('expense_date', monthEnd)
-      .eq('is_recurring', false) // new copies are not marked recurring
+    let created = 0
+    let skipped = 0
 
-    const existingKeys = new Set(
-      (existing ?? []).map(e => `${e.category}::${e.description}`)
-    )
+    for (const t of toProcess) {
+      // Build expense_date using day_of_month, clamped to end of month
+      const lastDayOfMonth = new Date(year, month, 0).getDate()
+      const day = Math.min(t.day_of_month, lastDayOfMonth)
+      const expenseDate = `${monthKey}-${String(day).padStart(2, '0')}`
 
-    // Filter out monthly-only ones that are already covered this month
-    const toCreate = recurring.filter(r => {
-      const key = `${r.category}::${r.description}`
-      return !existingKeys.has(key)
-    })
+      const { error: insertErr } = await admin.from('org_expenses').insert({
+        organization_id: t.organization_id,
+        amount_tzs:      t.amount_tzs,
+        category:        t.category,
+        description:     t.description,
+        vendor:          t.vendor,
+        expense_date:    expenseDate,
+        payment_method:  t.payment_method,
+        notes:           `Auto-created from recurring template (${t.id})`,
+        recorded_by:     t.created_by,
+      })
 
-    if (toCreate.length === 0) {
-      console.log('[cron/recurring-expenses] All recurring expenses already exist for', monthStart)
-      return Response.json({ created: 0, skipped: recurring.length, period: monthStart })
+      if (insertErr) {
+        console.error(`[cron/recurring-expenses] Insert error for template ${t.id}:`, insertErr.message)
+        skipped++
+        continue
+      }
+
+      // Mark as applied for this month
+      await admin.from('org_recurring_expenses')
+        .update({ last_applied_month: monthKey, updated_at: now.toISOString() })
+        .eq('id', t.id)
+        .then(() => {}, () => {})
+
+      created++
     }
 
-    const d       = new Date(monthStart)
-    const weekNum = Math.ceil(d.getDate() / 7)
-
-    const inserts = toCreate.map(r => ({
-      category:         r.category,
-      subcategory:      r.subcategory,
-      description:      r.description,
-      vendor:           r.vendor,
-      amount_tzs:       r.amount_tzs,
-      amount_usd:       r.amount_usd,
-      payment_method:   r.payment_method,
-      expense_date:     monthStart,
-      month,
-      year,
-      week:             weekNum,
-      is_recurring:     false,     // copies are not themselves templates
-      recurring_period: null,
-      receipt_url:      r.receipt_url,
-      added_by:         r.added_by,
-      status:           'paid',
-      notes:            `Auto-created from recurring template (${r.id})`,
-    }))
-
-    const { error: insertErr } = await admin.from('expense_records').insert(inserts)
-    if (insertErr) {
-      console.error('[cron/recurring-expenses] Insert error:', insertErr.message)
-      return Response.json({ error: insertErr.message }, { status: 500 })
-    }
-
-    console.log(`[cron/recurring-expenses] Created ${inserts.length} recurring expenses for ${monthStart}`)
-    return Response.json({
-      created:  inserts.length,
-      skipped:  recurring.length - inserts.length,
-      period:   monthStart,
-    })
+    console.log(`[cron/recurring-expenses] Created ${created} org expenses for ${monthKey}`)
+    return Response.json({ created, skipped, period: monthKey })
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

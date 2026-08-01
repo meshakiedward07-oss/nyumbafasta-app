@@ -64,7 +64,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const body = await req.json()
     const { unit_id, tenant_phone, monthly_rent, deposit_amount,
-            start_date, end_date, notes, deposit_paid = false } = body
+            start_date, end_date, notes, deposit_paid = false, document_url } = body
 
     if (!unit_id) return NextResponse.json({ error: 'unit_id inahitajika' }, { status: 400 })
     if (!tenant_phone?.trim()) return NextResponse.json({ error: 'Nambari ya simu ya mpangaji inahitajika' }, { status: 400 })
@@ -121,6 +121,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         start_date,
         end_date: end_date || null,
         notes: notes?.trim() || null,
+        document_url: document_url?.trim() || null,
         status: 'active',
       })
       .select()

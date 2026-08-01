@@ -17,7 +17,6 @@ type ReminderSettings = {
   enableWhatsApp: boolean
 }
 
-const LS_REMINDERS_KEY = 'nf_reminder_settings'
 const DEFAULT_REMINDERS: ReminderSettings = { remindDaysBefore: 3, remindDaysOverdue: 1, enableWhatsApp: true }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -59,8 +58,10 @@ export default function MipangilioPage() {
   const [billErr,        setBillErr]        = useState<string | null>(null)
 
   // Reminders
-  const [reminders,      setReminders]      = useState<ReminderSettings>(DEFAULT_REMINDERS)
-  const [reminderSaved,  setReminderSaved]  = useState(false)
+  const [reminders,        setReminders]        = useState<ReminderSettings>(DEFAULT_REMINDERS)
+  const [reminderSaved,    setReminderSaved]    = useState(false)
+  const [reminderSaving,   setReminderSaving]   = useState(false)
+  const [reminderErr,      setReminderErr]      = useState<string | null>(null)
 
   // Danger zone
   const [reason,     setReason]     = useState('')
@@ -70,11 +71,6 @@ export default function MipangilioPage() {
   const districts = region ? (TANZANIA_REGIONS.find(r => r.name === region)?.districts ?? []) : []
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(LS_REMINDERS_KEY)
-      if (stored) setReminders(JSON.parse(stored))
-    } catch { /* silent */ }
-
     async function load() {
       try {
         const res  = await fetch('/api/v1/organizations')
@@ -98,6 +94,13 @@ export default function MipangilioPage() {
         setBillingPhone(o.billing_phone ?? '')
         setBillingEmail(o.billing_email ?? '')
         setTaxId(o.tax_id ?? '')
+        // Load reminder settings from org (with fallback to defaults)
+        const raw = o as unknown as Record<string, unknown>
+        setReminders({
+          remindDaysBefore:  typeof raw.remind_days_before  === 'number' ? raw.remind_days_before  : DEFAULT_REMINDERS.remindDaysBefore,
+          remindDaysOverdue: typeof raw.remind_days_overdue === 'number' ? raw.remind_days_overdue : DEFAULT_REMINDERS.remindDaysOverdue,
+          enableWhatsApp:    typeof raw.enable_whatsapp_reminders === 'boolean' ? raw.enable_whatsapp_reminders : DEFAULT_REMINDERS.enableWhatsApp,
+        })
       } catch { /* silent */ }
       finally { setLoading(false) }
     }
@@ -156,10 +159,24 @@ export default function MipangilioPage() {
     window.location.href = '/property/dashboard'
   }
 
-  function saveReminders() {
-    localStorage.setItem(LS_REMINDERS_KEY, JSON.stringify(reminders))
+  async function saveReminders() {
+    if (!orgId) return
+    setReminderSaving(true); setReminderErr(null)
+    const res = await fetch(`/api/v1/organizations/${orgId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        remind_days_before:        reminders.remindDaysBefore,
+        remind_days_overdue:       reminders.remindDaysOverdue,
+        enable_whatsapp_reminders: reminders.enableWhatsApp,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setReminderErr(data.error ?? 'Kuna tatizo'); setReminderSaving(false); return }
+    setOrg(data.organization)
     setReminderSaved(true)
     setTimeout(() => setReminderSaved(false), 3000)
+    setReminderSaving(false)
   }
 
   const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -386,14 +403,17 @@ export default function MipangilioPage() {
             <p>• WhatsApp: {reminders.enableWhatsApp ? 'Imewezeshwa ✓' : 'Imezimwa ✗'}</p>
           </div>
 
+          {reminderErr && <p className="text-sm text-red-600">{reminderErr}</p>}
           <button
             onClick={saveReminders}
-            className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition flex items-center justify-center gap-2"
+            disabled={reminderSaving}
+            className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition flex items-center justify-center gap-2"
           >
-            {reminderSaved
-              ? <><i className="ti ti-check" aria-hidden="true" /> Imeokolewa!</>
-              : 'Hifadhi Mipangilio ya Vikumbusho'
-            }
+            {reminderSaving ? (
+              <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inahifadhi...</>
+            ) : reminderSaved ? (
+              <><i className="ti ti-check" aria-hidden="true" /> Imeokolewa!</>
+            ) : 'Hifadhi Mipangilio ya Vikumbusho'}
           </button>
         </div>
       )}

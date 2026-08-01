@@ -85,6 +85,12 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
   const [terminateErr,   setTerminateErr]   = useState<string | null>(null)
   const [depositLoading, setDepositLoading] = useState(false)
 
+  // Document upload modal
+  const [docModal,   setDocModal]   = useState(false)
+  const [docUrl,     setDocUrl]     = useState('')
+  const [docSaving,  setDocSaving]  = useState(false)
+  const [docErr,     setDocErr]     = useState<string | null>(null)
+
   useEffect(() => {
     async function load() {
       try {
@@ -283,6 +289,19 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
     setTerminating(false)
   }
 
+  async function handleDocUpload() {
+    if (!orgId || !docUrl.trim()) { setDocErr('Weka kiungo cha mkataba'); return }
+    setDocSaving(true); setDocErr(null)
+    const res = await fetch(`/api/v1/organizations/${orgId}/leases/${leaseId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ document_url: docUrl.trim() }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setDocErr(data.error ?? 'Kuna tatizo'); setDocSaving(false); return }
+    setLease(data.lease)
+    setDocModal(false); setDocUrl(''); setDocSaving(false)
+  }
+
   if (loading) return (
     <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-4">
       {[1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-2xl" />)}
@@ -307,6 +326,38 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-5">
+
+      {/* ── Document upload modal ─────────────────────────────────────────────── */}
+      {docModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-gray-900">{lease.document_url ? 'Sasisha Hati ya Mkataba' : 'Pakia Hati ya Mkataba'}</h2>
+              <button onClick={() => setDocModal(false)} className="text-gray-400 hover:text-gray-600">
+                <i className="ti ti-x text-xl" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Kiungo cha Hati (PDF / Drive / Dropbox) *</label>
+                <input type="url" value={docUrl} onChange={e => setDocUrl(e.target.value)}
+                  placeholder="https://drive.google.com/..."
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                <p className="text-[10px] text-gray-400 mt-1">Pakia hati kwenye Google Drive/Dropbox, kisha bandika kiungo hapa.</p>
+              </div>
+              {docErr && <p className="text-sm text-red-600">{docErr}</p>}
+              <div className="flex gap-2">
+                <button onClick={handleDocUpload} disabled={docSaving || !docUrl.trim()}
+                  className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
+                  {docSaving ? 'Inahifadhi...' : 'Hifadhi'}
+                </button>
+                <button onClick={() => setDocModal(false)}
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">Ghairi</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Proof upload modal ─────────────────────────────────────────────────── */}
       {proofFor && (
@@ -638,6 +689,16 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                 <a href={`tel:${tenant.phone}`} className="font-medium text-primary-600 hover:underline">{tenant.phone}</a>
               </div>
             )}
+            <div className="flex justify-between items-center">
+              <span className="text-gray-500">Hati ya Mkataba</span>
+              {lease.document_url
+                ? <a href={lease.document_url} target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-primary-600 hover:underline flex items-center gap-1">
+                    <i className="ti ti-file-text text-sm" /> Angalia
+                  </a>
+                : <span className="text-xs text-gray-400">—</span>
+              }
+            </div>
           </div>
         </div>
 
@@ -705,6 +766,12 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                 {depositLoading ? 'Inarekodi...' : 'Rudisha Amana'}
               </button>
             )}
+            <button
+              onClick={() => { setDocUrl(lease.document_url ?? ''); setDocErr(null); setDocModal(true) }}
+              className="flex items-center gap-1.5 bg-gray-50 text-gray-700 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-gray-100 transition border border-gray-200">
+              <i className="ti ti-file-upload text-sm" aria-hidden="true" />
+              {lease.document_url ? 'Sasisha Hati' : 'Pakia Hati'}
+            </button>
           </div>
           {lease.renewal_count > 0 && (
             <p className="text-xs text-gray-400 mt-3">Imefanywa upya mara {lease.renewal_count}</p>
