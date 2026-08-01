@@ -1,14 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
-import dynamic from 'next/dynamic'
-
-const PricingSettings = dynamic(() => import('@/components/admin/PricingSettings'), { ssr: false })
 
 type WaSetup = { webhook_url?: string; verify_token?: string; instructions?: string[] } | null
 type DiagResult = { error?: string; [key: string]: unknown } | null
 
 export default function PlatformSettingsPage() {
-  const [tab, setTab]           = useState<'pricing' | 'whatsapp' | 'diag'>('pricing')
+  const [tab, setTab]           = useState<'whatsapp' | 'diag'>('whatsapp')
   const [waSetup, setWaSetup]   = useState<WaSetup>(null)
   const [waLoading, setWaLoading] = useState(false)
   const [diagInput, setDiagInput] = useState('')
@@ -46,9 +43,8 @@ export default function PlatformSettingsPage() {
   }
 
   const TABS = [
-    { key: 'pricing'  as const, label: 'Bei za Mfumo',        icon: 'credit-card'  },
-    { key: 'whatsapp' as const, label: 'WhatsApp Setup',       icon: 'brand-whatsapp' },
-    { key: 'diag'     as const, label: 'Diagnostics',          icon: 'bug'          },
+    { key: 'whatsapp' as const, label: 'WhatsApp Setup', icon: 'brand-whatsapp' },
+    { key: 'diag'     as const, label: 'Diagnostics',    icon: 'bug'            },
   ]
 
   return (
@@ -68,16 +64,6 @@ export default function PlatformSettingsPage() {
           </button>
         ))}
       </div>
-
-      {/* Pricing tab */}
-      {tab === 'pricing' && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
-          <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <i className="ti ti-credit-card text-primary-500" /> Bei za Mfumo
-          </h2>
-          <PricingSettings />
-        </div>
-      )}
 
       {/* WhatsApp Setup tab */}
       {tab === 'whatsapp' && (
