@@ -8,9 +8,10 @@ export async function GET(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Haujaingia' }, { status: 401 })
 
-    const sp      = req.nextUrl.searchParams
-    const orgId   = sp.get('org_id')
-    const type    = sp.get('type')
+    const sp         = req.nextUrl.searchParams
+    const orgId      = sp.get('org_id')
+    const type       = sp.get('type')
+    const sourceRole = sp.get('source_role')
     const unreadOnly = sp.get('unread') === '1'
 
     const admin = createAdminClient()
@@ -18,10 +19,11 @@ export async function GET(req: NextRequest) {
     // Single DB round-trip: nf_get_conversations uses DISTINCT ON + GROUP BY
     // to return last_message + unread_count without per-conversation queries.
     const { data: enriched, error } = await admin.rpc('nf_get_conversations', {
-      p_user_id: user.id,
-      p_org_id:  orgId  ?? null,
-      p_type:    type   ?? null,
-      p_limit:   50,
+      p_user_id:     user.id,
+      p_org_id:      orgId      ?? null,
+      p_type:        type       ?? null,
+      p_limit:       50,
+      p_source_role: sourceRole ?? null,
     })
     if (error) throw error
 
@@ -48,8 +50,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const withParticipants = conversations.map((c: { id: string }) => ({
+    const withParticipants = conversations.map((c: { id: string; last_message?: { body?: string } | null }) => ({
       ...c,
+      last_message_body: c.last_message?.body ?? null,
       participants: participantsMap[c.id] ?? [],
     }))
 
@@ -84,14 +87,24 @@ export async function POST(req: NextRequest) {
     if (callerRole === 'tenant' || callerRole === 'fundi') {
       return NextResponse.json({ error: 'Huna ruhusa ya kuanzisha mazungumzo' }, { status: 403 })
     }
+
+    // Determine source_role for admin inbox categorization
+    let sourceRole: string | null = null
     if (callerRole === 'dalali') {
-      // Dalali can only message staff/admin
-      if (participant_ids.length > 0) {
-        const { data: parts } = await admin.from('users').select('role').in('id', participant_ids)
-        const invalid = (parts ?? []).filter(p => !['admin', 'staff'].includes(p.role ?? ''))
-        if (invalid.length > 0) {
-          return NextResponse.json({ error: 'Dalali anaweza tu kuwasiliana na wafanyakazi wa NyumbaFasta' }, { status: 403 })
-        }
+      sourceRole = 'dalali'
+    } else if (callerRole === 'org_owner') {
+      sourceRole = 'org'
+    } else if (callerRole === 'client') {
+      const { data: adv } = await admin.from('advertisers').select('id').eq('user_id', user.id).maybeSingle()
+      if (adv) sourceRole = 'advertiser'
+    }
+
+    // Dalali and advertisers can only message staff/admin
+    if ((callerRole === 'dalali' || sourceRole === 'advertiser') && participant_ids.length > 0) {
+      const { data: parts } = await admin.from('users').select('role').in('id', participant_ids)
+      const invalid = (parts ?? []).filter((p: { role?: string }) => !['admin', 'staff'].includes(p.role ?? ''))
+      if (invalid.length > 0) {
+        return NextResponse.json({ error: 'Unaweza tu kuwasiliana na wafanyakazi wa NyumbaFasta' }, { status: 403 })
       }
     }
 
@@ -99,12 +112,13 @@ export async function POST(req: NextRequest) {
     const { data: conv, error: convErr } = await admin
       .from('conversations')
       .insert({
-        title:        title?.trim() || null,
+        title:           title?.trim() || null,
         conv_type,
-        context_type: context_type || null,
-        context_id:   context_id   || null,
-        org_id:       org_id       || null,
-        created_by:   user.id,
+        context_type:    context_type || null,
+        context_id:      context_id   || null,
+        org_id:          org_id       || null,
+        created_by:      user.id,
+        source_role:     sourceRole,
         last_message_at: first_message ? new Date().toISOString() : null,
       })
       .select()

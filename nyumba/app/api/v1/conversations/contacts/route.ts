@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 
-// GET /api/v1/conversations/contacts?type=staff|dalali|org|tenant&q=search
+// GET /api/v1/conversations/contacts?type=staff|dalali|org|tenant|advertiser&q=search
 // Returns contact options for starting internal conversations.
 export async function GET(req: NextRequest) {
   const auth = await requireStaffAuth()
@@ -11,6 +11,27 @@ export async function GET(req: NextRequest) {
   const sp   = req.nextUrl.searchParams
   const type = sp.get('type') ?? 'staff'
   const q    = sp.get('q')?.trim().toLowerCase() ?? ''
+
+  if (type === 'advertiser') {
+    const { data } = await supabaseAdmin
+      .from('advertisers')
+      .select('id, business_name, email, status, user_id')
+      .in('status', ['active', 'pending_review'])
+      .order('business_name', { ascending: true })
+      .limit(150)
+
+    const filtered = (data ?? []).filter((a) =>
+      !q || (a.business_name ?? '').toLowerCase().includes(q) || (a.email ?? '').toLowerCase().includes(q)
+    )
+    return NextResponse.json({ contacts: filtered.map((a) => ({
+      id:         a.user_id,
+      name:       a.business_name ?? a.email ?? 'Mtangazaji',
+      subtitle:   a.email,
+      avatar_url: null,
+      type:       'advertiser',
+      user_id:    a.user_id,
+    })) })
+  }
 
   if (type === 'org') {
     const { data } = await supabaseAdmin

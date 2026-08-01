@@ -20,6 +20,7 @@ interface Conversation {
   conv_type: string
   status: string
   org_id: string | null
+  source_role: string | null
   last_message_at: string | null
   created_at: string
   unread_count: number
@@ -60,19 +61,28 @@ interface Contact {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const CONTACT_TABS = [
-  { key: 'staff',  label: 'Wafanyakazi' },
-  { key: 'dalali', label: 'Madalali' },
-  { key: 'org',    label: 'Mashirika' },
-  { key: 'tenant', label: 'Wapangaji' },
+  { key: 'staff',      label: 'Wafanyakazi' },
+  { key: 'dalali',     label: 'Madalali' },
+  { key: 'org',        label: 'Mashirika' },
+  { key: 'tenant',     label: 'Wapangaji' },
+  { key: 'advertiser', label: 'Watangazaji' },
+]
+
+const SOURCE_TABS = [
+  { key: 'all',        label: 'Wote' },
+  { key: 'dalali',     label: 'Madalali' },
+  { key: 'advertiser', label: 'Watangazaji' },
+  { key: 'org',        label: 'Mashirika' },
 ]
 
 const ROLE_BADGE: Record<string, { label: string; cls: string }> = {
-  admin:     { label: 'Admin',    cls: 'bg-purple-100 text-purple-700' },
-  staff:     { label: 'Staff',    cls: 'bg-blue-100 text-blue-700' },
-  dalali:    { label: 'Dalali',   cls: 'bg-amber-100 text-amber-700' },
-  org:       { label: 'Shirika',  cls: 'bg-green-100 text-green-700' },
-  org_owner: { label: 'Mmiliki',  cls: 'bg-teal-100 text-teal-700' },
-  tenant:    { label: 'Mpangaji', cls: 'bg-rose-100 text-rose-700' },
+  admin:      { label: 'Admin',      cls: 'bg-purple-100 text-purple-700' },
+  staff:      { label: 'Staff',      cls: 'bg-blue-100 text-blue-700' },
+  dalali:     { label: 'Dalali',     cls: 'bg-amber-100 text-amber-700' },
+  org:        { label: 'Shirika',    cls: 'bg-green-100 text-green-700' },
+  org_owner:  { label: 'Mmiliki',   cls: 'bg-teal-100 text-teal-700' },
+  tenant:     { label: 'Mpangaji',  cls: 'bg-rose-100 text-rose-700' },
+  advertiser: { label: 'Mtangazaji', cls: 'bg-orange-100 text-orange-700' },
 }
 
 function roleBadge(type: string) {
@@ -113,6 +123,7 @@ function convLabel(conv: Conversation, currentUserId: string): string {
 }
 
 function convTypeTag(conv: Conversation) {
+  if (conv.source_role && ROLE_BADGE[conv.source_role]) return roleBadge(conv.source_role)
   if (conv.org_id) return roleBadge('org')
   const firstRole = (conv.participants ?? []).find((p) => p.role !== 'owner')?.role
   if (firstRole && ROLE_BADGE[firstRole]) return roleBadge(firstRole)
@@ -150,6 +161,7 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
   const [newFirstMsg, setNewFirstMsg] = useState('')
   const [creating, setCreating] = useState(false)
 
+  const [sourceTab, setSourceTab] = useState('all')
   const [searchQ, setSearchQ] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -311,6 +323,7 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
   }
 
   const filtered = conversations.filter((c) => {
+    if (sourceTab !== 'all' && (c.source_role ?? null) !== sourceTab) return false
     if (!searchQ) return true
     return convLabel(c, currentUserId).toLowerCase().includes(searchQ.toLowerCase())
   })
@@ -347,6 +360,26 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
           value={searchQ}
           onChange={(e) => setSearchQ(e.target.value)}
         />
+        {/* Source filter chips */}
+        <div className="flex gap-1.5 mt-2 overflow-x-auto pb-0.5 scrollbar-none">
+          {SOURCE_TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setSourceTab(t.key)}
+              className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium transition-colors whitespace-nowrap
+                ${sourceTab === t.key
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+            >
+              {t.label}
+              {t.key !== 'all' && (() => {
+                const cnt = conversations.filter((c) => c.source_role === t.key && c.unread_count > 0).length
+                return cnt > 0 ? <span className="ml-1 bg-red-500 text-white text-[9px] rounded-full px-1">{cnt}</span> : null
+              })()}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -557,7 +590,7 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
               {/* Contact type tabs */}
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Aina ya Mpokeaji</p>
-                <div className="grid grid-cols-4 gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+                <div className="grid grid-cols-5 gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
                   {CONTACT_TABS.map((tab) => (
                     <button
                       key={tab.key}
