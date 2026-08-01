@@ -552,7 +552,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           ) : (
             <div className="space-y-3">
               {filteredListings.map(listing => (
-                <div key={listing.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div key={listing.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm">
                   <div className="flex gap-3 p-3">
                     {/* Thumbnail */}
                     <div className="relative w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
