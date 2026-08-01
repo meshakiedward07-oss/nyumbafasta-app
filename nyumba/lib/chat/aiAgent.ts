@@ -312,6 +312,8 @@ KANUNI:
     return response.content[0].type === 'text' ? response.content[0].text : 'Samahani, jaribu tena.'
   } catch (err) {
     console.error('[Amina] handleFollowUpClient AI error:', err)
+    const staticReply = staticCustomerCareReply(message, appUrl)
+    if (staticReply) return staticReply
     return `Ninahitaji muda kidogo. Tafadhali andika "menu" kurudi menyu au tembelea ${appUrl} moja kwa moja. 🙏`
   }
 }
@@ -840,7 +842,8 @@ JINSI YA KUJIBU:
   return response.content[0].type === 'text' ? response.content[0].text : 'Samahani, jaribu tena. 🙏'
   } catch (err) {
     console.error('[Amina] handleCustomerCare AI error:', err)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    const staticReply = staticCustomerCareReply(message, appUrl)
+    if (staticReply) return staticReply
     return `Naomba msamaha, nina tatizo la kiufundi sasa hivi. 🙏\n\nKwa msaada wa haraka piga simu au WhatsApp: *+255665831694*\nAu tembelea: ${appUrl}`
   }
 }
@@ -855,10 +858,45 @@ export function isCustomerCareQuery(message: string): boolean {
     'msaada', 'help', 'saidia', 'support',
     'hailodi', 'haionekani', 'imefutwa',
     'app', 'website', 'page', 'ukurasa', 'slow', 'polepole', 'crash', 'imezimika',
-    'haifunguki', 'kosa',
+    'haifunguki', 'kosa', 'sahau', 'forgot', 'nimesahau', 'nilikisahau',
   ]
   const lower = message.toLowerCase()
   return careKeywords.some((kw) => lower.includes(kw))
+}
+
+// Static answers for common questions — used as AI fallback when Anthropic is down.
+function staticCustomerCareReply(message: string, appUrl: string): string | null {
+  const lower = message.toLowerCase()
+
+  if (/password|nywila|sahau|forgot|nimesahau|nilikisahau/.test(lower)) {
+    return `Sawa! Hapa jinsi ya kupata nywila mpya:\n\n1️⃣ Nenda: *${appUrl}/forgot-password*\n2️⃣ Ingiza email yako\n3️⃣ Angalia inbox (na spam folder)\n4️⃣ Bonyeza kiungo kilichotumwa\n\nHukupata email? Wasiliana nasi: *+255665831694* 🙏`
+  }
+
+  if (/login|ingia|kuingia|sign.?in/.test(lower)) {
+    return `Tatizo la kuingia akaunti:\n\n1️⃣ Angalia email na nywila ziko sahihi\n2️⃣ Umesahau nywila? → *${appUrl}/forgot-password*\n3️⃣ Angalia caps lock haijawashwa\n\nBado tatizo? Piga WhatsApp: *+255665831694* 🙏`
+  }
+
+  if (/sajili|register|akaunti mpya|kujiunga/.test(lower)) {
+    return `Jinsi ya kusajili akaunti mpya:\n\n1️⃣ Nenda: *${appUrl}/register*\n2️⃣ Ingiza jina, email na nywila\n3️⃣ Thibitisha email yako (angalia inbox)\n4️⃣ Karibu NyumbaFasta! 🎉\n\nMsaada: *+255665831694*`
+  }
+
+  if (/malipo|payment|lipa|mpesa|airtel|halopesa|subscription|gharama|pesa/.test(lower)) {
+    return `Kuhusu malipo:\n\n✅ Tunakubali: M-Pesa, Airtel Money, HaloPesa, Mixx\n💰 Unlock contact dalali: Tsh 2,000\n📱 Subscription Basic: Tsh 10,000/mwezi\n⭐ Subscription Premium: Tsh 25,000/mwezi\n\nMalipo hayakufanya kazi? Jaribu tena au badilisha njia ya malipo.\nMsaada: *+255665831694* 🙏`
+  }
+
+  if (/listing|post.*nyumba|nyumba.*post|kupost|haionyesh|approve|reject/.test(lower)) {
+    return `Kuhusu listings:\n\n📝 Kupost: Dashboard → Add Listing\n⏳ Approve inachukua: masaa 24\n🖼️ Picha hazipandi? Reduce size chini ya 5MB\n✏️ Kuharisha: Dashboard → Listings → Edit\n\nMsaada: *${appUrl}/dashboard* au *+255665831694*`
+  }
+
+  if (/thibitisha|verify|email.*haja|email.*confirm/.test(lower)) {
+    return `Kuthibitisha email yako:\n\n1️⃣ Angalia inbox ya email yako\n2️⃣ Tafuta barua pepe kutoka NyumbaFasta\n3️⃣ Angalia pia folder ya spam/junk\n4️⃣ Bonyeza "Thibitisha"\n\nHukupata? Tuma tena: *${appUrl}/verify-email*\nMsaada: *+255665831694*`
+  }
+
+  if (/msaada|help|saidia|support/.test(lower)) {
+    return `Niko hapa kukusaidia! 😊\n\nNiambie tatizo lako kwa undani zaidi.\n\nAu wasiliana nasi moja kwa moja:\n📞 WhatsApp: *+255665831694*\n🌐 Website: *${appUrl}*\n⏰ Saa za kazi: 8am–8pm kila siku`
+  }
+
+  return null
 }
 
 // ── Main menu ──────────────────────────────────────────────────────────────
@@ -964,7 +1002,21 @@ export async function handleIncomingMessage(
 
     // ── Continue current flow ──────────────────────────────────
     } else {
-      if (session.flow_type === 'dalali_register') {
+      // Customer care questions interrupt any active client flow (not guided dalali flows)
+      const interruptForCare =
+        isCustomerCareQuery(message) &&
+        session.flow_type !== 'dalali_register' &&
+        session.flow_type !== 'dalali_listing'
+
+      if (interruptForCare) {
+        await updateSession(session.id, { flow_type: 'customer_care', flow_step: 'care_active' })
+        response = await handleCustomerCare(
+          { ...session, flow_type: 'customer_care', flow_step: 'care_active' },
+          message,
+          adminInstructions,
+          kbContext,
+        )
+      } else if (session.flow_type === 'dalali_register') {
         response = await handleDalaliRegisterFlow(session, message)
       } else if (session.flow_type === 'dalali_listing') {
         response = await handleDalaliListingFlow(session, message, mediaUrls)
