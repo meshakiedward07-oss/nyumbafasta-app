@@ -19,54 +19,76 @@ export interface ChatSession {
 
 // ── Session ────────────────────────────────────────────────────────────────
 
+// In-memory fallback session used when chat_sessions table is unavailable.
+// Keeps the chatbot responsive even on DB outages or missing migrations.
+function memorySession(platform: Platform, userId: string, phone?: string, name?: string): ChatSession {
+  return {
+    id:        `mem_${userId}`,
+    platform,
+    user_id:   userId,
+    phone,
+    name,
+    flow_type: 'client',
+    flow_step: 'greeting',
+    flow_data: {},
+  }
+}
+
 export async function getOrCreateSession(
   platform: Platform,
   userId: string,
   phone?: string,
   name?: string,
 ): Promise<ChatSession> {
-  const { data: existing } = await supabaseAdmin
-    .from('chat_sessions')
-    .select('*')
-    .eq('platform', platform)
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  if (existing) {
-    await supabaseAdmin
-      .from('chat_sessions')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', existing.id)
-    return existing as ChatSession
-  }
-
-  const { data: newSession, error: insertErr } = await supabaseAdmin
-    .from('chat_sessions')
-    .insert({
-      platform,
-      user_id: userId,
-      phone: phone ?? null,
-      name: name ?? null,
-      flow_type: 'client',
-      flow_step: 'greeting',
-      flow_data: {},
-    })
-    .select()
-    .single()
-
-  // Race condition: another concurrent request created the session first
-  if (insertErr?.code === '23505') {
-    const { data: concurrent } = await supabaseAdmin
+  try {
+    const { data: existing } = await supabaseAdmin
       .from('chat_sessions')
       .select('*')
       .eq('platform', platform)
       .eq('user_id', userId)
       .maybeSingle()
-    if (concurrent) return concurrent as ChatSession
-  }
 
-  if (insertErr) throw new Error(`Session insert failed: ${insertErr.message}`)
-  return newSession as ChatSession
+    if (existing) {
+      void supabaseAdmin
+        .from('chat_sessions')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
+      return existing as ChatSession
+    }
+
+    const { data: newSession, error: insertErr } = await supabaseAdmin
+      .from('chat_sessions')
+      .insert({
+        platform,
+        user_id: userId,
+        phone: phone ?? null,
+        name: name ?? null,
+        flow_type: 'client',
+        flow_step: 'greeting',
+        flow_data: {},
+      })
+      .select()
+      .single()
+
+    if (insertErr?.code === '23505') {
+      const { data: concurrent } = await supabaseAdmin
+        .from('chat_sessions')
+        .select('*')
+        .eq('platform', platform)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (concurrent) return concurrent as ChatSession
+    }
+
+    if (insertErr) {
+      console.error('[Amina] chat_sessions insert failed — using memory session:', insertErr.message)
+      return memorySession(platform, userId, phone, name)
+    }
+    return newSession as ChatSession
+  } catch (err) {
+    console.error('[Amina] getOrCreateSession error — using memory session:', err)
+    return memorySession(platform, userId, phone, name)
+  }
 }
 
 export async function saveMessage(
@@ -76,28 +98,35 @@ export async function saveMessage(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _mediaUrls?: string[],
 ) {
-  await supabaseAdmin.from('chat_messages').insert({
-    session_id: sessionId,
-    role,
-    content,
-  })
+  if (sessionId.startsWith('mem_')) return  // skip for memory sessions
+  try {
+    await supabaseAdmin.from('chat_messages').insert({ session_id: sessionId, role, content })
+  } catch (err) {
+    console.error('[Amina] saveMessage failed (non-fatal):', err)
+  }
 }
 
 export async function getHistory(sessionId: string, limit = 10) {
-  const { data } = await supabaseAdmin
-    .from('chat_messages')
-    .select('role, content')
-    .eq('session_id', sessionId)
-    .order('created_at', { ascending: false })
-    .limit(limit)
-  return (data ?? []).reverse()
+  if (sessionId.startsWith('mem_')) return []
+  try {
+    const { data } = await supabaseAdmin
+      .from('chat_messages')
+      .select('role, content')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    return (data ?? []).reverse()
+  } catch {
+    return []
+  }
 }
 
 export async function updateSession(
   sessionId: string,
   updates: Partial<ChatSession>,
 ) {
-  await supabaseAdmin.from('chat_sessions').update(updates).eq('id', sessionId)
+  if (sessionId.startsWith('mem_')) return
+  void supabaseAdmin.from('chat_sessions').update(updates).eq('id', sessionId)
 }
 
 // ── Intent detection ───────────────────────────────────────────────────────
@@ -227,16 +256,19 @@ async function searchAndRespond(
   try {
     let query = supabaseAdmin
       .from('listings')
-      .select('id, title, type, price_monthly, district, region, images, bedrooms, dalali:dalali_id (full_name)')
+      .select('id, title, type, price_monthly, district, region, images, bedrooms')
       .eq('status', 'active')
       .order('is_boosted', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(3)
 
     const budget = requirements.budget as number | undefined
     const bedrooms = requirements.bedrooms as number | undefined
+    const location = requirements.location as string | undefined
 
-    if (budget) query = query.lte('price_monthly', Math.floor(budget * 1.2))
+    if (budget)   query = query.lte('price_monthly', Math.floor(budget * 1.2))
     if (bedrooms) query = query.eq('bedrooms', bedrooms)
+    if (location) query = query.or(`district.ilike.%${location}%,region.ilike.%${location}%`)
 
     const { data: listings } = await query
     await updateSession(sessionId, { flow_step: 'showing_results' })
@@ -256,12 +288,10 @@ Usikate tamaa! Jaribu hivi:
 
     listings.forEach((listing, i) => {
       const l = listing as Record<string, unknown>
-      const dalaliName = (l.dalali as Record<string, unknown> | null)?.full_name
       response += `${medals[i] ?? '🏠'} *${l.title}*\n`
       response += `💰 Tsh ${Number(l.price_monthly).toLocaleString()}/mwezi\n`
-      response += `📍 ${l.district}, ${l.region}\n`
+      response += `📍 ${l.district ?? ''}, ${l.region ?? ''}\n`
       response += `🛏️ Vyumba: ${l.bedrooms ?? 'N/A'}\n`
-      if (dalaliName) response += `👤 Dalali: ${dalaliName}\n`
       response += `🔗 ${appUrl}/listings/${l.id}\n\n`
     })
 
