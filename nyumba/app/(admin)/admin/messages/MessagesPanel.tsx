@@ -51,34 +51,34 @@ interface Contact {
   name: string
   subtitle: string | null
   avatar_url: string | null
-  type: string         // role or 'org'
-  user_id?: string     // for user contacts
-  org_id?: string      // for org contacts
-  owner_id?: string    // for org contacts
+  type: string
+  user_id?: string
+  org_id?: string
+  owner_id?: string
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const CONTACT_TABS = [
-  { key: 'staff',  label: 'Wafanyakazi', icon: 'users' },
-  { key: 'dalali', label: 'Madalali',    icon: 'home'  },
-  { key: 'org',    label: 'Mashirika',   icon: 'building' },
-  { key: 'tenant', label: 'Wapangaji',   icon: 'key' },
+  { key: 'staff',  label: 'Wafanyakazi' },
+  { key: 'dalali', label: 'Madalali' },
+  { key: 'org',    label: 'Mashirika' },
+  { key: 'tenant', label: 'Wapangaji' },
 ]
 
 const ROLE_BADGE: Record<string, { label: string; cls: string }> = {
-  admin:     { label: 'Admin',     cls: 'bg-purple-100 text-purple-700' },
-  staff:     { label: 'Staff',     cls: 'bg-blue-100 text-blue-700' },
-  dalali:    { label: 'Dalali',    cls: 'bg-amber-100 text-amber-700' },
-  org:       { label: 'Shirika',   cls: 'bg-green-100 text-green-700' },
-  org_owner: { label: 'Mmiliki',   cls: 'bg-teal-100 text-teal-700' },
-  tenant:    { label: 'Mpangaji',  cls: 'bg-rose-100 text-rose-700' },
+  admin:     { label: 'Admin',    cls: 'bg-purple-100 text-purple-700' },
+  staff:     { label: 'Staff',    cls: 'bg-blue-100 text-blue-700' },
+  dalali:    { label: 'Dalali',   cls: 'bg-amber-100 text-amber-700' },
+  org:       { label: 'Shirika',  cls: 'bg-green-100 text-green-700' },
+  org_owner: { label: 'Mmiliki',  cls: 'bg-teal-100 text-teal-700' },
+  tenant:    { label: 'Mpangaji', cls: 'bg-rose-100 text-rose-700' },
 }
 
 function roleBadge(type: string) {
   const b = ROLE_BADGE[type]
   if (!b) return null
-  return <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${b.cls}`}>{b.label}</span>
+  return <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${b.cls}`}>{b.label}</span>
 }
 
 function relativeTime(iso: string | null): string {
@@ -86,10 +86,10 @@ function relativeTime(iso: string | null): string {
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60000)
   if (m < 1) return 'Sasa hivi'
-  if (m < 60) return `Dakika ${m} zilizopita`
+  if (m < 60) return `Dak. ${m}`
   const h = Math.floor(m / 60)
-  if (h < 24) return `Saa ${h} zilizopita`
-  return `Siku ${Math.floor(h / 24)} zilizopita`
+  if (h < 24) return `Saa ${h}`
+  return `Siku ${Math.floor(h / 24)}`
 }
 
 function initials(name: string | null): string {
@@ -130,6 +130,8 @@ interface Props {
 export default function MessagesPanel({ currentUserId, currentUserName, currentUserAvatar }: Props) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selected, setSelected] = useState<Conversation | null>(null)
+  // Mobile: 'list' shows conversation list, 'thread' shows the open conversation
+  const [mobilePane, setMobilePane] = useState<'list' | 'thread'>('list')
   const [messages, setMessages] = useState<Message[]>([])
   const [draft, setDraft] = useState('')
   const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null)
@@ -150,6 +152,7 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
 
   const [searchQ, setSearchQ] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const supabase = createClient()
 
   const loadConversations = useCallback(async () => {
@@ -219,6 +222,24 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contactTab, contactSearch])
 
+  // Auto-grow textarea
+  function handleDraftChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setDraft(e.target.value)
+    const el = e.target
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 128) + 'px'
+  }
+
+  function openConversation(conv: Conversation) {
+    setSelected(conv)
+    setMobilePane('thread')
+  }
+
+  function goBackToList() {
+    setMobilePane('list')
+    // Keep selected so desktop still shows it; clear on mobile only via CSS
+  }
+
   async function handleSend() {
     if ((!draft.trim() && !pendingAttachment) || !selected || sending) return
     setSending(true)
@@ -226,6 +247,8 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
     const attachment = pendingAttachment
     setDraft('')
     setPendingAttachment(null)
+    // Reset textarea height
+    if (textareaRef.current) { textareaRef.current.style.height = 'auto' }
     const res = await fetch(`/api/v1/conversations/${selected.id}/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -265,7 +288,6 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
     }
 
     if (isOrg) {
-      // For organizations: set org_id and add the org owner as participant
       body.org_id = pickedContact.org_id
       body.participant_ids = pickedContact.owner_id ? [pickedContact.owner_id] : []
     } else {
@@ -284,7 +306,7 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
     setNewTitle(''); setNewFirstMsg(''); setPickedContact(null)
     await loadConversations()
     if (json.conversation) {
-      setSelected(json.conversation)
+      openConversation(json.conversation)
     }
   }
 
@@ -293,185 +315,245 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
     return convLabel(c, currentUserId).toLowerCase().includes(searchQ.toLowerCase())
   })
 
-  return (
-    <div className="flex h-[calc(100vh-4rem)] bg-white dark:bg-gray-900">
-      {/* ── Conversation List ─────────────────────────────────────────────────── */}
-      <div className="w-72 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Ujumbe wa Ndani</h2>
-            <button
-              onClick={() => setShowNewConv(true)}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-primary-500 text-white hover:bg-primary-600 transition-colors"
-              title="Mazungumzo Mapya"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+  // ── Conversation List Panel ───────────────────────────────────────────────
+
+  const listPanel = (
+    <div
+      className={`
+        flex flex-col bg-white dark:bg-gray-900
+        w-full md:w-72 md:flex-shrink-0
+        border-r border-gray-200 dark:border-gray-700
+        absolute inset-0 md:relative
+        transition-transform duration-200
+        ${mobilePane === 'thread' ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}
+      `}
+    >
+      <div className="p-3 md:p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-2 md:mb-3">
+          <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-base">Ujumbe wa Ndani</h2>
+          <button
+            onClick={() => setShowNewConv(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 transition-colors"
+            title="Mazungumzo Mapya"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
+        <input
+          className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-400"
+          placeholder="Tafuta mazungumzo..."
+          value={searchQ}
+          onChange={(e) => setSearchQ(e.target.value)}
+        />
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {loading ? (
+          <div className="p-4 text-sm text-gray-400 text-center">Inapakia...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-6 text-center">
+            <p className="text-sm text-gray-400">Hakuna mazungumzo bado</p>
+            <button onClick={() => setShowNewConv(true)} className="mt-2 text-xs text-primary-600 hover:underline">
+              Anza mazungumzo mapya
             </button>
           </div>
-          <input
-            className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-400"
-            placeholder="Tafuta mazungumzo..."
-            value={searchQ}
-            onChange={(e) => setSearchQ(e.target.value)}
-          />
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 text-sm text-gray-400 text-center">Inapakia...</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-6 text-center">
-              <p className="text-sm text-gray-400">Hakuna mazungumzo bado</p>
-              <button onClick={() => setShowNewConv(true)} className="mt-2 text-xs text-primary-600 hover:underline">
-                Anza mazungumzo mapya
-              </button>
-            </div>
-          ) : (
-            filtered.map((conv) => {
-              const isActive = selected?.id === conv.id
-              const label = convLabel(conv, currentUserId)
-              const otherP = (conv.participants ?? []).find((p) => p.user_id !== currentUserId)
-              return (
-                <button
-                  key={conv.id}
-                  onClick={() => setSelected(conv)}
-                  className={`w-full text-left p-3 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800 transition-colors ${isActive ? 'bg-primary-50 dark:bg-primary-900/20' : ''}`}
-                >
-                  <Avatar src={otherP?.user?.avatar_url} name={otherP?.user?.full_name ?? label} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className={`text-sm truncate flex-1 ${conv.unread_count > 0 ? 'font-semibold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>
-                        {label}
+        ) : (
+          filtered.map((conv) => {
+            const isActive = selected?.id === conv.id
+            const label = convLabel(conv, currentUserId)
+            const otherP = (conv.participants ?? []).find((p) => p.user_id !== currentUserId)
+            return (
+              <button
+                key={conv.id}
+                onClick={() => openConversation(conv)}
+                className={`w-full text-left p-3 flex items-start gap-3 border-b border-gray-100 dark:border-gray-800 transition-colors active:bg-gray-100 dark:active:bg-gray-800 ${isActive ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+              >
+                <Avatar src={otherP?.user?.avatar_url} name={otherP?.user?.full_name ?? label} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-sm truncate flex-1 ${conv.unread_count > 0 ? 'font-semibold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>
+                      {label}
+                    </span>
+                    {conv.unread_count > 0 && (
+                      <span className="flex-shrink-0 bg-primary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {conv.unread_count > 9 ? '9+' : conv.unread_count}
                       </span>
-                      {conv.unread_count > 0 && (
-                        <span className="flex-shrink-0 bg-primary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {conv.unread_count > 9 ? '9+' : conv.unread_count}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      {convTypeTag(conv)}
-                    </div>
-                    <p className="text-xs text-gray-400 truncate mt-0.5">
-                      {conv.last_message_body ?? 'Bonyeza kuanza'}
-                    </p>
-                    <p className="text-xs text-gray-300">{relativeTime(conv.last_message_at)}</p>
+                    )}
+                    <span className="text-xs text-gray-300 flex-shrink-0">{relativeTime(conv.last_message_at)}</span>
                   </div>
-                </button>
-              )
-            })
-          )}
+                  <div className="flex items-center gap-1 mt-0.5">
+                    {convTypeTag(conv)}
+                  </div>
+                  <p className="text-xs text-gray-400 truncate mt-0.5">
+                    {conv.last_message_body ?? 'Bonyeza kuanza'}
+                  </p>
+                </div>
+              </button>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+
+  // ── Thread Panel ──────────────────────────────────────────────────────────
+
+  const threadPanel = !selected ? (
+    // Desktop empty state only — hidden on mobile
+    <div className="hidden md:flex flex-1 items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="text-center">
+        <svg className="w-16 h-16 text-gray-200 dark:text-gray-700 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+        <p className="text-gray-400 text-sm">Chagua mazungumzo kuanza</p>
+      </div>
+    </div>
+  ) : (
+    <div
+      className={`
+        flex flex-col bg-white dark:bg-gray-900
+        flex-1 min-w-0
+        absolute inset-0 md:relative
+        transition-transform duration-200
+        ${mobilePane === 'list' ? 'translate-x-full md:translate-x-0' : 'translate-x-0'}
+      `}
+    >
+      {/* Thread header */}
+      <div className="h-14 flex items-center px-3 md:px-4 border-b border-gray-200 dark:border-gray-700 gap-2 md:gap-3 flex-shrink-0">
+        {/* Back button — mobile only */}
+        <button
+          onClick={goBackToList}
+          className="md:hidden flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 text-gray-600 dark:text-gray-300 transition-colors flex-shrink-0"
+          aria-label="Rudi kwenye orodha"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <Avatar
+          src={(selected.participants ?? []).find((p) => p.user_id !== currentUserId)?.user?.avatar_url}
+          name={convLabel(selected, currentUserId)}
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{convLabel(selected, currentUserId)}</p>
+            {convTypeTag(selected)}
+          </div>
+          <p className="text-xs text-gray-400">{(selected.participants ?? []).length} washiriki</p>
         </div>
       </div>
 
-      {/* ── Thread ─────────────────────────────────────────────────────────────── */}
-      {!selected ? (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-          <div className="text-center">
-            <svg className="w-16 h-16 text-gray-200 dark:text-gray-700 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            <p className="text-gray-400 text-sm">Chagua mazungumzo kuanza</p>
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="h-14 flex items-center px-4 border-b border-gray-200 dark:border-gray-700 gap-3">
-            <Avatar
-              src={(selected.participants ?? []).find((p) => p.user_id !== currentUserId)?.user?.avatar_url}
-              name={convLabel(selected, currentUserId)}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{convLabel(selected, currentUserId)}</p>
-                {convTypeTag(selected)}
-              </div>
-              <p className="text-xs text-gray-400">{(selected.participants ?? []).length} washiriki</p>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {loadingThread ? (
-              <div className="text-center text-sm text-gray-400 py-8">Inapakia...</div>
-            ) : messages.length === 0 ? (
-              <div className="text-center text-sm text-gray-400 py-8">Hakuna ujumbe. Anza mazungumzo!</div>
-            ) : (
-              messages.map((msg) => {
-                const isMe = msg.sender_id === currentUserId
-                const name = isMe ? currentUserName : (msg.sender?.full_name ?? 'Mtumiaji')
-                return (
-                  <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-                    {!isMe && <Avatar src={msg.sender?.avatar_url} name={name} size={7} />}
-                    <div className={`flex flex-col gap-1 max-w-xs lg:max-w-md ${isMe ? 'items-end' : 'items-start'}`}>
-                      {!isMe && <span className="text-xs text-gray-400 px-1">{name}</span>}
-                      <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${isMe ? 'bg-primary-500 text-white rounded-tr-sm' : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-sm'}`}>
-                        {msg.body}
-                        {msg.attachments?.length ? <AttachmentDisplay attachments={msg.attachments} /> : null}
-                      </div>
-                      <span className="text-xs text-gray-300 px-1">
-                        {new Date(msg.created_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-3 md:px-4 py-3 space-y-3">
+        {loadingThread ? (
+          <div className="text-center text-sm text-gray-400 py-8">Inapakia...</div>
+        ) : messages.length === 0 ? (
+          <div className="text-center text-sm text-gray-400 py-8">Hakuna ujumbe. Anza mazungumzo!</div>
+        ) : (
+          messages.map((msg) => {
+            const isMe = msg.sender_id === currentUserId
+            const name = isMe ? currentUserName : (msg.sender?.full_name ?? 'Mtumiaji')
+            return (
+              <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                {!isMe && <Avatar src={msg.sender?.avatar_url} name={name} size={7} />}
+                <div className={`flex flex-col gap-0.5 max-w-[78%] md:max-w-md ${isMe ? 'items-end' : 'items-start'}`}>
+                  {!isMe && <span className="text-xs text-gray-400 px-1">{name}</span>}
+                  <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${isMe ? 'bg-primary-500 text-white rounded-tr-sm' : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-sm'}`}>
+                    {msg.body}
+                    {msg.attachments?.length ? <AttachmentDisplay attachments={msg.attachments} /> : null}
                   </div>
-                )
-              })
-            )}
-            <div ref={bottomRef} />
-          </div>
+                  <span className="text-xs text-gray-300 px-1">
+                    {new Date(msg.created_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            )
+          })
+        )}
+        <div ref={bottomRef} />
+      </div>
 
-          <div className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-            {pendingAttachment && (
-              <AttachmentCompose
-                attachment={pendingAttachment}
-                onAttach={setPendingAttachment}
-                onRemove={() => setPendingAttachment(null)}
-              />
+      {/* Compose bar */}
+      <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-2 md:p-3 space-y-2 bg-white dark:bg-gray-900">
+        {pendingAttachment && (
+          <AttachmentCompose
+            attachment={pendingAttachment}
+            onAttach={setPendingAttachment}
+            onRemove={() => setPendingAttachment(null)}
+          />
+        )}
+        <div className="flex items-end gap-2">
+          <AttachmentCompose
+            attachment={null}
+            onAttach={setPendingAttachment}
+            onRemove={() => setPendingAttachment(null)}
+          />
+          <textarea
+            ref={textareaRef}
+            className="flex-1 resize-none px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-400 leading-snug overflow-hidden"
+            rows={1}
+            style={{ maxHeight: '128px' }}
+            placeholder="Andika ujumbe..."
+            value={draft}
+            onChange={handleDraftChange}
+            onKeyDown={(e) => {
+              // Enter sends only on desktop (shift+enter = newline everywhere)
+              if (e.key === 'Enter' && !e.shiftKey && window.innerWidth >= 768) {
+                e.preventDefault()
+                handleSend()
+              }
+            }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={(!draft.trim() && !pendingAttachment) || sending}
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 disabled:opacity-40 transition-colors flex-shrink-0"
+            aria-label="Tuma"
+          >
+            {sending ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
             )}
-            <div className="flex items-end gap-2">
-              <AttachmentCompose
-                attachment={null}
-                onAttach={setPendingAttachment}
-                onRemove={() => setPendingAttachment(null)}
-              />
-              <textarea
-                className="flex-1 resize-none px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-400 max-h-32"
-                rows={1}
-                placeholder="Andika ujumbe..."
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-              />
-              <button
-                onClick={handleSend}
-                disabled={(!draft.trim() && !pendingAttachment) || sending}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-40 transition-colors flex-shrink-0"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-              </button>
-            </div>
-          </div>
+          </button>
         </div>
-      )}
+      </div>
+    </div>
+  )
+
+  return (
+    <>
+      {/* Main layout: relative container lets absolute children fill it on mobile */}
+      <div className="relative flex h-[calc(100dvh-4rem)] bg-white dark:bg-gray-900 overflow-hidden">
+        {listPanel}
+        {threadPanel}
+      </div>
 
       {/* ── New Conversation Modal ─────────────────────────────────────────────── */}
       {showNewConv && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-lg flex flex-col max-h-[92dvh] sm:max-h-[90vh]">
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4 md:p-5 border-b border-gray-200 dark:border-gray-700">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">Mazungumzo Mapya</h3>
-              <button onClick={() => setShowNewConv(false)} className="text-gray-400 hover:text-gray-600">
+              <button
+                onClick={() => setShowNewConv(false)}
+                className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4">
               {/* Contact type tabs */}
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Aina ya Mpokeaji</p>
@@ -495,28 +577,31 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
               {/* Contact search + pick */}
               <div>
                 <input
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                  className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-400"
                   placeholder={`Tafuta ${CONTACT_TABS.find((t) => t.key === contactTab)?.label ?? ''}...`}
                   value={contactSearch}
                   onChange={(e) => setContactSearch(e.target.value)}
                 />
 
                 {pickedContact ? (
-                  <div className="mt-2 flex items-center gap-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg px-3 py-2">
-                    <Avatar src={pickedContact.avatar_url} name={pickedContact.name} size={6} />
+                  <div className="mt-2 flex items-center gap-2 bg-primary-50 dark:bg-primary-900/20 rounded-xl px-3 py-2.5">
+                    <Avatar src={pickedContact.avatar_url} name={pickedContact.name} size={7} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{pickedContact.name}</p>
                       {pickedContact.subtitle && <p className="text-xs text-gray-400">{pickedContact.subtitle}</p>}
                     </div>
                     {roleBadge(pickedContact.type)}
-                    <button onClick={() => setPickedContact(null)} className="text-gray-400 hover:text-gray-600 ml-1">
+                    <button
+                      onClick={() => setPickedContact(null)}
+                      className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 ml-1 rounded-full hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                    >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
                 ) : (
-                  <div className="mt-1 max-h-44 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <div className="mt-2 max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-800">
                     {contactsLoading ? (
                       <div className="p-3 text-xs text-gray-400 text-center">Inapakia...</div>
                     ) : contacts.length === 0 ? (
@@ -526,9 +611,9 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
                         <button
                           key={c.id}
                           onClick={() => setPickedContact(c)}
-                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-left border-b border-gray-100 dark:border-gray-800 last:border-0"
+                          className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 text-left"
                         >
-                          <Avatar src={c.avatar_url} name={c.name} size={6} />
+                          <Avatar src={c.avatar_url} name={c.name} size={7} />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-gray-800 dark:text-gray-200 truncate">{c.name}</p>
                             {c.subtitle && <p className="text-xs text-gray-400 truncate">{c.subtitle}</p>}
@@ -545,7 +630,7 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Kichwa (hiari)</label>
                 <input
-                  className="mt-1 w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                  className="mt-1.5 w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-400"
                   placeholder="Mfano: Tatizo la malipo..."
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
@@ -556,7 +641,7 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Ujumbe wa Kwanza</label>
                 <textarea
-                  className="mt-1 w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary-400 resize-none"
+                  className="mt-1.5 w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
                   rows={3}
                   placeholder="Andika ujumbe wako wa kwanza..."
                   value={newFirstMsg}
@@ -565,17 +650,17 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
               </div>
             </div>
 
-            <div className="p-5 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+            <div className="p-4 md:p-5 border-t border-gray-200 dark:border-gray-700 flex gap-3">
               <button
                 onClick={() => setShowNewConv(false)}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                className="flex-1 py-2.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors"
               >
                 Ghairi
               </button>
               <button
                 onClick={handleCreate}
                 disabled={!pickedContact || !newFirstMsg.trim() || creating}
-                className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-40 transition-colors"
+                className="flex-1 py-2.5 text-sm bg-primary-500 text-white rounded-xl hover:bg-primary-600 active:bg-primary-700 disabled:opacity-40 transition-colors font-medium"
               >
                 {creating ? 'Inaunda...' : 'Anza Mazungumzo'}
               </button>
@@ -583,6 +668,6 @@ export default function MessagesPanel({ currentUserId, currentUserName, currentU
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
