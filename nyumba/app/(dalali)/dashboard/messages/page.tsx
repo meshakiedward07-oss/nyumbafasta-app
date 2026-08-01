@@ -90,6 +90,7 @@ export default function DalaliMessagesPage() {
   const [loadingThread, setLoadingThread] = useState(false)
   const [searchQ, setSearchQ] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const supabase = createClient()
 
   const loadConversations = useCallback(async () => {
@@ -150,6 +151,14 @@ export default function DalaliMessagesPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Auto-grow textarea
+  function handleDraftChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setDraft(e.target.value)
+    const el = e.target
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  }
+
   async function handleSend() {
     if ((!draft.trim() && !pendingAttachment) || !selected || sending || !uid) return
     setSending(true)
@@ -157,6 +166,8 @@ export default function DalaliMessagesPage() {
     const attachment = pendingAttachment
     setDraft('')
     setPendingAttachment(null)
+    // Reset textarea height
+    if (textareaRef.current) { textareaRef.current.style.height = 'auto' }
     const res = await fetch(`/api/v1/conversations/${selected.id}/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -185,156 +196,247 @@ export default function DalaliMessagesPage() {
     !searchQ || convLabel(c, uid ?? '').toLowerCase().includes(searchQ.toLowerCase())
   )
 
-  return (
-    <div className="flex h-[calc(100dvh-5rem)] bg-white">
-      {/* ── Conversation List ───────────────────────────────────────────────── */}
-      <div className="w-full max-w-xs flex-shrink-0 border-r border-gray-100 flex flex-col">
-        <div className="p-4 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900 mb-3">Ujumbe Wangu</h2>
+  // ── Conversation List Panel ────────────────────────────────────────────────
+  const ConversationList = (
+    <div className={`
+      flex flex-col bg-white
+      border-r border-gray-100
+      ${selected
+        ? 'hidden lg:flex lg:w-80 lg:flex-shrink-0'
+        : 'flex-1 lg:w-80 lg:flex-shrink-0'
+      }
+    `}>
+      {/* Header */}
+      <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-gray-100">
+        <h2 className="font-bold text-gray-900 text-base mb-3">Ujumbe Wangu</h2>
+        <div className="relative">
+          <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
           <input
-            className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-300"
+            className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-300"
             placeholder="Tafuta mazungumzo..."
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
           />
         </div>
+      </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 text-sm text-gray-400 text-center">Inapakia...</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-8 text-center">
-              <svg className="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
-              <p className="text-sm text-gray-400">Hakuna ujumbe bado</p>
-              <p className="text-xs text-gray-300 mt-1">Timu ya NyumbaFasta itawasiliana nawe hapa</p>
-            </div>
-          ) : (
-            filtered.map((conv) => {
-              const isActive = selected?.id === conv.id
-              const label = convLabel(conv, uid ?? '')
-              const otherP = (conv.participants ?? []).find((p) => p.user_id !== uid)
-              return (
-                <button
-                  key={conv.id}
-                  onClick={() => setSelected(conv)}
-                  className={`w-full text-left p-3 flex items-start gap-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${isActive ? 'bg-primary-50' : ''}`}
-                >
-                  <div className="relative">
-                    <Avatar src={otherP?.user?.avatar_url} name={otherP?.user?.full_name ?? label} />
-                    {conv.unread_count > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-primary-500 rounded-full border-2 border-white" />
-                    )}
+      {/* List */}
+      <div className="flex-1 overflow-y-auto">
+        {loading ? (
+          <div className="flex flex-col gap-3 p-4">
+            {[1,2,3].map(i => (
+              <div key={i} className="flex items-center gap-3 animate-pulse">
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-gray-100 rounded w-3/4" />
+                  <div className="h-2.5 bg-gray-100 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 text-center">
+            <i className="ti ti-message-circle-off text-5xl text-gray-200 block mb-3" aria-hidden="true" />
+            <p className="text-sm font-medium text-gray-400">Hakuna ujumbe bado</p>
+            <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+              Timu ya NyumbaFasta itawasiliana nawe hapa
+            </p>
+          </div>
+        ) : (
+          filtered.map((conv) => {
+            const isActive = selected?.id === conv.id
+            const label = convLabel(conv, uid ?? '')
+            const otherP = (conv.participants ?? []).find((p) => p.user_id !== uid)
+            return (
+              <button
+                key={conv.id}
+                onClick={() => setSelected(conv)}
+                className={`w-full text-left px-4 py-3.5 flex items-center gap-3 border-b border-gray-50 transition-colors active:bg-gray-50
+                  ${isActive ? 'bg-primary-50 border-l-2 border-l-primary-500' : 'hover:bg-gray-50'}`}
+              >
+                <div className="relative flex-shrink-0">
+                  <Avatar src={otherP?.user?.avatar_url} name={otherP?.user?.full_name ?? label} size={10} />
+                  {conv.unread_count > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-primary-500 rounded-full border-2 border-white" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <span className={`text-sm truncate ${conv.unread_count > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                      {label}
+                    </span>
+                    <span className="text-[10px] text-gray-300 flex-shrink-0 whitespace-nowrap">
+                      {relativeTime(conv.last_message_at)}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-sm truncate ${conv.unread_count > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
-                        {label}
-                      </span>
-                      <span className="text-[10px] text-gray-300 flex-shrink-0 ml-1">{relativeTime(conv.last_message_at)}</span>
-                    </div>
-                    <p className="text-xs text-gray-400 truncate mt-0.5">{conv.last_message_body ?? 'Bonyeza kuona'}</p>
-                  </div>
-                </button>
-              )
-            })
-          )}
+                  <p className="text-xs text-gray-400 truncate">{conv.last_message_body ?? 'Bonyeza kuona'}</p>
+                </div>
+                {conv.unread_count > 0 && (
+                  <span className="flex-shrink-0 min-w-[20px] h-5 flex items-center justify-center bg-primary-500 text-white text-[10px] font-bold rounded-full px-1">
+                    {conv.unread_count > 9 ? '9+' : conv.unread_count}
+                  </span>
+                )}
+              </button>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+
+  // ── Thread Panel ───────────────────────────────────────────────────────────
+  const ThreadPanel = selected ? (
+    <div className="flex-1 flex flex-col min-w-0 bg-white">
+
+      {/* Thread header */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white">
+        {/* Back button — mobile only */}
+        <button
+          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 flex-shrink-0 active:bg-gray-200 transition-colors"
+          onClick={() => setSelected(null)}
+          aria-label="Rudi nyuma"
+        >
+          <i className="ti ti-arrow-left text-base" aria-hidden="true" />
+        </button>
+        <Avatar
+          src={(selected.participants ?? []).find((p) => p.user_id !== uid)?.user?.avatar_url}
+          name={convLabel(selected, uid ?? '')}
+          size={9}
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm text-gray-900 truncate">{convLabel(selected, uid ?? '')}</p>
+          <p className="text-xs text-gray-400">
+            {selected.status === 'open' ? 'Ikiwa wazi' : 'Imefungwa'}
+          </p>
         </div>
       </div>
 
-      {/* ── Thread ───────────────────────────────────────────────────────────── */}
-      {!selected ? (
-        <div className="hidden sm:flex flex-1 items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <svg className="w-14 h-14 text-gray-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            <p className="text-gray-400 text-sm">Chagua mazungumzo kushoto</p>
+      {/* Messages scroll area — min-h-0 required for flex overflow to work */}
+      <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-4 bg-gray-50">
+        {loadingThread ? (
+          <div className="flex flex-col gap-4 pt-4">
+            {[1,2,3].map(i => (
+              <div key={i} className={`flex gap-2 animate-pulse ${i % 2 === 0 ? 'flex-row-reverse' : ''}`}>
+                <div className="w-7 h-7 rounded-full bg-gray-200 flex-shrink-0" />
+                <div className={`h-10 rounded-2xl bg-gray-200 ${i % 2 === 0 ? 'w-40' : 'w-52'}`} />
+              </div>
+            ))}
           </div>
-        </div>
-      ) : (
-        <div className={`flex-1 flex flex-col min-w-0 ${!selected ? 'hidden sm:flex' : 'flex'}`}>
-          <div className="h-14 flex items-center px-4 border-b border-gray-100 gap-3">
-            <button
-              className="sm:hidden text-gray-400 mr-1"
-              onClick={() => setSelected(null)}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <Avatar
-              src={(selected.participants ?? []).find((p) => p.user_id !== uid)?.user?.avatar_url}
-              name={convLabel(selected, uid ?? '')}
-            />
-            <p className="font-semibold text-sm text-gray-900 truncate">{convLabel(selected, uid ?? '')}</p>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+            <i className="ti ti-message text-5xl text-gray-200 mb-3" aria-hidden="true" />
+            <p className="text-sm font-medium text-gray-400">Hakuna ujumbe bado</p>
+            <p className="text-xs text-gray-300 mt-1">Anza mazungumzo hapa chini</p>
           </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {loadingThread ? (
-              <div className="text-center text-sm text-gray-400 py-8">Inapakia...</div>
-            ) : messages.length === 0 ? (
-              <div className="text-center text-sm text-gray-400 py-8">Hakuna ujumbe bado.</div>
-            ) : (
-              messages.map((msg) => {
-                const isMe = msg.sender_id === uid
-                const name = isMe ? userName : (msg.sender?.full_name ?? 'Timu')
-                return (
-                  <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-                    {!isMe && <Avatar src={msg.sender?.avatar_url} name={name} size={7} />}
-                    <div className={`flex flex-col gap-1 max-w-xs ${isMe ? 'items-end' : 'items-start'}`}>
-                      {!isMe && <span className="text-xs text-gray-400 px-1">{name}</span>}
-                      <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${isMe ? 'bg-primary-500 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-900 rounded-tl-sm'}`}>
-                        {msg.body}
-                        {msg.attachments?.length ? <AttachmentDisplay attachments={msg.attachments} /> : null}
-                      </div>
-                      <span className="text-xs text-gray-300 px-1">
-                        {new Date(msg.created_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
+        ) : (
+          messages.map((msg) => {
+            const isMe = msg.sender_id === uid
+            const name = isMe ? userName : (msg.sender?.full_name ?? 'Timu')
+            return (
+              <div key={msg.id} className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                {!isMe && <Avatar src={msg.sender?.avatar_url} name={name} size={7} />}
+                <div className={`flex flex-col gap-1 max-w-[78%] ${isMe ? 'items-end' : 'items-start'}`}>
+                  {!isMe && <span className="text-xs text-gray-400 px-1">{name}</span>}
+                  <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words
+                    ${isMe
+                      ? 'bg-primary-500 text-white rounded-br-sm'
+                      : 'bg-white text-gray-900 rounded-bl-sm shadow-sm border border-gray-100'
+                    }`}
+                  >
+                    {msg.body && <p>{msg.body}</p>}
+                    {msg.attachments?.length ? <AttachmentDisplay attachments={msg.attachments} /> : null}
                   </div>
-                )
-              })
-            )}
-            <div ref={bottomRef} />
+                  <span className="text-[10px] text-gray-300 px-1">
+                    {new Date(msg.created_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            )
+          })
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Reply box — flex-shrink-0 so it never gets compressed */}
+      <div
+        className="flex-shrink-0 bg-white border-t border-gray-100"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        {/* Attachment preview row */}
+        {pendingAttachment && (
+          <div className="px-3 pt-3">
+            <AttachmentCompose
+              attachment={pendingAttachment}
+              onAttach={setPendingAttachment}
+              onRemove={() => setPendingAttachment(null)}
+            />
+          </div>
+        )}
+
+        {/* Input row */}
+        <div className="flex items-end gap-2 px-3 py-3">
+          {/* Attachment picker */}
+          <div className="flex-shrink-0">
+            <AttachmentCompose
+              attachment={null}
+              onAttach={setPendingAttachment}
+              onRemove={() => setPendingAttachment(null)}
+            />
           </div>
 
-          <div className="p-3 border-t border-gray-100 space-y-2">
-            {pendingAttachment && (
-              <AttachmentCompose
-                attachment={pendingAttachment}
-                onAttach={setPendingAttachment}
-                onRemove={() => setPendingAttachment(null)}
-              />
-            )}
-            <div className="flex items-end gap-2">
-              <AttachmentCompose
-                attachment={null}
-                onAttach={setPendingAttachment}
-                onRemove={() => setPendingAttachment(null)}
-              />
-              <textarea
-                className="flex-1 resize-none px-3 py-2 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-300 max-h-28"
-                rows={1}
-                placeholder="Andika ujumbe..."
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-              />
-              <button
-                onClick={handleSend}
-                disabled={(!draft.trim() && !pendingAttachment) || sending}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-40 transition-colors flex-shrink-0"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-              </button>
-            </div>
-          </div>
+          {/* Text input */}
+          <textarea
+            ref={textareaRef}
+            className="flex-1 resize-none px-3 py-2.5 text-sm rounded-2xl border border-gray-200 bg-gray-50
+                       focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-300
+                       placeholder-gray-400 leading-relaxed"
+            style={{ minHeight: '44px', maxHeight: '120px' }}
+            rows={1}
+            placeholder="Andika ujumbe..."
+            value={draft}
+            onChange={handleDraftChange}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+            }}
+          />
+
+          {/* Send button */}
+          <button
+            onClick={handleSend}
+            disabled={(!draft.trim() && !pendingAttachment) || sending}
+            className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl
+                       bg-primary-500 text-white active:bg-primary-600
+                       disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            aria-label="Tuma ujumbe"
+          >
+            {sending
+              ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              : <i className="ti ti-send text-lg" aria-hidden="true" />
+            }
+          </button>
         </div>
-      )}
+      </div>
+    </div>
+  ) : (
+    /* Desktop empty state — hidden on mobile */
+    <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <i className="ti ti-messages text-6xl text-gray-200 block mb-3" aria-hidden="true" />
+        <p className="text-gray-400 text-sm font-medium">Chagua mazungumzo kushoto</p>
+        <p className="text-xs text-gray-300 mt-1">Mazungumzo yako yataonekana hapa</p>
+      </div>
+    </div>
+  )
+
+  return (
+    /*
+     * Height = viewport minus bottom nav (5rem = 80px on mobile).
+     * On desktop the BottomNav is hidden so use full dvh.
+     * overflow-hidden prevents body scroll bleeding into chat panels.
+     */
+    <div className="flex h-[calc(100dvh-5rem)] lg:h-dvh bg-white overflow-hidden">
+      {ConversationList}
+      {ThreadPanel}
     </div>
   )
 }
