@@ -92,8 +92,6 @@ export async function POST(req: NextRequest) {
     let sourceRole: string | null = null
     if (callerRole === 'dalali') {
       sourceRole = 'dalali'
-    } else if (callerRole === 'org_owner') {
-      sourceRole = 'org'
     } else if (callerRole === 'client') {
       const { data: adv } = await admin.from('advertisers').select('id').eq('user_id', user.id).maybeSingle()
       if (adv) sourceRole = 'advertiser'
