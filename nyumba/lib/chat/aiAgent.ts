@@ -279,10 +279,11 @@ async function handleFollowUpClient(
 ): Promise<string> {
   const history = await getHistory(session.id, 6)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1000,
-    system: `Wewe ni Amina, msaidizi wa NyumbaFasta Tanzania.
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: `Wewe ni Amina, msaidizi wa NyumbaFasta Tanzania.
 
 MAKUNDI MAWILI UNAYOWASAIDIA:
 1. WATEJA — wanaotafuta nyumba za kupanga au kununua. Wasaidie kutafuta listings. Hawa ni matumizi ya kawaida ya app.
@@ -303,12 +304,16 @@ KANUNI:
 - Jibu mistari 3-5 tu
 - Usiseme "Mimi ni AI" au "kama AI"
 - Usitumie lugha ya ofisi`,
-    messages: [
-      ...history.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content as string })),
-      { role: 'user', content: message },
-    ],
-  })
-  return response.content[0].type === 'text' ? response.content[0].text : 'Samahani, jaribu tena.'
+      messages: [
+        ...history.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content as string })),
+        { role: 'user', content: message },
+      ],
+    })
+    return response.content[0].type === 'text' ? response.content[0].text : 'Samahani, jaribu tena.'
+  } catch (err) {
+    console.error('[Amina] handleFollowUpClient AI error:', err)
+    return `Ninahitaji muda kidogo. Tafadhali andika "menu" kurudi menyu au tembelea ${appUrl} moja kwa moja. 🙏`
+  }
 }
 
 // ── Dalali registration flow ───────────────────────────────────────────────
@@ -762,6 +767,7 @@ export async function handleCustomerCare(
     ? `\n\nMAELEKEZO MAALUM YA ADMIN (fuata haya katika jibu lako lijalo):\n${adminInstructions}`
     : ''
 
+  try {
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1000,
@@ -832,6 +838,11 @@ JINSI YA KUJIBU:
   })
 
   return response.content[0].type === 'text' ? response.content[0].text : 'Samahani, jaribu tena. 🙏'
+  } catch (err) {
+    console.error('[Amina] handleCustomerCare AI error:', err)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    return `Naomba msamaha, nina tatizo la kiufundi sasa hivi. 🙏\n\nKwa msaada wa haraka piga simu au WhatsApp: *+255665831694*\nAu tembelea: ${appUrl}`
+  }
 }
 
 export function isCustomerCareQuery(message: string): boolean {
