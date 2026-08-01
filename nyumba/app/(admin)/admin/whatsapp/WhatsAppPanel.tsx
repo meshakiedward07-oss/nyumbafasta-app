@@ -132,6 +132,23 @@ export default function WhatsAppPanel() {
   const [activeTab, setActiveTab] = useState<'chat' | 'controls'>('chat')
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
+  // Setup modal
+  const [showSetup,   setShowSetup]   = useState(false)
+  const [waSetup,     setWaSetup]     = useState<{ webhook_url?: string; verify_token?: string; instructions?: string[] } | null>(null)
+  const [setupLoading, setSetupLoading] = useState(false)
+
+  function openSetup() {
+    setShowSetup(true)
+    if (!waSetup) {
+      setSetupLoading(true)
+      fetch('/api/v1/admin/setup-whatsapp')
+        .then(r => r.json())
+        .then(d => setWaSetup(d as typeof waSetup))
+        .catch(() => setWaSetup(null))
+        .finally(() => setSetupLoading(false))
+    }
+  }
+
   const bottomRef    = useRef<HTMLDivElement>(null)
   const messagesRef  = useRef<HTMLDivElement>(null)
   const controlsRef  = useRef<HTMLDivElement>(null)
@@ -359,6 +376,81 @@ export default function WhatsAppPanel() {
         </div>
       )}
 
+      {/* ── WhatsApp Setup Modal ──────────────────────────────────────── */}
+      {showSetup && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowSetup(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                <i className="ti ti-brand-whatsapp text-green-600" /> WhatsApp Webhook Setup
+              </h3>
+              <button onClick={() => setShowSetup(false)} className="text-gray-400 hover:text-gray-600">
+                <i className="ti ti-x text-lg" aria-hidden="true" />
+              </button>
+            </div>
+            {setupLoading ? (
+              <div className="space-y-3">
+                {[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />)}
+              </div>
+            ) : waSetup ? (
+              <div className="space-y-4">
+                {waSetup.webhook_url && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Webhook URL</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-800 font-mono break-all">
+                        {waSetup.webhook_url}
+                      </code>
+                      <button onClick={() => navigator.clipboard.writeText(waSetup!.webhook_url!)}
+                        className="flex-shrink-0 text-xs px-3 py-2.5 bg-primary-500 text-white rounded-xl font-medium">
+                        Nakili
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {waSetup.verify_token && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Verify Token</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-800 font-mono">
+                        {waSetup.verify_token}
+                      </code>
+                      <button onClick={() => navigator.clipboard.writeText(waSetup!.verify_token!)}
+                        className="flex-shrink-0 text-xs px-3 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium">
+                        Nakili
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {waSetup.instructions && waSetup.instructions.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Hatua za Usanidi</p>
+                    <ol className="space-y-2">
+                      {waSetup.instructions.map((step, i) => (
+                        <li key={i} className="flex gap-2 text-sm text-gray-700">
+                          <span className="flex-shrink-0 w-5 h-5 bg-primary-100 text-primary-700 rounded-full text-xs flex items-center justify-center font-semibold">
+                            {i + 1}
+                          </span>
+                          {step}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                {!waSetup.webhook_url && !waSetup.verify_token && (
+                  <pre className="text-xs bg-gray-50 p-3 rounded-xl overflow-auto text-gray-700">
+                    {JSON.stringify(waSetup, null, 2)}
+                  </pre>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">Imeshindwa kupata maelekezo ya usanidi.</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── LEFT: Conversation list ──────────────────────────────────────── */}
       <div className={`w-72 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col ${selected ? 'hidden lg:flex' : 'flex'}`}>
 
@@ -366,9 +458,15 @@ export default function WhatsAppPanel() {
         <div className="px-4 py-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h1 className="font-bold text-gray-900 text-sm">Mazungumzo ya WhatsApp</h1>
-            <Link href="/admin/whatsapp/broadcast" className="text-xs text-primary-500 font-semibold">
-              Broadcast
-            </Link>
+            <div className="flex items-center gap-2">
+              <button onClick={openSetup}
+                className="text-xs text-gray-500 hover:text-primary-600 font-semibold flex items-center gap-0.5">
+                <i className="ti ti-settings text-sm" aria-hidden="true" />Setup
+              </button>
+              <Link href="/admin/whatsapp/broadcast" className="text-xs text-primary-500 font-semibold">
+                Broadcast
+              </Link>
+            </div>
           </div>
 
           {/* Search */}
