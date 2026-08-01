@@ -85,6 +85,7 @@ const LS_KEY = 'nf_exec_custom_headlines'
 const FIXED_HEADLINES = [
   'today_income',
   'today_unlocks_count',
+  'today_unlocks_revenue',
   'new_registrations_24h',
   'pending_listings',
 ] as const
@@ -236,11 +237,22 @@ function RevenueSection() {
     fetch('/api/v1/admin/analytics')
       .then(r => r.json())
       .then(j => {
-        if (!j.months) return
+        if (!j.revenueByMonth) return
         setData({
-          months:    j.months ?? [],
-          thisMonth: j.thisMonth ?? { income: 0, expenses: 0, net: 0, growth: 0 },
-          sources:   j.sources ?? {},
+          months:    j.revenueByMonth ?? [],
+          thisMonth: {
+            income:   j.thisMonthIncome       ?? 0,
+            expenses: j.expenses?.thisMonth   ?? 0,
+            net:      j.expenses?.profit      ?? 0,
+            growth:   j.growth                ?? 0,
+          },
+          sources: {
+            subscription: j.totals?.subscription   ?? 0,
+            unlock:       j.totals?.contact_unlock ?? 0,
+            boost:        j.totals?.boost_listing  ?? 0,
+            extra:        j.totals?.extra_listing  ?? 0,
+            other:        0,
+          },
         })
       })
       .catch(() => null)
@@ -458,7 +470,14 @@ function SecuritySection({ metrics }: { metrics: Metrics | null }) {
   const high     = metrics?.unresolved_fraud_high     ?? 0
 
   if (!metrics) return <SectionShimmer />
-  if (critical === 0 && high === 0) return null
+
+  if (critical === 0 && high === 0) return (
+    <section className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-2">
+      <i className="ti ti-shield-check text-green-500 text-lg" aria-hidden="true" />
+      <span className="text-sm text-green-700 font-medium">Usalama: Hakuna ishara za ulaghai</span>
+      <Link href="/admin/fraud" className="ml-auto text-xs text-green-600 hover:underline shrink-0">Angalia →</Link>
+    </section>
+  )
 
   return (
     <section className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
@@ -475,7 +494,7 @@ function SecuritySection({ metrics }: { metrics: Metrics | null }) {
           <span className="text-sm text-red-600">ishara hatari sana (critical)</span>
         </div>
       )}
-      {high > critical && (
+      {high > 0 && (
         <div className="flex items-center gap-2 p-2 bg-amber-100 rounded-xl">
           <span className="text-sm font-bold text-amber-800 tabular-nums">{high}</span>
           <span className="text-sm text-amber-700">ishara za hatari (high+critical)</span>
