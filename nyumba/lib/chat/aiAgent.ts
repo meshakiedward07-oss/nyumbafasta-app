@@ -911,7 +911,7 @@ Wateja wataanza kuona listing yako mara moja! 🏠
 Unataka kupost nyumba nyingine? Andika "listing"`
   } catch (err) {
     console.error('Submit listing error:', err)
-    return `❌ Kuna tatizo la kiufundi. Tafadhali jaribu tena au tembelea ${appUrl}/dashboard`
+    return `❌ Imeshindwa kuhifadhi listing. Tafadhali jaribu tena au tembelea ${appUrl}/dashboard`
   }
 }
 
@@ -1009,7 +1009,7 @@ JINSI YA KUJIBU:
     console.error('[Amina] handleCustomerCare AI error:', err)
     const staticReply = staticCustomerCareReply(message, appUrl)
     if (staticReply) return staticReply
-    return `Naomba msamaha, nina tatizo la kiufundi sasa hivi. 🙏\n\nKwa msaada wa haraka piga simu au WhatsApp: *+255665831694*\nAu tembelea: ${appUrl}`
+    return `Ninahitaji muda kidogo. 🙏\n\nKwa msaada wa haraka:\n📞 WhatsApp: *+255665831694*\n🌐 ${appUrl}\n\nAu andika *menu* kurudi menyu kuu. 😊`
   }
 }
 
@@ -1132,7 +1132,14 @@ export async function handleIncomingMessage(
 
     // ── Active customer care session ───────────────────────────
     } else if (session.flow_type === 'customer_care') {
-      response = await handleCustomerCare(session, message, adminInstructions, kbContext)
+      // A housing search always exits customer care — user shouldn't be stuck in support mode
+      const quickSearch = parseHousingSearch(message)
+      if (quickSearch) {
+        void updateSession(session.id, { flow_type: 'client', flow_step: 'showing_results', flow_data: {} })
+        response = await directSearch(session.id, quickSearch)
+      } else {
+        response = await handleCustomerCare(session, message, adminInstructions, kbContext)
+      }
 
     // ── Greeting / first message ───────────────────────────────
     } else if (session.flow_step === 'greeting') {
