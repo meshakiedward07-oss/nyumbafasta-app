@@ -59,6 +59,165 @@ function initials(name: string | null): string {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
+// ── Email Diagnostic Panel ───────────────────────────────────────────────────
+
+type DiagResult = {
+  ok: boolean
+  api_key_set: boolean
+  api_key_valid: boolean
+  api_error: string | null
+  domain_status: string
+  inbound_domain_env: string | null
+  all_resend_domains: { name: string; status: string }[]
+  issues: string[]
+  fixes: string[]
+}
+
+function DiagnosticPanel({ onClose }: { onClose: () => void }) {
+  const [result, setResult] = useState<DiagResult | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState('')
+
+  useEffect(() => {
+    fetch('/api/v1/admin/email/diagnose')
+      .then(r => r.json())
+      .then(d => setResult(d as DiagResult))
+      .catch(() => setError('Imeshindwa kukagua mfumo'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const statusColor = (s: string) => {
+    if (s === 'verified') return 'text-green-600 bg-green-50 border-green-200'
+    if (s === 'not_found') return 'text-red-600 bg-red-50 border-red-200'
+    return 'text-amber-600 bg-amber-50 border-amber-200'
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[90vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center">
+              <i className="ti ti-stethoscope text-amber-600 text-lg" aria-hidden="true" />
+            </div>
+            <div>
+              <h2 className="font-bold text-gray-900 text-sm">Hali ya Mfumo wa Barua Pepe</h2>
+              <p className="text-xs text-gray-400">Inachunguza Resend API na DNS</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400">
+            <i className="ti ti-x" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-10 gap-3 text-gray-400">
+              <div className="w-5 h-5 border-2 border-gray-200 border-t-primary-500 rounded-full animate-spin" />
+              <span className="text-sm">Inachunguza...</span>
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{error}</div>
+          ) : result ? (
+            <>
+              {/* Overall status */}
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${result.ok ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <i className={`ti ${result.ok ? 'ti-circle-check text-green-600' : 'ti-circle-x text-red-600'} text-xl flex-shrink-0`} aria-hidden="true" />
+                <p className={`text-sm font-semibold ${result.ok ? 'text-green-700' : 'text-red-700'}`}>
+                  {result.ok ? 'Mfumo uko sawa — barua pepe zinapaswa kufanya kazi' : 'Kuna matatizo yanayozuia barua pepe'}
+                </p>
+              </div>
+
+              {/* Status grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">API Key</p>
+                  <div className={`flex items-center gap-1.5 ${result.api_key_valid ? 'text-green-600' : 'text-red-600'}`}>
+                    <i className={`ti ${result.api_key_valid ? 'ti-check' : 'ti-x'} text-sm`} aria-hidden="true" />
+                    <span className="text-sm font-semibold">{result.api_key_valid ? 'Sahihi' : result.api_key_set ? 'Si sahihi' : 'Haijawekwa'}</span>
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Domain Status</p>
+                  <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full border ${statusColor(result.domain_status)}`}>
+                    {result.domain_status}
+                  </span>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Inbound Env</p>
+                  <div className={`flex items-center gap-1.5 ${result.inbound_domain_env ? 'text-green-600' : 'text-amber-600'}`}>
+                    <i className={`ti ${result.inbound_domain_env ? 'ti-check' : 'ti-alert-triangle'} text-sm`} aria-hidden="true" />
+                    <span className="text-sm font-semibold truncate">{result.inbound_domain_env ?? 'Haijawekwa'}</span>
+                  </div>
+                </div>
+                {result.all_resend_domains.length > 0 && (
+                  <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Resend Domains</p>
+                    {result.all_resend_domains.map(d => (
+                      <p key={d.name} className="text-xs text-gray-700 truncate">{d.name} <span className="text-gray-400">({d.status})</span></p>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Issues */}
+              {result.issues.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Matatizo</p>
+                  {result.issues.map((issue, i) => (
+                    <div key={i} className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+                      <i className="ti ti-circle-x text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                      <p className="text-xs text-red-700 leading-relaxed">{issue}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Fixes */}
+              {result.fixes.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">Jinsi ya Kurekebisha</p>
+                  {result.fixes.map((fix, i) => (
+                    <div key={i} className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+                      <span className="flex-shrink-0 w-4 h-4 bg-amber-200 rounded-full text-[10px] font-bold text-amber-800 flex items-center justify-center mt-0.5">{i + 1}</span>
+                      <p className="text-xs text-amber-800 leading-relaxed">{fix}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Always-needed DNS reference */}
+              <details className="bg-gray-50 rounded-xl border border-gray-200">
+                <summary className="px-4 py-3 text-xs font-semibold text-gray-700 cursor-pointer select-none">
+                  DNS Records Zinazohitajika (Rejea)
+                </summary>
+                <div className="px-4 pb-4 space-y-2">
+                  <div className="bg-white rounded-lg border border-gray-200 p-3 font-mono text-[11px] text-gray-700 space-y-1">
+                    <p className="text-gray-400 font-sans text-[10px] font-semibold mb-2">OUTBOUND (SPF + DKIM) — weka kwenye domain registrar:</p>
+                    <p>TXT  <span className="text-gray-400">@</span>  v=spf1 include:amazonses.com ~all</p>
+                    <p>TXT  <span className="text-gray-400">resend._domainkey</span>  <span className="text-gray-500">← toka Resend dashboard</span></p>
+                  </div>
+                  <div className="bg-white rounded-lg border border-gray-200 p-3 font-mono text-[11px] text-gray-700 space-y-1">
+                    <p className="text-gray-400 font-sans text-[10px] font-semibold mb-2">INBOUND — MX record:</p>
+                    <p>MX  <span className="text-gray-400">@</span>  inbound.resend.com  <span className="text-gray-400">priority 10</span></p>
+                  </div>
+                  <div className="bg-white rounded-lg border border-gray-200 p-3 text-[11px] text-gray-700">
+                    <p className="text-gray-400 text-[10px] font-semibold mb-1">INBOUND Webhook (Resend Dashboard → Inbound):</p>
+                    <p className="font-mono break-all">https://nyumbafasta.co/api/v1/email/inbound</p>
+                  </div>
+                </div>
+              </details>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Compose Form ─────────────────────────────────────────────────────────────
 
 function ComposeDrawer({
@@ -511,6 +670,7 @@ export default function EmailClient({ senderName }: { senderName: string }) {
   const [q,         setQ]         = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [toast,     setToast]     = useState<{ msg: string; ok: boolean } | null>(null)
+  const [showDiag,  setShowDiag]  = useState(false)
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok })
@@ -564,6 +724,9 @@ export default function EmailClient({ senderName }: { senderName: string }) {
         </div>
       )}
 
+      {/* Diagnostic panel */}
+      {showDiag && <DiagnosticPanel onClose={() => setShowDiag(false)} />}
+
       {/* Compose drawer */}
       {composing && (
         <ComposeDrawer
@@ -586,13 +749,23 @@ export default function EmailClient({ senderName }: { senderName: string }) {
               Unatuma kama <span className="font-medium text-gray-700">{senderName}</span>
             </p>
           </div>
-          <button
-            onClick={() => { setReplyTo(null); setComposing(true) }}
-            className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition-all active:scale-[0.97] shadow-sm"
-          >
-            <i className="ti ti-pencil-plus" aria-hidden="true" />
-            <span className="hidden sm:inline">Andika</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowDiag(true)}
+              title="Angalia hali ya mfumo wa barua pepe"
+              className="flex items-center gap-1.5 border border-gray-200 bg-white text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 text-sm font-semibold px-3 py-2.5 rounded-xl transition-all"
+            >
+              <i className="ti ti-stethoscope" aria-hidden="true" />
+              <span className="hidden sm:inline">Hali ya Mfumo</span>
+            </button>
+            <button
+              onClick={() => { setReplyTo(null); setComposing(true) }}
+              className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition-all active:scale-[0.97] shadow-sm"
+            >
+              <i className="ti ti-pencil-plus" aria-hidden="true" />
+              <span className="hidden sm:inline">Andika</span>
+            </button>
+          </div>
         </div>
 
         <div className="px-5 pb-6 flex flex-col lg:flex-row gap-5">

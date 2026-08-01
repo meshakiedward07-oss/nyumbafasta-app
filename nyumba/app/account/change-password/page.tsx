@@ -81,6 +81,15 @@ function ChangePasswordForm() {
       return
     }
 
+    // Send security notification before session is invalidated
+    if (email) {
+      fetch('/api/v1/auth/password-changed-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).catch(() => {})
+    }
+
     // 4. Sign out + sign back in with the new password so the browser gets a
     //    fresh valid session. updateUser() invalidates the old session token,
     //    so without re-login the middleware sees no session and bounces to /login.

@@ -196,6 +196,39 @@ export function passwordResetEmail(name: string, resetUrl: string) {
   }
 }
 
+// ── Password changed confirmation ─────────────────────────────────────────
+
+export function passwordChangedEmail(name: string) {
+  const supportUrl = 'https://wa.me/255665831694'
+  return {
+    subject: '🔒 Nenosiri Lako Limebadilishwa — NyumbaFasta',
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari ${name}!</span>
+      <span style="${styles.text}">Nenosiri la akaunti yako kwenye NyumbaFasta limebadilishwa hivi karibuni.</span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">✅ Nenosiri jipya limehifadhiwa na liko hai sasa.</p>
+        <p style="${styles.infoText}">📅 Mabadiliko yalifanywa: ${new Date().toLocaleString('sw-TZ', { timeZone: 'Africa/Dar_es_Salaam' })}</p>
+      </div>
+
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 18px;margin:16px 0">
+        <p style="font-size:14px;color:#92400e;margin:0">
+          ⚠️ <strong>Hukufanya hivi?</strong> Bonyeza hapa chini kuwasiliana nasi <em>haraka</em> — akaunti yako inaweza kuwa katika hatari.
+        </p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${supportUrl}" style="${styles.btn.replace('#1D9E75', '#dc2626')}">🚨 Ripoti Tatizo Hili →</a>
+        </td></tr>
+      </table>
+
+      <hr style="${styles.divider}">
+      <span style="${styles.textSmall}">Kama wewe ndiye uliofanya mabadiliko haya — hakuna hatua zaidi inayohitajika.</span>
+    `, 'Nenosiri lako la NyumbaFasta limebadilishwa'),
+  }
+}
+
 // ── Listing approved email ─────────────────────────────────────────────────
 
 export function listingApprovedEmail(dalaliName: string, listingTitle: string, listingUrl: string) {
