@@ -70,9 +70,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/admin/users',                  labelKey: 'admin_nav_users',             icon: 'users',          exact: false },
       { href: '/admin/listings',               labelKey: 'admin_nav_listings',          icon: 'home',           exact: false },
       { href: '/admin/verifications',          labelKey: 'admin_nav_verifications',     icon: 'check',          exact: false },
-      { href: '/admin/dalali-subscriptions',   labelKey: 'admin_nav_dalali_subs',       icon: 'id-badge',       exact: false },
-      { href: '/admin/unlocks',                labelKey: 'admin_nav_unlocks',           icon: 'lock-open',      exact: false },
-      { href: '/admin/boosts',                 labelKey: 'admin_nav_boosts',            icon: 'rocket',         exact: false },
+
       { href: '/admin/reviews',                labelKey: 'admin_nav_reviews',           icon: 'star',           exact: false },
       { href: '/admin/accounting',             labelKey: 'admin_nav_accounting',        icon: 'credit-card',    exact: false },
       { href: '/admin/fraud',                  labelKey: 'admin_nav_fraud',             icon: 'shield-lock',    exact: false },
