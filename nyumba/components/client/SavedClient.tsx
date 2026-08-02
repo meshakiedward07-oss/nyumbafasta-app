@@ -38,7 +38,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
     <div className="min-h-screen bg-gray-50 pb-24">
 
       {/* Header */}
-      <div className="bg-primary-500 px-4 pt-5 pb-5 sticky top-0 z-30">
+      <div className="bg-primary-500 px-4 pb-5 sticky top-0 z-30" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
@@ -49,7 +49,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
           </button>
           <div>
             <h1 className="text-white text-lg font-bold">Zilizohifadhiwa</h1>
-            <p className="text-green-100 text-xs">{items.length} listing{items.length !== 1 ? 's' : ''}</p>
+            <p className="text-green-100 text-xs">{items.length} mali {items.length === 1 ? 'iliyohifadhiwa' : 'zilizohifadhiwa'}</p>
           </div>
         </div>
       </div>
@@ -87,7 +87,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                   <Link href={`/listings/${listing.id}`} className={`block ${listing.status === 'taken' ? 'opacity-60' : ''}`}>
                     <div className="relative aspect-[4/3] bg-gray-900">
                       {listing.images?.[0] ? (
-                        <Image fill src={listing.images[0]} alt="" className="object-contain" sizes="100vw" />
+                        <Image fill src={listing.images[0]} alt="" className="object-cover" sizes="(min-width: 640px) 50vw, 100vw" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-300 text-4xl"><i className="ti ti-home" aria-hidden="true" /></div>
                       )}

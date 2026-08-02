@@ -126,7 +126,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                   <p className="text-xs text-gray-500">Simamia platform yote</p>
                 </div>
               </div>
-              <span className="text-gray-400 text-lg">→</span>
+              <span className="text-gray-400 text-lg" aria-hidden="true">→</span>
             </div>
           </Link>
         )}
@@ -143,7 +143,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                   <p className="text-xs text-gray-500">Simamia listings zako</p>
                 </div>
               </div>
-              <span className="text-gray-400 text-lg">→</span>
+              <span className="text-gray-400 text-lg" aria-hidden="true">→</span>
             </div>
           </Link>
         )}
@@ -204,7 +204,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         </div>
 
         {/* ── Stats quick cards ── */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Link href="/saved"
             className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-center gap-3 active:scale-[0.97] transition-transform">
             <i className="ti ti-heart text-2xl text-red-400" aria-hidden="true" />
@@ -249,7 +249,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                 </p>
               </div>
             </div>
-            <span className="text-green-500 font-bold text-lg">→</span>
+            <span className="text-green-500 font-bold text-lg" aria-hidden="true">→</span>
           </Link>
         )}
 

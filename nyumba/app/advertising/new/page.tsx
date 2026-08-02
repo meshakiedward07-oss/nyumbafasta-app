@@ -307,5 +307,13 @@ function NewCampaignForm() {
 }
 
 export default function NewCampaignPage() {
-  return <Suspense><NewCampaignForm /></Suspense>
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <NewCampaignForm />
+    </Suspense>
+  )
 }

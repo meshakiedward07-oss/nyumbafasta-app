@@ -327,7 +327,7 @@ export default function DalaliMessagesPage() {
                     <span className={`text-sm truncate ${conv.unread_count > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
                       {label}
                     </span>
-                    <span className="text-[10px] text-gray-300 flex-shrink-0 whitespace-nowrap">
+                    <span className="text-[10px] text-gray-500 flex-shrink-0 whitespace-nowrap">
                       {relativeTime(conv.last_message_at)}
                     </span>
                   </div>
@@ -408,7 +408,7 @@ export default function DalaliMessagesPage() {
                     {msg.body && <p>{msg.body}</p>}
                     {msg.attachments?.length ? <AttachmentDisplay attachments={msg.attachments} /> : null}
                   </div>
-                  <span className="text-[10px] text-gray-300 px-1">
+                  <span className="text-[10px] text-gray-500 px-1">
                     {new Date(msg.created_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>

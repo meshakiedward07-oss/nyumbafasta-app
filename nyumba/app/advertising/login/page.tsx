@@ -129,7 +129,7 @@ function LoginForm() {
                   <button
                     type="button"
                     onClick={() => setShowPw(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs min-w-[44px] min-h-[44px] flex items-center justify-center"
                   >
                     {showPw ? 'Ficha' : 'Onyesha'}
                   </button>
@@ -181,5 +181,13 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
-  return <Suspense><LoginForm /></Suspense>
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
+  )
 }

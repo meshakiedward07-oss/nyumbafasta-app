@@ -86,7 +86,7 @@ export default function FundiDashboardPage() {
       {fundi && !fundi.business_name && (
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-5 flex items-center gap-3">
           <i className="ti ti-user-circle text-blue-500 text-xl flex-shrink-0" aria-hidden="true" />
-          <p className="text-sm text-blue-700 flex-1">Kamilisha wasifu wako ili mashirika yakujue vyema.</p>
+          <p className="text-sm text-blue-700 flex-1 min-w-0">Kamilisha wasifu wako ili mashirika yakujue vyema.</p>
           <Link href="/fundi/profile" className="text-xs px-3 py-1.5 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition flex-shrink-0">
             Wasifu
           </Link>
@@ -100,8 +100,9 @@ export default function FundiDashboardPage() {
           <p className="text-sm text-gray-500 mt-0.5">{activeCount} zinazoendelea · {resolvedCount} zilizokamilika</p>
         </div>
         {fundi?.is_available !== undefined && (
-          <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${fundi.is_available ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-            {fundi.is_available ? '● Ninapatikana' : '● Sipatikani'}
+          <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium ${fundi.is_available ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${fundi.is_available ? 'bg-green-500' : 'bg-gray-400'}`} aria-hidden="true" />
+            {fundi.is_available ? 'Ninapatikana' : 'Sipatikani'}
           </span>
         )}
       </div>
@@ -140,7 +141,7 @@ export default function FundiDashboardPage() {
               <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:border-primary-100 transition">
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <p className="font-semibold text-gray-900 text-sm leading-snug flex-1">{job.title}</p>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${STATUS_COLORS[job.status as MaintenanceStatus] ?? 'bg-gray-100 text-gray-500'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${STATUS_COLORS[job.status as MaintenanceStatus] ?? 'bg-gray-100 text-gray-500'}`}>
                     {MAINTENANCE_STATUS_LABELS[job.status as MaintenanceStatus] ?? job.status}
                   </span>
                 </div>

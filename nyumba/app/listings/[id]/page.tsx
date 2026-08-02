@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 // Revalidate every 60 seconds — serves cached HTML for the 10M users
 // hitting the same listing while keeping content fresh enough.
@@ -309,13 +310,13 @@ export default async function ListingDetailPage({
         agentProfileUrl={agentProfileUrl}
       />
       {/* Internal link to region SEO landing page (AI/SEO discoverability) */}
-      <nav aria-label="Nyumba zaidi" className="px-4 pb-28 text-center">
-        <a
+      <nav aria-label="Nyumba zaidi" className="px-4 pb-8 text-center">
+        <Link
           href={`/mali/${regionToSlug(listing.region)}`}
           className="text-sm text-primary-600 font-medium underline"
         >
           Angalia nyumba zote {listing.region} →
-        </a>
+        </Link>
       </nav>
     </>
   )

@@ -54,7 +54,7 @@ export default async function AdvertiserDashboard({
   const isActive = advertiserStatus === 'active'
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-8 sm:pb-4">
 
       {/* Business header */}
       <div className={`px-4 pt-5 pb-4 ${

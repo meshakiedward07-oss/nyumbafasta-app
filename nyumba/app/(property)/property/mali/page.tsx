@@ -104,7 +104,7 @@ export default function MaliPage() {
             return (
               <Link key={l.id} href={`/property/mali/${l.id}`}>
                 <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition flex gap-4 cursor-pointer">
-                  <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                     {thumb ? (
                       <Image src={thumb} alt={l.title} fill sizes="80px" className="object-cover" />
                     ) : (
@@ -130,14 +130,14 @@ export default function MaliPage() {
                       {TYPE_LABELS[l.type] ?? l.type} · {l.district}, {l.region}
                     </p>
                     <p className="text-sm font-bold text-primary-600 mt-1">
-                      TZS {l.price_monthly.toLocaleString()}/mwezi
+                      TZS {(l.price_monthly ?? 0).toLocaleString()}/mwezi
                     </p>
 
                     {l.unit_count > 0 ? (
                       <div className="mt-2">
                         <div className="flex justify-between items-center mb-0.5">
-                          <span className="text-[10px] text-gray-400">Vitengo vilivyopangishwa</span>
-                          <span className={`text-[10px] font-bold ${occupancyColor(l.occupied_count, l.unit_count)}`}>
+                          <span className="text-xs text-gray-400">Vitengo vilivyopangishwa</span>
+                          <span className={`text-xs font-bold ${occupancyColor(l.occupied_count, l.unit_count)}`}>
                             {occupancy}
                           </span>
                         </div>
@@ -149,7 +149,7 @@ export default function MaliPage() {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-[10px] text-amber-500 mt-1 flex items-center gap-1">
+                      <p className="text-xs text-amber-500 mt-1 flex items-center gap-1">
                         <i className="ti ti-alert-circle" aria-hidden="true" />
                         Hakuna vitengo vilivyoongezwa bado
                       </p>
@@ -164,8 +164,6 @@ export default function MaliPage() {
         </div>
       )}
 
-      {/* Hidden usage to suppress unused var warning */}
-      {orgId && <span className="hidden">{orgId}</span>}
     </div>
   )
 }

@@ -490,8 +490,10 @@ function RegisterForm() {
               {error && <div role="alert" className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
 
               <label className="flex items-start gap-3 cursor-pointer select-none">
-                <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-300" />
+                <span className="flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] -ml-3 -mt-3">
+                  <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-300 text-primary-500 focus:ring-primary-300" />
+                </span>
                 <span className="text-sm text-gray-700">
                   Nimesoma na nakubaliana na <span className="text-primary-600 font-medium">masharti ya matumizi</span> ya NyumbaFasta.
                 </span>
@@ -529,7 +531,7 @@ function RegisterForm() {
             <h2 className="text-base font-bold text-gray-900 text-center mb-0.5">Wewe ni nani?</h2>
             <p className="text-xs text-gray-400 text-center mb-5">Chagua aina ya akaunti inayokufaa</p>
 
-            <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 mb-5">
               {ROLES.map(r => (
                 r.key === 'fundi' ? (
                   <button key={r.key}
@@ -557,7 +559,7 @@ function RegisterForm() {
                     <span className={`text-sm font-semibold leading-tight ${role === r.key ? 'text-primary-700' : 'text-gray-700'}`}>
                       {r.label}
                     </span>
-                    <span className="text-[10px] text-gray-400 leading-tight">{r.sub}</span>
+                    <span className="text-xs text-gray-400 leading-tight">{r.sub}</span>
                     {role === r.key && <i className="ti ti-circle-check text-primary-500 text-sm" aria-hidden="true" />}
                   </button>
                 )

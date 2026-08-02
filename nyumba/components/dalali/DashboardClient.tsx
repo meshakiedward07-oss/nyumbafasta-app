@@ -130,7 +130,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
     <div className="min-h-screen bg-gray-50 pb-24 animate-fadeIn">
 
       {/* ── Header ── */}
-      <div className="relative px-4 pt-10 pb-6 overflow-hidden gradient-primary">
+      <div className="relative px-4 pb-6 overflow-hidden gradient-primary" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         {/* Decorative circles for depth */}
         <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/[0.06] pointer-events-none" />
         <div className="absolute top-4 right-16 w-20 h-20 rounded-full bg-white/[0.05] pointer-events-none" />

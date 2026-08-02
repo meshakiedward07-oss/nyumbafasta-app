@@ -303,7 +303,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
     <div className="min-h-screen bg-gray-50 pb-24">
 
       {/* Header */}
-      <div className="bg-primary-500 px-4 pt-10 pb-4">
+      <div className="bg-primary-500 px-4 pb-4" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-white text-lg font-bold">Listings Zangu</h1>
@@ -333,7 +333,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {([
             { key: 'all',     label: `Zote (${listings.length})` },
             { key: 'active',  label: `Zinaendelea (${listings.filter(l => l.status !== 'expired').length})` },

@@ -468,20 +468,18 @@ function LoginForm() {
             {/* Property management portal — org owners, tenants, fundi */}
             <Link
               href="/portal"
-              className="flex items-center gap-1.5 text-[11px] hover:opacity-80 transition-opacity py-1.5 px-4 rounded-full border font-medium"
-              style={{ color: '#7C3AED', borderColor: '#DDD6FE', background: '#F5F3FF' }}
+              className="flex items-center gap-1.5 text-xs hover:opacity-80 transition-opacity py-2 px-4 rounded-full border border-violet-200 font-medium text-violet-700 bg-violet-50"
             >
-              <i className="ti ti-building-estate text-[11px]" aria-hidden="true" />
+              <i className="ti ti-building-estate text-xs" aria-hidden="true" />
               {t('auth_portal_link')}
             </Link>
 
             {/* Staff / Admin portal — subtle, not meant for regular users */}
             <Link
               href="/staff-login"
-              className="flex items-center gap-1.5 text-[11px] text-gray-350 hover:text-gray-500 transition-colors py-1 px-3 rounded-full border border-gray-150 hover:border-gray-300"
-              style={{ color: '#b0b8c1', borderColor: '#e8ecf0' }}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors py-2 px-3 rounded-full border border-gray-200 hover:border-gray-300"
             >
-              <i className="ti ti-shield-lock text-[11px]" aria-hidden="true" />
+              <i className="ti ti-shield-lock text-xs" aria-hidden="true" />
               Wafanyakazi &amp; Wasimamizi
             </Link>
           </div>
