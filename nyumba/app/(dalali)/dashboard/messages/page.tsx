@@ -106,6 +106,7 @@ export default function DalaliMessagesPage() {
   const [creating, setCreating] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const realtimeOk = useRef(false)
   const supabase = createClient()
 
   const loadConversations = useCallback(async () => {
@@ -148,23 +149,26 @@ export default function DalaliMessagesPage() {
     loadConversations()
   }, [loadConversations])
 
-  // Realtime for selected conversation
+  // Realtime for selected conversation — interval acts as fallback when realtime is unavailable
   useEffect(() => {
     if (!selected) return
+    realtimeOk.current = false
     const ch = supabase
       .channel(`dalali-messages-${selected.id}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'messages',
         filter: `conversation_id=eq.${selected.id}`,
       }, () => { loadThread(selected.id); loadConversations() })
-      .subscribe()
-    return () => { supabase.removeChannel(ch) }
+      .subscribe(status => { if (status === 'SUBSCRIBED') realtimeOk.current = true })
+    return () => { realtimeOk.current = false; supabase.removeChannel(ch) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id])
 
   useEffect(() => {
     if (!selected) return
-    const t = setInterval(() => { loadThread(selected.id); loadConversations() }, 30000)
+    const t = setInterval(() => {
+      if (!realtimeOk.current) { loadThread(selected.id); loadConversations() }
+    }, 30000)
     return () => clearInterval(t)
   }, [selected, loadThread, loadConversations])
 

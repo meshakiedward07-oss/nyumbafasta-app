@@ -20,13 +20,16 @@ export async function GET() {
       .select('category, action')
 
     const rows = data ?? []
-    return NextResponse.json({
-      flagged:      rows.filter(r => r.action === 'flagged').length,
-      autoReplied:  rows.filter(r => r.action === 'auto_replied').length,
-      ownerReplied: rows.filter(r => r.action === 'owner_replied').length,
-      spam:         rows.filter(r => r.action === 'ignored').length,
-      total:        rows.length,
-    })
+    return NextResponse.json(
+      {
+        flagged:      rows.filter(r => r.action === 'flagged').length,
+        autoReplied:  rows.filter(r => r.action === 'auto_replied').length,
+        ownerReplied: rows.filter(r => r.action === 'owner_replied').length,
+        spam:         rows.filter(r => r.action === 'ignored').length,
+        total:        rows.length,
+      },
+      { headers: { 'Cache-Control': 'private, max-age=30' } },
+    )
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

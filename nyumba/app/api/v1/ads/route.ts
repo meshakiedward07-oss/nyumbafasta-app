@@ -25,7 +25,10 @@ export async function GET(req: NextRequest) {
       ? await getActiveAdsForRegion({ ad_type: type, region, limit })
       : await getActiveAds({ ad_type: type, limit })
 
-    return NextResponse.json({ ads })
+    return NextResponse.json(
+      { ads },
+      { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=30' } },
+    )
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

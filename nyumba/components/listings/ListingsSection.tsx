@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -65,7 +65,7 @@ type Props = {
 }
 
 export default function ListingsSection({ initialListings, initialTotal }: Props = {}) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const hasInitialData = !!(initialListings?.length)
   const skippedFirstFetch = useRef(hasInitialData)
@@ -92,20 +92,24 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
   useEffect(() => {
     let cancelled = false
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || cancelled) return
-      setUserId(user.id)
-      const [{ data: userData }, { data: unlocked }] = await Promise.all([
-        supabase.from('users').select('role').eq('id', user.id).single(),
-        supabase.from('contact_unlocks')
+      try {
+        // One cached HTTP round-trip replaces supabase.auth.getUser() + users table query
+        const meRes = await fetch('/api/v1/auth/me')
+        if (!meRes.ok || cancelled) return
+        const me = await meRes.json()
+        if (!me.user?.id) return
+        setUserId(me.user.id)
+        setUserRole(me.user.role ?? null)
+        // contact_unlocks is user-action-driven — keep as direct Supabase query
+        const { data: unlocked } = await supabase
+          .from('contact_unlocks')
           .select('listing_id')
-          .eq('client_id', user.id)
-          .eq('status', 'completed'),
-      ])
-      if (!cancelled) {
-        setUserRole(userData?.role ?? null)
-        setUnlockedIds((unlocked ?? []).map(u => u.listing_id as string))
-      }
+          .eq('client_id', me.user.id)
+          .eq('status', 'completed')
+        if (!cancelled) {
+          setUnlockedIds((unlocked ?? []).map(u => u.listing_id as string))
+        }
+      } catch { /* non-critical — user is just not logged in */ }
     }
     loadUser()
     return () => { cancelled = true }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Organization } from '@/lib/types/property'
+import NotificationBell from '@/components/shared/NotificationBell'
 
 function UnreadBadge({ count }: { count: number }) {
   if (count === 0) return null
@@ -23,35 +24,6 @@ function UnreadBadgeBottom({ count }: { count: number }) {
   )
 }
 
-function NotifBell() {
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const res = await fetch('/api/v1/notifications?unread=1')
-        if (!res.ok) return
-        const d = await res.json()
-        if (!cancelled) setCount(d.unread_count ?? 0)
-      } catch { /* silent */ }
-    }
-    load()
-    const t = setInterval(load, 60_000)
-    return () => { cancelled = true; clearInterval(t) }
-  }, [])
-
-  return (
-    <Link href="/notifications" className="relative p-2 rounded-xl hover:bg-gray-100 transition" aria-label="Arifa">
-      <i className="ti ti-bell text-xl text-gray-500" aria-hidden="true" />
-      {count > 0 && (
-        <span className="absolute top-1 right-1 min-w-[14px] h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full px-0.5 flex items-center justify-center leading-none">
-          {count > 9 ? '9+' : count}
-        </span>
-      )}
-    </Link>
-  )
-}
 
 const NAV_ITEMS = [
   { href: '/property/dashboard',    icon: 'layout-dashboard', label: 'Muhtasari',      exact: true  },
@@ -183,7 +155,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
                 <span>Mipangilio ya Shirika</span>
               </div>
             </Link>
-            <NotifBell />
+            <NotificationBell className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500" />
           </div>
           <button onClick={handleLogout} className="w-full text-left">
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
@@ -216,7 +188,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
             </span>
           </Link>
           <div className="flex items-center gap-1">
-            <NotifBell />
+            <NotificationBell className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500" />
             <button
               onClick={() => setDrawerOpen(true)}
               className="p-2 rounded-xl bg-gray-100"

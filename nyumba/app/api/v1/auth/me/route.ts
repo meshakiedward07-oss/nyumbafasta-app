@@ -17,12 +17,15 @@ export async function GET() {
 
     if (profileRes.error) return NextResponse.json({ error: profileRes.error.message }, { status: 500 })
 
-    return NextResponse.json({
-      user: {
-        ...profileRes.data,
-        is_platform_broker: dpRes.data?.is_platform_broker ?? false,
+    return NextResponse.json(
+      {
+        user: {
+          ...profileRes.data,
+          is_platform_broker: dpRes.data?.is_platform_broker ?? false,
+        },
       },
-    })
+      { headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=30' } },
+    )
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }

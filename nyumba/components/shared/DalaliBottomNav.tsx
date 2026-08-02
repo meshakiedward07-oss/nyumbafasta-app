@@ -25,23 +25,15 @@ export default function DalaliBottomNav() {
     let cancelled = false
     const poll = async () => {
       try {
-        const res  = await fetch('/api/v1/notifications?count=true')
-        const json = await res.json()
-        if (!cancelled) setUnread(json.unread_count ?? 0)
-      } catch { /* non-fatal */ }
-    }
-    poll()
-    const id = setInterval(poll, 60_000)
-    return () => { cancelled = true; clearInterval(id) }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    const poll = async () => {
-      try {
-        const res  = await fetch('/api/v1/conversations?unread=1')
-        const json = await res.json()
-        if (!cancelled) setMsgUnread(json.unread_count ?? 0)
+        const [notifRes, convRes] = await Promise.all([
+          fetch('/api/v1/notifications?count=true'),
+          fetch('/api/v1/conversations?unread=1'),
+        ])
+        const [notifJson, convJson] = await Promise.all([notifRes.json(), convRes.json()])
+        if (!cancelled) {
+          setUnread(notifJson.unread_count ?? 0)
+          setMsgUnread(convJson.unread_count ?? 0)
+        }
       } catch { /* non-fatal */ }
     }
     poll()

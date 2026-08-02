@@ -59,7 +59,10 @@ export async function GET(req: NextRequest) {
       participants: participantsMap[c.id] ?? [],
     }))
 
-    return NextResponse.json({ conversations: withParticipants, unread_count: totalUnread })
+    return NextResponse.json(
+      { conversations: withParticipants, unread_count: totalUnread },
+      { headers: { 'Cache-Control': 'private, max-age=10, stale-while-revalidate=20' } },
+    )
   } catch (err) {
     console.error('[GET /conversations]', err)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

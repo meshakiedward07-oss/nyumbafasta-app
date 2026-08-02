@@ -20,7 +20,10 @@ export async function GET() {
       .order('joined_at', { ascending: false })
 
     if (error) throw error
-    return NextResponse.json({ organizations: data ?? [] })
+    return NextResponse.json(
+      { organizations: data ?? [] },
+      { headers: { 'Cache-Control': 'private, max-age=60' } },
+    )
   } catch (err) {
     console.error('[GET /organizations]', err)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

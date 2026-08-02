@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CONV_TYPE_LABELS, CONV_TYPE_ICONS } from '@/lib/types/property'
@@ -39,6 +39,8 @@ export default function MazungumzoPage() {
   const [newTitle,      setNewTitle]      = useState('')
   const [creating,      setCreating]      = useState(false)
   const [createError,   setCreateError]   = useState<string | null>(null)
+  // useRef avoids stale closure in the poll interval (orgId state is null at setup time)
+  const orgIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -54,6 +56,7 @@ export default function MazungumzoPage() {
         const primary = orgs.find((o: { role: string }) => o.role === 'owner') ?? orgs[0]
         if (!primary) { router.push('/property/setup'); return }
         const id = primary.organization.id
+        orgIdRef.current = id
         setOrgId(id)
         setUserId(meData.user?.id ?? null)
 
@@ -64,10 +67,10 @@ export default function MazungumzoPage() {
       finally { setLoading(false) }
     }
     load()
-    // Poll every 20s for new messages
+    // Poll every 20s for new messages — uses ref so the interval always has current orgId
     const t = setInterval(() => {
-      if (!orgId) return
-      fetch(`/api/v1/conversations?org_id=${orgId}`)
+      if (!orgIdRef.current) return
+      fetch(`/api/v1/conversations?org_id=${orgIdRef.current}`)
         .then(r => r.json())
         .then(d => setConversations(d.conversations ?? []))
         .catch(() => {})

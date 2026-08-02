@@ -14,7 +14,10 @@ export async function GET(req: NextRequest) {
 
     const sessions = await listActiveSocialSessions(status, platform)
 
-    return NextResponse.json({ sessions })
+    return NextResponse.json(
+      { sessions },
+      { headers: { 'Cache-Control': 'private, max-age=15, stale-while-revalidate=10' } },
+    )
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[GET /api/v1/social/sessions]', msg)

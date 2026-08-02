@@ -29,7 +29,10 @@ export async function GET() {
       .order('price_tzs', { ascending: true })
 
     if (error) throw error
-    return NextResponse.json({ plans: data ?? [] })
+    return NextResponse.json(
+      { plans: data ?? [] },
+      { headers: { 'Cache-Control': 'private, max-age=300' } },
+    )
   } catch (err) {
     console.error('[GET /admin/subscription-plans]', err)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

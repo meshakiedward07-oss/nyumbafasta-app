@@ -11,7 +11,10 @@ export async function GET() {
       .order('display_order', { ascending: true })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ plans: data ?? [] })
+    return NextResponse.json(
+      { plans: data ?? [] },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } },
+    )
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

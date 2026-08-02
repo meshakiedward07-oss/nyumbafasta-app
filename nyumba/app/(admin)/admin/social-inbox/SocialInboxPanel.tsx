@@ -167,22 +167,25 @@ export default function SocialInboxPanel() {
     }
   }, [messages])
 
-  // Realtime
+  // Realtime — poll every 30s only when realtime is unavailable (fallback)
   useEffect(() => {
     const supabase = createClient()
     const suffix = Math.random().toString(36).slice(2)
     let ch: ReturnType<typeof supabase.channel> | null = null
+    let realtimeOk = false
     try {
       ch = supabase.channel(`social-sessions-${suffix}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'social_sessions' }, () => {
           fetchSessions()
           if (selected) fetchMessages(selected)
         })
-        .subscribe()
+        .subscribe(status => { if (status === 'SUBSCRIBED') realtimeOk = true })
     } catch { /* realtime may be unavailable */ }
     const poll = setInterval(() => {
-      fetchSessions()
-      if (selected) fetchMessages(selected)
+      if (!realtimeOk) {
+        fetchSessions()
+        if (selected) fetchMessages(selected)
+      }
     }, 30_000)
     return () => {
       clearInterval(poll)

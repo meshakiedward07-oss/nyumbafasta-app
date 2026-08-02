@@ -289,24 +289,23 @@ export default function TenantPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/v1/my-lease')
-        if (res.status === 401) { setAuthErr(true); return }
-        const data = await res.json()
+        // All three requests start in parallel — none depends on the others
+        const [leaseRes] = await Promise.all([
+          fetch('/api/v1/my-lease'),
+          fetch('/api/v1/notifications?count=true')
+            .then(r => r.json())
+            .then(d => setUnreadNotifs(d.unread_count ?? 0))
+            .catch(() => {}),
+          fetch('/api/v1/auth/me')
+            .then(r => r.json())
+            .then(d => { if (d.user?.id) setCurrentUserId(d.user.id) })
+            .catch(() => {}),
+        ])
+        if (leaseRes.status === 401) { setAuthErr(true); return }
+        const data = await leaseRes.json()
         setLeases(data.leases ?? [])
       } catch { /* silent */ }
       finally { setLoading(false) }
-
-      // Fetch unread notification count in background
-      fetch('/api/v1/notifications?count=true')
-        .then(r => r.json())
-        .then(d => setUnreadNotifs(d.unread_count ?? 0))
-        .catch(() => {})
-
-      // Get current user id for message display
-      fetch('/api/v1/auth/me')
-        .then(r => r.json())
-        .then(d => { if (d.user?.id) setCurrentUserId(d.user.id) })
-        .catch(() => {})
     }
     load()
   }, [])

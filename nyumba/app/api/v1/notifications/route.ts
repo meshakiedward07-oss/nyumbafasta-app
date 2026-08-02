@@ -41,7 +41,10 @@ export async function GET(req: NextRequest) {
 
     const unread = notifications?.filter(n => !n.is_read).length ?? 0
 
-    return NextResponse.json({ notifications: notifications ?? [], unread_count: unread })
+    return NextResponse.json(
+      { notifications: notifications ?? [], unread_count: unread },
+      { headers: { 'Cache-Control': 'private, max-age=15' } },
+    )
   } catch (e) {
     console.error('Notifications GET error:', e)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

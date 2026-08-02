@@ -57,72 +57,32 @@ export default function SimilarListings({
       const minPrice = priceMonthly * 0.5
       const maxPrice = priceMonthly * 1.5
 
-      // Step 1: same district + same type (bora zaidi)
-      const { data: byDistrict } = await supabase
-        .from('listings')
-        .select(`
-          id, title, type, price_monthly,
-          district, region, images, is_boosted,
-          dalali:dalali_id (
-            full_name,
-            dalali_profiles (rating_avg, is_premium_verified, is_favourite_dalali)
-          )
-        `)
-        .eq('status', 'active')
-        .eq('district', district)
-        .eq('type', type)
-        .neq('id', currentListingId)
-        .limit(3)
+      const SELECT = `
+        id, title, type, price_monthly,
+        district, region, images, is_boosted,
+        dalali:dalali_id (
+          full_name,
+          dalali_profiles (rating_avg, is_premium_verified, is_favourite_dalali)
+        )
+      `
 
-      if (byDistrict && byDistrict.length >= 3) {
-        setListings(byDistrict as unknown as SimilarListing[])
-        return
-      }
+      // Run all three queries in parallel — prefer byDistrict > byType > byPrice
+      const [{ data: byDistrict }, { data: byType }, { data: byPrice }] = await Promise.all([
+        supabase.from('listings').select(SELECT)
+          .eq('status', 'active').eq('district', district).eq('type', type)
+          .neq('id', currentListingId).limit(3),
+        supabase.from('listings').select(SELECT)
+          .eq('status', 'active').eq('region', region).eq('type', type)
+          .neq('id', currentListingId).limit(3),
+        supabase.from('listings').select(SELECT)
+          .eq('status', 'active').eq('region', region)
+          .neq('id', currentListingId)
+          .gte('price_monthly', minPrice).lte('price_monthly', maxPrice).limit(3),
+      ])
 
-      // Step 2: same region + same type
-      const { data: byType } = await supabase
-        .from('listings')
-        .select(`
-          id, title, type, price_monthly,
-          district, region, images, is_boosted,
-          dalali:dalali_id (
-            full_name,
-            dalali_profiles (rating_avg, is_premium_verified, is_favourite_dalali)
-          )
-        `)
-        .eq('status', 'active')
-        .eq('region', region)
-        .eq('type', type)
-        .neq('id', currentListingId)
-        .limit(3)
-
-      if (byType && byType.length >= 3) {
-        setListings(byType as unknown as SimilarListing[])
-        return
-      }
-
-      // Step 3: same region + bei karibu (±50%)
-      const { data: byPrice } = await supabase
-        .from('listings')
-        .select(`
-          id, title, type, price_monthly,
-          district, region, images, is_boosted,
-          dalali:dalali_id (
-            full_name,
-            dalali_profiles (rating_avg)
-          )
-        `)
-        .eq('status', 'active')
-        .eq('region', region)
-        .neq('id', currentListingId)
-        .gte('price_monthly', minPrice)
-        .lte('price_monthly', maxPrice)
-        .limit(3)
-
-      // Combine na deduplicate
-      const combined = [...(byDistrict || []), ...(byType || []), ...(byPrice || [])]
-      const seen = new Set<string>()
-      const unique = combined.filter(item => {
+      // Deduplicate in priority order: district match > type match > price match
+      const seen = new Set<string>([currentListingId])
+      const unique = [...(byDistrict ?? []), ...(byType ?? []), ...(byPrice ?? [])].filter(item => {
         if (seen.has(item.id)) return false
         seen.add(item.id)
         return true
