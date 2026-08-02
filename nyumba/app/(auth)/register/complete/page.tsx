@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 function clearPendingStorage() {
   try { localStorage.removeItem('pending_register') } catch {}
@@ -13,20 +14,28 @@ export default function RegisterCompletePage() {
 
   useEffect(() => {
     async function finish() {
-      let raw: string | null = null
       let pending: { full_name: string; role: string; whatsapp_number?: string } | null = null
 
-      // Guard: missing pending_register → user opened this URL directly or storage
-      // was cleared. Send them back to the start rather than creating a broken row.
+      // Primary: read from localStorage (same device)
       try {
-        raw = localStorage.getItem('pending_register')
-        if (!raw) { router.replace('/register'); return }
-        pending = JSON.parse(raw)
+        const raw = localStorage.getItem('pending_register')
+        if (raw) pending = JSON.parse(raw)
       } catch {
-        // Corrupted storage — clear it and restart cleanly
         clearPendingStorage()
-        router.replace('/register')
-        return
+      }
+
+      // Fallback: read from user_metadata (cross-device — user verified on a different browser)
+      if (!pending) {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { router.replace('/register'); return }
+        const meta = user.user_metadata ?? {}
+        const full_name = (meta.full_name as string | undefined) ?? ''
+        const role      = (meta.role      as string | undefined) ?? ''
+        if (!full_name || !role || !['client', 'dalali'].includes(role)) {
+          router.replace('/register'); return
+        }
+        pending = { full_name, role, whatsapp_number: meta.whatsapp_number as string | undefined }
       }
 
       const { full_name, role, whatsapp_number } = pending!

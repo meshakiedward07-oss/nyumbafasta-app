@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -7,34 +7,36 @@ import Image from 'next/image'
 export default function PortalCompletePage() {
   const supabase = createClient()
   const router   = useRouter()
-  const [status, setStatus] = useState<'loading' | 'error'>('loading')
-  const [msg,    setMsg]    = useState('')
+  const [status,  setStatus]  = useState<'loading' | 'error'>('loading')
+  const [msg,     setMsg]     = useState('')
+  const [attempt, setAttempt] = useState(0)
 
-  useEffect(() => {
-    async function complete() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) { router.replace('/portal'); return }
+  const complete = useCallback(async () => {
+    setStatus('loading')
+    setMsg('')
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.replace('/portal'); return }
 
-        const res = await fetch('/api/v1/portal/register', { method: 'POST' })
-        if (!res.ok) {
-          const d = await res.json().catch(() => ({}))
-          setMsg((d as { error?: string }).error ?? 'Kuna tatizo. Jaribu tena.')
-          setStatus('error'); return
-        }
-        const d = await res.json() as { portal_type?: string }
-
-        const dest = d.portal_type === 'org_owner' ? '/property/dashboard'
-                   : d.portal_type === 'tenant'    ? '/tenant'
-                   : '/'
-        router.replace(dest)
-      } catch {
-        setMsg('Hitilafu ya mtandao. Angalia muunganiko wako.')
-        setStatus('error')
+      const res = await fetch('/api/v1/portal/register', { method: 'POST' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setMsg((d as { error?: string }).error ?? 'Kuna tatizo. Jaribu tena.')
+        setStatus('error'); return
       }
+      const d = await res.json() as { portal_type?: string }
+
+      const dest = d.portal_type === 'org_owner' ? '/property/dashboard'
+                 : d.portal_type === 'tenant'    ? '/tenant'
+                 : '/'
+      router.replace(dest)
+    } catch {
+      setMsg('Hitilafu ya mtandao. Angalia muunganiko wako.')
+      setStatus('error')
     }
-    complete()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supabase, router])
+
+  useEffect(() => { complete() }, [attempt, complete])
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -56,7 +58,8 @@ export default function PortalCompletePage() {
             </div>
             <h2 className="font-bold text-gray-900 text-lg mb-2">Imeshindwa</h2>
             <p className="text-sm text-gray-500 mb-5">{msg}</p>
-            <button onClick={() => { setStatus('loading'); setMsg('') }}
+            <button
+              onClick={() => setAttempt(n => n + 1)}
               className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
               Jaribu Tena
             </button>

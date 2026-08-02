@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 export default function FundiCompletePage() {
   const router = useRouter()
@@ -9,10 +10,25 @@ export default function FundiCompletePage() {
   useEffect(() => {
     async function finish() {
       let pending: { full_name: string; phone: string } | null = null
+
+      // Primary: localStorage (same device)
       try {
         const raw = localStorage.getItem('pending_fundi_register')
         if (raw) pending = JSON.parse(raw)
       } catch { /* storage unavailable */ }
+
+      // Fallback: user_metadata (cross-device verification)
+      if (!pending) {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const meta = user.user_metadata ?? {}
+          pending = {
+            full_name: (meta.full_name as string | undefined) ?? '',
+            phone:     (meta.phone     as string | undefined) ?? '',
+          }
+        }
+      }
 
       try {
         const res = await fetch('/api/v1/fundi/register', {

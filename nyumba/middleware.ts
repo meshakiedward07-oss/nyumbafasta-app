@@ -4,13 +4,13 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { rateLimit } from '@/lib/security/rateLimit'
 
 // Routes zinazohitaji login
-const PROTECTED_ROUTES = ['/dashboard', '/admin', '/saved', '/account', '/subscription', '/notifications', '/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile', '/fundi/dashboard', '/fundi/profile', '/fundi/kyc', '/fundi/jobs']
+const PROTECTED_ROUTES = ['/dashboard', '/admin', '/saved', '/account', '/subscription', '/notifications', '/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile', '/advertising/pending', '/fundi/dashboard', '/fundi/profile', '/fundi/kyc', '/fundi/jobs']
 // Routes za watumiaji walioingia tu (usiende tena)
 const AUTH_ROUTES = ['/login', '/register', '/staff-login']
 // Routes za admin peke yake
 const ADMIN_ONLY_ROUTES = ['/admin']
 // Routes za wafanyabiashara — zinaelekeza /advertising/login badala ya /login
-const ADVERTISING_PROTECTED_ROUTES = ['/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile']
+const ADVERTISING_PROTECTED_ROUTES = ['/advertising/dashboard', '/advertising/new', '/advertising/pay', '/advertising/campaigns', '/advertising/profile', '/advertising/pending']
 // Routes za mafundi — zinaelekeza /fundi/login badala ya /login
 const FUNDI_PROTECTED_ROUTES = ['/fundi/dashboard', '/fundi/profile', '/fundi/kyc', '/fundi/jobs']
 // Routes za dalali na admin
@@ -88,6 +88,23 @@ export async function middleware(request: NextRequest) {
     url.pathname = isAdminPath ? '/staff-login' : isAdvertisingPath ? '/advertising/login' : isFundiPath ? '/fundi/login' : '/login'
     url.searchParams.set('redirect', path)
     return redirectWithCookies(url, supabaseResponse)
+  }
+
+  // ── MFA enforcement ─────────────────────────────────────────────────────────
+  // If user has a verified TOTP factor and is only at AAL1, require AAL2 before
+  // accessing protected routes. Skip for the MFA verify page itself and auth callbacks.
+  const MFA_EXEMPT = ['/auth/mfa', '/auth/', '/api/', '/login', '/register', '/staff-login',
+    '/advertising/login', '/fundi/login', '/portal/login', '/account/change-password']
+  if (user && isProtected && !MFA_EXEMPT.some(p => path.startsWith(p))) {
+    try {
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      if (aal && aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/auth/mfa'
+        url.searchParams.set('redirect', path)
+        return redirectWithCookies(url, supabaseResponse)
+      }
+    } catch { /* MFA check is non-fatal — let the request through */ }
   }
 
   // Email verification guard — all protected routes zinahitaji email iliyothibitishwa.

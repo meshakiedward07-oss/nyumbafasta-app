@@ -8,6 +8,7 @@ export interface DalaliProfile {
   phone: string | null
   avatarUrl: string | null
   bio: string | null
+  verificationStatus: 'unverified' | 'pending' | 'verified' | 'rejected'
 }
 
 // Module-level cache so the fetch only happens once per page load

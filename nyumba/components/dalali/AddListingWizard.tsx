@@ -337,6 +337,37 @@ export default function AddListingWizard() {
 
   const stepTitles = ['Maelezo', 'Mahali', 'Huduma', 'Picha & Kagua']
 
+  // ── KYC gate — block unverified dalalis before they fill the form ────────
+  if (dalaliProfile && dalaliProfile.verificationStatus !== 'verified') {
+    const isPending  = dalaliProfile.verificationStatus === 'pending'
+    const isRejected = dalaliProfile.verificationStatus === 'rejected'
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
+        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-5 ${isPending ? 'bg-amber-50' : isRejected ? 'bg-red-50' : 'bg-blue-50'}`}>
+          <i className={`ti text-4xl ${isPending ? 'ti-clock text-amber-500' : isRejected ? 'ti-alert-circle text-red-500' : 'ti-shield-check text-blue-500'}`} aria-hidden="true" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          {isPending ? 'Uthibitisho Unasubiri' : isRejected ? 'Uthibitisho Ulikataliwa' : 'Thibitisha Akaunti Kwanza'}
+        </h2>
+        <p className="text-sm text-gray-500 mb-6 max-w-xs">
+          {isPending
+            ? 'Ombi lako la uthibitisho liko chini ya ukaguzi. Utapata taarifa hivi karibuni.'
+            : isRejected
+            ? 'Ombi lako lilikataliwa. Wasiliana na msaada au tuma tena nyaraka sahihi.'
+            : 'Unahitaji kuthibitisha utambulisho wako kabla ya kuongeza listings. Mchakato huchukua dakika 2 tu.'}
+        </p>
+        <Link
+          href="/dashboard/verify"
+          className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition ${isPending ? 'bg-amber-500 hover:bg-amber-600' : isRejected ? 'bg-red-500 hover:bg-red-600' : 'bg-primary-500 hover:bg-primary-600'}`}
+        >
+          <i className="ti ti-shield-check" aria-hidden="true" />
+          {isPending ? 'Angalia Hali' : isRejected ? 'Tuma Tena' : 'Thibitisha Sasa →'}
+        </Link>
+        <button onClick={() => router.back()} className="mt-4 text-sm text-gray-400 hover:text-gray-600">← Rudi nyuma</button>
+      </div>
+    )
+  }
+
   // ── Success screen ────────────────────────────────────
   if (submitted) {
     return (

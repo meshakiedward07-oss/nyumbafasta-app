@@ -21,12 +21,13 @@ export async function POST() {
     // Upsert users row — trigger creates it but may miss phone/portal_type columns.
     // Use service-role client to bypass RLS.
     await admin.from('users').upsert({
-      id:        user.id,
-      email:     user.email,
-      full_name: fullName,
+      id:          user.id,
+      email:       user.email,
+      full_name:   fullName,
       phone,
-      role:      'client',
-      is_active: true,
+      role:        'client',
+      portal_type: portalType,
+      is_active:   true,
     }, { onConflict: 'id', ignoreDuplicates: false })
 
     // For org_owner: create organization + membership

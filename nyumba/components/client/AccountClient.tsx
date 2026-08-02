@@ -24,7 +24,12 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
   const [name, setName] = useState(fullName)
   const [saving, setSaving] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [loggingOutAll, setLoggingOutAll] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [showLogoutAllConfirm, setShowLogoutAllConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [joinDate, setJoinDate] = useState('')
@@ -64,6 +69,38 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
     await supabase.auth.signOut()
     router.push('/')
     router.refresh()
+  }
+
+  async function handleLogoutAllDevices() {
+    setLoggingOutAll(true)
+    try {
+      await supabase.auth.signOut({ scope: 'global' })
+      router.push('/?signed_out=1')
+      router.refresh()
+    } catch {
+      setError('Imeshindwa kutoka kwenye vifaa vyote. Jaribu tena.')
+      setLoggingOutAll(false)
+      setShowLogoutAllConfirm(false)
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirmText.toLowerCase() !== 'futa akaunti') return
+    setDeleting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/v1/account/delete', { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(d.error ?? 'Imeshindwa kufuta akaunti')
+      }
+      await supabase.auth.signOut()
+      router.replace('/account-deleted')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Imeshindwa kufuta akaunti')
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+    }
   }
 
   return (
@@ -293,6 +330,38 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
           </Link>
         </div>
 
+        {/* ── Security section ── */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-gray-50">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Usalama</p>
+          </div>
+          <Link href="/account/security"
+            className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
+            <i className="ti ti-shield-lock text-xl text-primary-500" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="text-sm text-gray-700">Usalama wa Akaunti</p>
+              <p className="text-xs text-gray-400">Nenosiri · 2FA · Vifaa</p>
+            </div>
+            <span className="text-gray-300 text-lg">›</span>
+          </Link>
+          <Link href="/account/change-password"
+            className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
+            <i className="ti ti-lock text-xl text-gray-400" aria-hidden="true" />
+            <span className="text-sm text-gray-700 flex-1">Badilisha Nenosiri</span>
+            <span className="text-gray-300 text-lg">›</span>
+          </Link>
+          <button
+            onClick={() => setShowLogoutAllConfirm(true)}
+            className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all text-left">
+            <i className="ti ti-devices text-xl text-amber-500" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="text-sm text-gray-700">Toka Vifaa Vyote</p>
+              <p className="text-xs text-gray-400">Futa vikao vyote kwenye vifaa vingine</p>
+            </div>
+            <span className="text-gray-300 text-lg">›</span>
+          </button>
+        </div>
+
         {/* ── Sign Out button ── */}
         <button
           onClick={() => setShowLogoutConfirm(true)}
@@ -302,33 +371,111 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
           <i className="ti ti-door-exit" aria-hidden="true" /> Toka — Sign Out
         </button>
 
+        {/* ── Danger zone ── */}
+        {!isAdmin && (
+          <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-red-50">
+              <p className="text-xs font-bold text-red-400 uppercase tracking-wider">Hatari</p>
+            </div>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full flex items-center gap-3 px-4 py-4 hover:bg-red-50 active:scale-[0.98] transition-all text-left">
+              <i className="ti ti-trash text-xl text-red-500" aria-hidden="true" />
+              <div className="flex-1">
+                <p className="text-sm text-red-600 font-medium">Futa Akaunti Yangu</p>
+                <p className="text-xs text-gray-400">Kitendo hiki hakiwezi kutenduliwa</p>
+              </div>
+            </button>
+          </div>
+        )}
+
         <div className="h-2" />
       </div>
 
       {/* ── Logout confirmation bottom sheet ── */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowLogoutConfirm(false)}>
-          <div
-            className="bg-white w-full rounded-t-3xl px-6 pt-6 pb-10 shadow-xl"
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="bg-white w-full rounded-t-3xl px-6 pt-6 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
             <h3 className="text-base font-bold text-gray-900 mb-2">Una uhakika unataka kutoka?</h3>
             <p className="text-sm text-gray-500 mb-7">
               Utahitaji kuingia tena kuendelea kutumia akaunti yako.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
+              <button onClick={() => setShowLogoutConfirm(false)}
                 className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm active:scale-[0.97] transition-transform">
                 Ghairi
               </button>
-              <button
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold text-sm
-                           disabled:opacity-60 active:scale-[0.97] transition-transform">
+              <button onClick={handleLogout} disabled={loggingOut}
+                className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold text-sm disabled:opacity-60 active:scale-[0.97] transition-transform">
                 {loggingOut ? 'Inatoka...' : <><i className="ti ti-door-exit" aria-hidden="true" /> Ndio, Toka</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Log out all devices confirmation ── */}
+      {showLogoutAllConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowLogoutAllConfirm(false)}>
+          <div className="bg-white w-full rounded-t-3xl px-6 pt-6 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
+            <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i className="ti ti-devices text-amber-500 text-2xl" aria-hidden="true" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 mb-2 text-center">Toka Vifaa Vyote?</h3>
+            <p className="text-sm text-gray-500 mb-7 text-center">
+              Vikao vyote vya akaunti yako kwenye simu, kompyuta, na vifaa vingine vitafutwa. Utahitaji kuingia tena kwenye kila kifaa.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowLogoutAllConfirm(false)}
+                className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm">
+                Ghairi
+              </button>
+              <button onClick={handleLogoutAllDevices} disabled={loggingOutAll}
+                className="flex-1 py-3.5 rounded-2xl bg-amber-500 text-white font-bold text-sm disabled:opacity-60">
+                {loggingOutAll ? 'Inafuta...' : 'Ndio, Toka Kila Mahali'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete account confirmation ── */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}>
+          <div className="bg-white w-full rounded-t-3xl px-6 pt-6 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
+            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i className="ti ti-trash text-red-500 text-2xl" aria-hidden="true" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 mb-2 text-center">Futa Akaunti Yangu?</h3>
+            <p className="text-sm text-gray-500 mb-4 text-center">
+              Hatua hii itafuta akaunti yako na data yote kabisa. <strong>Haiwezi kutenduliwa.</strong>
+            </p>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-4 text-xs text-red-700">
+              Kwa kufuta akaunti utapoteza: listings, historia ya malipo, mawasiliano, na data yote.
+            </div>
+            <label className="text-xs font-medium text-gray-600 block mb-1.5">
+              Andika <strong>futa akaunti</strong> kuthibitisha:
+            </label>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="futa akaunti"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 mb-5"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+                className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm">
+                Ghairi
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting || deleteConfirmText.toLowerCase() !== 'futa akaunti'}
+                className="flex-1 py-3.5 rounded-2xl bg-red-600 text-white font-bold text-sm disabled:opacity-40">
+                {deleting ? 'Inafuta...' : 'Futa Kabisa'}
               </button>
             </div>
           </div>

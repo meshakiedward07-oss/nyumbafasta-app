@@ -100,13 +100,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Akaunti yako imesimamishwa. Wasiliana na msaada.' }, { status: 403 })
     }
 
+    const admin = createAdminClient()
+
+    // KYC enforcement for dalali — admins bypass
+    if (profile?.role === 'dalali') {
+      const { data: dalaliProfile } = await admin
+        .from('dalali_profiles')
+        .select('verification_status')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (dalaliProfile?.verification_status !== 'verified') {
+        return NextResponse.json(
+          {
+            error: 'Uthibitisho wa kitambulisho unahitajika kabla ya kuongeza listings. Nenda Dashibodi → Thibitisha Akaunti.',
+            kyc_required: true,
+          },
+          { status: 403 }
+        )
+      }
+    }
+
     // 20 listings per hour per user
     const rl = await rateLimit(`create-listing:${user.id}`, 20, 60 * 60 * 1000)
     if (!rl.allowed) {
       return NextResponse.json({ error: 'Umefika kikomo cha kuunda listings.' }, { status: 403 })
     }
-
-    const admin = createAdminClient()
 
     // Fetch subscription and dynamic pricing in parallel
     const [{ data: subscription }, pricing] = await Promise.all([

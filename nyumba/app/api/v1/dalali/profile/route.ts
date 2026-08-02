@@ -13,15 +13,16 @@ export async function GET() {
     const admin = createAdminClient()
     const [userRes, profileRes] = await Promise.all([
       admin.from('users').select('full_name, phone, avatar_url').eq('id', user.id).single(),
-      admin.from('dalali_profiles').select('whatsapp_number, bio').eq('user_id', user.id).maybeSingle(),
+      admin.from('dalali_profiles').select('whatsapp_number, bio, verification_status').eq('user_id', user.id).maybeSingle(),
     ])
 
     return NextResponse.json({
-      fullName:       userRes.data?.full_name ?? '',
-      whatsappNumber: profileRes.data?.whatsapp_number ?? '',
-      phone:          userRes.data?.phone ?? null,
-      avatarUrl:      userRes.data?.avatar_url ?? null,
-      bio:            profileRes.data?.bio ?? null,
+      fullName:           userRes.data?.full_name ?? '',
+      whatsappNumber:     profileRes.data?.whatsapp_number ?? '',
+      phone:              userRes.data?.phone ?? null,
+      avatarUrl:          userRes.data?.avatar_url ?? null,
+      bio:                profileRes.data?.bio ?? null,
+      verificationStatus: (profileRes.data?.verification_status as string | undefined) ?? 'unverified',
     })
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

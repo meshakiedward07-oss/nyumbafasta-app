@@ -42,10 +42,34 @@ function LoginForm() {
       setError('Barua pepe au nywila si sahihi.')
       setLoading(false); return
     }
-    const res = await fetch('/api/v1/advertising/me')
-    if (!res.ok) {
+    let meData: { advertiser?: { status?: string } } = {}
+    try {
+      const res = await fetch('/api/v1/advertising/me')
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({})) as { error?: string }
+        await supabase.auth.signOut()
+        setError(d.error ?? 'Akaunti ya mfanyabiashara haikupatikana. Jiandikishe kwanza.')
+        setLoading(false); return
+      }
+      meData = await res.json()
+    } catch {
       await supabase.auth.signOut()
-      setError('Akaunti ya mfanyabiashara haikupatikana. Jiandikishe kwanza.')
+      setError('Hitilafu ya mtandao. Jaribu tena.')
+      setLoading(false); return
+    }
+
+    const status = meData.advertiser?.status
+    if (status === 'pending_review') {
+      window.location.href = '/advertising/pending'
+      return
+    }
+    if (status === 'rejected' || status === 'suspended') {
+      await supabase.auth.signOut()
+      setError(
+        status === 'rejected'
+          ? 'Akaunti yako ilikataliwa. Wasiliana na msimamizi.'
+          : 'Akaunti yako imesimamishwa. Wasiliana na msimamizi.'
+      )
       setLoading(false); return
     }
     window.location.href = redirectTo

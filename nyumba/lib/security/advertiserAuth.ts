@@ -40,5 +40,13 @@ export async function requireAdvertiserAuth(): Promise<AdvertiserAuthResult> {
     return { ok: false, response: NextResponse.json({ error: 'Wasifu wa mfanyabiashara haupatikani. Jiandikishe kwanza.' }, { status: 403 }) }
   }
 
-  return { ok: true, advertiser: advertiser as AdvertiserRow, userId: user.id }
+  const row = advertiser as AdvertiserRow
+  if (row.status === 'rejected') {
+    return { ok: false, response: NextResponse.json({ error: 'Akaunti yako ilikataliwa. Wasiliana na msimamizi.' }, { status: 403 }) }
+  }
+  if (row.status === 'suspended') {
+    return { ok: false, response: NextResponse.json({ error: 'Akaunti yako imesimamishwa. Wasiliana na msimamizi.' }, { status: 403 }) }
+  }
+
+  return { ok: true, advertiser: row, userId: user.id }
 }
