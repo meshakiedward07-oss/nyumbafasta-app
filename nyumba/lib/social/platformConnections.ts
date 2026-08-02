@@ -35,8 +35,10 @@ export async function getConnectedPlatforms(): Promise<UnifiedPlatform[]> {
   }
 
   // ── Facebook ───────────────────────────────────────────────────────────────
+  // Must mirror the token resolution in metaClient.ts: INSTAGRAM_ACCESS_TOKEN first,
+  // then FACEBOOK_PAGE_ACCESS_TOKEN, then FACEBOOK_ACCESS_TOKEN.
   const fbPageId = process.env.FACEBOOK_PAGE_ID
-  const fbToken  = process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN
+  const fbToken  = process.env.INSTAGRAM_ACCESS_TOKEN ?? process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN
   if (fbPageId && fbToken) {
     const valid = await validateMetaToken(
       `https://graph.facebook.com/v21.0/${fbPageId}?fields=id&access_token=${fbToken}`,

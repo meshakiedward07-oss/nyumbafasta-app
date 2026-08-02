@@ -164,7 +164,7 @@ export async function postListingToSocialMedia(
         await waitForIGContainer(containerId)
       } else if (imageUrl) {
         containerId = await createIGImageContainer(imageUrl, fullCaption)
-        await waitForIGContainer(containerId, 15_000)
+        await waitForIGContainer(containerId, 30_000)
       } else {
         throw new Error('Listing haina picha au video — haiwezi kupoatstwa kwenye Instagram')
       }

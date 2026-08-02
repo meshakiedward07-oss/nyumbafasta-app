@@ -3,7 +3,7 @@ import { watermarkImage } from '@/lib/media/watermark'
 import type { Listing } from '@/lib/types/database'
 
 const GRAPH      = 'https://graph.facebook.com/v21.0'
-const fbToken    = () => process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
+const fbToken    = () => process.env.INSTAGRAM_ACCESS_TOKEN ?? process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN ?? ''
 // Catalog API requires a System User token with catalog_management permission.
 // Set FACEBOOK_SYSTEM_USER_TOKEN in Vercel env vars (separate from the Page Access Token).
 const catalogToken = () => process.env.FACEBOOK_SYSTEM_USER_TOKEN ?? fbToken()

@@ -96,7 +96,7 @@ export async function postListingToAllPlatforms(opts: UnifiedPostOptions): Promi
           postUrl:   result.instagramPostId
             ? `https://www.instagram.com/p/${result.instagramPostId}/`
             : undefined,
-          error: !result.instagramPostId ? (result.error ?? 'IG post ilishindwa') : undefined,
+          error: !result.instagramPostId ? (result.error ?? result.warning ?? 'IG post ilishindwa') : undefined,
         })
       }
       if (metaPlatforms.includes('facebook')) {
@@ -107,7 +107,7 @@ export async function postListingToAllPlatforms(opts: UnifiedPostOptions): Promi
           postUrl:  result.facebookPostId
             ? `https://www.facebook.com/permalink.php?story_fbid=${result.facebookPostId}`
             : undefined,
-          error: !result.facebookPostId ? (result.error ?? 'FB post ilishindwa') : undefined,
+          error: !result.facebookPostId ? (result.error ?? result.warning ?? 'FB post ilishindwa') : undefined,
         })
       }
     } catch (err: unknown) {

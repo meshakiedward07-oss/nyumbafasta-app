@@ -4,6 +4,8 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { postVideoToTikTok, generateTikTokCaption } from '@/lib/social/tiktok'
 import type { Listing } from '@/lib/types/database'
 
+export const maxDuration = 60
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()

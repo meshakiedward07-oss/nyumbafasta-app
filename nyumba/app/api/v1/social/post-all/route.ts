@@ -3,7 +3,7 @@ import { requireAdminUser } from '@/lib/security/adminAuth'
 import { postListingToAllPlatforms, getConnectedPlatforms } from '@/lib/social/unifiedPost'
 import type { UnifiedPlatform } from '@/lib/social/unifiedPost'
 
-export const maxDuration = 60
+export const maxDuration = 300
 
 export async function POST(req: NextRequest) {
   const admin = await requireAdminUser()
