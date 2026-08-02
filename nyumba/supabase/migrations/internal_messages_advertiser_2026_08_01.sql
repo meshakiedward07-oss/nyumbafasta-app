@@ -12,13 +12,6 @@ WHERE c.created_by = u.id
   AND u.role = 'dalali'
   AND c.source_role IS NULL;
 
-UPDATE conversations c
-SET source_role = 'org'
-FROM users u
-WHERE c.created_by = u.id
-  AND u.role = 'org_owner'
-  AND c.source_role IS NULL;
-
 -- 3. Replace nf_get_conversations to expose + filter by source_role
 CREATE OR REPLACE FUNCTION nf_get_conversations(
   p_user_id     uuid,

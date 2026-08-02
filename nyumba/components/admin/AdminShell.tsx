@@ -16,7 +16,7 @@ type NavItem = {
   labelKey: TKey
   icon: string
   exact: boolean
-  badge?: true | 'social'
+  badge?: true | 'social' | 'messages'
 }
 
 type NavSection = {
@@ -56,6 +56,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: 'admin_nav_sec_comms',
     items: [
+      { href: '/admin/messages',      labelKey: 'admin_nav_messages',          icon: 'message-2',    exact: false, badge: 'messages' as const },
       { href: '/admin/email',         labelKey: 'admin_nav_email',             icon: 'mail',         exact: false },
       { href: '/admin/notifications', labelKey: 'admin_nav_notify_broadcast',  icon: 'bell',         exact: false },
       { href: '/admin/knowledge',     labelKey: 'admin_nav_knowledge',         icon: 'academic-cap', exact: false },
@@ -110,17 +111,19 @@ const NAV_SECTIONS: NavSection[] = [
 type BottomNavItem = { href: string; icon: string; labelKey: TKey; exact: boolean }
 
 const BOTTOM_NAV: BottomNavItem[] = [
-  { href: '/admin',          icon: 'chart-bar',      labelKey: 'admin_nav_home',        exact: true  },
+  { href: '/admin',          icon: 'chart-bar',      labelKey: 'admin_nav_home',          exact: true  },
   { href: '/admin/whatsapp', icon: 'brand-whatsapp', labelKey: 'admin_nav_conversations', exact: false },
-  { href: '/admin/email',    icon: 'mail',           labelKey: 'admin_nav_email_short', exact: false },
-  { href: '/admin/leads',    icon: 'users',          labelKey: 'admin_nav_leads_mgmt',  exact: false },
+  { href: '/admin/messages', icon: 'message-2',      labelKey: 'admin_nav_messages',      exact: false },
+  { href: '/admin/email',    icon: 'mail',            labelKey: 'admin_nav_email_short',   exact: false },
+  { href: '/admin/leads',    icon: 'users',           labelKey: 'admin_nav_leads_mgmt',    exact: false },
 ]
 
 type StaffNavItem = { href: string; icon: string; labelKey: TKey; exact: boolean; permission: 'leads' | null }
 
 const STAFF_BOTTOM_NAV_BASE: StaffNavItem[] = [
-  { href: '/admin/staff-dashboard', icon: 'layout-dashboard', labelKey: 'admin_my_dashboard', exact: false, permission: null },
-  { href: '/admin/email',           icon: 'mail',             labelKey: 'admin_nav_email',    exact: false, permission: null },
+  { href: '/admin/staff-dashboard', icon: 'layout-dashboard', labelKey: 'admin_my_dashboard',  exact: false, permission: null },
+  { href: '/admin/messages',        icon: 'message-2',        labelKey: 'admin_nav_messages',   exact: false, permission: null },
+  { href: '/admin/email',           icon: 'mail',             labelKey: 'admin_nav_email',      exact: false, permission: null },
   { href: '/admin/staff-leads',     icon: 'target',           labelKey: 'admin_nav_leads_mgmt', exact: false, permission: 'leads' as const },
 ]
 
@@ -200,6 +203,32 @@ function SocialPendingBadge() {
   )
 }
 
+function MessagesBadge() {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch('/api/v1/conversations?unread=1')
+        if (!res.ok) return
+        const d = await res.json()
+        if (!cancelled) setCount(d.unread_count ?? 0)
+      } catch { /* silent */ }
+    }
+    load()
+    const timer = setInterval(load, 30_000)
+    return () => { cancelled = true; clearInterval(timer) }
+  }, [])
+
+  if (count === 0) return null
+  return (
+    <span className="ml-auto min-w-[20px] h-5 bg-blue-500 text-white text-[10px] font-bold rounded-full px-1.5 flex items-center justify-center">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
 // ── Staff dynamic sidebar ──────────────────────────────────────────────────
 function StaffSidebar({
   pathname,
@@ -271,6 +300,20 @@ function StaffSidebar({
                 </div>
               </Link>
             )}
+            <Link href="/admin/messages" onClick={onLinkClick}>
+              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
+                isActive('/admin/messages')
+                  ? 'bg-primary-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}>
+                <i className="ti ti-message-2 text-base w-5 text-center flex-shrink-0" aria-hidden="true" />
+                <span>{t('admin_nav_messages')}</span>
+                {!isActive('/admin/messages') && <MessagesBadge />}
+                {isActive('/admin/messages') && (
+                  <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
+                )}
+              </div>
+            </Link>
             <Link href="/admin/email" onClick={onLinkClick}>
               <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
                 isActive('/admin/email')
@@ -408,7 +451,9 @@ function SidebarContent({ pathname, onLinkClick, onLogout }: SidebarProps) {
                       : <i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />}
                     <span>{t(item.labelKey)}</span>
                     {item.badge && !isActive(item.href, item.exact) && (
-                      item.badge === 'social' ? <SocialPendingBadge /> : <PendingBadge />
+                      item.badge === 'social' ? <SocialPendingBadge /> :
+                      item.badge === 'messages' ? <MessagesBadge /> :
+                      <PendingBadge />
                     )}
                     {isActive(item.href, item.exact) && (
                       <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
@@ -486,7 +531,7 @@ export default function AdminShell({
   const isStaff = userRole === 'staff'
 
   // Full-viewport overlays — hides sidebar, footer, body scroll
-  if (pathname.startsWith('/admin/social') || pathname === '/admin/property-management') {
+  if (pathname.startsWith('/admin/social') || pathname === '/admin/property-management' || pathname.startsWith('/admin/messages')) {
     return <div className="fixed inset-0 overflow-hidden bg-[#f4f4f0] z-10">{children}</div>
   }
 
@@ -588,6 +633,11 @@ export default function AdminShell({
                     {item.href === '/admin/whatsapp' && (
                       <span className="absolute -top-1 -right-2 scale-75 origin-top-right">
                         <PendingBadge />
+                      </span>
+                    )}
+                    {item.href === '/admin/messages' && (
+                      <span className="absolute -top-1 -right-2 scale-75 origin-top-right">
+                        <MessagesBadge />
                       </span>
                     )}
                   </div>
