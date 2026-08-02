@@ -113,7 +113,6 @@ type BottomNavItem = { href: string; icon: string; labelKey: TKey; exact: boolea
 const BOTTOM_NAV: BottomNavItem[] = [
   { href: '/admin',          icon: 'chart-bar',      labelKey: 'admin_nav_home',          exact: true  },
   { href: '/admin/whatsapp', icon: 'brand-whatsapp', labelKey: 'admin_nav_conversations', exact: false },
-  { href: '/admin/messages', icon: 'message-2',      labelKey: 'admin_nav_messages',      exact: false },
   { href: '/admin/email',    icon: 'mail',            labelKey: 'admin_nav_email_short',   exact: false },
   { href: '/admin/leads',    icon: 'users',           labelKey: 'admin_nav_leads_mgmt',    exact: false },
 ]
@@ -122,7 +121,6 @@ type StaffNavItem = { href: string; icon: string; labelKey: TKey; exact: boolean
 
 const STAFF_BOTTOM_NAV_BASE: StaffNavItem[] = [
   { href: '/admin/staff-dashboard', icon: 'layout-dashboard', labelKey: 'admin_my_dashboard',  exact: false, permission: null },
-  { href: '/admin/messages',        icon: 'message-2',        labelKey: 'admin_nav_messages',   exact: false, permission: null },
   { href: '/admin/email',           icon: 'mail',             labelKey: 'admin_nav_email',      exact: false, permission: null },
   { href: '/admin/staff-leads',     icon: 'target',           labelKey: 'admin_nav_leads_mgmt', exact: false, permission: 'leads' as const },
 ]
@@ -633,11 +631,6 @@ export default function AdminShell({
                     {item.href === '/admin/whatsapp' && (
                       <span className="absolute -top-1 -right-2 scale-75 origin-top-right">
                         <PendingBadge />
-                      </span>
-                    )}
-                    {item.href === '/admin/messages' && (
-                      <span className="absolute -top-1 -right-2 scale-75 origin-top-right">
-                        <MessagesBadge />
                       </span>
                     )}
                   </div>
