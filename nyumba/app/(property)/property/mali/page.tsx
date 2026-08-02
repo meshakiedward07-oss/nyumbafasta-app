@@ -25,7 +25,6 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function MaliPage() {
   const [listings, setListings] = useState<Listing[]>([])
-  const [orgId,    setOrgId]    = useState<string | null>(null)
   const [orgRole,  setOrgRole]  = useState<string | null>(null)
   const [loading,  setLoading]  = useState(true)
   const [total,    setTotal]    = useState(0)
@@ -39,7 +38,6 @@ export default function MaliPage() {
         const primary = orgData.organizations.find((o: { role: string }) => o.role === 'owner') ?? orgData.organizations[0]
         const id   = primary.organization.id
         const role = primary.role
-        setOrgId(id)
         setOrgRole(role)
 
         const mRes  = await fetch(`/api/v1/organizations/${id}/mali`)

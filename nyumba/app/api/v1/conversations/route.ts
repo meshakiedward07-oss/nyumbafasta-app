@@ -32,7 +32,10 @@ export async function GET(req: NextRequest) {
     const totalUnread   = conversations.reduce((s: number, c: { unread_count: number }) => s + (c.unread_count ?? 0), 0)
 
     if (unreadOnly) {
-      return NextResponse.json({ unread_count: totalUnread })
+      return NextResponse.json(
+        { unread_count: totalUnread },
+        { headers: { 'Cache-Control': 'private, max-age=15, stale-while-revalidate=10' } },
+      )
     }
 
     // Attach participant details for the full list view

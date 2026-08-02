@@ -1,12 +1,6 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
-
-// Polling-based notification bell — no persistent WebSocket per user.
-// Supabase Realtime has a hard cap on concurrent connections (10,000 on Pro).
-// At scale, one realtime channel per active user would exhaust that cap
-// instantly. Polling every 30 s stays within HTTP rate limits, uses CDN
-// caching on the count endpoint, and degrades gracefully under load.
 
 interface Props {
   className?: string
@@ -16,8 +10,10 @@ interface Props {
 
 export default function NotificationBell({ className = '', asLink = true }: Props) {
   const [unread, setUnread] = useState(0)
+  const lastFetched = useRef(0)
 
   const fetchCount = useCallback(() => {
+    lastFetched.current = Date.now()
     fetch('/api/v1/notifications?count=true')
       .then(r => r.ok ? r.json() : { unread_count: 0 })
       .then(d => setUnread(d.unread_count ?? 0))
@@ -27,13 +23,15 @@ export default function NotificationBell({ className = '', asLink = true }: Prop
   useEffect(() => {
     fetchCount()
 
-    // Re-fetch when tab becomes visible (handles background-tab resumption)
-    const onVisibility = () => { if (document.visibilityState === 'visible') fetchCount() }
-    const onFocus = () => fetchCount()
+    // Skip re-fetch on focus/visibility if a fetch happened within the last 25s
+    // (prevents burst when the polling interval fires near the same time as a tab focus)
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastFetched.current >= 25_000) fetchCount()
+    }
+    const onFocus = () => { if (Date.now() - lastFetched.current >= 25_000) fetchCount() }
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('focus', onFocus)
 
-    // 30-second poll — frequent enough to feel responsive, light enough for scale
     const timer = setInterval(fetchCount, 30_000)
 
     return () => {

@@ -5,24 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Organization } from '@/lib/types/property'
 
-function UnreadBadge() {
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const res = await fetch('/api/v1/conversations?unread=1')
-        if (!res.ok) return
-        const d = await res.json()
-        if (!cancelled) setCount(d.unread_count ?? 0)
-      } catch { /* silent */ }
-    }
-    load()
-    const t = setInterval(load, 30_000)
-    return () => { cancelled = true; clearInterval(t) }
-  }, [])
-
+function UnreadBadge({ count }: { count: number }) {
   if (count === 0) return null
   return (
     <span className="ml-auto min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full px-1 flex items-center justify-center">
@@ -31,22 +14,7 @@ function UnreadBadge() {
   )
 }
 
-function UnreadBadgeBottom() {
-  const [count, setCount] = useState(0)
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const res = await fetch('/api/v1/conversations?unread=1')
-        if (!res.ok) return
-        const d = await res.json()
-        if (!cancelled) setCount(d.unread_count ?? 0)
-      } catch { /* silent */ }
-    }
-    load()
-    const t = setInterval(load, 30_000)
-    return () => { cancelled = true; clearInterval(t) }
-  }, [])
+function UnreadBadgeBottom({ count }: { count: number }) {
   if (count === 0) return null
   return (
     <span className="absolute -top-1 -right-2 min-w-[16px] h-4 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 leading-none">
@@ -120,6 +88,22 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
   const pathname = usePathname()
   const router   = useRouter()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadUnread() {
+      try {
+        const res = await fetch('/api/v1/conversations?unread=1')
+        if (!res.ok) return
+        const d = await res.json()
+        if (!cancelled) setUnreadCount(d.unread_count ?? 0)
+      } catch { /* silent */ }
+    }
+    loadUnread()
+    const t = setInterval(loadUnread, 30_000)
+    return () => { cancelled = true; clearInterval(t) }
+  }, [])
 
   function isActive(href: string, exact: boolean) {
     return exact ? pathname === href : pathname.startsWith(href)
@@ -174,7 +158,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
                   <i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
                   <span>{item.label}</span>
                   {item.href === '/property/mazungumzo' && !isActive(item.href, item.exact)
-                    ? <UnreadBadge />
+                    ? <UnreadBadge count={unreadCount} />
                     : isActive(item.href, item.exact) && (
                         <span className="ml-auto w-1.5 h-1.5 bg-white/70 rounded-full" />
                       )
@@ -264,7 +248,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
                 {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" />}
                 <div className="relative">
                   <i className={`ti ti-${item.icon} text-[22px] transition-colors ${active ? 'text-primary-500' : 'text-gray-400'}`} aria-hidden="true" />
-                  {item.href === '/property/mazungumzo' && !active && <UnreadBadgeBottom />}
+                  {item.href === '/property/mazungumzo' && !active && <UnreadBadgeBottom count={unreadCount} />}
                 </div>
                 <span className={`text-[10px] font-semibold ${active ? 'text-primary-500' : 'text-gray-400'}`}>
                   {item.label}

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, createContext, useContext } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -142,87 +142,35 @@ function LangToggle() {
   )
 }
 
-// Polls every 30s — avoids Supabase realtime channel conflicts across mounts
+type BadgeCounts = { pending: number; social: number; messages: number }
+const BadgesCtx = createContext<BadgeCounts>({ pending: 0, social: 0, messages: 0 })
+
 function PendingBadge() {
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      try {
-        const supabase = createClient()
-        const { count: c } = await supabase
-          .from('whatsapp_sessions')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending')
-        if (!cancelled) setCount(c ?? 0)
-      } catch {
-        // table may not exist yet — fail silently
-      }
-    }
-
-    load()
-    const timer = setInterval(load, 30_000)
-    return () => { cancelled = true; clearInterval(timer) }
-  }, [])
-
-  if (count === 0) return null
+  const { pending } = useContext(BadgesCtx)
+  if (pending === 0) return null
   return (
     <span className="ml-auto min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 flex items-center justify-center">
-      {count > 99 ? '99+' : count}
+      {pending > 99 ? '99+' : pending}
     </span>
   )
 }
 
 function SocialPendingBadge() {
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const res = await fetch('/api/v1/social/sessions?status=pending')
-        if (!res.ok) return
-        const d = await res.json()
-        if (!cancelled) setCount((d.sessions ?? []).length)
-      } catch { /* silent */ }
-    }
-    load()
-    const timer = setInterval(load, 60_000)
-    return () => { cancelled = true; clearInterval(timer) }
-  }, [])
-
-  if (count === 0) return null
+  const { social } = useContext(BadgesCtx)
+  if (social === 0) return null
   return (
     <span className="ml-auto min-w-[20px] h-5 bg-pink-500 text-white text-[10px] font-bold rounded-full px-1.5 flex items-center justify-center">
-      {count > 99 ? '99+' : count}
+      {social > 99 ? '99+' : social}
     </span>
   )
 }
 
 function MessagesBadge() {
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const res = await fetch('/api/v1/conversations?unread=1')
-        if (!res.ok) return
-        const d = await res.json()
-        if (!cancelled) setCount(d.unread_count ?? 0)
-      } catch { /* silent */ }
-    }
-    load()
-    const timer = setInterval(load, 30_000)
-    return () => { cancelled = true; clearInterval(timer) }
-  }, [])
-
-  if (count === 0) return null
+  const { messages } = useContext(BadgesCtx)
+  if (messages === 0) return null
   return (
     <span className="ml-auto min-w-[20px] h-5 bg-blue-500 text-white text-[10px] font-bold rounded-full px-1.5 flex items-center justify-center">
-      {count > 99 ? '99+' : count}
+      {messages > 99 ? '99+' : messages}
     </span>
   )
 }
@@ -496,6 +444,7 @@ export default function AdminShell({
   const [drawerOpen,       setDrawerOpen]       = useState(false)
   const [userRole,         setUserRole]         = useState<string>(initialRole)
   const [staffPermissions, setStaffPermissions] = useState<string[]>([])
+  const [badges,           setBadges]           = useState<BadgeCounts>({ pending: 0, social: 0, messages: 0 })
 
   useEffect(() => {
     const supabase = createClient()
@@ -514,6 +463,22 @@ export default function AdminShell({
         })
     })
   }, [initialRole])
+
+  // Single poll replaces 3 independent badge polls (WhatsApp + social + messages)
+  useEffect(() => {
+    let cancelled = false
+    async function loadBadges() {
+      try {
+        const res = await fetch('/api/v1/admin/badges')
+        if (!res.ok) return
+        const d = await res.json()
+        if (!cancelled) setBadges({ pending: d.pending ?? 0, social: d.social ?? 0, messages: d.messages ?? 0 })
+      } catch { /* non-critical */ }
+    }
+    loadBadges()
+    const timer = setInterval(loadBadges, 30_000)
+    return () => { cancelled = true; clearInterval(timer) }
+  }, [])
 
   function isActive(href: string, exact: boolean) {
     if (exact) return pathname === href
@@ -534,6 +499,7 @@ export default function AdminShell({
   }
 
   return (
+    <BadgesCtx.Provider value={badges}>
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* ── Desktop sidebar (lg+) ── */}
       <aside className="hidden lg:flex lg:w-64 flex-shrink-0 flex-col bg-white border-r border-gray-200 h-full overflow-y-auto">
@@ -663,5 +629,6 @@ export default function AdminShell({
         </div>
       )}
     </div>
+    </BadgesCtx.Provider>
   )
 }
