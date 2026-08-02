@@ -34,13 +34,22 @@ async function compressAndUpload(
   onProgress: (p: number) => void,
 ): Promise<string> {
   onProgress(5)
+  // Convert to WebP for ~60-80% smaller files — critical on Tanzanian 3G connections.
+  // Falls back silently to the original format if WebP conversion fails.
   const compressed = await imageCompression(file, {
+    maxSizeMB:        1.0,
+    maxWidthOrHeight: 1920,
+    useWebWorker:     true,
+    fileType:         'image/webp',
+    onProgress:       p => onProgress(5 + Math.round(p * 0.45)),
+  }).catch(() => imageCompression(file, {
     maxSizeMB:        1.5,
     maxWidthOrHeight: 1920,
     useWebWorker:     true,
     onProgress:       p => onProgress(5 + Math.round(p * 0.45)),
-  })
+  }))
   onProgress(52)
+  // Keep original extension in name (server validates via magic bytes, not extension)
   const fd = new FormData()
   fd.append('file', compressed, file.name)
   const res = await fetch('/api/v1/upload/listing', { method: 'POST', body: fd })

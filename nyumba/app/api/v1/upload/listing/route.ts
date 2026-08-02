@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { optimizeCloudinaryImageUrl } from '@/lib/media/cloudinaryUrl'
 
 function isAllowedImageBytes(buf: Buffer): boolean {
   if (buf.length < 4) return false
@@ -55,7 +56,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: data.error?.message ?? 'Upload ilishindwa' }, { status: 500 })
     }
 
-    return NextResponse.json({ url: data.secure_url })
+    const url = optimizeCloudinaryImageUrl(data.secure_url, { maxWidth: 1920 })
+    return NextResponse.json({ url })
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Hitilafu ya seva' },

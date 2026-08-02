@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createHash } from 'crypto'
+import { optimizeCloudinaryImageUrl } from '@/lib/media/cloudinaryUrl'
 
 const CLOUD      = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!
 const API_KEY    = process.env.CLOUDINARY_API_KEY!
@@ -65,8 +66,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Haikuweza kupakia faili' }, { status: 502 })
     }
 
+    const rawUrl = cdnData.secure_url as string
+    const url = isImage(file.type) ? optimizeCloudinaryImageUrl(rawUrl, { maxWidth: 1200 }) : rawUrl
     return NextResponse.json({
-      url:       cdnData.secure_url as string,
+      url,
       file_name: file.name,
       file_type: file.type,
       file_size: file.size,
