@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         .eq('dalali_id', subscription.dalali_id)
         .in('plan', ['premium', 'enterprise'])
         .eq('status', 'active')
-      if (count === 0) {
+      if ((count ?? 1) === 0) {
         await admin.from('dalali_profiles')
           .update({ is_premium_verified: false })
           .eq('id', subscription.dalali_id)

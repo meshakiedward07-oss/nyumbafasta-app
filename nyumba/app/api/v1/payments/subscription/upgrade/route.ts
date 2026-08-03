@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import {
   mobileCheckout, normalizePhone, detectProvider,
-  generateExternalId, type MobileProvider,
+  generateExternalId, webhookUrl, type MobileProvider,
 } from '@/lib/payments/azampay'
 import { rateLimit } from '@/lib/security/rateLimit'
 import { getPricing } from '@/lib/config/pricing'
@@ -12,14 +12,9 @@ import { getPricing } from '@/lib/config/pricing'
 //
 // Calculates a prorated upgrade amount (credit for unused days on current plan)
 // then initiates an AzamPay mobile-money checkout.
-//
-// NOTE — Webhook handling:
-//   When the AzamPay webhook receives a callback for a ref starting with 'UPG-',
-//   the existing /api/v1/payments/webhook/route.ts should upgrade the dalali's
-//   plan in the subscriptions table to `to_plan` and update the payments row
-//   to status='completed'. The webhook currently handles SUB-, REN-, BST-, and
-//   NYU- prefixes; an 'UPG-' branch should be added there to finalise upgrades.
+// On success the AzamPay callback hits /api/v1/payments/webhook which handles the UPG- prefix.
 
+const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 const PLAN_ORDER: Record<string, number> = { basic: 1, premium: 2, enterprise: 3 }
 
 function toAzamProvider(p: string): MobileProvider {
@@ -107,6 +102,36 @@ export async function POST(req: NextRequest) {
     const creditRemaining = (daysRemaining / totalDays) * currentPlanPrice
     const upgradeAmount   = Math.max(1000, Math.round(newPlanPrice - creditRemaining))
 
+    // ── Dev / mock mode: activate upgrade immediately ─────────────────────────
+    if (IS_MOCK) {
+      const now = new Date()
+      const newExpires = new Date(now)
+      newExpires.setDate(newExpires.getDate() + 30)
+
+      await admin.from('subscriptions').update({
+        plan:         to_plan,
+        expires_at:   newExpires.toISOString(),
+        is_premium_verified: ['premium', 'enterprise'].includes(to_plan),
+      }).eq('id', currentSub.id)
+
+      await admin.from('notifications').insert({
+        user_id:  user.id,
+        title:    '✅ Mpango Umeboreshwa!',
+        body:     `Umepanda mpango hadi ${to_plan}. Huduma zako zote zinapatikana sasa.`,
+        type:     'subscription_active',
+        is_read:  false,
+      })
+
+      return NextResponse.json({
+        payment_ref:    `MOCK-UPG-${Date.now()}`,
+        amount:         0,
+        credit_applied: 0,
+        to_plan,
+        mock:           true,
+        message:        'Mpango umeboreshwa mara moja (mock mode)',
+      })
+    }
+
     // ── Generate ref and create pending payments record ────────────────────────
     const payment_ref   = generateExternalId('UPG')
     const azamProvider  = toAzamProvider(provider) ?? detectProvider(accountNumber)
@@ -121,6 +146,7 @@ export async function POST(req: NextRequest) {
         external_id: payment_ref,
         status:      'pending',
         provider:    azamProvider,
+        metadata:    { to_plan, from_plan: currentSub.plan, subscription_id: currentSub.id },
         created_at:  new Date().toISOString(),
       })
       .select('id')
@@ -140,6 +166,7 @@ export async function POST(req: NextRequest) {
       externalId:  payment_ref,
       provider:    azamProvider,
       description: `Panda mpango wa NyumbaFasta hadi ${to_plan}`,
+      callbackUrl: webhookUrl('/api/v1/payments/webhook'),
     })
 
     if (!result.ok) {

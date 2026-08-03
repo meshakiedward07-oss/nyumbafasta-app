@@ -7,7 +7,7 @@ import {
 } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
 import { sendMail } from '@/lib/email/resend'
-import { contactUnlockEmail } from '@/lib/email/templates'
+import { contactUnlockEmail, subscriptionActivatedEmail } from '@/lib/email/templates'
 import { tryProcessAdPayment } from '@/lib/ads/processAdPayment'
 
 export async function POST(req: NextRequest) {
@@ -52,8 +52,123 @@ export async function POST(req: NextRequest) {
       .select('id, client_id, listing_id, dalali_id')
 
     if (!updated || updated.length === 0) {
-      // Not a contact_unlock payment — check if it's an ad payment instead.
-      // AzamPay uses a single merchant callback URL, so both payment types land here.
+      // ── UPG- (subscription upgrade) ────────────────────────────────────────
+      if (externalId.startsWith('UPG-')) {
+        const { data: upgPayment } = await admin
+          .from('payments')
+          .update({
+            status:         newStatus,
+            transaction_id: payload.transid,
+            provider:       payload.operator ?? null,
+          })
+          .eq('external_id', externalId)
+          .eq('status', 'pending')
+          .eq('type', 'upgrade')
+          .select('id, dalali_id, amount, metadata')
+
+        if (!upgPayment || upgPayment.length === 0) {
+          console.log('[Upgrade Webhook] No pending upgrade payment for', externalId)
+          return NextResponse.json({ received: true })
+        }
+
+        const pmnt = upgPayment[0]
+        console.log('[Upgrade Webhook] Status →', newStatus, 'for upgrade payment:', pmnt.id)
+
+        if (!succeeded) return NextResponse.json({ received: true })
+
+        const meta   = pmnt.metadata as { to_plan?: string; from_plan?: string; subscription_id?: string } | null
+        const toPlan = meta?.to_plan
+        if (!toPlan) {
+          console.error('[Upgrade Webhook] No to_plan in metadata for payment:', pmnt.id)
+          return NextResponse.json({ received: true })
+        }
+
+        // Upgrade the subscription — extend expires_at by 30 days from now
+        const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        const { data: upgraded } = meta?.subscription_id
+          ? await admin
+              .from('subscriptions')
+              .update({ plan: toPlan, expires_at: newExpiresAt })
+              .eq('id', meta.subscription_id)
+              .eq('status', 'active')
+              .select('id')
+          : await admin
+              .from('subscriptions')
+              .update({ plan: toPlan, expires_at: newExpiresAt })
+              .eq('dalali_id', pmnt.dalali_id)
+              .eq('status', 'active')
+              .select('id')
+
+        if (!upgraded || upgraded.length === 0) {
+          console.error('[Upgrade Webhook] Failed to upgrade subscription for dalali:', pmnt.dalali_id)
+          return NextResponse.json({ received: true })
+        }
+
+        // Grant premium badge for premium/enterprise
+        if (toPlan === 'premium' || toPlan === 'enterprise') {
+          admin.from('dalali_profiles').update({ is_premium_verified: true }).eq('id', pmnt.dalali_id).then(() => {})
+        }
+
+        // Income accounting (non-blocking)
+        import('@/lib/accounting/incomeTracker')
+          .then(m => m.recordIncomeFromUpgrade({
+            paymentId:  pmnt.id,
+            dalaliId:   pmnt.dalali_id,
+            amount:     Number(pmnt.amount),
+            externalId,
+            toPlan,
+          }))
+          .catch(e => console.error('[Accounting] recordIncomeFromUpgrade failed:', e))
+
+        const planLabel = toPlan.charAt(0).toUpperCase() + toPlan.slice(1)
+
+        // In-app notification
+        await admin.from('notifications').insert({
+          user_id: pmnt.dalali_id,
+          title:   `🚀 Mpango Umepandishwa hadi ${planLabel}!`,
+          body:    `Hongera! Umefanikiwa kupanda mpango hadi ${planLabel}. Vipengele vyote vipya vinapatikana sasa.`,
+          type:    'subscription_active',
+          is_read: false,
+        })
+
+        // WhatsApp + email (non-blocking)
+        ;(async () => {
+          const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+          const { data: dalali } = await admin
+            .from('users')
+            .select('full_name, dalali_profiles(whatsapp_number)')
+            .eq('id', pmnt.dalali_id)
+            .single()
+          const wp   = (dalali?.dalali_profiles as { whatsapp_number?: string | null }[] | null)?.[0]?.whatsapp_number
+          const name = dalali?.full_name ?? 'Dalali'
+
+          if (wp) {
+            const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
+            await sendTextMessage(
+              formatPhoneNumber(wp),
+              `🚀 *Mpango Wako Umepanda hadi ${planLabel}!*\n\n` +
+              `Hongera ${name}!\n\n` +
+              `Umefanikiwa kupanda mpango wako hadi *${planLabel}*. ` +
+              `Vipengele vyote vipya vinapatikana sasa.\n\n` +
+              `👉 ${APP_URL}/dashboard/subscription`,
+            ).catch(() => {})
+          }
+
+          const dalaliEmail = await admin.auth.admin.getUserById(pmnt.dalali_id)
+            .then(r => r.data?.user?.email ?? null)
+          if (dalaliEmail && process.env.RESEND_API_KEY) {
+            const expiryDate = new Date(newExpiresAt).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
+            const { subject, html } = subscriptionActivatedEmail(name, planLabel, expiryDate)
+            sendMail({ to: dalaliEmail, subject, html }).catch(() => {})
+          }
+        })().catch(() => {})
+
+        console.log('[Upgrade Webhook] Subscription upgraded to', toPlan, 'for dalali:', pmnt.dalali_id)
+        return NextResponse.json({ received: true })
+      }
+
+      // Not a contact_unlock or upgrade payment — check if it's an ad payment.
+      // AzamPay uses a single merchant callback URL, so all payment types land here.
       const wasAd = await tryProcessAdPayment(admin, externalId, payload)
       if (!wasAd) {
         console.log('[Webhook] No matching payment for', externalId, '— skipping')

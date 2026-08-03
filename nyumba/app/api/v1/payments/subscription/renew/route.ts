@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import {
   mobileCheckout, normalizePhone, detectProvider,
-  generateExternalId, type MobileProvider,
+  generateExternalId, webhookUrl, type MobileProvider,
 } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
 import { rateLimit } from '@/lib/security/rateLimit'
@@ -17,6 +17,8 @@ function getLoyaltyDiscount(months: number): number {
 function applyDiscount(price: number, pct: number): number {
   return Math.round(price * (1 - pct / 100))
 }
+
+const IS_MOCK = process.env.AZAMPAY_MOCK === 'true'
 
 function toAzamProvider(p: string): MobileProvider {
   const map: Record<string, MobileProvider> = {
@@ -95,6 +97,46 @@ export async function POST(req: NextRequest) {
     const payment_ref  = generateExternalId('REN')
     const azamProvider = toAzamProvider(provider) ?? detectProvider(accountNumber)
 
+    // ── Dev / mock mode: activate immediately ─────────────────────────────────
+    if (IS_MOCK) {
+      const { data: mockSub, error: mockErr } = await admin
+        .from('subscriptions')
+        .insert({
+          dalali_id:      user.id,
+          plan,
+          status:         'active',
+          amount_paid:    finalPrice,
+          payment_method: provider,
+          payment_ref,
+          starts_at:      startsFrom.toISOString(),
+          expires_at:     expiresAt.toISOString(),
+        })
+        .select('id')
+        .single()
+
+      if (mockErr || !mockSub) {
+        return NextResponse.json({ error: mockErr?.message ?? 'Imeshindwa kuanzisha upya' }, { status: 500 })
+      }
+
+      await admin.from('notifications').insert({
+        user_id:  user.id,
+        title:    '✅ Usajili Umefanywa Upya!',
+        body:     `Plan yako ya ${plan} imefanywa upya. Huduma zinaendelea hadi ${expiresAt.toLocaleDateString('sw-TZ')}.`,
+        type:     'subscription_active',
+        is_read:  false,
+      })
+
+      return NextResponse.json({
+        success:         true,
+        subscription_id: mockSub.id,
+        payment_ref,
+        amount:          finalPrice,
+        discount,
+        expires_at:      expiresAt.toISOString(),
+        mock:            true,
+      })
+    }
+
     // Create PENDING subscription — activated only after webhook confirms payment
     const { data: newSub, error: insertError } = await admin
       .from('subscriptions')
@@ -122,6 +164,7 @@ export async function POST(req: NextRequest) {
       externalId:  payment_ref,
       provider:    azamProvider,
       description: `Renew subscription ${plan} — NyumbaFasta`,
+      callbackUrl: webhookUrl('/api/v1/payments/subscription/webhook'),
     })
 
     if (!result.ok) {

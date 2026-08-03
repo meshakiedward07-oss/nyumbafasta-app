@@ -112,6 +112,28 @@ export async function GET(req: NextRequest) {
       })
     }
 
+    // ── FNSUB-* → fundi_subscriptions ────────────────────────────────────────
+    if (ref.startsWith('FNSUB-')) {
+      const { data } = await admin
+        .from('fundi_subscriptions')
+        .select('payment_ref, status, amount_paid, starts_at, expires_at')
+        .eq('payment_ref', ref)
+        .eq('fundi_user_id', user.id)
+        .maybeSingle()
+
+      if (!data) return NextResponse.json({ found: false })
+
+      return NextResponse.json({
+        found:       true,
+        type:        'fundi_subscription',
+        status:      data.status,
+        amount:      data.amount_paid,
+        starts_at:   data.starts_at,
+        expires_at:  data.expires_at,
+        payment_ref: data.payment_ref,
+      })
+    }
+
     // ── ORGSUB* → subscription_invoices ───────────────────────────────────────
     if (ref.startsWith('ORGSUB')) {
       const { data: invoice } = await admin

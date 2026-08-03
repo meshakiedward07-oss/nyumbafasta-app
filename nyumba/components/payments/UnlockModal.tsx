@@ -233,10 +233,14 @@ export default function UnlockModal({
     setSecondsSinceSent(0)
     const { normalized } = normalisePhone(phone)
     try {
-      await fetch('/api/v1/payments/unlock/initiate', {
+      const res = await fetch('/api/v1/payments/unlock/initiate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listing_id: listingId, msisdn: normalized, provider }),
       })
+      if (res.ok) {
+        const data = await res.json()
+        if (data?.unlock_id) subscribeRealtime(data.unlock_id)
+      }
     } catch { /* old channel still active */ }
   }
 

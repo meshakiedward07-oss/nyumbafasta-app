@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdvertiserAuth } from '@/lib/security/advertiserAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import {
-  mobileCheckout, detectProvider, normalizePhone, generateExternalId,
+  mobileCheckout, detectProvider, normalizePhone, generateExternalId, webhookUrl,
 } from '@/lib/payments/azampay'
 import { rateLimit } from '@/lib/security/rateLimit'
 import { auditLog } from '@/lib/security/auditLog'
@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
       externalId,
       provider:    bodyProvider ?? detectProvider(phone),
       description: `NyumbaFasta Advert — ${plan.name}`,
+      callbackUrl: webhookUrl('/api/v1/advertising/pay/webhook'),
     })
 
     if (!result.ok) {

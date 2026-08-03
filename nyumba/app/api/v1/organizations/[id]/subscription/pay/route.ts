@@ -106,7 +106,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Imeshindwa kuanzisha ombi la malipo' }, { status: 500 })
     }
 
-    // Initiate AzamPay mobile checkout
+    // Initiate AzamPay mobile checkout with per-request callback URL so callbacks
+    // are routed to the org-subscription webhook regardless of dashboard defaults.
     const callbackUrl = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/org-subscription/webhook')
     const result = await mobileCheckout({
       accountNumber,
@@ -114,6 +115,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       externalId:  payment_reference,
       provider:    azamProvider,
       description: `NyumbaFasta — ${plan.name} (${billing_cycle})`,
+      callbackUrl,
     })
 
     if (!result.ok) {

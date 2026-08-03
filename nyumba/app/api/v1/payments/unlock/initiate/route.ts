@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, webhookUrl, type MobileProvider } from '@/lib/payments/azampay'
 import { sendPushToUser } from '@/lib/notifications/send'
 import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 import { getPricing } from '@/lib/config/pricing'
@@ -225,10 +225,11 @@ export async function POST(req: NextRequest) {
 
     const result = await mobileCheckout({
       accountNumber,
-      amount:      UNLOCK_AMOUNT,
-      externalId:  payment_ref,
-      provider:    azamProvider,
-      description: 'Fungua contact ya dalali — NyumbaFasta',
+      amount:       UNLOCK_AMOUNT,
+      externalId:   payment_ref,
+      provider:     azamProvider,
+      description:  'Fungua contact ya dalali — NyumbaFasta',
+      callbackUrl:  webhookUrl('/api/v1/payments/webhook'),
     })
 
     if (!result.ok) {

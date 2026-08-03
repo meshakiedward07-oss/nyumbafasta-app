@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, generateExternalId, webhookUrl, type MobileProvider } from '@/lib/payments/azampay'
 import { rateLimit } from '@/lib/security/rateLimit'
 import { getPricing } from '@/lib/config/pricing'
 
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: insertError?.message ?? 'Imeshindwa kuunda subscription' }, { status: 500 })
       }
 
-      const planName = plan === 'premium' ? 'Premium ⭐' : 'Basic'
+      const planName = plan === 'enterprise' ? 'Enterprise ⭐⭐' : plan === 'premium' ? 'Premium ⭐' : 'Basic'
       await admin.from('notifications').insert({
         user_id:  user.id,
         title:    '✅ Subscription Imewashwa!',
@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
       externalId:  payment_ref,
       provider:    azamProvider,
       description: `Subscription ${plan} — NyumbaFasta`,
+      callbackUrl: webhookUrl('/api/v1/payments/subscription/webhook'),
     })
 
     if (!result.ok) {

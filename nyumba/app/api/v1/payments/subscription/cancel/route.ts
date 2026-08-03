@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // POST /api/v1/payments/subscription/cancel
 // Cancels the dalali's active (or grace-period) subscription.
@@ -16,8 +15,10 @@ export async function POST(_req: NextRequest) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
 
+    const admin = createAdminClient()
+
     // Fetch the most recent cancellable subscription
-    const { data: sub, error: fetchError } = await supabaseAdmin
+    const { data: sub, error: fetchError } = await admin
       .from('subscriptions')
       .select('id, status, expires_at, dalali_id')
       .eq('dalali_id', user.id)
@@ -42,7 +43,7 @@ export async function POST(_req: NextRequest) {
     if (hasFutureAccess) {
       // Mark cancelled but keep access until expires_at.
       // Try setting cancelled_at first; fall back to status='cancelled' if column absent.
-      const { error: updateError } = await supabaseAdmin
+      const { error: updateError } = await admin
         .from('subscriptions')
         .update({ cancelled_at: now.toISOString() })
         .eq('id', sub.id)
@@ -50,14 +51,14 @@ export async function POST(_req: NextRequest) {
       if (updateError) {
         // cancelled_at column may not exist — fall back to direct cancellation
         console.warn('[Sub/cancel] cancelled_at column missing, setting status=cancelled:', updateError.message)
-        await supabaseAdmin
+        await admin
           .from('subscriptions')
           .update({ status: 'cancelled' })
           .eq('id', sub.id)
       }
     } else {
       // Grace period or past expiry — cancel immediately
-      await supabaseAdmin
+      await admin
         .from('subscriptions')
         .update({ status: 'cancelled', cancelled_at: now.toISOString() })
         .eq('id', sub.id)
@@ -69,7 +70,7 @@ export async function POST(_req: NextRequest) {
       day: 'numeric', month: 'long', year: 'numeric',
     })
 
-    await supabaseAdmin.from('notifications').insert({
+    await admin.from('notifications').insert({
       user_id:  user.id,
       title:    '🚫 Usajili Umebatilishwa',
       body:     `Usajili wako umebatilishwa. Utaendelea kupata huduma hadi ${accessUntilFmt}.`,

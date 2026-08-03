@@ -5,7 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 // Returns a rich receipt object for any payment ref owned by the authenticated user.
 // 404 when ref is not found or not owned by the caller.
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.com'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 
 type ReceiptType =
   | 'unlock'
@@ -170,6 +170,30 @@ export async function GET(
           amount_tzs:     data.amount ?? 0,
           paid_at:        data.status === 'completed' ? data.created_at : null,
           description:    'Nafasi za ziada za listings',
+          paid_by:        paidBy,
+          platform:       'NyumbaFasta',
+          print_url:      `${APP_URL}/payments/receipt/${ref}`,
+        }
+      }
+    }
+
+    // ── FNSUB-* → fundi_subscriptions ────────────────────────────────────────
+    else if (ref.startsWith('FNSUB-')) {
+      const { data } = await admin
+        .from('fundi_subscriptions')
+        .select('payment_ref, status, amount_paid, starts_at, plan_id')
+        .eq('payment_ref', ref)
+        .eq('fundi_user_id', user.id)
+        .maybeSingle()
+
+      if (data) {
+        receipt = {
+          receipt_number: ref,
+          type:           'subscription',
+          status:         data.status,
+          amount_tzs:     data.amount_paid ?? 0,
+          paid_at:        data.status === 'active' ? data.starts_at : null,
+          description:    'Usajili wa Fundi — NyumbaFasta',
           paid_by:        paidBy,
           platform:       'NyumbaFasta',
           print_url:      `${APP_URL}/payments/receipt/${ref}`,

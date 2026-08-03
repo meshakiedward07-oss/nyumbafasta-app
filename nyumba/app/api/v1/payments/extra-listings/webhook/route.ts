@@ -9,13 +9,14 @@ import { getPricing } from '@/lib/config/pricing'
 import { sendMail } from '@/lib/email/resend'
 import { extraListingsAddedEmail } from '@/lib/email/templates'
 
-// externalId format: EX-{subscription_uuid}-{count}
-// e.g. EX-be7353b5-5b5b-4a77-9e4e-e76b8bc02cfa-3
+// externalId formats:
+//   Old: EX-{subscription_uuid}-{count}           → 7 dash-separated parts
+//   New: EX-{subscription_uuid}-{count}-{ts36}    → 8 dash-separated parts
+// In both cases count is at index 6 and subId is parts[1..5] joined.
 function parseExtraListingsId(externalId: string): { subId: string; count: number } | null {
   if (!externalId.startsWith('EX-')) return null
   const parts = externalId.split('-')
-  // EX + 5 UUID segments + count = 7 parts
-  if (parts.length !== 7) return null
+  if (parts.length !== 7 && parts.length !== 8) return null
   const count = parseInt(parts[6], 10)
   if (!Number.isInteger(count) || count < 1) return null
   const subId = parts.slice(1, 6).join('-')

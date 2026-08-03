@@ -505,9 +505,47 @@ async function runDailyTasks() {
       .eq('status', 'pending')
       .lt('created_at', tenMinAgo)
       .select('id')
-    results.push(`✅ Timed-out unlocks: ${timedOutUnlocks?.length ?? 0}, subs: ${timedOutSubs?.length ?? 0}`)
+    // Also clean up the payments audit table — upgrade/extra_listing/boost rows stuck at pending
+    const oneHourAgo = new Date(Date.now() - 60 * 60_000).toISOString()
+    const { data: timedOutPayments } = await admin
+      .from('payments')
+      .update({ status: 'failed' })
+      .eq('status', 'pending')
+      .lt('created_at', oneHourAgo)
+      .select('id')
+    results.push(`✅ Timed-out unlocks: ${timedOutUnlocks?.length ?? 0}, subs: ${timedOutSubs?.length ?? 0}, payments: ${timedOutPayments?.length ?? 0}`)
   } catch (e) {
     errors.push(`❌ Payment cleanup: ${String(e)}`)
+  }
+
+  // ── 9b. Apply scheduled dalali plan downgrades at period end ──────────────
+  try {
+    const { data: pendingDowngrades } = await admin
+      .from('subscriptions')
+      .select('id, dalali_id, plan, pending_plan, expires_at')
+      .not('pending_plan', 'is', null)
+      .lt('expires_at', now)
+      .in('status', ['active', 'grace_period'])
+
+    let downgraded = 0
+    for (const sub of pendingDowngrades ?? []) {
+      await admin
+        .from('subscriptions')
+        .update({ plan: sub.pending_plan, pending_plan: null, pending_plan_at: null })
+        .eq('id', sub.id)
+
+      await admin.from('notifications').insert({
+        user_id: sub.dalali_id,
+        type:    'subscription_downgraded',
+        title:   `🔽 Mpango Umeshushwa hadi ${String(sub.pending_plan).charAt(0).toUpperCase() + String(sub.pending_plan).slice(1)}`,
+        body:    `Mpango wako umebadilika kama ulivyoomba. Lipa kurejea mpango wa juu.`,
+        is_read: false,
+      })
+      downgraded++
+    }
+    results.push(`✅ Dalali plan downgrades applied: ${downgraded}`)
+  } catch (e) {
+    errors.push(`❌ Dalali plan downgrades: ${String(e)}`)
   }
 
   // ── 11. (CRM module removed — leads managed in leads management system) ──

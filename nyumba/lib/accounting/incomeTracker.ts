@@ -390,6 +390,43 @@ export async function recordIncomeFromFundiSubscription(subscriptionId: string):
   }
 }
 
+// ── Record income from a subscription upgrade payment ─────────────────────
+export async function recordIncomeFromUpgrade(params: {
+  paymentId: string
+  dalaliId: string
+  amount: number
+  externalId: string
+  toPlan: string
+}): Promise<void> {
+  const { paymentId, dalaliId, amount, externalId, toPlan } = params
+  const AZAMPAY_FEE_PERCENT = 0.01
+  const fee   = amount * AZAMPAY_FEE_PERCENT
+  const now   = new Date()
+
+  const { error } = await supabaseAdmin.from('income_records').insert({
+    source:           'subscription',
+    source_ref_id:    paymentId,
+    dalali_id:        dalaliId,
+    amount_tzs:       amount,
+    platform_fee_tzs: parseFloat(fee.toFixed(2)),
+    net_amount_tzs:   parseFloat((amount - fee).toFixed(2)),
+    description:      `Upgrade ya mpango hadi ${toPlan.charAt(0).toUpperCase() + toPlan.slice(1)}`,
+    reference_number: externalId,
+    payment_method:   'mobile_money',
+    transaction_date: now.toISOString().split('T')[0],
+    month:            now.getMonth() + 1,
+    year:             now.getFullYear(),
+    week:             getWeekNumber(now),
+    status:           'confirmed',
+  })
+
+  if (error && error.code !== '23505') {
+    console.error('[Accounting] recordIncomeFromUpgrade error:', error.message)
+  } else {
+    console.log('[Accounting] Income recorded — upgrade payment:', paymentId, 'TZS', amount)
+  }
+}
+
 // ── Sync all completed payments to income_records ─────────────────────────
 // Uses a bulk set-membership check instead of N individual SELECTs — O(n+4) queries.
 export async function syncAllPaymentsToIncome(): Promise<{ synced: number; skipped: number }> {

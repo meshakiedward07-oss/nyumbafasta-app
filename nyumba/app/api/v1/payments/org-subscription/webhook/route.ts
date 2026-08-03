@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import {
-  isWebhookSuccess, getExternalId,
+  isWebhookSuccess, isAmountValid, getExternalId,
   verifyWebhookSecret, verifyAzamPaySignature,
   type WebhookPayload,
 } from '@/lib/payments/azampay'
@@ -57,6 +57,12 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Success path ──────────────────────────────────────────────────────────
+
+    if (!isAmountValid(payload, invoice.amount_tzs)) {
+      console.warn('[OrgSubWebhook] Amount mismatch — expected', invoice.amount_tzs, 'got:', payload.amount)
+      return NextResponse.json({ received: true })
+    }
+
     // Compute the new subscription period end date from billing_cycle
     const cycleMonths = invoice.billing_cycle === 'monthly' ? 1 : invoice.billing_cycle === 'quarterly' ? 3 : 12
     const periodEnd   = new Date(now)

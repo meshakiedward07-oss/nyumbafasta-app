@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import {
-  mobileCheckout, normalizePhone, detectProvider, generateExternalId,
+  mobileCheckout, normalizePhone, detectProvider, generateExternalId, webhookUrl,
   type MobileProvider,
 } from '@/lib/payments/azampay'
 import { rateLimit } from '@/lib/security/rateLimit'
@@ -137,6 +137,7 @@ export async function POST(req: NextRequest) {
       externalId:  payment_ref,
       provider:    azamProvider,
       description: `Usajili wa Fundi — ${plan.name} — NyumbaFasta`,
+      callbackUrl: webhookUrl('/api/v1/payments/fundi-subscription/webhook'),
     })
 
     if (!result.ok) {

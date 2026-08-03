@@ -12,7 +12,7 @@ import { tryProcessAdPayment } from '@/lib/ads/processAdPayment'
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
     console.warn('[AdWebhook] Invalid webhook secret')
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ received: true })
   }
 
   let payload: WebhookPayload
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const valid = await verifyAzamPaySignature(payload)
   if (!valid) {
     console.error('[AdWebhook] Invalid AzamPay signature')
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ received: true })
   }
 
   const externalId = getExternalId(payload)
@@ -41,5 +41,5 @@ export async function POST(req: NextRequest) {
     console.warn('[AdWebhook] No ad_payment found for externalId:', externalId)
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ received: true })
 }

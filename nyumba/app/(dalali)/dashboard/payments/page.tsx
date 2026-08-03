@@ -98,8 +98,19 @@ function isActive(status: string) {
 
 type RetryTarget =
   | { kind: 'subscription'; plan: string }
-  | { kind: 'boost';        listing_id: string }
-  | { kind: 'extra';        type: string }
+  | { kind: 'boost';        listing_id: string; weeks: number }
+  | { kind: 'extra';        count: number }
+
+function parseExtraCount(externalId: string | null): number {
+  if (!externalId || !externalId.startsWith('EX-')) return 1
+  const parts = externalId.split('-')
+  // Format: EX-{5 UUID segments}-{count}[-{suffix}] → count is at index 6
+  if (parts.length >= 7) {
+    const n = parseInt(parts[6], 10)
+    return Number.isInteger(n) && n >= 1 ? n : 1
+  }
+  return 1
+}
 
 function RetryForm({ target, onClose }: { target: RetryTarget; onClose: () => void }) {
   const [msisdn,   setMsisdn]   = useState('')
@@ -120,10 +131,10 @@ function RetryForm({ target, onClose }: { target: RetryTarget; onClose: () => vo
       body = { ...body, plan: target.plan }
     } else if (target.kind === 'boost') {
       url  = '/api/v1/payments/boost/initiate'
-      body = { ...body, listing_id: target.listing_id }
+      body = { ...body, listing_id: target.listing_id, weeks: target.weeks }
     } else {
       url  = '/api/v1/payments/extra-listings'
-      body = { ...body, type: target.type }
+      body = { ...body, count: target.count }
     }
 
     try {
@@ -274,7 +285,7 @@ function UpgradeModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
       const res  = await fetch('/api/v1/payments/subscription/upgrade', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ plan, msisdn, provider }),
+        body:    JSON.stringify({ to_plan: plan, msisdn, provider }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Hitilafu')
@@ -575,7 +586,7 @@ export default function DalaliPaymentsPage() {
 
                     {retryOpen === b.id && (
                       <RetryForm
-                        target={{ kind: 'boost', listing_id: b.listing_id }}
+                        target={{ kind: 'boost', listing_id: b.listing_id, weeks: b.weeks }}
                         onClose={() => setRetryOpen(null)}
                       />
                     )}
@@ -632,7 +643,7 @@ export default function DalaliPaymentsPage() {
 
                     {retryOpen === ex.id && (
                       <RetryForm
-                        target={{ kind: 'extra', type: ex.type }}
+                        target={{ kind: 'extra', count: parseExtraCount(ex.external_id) }}
                         onClose={() => setRetryOpen(null)}
                       />
                     )}

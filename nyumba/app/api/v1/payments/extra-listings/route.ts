@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, webhookUrl, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
 import { rateLimit } from '@/lib/security/rateLimit'
 
@@ -75,9 +75,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Production — AzamPay mobile checkout
-    // Encode sub_id + count into externalId so webhook can decode without schema changes
-    // Format: EX-{subscription_uuid}-{count} → 7 dash-separated segments
-    const payment_ref   = `EX-${sub.id}-${count}`
+    // Include sub.id and count in ref so existing-format webhooks can still decode,
+    // plus a timestamp suffix so duplicate purchases get unique refs (no UNIQUE collision).
+    // Format: EX-{subscription_uuid}-{count}-{ts36} → 8 dash-separated segments
+    const payment_ref   = `EX-${sub.id}-${count}-${Date.now().toString(36)}`
     const accountNumber = normalizePhone(msisdn)
     const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
 
@@ -108,6 +109,7 @@ export async function POST(req: NextRequest) {
       externalId:  payment_ref,
       provider:    azamProvider,
       description: `Listings za ziada x${count} — NyumbaFasta`,
+      callbackUrl: webhookUrl('/api/v1/payments/extra-listings/webhook'),
     })
 
     if (!result.ok) {

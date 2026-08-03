@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, generateExternalId, webhookUrl, type MobileProvider } from '@/lib/payments/azampay'
 import { rateLimit } from '@/lib/security/rateLimit'
 import { getPricing } from '@/lib/config/pricing'
 
@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
       externalId:  payment_ref,
       provider:    azamProvider,
       description: `Boost listing wiki ${weeks} — NyumbaFasta`,
+      callbackUrl: webhookUrl('/api/v1/payments/boost/webhook'),
     })
 
     if (!result.ok) {

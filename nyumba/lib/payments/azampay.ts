@@ -1,5 +1,5 @@
 // AzamPay Tanzania payment gateway integration
-import { timingSafeEqual, createVerify } from 'crypto'
+import { timingSafeEqual, createVerify, randomUUID } from 'crypto'
 
 // ── Lazy config — evaluated at call time, not module load time ─────────────
 interface AzamConfig {
@@ -109,7 +109,17 @@ async function getAzamPayPublicKey(): Promise<string | null> {
 // Signed data = {utilityref}{externalreference}{transactionstatus}{operator}
 // Algorithm: SHA-256 + RSA PKCS#1 v1.5
 export async function verifyAzamPaySignature(payload: WebhookPayload): Promise<boolean> {
-  if (!payload.signature) return true  // not signed (sandbox); allow but log
+  if (!payload.signature) {
+    // Production: AzamPay always signs; a missing signature is suspicious — reject it.
+    // Sandbox: AzamPay may not sign test callbacks — allow but warn.
+    const isProduction = (process.env.AZAMPAY_ENVIRONMENT ?? 'sandbox') === 'production'
+    if (isProduction) {
+      console.warn('[AzamPay] Production callback received without signature — rejecting')
+      return false
+    }
+    console.warn('[AzamPay] Sandbox unsigned callback — allowing (safe only in sandbox)')
+    return true
+  }
   try {
     const publicKeyPem = await getAzamPayPublicKey()
     if (!publicKeyPem) {
@@ -133,6 +143,7 @@ export interface MobileCheckoutParams {
   externalId:    string
   provider:      MobileProvider
   description?:  string  // shown in USSD push message to customer
+  callbackUrl?:  string  // override the global AzamPay callback URL for this payment
 }
 
 export interface AzamPayResult {
@@ -155,7 +166,9 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
 
     // Fields per AzamPay CheckoutRequest schema.
     // additionalProperties lets AzamPay show merchant name in the USSD push prompt.
-    const checkoutPayload = {
+    // callbackUrl overrides the global callback configured in the merchant dashboard,
+    // routing this specific payment to the correct webhook handler.
+    const checkoutPayload: Record<string, unknown> = {
       accountNumber: params.accountNumber,
       amount:        params.amount,
       currency:      params.currency ?? 'TZS',
@@ -166,6 +179,7 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
         productDescription: params.description ?? 'Malipo ya NyumbaFasta',
       },
     }
+    if (params.callbackUrl) checkoutPayload.callbackUrl = params.callbackUrl
 
     const res = await fetch(CHECKOUT_URL, {
       method:  'POST',
@@ -306,7 +320,11 @@ export function detectProvider(phone: string): MobileProvider {
 }
 
 export function generateExternalId(prefix = 'NYF'): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`
+  // UUID guarantees uniqueness across concurrent requests.
+  // We keep the timestamp segment so IDs sort chronologically in logs.
+  const ts  = Date.now().toString(36).toUpperCase()
+  const uid = randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()
+  return `${prefix}-${ts}-${uid}`
 }
 
 export function formatTZS(amount: number): string {
@@ -318,6 +336,15 @@ export function buildCallbackUrl(origin: string, path: string): string {
   const secret = process.env.WEBHOOK_SECRET
   if (!secret) throw new Error('WEBHOOK_SECRET haipo kwenye mazingira')
   return `${process.env.NEXT_PUBLIC_APP_URL ?? origin}${path}?whsec=${encodeURIComponent(secret)}`
+}
+
+// Convenience wrapper — build callback URL using NEXT_PUBLIC_APP_URL without needing req.
+// Each payment initiate route calls this to route AzamPay callbacks to the correct handler.
+export function webhookUrl(path: string): string {
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
+    throw new Error('[AzamPay] NEXT_PUBLIC_APP_URL must be set for payment callbacks — AzamPay cannot reach a relative URL')
+  }
+  return buildCallbackUrl('', path)
 }
 
 export function verifyWebhookSecret(req: { nextUrl: { searchParams: { get: (k: string) => string | null } } }): boolean {
