@@ -158,8 +158,16 @@ export async function DELETE(
     const { listing, admin, error: ownerErr } = await getOwned(params.id, user.id)
     if (ownerErr || !listing) return NextResponse.json({ error: ownerErr }, { status: 404 })
 
-    // Soft delete — keeps data for records
-    await admin.from('listings').update({ status: 'expired' }).eq('id', params.id)
+    // Soft delete — hides listing from all views but retains DB record
+    const { error: deleteErr } = await admin
+      .from('listings')
+      .update({ status: 'deleted' })
+      .eq('id', params.id)
+
+    if (deleteErr) {
+      console.error('[Listing DELETE] update failed:', deleteErr)
+      return NextResponse.json({ error: 'Imeshindwa kufuta listing' }, { status: 500 })
+    }
 
     // Remove from Marketplace (non-fatal)
     void (async () => {

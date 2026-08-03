@@ -14,6 +14,7 @@ export default async function MyListingsPage({
     .from('listings')
     .select('id, title, type, status, price_monthly, district, region, images, view_count, lead_count, share_count, created_at, is_boosted, boosted_until, expires_at')
     .eq('dalali_id', user!.id)
+    .neq('status', 'deleted')
     .order('created_at', { ascending: false })
     .limit(100)
 

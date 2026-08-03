@@ -209,6 +209,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [loading, setLoading] = useState<string | null>(null)
   const [duplicating, setDuplicating] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [boostListing, setBoostListing] = useState<Listing | null>(null)
   const [editListing, setEditListing] = useState<Listing | null>(null)
   const [expandedAnalytics, setExpandedAnalytics] = useState<string | null>(null)
@@ -277,9 +278,18 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
   async function deleteListing(id: string) {
     setLoading(id)
     setDialog(null)
+    setDeleteError(null)
     try {
-      await fetch(`/api/v1/listings/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/v1/listings/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        setDeleteError(json.error ?? 'Imeshindwa kufuta. Jaribu tena.')
+        return
+      }
       setListings(prev => prev.filter(l => l.id !== id))
+      router.refresh()
+    } catch {
+      setDeleteError('Hitilafu ya mtandao. Jaribu tena.')
     } finally {
       setLoading(null)
     }
@@ -647,6 +657,17 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
           })
         )}
       </div>
+
+      {/* ── Delete error toast ── */}
+      {deleteError && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 bg-red-500 text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-lg max-w-xs w-[90%]">
+          <i className="ti ti-alert-circle flex-shrink-0" aria-hidden="true" />
+          <span className="flex-1">{deleteError}</span>
+          <button onClick={() => setDeleteError(null)} className="flex-shrink-0 ml-1 opacity-70 hover:opacity-100">
+            <i className="ti ti-x" aria-hidden="true" />
+          </button>
+        </div>
+      )}
 
       {/* ── Confirmation dialogs ── */}
       {dialog && (
