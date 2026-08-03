@@ -89,6 +89,12 @@
     "app/api/v1/dalali/invoices/route.ts":            { "maxDuration": 30 },
     "app/api/v1/dalali/invoices/[id]/route.ts":       { "maxDuration": 30 },
     "app/api/v1/dalali/finance/export/route.ts":      { "maxDuration": 60 },
+    "app/api/v1/payments/status/route.ts":            { "maxDuration": 15 },
+    "app/api/v1/payments/receipt/[ref]/route.ts":     { "maxDuration": 15 },
+    "app/api/v1/payments/subscription/cancel/route.ts":  { "maxDuration": 15 },
+    "app/api/v1/payments/subscription/upgrade/route.ts": { "maxDuration": 30 },
+    "app/api/v1/admin/payments/refund/route.ts":      { "maxDuration": 15 },
+    "app/api/v1/dalali/payments/route.ts":            { "maxDuration": 15 },
     "app/api/v1/dalali/leads/route.ts":               { "maxDuration": 30 },
     "app/api/v1/dalali/referral/route.ts":            { "maxDuration": 30 },
     "app/api/v1/listings/[id]/duplicate/route.ts":    { "maxDuration": 30 }

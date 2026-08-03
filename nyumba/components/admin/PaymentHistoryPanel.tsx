@@ -54,6 +54,150 @@ type Tab = 'subscriptions' | 'unlocks' | 'boosts'
 type BtnColor = 'green' | 'blue' | 'red' | 'purple'
 type FixAction = 'activate_subscription' | 'extend_subscription' | 'complete_unlock' | 'fail_payment'
 
+/* ─── Refund form ─────────────────────────────────────────────── */
+
+function RefundForm({
+  paymentRef,
+  paymentType,
+  defaultAmount,
+  onSuccess,
+  onClose,
+}: {
+  paymentRef:    string
+  paymentType:   string
+  defaultAmount: number | null
+  onSuccess:     () => void
+  onClose:       () => void
+}) {
+  const [reason,  setReason]  = useState('')
+  const [amount,  setAmount]  = useState<number>(defaultAmount ?? 0)
+  const [loading, setLoading] = useState(false)
+  const [err,     setErr]     = useState<string | null>(null)
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setErr(null)
+    try {
+      const res  = await fetch('/api/v1/admin/payments/refund', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          payment_ref:  paymentRef,
+          payment_type: paymentType,
+          amount_tzs:   amount,
+          reason,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Hitilafu imetokea')
+      onSuccess()
+    } catch (err: unknown) {
+      setErr(err instanceof Error ? err.message : 'Hitilafu imetokea')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="mt-2 bg-red-50 rounded-xl p-3 border border-red-100 space-y-2">
+      <p className="text-[11px] font-semibold text-red-700">Rudisha Fedha</p>
+
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <label className="text-[10px] text-gray-500 block mb-0.5">Kiasi (Tsh)</label>
+          <input
+            type="number"
+            required
+            min={1}
+            value={amount}
+            onChange={e => setAmount(Number(e.target.value))}
+            className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-300 bg-white"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-[10px] text-gray-500 block mb-0.5">Sababu</label>
+        <textarea
+          required
+          rows={2}
+          placeholder="Elezea sababu ya kurudisha fedha..."
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-300 bg-white resize-none"
+        />
+      </div>
+
+      {err && <p className="text-[10px] text-red-600 font-medium">✗ {err}</p>}
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex items-center gap-1 px-2.5 py-1.5 bg-red-600 text-white text-[10px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.97] transition-all"
+        >
+          <i className={`ti ti-${loading ? 'loader-2 animate-spin' : 'arrow-back-up'}`} aria-hidden="true" />
+          {loading ? 'Inashughulikia...' : 'Rekodia Rudisho'}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-2.5 py-1.5 text-[10px] text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
+        >
+          Funga
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function RefundButton({
+  paymentRef,
+  paymentType,
+  defaultAmount,
+}: {
+  paymentRef:    string | null
+  paymentType:   string
+  defaultAmount: number | null
+}) {
+  const [open,    setOpen]    = useState(false)
+  const [done,    setDone]    = useState(false)
+
+  if (!paymentRef) return null
+
+  if (done) {
+    return (
+      <span className="flex items-center gap-1 text-[10px] text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full font-semibold">
+        ✓ Imerekodiwa
+      </span>
+    )
+  }
+
+  return (
+    <div>
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1 px-2 py-1 text-[10px] text-red-600 border border-red-200 bg-red-50 rounded-lg font-semibold hover:bg-red-100 transition-colors"
+        >
+          <i className="ti ti-arrow-back-up" aria-hidden="true" />
+          Rudisha Fedha
+        </button>
+      )}
+      {open && (
+        <RefundForm
+          paymentRef={paymentRef}
+          paymentType={paymentType}
+          defaultAmount={defaultAmount}
+          onSuccess={() => { setDone(true); setOpen(false) }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </div>
+  )
+}
+
 const STATUS_STYLE: Record<string, string> = {
   active:       'bg-green-100 text-green-700',
   completed:    'bg-green-100 text-green-700',
@@ -266,6 +410,15 @@ export default function PaymentHistoryPanel({ userId }: { userId: string }) {
                     <FixBtn label="Washa Tena (+30d)" icon="refresh" loading={fixing === sub.id}
                       onClick={() => fix('activate_subscription', 'subscription', sub.id)} color="purple" />
                   )}
+                  {(sub.status === 'completed' || sub.status === 'active') && (
+                    <div className="mt-2">
+                      <RefundButton
+                        paymentRef={sub.payment_ref}
+                        paymentType="subscription"
+                        defaultAmount={sub.amount_paid}
+                      />
+                    </div>
+                  )}
                 </div>
               ))
         )}
@@ -303,6 +456,15 @@ export default function PaymentHistoryPanel({ userId }: { userId: string }) {
                         onClick={() => fix('fail_payment', 'contact_unlock', unlock.id)} color="red" />
                     </div>
                   )}
+                  {(unlock.status === 'completed' || unlock.status === 'confirmed') && (
+                    <div className="mt-2">
+                      <RefundButton
+                        paymentRef={unlock.payment_ref}
+                        paymentType="contact_unlock"
+                        defaultAmount={unlock.amount_paid}
+                      />
+                    </div>
+                  )}
                 </div>
               ))
         )}
@@ -332,6 +494,15 @@ export default function PaymentHistoryPanel({ userId }: { userId: string }) {
                   {b.status === 'pending' && (
                     <FixBtn label="Futa (Fail)" icon="x" loading={fixing === b.id}
                       onClick={() => fix('fail_payment', 'boost_payment', b.id)} color="red" />
+                  )}
+                  {(b.status === 'completed' || b.status === 'active' || b.status === 'confirmed') && (
+                    <div className="mt-2">
+                      <RefundButton
+                        paymentRef={b.payment_ref}
+                        paymentType="boost_payment"
+                        defaultAmount={b.amount}
+                      />
+                    </div>
                   )}
                 </div>
               ))

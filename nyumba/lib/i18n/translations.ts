@@ -309,6 +309,7 @@ const T = {
   dal_nav_add:            { sw: 'Ongeza',              en: 'Add'                          },
   dal_nav_accounts:       { sw: 'Hesabu',              en: 'Accounts'                     },
   dal_nav_messages:       { sw: 'Ujumbe',             en: 'Messages'                     },
+  dal_nav_payments:       { sw: 'Malipo',             en: 'Payments'                     },
 
   // ── Dalali dashboard ──────────────────────────────────────────────────────
   dash_welcome_greeting:  { sw: 'Karibu,',             en: 'Welcome,'                     },
