@@ -34,6 +34,100 @@ export async function GET(req: NextRequest) {
   const now = new Date()
   const weekAgo = new Date(now.getTime() - 7 * 86_400_000)
 
+  // ── Phase 12: Department Scorecards + SOP Ack sections (pre-generate HTML) ──
+  let scorecardSectionHtml = ''
+  let sopAckSectionHtml    = ''
+  try {
+    const { generateScorecards } = await import('@/lib/scorecards/scorer')
+    const report = await generateScorecards()
+
+    const S_EMOJI = { good: '✅', warning: '⚠️', critical: '🔴' } as const
+    const S_LABEL = { good: 'Nzuri', warning: 'Angalia', critical: 'Hatari' } as const
+    const S_COLOR = { good: '#16a34a', warning: '#d97706', critical: '#dc2626' } as const
+
+    const deptRows = report.departments.map(d => `
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6">${S_EMOJI[d.overall]} ${d.department}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;color:${S_COLOR[d.overall]}">${d.score}/100</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:center;color:${S_COLOR[d.overall]}">${S_LABEL[d.overall]}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:center;color:${(d.open_alerts ?? 0) > 0 ? '#d97706' : '#9ca3af'}">${(d.open_alerts ?? 0) > 0 ? `⚠️ ${d.open_alerts}` : '—'}</td>
+        </tr>`).join('')
+
+    scorecardSectionHtml = `
+        <span style="font-size:18px;font-weight:700;color:#1D9E75;display:block;margin:28px 0 10px">📊 Hali ya Idara — Wiki Hii</span>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:14px">
+          <tr style="background:#1D9E75;color:white">
+            <td style="padding:10px 12px;font-weight:bold">Idara</td>
+            <td style="padding:10px 12px;font-weight:bold;text-align:center">Alama</td>
+            <td style="padding:10px 12px;font-weight:bold;text-align:center">Hali</td>
+            <td style="padding:10px 12px;font-weight:bold;text-align:center">Tahadhari</td>
+          </tr>
+          ${deptRows}
+        </table>
+        <a href="${APP_URL}/admin/scorecards" style="display:inline-block;margin:6px 0 0;font-size:12px;color:#1D9E75;text-decoration:none">Kadi kamili za idara →</a>`
+
+    // SOP acknowledgement stats
+    const adminDb = getAdmin()
+    const { data: sops } = await adminDb
+      .from('knowledge_base')
+      .select('id, title, last_reviewed_at')
+      .eq('audience', 'internal')
+      .eq('is_active', true)
+      .order('title')
+
+    if (sops && sops.length > 0) {
+      const sopIds = sops.map(s => s.id)
+      let acks: { sop_id: string; sop_version: string | null }[] = []
+      try {
+        const { data } = await adminDb
+          .from('sop_acknowledgements')
+          .select('sop_id, sop_version')
+          .in('sop_id', sopIds)
+        acks = (data ?? []) as { sop_id: string; sop_version: string | null }[]
+      } catch { /* table not yet created */ }
+
+      const totalBySop = new Map<string, number>()
+      const staleBySop  = new Map<string, number>()
+      const versionMap  = new Map(sops.map(s => [s.id, s.last_reviewed_at]))
+
+      for (const ack of acks) {
+        totalBySop.set(ack.sop_id, (totalBySop.get(ack.sop_id) ?? 0) + 1)
+        const curVer = versionMap.get(ack.sop_id)
+        if (curVer && ack.sop_version !== curVer) {
+          staleBySop.set(ack.sop_id, (staleBySop.get(ack.sop_id) ?? 0) + 1)
+        }
+      }
+
+      const sopRows = sops.map(s => {
+        const total   = totalBySop.get(s.id) ?? 0
+        const stale   = staleBySop.get(s.id) ?? 0
+        const current = total - stale
+        return `
+          <tr>
+            <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6">${s.title}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:center;color:#16a34a;font-weight:700">${current}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:center;color:${stale > 0 ? '#d97706' : '#9ca3af'}">${stale > 0 ? `⚠️ ${stale}` : '—'}</td>
+          </tr>`
+      }).join('')
+
+      sopAckSectionHtml = `
+        <span style="font-size:18px;font-weight:700;color:#1D9E75;display:block;margin:24px 0 10px">📋 Uthibitisho wa SOP</span>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:14px">
+          <tr style="background:#1D9E75;color:white">
+            <td style="padding:10px 12px;font-weight:bold">Jina la SOP</td>
+            <td style="padding:10px 12px;font-weight:bold;text-align:center">✅ Sasa Hivi</td>
+            <td style="padding:10px 12px;font-weight:bold;text-align:center">⚠️ Waliokwama</td>
+          </tr>
+          ${sopRows}
+        </table>
+        <a href="${APP_URL}/admin/knowledge" style="display:inline-block;margin:6px 0 0;font-size:12px;color:#1D9E75;text-decoration:none">Angalia SOP zote →</a>`
+    }
+
+    results.push('✅ Scorecard + SOP sections zinasubiri email')
+  } catch (e) {
+    errors.push(`❌ Scorecard/SOP section: ${String(e)}`)
+  }
+
   // ── Weekly report email kwa admin ─────────────────────
   try {
     const admin = getAdmin()
@@ -119,7 +213,10 @@ export async function GET(req: NextRequest) {
         </table>
         <span style="font-size:12px;color:#9ca3af;display:block;margin:8px 0 24px">Miamala yote: ${income.transactionCount}</span>
 
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        ${scorecardSectionHtml}
+        ${sopAckSectionHtml}
+
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px">
           <tr>
             <td style="padding:0 8px 0 0">
               <a href="${APP_URL}/admin" style="background:#1D9E75;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600;font-size:14px">Fungua Admin Panel →</a>

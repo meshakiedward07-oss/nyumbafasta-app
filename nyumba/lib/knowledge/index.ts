@@ -1,16 +1,21 @@
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 
 export interface KBArticle {
-  id:          string
-  slug:        string
-  title:       string
-  body:        string
-  category:    string
-  language:    string
-  is_active:   boolean
-  created_by?: string
-  created_at:  string
-  updated_at:  string
+  id:                string
+  slug:              string
+  title:             string
+  body:              string
+  category:          string
+  language:          string
+  audience:          'external' | 'internal'
+  owner_role?:       string | null
+  sla_description?:  string | null
+  review_frequency?: string | null
+  last_reviewed_at?: string | null
+  is_active:         boolean
+  created_by?:       string
+  created_at:        string
+  updated_at:        string
 }
 
 export interface CacheEntry {
@@ -78,21 +83,28 @@ export async function addToCache(
 
 // ── Knowledge-base CRUD ───────────────────────────────────────────────────────
 
+const KB_SELECT_FIELDS = 'id, slug, title, body, category, language, audience, owner_role, sla_description, review_frequency, last_reviewed_at, is_active, created_by, created_at, updated_at'
+
 export async function createArticle(
   article: Omit<KBArticle, 'id' | 'created_at' | 'updated_at'>,
 ): Promise<KBArticle> {
   const { data, error } = await supabaseAdmin
     .from('knowledge_base')
     .insert({
-      slug:      article.slug,
-      title:     article.title,
-      body:      article.body,
-      category:  article.category,
-      language:  article.language ?? 'sw',
-      is_active: article.is_active ?? true,
-      created_by: article.created_by ?? null,
+      slug:              article.slug,
+      title:             article.title,
+      body:              article.body,
+      category:          article.category,
+      language:          article.language ?? 'sw',
+      audience:          article.audience ?? 'external',
+      owner_role:        article.owner_role ?? null,
+      sla_description:   article.sla_description ?? null,
+      review_frequency:  article.review_frequency ?? null,
+      last_reviewed_at:  article.last_reviewed_at ?? null,
+      is_active:         article.is_active ?? true,
+      created_by:        article.created_by ?? null,
     })
-    .select('id, slug, title, body, category, language, is_active, created_by, created_at, updated_at')
+    .select(KB_SELECT_FIELDS)
     .single()
 
   if (error) throw new Error(`KB create failed: ${error.message}`)
@@ -101,16 +113,18 @@ export async function createArticle(
 
 export async function listArticles(options?: {
   category?: string
+  audience?: 'external' | 'internal'
   limit?:    number
   offset?:   number
 }): Promise<KBArticle[]> {
   let q = supabaseAdmin
     .from('knowledge_base')
-    .select('id, slug, title, body, category, language, is_active, created_by, created_at, updated_at')
+    .select(KB_SELECT_FIELDS)
     .order('created_at', { ascending: false })
     .limit(options?.limit ?? 50)
 
   if (options?.category) q = q.eq('category', options.category)
+  if (options?.audience) q = q.eq('audience', options.audience)
   if (options?.offset)   q = q.range(options.offset, options.offset + (options.limit ?? 50) - 1)
 
   const { data, error } = await q

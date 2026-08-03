@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { createArticle, listArticles, updateArticle } from '@/lib/knowledge/index'
+import { notifySopUpdated } from '@/lib/knowledge/sopNotifier'
 
 // ── GET /api/v1/knowledge/articles ───────────────────────────────────────────
 
@@ -17,11 +18,12 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const category = searchParams.get('category') ?? undefined
+  const audience = (searchParams.get('audience') ?? undefined) as 'external' | 'internal' | undefined
   const limit    = Math.min(parseInt(searchParams.get('limit')  ?? '50'), 200)
   const offset   = parseInt(searchParams.get('offset') ?? '0')
 
   try {
-    const articles = await listArticles({ category, limit, offset })
+    const articles = await listArticles({ category, audience, limit, offset })
     return NextResponse.json({ articles, count: articles.length })
   } catch (err) {
     console.error('[KB articles GET]', err)
@@ -48,14 +50,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { slug, title, body: articleBody, category = 'general', language = 'sw' } = body
+  const {
+    slug, title, body: articleBody,
+    category = 'general', language = 'sw',
+    audience = 'external', owner_role, sla_description, review_frequency,
+  } = body
   if (!slug || !title || !articleBody) {
     return NextResponse.json({ error: 'slug, title, and body are required' }, { status: 400 })
+  }
+  if (!['external', 'internal'].includes(audience)) {
+    return NextResponse.json({ error: 'audience must be external or internal' }, { status: 400 })
   }
 
   try {
     const article = await createArticle({
       slug, title, body: articleBody, category, language,
+      audience: audience as 'external' | 'internal',
+      owner_role:       owner_role       ?? null,
+      sla_description:  sla_description  ?? null,
+      review_frequency: review_frequency ?? null,
+      last_reviewed_at: null,
       is_active: true, created_by: user.id,
     })
     return NextResponse.json({ article }, { status: 201 })
@@ -79,23 +93,39 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  let body: Record<string, string | boolean>
+  let body: Record<string, string | boolean | null>
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { id, title, body: articleBody, category, language, is_active } = body
+  const {
+    id, title, body: articleBody, category, language, is_active,
+    audience, owner_role, sla_description, review_frequency, last_reviewed_at,
+  } = body
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
 
   try {
     const fields: Record<string, unknown> = {}
-    if (title       !== undefined) fields.title     = title
-    if (articleBody !== undefined) fields.body      = articleBody
-    if (category    !== undefined) fields.category  = category
-    if (language    !== undefined) fields.language  = language
-    if (is_active   !== undefined) fields.is_active = is_active
+    if (title            !== undefined) fields.title            = title
+    if (articleBody      !== undefined) fields.body             = articleBody
+    if (category         !== undefined) fields.category         = category
+    if (language         !== undefined) fields.language         = language
+    if (is_active        !== undefined) fields.is_active        = is_active
+    if (audience         !== undefined) fields.audience         = audience
+    if (owner_role       !== undefined) fields.owner_role       = owner_role
+    if (sla_description  !== undefined) fields.sla_description  = sla_description
+    if (review_frequency !== undefined) fields.review_frequency = review_frequency
+    if (last_reviewed_at !== undefined) fields.last_reviewed_at = last_reviewed_at
 
     await updateArticle(String(id), fields)
+
+    // Notify admin when last_reviewed_at is bumped — acks from previous version are now stale
+    if (typeof fields.last_reviewed_at === 'string' && fields.last_reviewed_at) {
+      notifySopUpdated(String(id), fields.last_reviewed_at).catch(err =>
+        console.error('[KB PATCH] SOP notify failed:', err)
+      )
+    }
+
     return NextResponse.json({ success: true })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal error'

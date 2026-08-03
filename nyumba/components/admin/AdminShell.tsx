@@ -29,7 +29,10 @@ const NAV_SECTIONS: NavSection[] = [
     titleKey: 'admin_nav_sec_overview',
     items: [
       { href: '/admin',           labelKey: 'admin_nav_dashboard',  icon: 'chart-bar',   exact: true  },
-      { href: '/admin/executive', labelKey: 'admin_nav_executive',  icon: 'presentation', exact: false },
+      { href: '/admin/executive', labelKey: 'admin_nav_executive',  icon: 'presentation',   exact: false },
+      { href: '/admin/alerts',      labelKey: 'admin_nav_alerts',      icon: 'alert-triangle',   exact: false },
+      { href: '/admin/reports',     labelKey: 'admin_nav_reports',     icon: 'report-analytics', exact: false },
+      { href: '/admin/scorecards',  labelKey: 'admin_nav_scorecards',  icon: 'layout-grid',      exact: false },
     ],
   },
   {

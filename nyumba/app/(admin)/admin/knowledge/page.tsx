@@ -11,14 +11,19 @@ type MissPattern = {
 }
 
 type KBArticle = {
-  id:         string
-  slug:       string
-  title:      string
-  body:       string
-  category:   string
-  language:   string
-  is_active:  boolean
-  created_at: string
+  id:                string
+  slug:              string
+  title:             string
+  body:              string
+  category:          string
+  language:          string
+  audience:          'external' | 'internal'
+  owner_role?:       string | null
+  sla_description?:  string | null
+  review_frequency?: string | null
+  last_reviewed_at?: string | null
+  is_active:         boolean
+  created_at:        string
 }
 
 type Tab = 'patterns' | 'articles' | 'log'
@@ -52,6 +57,11 @@ function LayerBadge({ layer }: { layer: string }) {
 
 // ── Create / Edit Article Form ────────────────────────────────────────────────
 
+const REVIEW_FREQUENCIES = ['weekly', 'monthly', 'quarterly', 'biannual', 'annually']
+const OWNER_ROLES = ['admin', 'staff', 'finance', 'sales', 'support', 'marketing']
+const EXTERNAL_CATEGORIES = ['general','pricing','payments','registration','listings','contact_unlocks','account','search','support']
+const INTERNAL_CATEGORIES = ['verification','customer_support','sales','finance','marketing','operations','hr','compliance']
+
 function ArticleForm({
   initial,
   onSave,
@@ -61,14 +71,27 @@ function ArticleForm({
   onSave:   (article: KBArticle) => void
   onCancel: () => void
 }) {
-  const [title,    setTitle]    = useState(initial?.title    ?? '')
-  const [body,     setBody]     = useState(initial?.body     ?? (initial?.prefill ? `Maswali yanayohusiana:\n"${initial.prefill}"\n\nJibu:\n` : ''))
-  const [category, setCategory] = useState(initial?.category ?? 'general')
-  const [slug,     setSlug]     = useState(initial?.slug     ?? '')
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
+  const [title,           setTitle]           = useState(initial?.title           ?? '')
+  const [body,            setBody]            = useState(initial?.body            ?? (initial?.prefill ? `Maswali yanayohusiana:\n"${initial.prefill}"\n\nJibu:\n` : ''))
+  const [category,        setCategory]        = useState(initial?.category        ?? 'general')
+  const [slug,            setSlug]            = useState(initial?.slug            ?? '')
+  const [audience,        setAudience]        = useState<'external' | 'internal'>(initial?.audience ?? 'external')
+  const [ownerRole,       setOwnerRole]       = useState(initial?.owner_role       ?? '')
+  const [slaDescription,  setSlaDescription]  = useState(initial?.sla_description  ?? '')
+  const [reviewFrequency, setReviewFrequency] = useState(initial?.review_frequency ?? '')
+  const [loading,         setLoading]         = useState(false)
+  const [error,           setError]           = useState('')
 
-  const isEdit = !!initial?.id
+  const isEdit     = !!initial?.id
+  const isSOP      = audience === 'internal'
+  const categories = isSOP ? INTERNAL_CATEGORIES : EXTERNAL_CATEGORIES
+
+  // When switching audience, reset category if it doesn't belong to the new set
+  function handleAudienceChange(next: 'external' | 'internal') {
+    setAudience(next)
+    const validCats = next === 'internal' ? INTERNAL_CATEGORIES : EXTERNAL_CATEGORIES
+    if (!validCats.includes(category)) setCategory(validCats[0])
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -77,8 +100,19 @@ function ArticleForm({
 
     const method = isEdit ? 'PATCH' : 'POST'
     const payload = isEdit
-      ? { id: initial!.id, title, body, category, is_active: initial!.is_active ?? true }
-      : { title, body, category, slug: slug || undefined }
+      ? {
+          id: initial!.id, title, body, category, is_active: initial!.is_active ?? true,
+          audience,
+          owner_role:       isSOP ? (ownerRole || null)       : null,
+          sla_description:  isSOP ? (slaDescription || null)  : null,
+          review_frequency: isSOP ? (reviewFrequency || null) : null,
+        }
+      : {
+          title, body, category, slug: slug || undefined, audience,
+          owner_role:       isSOP ? (ownerRole || null)       : null,
+          sla_description:  isSOP ? (slaDescription || null)  : null,
+          review_frequency: isSOP ? (reviewFrequency || null) : null,
+        }
 
     const res = await fetch('/api/v1/knowledge/articles', {
       method,
@@ -95,17 +129,43 @@ function ArticleForm({
     onSave(data.article)
   }
 
-  const categories = ['general','pricing','payments','registration','listings','contact_unlocks','account','search','support']
-
   return (
     <form onSubmit={submit} className="space-y-4">
+      {/* Audience toggle */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Aina ya Makala</label>
+        <div className="flex gap-2">
+          {(['external', 'internal'] as const).map(a => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => handleAudienceChange(a)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                audience === a
+                  ? a === 'external'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-purple-600 text-white border-purple-600'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              {a === 'external' ? '🌐 FAQ (Wateja)' : '🔒 SOP (Wafanyakazi)'}
+            </button>
+          ))}
+        </div>
+        {isSOP && (
+          <p className="text-xs text-purple-600 mt-1.5 bg-purple-50 border border-purple-100 rounded px-3 py-1.5">
+            SOP za ndani hazionekani kwa Amina au wateja — zinaonekana na wafanyakazi tu.
+          </p>
+        )}
+      </div>
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Kichwa (Title) *</label>
         <input
           required
           value={title}
           onChange={e => setTitle(e.target.value)}
-          placeholder="e.g. Bei ya kufungua mawasiliano"
+          placeholder={isSOP ? 'e.g. Utaratibu wa Uthibitisho wa Dalali' : 'e.g. Bei ya kufungua mawasiliano'}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
         />
       </div>
@@ -116,25 +176,31 @@ function ArticleForm({
           <input
             value={slug}
             onChange={e => setSlug(e.target.value)}
-            placeholder="e.g. bei-ya-kufungua (optional)"
+            placeholder={isSOP ? 'e.g. sop-uthibitisho-dalali' : 'e.g. bei-ya-kufungua (optional)'}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           />
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Jibu / Mwili (Body) *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {isSOP ? 'Maelezo ya Utaratibu (Body) *' : 'Jibu / Mwili (Body) *'}
+        </label>
         <textarea
           required
-          rows={6}
+          rows={isSOP ? 8 : 6}
           value={body}
           onChange={e => setBody(e.target.value)}
-          placeholder="Andika jibu kamili hapa. Amina atatumia hii moja kwa moja."
+          placeholder={isSOP
+            ? 'Eleza hatua za kufuata, matarajio, na miongozo...'
+            : 'Andika jibu kamili hapa. Amina atatumia hii moja kwa moja.'}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
         />
-        <p className="text-xs text-gray-500 mt-1">
-          Andika kwa Kiswahili. WhatsApp inaona *maneno* kwa bold na _maneno_ kwa italic.
-        </p>
+        {!isSOP && (
+          <p className="text-xs text-gray-500 mt-1">
+            Andika kwa Kiswahili. WhatsApp inaona *maneno* kwa bold na _maneno_ kwa italic.
+          </p>
+        )}
       </div>
 
       <div>
@@ -148,15 +214,58 @@ function ArticleForm({
         </select>
       </div>
 
+      {/* SOP-specific fields */}
+      {isSOP && (
+        <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 space-y-3">
+          <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Maelezo ya SOP</p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Idara / Mmiliki</label>
+            <select
+              value={ownerRole}
+              onChange={e => setOwnerRole(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            >
+              <option value="">— Chagua —</option>
+              {OWNER_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SLA / Matokeo Yanayotarajiwa</label>
+            <input
+              value={slaDescription}
+              onChange={e => setSlaDescription(e.target.value)}
+              placeholder="e.g. Thibitisha dalali ndani ya saa 24 za kazi"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mzunguko wa Ukaguzi</label>
+            <select
+              value={reviewFrequency}
+              onChange={e => setReviewFrequency(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            >
+              <option value="">— Chagua —</option>
+              {REVIEW_FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+
       {error && <p className="text-red-600 text-sm">{error}</p>}
 
       <div className="flex gap-3">
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+          className={`px-4 py-2 text-white rounded-lg text-sm font-medium disabled:opacity-50 ${
+            isSOP ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'
+          }`}
         >
-          {loading ? 'Inahifadhi...' : isEdit ? 'Hifadhi Mabadiliko' : 'Unda Makala'}
+          {loading ? 'Inahifadhi...' : isEdit ? 'Hifadhi Mabadiliko' : isSOP ? 'Unda SOP' : 'Unda Makala'}
         </button>
         <button
           type="button"
@@ -268,24 +377,56 @@ function PatternsTab() {
   )
 }
 
+type AudienceFilter = 'all' | 'external' | 'internal'
+
 // ── Knowledge Base Articles Tab ───────────────────────────────────────────────
 
+// myAcks maps sop_id → { acknowledged_at, sop_version }
+type AckEntry = { acknowledged_at: string; sop_version: string | null }
+
 function ArticlesTab() {
-  const [articles, setArticles] = useState<KBArticle[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [editing,  setEditing]  = useState<KBArticle | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [search,   setSearch]   = useState('')
+  const [articles,        setArticles]        = useState<KBArticle[]>([])
+  const [loading,         setLoading]         = useState(true)
+  const [editing,         setEditing]         = useState<KBArticle | null>(null)
+  const [creating,        setCreating]        = useState(false)
+  const [search,          setSearch]          = useState('')
+  const [audienceFilter,  setAudienceFilter]  = useState<AudienceFilter>('all')
+  const [myAcks,          setMyAcks]          = useState<Record<string, AckEntry>>({})
+  const [ackingId,        setAckingId]        = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/v1/knowledge/articles')
-    const data = await res.json()
-    setArticles(data.articles ?? [])
+    const params = new URLSearchParams()
+    if (audienceFilter !== 'all') params.set('audience', audienceFilter)
+    const [articlesRes, acksRes] = await Promise.all([
+      fetch(`/api/v1/knowledge/articles?${params}`),
+      fetch('/api/v1/knowledge/my-acknowledgements'),
+    ])
+    const articlesData = await articlesRes.json()
+    setArticles(articlesData.articles ?? [])
+    if (acksRes.ok) {
+      const acksData = await acksRes.json()
+      const map: Record<string, AckEntry> = {}
+      for (const a of acksData.acks ?? []) map[a.sop_id] = { acknowledged_at: a.acknowledged_at, sop_version: a.sop_version }
+      setMyAcks(map)
+    }
     setLoading(false)
-  }, [])
+  }, [audienceFilter])
 
   useEffect(() => { load() }, [load])
+
+  async function acknowledgeSOp(article: KBArticle) {
+    setAckingId(article.id)
+    try {
+      const res = await fetch(`/api/v1/knowledge/articles/${article.slug}/acknowledge`, { method: 'POST' })
+      if (res.ok) {
+        const { acknowledged_at } = await res.json()
+        setMyAcks(prev => ({ ...prev, [article.id]: { acknowledged_at, sop_version: article.last_reviewed_at ?? null } }))
+      }
+    } finally {
+      setAckingId(null)
+    }
+  }
 
   async function toggleActive(article: KBArticle) {
     await fetch('/api/v1/knowledge/articles', {
@@ -296,9 +437,28 @@ function ArticlesTab() {
     setArticles(prev => prev.map(a => a.id === article.id ? { ...a, is_active: !a.is_active } : a))
   }
 
+  async function markReviewed(article: KBArticle) {
+    const now = new Date().toISOString()
+    await fetch('/api/v1/knowledge/articles', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: article.id, last_reviewed_at: now }),
+    })
+    setArticles(prev => prev.map(a => a.id === article.id ? { ...a, last_reviewed_at: now } : a))
+  }
+
   const filtered = articles.filter(a =>
     !search || a.title.toLowerCase().includes(search.toLowerCase()) || a.body.toLowerCase().includes(search.toLowerCase())
   )
+
+  const externalCount = articles.filter(a => a.audience === 'external').length
+  const internalCount = articles.filter(a => a.audience === 'internal').length
+
+  const filterChips: { id: AudienceFilter; label: string; count: number }[] = [
+    { id: 'all',      label: 'Zote',    count: articles.length },
+    { id: 'external', label: '🌐 FAQ',  count: externalCount },
+    { id: 'internal', label: '🔒 SOPs', count: internalCount },
+  ]
 
   return (
     <div>
@@ -313,6 +473,27 @@ function ArticlesTab() {
         >
           + Makala Mpya
         </button>
+      </div>
+
+      {/* Audience filter chips */}
+      <div className="flex gap-2 mb-4">
+        {filterChips.map(chip => (
+          <button
+            key={chip.id}
+            onClick={() => setAudienceFilter(chip.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+              audienceFilter === chip.id
+                ? chip.id === 'internal'
+                  ? 'bg-purple-600 text-white border-purple-600'
+                  : chip.id === 'external'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-gray-800 text-white border-gray-800'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+            }`}
+          >
+            {chip.label} <span className="opacity-75">({chip.count})</span>
+          </button>
+        ))}
       </div>
 
       {(creating || editing) && (
@@ -349,34 +530,90 @@ function ArticlesTab() {
         <div className="text-gray-500 py-8 text-center text-sm">Inapakia...</div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(article => (
-            <div key={article.id} className={`bg-white border rounded-xl p-4 ${!article.is_active ? 'opacity-50' : 'border-gray-200'}`}>
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm text-gray-800 truncate">{article.title}</span>
-                    <span className="text-xs text-gray-400 px-2 py-0.5 bg-gray-100 rounded">{article.category}</span>
-                    {!article.is_active && <span className="text-xs text-red-500 px-2 py-0.5 bg-red-50 rounded">Imezimwa</span>}
+          {filtered.map(article => {
+            const isSOP = article.audience === 'internal'
+            const needsReview = isSOP && article.review_frequency && article.last_reviewed_at
+              ? isOverdue(article.last_reviewed_at!, article.review_frequency!)
+              : false
+            const myAck = isSOP ? myAcks[article.id] : undefined
+            const ackCurrent = myAck && (
+              !article.last_reviewed_at || !myAck.sop_version || myAck.sop_version === article.last_reviewed_at
+            )
+            return (
+              <div
+                key={article.id}
+                className={`bg-white border rounded-xl p-4 ${
+                  !article.is_active ? 'opacity-50' : needsReview ? 'border-amber-300' : isSOP ? 'border-purple-200' : 'border-gray-200'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="font-medium text-sm text-gray-800 truncate">{article.title}</span>
+                      {isSOP
+                        ? <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded font-medium">SOP</span>
+                        : <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded">FAQ</span>
+                      }
+                      <span className="text-xs text-gray-400 px-2 py-0.5 bg-gray-100 rounded">{article.category}</span>
+                      {!article.is_active && <span className="text-xs text-red-500 px-2 py-0.5 bg-red-50 rounded">Imezimwa</span>}
+                      {needsReview && <span className="text-xs text-amber-600 px-2 py-0.5 bg-amber-50 rounded border border-amber-200">⚠ Kagua upya</span>}
+                    </div>
+                    <p className="text-xs text-gray-500 line-clamp-2">{article.body}</p>
+                    {isSOP && (article.owner_role || article.sla_description || article.last_reviewed_at) && (
+                      <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-gray-400">
+                        {article.owner_role      && <span>👤 {article.owner_role}</span>}
+                        {article.sla_description && <span>🎯 {article.sla_description}</span>}
+                        {article.last_reviewed_at && (
+                          <span>🔄 Ilipitiwa {new Date(article.last_reviewed_at).toLocaleDateString('sw-TZ')}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-gray-500 line-clamp-2">{article.body}</p>
-                </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => { setEditing(article); setCreating(false) }}
-                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs hover:bg-gray-200"
-                  >
-                    Hariri
-                  </button>
-                  <button
-                    onClick={() => toggleActive(article)}
-                    className={`px-3 py-1.5 rounded-lg text-xs ${article.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
-                  >
-                    {article.is_active ? 'Zima' : 'Washa'}
-                  </button>
+                  <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+                    {isSOP && (
+                      <button
+                        onClick={() => markReviewed(article)}
+                        className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-xs hover:bg-purple-100"
+                        title="Rekodi kwamba SOP hii imekaguliwa leo"
+                      >
+                        ✓ Kagua
+                      </button>
+                    )}
+                    {isSOP && (
+                      ackCurrent
+                        ? (
+                          <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs flex items-center gap-1" title={`Ulithibitisha ${new Date(myAck!.acknowledged_at).toLocaleDateString('sw-TZ')}`}>
+                            <i className="ti ti-circle-check text-xs" /> Imethibitishwa
+                          </span>
+                        )
+                        : (
+                          <button
+                            onClick={() => acknowledgeSOp(article)}
+                            disabled={ackingId === article.id}
+                            className="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg text-xs hover:bg-teal-100 disabled:opacity-50"
+                            title="Thibitisha umesoma na unaelewa SOP hii"
+                          >
+                            {ackingId === article.id ? '...' : myAck ? '↻ Thibitisha Upya' : 'Thibitisha Kusoma'}
+                          </button>
+                        )
+                    )}
+                    <button
+                      onClick={() => { setEditing(article); setCreating(false) }}
+                      className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs hover:bg-gray-200"
+                    >
+                      Hariri
+                    </button>
+                    <button
+                      onClick={() => toggleActive(article)}
+                      className={`px-3 py-1.5 rounded-lg text-xs ${article.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
+                    >
+                      {article.is_active ? 'Zima' : 'Washa'}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
 
           {filtered.length === 0 && (
             <div className="text-center py-8 text-gray-500 text-sm">
@@ -387,6 +624,16 @@ function ArticlesTab() {
       )}
     </div>
   )
+}
+
+function isOverdue(lastReviewedAt: string, frequency: string): boolean {
+  const last = new Date(lastReviewedAt).getTime()
+  const now  = Date.now()
+  const days: Record<string, number> = {
+    weekly: 7, monthly: 30, quarterly: 90, biannual: 180, annually: 365,
+  }
+  const threshold = (days[frequency] ?? 30) * 24 * 60 * 60 * 1000
+  return now - last > threshold
 }
 
 // ── Raw Miss Log Tab ──────────────────────────────────────────────────────────

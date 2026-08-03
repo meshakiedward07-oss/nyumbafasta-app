@@ -35,6 +35,10 @@
     {
       "path": "/api/v1/cron/social/tiktok-status",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/v1/cron/alert-check",
+      "schedule": "*/15 * * * *"
     }
   ],
   "functions": {
@@ -65,6 +69,7 @@
     "app/api/v1/cron/daily/route.ts":                 { "maxDuration": 300 },
     "app/api/v1/cron/weekly/route.ts":                { "maxDuration": 60 },
     "app/api/v1/cron/hourly/route.ts":                { "maxDuration": 30 },
+    "app/api/v1/cron/alert-check/route.ts":           { "maxDuration": 30 },
     "app/api/v1/leads/import/route.ts":               { "maxDuration": 300 },
     "app/api/v1/leads/verify-social/route.ts":        { "maxDuration": 60 },
     "app/api/v1/advertising/campaigns/[id]/creative/route.ts": { "maxDuration": 60 },

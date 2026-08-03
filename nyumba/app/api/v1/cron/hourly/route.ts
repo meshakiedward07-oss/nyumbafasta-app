@@ -1,5 +1,7 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { type NextRequest } from 'next/server'
+import { runAlertCheck } from '@/lib/alerts/checker'
+import { notifyAdminOfCriticalAlerts } from '@/lib/alerts/notifier'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,7 +56,16 @@ async function runHourlyTasks() {
     errors.push(`❌ Payment cleanup: ${String(e)}`)
   }
 
-  // ── 2. Clean up old push notification subscriptions ───
+  // ── 2. Alert check (fallback — primary is /cron/alert-check every 15 min) ──
+  try {
+    const alertResult = await runAlertCheck()
+    await notifyAdminOfCriticalAlerts(alertResult)
+    results.push(`✅ Alert check: ${alertResult.fired} new, ${alertResult.existing} existing`)
+  } catch (e) {
+    errors.push(`❌ Alert check: ${String(e)}`)
+  }
+
+  // ── 3. Clean up old push notification subscriptions ───
   try {
     // Remove push subs older than 90 days that haven't been refreshed
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 86_400_000).toISOString()

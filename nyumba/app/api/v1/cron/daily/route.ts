@@ -4,6 +4,8 @@ import { sendMail } from '@/lib/email/resend'
 import { monitorDalaliAccounts } from '@/lib/dalali/accountMonitor'
 import { emailBase, listingExpiredEmail, subscriptionExpiryEmail } from '@/lib/email/templates'
 import { formatPhoneNumber, sendTextMessage } from '@/lib/whatsapp/client'
+import { sendDailyDigest } from '@/lib/alerts/digest'
+import { saveScorecardsSnapshot } from '@/lib/scorecards/snapshot'
 
 export const dynamic = 'force-dynamic'
 
@@ -1637,6 +1639,22 @@ async function runDailyTasks() {
     results.push(`✅ Per-org rent reminders sent: ${remindersSent}`)
   } catch (e) {
     errors.push(`❌ Per-org rent reminders: ${String(e)}`)
+  }
+
+  // ── Final - 1. Save department scorecard snapshot ─────────────────────────
+  try {
+    await saveScorecardsSnapshot()
+    results.push('✅ Scorecard snapshot saved')
+  } catch (e) {
+    errors.push(`❌ Scorecard snapshot: ${String(e)}`)
+  }
+
+  // ── Final. Morning operational digest → admin WhatsApp ────────────────────
+  try {
+    await sendDailyDigest()
+    results.push('✅ Daily digest sent')
+  } catch (e) {
+    errors.push(`❌ Daily digest: ${String(e)}`)
   }
 
   return Response.json({
