@@ -42,7 +42,7 @@ async function brandStripeBuffer(width: number): Promise<Buffer> {
       width,
       height: 22,
       channels: 4,
-      background: { r: 29, g: 158, b: 117, alpha: 235 }, // #1D9E75 at ~92%
+      background: { r: 29, g: 158, b: 117, alpha: 0.92 }, // #1D9E75 at 92% opacity
     },
   })
     .png()

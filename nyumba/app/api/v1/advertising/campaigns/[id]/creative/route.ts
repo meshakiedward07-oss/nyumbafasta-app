@@ -197,6 +197,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ ok: true, creative: done }, { status: 201 })
 
   } catch (err) {
+    console.error('[CreativeUpload] multipart processing failed:', err)
     await admin.from('ad_creatives').update({
       processing_status: 'failed',
       error_message: String(err),
@@ -285,6 +286,7 @@ async function handlePresigned({
     return NextResponse.json({ ok: true, creative: done }, { status: 201 })
 
   } catch (err) {
+    console.error('[CreativeUpload] presigned processing failed:', err)
     await admin.from('ad_creatives').update({ processing_status: 'failed', error_message: String(err) }).eq('id', creativeId)
     return NextResponse.json({ error: 'Haikuweza kushughulikia faili. Jaribu tena.', detail: String(err) }, { status: 500 })
   }

@@ -143,7 +143,9 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
       setProgress(95)
 
       if (!processRes.ok) {
-        setError(data.error ?? 'Kuna tatizo. Jaribu tena.')
+        const msg = data.error ?? 'Kuna tatizo. Jaribu tena.'
+        const detail = data.detail ? ` (${data.detail})` : ''
+        setError(msg + detail)
         setPhase('failed')
         return
       }
