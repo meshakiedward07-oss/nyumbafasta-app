@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { mobileCheckout, normalizePhone, detectProvider, webhookUrl, generateExternalId, type MobileProvider } from '@/lib/payments/azampay'
+import { mobileCheckout, normalizePhone, detectProvider, webhookUrl, type MobileProvider } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
 import { rateLimit } from '@/lib/security/rateLimit'
 

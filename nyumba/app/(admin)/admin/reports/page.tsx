@@ -417,7 +417,7 @@ export default function ReportsPage() {
           {!loading && !report && !error && (
             <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
               <p className="text-4xl mb-3">📊</p>
-              <p className="font-semibold text-gray-800">Chagua kipindi kisha bonyeza "Unda Ripoti"</p>
+              <p className="font-semibold text-gray-800">Chagua kipindi kisha bonyeza &ldquo;Unda Ripoti&rdquo;</p>
               <p className="text-sm text-gray-500 mt-1">
                 Ripoti inakusanya data yote ya biashara, uendeshaji, na uzingatiaji wa SOP.
               </p>

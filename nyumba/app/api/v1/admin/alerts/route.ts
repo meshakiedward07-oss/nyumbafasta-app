@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { runAlertCheck } from '@/lib/alerts/checker'
 
@@ -54,7 +54,7 @@ export async function GET() {
 }
 
 // POST /api/v1/admin/alerts — run the alert check now
-export async function POST(req: NextRequest) {
+export async function POST() {
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response!
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // POST /api/v1/payments/subscription/cancel
@@ -7,7 +7,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 // cancelled_at is stamped; the daily cron transitions to 'expired' at expires_at.
 // If already in grace_period / past expires_at, we set status='cancelled' immediately.
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
