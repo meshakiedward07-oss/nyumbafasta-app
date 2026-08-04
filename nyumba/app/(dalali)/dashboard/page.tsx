@@ -2,6 +2,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import DashboardClient from '@/components/dalali/DashboardClient'
 import type { Listing } from '@/lib/types/database'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DalaliDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -23,7 +25,7 @@ export default async function DalaliDashboardPage() {
       .order('expires_at', { ascending: false })
       .maybeSingle(),
 
-    supabase.from('listings')
+    admin.from('listings')
       .select('id, title, type, status, price_monthly, district, region, images, view_count, lead_count, created_at, is_boosted')
       .eq('dalali_id', user!.id)
       .order('created_at', { ascending: false }),

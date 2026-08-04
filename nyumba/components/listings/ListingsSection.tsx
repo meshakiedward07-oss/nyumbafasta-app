@@ -255,7 +255,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             </Link>
             <Link href="/directory"
               className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
-              <i className="ti ti-building-store text-sm" aria-hidden="true" /> Madalali
+              <i className="ti ti-building-store text-sm" aria-hidden="true" /> Soko
             </Link>
             {userRole === 'dalali' && (
               <Link href="/dashboard"

@@ -30,6 +30,12 @@ export default function AgreementRequiredPage() {
         return
       }
 
+      // Org owners and tenants have their own consent flow — redirect them out
+      const meta = (user.user_metadata ?? {}) as Record<string, string>
+      const pt   = meta.portal_type ?? meta.role ?? ''
+      if (pt === 'org_owner') { router.replace('/property/dashboard'); return }
+      if (pt === 'tenant')    { router.replace('/tenant'); return }
+
       const { data } = await supabase
         .from('users')
         .select('role, full_name, agreement_accepted')

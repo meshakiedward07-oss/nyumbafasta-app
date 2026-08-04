@@ -155,7 +155,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
                 <span>Mipangilio ya Shirika</span>
               </div>
             </Link>
-            <NotificationBell className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500" />
+            <NotificationBell href="/notifications" className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500" />
           </div>
           <button onClick={handleLogout} className="w-full text-left">
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
@@ -188,7 +188,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
             </span>
           </Link>
           <div className="flex items-center gap-1">
-            <NotificationBell className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500" />
+            <NotificationBell href="/notifications" className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500" />
             <button
               onClick={() => setDrawerOpen(true)}
               className="p-2 rounded-xl bg-gray-100"

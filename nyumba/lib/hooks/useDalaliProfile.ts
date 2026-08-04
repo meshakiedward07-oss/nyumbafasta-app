@@ -8,51 +8,31 @@ export interface DalaliProfile {
   phone: string | null
   avatarUrl: string | null
   bio: string | null
-  verificationStatus: 'unverified' | 'pending' | 'verified' | 'rejected'
-}
-
-// Module-level cache so the fetch only happens once per page load
-let cachedProfile: DalaliProfile | null = null
-let fetchPromise: Promise<DalaliProfile | null> | null = null
-
-async function fetchProfile(): Promise<DalaliProfile | null> {
-  const res = await fetch('/api/v1/dalali/profile')
-  if (!res.ok) return null
-  return res.json()
+  // 'approved' is set by admin verification endpoint; treat same as 'verified'
+  verificationStatus: 'unverified' | 'pending' | 'verified' | 'approved' | 'rejected'
 }
 
 export function useDalaliProfile() {
-  const [profile, setProfile] = useState<DalaliProfile | null>(cachedProfile)
-  const [loading, setLoading] = useState(!cachedProfile)
+  const [profile, setProfile] = useState<DalaliProfile | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (cachedProfile) {
-      setProfile(cachedProfile)
-      setLoading(false)
-      return
-    }
-
-    if (!fetchPromise) {
-      fetchPromise = fetchProfile()
-    }
-
-    fetchPromise.then(data => {
-      if (data) cachedProfile = data
-      setProfile(data)
-      setLoading(false)
-    })
+    let cancelled = false
+    fetch('/api/v1/dalali/profile')
+      .then(r => r.ok ? r.json() : null)
+      .then((data: DalaliProfile | null) => {
+        if (!cancelled) { setProfile(data); setLoading(false) }
+      })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   function refreshProfile() {
-    cachedProfile = null
-    fetchPromise = null
     setLoading(true)
-    fetchPromise = fetchProfile()
-    fetchPromise.then(data => {
-      if (data) cachedProfile = data
-      setProfile(data)
-      setLoading(false)
-    })
+    fetch('/api/v1/dalali/profile')
+      .then(r => r.ok ? r.json() : null)
+      .then((data: DalaliProfile | null) => { setProfile(data); setLoading(false) })
+      .catch(() => setLoading(false))
   }
 
   return { profile, loading, refreshProfile }

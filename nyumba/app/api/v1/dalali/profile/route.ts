@@ -56,16 +56,18 @@ export async function PATCH(req: NextRequest) {
       await admin.from('users').update(userUpdate).eq('id', user.id)
     }
 
-    // Upsert dalali_profiles
-    const { error } = await admin
-      .from('dalali_profiles')
-      .upsert({
-        user_id: user.id,
-        whatsapp_number: whatsapp_number ?? '',
-        bio: bio ?? null,
-      }, { onConflict: 'user_id' })
+    // Only upsert dalali_profiles when profile fields are actually provided.
+    // Avatar-only saves must not overwrite whatsapp_number with empty string.
+    const profileFields: Record<string, unknown> = {}
+    if (whatsapp_number !== undefined) profileFields.whatsapp_number = whatsapp_number
+    if (bio !== undefined) profileFields.bio = bio
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (Object.keys(profileFields).length > 0) {
+      const { error } = await admin
+        .from('dalali_profiles')
+        .upsert({ user_id: user.id, ...profileFields }, { onConflict: 'user_id' })
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true })
   } catch {

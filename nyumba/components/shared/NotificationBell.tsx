@@ -6,9 +6,11 @@ interface Props {
   className?: string
   /** true (default): renders as <Link>. false: renders as <span> — use inside an existing <Link> */
   asLink?: boolean
+  /** Override the default /notifications link destination */
+  href?: string
 }
 
-export default function NotificationBell({ className = '', asLink = true }: Props) {
+export default function NotificationBell({ className = '', asLink = true, href = '/notifications' }: Props) {
   const [unread, setUnread] = useState(0)
   const lastFetched = useRef(0)
 
@@ -63,7 +65,7 @@ export default function NotificationBell({ className = '', asLink = true }: Prop
   }
 
   return (
-    <Link href="/notifications" aria-label={`Arifa${unread > 0 ? ` (${unread} mpya)` : ''}`} className={`relative inline-flex items-center justify-center ${className}`}>
+    <Link href={href} aria-label={`Arifa${unread > 0 ? ` (${unread} mpya)` : ''}`} className={`relative inline-flex items-center justify-center ${className}`}>
       {inner}
     </Link>
   )

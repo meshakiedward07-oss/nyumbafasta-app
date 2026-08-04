@@ -29,6 +29,11 @@ const SingleListingMap = dynamic(
   { ssr: false }
 )
 
+const RankedAdSlot = dynamic(
+  () => import('@/components/ads/RankedAdSlot'),
+  { ssr: false }
+)
+
 const amenityLabel: Record<string, string> = {
   umeme: 'Umeme',
   maji: 'Maji',
@@ -684,6 +689,16 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
         {/* ── RIGHT column: CTA + details ── */}
         <div>
+          {/* Desktop ads — shown before the paywall */}
+          <div className="hidden lg:block mb-3">
+            <RankedAdSlot
+              region={listing.region}
+              placement="listing_detail"
+              limit={3}
+              title="Biashara Karibu Nawe"
+            />
+          </div>
+
           {/* Desktop inline CTA */}
           <div className="hidden lg:block mb-4">
             <InlineCTA />

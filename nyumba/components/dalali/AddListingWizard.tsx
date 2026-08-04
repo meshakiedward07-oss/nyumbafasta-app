@@ -338,7 +338,9 @@ export default function AddListingWizard() {
   const stepTitles = ['Maelezo', 'Mahali', 'Huduma', 'Picha & Kagua']
 
   // ── KYC gate — block unverified dalalis before they fill the form ────────
-  if (dalaliProfile && dalaliProfile.verificationStatus !== 'verified') {
+  // Admin sets verification_status = 'approved'; treat it the same as 'verified'.
+  const isVerified = dalaliProfile?.verificationStatus === 'verified' || dalaliProfile?.verificationStatus === 'approved'
+  if (dalaliProfile && !isVerified) {
     const isPending  = dalaliProfile.verificationStatus === 'pending'
     const isRejected = dalaliProfile.verificationStatus === 'rejected'
     return (

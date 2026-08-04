@@ -63,6 +63,13 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
 
+  // Detect portal type from user_metadata (no extra DB query needed).
+  // org_owner and tenant have their own consent flow inside the property portal
+  // and must never be sent to the client/dalali /agreement-required page.
+  const userMeta   = (user?.user_metadata ?? {}) as Record<string, string>
+  const portalType = userMeta.portal_type ?? userMeta.role ?? ''
+  const isOrgPortal = ['org_owner', 'tenant'].includes(portalType)
+
   const isProtected       = PROTECTED_ROUTES.some(r => path.startsWith(r))
   const needsRoleCheck    =
     ADMIN_ONLY_ROUTES.some(r => path.startsWith(r)) ||
@@ -160,9 +167,7 @@ export async function middleware(request: NextRequest) {
   // Redirect kwenda role-appropriate page kama tayari ameingia
   // Use exact match — startsWith would incorrectly intercept /register/complete
   if (user && AUTH_ROUTES.includes(path)) {
-    // Fast path for portal users — check user_metadata (no DB query needed)
-    const meta        = (user.user_metadata ?? {}) as Record<string, string>
-    const portalType  = meta.portal_type ?? meta.role
+    // Fast path for portal users — portalType already extracted at top of middleware
     if (portalType === 'org_owner') return redirectWithCookies(new URL('/property/dashboard', request.url), supabaseResponse)
     if (portalType === 'tenant')    return redirectWithCookies(new URL('/tenant', request.url), supabaseResponse)
     if (portalType === 'fundi')     return redirectWithCookies(new URL('/fundi/dashboard', request.url), supabaseResponse)
@@ -257,9 +262,10 @@ export async function middleware(request: NextRequest) {
         return redirectWithCookies(new URL('/account-banned', request.url), supabaseResponse)
       }
 
-      // Makubaliano hayajasainiwa — admin NA staff wanapita bila kizuizi
-      // (staff hawana haja ya kusaini agreement ya client/dalali)
-      const skipAgreement = userData?.role === 'admin' || userData?.role === 'staff'
+      // Makubaliano hayajasainiwa — admin, staff, na org/tenant portal wanapita bila kizuizi.
+      // Org owners na tenants wana mfumo wao wa makubaliano ndani ya property portal;
+      // hawafai kulazimishwa kukubali makubaliano ya client/dalali ya soko.
+      const skipAgreement = userData?.role === 'admin' || userData?.role === 'staff' || isOrgPortal
       if (!skipAgreement && userData?.agreement_accepted === false) {
         return redirectWithCookies(new URL('/agreement-required', request.url), supabaseResponse)
       }

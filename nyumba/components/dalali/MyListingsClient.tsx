@@ -204,6 +204,7 @@ type SlotInfo = { current: number; limit: number; plan: string | null } | null
 export default function MyListingsClient({ listings: initial, autoRenewId }: { listings: Listing[]; autoRenewId?: string }) {
   const router = useRouter()
   const [listings, setListings] = useState(initial)
+  const [fetchedOnce, setFetchedOnce] = useState(false)
   const [slotInfo, setSlotInfo] = useState<SlotInfo>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [dialog, setDialog] = useState<Dialog | null>(null)
@@ -222,6 +223,20 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
       .then(d => setSlotInfo({ current: d.current ?? 0, limit: d.limit ?? 0, plan: d.plan ?? null }))
       .catch(() => {})
   }, [])
+
+  // Always fetch fresh listings from API on mount — guards against SSR cache or RLS issues
+  useEffect(() => {
+    if (fetchedOnce) return
+    setFetchedOnce(true)
+    fetch('/api/v1/dalali/my-listings')
+      .then(r => r.ok ? r.json() : null)
+      .then((data: Listing[] | null) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setListings(data)
+        }
+      })
+      .catch(() => {})
+  }, [fetchedOnce])
 
   // Auto-trigger renewal modal when navigated here from a notification with ?renew=<listingId>
   const [autoRenewTriggered, setAutoRenewTriggered] = useState(false)
@@ -296,6 +311,12 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
   }
 
   function refreshListings() {
+    fetch('/api/v1/dalali/my-listings')
+      .then(r => r.ok ? r.json() : null)
+      .then((data: Listing[] | null) => {
+        if (Array.isArray(data)) setListings(data)
+      })
+      .catch(() => {})
     router.refresh()
   }
 
