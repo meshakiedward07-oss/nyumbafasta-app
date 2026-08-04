@@ -38,7 +38,7 @@
     },
     {
       "path": "/api/v1/cron/alert-check",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 12 * * *"
     }
   ],
   "functions": {
@@ -65,25 +65,16 @@
     "app/api/v1/social/best-time/route.ts":           { "maxDuration": 60 },
     "app/api/v1/social/caption/route.ts":             { "maxDuration": 30 },
     "app/api/v1/agent/run/route.ts":                  { "maxDuration": 60 },
-    "app/api/v1/cron/broadcast/route.ts":             { "maxDuration": 300 },
-    "app/api/v1/cron/daily/route.ts":                 { "maxDuration": 300 },
-    "app/api/v1/cron/weekly/route.ts":                { "maxDuration": 60 },
-    "app/api/v1/cron/hourly/route.ts":                { "maxDuration": 30 },
-    "app/api/v1/cron/alert-check/route.ts":           { "maxDuration": 30 },
+    "app/api/v1/cron/**/route.ts":                    { "maxDuration": 300 },
     "app/api/v1/leads/import/route.ts":               { "maxDuration": 300 },
     "app/api/v1/leads/verify-social/route.ts":        { "maxDuration": 60 },
     "app/api/v1/advertising/campaigns/[id]/creative/route.ts": { "maxDuration": 60 },
     "app/api/v1/advertising/pay/initiate/route.ts":   { "maxDuration": 30 },
     "app/api/v1/advertising/pay/webhook/route.ts":    { "maxDuration": 30 },
     "app/api/v1/leads/broadcast/route.ts":            { "maxDuration": 60 },
-    "app/api/v1/cron/social/refresh-stats/route.ts":  { "maxDuration": 60 },
-    "app/api/v1/cron/social/refresh-token/route.ts":  { "maxDuration": 30 },
-    "app/api/v1/cron/social/tiktok-status/route.ts":  { "maxDuration": 30 },
     "app/api/v1/email/send/route.ts":                 { "maxDuration": 30 },
     "app/api/v1/email/contacts/route.ts":             { "maxDuration": 30 },
     "app/api/v1/email/inbound/route.ts":              { "maxDuration": 30 },
-    "app/api/v1/cron/lease-payments/route.ts":        { "maxDuration": 60 },
-    "app/api/v1/cron/recurring-expenses/route.ts":    { "maxDuration": 60 },
     "app/api/v1/organizations/[id]/expenses/route.ts":        { "maxDuration": 30 },
     "app/api/v1/organizations/[id]/reports/download/route.ts":{ "maxDuration": 60 },
     "app/api/v1/dalali/invoices/route.ts":            { "maxDuration": 30 },
