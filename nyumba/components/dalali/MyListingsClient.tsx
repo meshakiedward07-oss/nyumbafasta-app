@@ -204,7 +204,7 @@ type SlotInfo = { current: number; limit: number; plan: string | null } | null
 export default function MyListingsClient({ listings: initial, autoRenewId }: { listings: Listing[]; autoRenewId?: string }) {
   const router = useRouter()
   const [listings, setListings] = useState(initial)
-  const [fetchedOnce, setFetchedOnce] = useState(false)
+  const [apiLoading, setApiLoading] = useState(true)
   const [slotInfo, setSlotInfo] = useState<SlotInfo>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [dialog, setDialog] = useState<Dialog | null>(null)
@@ -224,19 +224,21 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
       .catch(() => {})
   }, [])
 
-  // Always fetch fresh listings from API on mount — guards against SSR cache or RLS issues
+  // Always fetch fresh listings from API — bypasses any SSR cache or RLS issue
   useEffect(() => {
-    if (fetchedOnce) return
-    setFetchedOnce(true)
+    let cancelled = false
+    setApiLoading(true)
     fetch('/api/v1/dalali/my-listings')
       .then(r => r.ok ? r.json() : null)
       .then((data: Listing[] | null) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setListings(data)
+        if (!cancelled) {
+          if (Array.isArray(data)) setListings(data)
+          setApiLoading(false)
         }
       })
-      .catch(() => {})
-  }, [fetchedOnce])
+      .catch(() => { if (!cancelled) setApiLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   // Auto-trigger renewal modal when navigated here from a notification with ?renew=<listingId>
   const [autoRenewTriggered, setAutoRenewTriggered] = useState(false)
@@ -311,12 +313,14 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
   }
 
   function refreshListings() {
+    setApiLoading(true)
     fetch('/api/v1/dalali/my-listings')
       .then(r => r.ok ? r.json() : null)
       .then((data: Listing[] | null) => {
         if (Array.isArray(data)) setListings(data)
+        setApiLoading(false)
       })
-      .catch(() => {})
+      .catch(() => setApiLoading(false))
     router.refresh()
   }
 
@@ -386,11 +390,30 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
       </div>
 
       <div className="px-4 pt-4 space-y-3">
+        {/* Loading skeleton while API fetch is in progress */}
+        {apiLoading && (
+          <div className="space-y-3 animate-pulse">
+            {[1,2,3].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-3 flex gap-3">
+                <div className="w-20 h-20 bg-gray-200 rounded-xl flex-shrink-0" />
+                <div className="flex-1 space-y-2 pt-1">
+                  <div className="h-4 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                  <div className="flex gap-2 mt-2">
+                    <div className="h-5 w-16 bg-gray-200 rounded-full" />
+                    <div className="h-5 w-12 bg-gray-200 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Deadline banner — only shown to dalali with 0 listings */}
-        {listings.length === 0 && <ListingDeadlineBanner />}
+        {!apiLoading && listings.length === 0 && <ListingDeadlineBanner />}
 
         {/* No active listing warning */}
-        {listings.length > 0 && activeCount === 0 && (
+        {!apiLoading && listings.length > 0 && activeCount === 0 && (
           <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
               <i className="ti ti-eye-off text-amber-600 text-lg" aria-hidden="true" />
@@ -411,7 +434,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
         )}
 
         {/* Performance summary */}
-        {listings.filter(l => l.status === 'active').length > 0 && (() => {
+        {!apiLoading && listings.filter(l => l.status === 'active').length > 0 && (() => {
           const active = listings.filter(l => l.status === 'active')
           const best = active.reduce((a, b) => {
             const diff = (b.view_count ?? 0) - (a.view_count ?? 0)
@@ -443,7 +466,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
           )
         })()}
 
-        {displayed.length === 0 ? (
+        {!apiLoading && displayed.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
             {tab === 'expired' ? (
               <>

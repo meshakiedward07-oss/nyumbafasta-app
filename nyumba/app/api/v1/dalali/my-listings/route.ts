@@ -14,7 +14,6 @@ export async function GET() {
       .from('listings')
       .select('id, title, type, status, price_monthly, district, region, images, view_count, lead_count, share_count, created_at, is_boosted, boosted_until, expires_at')
       .eq('dalali_id', user.id)
-      .neq('status', 'deleted')
       .order('created_at', { ascending: false })
       .limit(100)
 
@@ -24,17 +23,18 @@ export async function GET() {
         .from('listings')
         .select('id, title, type, status, price_monthly, district, region, images, view_count, lead_count, created_at, is_boosted')
         .eq('dalali_id', user.id)
-        .neq('status', 'deleted')
         .order('created_at', { ascending: false })
         .limit(100)
 
       if (fallbackErr) {
         return NextResponse.json({ error: fallbackErr.message }, { status: 500 })
       }
-      return NextResponse.json(fallback ?? [])
+      // 'deleted' is not in the DB enum — filter in JS
+      return NextResponse.json((fallback ?? []).filter((l: {status: string}) => l.status !== 'deleted'))
     }
 
-    return NextResponse.json(data ?? [])
+    // 'deleted' is not in the DB enum — filter in JS rather than .neq() which would throw
+    return NextResponse.json((data ?? []).filter((l: {status: string}) => l.status !== 'deleted'))
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }

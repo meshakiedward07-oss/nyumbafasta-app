@@ -14,28 +14,26 @@ export default async function MyListingsPage({
 
   // Use admin client to bypass RLS — dalali_id filter ensures we only fetch their own listings
   const admin = createAdminClient()
+  // Note: do NOT use .neq('status', 'deleted') — 'deleted' is not in the DB enum
+  // and throws "invalid input value for enum listing_status". Filter in JS instead.
   const { data, error } = await admin
     .from('listings')
     .select('id, title, type, status, price_monthly, district, region, images, view_count, lead_count, share_count, created_at, is_boosted, boosted_until, expires_at')
     .eq('dalali_id', user!.id)
-    .neq('status', 'deleted')
     .order('created_at', { ascending: false })
     .limit(100)
 
-  // Some columns (share_count, boosted_until, expires_at) were added via migrations.
-  // If they don't exist in production yet, fall back to the base columns so the page still works.
   let listings: Listing[] = []
   if (error) {
     const { data: fallback } = await admin
       .from('listings')
       .select('id, title, type, status, price_monthly, district, region, images, view_count, lead_count, created_at, is_boosted')
       .eq('dalali_id', user!.id)
-      .neq('status', 'deleted')
       .order('created_at', { ascending: false })
       .limit(100)
-    listings = (fallback as Listing[]) ?? []
+    listings = ((fallback as Listing[]) ?? []).filter(l => l.status !== 'deleted')
   } else {
-    listings = (data as Listing[]) ?? []
+    listings = ((data as Listing[]) ?? []).filter(l => l.status !== 'deleted')
   }
 
   return (
