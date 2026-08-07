@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     // Fetch all existing rows — avoids PGRST116 crash when multiple rows exist
     const { data: existingList } = await admin
       .from('contact_unlocks')
-      .select('id, status')
+      .select('id, status, created_at')
       .eq('client_id', user.id)
       .eq('listing_id', listing_id)
       .order('created_at', { ascending: false })
@@ -102,9 +102,10 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // Only delete failed records — never touch pending ones that may have an in-flight STK push
+    // Delete failed records + stale pending records (older than 10 min — STK push is long expired)
+    const staleCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString()
     const staleIds = (existingList ?? [])
-      .filter(r => r.status === 'failed')
+      .filter(r => r.status === 'failed' || (r.status === 'pending' && r.created_at < staleCutoff))
       .map(r => r.id)
     if (staleIds.length > 0) {
       await admin.from('contact_unlocks').delete().in('id', staleIds)
@@ -214,9 +215,11 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertError || !unlock) {
-      const dbErr = { message: insertError?.message, code: insertError?.code, details: insertError?.details, hint: insertError?.hint }
-      console.error('[Unlock/initiate] DB insert failed:', JSON.stringify(dbErr))
-      return NextResponse.json({ error: `DB: ${insertError?.message ?? 'unlock is null'} | code: ${insertError?.code ?? '?'} | hint: ${insertError?.hint ?? ''}` }, { status: 500 })
+      console.error('[Unlock/initiate] DB insert failed:', JSON.stringify({
+        message: insertError?.message, code: insertError?.code,
+        details: insertError?.details, hint: insertError?.hint,
+      }))
+      return NextResponse.json({ error: 'Imeshindwa kuanzisha malipo. Jaribu tena.' }, { status: 500 })
     }
 
     runUnlockFraudChecks(admin, { userId: user.id, ip: getClientIp(req), msisdn: normalized })
