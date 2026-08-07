@@ -59,7 +59,11 @@ export async function POST(req: NextRequest) {
     // ── Success path ──────────────────────────────────────────────────────────
 
     if (!isAmountValid(payload, invoice.amount_tzs)) {
-      console.warn('[OrgSubWebhook] Amount mismatch — expected', invoice.amount_tzs, 'got:', payload.amount)
+      console.warn('[OrgSubWebhook] Amount mismatch — voiding invoice. expected:', invoice.amount_tzs, 'got:', payload.amount)
+      await admin.from('subscription_invoices')
+        .update({ status: 'void', voided_at: now.toISOString(), void_reason: 'Kiasi cha malipo hakikuendana na invoice' })
+        .eq('id', invoice.id)
+        .eq('status', 'pending')
       return NextResponse.json({ received: true })
     }
 

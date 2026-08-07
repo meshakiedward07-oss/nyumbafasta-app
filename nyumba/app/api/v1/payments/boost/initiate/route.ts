@@ -18,6 +18,7 @@ function toAzamProvider(p: string): MobileProvider {
 }
 
 export async function POST(req: NextRequest) {
+  let boostPaymentId: string | null = null
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
       console.error('[Boost/initiate] Insert failed:', insertErr)
       return NextResponse.json({ error: insertErr?.message ?? 'Imeshindwa kuanzisha malipo' }, { status: 500 })
     }
+    boostPaymentId = boostPayment.id
 
     const result = await mobileCheckout({
       accountNumber,
@@ -142,6 +144,9 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     console.error('[Boost/initiate] Unexpected error:', err)
+    if (boostPaymentId) {
+      createAdminClient().from('boost_payments').delete().eq('id', boostPaymentId).then(() => {})
+    }
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Hitilafu ya seva' }, { status: 500 })
   }
 }

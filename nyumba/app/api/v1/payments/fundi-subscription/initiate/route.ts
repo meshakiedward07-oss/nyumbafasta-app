@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import {
-  mobileCheckout, normalizePhone, detectProvider, generateExternalId, webhookUrl,
+  mobileCheckout, normalizePhone, generateExternalId, webhookUrl,
   type MobileProvider,
 } from '@/lib/payments/azampay'
 import { rateLimit } from '@/lib/security/rateLimit'
@@ -25,6 +25,7 @@ function toAzamProvider(p: string): MobileProvider {
 // Body: { plan_id, msisdn, provider? }
 // Initiates AzamPay STK push for a fundi subscription plan.
 export async function POST(req: NextRequest) {
+  let pendingSubId: string | null = null
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    const azamProvider = toAzamProvider(provider) ?? detectProvider(accountNumber)
+    const azamProvider = toAzamProvider(provider)
 
     const { data: sub, error: insertErr } = await admin
       .from('fundi_subscriptions')
@@ -130,6 +131,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertErr || !sub) throw insertErr ?? new Error('Insert returned null')
+    pendingSubId = sub.id
 
     const result = await mobileCheckout({
       accountNumber,
@@ -170,6 +172,9 @@ export async function POST(req: NextRequest) {
     })
   } catch (err: unknown) {
     console.error('[FundiSub/initiate] Unexpected error:', err)
+    if (pendingSubId) {
+      createAdminClient().from('fundi_subscriptions').delete().eq('id', pendingSubId).then(() => {})
+    }
     const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
     return NextResponse.json({ error: msg }, { status: 500 })
   }

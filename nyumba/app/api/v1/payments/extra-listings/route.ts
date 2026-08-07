@@ -18,6 +18,8 @@ function toAzamProvider(p: string): MobileProvider {
 }
 
 export async function POST(req: NextRequest) {
+  let paymentRowId: string | null = null
+  const admin = createAdminClient()
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -40,7 +42,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'msisdn inahitajika' }, { status: 400 })
     }
 
-    const admin  = createAdminClient()
     const amount = count * PRICE_PER_EXTRA
 
     // Find active subscription
@@ -80,6 +81,10 @@ export async function POST(req: NextRequest) {
     // Format: EX-{subscription_uuid}-{count}-{ts36} → 8 dash-separated segments
     const payment_ref   = `EX-${sub.id}-${count}-${Date.now().toString(36)}`
     const accountNumber = normalizePhone(msisdn)
+    // Bug #4 fix: validate normalized phone before sending to AzamPay
+    if (!accountNumber.startsWith('255') || accountNumber.length !== 12 || !/^\d{12}$/.test(accountNumber)) {
+      return NextResponse.json({ error: 'Namba ya simu si sahihi. Tumia format ya Tanzania (07XXXXXXXX)' }, { status: 400 })
+    }
     const azamProvider  = provider ? toAzamProvider(provider) : detectProvider(accountNumber)
 
     // Insert pending payments row BEFORE calling AzamPay so webhook can update it.
@@ -102,6 +107,7 @@ export async function POST(req: NextRequest) {
       console.error('[ExtraListings] payments insert failed:', payInsertErr)
       return NextResponse.json({ error: 'Imeshindwa kuanzisha malipo' }, { status: 500 })
     }
+    paymentRowId = paymentRow.id
 
     const result = await mobileCheckout({
       accountNumber,
@@ -119,7 +125,11 @@ export async function POST(req: NextRequest) {
 
     // Webhook will update extra_listings + extra_listings_fee on confirmed payment
     return NextResponse.json({ payment_ref, amount, sub_id: sub.id, extra_count: count })
-  } catch {
+  } catch (err) {
+    console.error('[ExtraListings/initiate] Unexpected error:', err)
+    if (paymentRowId) {
+      admin.from('payments').delete().eq('id', paymentRowId).then(() => {})
+    }
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
 }

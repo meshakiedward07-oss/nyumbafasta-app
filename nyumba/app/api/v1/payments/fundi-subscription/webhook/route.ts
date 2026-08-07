@@ -57,7 +57,11 @@ export async function POST(req: NextRequest) {
     // ── Amount validation ─────────────────────────────────────────────────
     const expectedAmount = Number(pending.amount_paid)
     if (expectedAmount > 0 && !isAmountValid(payload, expectedAmount)) {
-      console.warn('[FundiSubWebhook] Amount mismatch — expected', expectedAmount, 'got:', payload.amount)
+      console.warn('[FundiSubWebhook] Amount mismatch — marking failed. expected:', expectedAmount, 'got:', payload.amount)
+      await admin.from('fundi_subscriptions')
+        .update({ status: 'failed' })
+        .eq('id', pending.id)
+        .eq('status', 'pending')
       return NextResponse.json({ received: true })
     }
 

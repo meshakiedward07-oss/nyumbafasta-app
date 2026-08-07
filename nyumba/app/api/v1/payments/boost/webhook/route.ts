@@ -30,31 +30,41 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient()
 
-    // ── Single-query atomic transition ────────────────────────────────────────
-    // Include `amount` in RETURNING so we can validate it WITHOUT a prior SELECT.
-    // Only ONE concurrent call wins when status is 'pending' — PostgreSQL row-lock
-    // ensures the second call gets 0 rows and exits immediately.
-    const { data: updated } = await admin
+    // Read the pending record first — validate amount before any status change
+    const { data: pending } = await admin
       .from('boost_payments')
-      .update({ status: succeeded ? 'completed' : 'failed' })
-      .eq('payment_ref', externalId)
-      .eq('status', 'pending')         // atomic guard
       .select('id, listing_id, dalali_id, weeks, boosted_until, amount')
+      .eq('payment_ref', externalId)
+      .eq('status', 'pending')
+      .maybeSingle()
 
-    if (!updated || updated.length === 0) {
+    if (!pending) {
       console.log('[Boost Webhook] No pending boost_payment for', externalId, '— already processed or not found')
       return NextResponse.json({ received: true })
     }
 
-    const bp = updated[0]
-    console.log('[Boost Webhook] Status → completed for boost_payment:', bp.id)
-
-    // Post-update amount validation — catches tampered amounts without a pre-SELECT
-    if (succeeded && bp.amount && !isAmountValid(payload, bp.amount as number)) {
-      console.warn('[Boost Webhook] Amount mismatch — marking failed. expected:', bp.amount, 'got:', payload.amount)
-      await admin.from('boost_payments').update({ status: 'failed' }).eq('id', bp.id)
+    // Amount validation before status change — prevents a brief 'completed' state on mismatch
+    if (succeeded && !isAmountValid(payload, pending.amount as number)) {
+      console.warn('[Boost Webhook] Amount mismatch — marking failed. expected:', pending.amount, 'got:', payload.amount)
+      await admin.from('boost_payments').update({ status: 'failed' }).eq('id', pending.id).eq('status', 'pending')
       return NextResponse.json({ received: true })
     }
+
+    // Atomic transition — only one concurrent call wins
+    const { data: updated } = await admin
+      .from('boost_payments')
+      .update({ status: succeeded ? 'completed' : 'failed' })
+      .eq('id', pending.id)
+      .eq('status', 'pending')         // atomic guard
+      .select('id')
+
+    if (!updated || updated.length === 0) {
+      console.log('[Boost Webhook] Atomic update missed — concurrent call already processed:', externalId)
+      return NextResponse.json({ received: true })
+    }
+
+    const bp = pending
+    console.log('[Boost Webhook] Status → completed for boost_payment:', bp.id)
 
     if (!succeeded) return NextResponse.json({ received: true })
 

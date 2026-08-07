@@ -95,20 +95,18 @@ export async function POST(req: NextRequest) {
           console.error('[Upgrade Webhook] No to_plan in metadata for payment:', pmnt.id)
           return NextResponse.json({ received: true })
         }
+        const subId = meta?.subscription_id
+        if (!subId) {
+          console.error('[Upgrade Webhook] No subscription_id in metadata — cannot safely upgrade without it:', pmnt.id)
+          return NextResponse.json({ received: true })
+        }
 
         // Upgrade the subscription — extend expires_at by 30 days from now
         const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-        const { data: upgraded } = meta?.subscription_id
-          ? await admin
+        const { data: upgraded } = await admin
               .from('subscriptions')
               .update({ plan: toPlan, expires_at: newExpiresAt })
-              .eq('id', meta.subscription_id)
-              .eq('status', 'active')
-              .select('id')
-          : await admin
-              .from('subscriptions')
-              .update({ plan: toPlan, expires_at: newExpiresAt })
-              .eq('dalali_id', pmnt.dalali_id)
+              .eq('id', subId)
               .eq('status', 'active')
               .select('id')
 

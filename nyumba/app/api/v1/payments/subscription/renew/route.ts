@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import {
-  mobileCheckout, normalizePhone, detectProvider,
+  mobileCheckout, normalizePhone,
   generateExternalId, webhookUrl, type MobileProvider,
 } from '@/lib/payments/azampay'
 import { getPricing } from '@/lib/config/pricing'
@@ -30,6 +30,7 @@ function toAzamProvider(p: string): MobileProvider {
 }
 
 export async function POST(req: NextRequest) {
+  let pendingSubId: string | null = null
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + 30)
 
     const payment_ref  = generateExternalId('REN')
-    const azamProvider = toAzamProvider(provider) ?? detectProvider(accountNumber)
+    const azamProvider = toAzamProvider(provider)
 
     // ── Dev / mock mode: activate immediately ─────────────────────────────────
     if (IS_MOCK) {
@@ -157,6 +158,7 @@ export async function POST(req: NextRequest) {
       console.error('[Renew] Supabase insert failed:', insertError)
       return NextResponse.json({ error: insertError?.message ?? 'Imeshindwa kuanzisha upya' }, { status: 500 })
     }
+    pendingSubId = newSub.id
 
     const result = await mobileCheckout({
       accountNumber,
@@ -184,6 +186,9 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     console.error('[Renew] Unexpected error:', err)
+    if (pendingSubId) {
+      createAdminClient().from('subscriptions').delete().eq('id', pendingSubId).then(() => {})
+    }
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Hitilafu ya seva' }, { status: 500 })
   }
 }

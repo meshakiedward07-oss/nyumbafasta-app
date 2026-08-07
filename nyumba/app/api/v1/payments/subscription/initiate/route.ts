@@ -19,6 +19,7 @@ function toAzamProvider(p: string): MobileProvider {
 }
 
 export async function POST(req: NextRequest) {
+  let pendingSubId: string | null = null
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -26,16 +27,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
 
-    // Only dalali can subscribe — check role before any DB writes
+    // Rate limit before any DB queries
+    const rl = await rateLimit(`sub-initiate:${user.id}`, 5, 10 * 60 * 1000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Maombi mengi sana — subiri dakika 10' }, { status: 429 })
+    }
+
+    // Only dalali can subscribe
     const { data: callerProfile } = await createAdminClient()
       .from('users').select('role').eq('id', user.id).single()
     if (callerProfile?.role !== 'dalali') {
       return NextResponse.json({ error: 'Dalali tu wanaweza kununua subscription' }, { status: 403 })
-    }
-
-    const rl = await rateLimit(`sub-initiate:${user.id}`, 5, 10 * 60 * 1000)
-    if (!rl.allowed) {
-      return NextResponse.json({ error: 'Maombi mengi sana — subiri dakika 10' }, { status: 429 })
     }
 
     const { plan, msisdn, provider = 'mpesa' } = await req.json()
@@ -116,15 +118,13 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertError || !subscription) {
-      const errDetail = insertError
-        ? { message: insertError.message, code: insertError.code, details: insertError.details, hint: insertError.hint }
-        : { message: 'subscription is null after insert (no error)', code: 'NULL_RESULT' }
-      console.error('[Sub/initiate] Supabase insert FAILED:', JSON.stringify(errDetail))
-      return NextResponse.json({
-        error: insertError?.message ?? 'Imeshindwa kuanzisha subscription',
-        debug: errDetail,
-      }, { status: 500 })
+      console.error('[Sub/initiate] Supabase insert FAILED:', JSON.stringify({
+        message: insertError?.message, code: insertError?.code,
+        details: insertError?.details, hint: insertError?.hint,
+      }))
+      return NextResponse.json({ error: insertError?.message ?? 'Imeshindwa kuanzisha subscription' }, { status: 500 })
     }
+    pendingSubId = subscription.id
 
     const result = await mobileCheckout({
       accountNumber,
@@ -165,6 +165,9 @@ export async function POST(req: NextRequest) {
     })
   } catch (err: unknown) {
     console.error('[Sub/initiate] Unexpected error:', err)
+    if (pendingSubId) {
+      createAdminClient().from('subscriptions').delete().eq('id', pendingSubId).then(() => {})
+    }
     const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
