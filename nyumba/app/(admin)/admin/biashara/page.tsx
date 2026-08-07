@@ -89,7 +89,6 @@ const IC = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeW
 function IcTrend()    { return <svg {...IC} className="w-5 h-5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> }
 function IcUsers()    { return <svg {...IC} className="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> }
 function IcHome()     { return <svg {...IC} className="w-5 h-5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> }
-function IcBulb()     { return <svg {...IC} className="w-5 h-5"><path d="M9 21h6M12 2a7 7 0 0 1 4 12.93V17H8v-2.07A7 7 0 0 1 12 2z"/></svg> }
 function IcBriefcase(){ return <svg {...IC} className="w-5 h-5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> }
 function IcTools()    { return <svg {...IC} className="w-5 h-5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> }
 function IcAlert()    { return <svg {...IC} className="w-5 h-5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> }
@@ -747,7 +746,7 @@ export default function BiasharaPage() {
 
             {!report && !loadingReport && !reportError && (
               <div className="text-center py-8 text-gray-400 text-sm">
-                Chagua kipindi na tarehe kisha bonyeza "Unda Ripoti"
+                Chagua kipindi na tarehe kisha bonyeza &ldquo;Unda Ripoti&rdquo;
               </div>
             )}
           </div>
