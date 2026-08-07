@@ -233,7 +233,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!result.ok) {
-      console.error('[Unlock/initiate] mobileCheckout failed:', result.message, result.raw)
+      console.error('[Unlock/initiate] mobileCheckout failed | message:', result.message, '| raw:', JSON.stringify(result.raw ?? {}))
       await admin.from('contact_unlocks').delete().eq('id', unlock.id)
       return NextResponse.json({ error: result.message }, { status: 502 })
     }

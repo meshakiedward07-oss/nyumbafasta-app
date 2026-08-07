@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!result.ok) {
-      console.error('[Sub/initiate] mobileCheckout failed:', result.message)
+      console.error('[Sub/initiate] mobileCheckout failed | message:', result.message, '| raw:', JSON.stringify(result.raw ?? {}))
       await admin.from('subscriptions').delete().eq('id', subscription.id)
       return NextResponse.json({ error: result.message }, { status: 502 })
     }

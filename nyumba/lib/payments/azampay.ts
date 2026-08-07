@@ -228,13 +228,20 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    const isNetwork = msg.includes('haipatikani') || msg.includes('fetch') || msg.includes('abort') || msg.includes('timeout')
-    console.error('[AzamPay] mobileCheckout exception:', msg)
+    const isConfigMissing = msg.includes('Config missing')
+    const isNetwork = !isConfigMissing && (
+      msg.includes('haipatikani') || msg.includes('fetch') ||
+      msg.includes('abort') || msg.includes('timeout') || msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED')
+    )
+    console.error('[AzamPay] mobileCheckout exception | isConfig:', isConfigMissing, '| isNetwork:', isNetwork, '| msg:', msg)
     return {
       ok:      false,
-      message: isNetwork
-        ? 'Huduma ya malipo haipatikani sasa hivi. Jaribu tena baadaye.'
-        : msg,
+      message: isConfigMissing
+        ? `Mfumo wa malipo haujasanidiwa vizuri (env vars zinakosekana). Wasiliana na msimamizi.`
+        : isNetwork
+          ? 'Huduma ya malipo haipatikani sasa hivi. Jaribu tena baadaye.'
+          : msg,
+      raw: { _exception: msg },
     }
   }
 }
