@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { TANZANIA_REGIONS, getDistricts } from '@/lib/data/tanzania-locations'
+import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
+import { VideoUpload } from '@/components/listings/VideoUpload'
 
 const LISTING_TYPE_LABELS: Record<string, string> = {
   chumba:    'Chumba',
@@ -17,40 +19,40 @@ const FURNISHED_LABELS: Record<string, string> = {
   furnished: 'Imejazwa samani',
 }
 
-const AMENITY_OPTIONS = [
-  'WiFi', 'Umeme wa TANESCO', 'Maji ya bomba', 'Generator',
-  'Parking', 'Usalama 24/7', 'CCTV', 'Bwawa la kuogelea',
-  'Gym', 'Lifti', 'Balcony', 'Jiko la gesi',
-  'AC', 'Dsh/Starsat', 'Mazingira ya watoto', 'Uzio wa waya',
-]
-
 export default function BrokerageNewPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const unitId = searchParams.get('unit_id')
 
   // Org info
-  const [orgPhone,  setOrgPhone]  = useState('')
-  const [orgName,   setOrgName]   = useState('')
-  const [loadingOrg, setLoadingOrg] = useState(true)
+  const [orgPhone,    setOrgPhone]    = useState('')
+  const [orgName,     setOrgName]     = useState('')
+  const [loadingOrg,  setLoadingOrg]  = useState(true)
 
   // Step
   const [step, setStep] = useState(1)
 
-  // Listing card fields
-  const [title,        setTitle]        = useState('')
-  const [listingType,  setListingType]  = useState('apartment')
-  const [description,  setDescription]  = useState('')
-  const [priceMonthly, setPriceMonthly] = useState('')
-  const [depositMonths,setDepositMonths]= useState('1')
-  const [bedrooms,     setBedrooms]     = useState('')
-  const [furnished,    setFurnished]    = useState('empty')
-  const [region,       setRegion]       = useState('')
-  const [district,     setDistrict]     = useState('')
-  const [ward,         setWard]         = useState('')
-  const [mtaa,         setMtaa]         = useState('')
-  const [amenities,    setAmenities]    = useState<string[]>([])
-  const [images,       setImages]       = useState<string[]>([''])
+  // Listing fields
+  const [title,         setTitle]         = useState('')
+  const [listingType,   setListingType]   = useState('apartment')
+  const [description,   setDescription]   = useState('')
+  const [priceMonthly,  setPriceMonthly]  = useState('')
+  const [depositMonths, setDepositMonths] = useState('1')
+  const [bedrooms,      setBedrooms]      = useState('')
+  const [furnished,     setFurnished]     = useState('empty')
+  const [region,        setRegion]        = useState('')
+  const [district,      setDistrict]      = useState('')
+  const [ward,          setWard]          = useState('')
+  const [mtaa,          setMtaa]          = useState('')
+  const [amenities,     setAmenities]     = useState<string[]>([])
+
+  // Media (direct device upload)
+  const [images,          setImages]          = useState<string[]>([])
+  const [photosUploading, setPhotosUploading] = useState(false)
+  const [videoUrl,        setVideoUrl]        = useState<string | null>(null)
+  const [videoUploading,  setVideoUploading]  = useState(false)
+
+  // Contact
   const [orgContactName,  setOrgContactName]  = useState('')
   const [orgContactPhone, setOrgContactPhone] = useState('')
 
@@ -63,7 +65,7 @@ export default function BrokerageNewPage() {
   const [error,      setError]      = useState<string | null>(null)
   const [done,       setDone]       = useState(false)
 
-  const districts = region ? getDistricts(region) : []
+  const districts   = region ? getDistricts(region) : []
   const regionNames = TANZANIA_REGIONS.map(r => r.name)
 
   useEffect(() => {
@@ -87,28 +89,15 @@ export default function BrokerageNewPage() {
   }, [])
 
   function toggleAmenity(a: string) {
-    setAmenities(prev =>
-      prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]
-    )
+    setAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a])
   }
 
-  function handleImageChange(i: number, val: string) {
-    setImages(prev => { const n = [...prev]; n[i] = val; return n })
-  }
-
-  function addImageRow() {
-    if (images.length < 8) setImages(prev => [...prev, ''])
-  }
-
-  function removeImageRow(i: number) {
-    setImages(prev => prev.filter((_, j) => j !== i))
-  }
-
-  const validImages = images.filter(u => u.trim().length > 0)
-
-  const step1Valid = title.trim() && priceMonthly && region && district
-  const step2Valid = orgContactPhone.trim()
-  const step3Valid = agreedBroker && agreedCommission
+  // Quality gates
+  const detailsValid = !!(title.trim() && priceMonthly && region && district)
+  const mediaValid   = images.length >= 1 && videoUrl !== null && !photosUploading && !videoUploading
+  const step1Valid   = detailsValid && mediaValid
+  const step2Valid   = !!orgContactPhone.trim()
+  const step3Valid   = agreedBroker && agreedCommission
 
   async function handleSubmit() {
     if (!step1Valid || !step2Valid || !step3Valid) return
@@ -118,21 +107,22 @@ export default function BrokerageNewPage() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          unit_id:          unitId || null,
-          title:            title.trim(),
-          listing_type:     listingType,
-          description:      description.trim() || null,
-          price_monthly:    Number(priceMonthly),
-          deposit_months:   Number(depositMonths) || 1,
-          bedrooms:         bedrooms ? Number(bedrooms) : null,
+          unit_id:           unitId || null,
+          title:             title.trim(),
+          listing_type:      listingType,
+          description:       description.trim() || null,
+          price_monthly:     Number(priceMonthly),
+          deposit_months:    Number(depositMonths) || 1,
+          bedrooms:          bedrooms ? Number(bedrooms) : null,
           furnished,
           region,
           district,
-          ward:             ward.trim() || null,
-          mtaa:             mtaa.trim() || null,
+          ward:              ward.trim() || null,
+          mtaa:              mtaa.trim() || null,
           amenities,
-          images:           validImages,
-          org_contact_name: orgContactName.trim() || null,
+          images,
+          video_url:         videoUrl,
+          org_contact_name:  orgContactName.trim() || null,
           org_contact_phone: orgContactPhone.trim(),
           agreed_broker_terms: true,
           agreed_commission:   true,
@@ -199,13 +189,9 @@ export default function BrokerageNewPage() {
       <h1 className="font-bold text-gray-900 text-xl">Ombi la Kutafuta Mpangaji</h1>
       <p className="text-sm text-gray-400 mt-0.5 mb-5">NyumbaFasta itatangaza na kukupata mpangaji</p>
 
-      {/* Step indicators with labels */}
+      {/* Step bar */}
       <div className="flex items-center gap-2 mb-6">
-        {[
-          { n: 1, label: 'Mali' },
-          { n: 2, label: 'Mawasiliano' },
-          { n: 3, label: 'Kukubaliana' },
-        ].map(({ n, label }, idx) => (
+        {[{ n: 1, label: 'Mali' }, { n: 2, label: 'Mawasiliano' }, { n: 3, label: 'Kukubaliana' }].map(({ n, label }, idx) => (
           <div key={n} className="flex items-center gap-2 flex-1">
             <div className="flex flex-col items-center flex-1">
               <div className={`w-full h-2 rounded-full transition-all ${n <= step ? 'bg-primary-500' : 'bg-gray-200'}`} />
@@ -216,9 +202,9 @@ export default function BrokerageNewPage() {
         ))}
       </div>
 
-      {/* ── STEP 1: Listing card ─────────────────────── */}
+      {/* ── STEP 1: Listing details + media ─── */}
       {step === 1 && (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
             Hatua 1 ya 3 — Taarifa za Mali
           </p>
@@ -256,7 +242,7 @@ export default function BrokerageNewPage() {
             </div>
           </div>
 
-          {/* Price — full width */}
+          {/* Price */}
           <div>
             <label className="text-xs font-medium text-gray-700 mb-1 block">Bei/Mwezi (TZS) *</label>
             <input type="number" value={priceMonthly} onChange={e => setPriceMonthly(e.target.value)}
@@ -264,7 +250,7 @@ export default function BrokerageNewPage() {
               className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
           </div>
 
-          {/* Bedrooms + Deposit — side by side */}
+          {/* Bedrooms + Deposit */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-700 mb-1 block">Vyumba vya Kulala</label>
@@ -324,68 +310,114 @@ export default function BrokerageNewPage() {
 
           {/* Amenities */}
           <div>
-            <label className="text-xs font-medium text-gray-700 mb-2 block">Huduma Zinazopatikana</label>
-            <div className="flex flex-wrap gap-2">
-              {AMENITY_OPTIONS.map(a => (
-                <button
-                  key={a}
-                  type="button"
-                  onClick={() => toggleAmenity(a)}
-                  className={`text-xs px-3 py-2 rounded-full border font-medium transition active:scale-95 ${
-                    amenities.includes(a)
-                      ? 'bg-primary-500 text-white border-primary-500'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'
-                  }`}
-                >
-                  {a}
-                </button>
-              ))}
+            <label className="text-xs font-medium text-gray-700 mb-1 block">Muundo na Huduma</label>
+            <p className="text-[11px] text-gray-400 mb-2">Chagua vyumba na huduma zilizopo — zitatumika kwenye muhtasari wa tangazo</p>
+            <div className="space-y-2.5">
+              <div>
+                <span className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1.5 block">Vyumba</span>
+                <div className="flex flex-wrap gap-2">
+                  {['Sebule', 'Jikoni', 'Choo Ndani'].map(a => (
+                    <button key={a} type="button" onClick={() => toggleAmenity(a)}
+                      className={`text-xs px-3 py-2 rounded-full border font-medium transition active:scale-95 ${
+                        amenities.includes(a) ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'
+                      }`}>{a}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1.5 block">Huduma</span>
+                <div className="flex flex-wrap gap-2">
+                  {['WiFi', 'Umeme wa TANESCO', 'Maji ya bomba', 'Generator', 'Parking', 'Usalama 24/7', 'CCTV', 'Bwawa la kuogelea', 'Gym', 'Lifti', 'Balcony', 'AC', 'Mazingira ya watoto'].map(a => (
+                    <button key={a} type="button" onClick={() => toggleAmenity(a)}
+                      className={`text-xs px-3 py-2 rounded-full border font-medium transition active:scale-95 ${
+                        amenities.includes(a) ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'
+                      }`}>{a}</button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Images */}
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-2 block">
-              Picha za Mali (URL — hiari, hadi 8)
-            </label>
-            <div className="space-y-2">
-              {images.map((url, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    value={url}
-                    onChange={e => handleImageChange(i, e.target.value)}
-                    placeholder={`URL ya picha ${i + 1}...`}
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                  />
-                  {images.length > 1 && (
-                    <button type="button" onClick={() => removeImageRow(i)}
-                      className="w-10 h-10 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition flex-shrink-0">
-                      <i className="ti ti-trash text-sm" aria-hidden="true" />
-                    </button>
-                  )}
-                </div>
-              ))}
+          {/* ── Quality gate: Photos (required) ── */}
+          <div className={`rounded-2xl border-2 p-4 transition-colors ${images.length >= 1 ? 'border-primary-200 bg-primary-50/30' : 'border-dashed border-gray-300'}`}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${images.length >= 1 ? 'bg-primary-500' : 'bg-gray-200'}`}>
+                {images.length >= 1
+                  ? <i className="ti ti-check text-white text-[10px]" aria-hidden="true" />
+                  : <span className="text-gray-400 text-[10px] font-bold">!</span>
+                }
+              </div>
+              <label className="text-sm font-semibold text-gray-800">
+                Picha za Mali <span className="text-red-500">*</span>
+              </label>
+              {images.length >= 1 && (
+                <span className="ml-auto text-xs text-primary-600 font-medium">{images.length} picha ✓</span>
+              )}
             </div>
-            {images.length < 8 && (
-              <button type="button" onClick={addImageRow}
-                className="mt-2 text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-                <i className="ti ti-plus" aria-hidden="true" />
-                Ongeza picha
-              </button>
+            <BulkPhotoUpload
+              onChange={(urls, uploading) => {
+                setImages(urls)
+                setPhotosUploading(uploading)
+              }}
+              maxPhotos={8}
+            />
+            {images.length === 0 && !photosUploading && (
+              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                <i className="ti ti-alert-triangle" aria-hidden="true" />
+                Lazima upake angalau picha 1 kabla ya kuendelea
+              </p>
             )}
           </div>
 
+          {/* ── Quality gate: Video (required) ── */}
+          <div className={`rounded-2xl border-2 p-4 transition-colors ${videoUrl ? 'border-primary-200 bg-primary-50/30' : 'border-dashed border-gray-300'}`}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${videoUrl ? 'bg-primary-500' : 'bg-gray-200'}`}>
+                {videoUrl
+                  ? <i className="ti ti-check text-white text-[10px]" aria-hidden="true" />
+                  : <span className="text-gray-400 text-[10px] font-bold">!</span>
+                }
+              </div>
+              <label className="text-sm font-semibold text-gray-800">
+                Video ya Mali <span className="text-red-500">*</span>
+              </label>
+              {videoUrl && (
+                <span className="ml-auto text-xs text-primary-600 font-medium">Video iko ✓</span>
+              )}
+            </div>
+            <VideoUpload
+              existingVideoUrl={videoUrl}
+              onUploadComplete={url => setVideoUrl(url)}
+              onRemove={() => setVideoUrl(null)}
+              onUploadStateChange={setVideoUploading}
+            />
+            {!videoUrl && !videoUploading && (
+              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                <i className="ti ti-alert-triangle" aria-hidden="true" />
+                Lazima upake video kabla ya kuendelea — inasaidia wateja kuona nyumba vizuri
+              </p>
+            )}
+          </div>
+
+          {/* Proceed button — blocked until both photo and video are uploaded */}
           <button
             onClick={() => setStep(2)}
             disabled={!step1Valid}
             className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary-600 transition disabled:opacity-40 mt-2"
           >
-            Endelea →
+            {photosUploading || videoUploading ? 'Subiri upakiaji ukamilike...' : 'Endelea →'}
           </button>
+
+          {detailsValid && !mediaValid && !photosUploading && !videoUploading && (
+            <p className="text-center text-xs text-gray-400">
+              {images.length === 0 && !videoUrl ? 'Picha na video zinahitajika' :
+               images.length === 0 ? 'Picha inahitajika' : 'Video inahitajika'}
+            </p>
+          )}
         </div>
       )}
 
-      {/* ── STEP 2: Contact info ─────────────────────── */}
+      {/* ── STEP 2: Contact info ─── */}
       {step === 2 && (
         <div className="space-y-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -424,7 +456,7 @@ export default function BrokerageNewPage() {
             </p>
           </div>
 
-          {/* Summary card */}
+          {/* Summary */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
             <p className="text-xs font-semibold text-gray-700 mb-2">Muhtasari wa Ombi</p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
@@ -438,6 +470,12 @@ export default function BrokerageNewPage() {
               </span>
               <span className="text-gray-400">Eneo:</span>
               <span className="text-gray-700">{district}, {region}</span>
+              <span className="text-gray-400">Picha:</span>
+              <span className="text-gray-700">{images.length} zimepakiwa</span>
+              <span className="text-gray-400">Video:</span>
+              <span className={videoUrl ? 'text-primary-600 font-medium' : 'text-gray-400'}>
+                {videoUrl ? '✓ Ipo' : '—'}
+              </span>
               <span className="text-gray-400">Kamisheni:</span>
               <span className="text-gray-700 font-semibold">
                 TZS {Number(priceMonthly).toLocaleString()} (mwezi 1)
@@ -455,22 +493,17 @@ export default function BrokerageNewPage() {
         </div>
       )}
 
-      {/* ── STEP 3: Agreement + Submit ───────────────── */}
+      {/* ── STEP 3: Agreement + Submit ─── */}
       {step === 3 && (
         <div className="space-y-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
             Hatua 3 ya 3 — Makubaliano
           </p>
 
-          {/* Broker terms */}
           <label className="flex gap-3 bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-primary-300 transition">
             <div className="flex-shrink-0 mt-0.5">
-              <input
-                type="checkbox"
-                checked={agreedBroker}
-                onChange={e => setAgreedBroker(e.target.checked)}
-                className="w-4 h-4 accent-primary-500"
-              />
+              <input type="checkbox" checked={agreedBroker} onChange={e => setAgreedBroker(e.target.checked)}
+                className="w-4 h-4 accent-primary-500" />
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">Nakubaliana na NyumbaFasta kutangaza kwa niaba yangu</p>
@@ -481,32 +514,24 @@ export default function BrokerageNewPage() {
             </div>
           </label>
 
-          {/* Commission agreement */}
           <label className="flex gap-3 bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-primary-300 transition">
             <div className="flex-shrink-0 mt-0.5">
-              <input
-                type="checkbox"
-                checked={agreedCommission}
-                onChange={e => setAgreedCommission(e.target.checked)}
-                className="w-4 h-4 accent-primary-500"
-              />
+              <input type="checkbox" checked={agreedCommission} onChange={e => setAgreedCommission(e.target.checked)}
+                className="w-4 h-4 accent-primary-500" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">
-                Nakubaliana kulipa kamisheni ya mwezi 1 wa kodi
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Mpangaji atakapopatikana na mkataba kufungwa, nitawasilisha kwa NyumbaFasta
-                kamisheni ya{' '}
+              <p className="text-sm font-semibold text-gray-900">Nakubaliana na masharti ya kamisheni</p>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Kamisheni ya{' '}
                 <span className="font-bold text-primary-600">
                   TZS {Number(priceMonthly || 0).toLocaleString()}
                 </span>{' '}
-                (sawa na kodi ya mwezi mmoja).
+                (sawa na kodi ya mwezi mmoja) italipwa na <strong className="text-gray-700">mpangaji atakayeletwa na NyumbaFasta</strong> kwa shirika letu.
+                Shirika letu litasaidia kukusanya kamisheni hiyo na kuiwasilisha kwa NyumbaFasta mara mkataba utakapofungwa.
               </p>
             </div>
           </label>
 
-          {/* Commission box */}
           <div className="bg-primary-50 rounded-xl p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-primary-600 font-medium">Kamisheni itakayodaiwa</p>
@@ -531,15 +556,9 @@ export default function BrokerageNewPage() {
             className="w-full bg-primary-500 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-primary-600 transition disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {submitting ? (
-              <>
-                <i className="ti ti-loader-2 animate-spin" aria-hidden="true" />
-                Inawasilisha...
-              </>
+              <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />Inawasilisha...</>
             ) : (
-              <>
-                <i className="ti ti-send" aria-hidden="true" />
-                Wasilisha Ombi kwa NyumbaFasta
-              </>
+              <><i className="ti ti-send" aria-hidden="true" />Wasilisha Ombi kwa NyumbaFasta</>
             )}
           </button>
         </div>

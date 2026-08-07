@@ -28,10 +28,11 @@ export async function GET(req: NextRequest) {
     let query = admin
       .from('brokerage_requests')
       .select(`
-        id, title, listing_type, price_monthly, region, district,
+        id, title, listing_type, price_monthly, bedrooms, amenities,
+        region, district,
         status, commission_status, commission_amount,
         agreed_at, created_at, updated_at,
-        images, org_contact_phone,
+        images, video_url, org_contact_phone,
         listing_id,
         rejection_reason,
         deal_closed_at,
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
       title, listing_type, description,
       price_monthly, deposit_months, bedrooms, furnished,
       region, district, ward, mtaa,
-      amenities, images,
+      amenities, images, video_url,
       org_contact_name, org_contact_phone,
       agreed_broker_terms, agreed_commission,
     } = body
@@ -97,6 +98,9 @@ export async function POST(req: NextRequest) {
                                 return NextResponse.json({ error: 'Nambari ya mawasiliano inahitajika' }, { status: 400 })
     if (!agreed_broker_terms)   return NextResponse.json({ error: 'Lazima ukubali masharti ya wakili' }, { status: 400 })
     if (!agreed_commission)     return NextResponse.json({ error: 'Lazima ukubali masharti ya kamisheni' }, { status: 400 })
+    // Quality gate: at least one photo and a video are required
+    if (!images?.length)        return NextResponse.json({ error: 'Angalau picha 1 inahitajika' }, { status: 400 })
+    if (!video_url?.trim())     return NextResponse.json({ error: 'Video ya mali inahitajika' }, { status: 400 })
 
     // Check unit belongs to this org (if provided)
     if (unit_id) {
@@ -143,6 +147,7 @@ export async function POST(req: NextRequest) {
         mtaa:               mtaa?.trim() || null,
         amenities:          amenities || [],
         images:             images || [],
+        video_url:          video_url?.trim() || null,
         org_contact_name:   org_contact_name?.trim() || null,
         org_contact_phone:  org_contact_phone.trim(),
         agreed_broker_terms: true,

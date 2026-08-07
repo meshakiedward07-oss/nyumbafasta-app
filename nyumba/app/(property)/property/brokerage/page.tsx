@@ -7,6 +7,8 @@ interface BrokerageRequest {
   title: string
   listing_type: string
   price_monthly: number
+  bedrooms: number | null
+  amenities: string[]
   region: string
   district: string
   status: string
@@ -16,8 +18,18 @@ interface BrokerageRequest {
   deal_closed_at: string | null
   rejection_reason: string | null
   images: string[]
+  video_url: string | null
   listing_id: string | null
   listing: { id: string; title: string; status: string } | null
+}
+
+function listingLayout(bedrooms: number | null | undefined, amenities: string[]): string {
+  const parts: string[] = []
+  if (bedrooms) parts.push(`Vyumba ${bedrooms}`)
+  if (amenities.includes('Sebule'))    parts.push('Sebule')
+  if (amenities.includes('Jikoni'))    parts.push('Jikoni')
+  if (amenities.includes('Choo Ndani')) parts.push('Choo Ndani')
+  return parts.join(' · ')
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
@@ -157,8 +169,8 @@ export default function BrokeragePage() {
             <div key={req.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start gap-3">
-                  {/* Thumbnail */}
-                  <div className="w-14 h-14 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden">
+                  {/* Thumbnail + video badge */}
+                  <div className="relative w-14 h-14 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden">
                     {req.images?.[0] ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={req.images[0]} alt={req.title} className="w-full h-full object-cover" />
@@ -166,6 +178,11 @@ export default function BrokeragePage() {
                       <div className="w-full h-full flex items-center justify-center">
                         <i className="ti ti-building text-2xl text-gray-300" aria-hidden="true" />
                       </div>
+                    )}
+                    {req.video_url && (
+                      <span className="absolute bottom-0.5 right-0.5 bg-black/70 rounded-md px-1 py-0.5">
+                        <i className="ti ti-video text-white text-[9px]" aria-hidden="true" />
+                      </span>
                     )}
                   </div>
 
@@ -178,6 +195,9 @@ export default function BrokeragePage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">{req.district}, {req.region}</p>
+                    {(() => { const layout = listingLayout(req.bedrooms, req.amenities ?? []); return layout ? (
+                      <p className="text-xs text-gray-500 mt-0.5 font-medium">{layout}</p>
+                    ) : null })()}
                     <div className="flex items-center gap-3 mt-1.5">
                       <span className="text-sm font-bold text-primary-600">{fmt(req.price_monthly)}/mwezi</span>
                       <span className="text-xs text-gray-400">•</span>

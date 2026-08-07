@@ -223,6 +223,10 @@ function RegisterForm() {
         phone,
       }
       if (role === 'org_owner') { meta.org_name = orgName; meta.city = city }
+      if (role === 'tenant') {
+        const orgId = searchParams.get('org')
+        if (orgId) meta.invited_by_org = orgId
+      }
 
       const { error: e } = await supabase.auth.signUp({
         email, password,

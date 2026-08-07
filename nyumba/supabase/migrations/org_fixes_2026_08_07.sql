@@ -224,7 +224,7 @@ CREATE TABLE IF NOT EXISTS org_recurring_expenses (
   updated_at         TIMESTAMPTZ  DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_org_recurring_expenses_org ON org_recurring_expenses(organization_id);
+CREATE INDEX IF NOT EXISTS idx_org_recurring_expenses_org    ON org_recurring_expenses(organization_id);
 CREATE INDEX IF NOT EXISTS idx_org_recurring_expenses_active ON org_recurring_expenses(is_active) WHERE is_active = TRUE;
 
 ALTER TABLE org_recurring_expenses ENABLE ROW LEVEL SECURITY;

@@ -255,6 +255,7 @@ const T = {
   // ── Admin shell — nav item labels ────────────────────────────────────────
   admin_nav_dashboard:         { sw: 'Dashibodi',              en: 'Dashboard'             },
   admin_nav_executive:         { sw: 'Muhtasari wa Biashara',  en: 'Executive Dashboard'   },
+  admin_nav_biashara:          { sw: 'Akili ya Biashara',       en: 'Business Intelligence' },
   admin_nav_alerts:            { sw: 'Tahadhari',              en: 'Alerts'                },
   admin_nav_reports:           { sw: 'Ripoti za Kipindi',      en: 'Period Reports'        },
   admin_nav_scorecards:        { sw: 'Kadi za Idara',          en: 'Dept Scorecards'       },

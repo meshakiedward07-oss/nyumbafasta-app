@@ -458,7 +458,7 @@ export default function TenantPage() {
             Akaunti yako bado haijaunganishwa na mkataba wowote wa upangaji.
           </p>
           <p className="text-xs text-gray-400 mb-6">
-            Mwambie mmiliki wako nambari yako ya simu ili akusajilishe kwenye mfumo huu.
+            Mmiliki wako amepata taarifa ya usajili wako — hivi karibuni atakusajilishe kwenye mfumo wa mkataba wako. Ukiwa na haraka, wasiliana naye moja kwa moja.
           </p>
           <div className="border-t border-gray-100 pt-5">
             <p className="text-xs text-gray-400 mb-3">Unatafuta nyumba ya kupanga?</p>

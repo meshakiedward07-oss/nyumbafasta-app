@@ -14,8 +14,19 @@ interface Listing {
   status: string
   lifecycle_status: string
   listing_source: string
+  bedrooms: number | null
+  amenities: string[]
   unit_count: number
   occupied_count: number
+}
+
+function listingLayout(bedrooms: number | null | undefined, amenities: string[]): string {
+  const parts: string[] = []
+  if (bedrooms) parts.push(`Vyumba ${bedrooms}`)
+  if (amenities.includes('Sebule'))    parts.push('Sebule')
+  if (amenities.includes('Jikoni'))    parts.push('Jikoni')
+  if (amenities.includes('Choo Ndani')) parts.push('Choo Ndani')
+  return parts.join(' · ')
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -127,6 +138,9 @@ export default function MaliPage() {
                     <p className="text-xs text-gray-400 mt-0.5">
                       {TYPE_LABELS[l.type] ?? l.type} · {l.district}, {l.region}
                     </p>
+                    {(() => { const layout = listingLayout(l.bedrooms, l.amenities ?? []); return layout ? (
+                      <p className="text-xs text-gray-500 font-medium mt-0.5">{layout}</p>
+                    ) : null })()}
                     <p className="text-sm font-bold text-primary-600 mt-1">
                       TZS {(l.price_monthly ?? 0).toLocaleString()}/mwezi
                     </p>

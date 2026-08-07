@@ -28,6 +28,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       .select(`
         id, title, type, district, region, price_monthly, images,
         status, lifecycle_status, listing_source, created_at,
+        bedrooms, amenities,
         unit_count:property_units(count),
         occupied_count:property_units(count)
       `, { count: 'exact' })

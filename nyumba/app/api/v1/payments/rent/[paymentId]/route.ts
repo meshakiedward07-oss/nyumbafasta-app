@@ -110,7 +110,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     const body = await req.json()
-    const { proof_url, proof_note } = body
+    const { proof_url, proof_note, ai_extracted } = body
     if (!proof_url?.trim()) return NextResponse.json({ error: 'Kiungo cha ushahidi kinahitajika' }, { status: 400 })
 
     const now = new Date().toISOString()
@@ -121,6 +121,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         proof_note:        proof_note?.trim() || null,
         proof_uploaded_at: now,
         status:            'proof_uploaded',
+        ai_extracted:      ai_extracted ?? null,
         updated_at:        now,
       })
       .eq('id', paymentId)

@@ -57,17 +57,19 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const orgName = org?.name ?? 'NyumbaFasta'
     const appUrl  = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
-    const regLink = `${appUrl}/register?role=tenant`
+    // Include org_id so the register page can store it in user metadata —
+    // portal/register will use it to notify the org owner after tenant verifies email.
+    const regLink = `${appUrl}/register?role=tenant&org=${orgId}`
 
     // Send WhatsApp invite
     try {
       const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
       const msg =
-        `🏠 *Mwaliko wa NyumbaFasta*\n\n` +
+        `🏠 *Mwaliko wa NyumbaFasta kutoka ${orgName}*\n\n` +
         `Habari!\n\n` +
         `Umealikwa kujiunga na *${orgName}* kwenye mfumo wa NyumbaFasta ili uweze kuona malipo yako ya kodi, kuwasiliana na mmiliki, na kusimamia mkataba wako kwa urahisi.\n\n` +
         `*Jisajili hapa (dakika 2):*\n${regLink}\n\n` +
-        `Baada ya kujisajili, mwambie mmiliki wako nambari yako ya simu ili akusajilishe kwenye mfumo.\n\n` +
+        `Baada ya kuthibitisha barua pepe yako, mmiliki wako atapata taarifa ya moja kwa moja — huhitaji kumtaarifu wewe.\n\n` +
         `_NyumbaFasta — Mfumo wa Kisasa wa Upangaji Tanzania_`
 
       await sendTextMessage(formatPhoneNumber(phone.trim()), msg)

@@ -167,6 +167,70 @@ export function welcomeEmail(name: string, role: string) {
   }
 }
 
+// ── Tenant welcome email (sent after email verified) ──────────────────────
+
+export function tenantWelcomeEmail(tenantName: string, orgName?: string) {
+  const orgLine = orgName
+    ? `<span style="${styles.text}">Umealikwa na <strong>${orgName}</strong>. Mmiliki wako amepata taarifa ya usajili wako — hivi karibuni atakusajilishe kwenye mfumo wa mkataba wako.</span>`
+    : `<span style="${styles.text}">Mwambie mmiliki wako barua pepe yako ili akusajilishe kwenye mfumo wa mkataba wako.</span>`
+  return {
+    subject: '🏠 Karibu NyumbaFasta — Akaunti ya Mpangaji Ipo Tayari!',
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari ${tenantName}! 🎉</span>
+      <span style="${styles.text}">Akaunti yako ya mpangaji imethibitishwa vizuri. Karibu kwenye NyumbaFasta Tanzania!</span>
+      ${orgLine}
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">✅ Hatua zinazofuata:</p>
+        <p style="${styles.infoText}">1. Mmiliki/Shirika lako litakusajilishe kwenye mfumo</p>
+        <p style="${styles.infoText}">2. Utapata taarifa unapounganishwa na mkataba wako</p>
+        <p style="${styles.infoText}">3. Utaweza kuona malipo, mazungumzo, na matengenezo</p>
+      </div>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${APP_URL}/tenant" style="${styles.btn}">🏠 Nenda Dashibodi Yangu →</a>
+        </td></tr>
+      </table>
+    `, 'Akaunti yako ya mpangaji ipo tayari — NyumbaFasta'),
+  }
+}
+
+// ── Tenant registered — notify org owner ──────────────────────────────────
+
+export function tenantRegisteredEmail(
+  tenantName: string,
+  tenantPhone: string | null,
+  tenantEmail: string,
+  orgName: string,
+) {
+  const phoneRow = tenantPhone
+    ? `<p style="${styles.infoText}">📱 Simu: <strong>${tenantPhone}</strong></p>`
+    : ''
+  return {
+    subject: `🔔 Mpangaji Mpya Amesajili — ${tenantName}`,
+    html: emailBase(`
+      <span style="${styles.greeting}">Habari! 👋</span>
+      <span style="${styles.text}">Mpangaji uliyemwalika kwenye <strong>${orgName}</strong> amesajili akaunti yake na kuthibitisha barua pepe yake kwenye NyumbaFasta.</span>
+
+      <div style="${styles.infoBox}">
+        <p style="${styles.infoText}">👤 Jina: <strong>${tenantName}</strong></p>
+        ${phoneRow}
+        <p style="${styles.infoText}">📧 Barua pepe: <strong>${tenantEmail}</strong></p>
+      </div>
+
+      <span style="${styles.text}">Ingia kwenye mfumo na uende sehemu ya <strong>Wapangaji</strong> ili uweze kuunda mkataba na kumunganisha na mali yako.</span>
+
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td align="center">
+          <a href="${APP_URL}/property/wapangaji" style="${styles.btn}">👥 Simamia Wapangaji →</a>
+        </td></tr>
+      </table>
+
+      <hr style="${styles.divider}">
+      <span style="${styles.textSmall}">Email hii ilitumwa kwa sababu mpangaji wako alisajili kupitia mwaliko wa <strong>${orgName}</strong> kwenye NyumbaFasta.</span>
+    `, `${tenantName} amesajili — unganisha na mali yako`),
+  }
+}
+
 // ── Password reset email ───────────────────────────────────────────────────
 
 export function passwordResetEmail(name: string, resetUrl: string) {

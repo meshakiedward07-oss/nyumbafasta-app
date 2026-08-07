@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { sendMail } from '@/lib/email/resend'
+import { tenantWelcomeEmail, tenantRegisteredEmail } from '@/lib/email/templates'
 
 export async function POST() {
   try {
@@ -9,17 +11,17 @@ export async function POST() {
       return NextResponse.json({ error: 'Huna ruhusa' }, { status: 401 })
     }
 
-    const meta        = user.user_metadata ?? {}
-    const portalType  = (meta.portal_type  as string | undefined) ?? null
-    const fullName    = (meta.full_name    as string | undefined) ?? null
-    const phone       = (meta.phone        as string | undefined) ?? null
-    const orgName     = (meta.org_name     as string | undefined) ?? null
-    const city        = (meta.city         as string | undefined) ?? null
+    const meta          = user.user_metadata ?? {}
+    const portalType    = (meta.portal_type    as string | undefined) ?? null
+    const fullName      = (meta.full_name      as string | undefined) ?? null
+    const phone         = (meta.phone          as string | undefined) ?? null
+    const orgName       = (meta.org_name       as string | undefined) ?? null
+    const city          = (meta.city           as string | undefined) ?? null
+    const invitedByOrg  = (meta.invited_by_org as string | undefined) ?? null
 
     const admin = createAdminClient()
 
     // Upsert users row — trigger creates it but may miss phone/portal_type columns.
-    // Use service-role client to bypass RLS.
     await admin.from('users').upsert({
       id:          user.id,
       email:       user.email,
@@ -32,7 +34,6 @@ export async function POST() {
 
     // For org_owner: create organization + membership
     if (portalType === 'org_owner' && orgName) {
-      // Check if user already owns an org (idempotency)
       const { data: existing } = await admin
         .from('organization_members')
         .select('organization_id')
@@ -64,6 +65,55 @@ export async function POST() {
           user_id:         user.id,
           role:            'owner',
         })
+      }
+    }
+
+    // For tenant invited by an org: send notification emails
+    if (portalType === 'tenant' && invitedByOrg) {
+      try {
+        // Look up org name and owner email
+        const { data: orgRow } = await admin
+          .from('organizations')
+          .select('name')
+          .eq('id', invitedByOrg)
+          .maybeSingle()
+
+        const { data: ownerRow } = await admin
+          .from('organization_members')
+          .select('users(email, full_name)')
+          .eq('organization_id', invitedByOrg)
+          .eq('role', 'owner')
+          .maybeSingle()
+
+        const resolvedOrgName = orgRow?.name ?? null
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ownerData = ownerRow?.users as any
+        const ownerEmail: string | null = ownerData?.email ?? null
+        const ownerName: string | null  = ownerData?.full_name ?? null
+
+        // Welcome email to tenant
+        if (user.email) {
+          const { subject, html } = tenantWelcomeEmail(fullName ?? 'Mpangaji', resolvedOrgName ?? undefined)
+          sendMail({ to: user.email, subject, html }).catch((e) =>
+            console.error('[portal/register] Tenant welcome email failed:', e)
+          )
+        }
+
+        // Notification email to org owner
+        if (ownerEmail) {
+          const { subject, html } = tenantRegisteredEmail(
+            fullName ?? 'Mpangaji',
+            phone ?? null,
+            user.email ?? '',
+            resolvedOrgName ?? ownerName ?? 'Shirika lako',
+          )
+          sendMail({ to: ownerEmail, subject, html }).catch((e) =>
+            console.error('[portal/register] Org owner notification email failed:', e)
+          )
+        }
+      } catch (emailErr) {
+        // Non-fatal — registration still succeeds
+        console.error('[portal/register] Email notification error:', emailErr)
       }
     }
 
