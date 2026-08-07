@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
       if ((count ?? 1) === 0) {
         await admin.from('dalali_profiles')
           .update({ is_premium_verified: false })
-          .eq('id', subscription.dalali_id)
+          .eq('user_id', subscription.dalali_id)
       }
       return NextResponse.json({ received: true })
     }
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
     if (subscription.plan === 'premium' || subscription.plan === 'enterprise') {
       await admin.from('dalali_profiles')
         .update({ is_premium_verified: true })
-        .eq('id', subscription.dalali_id)
+        .eq('user_id', subscription.dalali_id)
     }
 
     // Income accounting (non-blocking)

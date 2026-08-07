@@ -29,8 +29,8 @@ export async function GET(req: NextRequest) {
   const minPrice = searchParams.get('min_price') ?? ''
   const maxPrice = searchParams.get('max_price') ?? ''
   const search   = searchParams.get('search')    ?? ''
-  const page     = Math.max(0, parseInt(searchParams.get('page') ?? '0'))
-  const limit    = Math.min(Math.max(1, parseInt(searchParams.get('limit') ?? '10')), 50)
+  const page     = Math.max(0, parseInt(searchParams.get('page') ?? '0') || 0)
+  const limit    = Math.min(Math.max(1, parseInt(searchParams.get('limit') ?? '10') || 10), 50)
   const from     = page * limit
 
   // Rate limit: 120 requests per minute per IP
@@ -61,8 +61,11 @@ export async function GET(req: NextRequest) {
     if (minPrice)  query = query.gte('price_monthly', parseInt(minPrice))
     if (maxPrice)  query = query.lte('price_monthly', parseInt(maxPrice))
     if (search) {
-      const term = search.replace(/[%_]/g, '\\$&')
-      query = query.or(`title.ilike.%${term}%,district.ilike.%${term}%,ward.ilike.%${term}%,mtaa.ilike.%${term}%`)
+      // Escape PostgREST filter delimiters and LIKE wildcards to prevent filter injection
+      const term = search.replace(/[%_.,()'"\s]/g, c => c === ' ' ? ' ' : c === '%' || c === '_' ? `\\${c}` : ' ').trim()
+      if (term) {
+        query = query.or(`title.ilike.%${term}%,district.ilike.%${term}%,ward.ilike.%${term}%,mtaa.ilike.%${term}%`)
+      }
     }
 
     const { data: listings, count, error } = await query
@@ -145,11 +148,12 @@ export async function POST(req: NextRequest) {
     const extraSlots = subscription?.extra_listings ?? 0
     const limit      = baseLimit + extraSlots
 
+    // Count active listings — do NOT use .neq('status', 'deleted') as 'deleted' is not in the DB enum
     const { count } = await admin
       .from('listings')
       .select('id', { count: 'exact', head: true })
       .eq('dalali_id', user.id)
-      .neq('status', 'deleted')
+      .in('status', ['pending', 'active', 'taken', 'expired'])
 
     if ((count ?? 0) >= limit) {
       const planName = subscription?.plan ?? 'free'

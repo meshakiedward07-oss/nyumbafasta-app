@@ -35,7 +35,7 @@ export default function FundiJobDetailPage({ params }: { params: Promise<{ id: s
       const res  = await fetch(`/api/v1/fundi/jobs/${id}/updates`)
       if (!res.ok) { setError('Kazi haipatikani.'); return }
       const data = await res.json()
-      setJob(data.job)
+      setJob(data.job ?? null)
       setUpdates(data.updates ?? [])
     } catch { setError('Hitilafu ya mtandao.') }
     finally { setLoading(false) }

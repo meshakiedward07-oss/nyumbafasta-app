@@ -35,11 +35,12 @@ export async function GET() {
         .eq('status', 'active')
         .order('expires_at', { ascending: false })
         .maybeSingle(),
+      // Do NOT use .neq('status', 'deleted') — 'deleted' is not in the DB enum
       admin
         .from('listings')
         .select('id', { count: 'exact', head: true })
         .eq('dalali_id', user.id)
-        .neq('status', 'deleted'),
+        .in('status', ['pending', 'active', 'taken', 'expired']),
       getPricing(),
     ])
 

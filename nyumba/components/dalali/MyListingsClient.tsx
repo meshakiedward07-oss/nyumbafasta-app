@@ -270,11 +270,16 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
     setLoading(id)
     setDialog(null)
     try {
-      await fetch(`/api/v1/listings/${id}`, {
+      const res = await fetch(`/api/v1/listings/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'set_status', status }),
       })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        alert(d.error ?? 'Imeshindwa kubadilisha hali ya listing')
+        return
+      }
       setListings(prev => prev.map(l => l.id === id ? { ...l, status } : l))
     } finally {
       setLoading(null)
@@ -466,7 +471,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
           )
         })()}
 
-        {!apiLoading && displayed.length === 0 ? (
+        {!apiLoading && (displayed.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
             {tab === 'expired' ? (
               <>
@@ -490,7 +495,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
           </div>
         ) : (
           displayed.map(listing => {
-            const cfg = STATUS[listing.status] ?? { label: listing.status, cls: 'bg-gray-100 text-gray-500' }
+            const cfg       = STATUS[listing.status] ?? { label: listing.status, cls: 'bg-gray-100 text-gray-500' }
             const isLoading = loading === listing.id
             const isExpired = listing.status === 'expired'
 
@@ -699,7 +704,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
               </div>
             )
           })
-        )}
+        ))}
       </div>
 
       {/* ── Delete error toast ── */}

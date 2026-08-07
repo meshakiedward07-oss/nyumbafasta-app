@@ -399,7 +399,7 @@ export default function AddListingWizard() {
           Angalia Dashboard →
         </button>
         <button
-          onClick={() => { setSubmitted(null); setStep(0); setForm({ type: 'chumba', price_monthly: '', bedrooms: '', furnished: 'empty', description: '', region: '', district: '', ward: '', mtaa: '', amenities: [], images: [], video_url: null, latitude: null, longitude: null, address_full: '', place_id: '', shop_size_sqm: '', floor_level: '', commercial_use: '', listing_unit_type: 'single', total_capacity: '', auto_deactivate_on_full: true }) }}
+          onClick={() => { setSubmitted(null); setStep(0); setCommission({ enabled: false, type: null, value: '', notes: '' }); setForm({ type: 'chumba', price_monthly: '', bedrooms: '', furnished: 'empty', description: '', region: '', district: '', ward: '', mtaa: '', amenities: [], images: [], video_url: null, latitude: null, longitude: null, address_full: '', place_id: '', shop_size_sqm: '', floor_level: '', commercial_use: '', listing_unit_type: 'single', total_capacity: '', auto_deactivate_on_full: true }) }}
           className="text-sm text-gray-400 underline"
         >
           Ongeza listing nyingine

@@ -95,6 +95,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (unit.org_id !== orgId && !isAdminStaff) return NextResponse.json({ error: 'Kitengo hiki si cha shirika lako' }, { status: 403 })
     if (unit.status === 'occupied') return NextResponse.json({ error: 'Kitengo hiki tayari kina mpangaji' }, { status: 409 })
 
+    // Atomically claim the unit — if another request already took it, this returns 0 rows
+    const { data: claimed } = await admin
+      .from('property_units')
+      .update({ status: 'occupied' })
+      .eq('id', unit_id)
+      .neq('status', 'occupied')
+      .select('id')
+      .maybeSingle()
+
+    if (!claimed) {
+      return NextResponse.json({ error: 'Kitengo hiki tayari kimechukuliwa' }, { status: 409 })
+    }
+
     // Get org landlord (org owner)
     const { data: ownerMember } = await admin
       .from('organization_members')
@@ -128,12 +141,6 @@ export async function POST(req: NextRequest, { params }: Params) {
       .single()
 
     if (leaseErr) throw leaseErr
-
-    // Mark unit as occupied
-    await admin
-      .from('property_units')
-      .update({ status: 'occupied', updated_at: new Date().toISOString() })
-      .eq('id', unit_id)
 
     // Auto-generate first payment record
     const firstDue = new Date(start_date)

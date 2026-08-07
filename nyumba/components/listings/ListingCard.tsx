@@ -426,9 +426,9 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatPrice(amount: number): string {
-  if (amount >= 1_000_000) return `Tsh ${(amount / 1_000_000).toFixed(1)}M/mwezi`
-  if (amount >= 1_000) return `Tsh ${(amount / 1_000).toFixed(0)}k/mwezi`
-  return `Tsh ${amount}/mwezi`
+  if (amount >= 1_000_000) return `Tsh ${(amount / 1_000_000).toFixed(1)}M`
+  if (amount >= 1_000) return `Tsh ${(amount / 1_000).toFixed(0)}k`
+  return `Tsh ${amount}`
 }
 
 function listedAgo(iso: string): string {

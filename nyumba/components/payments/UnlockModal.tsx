@@ -163,8 +163,8 @@ export default function UnlockModal({
     stopAll()
     const number = await getContactNumber(listingId)
     setContactPhone(number || null)
+    setStep('success')  // show success screen before notifying parent
     onUnlocked(number)
-    setStep('success')
   }, [stopAll, listingId, onUnlocked])
 
   const handleFailed = useCallback((msg: string) => {

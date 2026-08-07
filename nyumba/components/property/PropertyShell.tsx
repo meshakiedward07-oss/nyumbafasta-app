@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -74,7 +74,13 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
     }
     loadUnread()
     const t = setInterval(loadUnread, 30_000)
-    return () => { cancelled = true; clearInterval(t) }
+    // Refresh immediately when a conversation thread marks itself as read
+    window.addEventListener('nyumba:marked-read', loadUnread)
+    return () => {
+      cancelled = true
+      clearInterval(t)
+      window.removeEventListener('nyumba:marked-read', loadUnread)
+    }
   }, [])
 
   function isActive(href: string, exact: boolean) {
@@ -94,8 +100,8 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
     return true
   })
 
-  function SidebarContent({ onClose }: { onClose: () => void }) {
-    return (
+  // Memoised to avoid remounting on every unread-count poll tick
+  const SidebarContent = useCallback(({ onClose }: { onClose: () => void }) => (
       <div className="flex flex-col h-full">
         <div className="px-5 py-4 border-b border-gray-100">
           <Link href="/property/dashboard" onClick={onClose}>
@@ -165,8 +171,8 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
           </button>
         </div>
       </div>
-    )
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [org, orgRole, unreadCount, pathname])
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">

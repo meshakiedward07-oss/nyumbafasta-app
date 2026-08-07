@@ -81,7 +81,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     // Push notifications — fire-and-forget for all other participants
     const senderName = (msg.sender as { full_name?: string } | null)?.full_name ?? 'Mtumiaji'
-    const pushBody = message.trim().slice(0, 120)
+    const pushBody = (message?.trim() || (attachments?.length ? '📎 Faili' : '')).slice(0, 120)
 
     admin
       .from('conversation_participants')
@@ -100,7 +100,15 @@ export async function POST(req: NextRequest, { params }: Params) {
         }
       })
 
-    return NextResponse.json({ message: msg }, { status: 201 })
+    // Include attachments in response so the client can render them immediately
+    const responseAttachments = attachments?.map(a => ({
+      file_url:  a.file_url,
+      file_name: a.file_name ?? null,
+      file_type: a.file_type ?? null,
+      file_size: a.file_size ?? null,
+    })) ?? []
+
+    return NextResponse.json({ message: { ...msg, attachments: responseAttachments } }, { status: 201 })
   } catch (err) {
     console.error('[POST /conversations/:id/messages]', err)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })

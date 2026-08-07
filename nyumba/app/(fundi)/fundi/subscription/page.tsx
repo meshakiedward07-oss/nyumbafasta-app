@@ -51,12 +51,9 @@ export default function FundiSubscriptionPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [plansRes, subRes] = await Promise.all([
-          fetch('/api/v1/admin/fundi-subscription-plans'),
-          fetch('/api/v1/fundi/subscription'),
-        ])
-        const [plansData, subData] = await Promise.all([plansRes.json(), subRes.json()])
-        const activePlans = (plansData.plans ?? []) as Plan[]
+        const subRes  = await fetch('/api/v1/fundi/subscription')
+        const subData = await subRes.json()
+        const activePlans = (subData.plans ?? []) as Plan[]
         setPlans(activePlans)
         setActiveSub(subData.subscription ?? null)
         // Pre-select default or first plan if no active sub

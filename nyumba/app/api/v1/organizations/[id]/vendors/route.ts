@@ -125,7 +125,7 @@ export async function POST(req: NextRequest, { params }: Params) {
               title:    'Fundi Mpya Anasubiri Uthibitisho',
               body:     `${name.trim()} kutoka ${org?.name ?? 'shirika'} anasubiri uthibitisho wako.`,
               data:     { vendor_id: vendor.id, org_id: orgId },
-              read:     false,
+              is_read:  false,
             }))
           )
         }

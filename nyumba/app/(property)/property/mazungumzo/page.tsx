@@ -33,12 +33,15 @@ export default function MazungumzoPage() {
   const [loading,       setLoading]       = useState(true)
   const [filter,        setFilter]        = useState<ConvType | 'all'>('all')
   const [search,        setSearch]        = useState('')
-  const [showNew,       setShowNew]       = useState(false)
-  const [newPhone,      setNewPhone]      = useState('')
-  const [newMsg,        setNewMsg]        = useState('')
-  const [newTitle,      setNewTitle]      = useState('')
-  const [creating,      setCreating]      = useState(false)
-  const [createError,   setCreateError]   = useState<string | null>(null)
+  const [showNew,          setShowNew]          = useState(false)
+  const [newPhone,         setNewPhone]         = useState('')
+  const [newMsg,           setNewMsg]           = useState('')
+  const [newTitle,         setNewTitle]         = useState('')
+  const [creating,         setCreating]         = useState(false)
+  const [createError,      setCreateError]      = useState<string | null>(null)
+  const [staffContacts,    setStaffContacts]    = useState<Array<{id: string; full_name: string | null; avatar_url: string | null}>>([])
+  const [selectedContact,  setSelectedContact]  = useState<string | null>(null)
+  const [loadingContacts,  setLoadingContacts]  = useState(false)
   // useRef avoids stale closure in the poll interval (orgId state is null at setup time)
   const orgIdRef = useRef<string | null>(null)
 
@@ -79,17 +82,36 @@ export default function MazungumzoPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    if (!showNew) { setSelectedContact(null); setNewPhone(''); return }
+    setLoadingContacts(true)
+    fetch('/api/v1/conversations/org-contacts')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setStaffContacts(d.contacts ?? []) })
+      .catch(() => {})
+      .finally(() => setLoadingContacts(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showNew])
+
   async function handleNewConversation() {
-    if (!newPhone.trim() || !newMsg.trim() || !orgId) {
+    if (!newMsg.trim() || !orgId) {
       setCreateError('Jaza sehemu zote'); return
+    }
+    if (!selectedContact && !newPhone.trim()) {
+      setCreateError('Chagua mtumishi au weka nambari ya simu'); return
     }
     setCreating(true); setCreateError(null)
     try {
-      // Look up user by phone
-      const lookupRes  = await fetch(`/api/v1/users/search?phone=${encodeURIComponent(newPhone.trim())}`)
-      const lookupData = await lookupRes.json()
-      if (!lookupData.user) {
-        setCreateError('Mtumiaji hajapatikana kwa nambari hiyo ya simu.'); setCreating(false); return
+      let participantId: string
+      if (selectedContact) {
+        participantId = selectedContact
+      } else {
+        const lookupRes  = await fetch(`/api/v1/users/search?phone=${encodeURIComponent(newPhone.trim())}`)
+        const lookupData = await lookupRes.json()
+        if (!lookupData.user) {
+          setCreateError('Mtumiaji hajapatikana kwa nambari hiyo ya simu.'); setCreating(false); return
+        }
+        participantId = lookupData.user.id
       }
       const res  = await fetch('/api/v1/conversations', {
         method:  'POST',
@@ -98,13 +120,13 @@ export default function MazungumzoPage() {
           title:           newTitle.trim() || null,
           conv_type:       'general',
           org_id:          orgId,
-          participant_ids: [lookupData.user.id],
+          participant_ids: [participantId],
           first_message:   newMsg.trim(),
         }),
       })
       const data = await res.json()
       if (!res.ok) { setCreateError(data.error ?? 'Kuna tatizo'); return }
-      setShowNew(false); setNewPhone(''); setNewMsg(''); setNewTitle('')
+      setShowNew(false); setNewPhone(''); setNewMsg(''); setNewTitle(''); setSelectedContact(null)
       router.push(`/property/mazungumzo/${data.conversation.id}`)
     } catch {
       setCreateError('Haikuweza kuunganika. Jaribu tena.')
@@ -174,25 +196,68 @@ export default function MazungumzoPage() {
         <div className="mx-4 mt-3 bg-white rounded-2xl border border-gray-100 p-4">
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-semibold text-gray-900">Ujumbe Mpya</h3>
-            <button onClick={() => { setShowNew(false); setCreateError(null) }} className="text-gray-400 hover:text-gray-600">
+            <button onClick={() => { setShowNew(false); setCreateError(null); setSelectedContact(null) }} className="text-gray-400 hover:text-gray-600">
               <i className="ti ti-x" aria-hidden="true" />
             </button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)}
               placeholder="Kichwa cha mazungumzo (hiari)"
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-            <div className="flex gap-2">
+
+            {/* Staff contact picker */}
+            {loadingContacts ? (
+              <div className="h-9 bg-gray-100 animate-pulse rounded-xl" />
+            ) : staffContacts.length > 0 && (
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  Watumishi wa NyumbaFasta
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {staffContacts.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedContact(prev => prev === c.id ? null : c.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition ${
+                        selectedContact === c.id
+                          ? 'bg-primary-50 border-primary-400 text-primary-700 font-semibold'
+                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-[10px] flex-shrink-0">
+                        {c.full_name?.charAt(0)?.toUpperCase() ?? '?'}
+                      </span>
+                      {c.full_name ?? 'Mtumishi'}
+                      {selectedContact === c.id && <i className="ti ti-check text-primary-600" aria-hidden="true" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Divider */}
+            {!selectedContact && (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-gray-100" />
+                <span className="text-[11px] text-gray-400">au nambari ya simu</span>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+            )}
+
+            {/* Phone field — hidden when a staff contact is selected */}
+            {!selectedContact && (
               <input type="tel" value={newPhone} onChange={e => setNewPhone(e.target.value)}
                 placeholder="Nambari ya simu (+255...)"
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-            </div>
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
+            )}
+
             <textarea value={newMsg} onChange={e => setNewMsg(e.target.value)} rows={2}
               placeholder="Andika ujumbe wako wa kwanza..."
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
             {createError && <p className="text-xs text-red-600">{createError}</p>}
             <div className="flex gap-2">
-              <button onClick={() => { setShowNew(false); setCreateError(null) }}
+              <button onClick={() => { setShowNew(false); setCreateError(null); setSelectedContact(null) }}
                 className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">
                 Ghairi
               </button>

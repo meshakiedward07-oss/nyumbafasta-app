@@ -65,6 +65,10 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Nafasi si sahihi' }, { status: 400 })
     }
 
+    if (role === 'owner' && !isAdminStaff) {
+      return NextResponse.json({ error: 'Nafasi ya mwenye shirika inaweza tu kuwekwa na admin' }, { status: 403 })
+    }
+
     // Accept phone or email lookup in addition to user_id
     if (!user_id && (phone || email)) {
       let lookupQuery = admin.from('users').select('id')
@@ -119,6 +123,25 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     const isAdmin  = ['admin', 'staff'].includes(u?.role ?? '')
 
     if (!isSelf && !isOwner && !isAdmin) return NextResponse.json({ error: 'Huna ruhusa ya kuondoa mwanachama' }, { status: 403 })
+
+    // Prevent sole owner from removing themselves or being removed
+    const { data: targetMember } = await admin
+      .from('organization_members')
+      .select('role')
+      .eq('organization_id', id)
+      .eq('user_id', targetUserId)
+      .maybeSingle()
+
+    if (targetMember?.role === 'owner') {
+      const { count: ownerCount } = await admin
+        .from('organization_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', id)
+        .eq('role', 'owner')
+      if ((ownerCount ?? 0) <= 1) {
+        return NextResponse.json({ error: 'Haiwezekani kuondoa mwenye shirika wa pekee. Weka mwenye mwingine kwanza.' }, { status: 409 })
+      }
+    }
 
     const { error } = await admin.from('organization_members').delete().eq('organization_id', id).eq('user_id', targetUserId)
     if (error) throw error

@@ -31,29 +31,40 @@ export default function AttachmentCompose({ onAttach, onRemove, attachment }: Pr
 
   async function handleFile(file: File) {
     setError(null)
-    setUploading(true)
 
-    // Preview for images
-    let preview: string | undefined
-    if (file.type.startsWith('image/')) {
-      preview = await new Promise<string>((res) => {
-        const reader = new FileReader()
-        reader.onload = () => res(reader.result as string)
-        reader.readAsDataURL(file)
-      })
-    }
-
-    const fd = new FormData()
-    fd.append('file', file)
-    const res = await fetch('/api/v1/upload/message-attachment', { method: 'POST', body: fd })
-    const json = await res.json()
-    setUploading(false)
-
-    if (!res.ok || !json.url) {
-      setError(json.error ?? 'Haikuweza kupakia faili')
+    // Client-side size guard (100 MB max)
+    if (file.size > 100 * 1024 * 1024) {
+      setError('Faili kubwa sana (max 100 MB)')
       return
     }
-    onAttach({ ...json, preview })
+
+    setUploading(true)
+    try {
+      // Preview for images
+      let preview: string | undefined
+      if (file.type.startsWith('image/')) {
+        preview = await new Promise<string>((res) => {
+          const reader = new FileReader()
+          reader.onload = () => res(reader.result as string)
+          reader.readAsDataURL(file)
+        })
+      }
+
+      const fd = new FormData()
+      fd.append('file', file)
+      const res  = await fetch('/api/v1/upload/message-attachment', { method: 'POST', body: fd })
+      const json = await res.json()
+
+      if (!res.ok || !json.url) {
+        setError(json.error ?? 'Haikuweza kupakia faili')
+        return
+      }
+      onAttach({ ...json, preview })
+    } catch {
+      setError('Hitilafu ya mtandao — jaribu tena')
+    } finally {
+      setUploading(false)
+    }
   }
 
   if (attachment) {

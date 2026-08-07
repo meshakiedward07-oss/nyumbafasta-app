@@ -49,8 +49,9 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
   const [isNote,            setIsNote]            = useState(false)
   const [error,             setError]             = useState<string | null>(null)
   const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null)
-  const bottomRef  = useRef<HTMLDivElement>(null)
-  const inputRef   = useRef<HTMLTextAreaElement>(null)
+  const bottomRef    = useRef<HTMLDivElement>(null)
+  const inputRef     = useRef<HTMLTextAreaElement>(null)
+  const scrollBoxRef = useRef<HTMLDivElement>(null)
 
   async function fetchThread(markRead = true) {
     const [threadRes, meRes] = await Promise.all([
@@ -64,6 +65,8 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
 
     if (threadData.conversation) setConv(threadData.conversation)
     if (threadData.messages)     setMessages(threadData.messages)
+    // Clear any previous error on successful fetch
+    setError(null)
 
     // Check if user is org member
     if (threadData.conversation?.org_id && me?.id) {
@@ -73,9 +76,11 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
       setIsOrgMem(orgs.some((o: { organization: { id: string } }) => o.organization.id === threadData.conversation.org_id))
     }
 
-    // Mark as read
+    // Mark as read and notify shell to refresh unread badge immediately
     if (markRead) {
-      fetch(`/api/v1/conversations/${id}/read`, { method: 'POST' }).catch(() => {})
+      fetch(`/api/v1/conversations/${id}/read`, { method: 'POST' })
+        .then(() => window.dispatchEvent(new Event('nyumba:marked-read')))
+        .catch(() => {})
     }
   }
 
@@ -92,10 +97,16 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  // Scroll to bottom when messages load or new message arrives
+  // Scroll to bottom on initial load and when the user sends their own message.
+  // Do NOT auto-scroll on background poll updates to avoid interrupting reading.
+  function scrollToBottom(smooth = true) {
+    bottomRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant' })
+  }
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages.length])
+    if (!loading) scrollToBottom(false)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
 
   async function handleSend() {
     if ((!input.trim() && !pendingAttachment) || sending) return
@@ -118,6 +129,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); return }
       setMessages(prev => [...prev, data.message as RawMsg])
+      scrollToBottom()
     } catch {
       setError('Haikuweza kutuma. Jaribu tena.')
     } finally {
@@ -179,7 +191,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+      <div ref={scrollBoxRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4].map(i => (

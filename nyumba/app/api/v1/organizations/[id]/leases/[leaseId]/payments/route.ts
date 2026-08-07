@@ -58,10 +58,14 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!canWrite) return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
 
     const body = await req.json()
-    const { amount_due, amount_paid, due_date, paid_date, payment_method, reference, notes, status = 'paid' } = body
+    const { amount_due, amount_paid, due_date, paid_date, payment_method, reference, notes } = body
 
     if (!amount_due || amount_due <= 0) return NextResponse.json({ error: 'Kiasi inahitajika' }, { status: 400 })
     if (!due_date) return NextResponse.json({ error: 'Tarehe ya malipo inahitajika' }, { status: 400 })
+
+    // Derive status from amounts unless caller explicitly provides it
+    const actualPaid = amount_paid ?? amount_due
+    const status = body.status ?? (actualPaid >= amount_due ? 'paid' : 'partial')
 
     // Verify lease belongs to org
     const { data: lease } = await admin.from('leases').select('id, org_id').eq('id', leaseId).single()
@@ -73,7 +77,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       .insert({
         lease_id: leaseId,
         amount_due,
-        amount_paid: amount_paid ?? amount_due,
+        amount_paid: actualPaid,
         due_date,
         paid_date: paid_date ?? new Date().toISOString().split('T')[0],
         status,

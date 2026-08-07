@@ -26,6 +26,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
 
+    // Only dalali can subscribe — check role before any DB writes
+    const { data: callerProfile } = await createAdminClient()
+      .from('users').select('role').eq('id', user.id).single()
+    if (callerProfile?.role !== 'dalali') {
+      return NextResponse.json({ error: 'Dalali tu wanaweza kununua subscription' }, { status: 403 })
+    }
+
     const rl = await rateLimit(`sub-initiate:${user.id}`, 5, 10 * 60 * 1000)
     if (!rl.allowed) {
       return NextResponse.json({ error: 'Maombi mengi sana — subiri dakika 10' }, { status: 429 })

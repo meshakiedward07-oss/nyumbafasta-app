@@ -37,7 +37,8 @@ export async function PATCH(
         return NextResponse.json({ error: 'Status si sahihi' }, { status: 400 })
       }
 
-      await admin.from('listings').update({ status }).eq('id', params.id)
+      const { error: statusErr } = await admin.from('listings').update({ status }).eq('id', params.id)
+      if (statusErr) return NextResponse.json({ error: statusErr.message }, { status: 500 })
 
       // Sync Marketplace availability when listing is taken
       if (status === 'taken') {
@@ -97,9 +98,9 @@ export async function PATCH(
     }
     const data = parsed.data
 
-    // Re-run quality gate so edits that now meet standards go live immediately
+    // Re-run quality gate, but never override owner-set statuses ('taken')
     const quality = checkListingQuality(data)
-    const newStatus = quality.passed ? 'active' : 'pending'
+    const newStatus = listing.status === 'taken' ? 'taken' : (quality.passed ? 'active' : 'pending')
 
     const updatePayload: Record<string, unknown> = {
       type: data.type,
@@ -158,10 +159,10 @@ export async function DELETE(
     const { listing, admin, error: ownerErr } = await getOwned(params.id, user.id)
     if (ownerErr || !listing) return NextResponse.json({ error: ownerErr }, { status: 404 })
 
-    // Soft delete — hides listing from all views but retains DB record
+    // Soft delete — 'deleted' is not in the DB enum; use 'expired' to hide from all public views
     const { error: deleteErr } = await admin
       .from('listings')
-      .update({ status: 'deleted' })
+      .update({ status: 'expired' })
       .eq('id', params.id)
 
     if (deleteErr) {

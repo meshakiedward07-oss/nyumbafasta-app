@@ -101,6 +101,12 @@ export default function DalaliProfileClient({
       setError('Jina na WhatsApp vinahitajika')
       return
     }
+    // Validate: must be 9 digits after stripping 0/255 prefix (Tanzania numbers)
+    const digits = whatsapp.replace(/\D/g, '').replace(/^(255|0)/, '')
+    if (digits.length !== 9 || !/^\d{9}$/.test(digits)) {
+      setError('Namba ya WhatsApp si sahihi. Mfano: 0744 123 456')
+      return
+    }
     setSaving(true)
     setError('')
     try {
