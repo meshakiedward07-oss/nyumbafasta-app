@@ -780,7 +780,7 @@ ON CONFLICT DO NOTHING;`}</pre>
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* ── Toast ── */}
       {toast && (
         <div className="fixed top-4 left-4 right-4 z-50 bg-gray-900 text-white text-sm px-4 py-3 rounded-2xl shadow-xl text-center">
@@ -789,7 +789,7 @@ ON CONFLICT DO NOTHING;`}</pre>
       )}
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 flex-shrink-0 sticky top-0 z-20">
         <Link href="/admin" className="p-2 rounded-full hover:bg-gray-100">
           <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -800,97 +800,268 @@ ON CONFLICT DO NOTHING;`}</pre>
           <p className="text-xs text-gray-400">Mapato, Matumizi, Faida</p>
         </div>
         <button onClick={() => setShowAddExp(true)}
-          className="flex items-center gap-1 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-semibold">
-          <span>+</span><span>Gharama</span>
+          className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-semibold">
+          <i className="ti ti-plus" aria-hidden="true" /><span>Gharama</span>
         </button>
       </div>
 
-      {/* ── Month selector ── */}
-      <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2">
-        <span className="text-xs text-gray-400 flex-shrink-0 flex items-center gap-1"><i className="ti ti-calendar" aria-hidden="true" />Mwezi:</span>
-        <select
-          value={selectedMonth}
-          onChange={e => setSelectedMonth(e.target.value)}
-          className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-primary-400 font-medium text-gray-700 bg-white"
-        >
-          {monthOptions.map(opt => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}{opt.value === getCurrentMonth() ? ' (Sasa)' : ''}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* ── Body: Sidebar + Content ── */}
+      <div className="flex flex-1 min-h-0">
 
-      {/* ── Month indicator banner ── */}
-      {(() => {
-        const isCurrentMonth = selectedMonth === getCurrentMonth()
-        const currentLabel   = monthOptions.find(m => m.value === selectedMonth)?.label ?? selectedMonth
-        const today          = new Date().getDate()
-        const totalDays      = daysInMonth(selectedMonth)
-        return (
-          <div className={`px-4 py-2 flex items-center justify-between text-xs ${
-            isCurrentMonth ? 'bg-green-600 text-white' : 'bg-gray-700 text-white'
-          }`}>
-            <span className="font-semibold">{currentLabel}</span>
-            {isCurrentMonth
-              ? <span className="opacity-80">Siku ya {today} / {totalDays} — inaendelea</span>
-              : <span className="opacity-80">Imekamilika</span>
-            }
+        {/* ── Left Sidebar (desktop only) ── */}
+        <div className="hidden lg:flex flex-col w-64 xl:w-72 bg-white border-r border-gray-100 flex-shrink-0 overflow-y-auto">
+
+          {/* Month selector */}
+          <div className="p-4 border-b border-gray-100">
+            <div className="flex items-center gap-1.5 mb-2">
+              <i className="ti ti-calendar text-gray-400 text-sm" aria-hidden="true" />
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mwezi</span>
+            </div>
+            <select
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(e.target.value)}
+              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-primary-400 font-medium text-gray-700 bg-white"
+            >
+              {monthOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}{opt.value === getCurrentMonth() ? ' ★' : ''}
+                </option>
+              ))}
+            </select>
+            {(() => {
+              const isCurrentMonth = selectedMonth === getCurrentMonth()
+              const currentLabel   = monthOptions.find(m => m.value === selectedMonth)?.label ?? selectedMonth
+              const today          = new Date().getDate()
+              const totalDays      = daysInMonth(selectedMonth)
+              return (
+                <div className={`mt-2 px-3 py-1.5 rounded-lg flex items-center justify-between text-xs ${
+                  isCurrentMonth ? 'bg-green-600 text-white' : 'bg-gray-700 text-white'
+                }`}>
+                  <span className="font-semibold truncate">{currentLabel}</span>
+                  {isCurrentMonth
+                    ? <span className="opacity-80 ml-2 flex-shrink-0">Siku {today}/{totalDays}</span>
+                    : <span className="opacity-80 ml-2 flex-shrink-0">Imekamilika</span>
+                  }
+                </div>
+              )
+            })()}
           </div>
-        )
-      })()}
 
-      {/* ── Download + Sync bar ── */}
-      <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2">
-        <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-medium disabled:opacity-50">
-          {downloading === 'pdf'
-            ? <><span className="w-3 h-3 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />PDF</>
-            : <><i className="ti ti-download" aria-hidden="true" />PDF</>
-          } · {monthOptions.find(m => m.value === selectedMonth)?.label?.split(' ')[0] ?? selectedMonth}
-        </button>
-        <button onClick={() => handleDownload('excel')} disabled={!!downloading}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-xl text-xs font-medium disabled:opacity-50">
-          {downloading === 'excel'
-            ? <><span className="w-3 h-3 border-2 border-green-300 border-t-green-700 rounded-full animate-spin" />Excel</>
-            : <><i className="ti ti-download" aria-hidden="true" />Excel</>
-          } · {monthOptions.find(m => m.value === selectedMonth)?.label?.split(' ')[0] ?? selectedMonth}
-        </button>
-        <button onClick={handleSync}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium">
-          <i className="ti ti-refresh" aria-hidden="true" /> Sync Mapato
-        </button>
-        {syncMsg && <span className="text-xs text-gray-500 ml-1">{syncMsg}</span>}
-      </div>
+          {/* KPI Summary */}
+          <div className="p-4 border-b border-gray-100">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Muhtasari wa Mwezi</p>
+            {loading ? (
+              <div className="space-y-2.5 animate-pulse">
+                {[1,2,3].map(i => <div key={i} className="h-5 bg-gray-100 rounded" />)}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />Mapato
+                  </span>
+                  <span className="text-sm font-bold text-green-600">{fmtTsh(income?.total ?? 0)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />Matumizi
+                  </span>
+                  <span className="text-sm font-bold text-red-500">{fmtTsh(expenses?.total ?? 0)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 mt-1 border-t border-gray-100">
+                  <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-blue-400' : 'bg-orange-400'}`} />
+                    {profit >= 0 ? 'Faida' : 'Hasara'}
+                  </span>
+                  <span className={`text-sm font-bold ${profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                    {profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}
+                  </span>
+                </div>
+                {(summary?.profitMargin ?? 0) !== 0 && (
+                  <p className="text-[10px] text-gray-400 text-right">{summary?.profitMargin}% margin</p>
+                )}
+                {(income?.platformFees ?? 0) > 0 && (
+                  <div className="bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-2 mt-2">
+                    <p className="text-[10px] text-amber-700 flex items-center gap-1">
+                      <i className="ti ti-credit-card text-amber-500 flex-shrink-0" aria-hidden="true" />
+                      AzamPay 1%: <strong>{fmtTsh(income?.platformFees ?? 0)}</strong>
+                    </p>
+                    <p className="text-[10px] text-amber-600 mt-0.5">Halisi: {fmtTsh(income?.netIncome ?? 0)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
-      {/* ── Tab nav ── */}
-      <div className="bg-white border-b border-gray-100 flex overflow-x-auto scrollbar-none">
-        {([
-          { key: 'overview',    label: 'Muhtasari',   icon: 'chart-bar' },
-          { key: 'takwimu',     label: 'Takwimu',     icon: 'chart-dots' },
-          { key: 'mapato',      label: 'Mapato',      icon: 'trending-up' },
-          { key: 'matumizi',    label: 'Matumizi',    icon: 'trending-down' },
-          { key: 'miamala',     label: 'Miamala',     icon: 'clipboard-list' },
-          { key: 'usajiri',      label: 'Usajiri',      icon: 'id-badge' },
-          { key: 'mawasiliano', label: 'Mawasiliano', icon: 'lock-open' },
-          { key: 'matangazo',   label: 'Matangazo',   icon: 'rocket' },
-          { key: 'org_sub',     label: 'Org Sub',      icon: 'building' },
-          { key: 'fundi_sub',   label: 'Fundi Sub',    icon: 'tool' },
-          { key: 'ad_campaign', label: 'Ad Campaign',  icon: 'speakerphone' },
-          { key: 'extra_listing', label: 'Orodha Ziada', icon: 'list-plus' },
-          { key: 'bei',         label: 'Bei',           icon: 'tag' },
-        ] as { key: TabKey; label: string; icon: string }[]).map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
-              tab === t.key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400'
-            }`}
-          >
-            <i className={`ti ti-${t.icon}`} aria-hidden="true" /><span>{t.label}</span>
-          </button>
-        ))}
-      </div>
+          {/* Action buttons */}
+          <div className="p-4 border-b border-gray-100 space-y-2">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Vitendo</p>
+            <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
+              className="w-full flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-medium disabled:opacity-50 hover:bg-red-100 transition-colors">
+              {downloading === 'pdf'
+                ? <span className="w-3 h-3 border-2 border-red-300 border-t-red-600 rounded-full animate-spin flex-shrink-0" />
+                : <i className="ti ti-download flex-shrink-0" aria-hidden="true" />
+              }
+              <span>Pakua PDF</span>
+            </button>
+            <button onClick={() => handleDownload('excel')} disabled={!!downloading}
+              className="w-full flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-medium disabled:opacity-50 hover:bg-emerald-100 transition-colors">
+              {downloading === 'excel'
+                ? <span className="w-3 h-3 border-2 border-emerald-300 border-t-emerald-700 rounded-full animate-spin flex-shrink-0" />
+                : <i className="ti ti-table flex-shrink-0" aria-hidden="true" />
+              }
+              <span>Pakua Excel</span>
+            </button>
+            <button onClick={handleSync}
+              className="w-full flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium hover:bg-blue-100 transition-colors">
+              <i className="ti ti-refresh flex-shrink-0" aria-hidden="true" />
+              <span>Sync Mapato</span>
+            </button>
+            {syncMsg && <p className="text-[11px] text-gray-500 text-center">{syncMsg}</p>}
+          </div>
 
-      <div className="px-4 py-4 space-y-4">
+          {/* Vertical Tab Navigation */}
+          <nav className="flex-1 py-2">
+            <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Msingi</p>
+            {([
+              { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
+              { key: 'takwimu',   label: 'Takwimu',   icon: 'chart-dots' },
+              { key: 'mapato',    label: 'Mapato',    icon: 'trending-up' },
+              { key: 'matumizi',  label: 'Matumizi',  icon: 'trending-down' },
+              { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
+            ] as { key: TabKey; label: string; icon: string }[]).map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-r-2 ${
+                  tab === t.key
+                    ? 'bg-primary-50 text-primary-600 border-primary-500 font-medium'
+                    : 'text-gray-500 hover:bg-gray-50 border-transparent hover:text-gray-700'
+                }`}>
+                <i className={`ti ti-${t.icon} text-base flex-shrink-0`} aria-hidden="true" />
+                <span>{t.label}</span>
+              </button>
+            ))}
+            <p className="px-4 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mapato</p>
+            {([
+              { key: 'usajiri',       label: 'Usajiri',      icon: 'id-badge' },
+              { key: 'mawasiliano',   label: 'Mawasiliano',  icon: 'lock-open' },
+              { key: 'matangazo',     label: 'Matangazo',    icon: 'rocket' },
+              { key: 'org_sub',       label: 'Org Sub',      icon: 'building' },
+              { key: 'fundi_sub',     label: 'Fundi Sub',    icon: 'tool' },
+              { key: 'ad_campaign',   label: 'Ad Campaign',  icon: 'speakerphone' },
+              { key: 'extra_listing', label: 'Orodha Ziada', icon: 'list-plus' },
+            ] as { key: TabKey; label: string; icon: string }[]).map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-r-2 ${
+                  tab === t.key
+                    ? 'bg-primary-50 text-primary-600 border-primary-500 font-medium'
+                    : 'text-gray-500 hover:bg-gray-50 border-transparent hover:text-gray-700'
+                }`}>
+                <i className={`ti ti-${t.icon} text-base flex-shrink-0`} aria-hidden="true" />
+                <span>{t.label}</span>
+              </button>
+            ))}
+            <p className="px-4 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mipangilio</p>
+            <button onClick={() => setTab('bei')}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-r-2 ${
+                tab === 'bei'
+                  ? 'bg-primary-50 text-primary-600 border-primary-500 font-medium'
+                  : 'text-gray-500 hover:bg-gray-50 border-transparent hover:text-gray-700'
+              }`}>
+              <i className="ti ti-tag text-base flex-shrink-0" aria-hidden="true" />
+              <span>Bei</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* ── Right Panel ── */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
+          {/* Mobile: horizontal tab bar */}
+          <div className="lg:hidden bg-white border-b border-gray-100 flex overflow-x-auto scrollbar-none flex-shrink-0">
+            {([
+              { key: 'overview',      label: 'Muhtasari',   icon: 'chart-bar' },
+              { key: 'takwimu',       label: 'Takwimu',     icon: 'chart-dots' },
+              { key: 'mapato',        label: 'Mapato',      icon: 'trending-up' },
+              { key: 'matumizi',      label: 'Matumizi',    icon: 'trending-down' },
+              { key: 'miamala',       label: 'Miamala',     icon: 'clipboard-list' },
+              { key: 'usajiri',       label: 'Usajiri',     icon: 'id-badge' },
+              { key: 'mawasiliano',   label: 'Mawasiliano', icon: 'lock-open' },
+              { key: 'matangazo',     label: 'Matangazo',   icon: 'rocket' },
+              { key: 'org_sub',       label: 'Org Sub',     icon: 'building' },
+              { key: 'fundi_sub',     label: 'Fundi Sub',   icon: 'tool' },
+              { key: 'ad_campaign',   label: 'Ad Campaign', icon: 'speakerphone' },
+              { key: 'extra_listing', label: 'Orodha Ziada',icon: 'list-plus' },
+              { key: 'bei',           label: 'Bei',         icon: 'tag' },
+            ] as { key: TabKey; label: string; icon: string }[]).map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
+                  tab === t.key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400'
+                }`}
+              >
+                <i className={`ti ti-${t.icon}`} aria-hidden="true" /><span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile: month selector + controls */}
+          <div className="lg:hidden bg-white border-b border-gray-100 px-4 py-2 space-y-2 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400 flex-shrink-0 flex items-center gap-1"><i className="ti ti-calendar" aria-hidden="true" />Mwezi:</span>
+              <select
+                value={selectedMonth}
+                onChange={e => setSelectedMonth(e.target.value)}
+                className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-primary-400 font-medium text-gray-700 bg-white"
+              >
+                {monthOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}{opt.value === getCurrentMonth() ? ' (Sasa)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-medium disabled:opacity-50">
+                {downloading === 'pdf'
+                  ? <span className="w-3 h-3 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                  : <i className="ti ti-download" aria-hidden="true" />
+                } PDF
+              </button>
+              <button onClick={() => handleDownload('excel')} disabled={!!downloading}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-xl text-xs font-medium disabled:opacity-50">
+                {downloading === 'excel'
+                  ? <span className="w-3 h-3 border-2 border-green-300 border-t-green-700 rounded-full animate-spin" />
+                  : <i className="ti ti-download" aria-hidden="true" />
+                } Excel
+              </button>
+              <button onClick={handleSync}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium">
+                <i className="ti ti-refresh" aria-hidden="true" /> Sync
+              </button>
+              {syncMsg && <span className="text-xs text-gray-500">{syncMsg}</span>}
+            </div>
+            {(() => {
+              const isCurrentMonth = selectedMonth === getCurrentMonth()
+              const currentLabel   = monthOptions.find(m => m.value === selectedMonth)?.label ?? selectedMonth
+              const today          = new Date().getDate()
+              const totalDays      = daysInMonth(selectedMonth)
+              return (
+                <div className={`px-3 py-1.5 rounded-lg flex items-center justify-between text-xs ${
+                  isCurrentMonth ? 'bg-green-600 text-white' : 'bg-gray-700 text-white'
+                }`}>
+                  <span className="font-semibold">{currentLabel}</span>
+                  {isCurrentMonth
+                    ? <span className="opacity-80">Siku ya {today} / {totalDays} — inaendelea</span>
+                    : <span className="opacity-80">Imekamilika</span>
+                  }
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 overflow-y-auto pb-20">
+            <div className="px-4 py-4 space-y-4">
 
         {/* ── Loading ── */}
         {loading && (
@@ -1717,6 +1888,9 @@ ON CONFLICT DO NOTHING;`}</pre>
         {/* ══ TAB: BEI (Pricing Settings) ═══════════════════════════════ */}
         {tab === 'bei' && <PricingSettings />}
 
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Add Expense Modal ── */}
