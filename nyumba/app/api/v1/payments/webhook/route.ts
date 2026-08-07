@@ -19,6 +19,14 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.text()
     const payload: WebhookPayload = JSON.parse(rawBody)
 
+    // Log key fields immediately — helps diagnose field-name mismatches from AzamPay
+    console.log('[Unlock Webhook] Received | keys:', Object.keys(payload).join(','),
+      '| status:', payload.transactionstatus,
+      '| utilityref:', payload.utilityref,
+      '| externalreference:', payload.externalreference,
+      '| amount:', payload.amount,
+    )
+
     if (!(await verifyAzamPaySignature(payload))) {
       console.warn('[Unlock Webhook] RSA signature invalid — rejecting')
       return NextResponse.json({ received: true })
@@ -27,13 +35,18 @@ export async function POST(req: NextRequest) {
     const externalId = getExternalId(payload)
     const succeeded  = isWebhookSuccess(payload)
 
-    console.log('[Unlock Webhook] externalId:', externalId, '| succeeded:', succeeded)
-    if (!externalId) return NextResponse.json({ received: true })
+    if (!externalId) {
+      console.warn('[Unlock Webhook] No externalId — utilityref/externalreference/reference all missing. Raw keys:', Object.keys(payload).join(','))
+      return NextResponse.json({ received: true })
+    }
 
     const unlockPrice = (await getPricing()).unlock
     if (succeeded && !isAmountValid(payload, unlockPrice)) {
-      console.warn('[Unlock Webhook] Amount mismatch — expected', unlockPrice, 'got:', payload.amount)
+      console.warn('[Unlock Webhook] Amount mismatch — expected', unlockPrice, 'received:', payload.amount, '— rejecting')
       return NextResponse.json({ received: true })
+    }
+    if (succeeded && (payload.amount === undefined || payload.amount === '')) {
+      console.warn('[Unlock Webhook] Amount field absent from payload — proceeding (whsec+sig already verified)')
     }
 
     const admin     = createAdminClient()

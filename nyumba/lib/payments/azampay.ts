@@ -264,9 +264,11 @@ export function isWebhookSuccess(payload: WebhookPayload): boolean {
   return status === 'success' || status === 'successful'
 }
 
-// Check amount within 1 TZS tolerance; reject missing/unparseable amounts.
+// Check amount within 1 TZS tolerance.
+// If the amount field is absent (common in sandbox callbacks), skip validation —
+// the endpoint is already guarded by whsec + RSA signature.
 export function isAmountValid(payload: WebhookPayload, expectedAmount: number): boolean {
-  if (!payload.amount) return false
+  if (payload.amount === undefined || payload.amount === null || payload.amount === '') return true
   const received = parseFloat(payload.amount)
   if (isNaN(received)) return false
   return Math.abs(received - expectedAmount) <= 1
