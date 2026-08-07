@@ -214,11 +214,9 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertError || !unlock) {
-      console.error('[Unlock/initiate] DB insert failed:', JSON.stringify({
-        message: insertError?.message, code: insertError?.code,
-        details: insertError?.details, hint: insertError?.hint,
-      }))
-      return NextResponse.json({ error: 'Imeshindwa kuanzisha malipo. Jaribu tena.' }, { status: 500 })
+      const dbErr = { message: insertError?.message, code: insertError?.code, details: insertError?.details, hint: insertError?.hint }
+      console.error('[Unlock/initiate] DB insert failed:', JSON.stringify(dbErr))
+      return NextResponse.json({ error: `DB: ${insertError?.message ?? 'unlock is null'} | code: ${insertError?.code ?? '?'} | hint: ${insertError?.hint ?? ''}` }, { status: 500 })
     }
 
     runUnlockFraudChecks(admin, { userId: user.id, ip: getClientIp(req), msisdn: normalized })
