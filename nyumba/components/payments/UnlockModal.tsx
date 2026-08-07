@@ -22,7 +22,7 @@ const PROVIDERS = Object.fromEntries(
   iconSrc: string; iconAlt: string; iconChar?: string; btnColor: string
 }>
 
-type ModalStep = 'select' | 'phone' | 'waiting' | 'success' | 'failed'
+type ModalStep = 'select' | 'phone' | 'waiting' | 'already_paid' | 'success' | 'failed'
 
 type Props = {
   listingId:           string
@@ -212,7 +212,11 @@ export default function UnlockModal({
       const data = await res.json()
 
       if (!res.ok) {
-        if (data.already_unlocked) { await handleConfirmed(); return }
+        if (data.already_unlocked) {
+          setStep('already_paid')
+          setTimeout(() => handleConfirmed(), 2000)
+          return
+        }
         throw new Error(data.error ?? 'Imeshindwa kuanzisha malipo')
       }
       if (data.mock) { await handleConfirmed(); return }
@@ -469,6 +473,22 @@ export default function UnlockModal({
             <button onClick={handleRetry} className="w-full py-2 min-h-[44px] text-xs text-gray-400 text-center">
               ← Badilisha mtandao au namba
             </button>
+          </div>
+        )}
+
+        {/* ── ALREADY PAID ── */}
+        {step === 'already_paid' && (
+          <div className="px-5 pt-6 pb-4 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-50 mb-3">
+              <i className="ti ti-circle-check text-4xl text-green-500" aria-hidden="true" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900 mb-1">Malipo Yako Yalikuwepo!</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Malipo yako ya awali yalikamilika. Unafunguliwa sasa...
+            </p>
+            <div className="flex justify-center">
+              <div className="w-5 h-5 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+            </div>
           </div>
         )}
 
