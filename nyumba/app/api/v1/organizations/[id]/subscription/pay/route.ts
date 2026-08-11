@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import {
   mobileCheckout, normalizePhone, detectProvider,
-  generateExternalId, buildCallbackUrl, type MobileProvider,
+  generateExternalId, webhookUrl, type MobileProvider,
 } from '@/lib/payments/azampay'
 import { rateLimit } from '@/lib/security/rateLimit'
 
@@ -106,16 +106,13 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Imeshindwa kuanzisha ombi la malipo' }, { status: 500 })
     }
 
-    // Initiate AzamPay mobile checkout with per-request callback URL so callbacks
-    // are routed to the org-subscription webhook regardless of dashboard defaults.
-    const callbackUrl = buildCallbackUrl(req.nextUrl.origin, '/api/v1/payments/org-subscription/webhook')
     const result = await mobileCheckout({
       accountNumber,
       amount:      amount_tzs,
       externalId:  payment_reference,
       provider:    azamProvider,
       description: `NyumbaFasta — ${plan.name} (${billing_cycle})`,
-      callbackUrl,
+      callbackUrl: webhookUrl('/api/v1/payments/org-subscription/webhook'),
     })
 
     if (!result.ok) {
@@ -125,7 +122,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: result.message }, { status: 502 })
     }
 
-    console.log('[OrgSubPay] Checkout initiated. invoice:', invoice.id, 'ref:', payment_reference, 'callback:', callbackUrl)
+    console.log('[OrgSubPay] Checkout initiated. invoice:', invoice.id, 'ref:', payment_reference)
 
     return NextResponse.json({
       invoice_id:        invoice.id,

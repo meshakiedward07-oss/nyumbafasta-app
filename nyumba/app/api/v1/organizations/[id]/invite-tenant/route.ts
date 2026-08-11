@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       .maybeSingle()
 
     const orgName = org?.name ?? 'NyumbaFasta'
-    const appUrl  = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    const appUrl  = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
     // Include org_id so the register page can store it in user metadata —
     // portal/register will use it to notify the org owner after tenant verifies email.
     const regLink = `${appUrl}/register?role=tenant&org=${orgId}`

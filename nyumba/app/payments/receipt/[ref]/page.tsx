@@ -1,5 +1,6 @@
 'use client'
 import { use, useEffect, useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
 
@@ -42,6 +43,7 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export default function ReceiptPage({ params }: { params: Promise<{ ref: string }> }) {
+  const { t }   = useLanguage()
   const { ref } = use(params)
   const [receipt, setReceipt] = useState<Receipt | null>(null)
   const [error, setError]     = useState<string | null>(null)
@@ -51,14 +53,14 @@ export default function ReceiptPage({ params }: { params: Promise<{ ref: string 
     fetch(`/api/v1/payments/receipt/${encodeURIComponent(ref)}`)
       .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.error ?? 'Hitilafu')))
       .then(setReceipt)
-      .catch(e => setError(typeof e === 'string' ? e : 'Risiti haikupatikana'))
+      .catch(e => setError(typeof e === 'string' ? e : t('common_receipt_not_found')))
       .finally(() => setLoading(false))
   }, [ref])
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-400 text-sm">Inapakia risiti...</div>
+        <div className="text-gray-400 text-sm">{t('common_receipt_loading')}</div>
       </div>
     )
   }
@@ -67,8 +69,8 @@ export default function ReceiptPage({ params }: { params: Promise<{ ref: string 
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-500 text-sm mb-2">{error ?? 'Risiti haikupatikana'}</p>
-          <a href="/dashboard" className="text-primary-600 text-sm underline">Rudi Dashboard</a>
+          <p className="text-red-500 text-sm mb-2">{error ?? t('common_receipt_not_found')}</p>
+          <a href="/dashboard" className="text-primary-600 text-sm underline">{t('common_back_dashboard')}</a>
         </div>
       </div>
     )
@@ -90,7 +92,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ ref: string 
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold">NyumbaFasta</h1>
-              <p className="text-primary-100 text-sm print:text-gray-500 mt-0.5">Risiti ya Malipo</p>
+              <p className="text-primary-100 text-sm print:text-gray-500 mt-0.5">{t('common_receipt_title')}</p>
             </div>
             <i className="ti ti-receipt text-4xl opacity-60 print:hidden" />
           </div>
@@ -113,10 +115,10 @@ export default function ReceiptPage({ params }: { params: Promise<{ ref: string 
         {/* Details grid */}
         <div className="px-8 py-5 space-y-3">
           {[
-            ['Nambari ya Risiti', receipt.receipt_number],
-            ['Tarehe ya Malipo', fmtDate(receipt.paid_at)],
-            ['Mtoaji Malipo',    receipt.paid_by ?? '—'],
-            ['Jukwaa',          receipt.platform],
+            [t('common_receipt_num'),      receipt.receipt_number],
+            [t('common_receipt_date'),     fmtDate(receipt.paid_at)],
+            [t('common_receipt_paidby'),   receipt.paid_by ?? '—'],
+            [t('common_receipt_platform'), receipt.platform],
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between items-start gap-4">
               <span className="text-sm text-gray-500 shrink-0">{label}</span>
@@ -128,7 +130,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ ref: string 
         {/* Footer */}
         <div className="px-8 pb-8 pt-4 border-t border-gray-100 text-center space-y-4">
           <p className="text-xs text-gray-400">
-            Risiti hii ni uthibitisho wa malipo kwenye mfumo wa NyumbaFasta.<br />
+            {t('common_receipt_footer')}<br />
             Kwa maswali: support@nyumbafasta.co
           </p>
           <div className="flex gap-3 justify-center print:hidden">
@@ -137,13 +139,13 @@ export default function ReceiptPage({ params }: { params: Promise<{ ref: string 
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
             >
               <i className="ti ti-printer text-base" />
-              Chapisha
+              {t('common_receipt_print')}
             </button>
             <a
               href="/dashboard"
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors"
             >
-              Rudi Dashboard
+              {t('common_back_dashboard')}
             </a>
           </div>
         </div>

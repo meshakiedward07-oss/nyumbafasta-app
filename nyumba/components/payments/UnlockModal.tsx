@@ -6,6 +6,7 @@ import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/Pa
 import { detectProvider } from '@/lib/payments/azampay'
 import type { PaymentMethod as PaymentProvider } from '@/components/payments/PaymentMethodSelector'
 import { buildContactWhatsAppMessage } from '@/lib/utils/whatsappTemplates'
+import { useLanguage } from '@/lib/i18n/context'
 
 const PROVIDERS = Object.fromEntries(
   PAYMENT_METHODS.map(m => [m.id, {
@@ -104,6 +105,7 @@ export default function UnlockModal({
   onClose, onUnlocked,
 }: Props) {
   const supabase = createClient()
+  const { t } = useLanguage()
 
   const [UNLOCK_AMOUNT, setUnlockAmount] = useState(initialUnlockAmount ?? 2000)
   useEffect(() => {
@@ -135,8 +137,8 @@ export default function UnlockModal({
 
   useEffect(() => {
     if (step !== 'success' || contactPhone !== null) return
-    const t = setTimeout(() => setContactTimedOut(true), CONTACT_FETCH_TIMEOUT)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setContactTimedOut(true), CONTACT_FETCH_TIMEOUT)
+    return () => clearTimeout(timer)
   }, [step, contactPhone])
 
   useEffect(() => {
@@ -294,7 +296,7 @@ export default function UnlockModal({
         {step === 'select' && (
           <div className="px-5 pt-1 pb-2">
             <h2 className="text-base font-bold text-gray-900 text-center mb-0.5">
-              Fungua Contact ya Dalali
+              {t('cl_unlock_title')}
             </h2>
             <p className="text-xs text-gray-400 text-center mb-4">
               Bei: <span className="font-semibold text-gray-700">Tsh {UNLOCK_AMOUNT.toLocaleString()}</span> · Lipa mara moja tu
@@ -322,7 +324,7 @@ export default function UnlockModal({
               onPay={handleSelectorPay}
             />
             <button onClick={onClose} className="w-full py-3 mt-3 min-h-[44px] text-sm text-gray-400 text-center">
-              Ghairi
+              {t('common_cancel')}
             </button>
           </div>
         )}
@@ -331,7 +333,7 @@ export default function UnlockModal({
         {step === 'phone' && (
           <div className="px-5 pt-2 pb-2">
             <div className="flex items-center gap-2 mb-4">
-              <button onClick={() => { setStep('select'); setError('') }} aria-label="Rudi nyuma"
+              <button onClick={() => { setStep('select'); setError('') }} aria-label={t('common_back')}
                 className="text-gray-400 text-lg p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">←</button>
               <div className="flex items-center gap-2">
                 {pInfo.iconSrc
@@ -347,7 +349,7 @@ export default function UnlockModal({
             {/* Preview of what customer will see */}
             <div className="mb-5">
               <p className="text-[10px] text-gray-400 text-center mb-2 uppercase tracking-wide font-semibold">
-                Utaona hivi kwenye simu yako
+                {t('cl_payment_preview_label')}
               </p>
               <UssdPreview amount={UNLOCK_AMOUNT} provider={provider} />
             </div>
@@ -359,7 +361,7 @@ export default function UnlockModal({
             <form onSubmit={handleMobilePay} className="space-y-4">
               <div>
                 <label htmlFor="unlock-phone" className="text-xs text-gray-500 mb-1.5 block">
-                  Namba ya simu ya {pInfo.name}
+                  {t('cl_phone_label')} {pInfo.name}
                 </label>
                 <div className="flex gap-2">
                   <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">+255</div>
@@ -382,12 +384,12 @@ export default function UnlockModal({
                 className="w-full text-white py-3.5 min-h-[48px] rounded-2xl text-sm font-semibold disabled:opacity-50 transition-all active:scale-[0.98]"
                 style={{ backgroundColor: loading || normalisePhone(phone).normalized.length !== 12 ? '#9CA3AF' : pInfo.btnColor }}
               >
-                {loading ? 'Inatuma ombi...' : `Tuma Ombi — Tsh ${UNLOCK_AMOUNT.toLocaleString()}`}
+                {loading ? t('cl_sending_request') : `${t('cl_send_request')} — Tsh ${UNLOCK_AMOUNT.toLocaleString()}`}
               </button>
             </form>
 
             <button onClick={() => { setStep('select'); setError('') }} className="w-full py-3 min-h-[44px] text-sm text-gray-400 text-center mt-1">
-              ← Badilisha mtandao
+              {t('cl_change_provider')}
             </button>
           </div>
         )}
@@ -398,7 +400,7 @@ export default function UnlockModal({
             {/* Top warning */}
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4 text-xs text-amber-700 font-medium flex items-center gap-2">
               <i className="ti ti-alert-triangle flex-shrink-0" aria-hidden="true" />
-              Usifunge — malipo yanashughulikiwa
+              {t('cl_payment_processing')}
             </div>
 
             {/* Phone icon */}
@@ -410,16 +412,16 @@ export default function UnlockModal({
                   <span className="w-2 h-2 bg-white rounded-full" />
                 </span>
               </div>
-              <h2 className="text-base font-bold text-gray-900 mb-1">Angalia Simu Yako!</h2>
+              <h2 className="text-base font-bold text-gray-900 mb-1">{t('cl_check_phone')}</h2>
               <p className="text-sm text-gray-500">
-                Ombi la PIN limetumwa kwa <span className="font-bold text-gray-800">+255{displayPhone.replace(/^0/, '')}</span>
+                {t('cl_pin_sent_to')} <span className="font-bold text-gray-800">+255{displayPhone.replace(/^0/, '')}</span>
               </p>
             </div>
 
             {/* What they will see on phone */}
             <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-4">
               <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-3">
-                Ombi linalokungojea kwenye simu
+                {t('cl_pending_request')}
               </p>
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">NYF</div>
@@ -441,9 +443,9 @@ export default function UnlockModal({
             {/* 3 steps */}
             <div className="space-y-2 mb-4">
               {[
-                { n: 1, text: 'Angalia simu yako — ombi la PIN limetumwa moja kwa moja', done: secondsSinceSent > 5 },
-                { n: 2, text: 'Bonyeza "Thibitisha" na ingiza PIN yako', done: false },
-                { n: 3, text: 'Malipo yatakamilika na utaona namba ya dalali', done: false },
+                { n: 1, text: t('cl_step1_text'), done: secondsSinceSent > 5 },
+                { n: 2, text: t('cl_step2_text'), done: false },
+                { n: 3, text: t('cl_step3_text'), done: false },
               ].map(s => (
                 <div key={s.n} className="flex items-start gap-3">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all duration-500
@@ -459,19 +461,19 @@ export default function UnlockModal({
             <div className="bg-gray-100 rounded-full h-1.5 mb-1.5 overflow-hidden">
               <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${progressPct}%`, backgroundColor: pInfo.btnColor }} />
             </div>
-            <p className="text-xs text-gray-400 text-center mb-4">Inasubiri uthibitisho... ({secondsLeft}s)</p>
+            <p className="text-xs text-gray-400 text-center mb-4">{t('cl_waiting_confirmation')} ({secondsLeft}s)</p>
 
             {/* Resend */}
             {secondsSinceSent >= RESEND_AFTER_SECS && (
               <button onClick={handleResend}
                 className="w-full py-2.5 rounded-xl border border-primary-200 bg-primary-50 text-sm text-primary-600 font-medium mb-3 active:scale-[0.98] transition-all">
                 <i className="ti ti-refresh mr-1.5" aria-hidden="true" />
-                Sijapata ombi — Tuma tena
+                {t('cl_resend_request')}
               </button>
             )}
 
             <button onClick={handleRetry} className="w-full py-2 min-h-[44px] text-xs text-gray-400 text-center">
-              ← Badilisha mtandao au namba
+              {t('cl_change_network')}
             </button>
           </div>
         )}
@@ -482,9 +484,9 @@ export default function UnlockModal({
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-50 mb-3">
               <i className="ti ti-circle-check text-4xl text-green-500" aria-hidden="true" />
             </div>
-            <h2 className="text-base font-bold text-gray-900 mb-1">Malipo Yako Yalikuwepo!</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-1">{t('cl_already_paid_title')}</h2>
             <p className="text-sm text-gray-500 mb-4">
-              Malipo yako ya awali yalikamilika. Unafunguliwa sasa...
+              {t('cl_already_paid_body')}
             </p>
             <div className="flex justify-center">
               <div className="w-5 h-5 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
@@ -498,10 +500,10 @@ export default function UnlockModal({
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 mb-3">
               <i className="ti ti-confetti text-4xl text-primary-500" aria-hidden="true" />
             </div>
-            <h2 className="text-base font-bold text-gray-900 mb-1">Umefanikiwa!</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-1">{t('cl_success_title')}</h2>
             <p className="text-sm text-gray-500 mb-5">
-              Sasa unaweza kuwasiliana na{' '}
-              <span className="font-semibold text-gray-800">{dalaliName}</span> moja kwa moja.
+              {t('cl_can_contact_now')}{' '}
+              <span className="font-semibold text-gray-800">{dalaliName}</span> {t('cl_call_direct')}.
             </p>
 
             {waPhone ? (
@@ -511,21 +513,21 @@ export default function UnlockModal({
                     className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl bg-green-500 text-white font-semibold text-sm shadow-md active:scale-[0.97] transition-transform">
                     <i className="ti ti-brand-whatsapp text-2xl" aria-hidden="true" />
                     <span>WhatsApp</span>
-                    <span className="text-xs font-normal opacity-80">Na maelezo ya listing</span>
+                    <span className="text-xs font-normal opacity-80">{t('lst_whatsapp_subtitle')}</span>
                   </a>
                   <a href={`tel:+${waPhone}`}
                     className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl bg-blue-500 text-white font-semibold text-sm shadow-md active:scale-[0.97] transition-transform">
                     <i className="ti ti-phone text-2xl" aria-hidden="true" />
-                    <span>Piga Simu</span>
-                    <span className="text-xs font-normal opacity-80">Zungumza moja kwa moja</span>
+                    <span>{t('lst_call_phone')}</span>
+                    <span className="text-xs font-normal opacity-80">{t('cl_call_direct')}</span>
                   </a>
                 </div>
-                <p className="text-xs text-gray-400 mb-3">Namba moja inatumika kwa njia zote mbili</p>
+                <p className="text-xs text-gray-400 mb-3">{t('lst_same_number')}</p>
               </>
             ) : contactTimedOut ? (
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 text-sm text-amber-700 text-left">
-                <p className="font-semibold mb-1">Mawasiliano hayakupakia</p>
-                <p className="text-xs mb-2">Malipo yamefanikiwa. Piga simu support:</p>
+                <p className="font-semibold mb-1">{t('cl_contact_load_failed')}</p>
+                <p className="text-xs mb-2">{t('cl_payment_ok_call_support')}</p>
                 <a href="https://wa.me/255665831694" target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 underline">
                   <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp Support
@@ -534,10 +536,10 @@ export default function UnlockModal({
             ) : (
               <div className="flex justify-center items-center gap-2 mb-5 text-sm text-gray-400">
                 <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
-                <span>Inapakia mawasiliano...</span>
+                <span>{t('cl_loading_contact')}</span>
               </div>
             )}
-            <button onClick={onClose} className="w-full py-3 min-h-[44px] text-sm text-gray-400">Funga</button>
+            <button onClick={onClose} className="w-full py-3 min-h-[44px] text-sm text-gray-400">{t('common_close')}</button>
           </div>
         )}
 
@@ -547,14 +549,14 @@ export default function UnlockModal({
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-3">
               <i className="ti ti-circle-x text-4xl text-red-500" aria-hidden="true" />
             </div>
-            <h2 className="text-base font-bold text-gray-900 mb-2">Malipo Hayakufanikiwa</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-2">{t('cl_payment_failed_title')}</h2>
             <p className="text-sm text-red-500 mb-1">{error}</p>
-            <p className="text-xs text-gray-400 mb-5">Hakikisha una salio la kutosha na mtandao unafanya kazi, kisha jaribu tena.</p>
+            <p className="text-xs text-gray-400 mb-5">{t('cl_payment_failed_hint')}</p>
             <button onClick={handleRetry}
               className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold mb-3 min-h-[48px] active:scale-[0.98] transition-transform shadow-md">
-              Jaribu Tena
+              {t('common_retry')}
             </button>
-            <button onClick={onClose} className="w-full py-3 min-h-[44px] text-sm text-gray-400">Funga</button>
+            <button onClick={onClose} className="w-full py-3 min-h-[44px] text-sm text-gray-400">{t('common_close')}</button>
           </div>
         )}
       </div>

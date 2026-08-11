@@ -149,7 +149,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         if (!vendor?.phone) return
         const { data: req } = await admin.from('maintenance_requests').select('title, unit:property_units(unit_number)').eq('id', reqId).maybeSingle()
         const unitLabel = (req?.unit as unknown as { unit_number?: string } | null)?.unit_number ?? 'kitengo'
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
         const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
         const msg =
           `🔧 *NyumbaFasta — Kazi Mpya*\n\n` +

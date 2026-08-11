@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
       ? new Date(updateFields.expires_at as string)
       : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     const expiryStr = expiresDate.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
-    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
     await admin.from('notifications').insert({
       user_id: subscription.dalali_id,

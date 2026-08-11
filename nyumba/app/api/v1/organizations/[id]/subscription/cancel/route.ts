@@ -62,7 +62,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const planName = (sub.plan as unknown as { name: string } | null)?.name ?? 'Mpango'
     const periodEnd = sub.current_period_end
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
     const waMsg = immediateCancel
       ? `*NyumbaFasta — Usajili Umeghairiwa* ❌\n\nUsajili wako wa ${planName} umeghairiwa leo.\n\nUnaweza kujiunga tena wakati wowote:\n${appUrl}/property/usajili`
       : `*NyumbaFasta — Ughairi Umepangwa* 🔔\n\nOmbi lako la kughairi usajili wa ${planName} limepokelewa.\n\nUtaendelea kupata huduma kamili hadi ${periodEnd ? new Date(periodEnd).toLocaleDateString('sw-TZ') : 'mwisho wa mzunguko'}.\n\n${appUrl}/property/usajili`

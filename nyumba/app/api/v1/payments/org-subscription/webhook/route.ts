@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
 
       const planName   = planRow?.name ?? 'Mpango'
       const periodStr  = periodEnd.toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
-      const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
       // In-app notification
       try {

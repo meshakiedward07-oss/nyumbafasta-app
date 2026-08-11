@@ -5,7 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 // Returns a rich receipt object for any payment ref owned by the authenticated user.
 // 404 when ref is not found or not owned by the caller.
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 type ReceiptType =
   | 'unlock'

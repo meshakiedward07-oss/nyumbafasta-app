@@ -1,5 +1,6 @@
 'use client'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 // PaymentMethodSelector — shows AzamPay mobile money provider grid.
 // For mobile: shows "Lipa" button → calls onPay(method) → parent shows phone input
@@ -142,6 +143,7 @@ function ProviderButton({
 }
 
 export default function PaymentMethodSelector({ selected, onSelect, amount, onPay }: Props) {
+  const { t } = useLanguage()
   const selectedInfo = PAYMENT_METHODS.find(m => m.id === selected)
 
   return (
@@ -165,7 +167,7 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
               <PaymentIcon iconSrc={selectedInfo.iconSrc} iconAlt={selectedInfo.iconAlt} iconChar={selectedInfo.iconChar} color={selectedInfo.color} />
             </div>
             <span className="text-xs text-gray-500">
-              Utalipa kupitia <strong>{selectedInfo.name}</strong>
+              {t('cl_will_pay_via')} <strong>{selectedInfo.name}</strong>
             </span>
           </div>
           <button
@@ -174,7 +176,7 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
                        shadow-md active:scale-[0.97] transition-transform"
             style={{ backgroundColor: selectedInfo.color }}
           >
-            Lipa Tsh {amount.toLocaleString()}
+            {t('cl_pay_btn')} Tsh {amount.toLocaleString()}
           </button>
         </div>
       )}

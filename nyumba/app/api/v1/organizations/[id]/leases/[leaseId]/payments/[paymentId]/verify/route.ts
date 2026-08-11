@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       if (!leaseRow) return
       const tenantId  = leaseRow.tenant_id as string
       const unitLabel = (leaseRow.unit as unknown as { unit_number: string } | null)?.unit_number ?? 'kitengo chako'
-      const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
       const { data: tenant } = await admin.from('users').select('phone, full_name').eq('id', tenantId).maybeSingle()
 

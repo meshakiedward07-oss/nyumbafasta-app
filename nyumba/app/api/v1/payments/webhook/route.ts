@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
 
         // WhatsApp + email (non-blocking)
         ;(async () => {
-          const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+          const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
           const { data: dalali } = await admin
             .from('users')
             .select('full_name, dalali_profiles(whatsapp_number)')

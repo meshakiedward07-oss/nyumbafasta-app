@@ -6,7 +6,7 @@ interface AzamConfig {
   appName:      string
   clientId:     string
   clientSecret: string
-  apiKey:       string
+  apiKey:       string | undefined
   environment:  string
 }
 
@@ -21,12 +21,11 @@ function getConfig(): AzamConfig {
   if (!appName)      missing.push('appName')
   if (!clientId)     missing.push('clientId')
   if (!clientSecret) missing.push('clientSecret')
-  if (!apiKey)       missing.push('apiKey')
   if (missing.length > 0) {
     throw new Error(`[AzamPay] Config missing: ${missing.join(', ')}`)
   }
 
-  return { appName: appName!, clientId: clientId!, clientSecret: clientSecret!, apiKey: apiKey!, environment }
+  return { appName: appName!, clientId: clientId!, clientSecret: clientSecret!, apiKey, environment }
 }
 
 // Provider enum must match AzamPay API exactly (see schema.Provider)
@@ -89,9 +88,9 @@ async function getAzamPayPublicKey(): Promise<string | null> {
     const IS_SANDBOX = cfg.environment !== 'production'
     const base = IS_SANDBOX ? 'https://sandbox.azampay.co.tz' : 'https://checkout.azampay.co.tz'
     const token = await getAuthToken()
-    const res = await fetch(`${base}/azampay/v1/public-key?format=Pem`, {
-      headers: { Authorization: `Bearer ${token}`, 'X-API-KEY': cfg.apiKey },
-    })
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` }
+    if (cfg.apiKey) headers['X-API-KEY'] = cfg.apiKey
+    const res = await fetch(`${base}/azampay/v1/public-key?format=Pem`, { headers })
     if (!res.ok) return null
     const json = await res.json() as { success?: boolean; publicKey?: string }
     if (json.success && json.publicKey) {
@@ -181,13 +180,15 @@ export async function mobileCheckout(params: MobileCheckoutParams): Promise<Azam
     }
     if (params.callbackUrl) checkoutPayload.callbackUrl = params.callbackUrl
 
+    const checkoutHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization:  `Bearer ${token}`,
+    }
+    if (cfg.apiKey) checkoutHeaders['X-API-KEY'] = cfg.apiKey
+
     const res = await fetch(CHECKOUT_URL, {
       method:  'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization:  `Bearer ${token}`,
-        'X-API-KEY':    cfg.apiKey,
-      },
+      headers: checkoutHeaders,
       body:   JSON.stringify(checkoutPayload),
       signal: AbortSignal.timeout(20000),
     })

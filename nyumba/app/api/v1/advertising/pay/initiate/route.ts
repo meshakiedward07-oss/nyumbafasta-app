@@ -56,8 +56,15 @@ export async function POST(req: NextRequest) {
     if (!plan) {
       return NextResponse.json({ error: 'Kampeni haina mpango wa malipo. Wasiliana na msaada.' }, { status: 400 })
     }
-    const amount     = plan.price_tzs
-    const externalId = generateExternalId('AD')
+    const PROVIDER_MAP: Record<string, import('@/lib/payments/azampay').MobileProvider> = {
+      mpesa: 'Mpesa', airtel: 'Airtel', tigo: 'Tigo', tigopesa: 'Tigo', halopesa: 'Halopesa', azampesa: 'Azampesa',
+      Mpesa: 'Mpesa', Airtel: 'Airtel', Tigo: 'Tigo', Halopesa: 'Halopesa', Azampesa: 'Azampesa',
+    }
+    const amount             = plan.price_tzs
+    const externalId         = generateExternalId('AD')
+    const normalizedProvider = bodyProvider
+      ? (PROVIDER_MAP[bodyProvider] ?? detectProvider(normalizePhone(phone)))
+      : detectProvider(normalizePhone(phone))
 
     const { data: payment, error: payErr } = await admin
       .from('ad_payments')
@@ -67,7 +74,7 @@ export async function POST(req: NextRequest) {
         amount,
         currency:     'TZS',
         phone_number: normalizePhone(phone),
-        provider:     bodyProvider ?? detectProvider(phone),
+        provider:     normalizedProvider,
         external_id:  externalId,
         status:       'pending',
       })
@@ -78,14 +85,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Imeshindwa kuunda rekodi ya malipo' }, { status: 500 })
     }
 
-    // Initiate STK push — callbackUrl is pre-configured on the AzamPay merchant
-    // dashboard and not passed per-request. /api/v1/payments/webhook handles both
-    // contact_unlock and ad_payment types via tryProcessAdPayment().
     const result = await mobileCheckout({
       accountNumber: normalizePhone(phone),
       amount,
       externalId,
-      provider:    bodyProvider ?? detectProvider(phone),
+      provider:    normalizedProvider,
       description: `NyumbaFasta Advert — ${plan.name}`,
       callbackUrl: webhookUrl('/api/v1/advertising/pay/webhook'),
     })

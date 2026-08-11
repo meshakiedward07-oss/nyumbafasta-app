@@ -85,7 +85,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         if (!lease) return
         const unitLabel = (lease.unit as unknown as { unit_number: string } | null)?.unit_number ?? 'kitengo chako'
         const { data: tenant } = await admin.from('users').select('phone, full_name').eq('id', lease.tenant_id as string).maybeSingle()
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
         try {
           await admin.from('notifications').insert({
             user_id: lease.tenant_id,
@@ -126,7 +126,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         .maybeSingle()
       if (!tenant) return NextResponse.json({ error: 'Mpangaji haupatikani' }, { status: 404 })
 
-      const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
       const unitLabel = (lease.unit as unknown as { unit_number: string } | null)?.unit_number ?? 'kitengo chako'
       const amount    = `TZS ${payment.amount_due.toLocaleString()}`
       const dueStr    = new Date(payment.due_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -180,7 +180,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         if (!lease) return
         const { data: tenant } = await admin.from('users').select('id, phone, full_name').eq('id', lease.tenant_id as string).maybeSingle()
         if (!tenant) return
-        const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
         const unitLabel = (lease.unit as unknown as { unit_number: string } | null)?.unit_number ?? 'kitengo chako'
         const amount    = `TZS ${payment.amount_due.toLocaleString()}`
         const dueStr    = new Date(payment.due_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })

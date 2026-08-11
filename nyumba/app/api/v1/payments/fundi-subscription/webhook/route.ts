@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
 
       const planName = planRow?.name ?? 'Mpango'
-      const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
       admin.from('notifications').insert({
         user_id:  activated.fundi_user_id,

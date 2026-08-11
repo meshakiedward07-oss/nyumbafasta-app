@@ -189,7 +189,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
           if (owner.phone) {
             const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
             const msg =
               `💰 *NyumbaFasta — Malipo Yamewasilishwa*\n\n` +
               `Mpangaji amerekodia malipo ya kodi ya *TZS ${Number(amount_tzs).toLocaleString()}*.\n\n` +

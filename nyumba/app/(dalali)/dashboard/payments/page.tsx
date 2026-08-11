@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 /* ─── Types ─────────────────────────────────────────────────── */
 
@@ -61,9 +63,9 @@ function planLabel(plan: string) {
   return plan
 }
 
-function typeLabel(type: string) {
-  if (type === 'extra_listings') return 'Listings za Ziada'
-  if (type === 'upgrade')        return 'Panda Mpango'
+function typeLabel(type: string, t: (k: TKey) => string) {
+  if (type === 'extra_listings') return t('pay_type_extra_listings')
+  if (type === 'upgrade')        return t('pay_type_upgrade')
   return type
 }
 
@@ -77,11 +79,23 @@ const STATUS_STYLE: Record<string, string> = {
   grace_period: 'bg-orange-100 text-orange-700',
 }
 
-function statusBadge(s: string) {
-  const style = STATUS_STYLE[s] ?? 'bg-gray-100 text-gray-500'
+const STATUS_LABEL_KEYS: Record<string, TKey> = {
+  active:       'pay_status_active',
+  completed:    'pay_status_completed',
+  confirmed:    'pay_status_confirmed',
+  pending:      'pay_status_pending',
+  failed:       'pay_status_failed',
+  expired:      'pay_status_expired',
+  grace_period: 'pay_status_grace',
+}
+
+function statusBadge(s: string, t: (k: TKey) => string) {
+  const style    = STATUS_STYLE[s] ?? 'bg-gray-100 text-gray-500'
+  const labelKey = STATUS_LABEL_KEYS[s]
+  const label    = labelKey ? t(labelKey) : s
   return (
     <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${style}`}>
-      {s}
+      {label}
     </span>
   )
 }
@@ -113,6 +127,7 @@ function parseExtraCount(externalId: string | null): number {
 }
 
 function RetryForm({ target, onClose }: { target: RetryTarget; onClose: () => void }) {
+  const { t } = useLanguage()
   const [msisdn,   setMsisdn]   = useState('')
   const [provider, setProvider] = useState('Mpesa')
   const [loading,  setLoading]  = useState(false)
@@ -144,10 +159,10 @@ function RetryForm({ target, onClose }: { target: RetryTarget; onClose: () => vo
         body:    JSON.stringify(body),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Hitilafu imetokea')
-      setMsg({ text: 'Ombi limetumwa. Angalia simu yako.', ok: true })
+      if (!res.ok) throw new Error(json.error ?? t('wiz_err_generic'))
+      setMsg({ text: t('pay_retry_sent'), ok: true })
     } catch (err: unknown) {
-      setMsg({ text: err instanceof Error ? err.message : 'Hitilafu imetokea', ok: false })
+      setMsg({ text: err instanceof Error ? err.message : t('wiz_err_generic'), ok: false })
     } finally {
       setLoading(false)
     }
@@ -155,7 +170,7 @@ function RetryForm({ target, onClose }: { target: RetryTarget; onClose: () => vo
 
   return (
     <form onSubmit={submit} className="mt-2 bg-gray-50 rounded-xl p-3 space-y-2 border border-gray-100">
-      <p className="text-[11px] font-semibold text-gray-600">Jaribu Tena — Weka Nambari ya Simu</p>
+      <p className="text-[11px] font-semibold text-gray-600">{t('pay_retry_title')}</p>
 
       <div className="flex gap-2">
         <input
@@ -191,14 +206,14 @@ function RetryForm({ target, onClose }: { target: RetryTarget; onClose: () => vo
           className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white text-[11px] font-semibold rounded-lg disabled:opacity-50 transition-all active:scale-[0.97]"
         >
           <i className={`ti ti-${loading ? 'loader-2 animate-spin' : 'send'}`} aria-hidden="true" />
-          {loading ? 'Inatuma...' : 'Tuma'}
+          {loading ? t('pay_retry_sending') : t('pay_retry_submit')}
         </button>
         <button
           type="button"
           onClick={onClose}
           className="px-3 py-1.5 text-[11px] text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
         >
-          Funga
+          {t('pay_retry_close')}
         </button>
       </div>
     </form>
@@ -208,6 +223,7 @@ function RetryForm({ target, onClose }: { target: RetryTarget; onClose: () => vo
 /* ─── Cancel Subscription ────────────────────────────────────── */
 
 function CancelButton({ subId, onDone }: { subId: string; onDone: () => void }) {
+  const { t } = useLanguage()
   const [confirm,  setConfirm]  = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [msg,      setMsg]      = useState<string | null>(null)
@@ -221,11 +237,11 @@ function CancelButton({ subId, onDone }: { subId: string; onDone: () => void }) 
         body:    JSON.stringify({ subscription_id: subId }),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Hitilafu')
-      setMsg('Imebatilishwa')
+      if (!res.ok) throw new Error(json.error ?? t('wiz_err_generic'))
+      setMsg(t('pay_cancelled'))
       onDone()
     } catch (err: unknown) {
-      setMsg(err instanceof Error ? err.message : 'Hitilafu')
+      setMsg(err instanceof Error ? err.message : t('wiz_err_generic'))
     } finally {
       setLoading(false)
       setConfirm(false)
@@ -241,27 +257,27 @@ function CancelButton({ subId, onDone }: { subId: string; onDone: () => void }) 
         className="mt-1 flex items-center gap-1 text-[10px] text-red-500 hover:text-red-700 font-semibold transition-colors"
       >
         <i className="ti ti-x" aria-hidden="true" />
-        Batilisha Usajili
+        {t('pay_cancel_sub')}
       </button>
     )
   }
 
   return (
     <div className="mt-2 bg-red-50 rounded-xl p-2.5 border border-red-100 space-y-2">
-      <p className="text-[11px] text-red-700 font-medium">Una uhakika unataka kubatilisha usajili?</p>
+      <p className="text-[11px] text-red-700 font-medium">{t('pay_cancel_confirm')}</p>
       <div className="flex gap-2">
         <button
           onClick={cancel}
           disabled={loading}
           className="px-3 py-1 bg-red-600 text-white text-[11px] font-semibold rounded-lg disabled:opacity-50 active:scale-[0.97] transition-all"
         >
-          {loading ? 'Inabatilisha...' : 'Ndio, Batilisha'}
+          {loading ? t('pay_cancelling') : t('pay_yes_cancel')}
         </button>
         <button
           onClick={() => setConfirm(false)}
           className="px-3 py-1 text-[11px] text-gray-500 rounded-lg hover:text-gray-700 transition-colors"
         >
-          Hapana
+          {t('pay_hapana')}
         </button>
       </div>
     </div>
@@ -271,6 +287,7 @@ function CancelButton({ subId, onDone }: { subId: string; onDone: () => void }) 
 /* ─── Upgrade Modal ──────────────────────────────────────────── */
 
 function UpgradeModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const { t } = useLanguage()
   const [msisdn,   setMsisdn]   = useState('')
   const [provider, setProvider] = useState('Mpesa')
   const [plan,     setPlan]     = useState('premium')
@@ -288,11 +305,11 @@ function UpgradeModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
         body:    JSON.stringify({ to_plan: plan, msisdn, provider }),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Hitilafu')
-      setMsg({ text: 'Ombi limetumwa! Angalia simu yako.', ok: true })
+      if (!res.ok) throw new Error(json.error ?? t('wiz_err_generic'))
+      setMsg({ text: t('pay_upgrade_sent'), ok: true })
       setTimeout(() => { onDone(); onClose() }, 2000)
     } catch (err: unknown) {
-      setMsg({ text: err instanceof Error ? err.message : 'Hitilafu', ok: false })
+      setMsg({ text: err instanceof Error ? err.message : t('wiz_err_generic'), ok: false })
     } finally {
       setLoading(false)
     }
@@ -302,7 +319,7 @@ function UpgradeModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-gray-800 text-sm">Panda Mpango</h3>
+          <h3 className="font-bold text-gray-800 text-sm">{t('pay_upgrade_title')}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <i className="ti ti-x text-lg" aria-hidden="true" />
           </button>
@@ -310,7 +327,7 @@ function UpgradeModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
 
         <form onSubmit={submit} className="space-y-3">
           <div>
-            <label className="text-xs text-gray-500 font-medium block mb-1">Mpango Mpya</label>
+            <label className="text-xs text-gray-500 font-medium block mb-1">{t('pay_new_plan')}</label>
             <select
               value={plan}
               onChange={e => setPlan(e.target.value)}
@@ -322,7 +339,7 @@ function UpgradeModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
           </div>
 
           <div>
-            <label className="text-xs text-gray-500 font-medium block mb-1">Nambari ya Simu</label>
+            <label className="text-xs text-gray-500 font-medium block mb-1">{t('pay_phone_label')}</label>
             <input
               required
               type="tel"
@@ -334,7 +351,7 @@ function UpgradeModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
           </div>
 
           <div>
-            <label className="text-xs text-gray-500 font-medium block mb-1">Mtoa Huduma</label>
+            <label className="text-xs text-gray-500 font-medium block mb-1">{t('pay_provider_label')}</label>
             <select
               value={provider}
               onChange={e => setProvider(e.target.value)}
@@ -358,7 +375,7 @@ function UpgradeModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
             disabled={loading}
             className="w-full py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50 active:scale-[0.98] transition-all"
           >
-            {loading ? 'Inatuma...' : 'Lipa na Panda Mpango'}
+            {loading ? t('pay_retry_sending') : t('pay_upgrade_pay_btn')}
           </button>
         </form>
       </div>
@@ -369,6 +386,7 @@ function UpgradeModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
 /* ─── Main Page ──────────────────────────────────────────────── */
 
 export default function DalaliPaymentsPage() {
+  const { t } = useLanguage()
   const [data,         setData]         = useState<PaymentsData | null>(null)
   const [loading,      setLoading]      = useState(true)
   const [tab,          setTab]          = useState<Tab>('subscriptions')
@@ -392,7 +410,7 @@ export default function DalaliPaymentsPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <i className="ti ti-loader-2 animate-spin text-primary-500 text-3xl" aria-hidden="true" />
-        <p className="text-sm text-gray-400 mt-2">Inapakia historia ya malipo...</p>
+        <p className="text-sm text-gray-400 mt-2">{t('pay_loading')}</p>
       </div>
     </div>
   )
@@ -402,9 +420,9 @@ export default function DalaliPaymentsPage() {
   const extras        = data?.extras ?? []
 
   const tabs: { id: Tab; label: string; count: number }[] = [
-    { id: 'subscriptions', label: 'Usajili',  count: subscriptions.length },
-    { id: 'boosts',        label: 'Boost',    count: boosts.length        },
-    { id: 'extras',        label: 'Mengine',  count: extras.length        },
+    { id: 'subscriptions', label: t('pay_tab_subscriptions'), count: subscriptions.length },
+    { id: 'boosts',        label: t('pay_tab_boosts'),        count: boosts.length        },
+    { id: 'extras',        label: t('pay_tab_extras'),        count: extras.length        },
   ]
 
   const activeBasic = subscriptions.find(s => s.plan === 'basic' && isActive(s.status))
@@ -421,29 +439,29 @@ export default function DalaliPaymentsPage() {
         <div className="bg-white border-b border-gray-100 px-4 pt-10 pb-5">
           <div className="flex items-center gap-3 mb-1">
             <i className="ti ti-credit-card text-primary-500 text-xl" aria-hidden="true" />
-            <h1 className="text-lg font-bold text-gray-800">Historia ya Malipo</h1>
+            <h1 className="text-lg font-bold text-gray-800">{t('pay_header_title')}</h1>
           </div>
-          <p className="text-xs text-gray-400 ml-8">Malipo yako yote kwenye NyumbaFasta</p>
+          <p className="text-xs text-gray-400 ml-8">{t('pay_header_sub')}</p>
         </div>
 
         {/* ── Tabs ── */}
         <div className="bg-white border-b border-gray-100 flex sticky top-0 z-10 shadow-sm">
-          {tabs.map(t => (
+          {tabs.map(tabItem => (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={tabItem.id}
+              onClick={() => setTab(tabItem.id)}
               className={`flex-1 px-3 py-3 text-xs font-semibold transition-colors whitespace-nowrap ${
-                tab === t.id
+                tab === tabItem.id
                   ? 'text-primary-600 border-b-2 border-primary-500 bg-primary-50/30'
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              {t.label}
-              {t.count > 0 && (
+              {tabItem.label}
+              {tabItem.count > 0 && (
                 <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${
-                  tab === t.id ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-500'
+                  tab === tabItem.id ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-500'
                 }`}>
-                  {t.count}
+                  {tabItem.count}
                 </span>
               )}
             </button>
@@ -456,15 +474,15 @@ export default function DalaliPaymentsPage() {
           {tab === 'subscriptions' && activeBasic && (
             <div className="bg-gradient-to-r from-primary-50 to-green-50 rounded-2xl p-4 flex items-center justify-between border border-primary-100">
               <div>
-                <p className="text-xs font-bold text-primary-700">Una Basic Plan</p>
-                <p className="text-[10px] text-primary-500 mt-0.5">Panda kwa Premium kupata faida zaidi</p>
+                <p className="text-xs font-bold text-primary-700">{t('pay_has_basic')}</p>
+                <p className="text-[10px] text-primary-500 mt-0.5">{t('pay_upgrade_prompt')}</p>
               </div>
               <button
                 onClick={() => setUpgradeOpen(true)}
                 className="flex items-center gap-1 px-3 py-2 bg-primary-600 text-white text-xs font-semibold rounded-xl active:scale-[0.97] transition-all"
               >
                 <i className="ti ti-arrow-up-circle" aria-hidden="true" />
-                Panda Mpango
+                {t('pay_upgrade_btn')}
               </button>
             </div>
           )}
@@ -472,7 +490,7 @@ export default function DalaliPaymentsPage() {
           {/* ────── SUBSCRIPTIONS TAB ────── */}
           {tab === 'subscriptions' && (
             subscriptions.length === 0
-              ? <EmptyCard label="Bado haujafanya usajili wowote" icon="ti-credit-card-off" />
+              ? <EmptyCard label={t('pay_no_subscriptions')} icon="ti-credit-card-off" />
               : subscriptions.map(sub => (
                   <div key={sub.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
                     <div className="flex items-start justify-between gap-2">
@@ -489,7 +507,7 @@ export default function DalaliPaymentsPage() {
                         )}
                       </div>
                       <div className="text-right flex-shrink-0 space-y-1">
-                        {statusBadge(sub.status)}
+                        {statusBadge(sub.status, t)}
                         <p className="text-xs font-bold text-gray-700">{fmtMoney(sub.amount_paid)}</p>
                         <p className="text-[10px] text-gray-300">{fmtDate(sub.created_at)}</p>
                       </div>
@@ -505,7 +523,7 @@ export default function DalaliPaymentsPage() {
                           className="flex items-center gap-1 text-[11px] text-primary-600 border border-primary-200 bg-primary-50 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-primary-100 transition-colors"
                         >
                           <i className="ti ti-file-text" aria-hidden="true" />
-                          Risiti
+                          {t('pay_receipt_btn')}
                         </a>
                       )}
 
@@ -519,7 +537,7 @@ export default function DalaliPaymentsPage() {
                           className="flex items-center gap-1 text-[11px] text-amber-700 border border-amber-200 bg-amber-50 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-amber-100 transition-colors"
                         >
                           <i className="ti ti-refresh" aria-hidden="true" />
-                          Jaribu Tena
+                          {t('pay_jaribu_tena')}
                         </button>
                       )}
                     </div>
@@ -537,24 +555,26 @@ export default function DalaliPaymentsPage() {
           {/* ────── BOOSTS TAB ────── */}
           {tab === 'boosts' && (
             boosts.length === 0
-              ? <EmptyCard label="Bado haujolipa boost yoyote" icon="ti-rocket-off" />
+              ? <EmptyCard label={t('pay_no_boosts')} icon="ti-rocket-off" />
               : boosts.map(b => (
                   <div key={b.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <i className="ti ti-rocket text-orange-500 text-sm" aria-hidden="true" />
-                          <p className="text-sm font-bold text-gray-800">Boost · Wiki {b.weeks}</p>
+                          <p className="text-sm font-bold text-gray-800">
+                            {t('pay_boost_weeks').replace('{{n}}', String(b.weeks))}
+                          </p>
                         </div>
                         <p className="text-[10px] text-gray-400 font-mono">
-                          Listing: {b.listing_id.slice(0, 8)}…
+                          {t('pay_boost_listing').replace('{{id}}', b.listing_id.slice(0, 8) + '…')}
                         </p>
                         <p className="text-[10px] text-gray-400 mt-0.5">
-                          Hadi: {fmtDate(b.boosted_until)}
+                          {t('pay_boost_until').replace('{{date}}', fmtDate(b.boosted_until))}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0 space-y-1">
-                        {statusBadge(b.status)}
+                        {statusBadge(b.status, t)}
                         <p className="text-xs font-bold text-gray-700">{fmtMoney(b.amount)}</p>
                         <p className="text-[10px] text-gray-300">{fmtDate(b.created_at)}</p>
                       </div>
@@ -569,7 +589,7 @@ export default function DalaliPaymentsPage() {
                           className="flex items-center gap-1 text-[11px] text-primary-600 border border-primary-200 bg-primary-50 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-primary-100 transition-colors"
                         >
                           <i className="ti ti-file-text" aria-hidden="true" />
-                          Risiti
+                          {t('pay_receipt_btn')}
                         </a>
                       )}
 
@@ -579,7 +599,7 @@ export default function DalaliPaymentsPage() {
                           className="flex items-center gap-1 text-[11px] text-amber-700 border border-amber-200 bg-amber-50 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-amber-100 transition-colors"
                         >
                           <i className="ti ti-refresh" aria-hidden="true" />
-                          Jaribu Tena
+                          {t('pay_jaribu_tena')}
                         </button>
                       )}
                     </div>
@@ -597,21 +617,21 @@ export default function DalaliPaymentsPage() {
           {/* ────── EXTRAS TAB ────── */}
           {tab === 'extras' && (
             extras.length === 0
-              ? <EmptyCard label="Hakuna malipo mengine" icon="ti-box-off" />
+              ? <EmptyCard label={t('pay_no_extras')} icon="ti-box-off" />
               : extras.map(ex => (
                   <div key={ex.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <i className="ti ti-plus-circle text-blue-500 text-sm" aria-hidden="true" />
-                          <p className="text-sm font-bold text-gray-800">{typeLabel(ex.type)}</p>
+                          <p className="text-sm font-bold text-gray-800">{typeLabel(ex.type, t)}</p>
                         </div>
                         {ex.external_id && (
                           <p className="text-[10px] text-gray-300 font-mono">{ex.external_id.slice(0, 18)}</p>
                         )}
                       </div>
                       <div className="text-right flex-shrink-0 space-y-1">
-                        {statusBadge(ex.status)}
+                        {statusBadge(ex.status, t)}
                         <p className="text-xs font-bold text-gray-700">{fmtMoney(ex.amount)}</p>
                         <p className="text-[10px] text-gray-300">{fmtDate(ex.created_at)}</p>
                       </div>
@@ -626,7 +646,7 @@ export default function DalaliPaymentsPage() {
                           className="flex items-center gap-1 text-[11px] text-primary-600 border border-primary-200 bg-primary-50 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-primary-100 transition-colors"
                         >
                           <i className="ti ti-file-text" aria-hidden="true" />
-                          Risiti
+                          {t('pay_receipt_btn')}
                         </a>
                       )}
 
@@ -636,7 +656,7 @@ export default function DalaliPaymentsPage() {
                           className="flex items-center gap-1 text-[11px] text-amber-700 border border-amber-200 bg-amber-50 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-amber-100 transition-colors"
                         >
                           <i className="ti ti-refresh" aria-hidden="true" />
-                          Jaribu Tena
+                          {t('pay_jaribu_tena')}
                         </button>
                       )}
                     </div>
