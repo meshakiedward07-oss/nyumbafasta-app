@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Organization } from '@/lib/types/property'
 import NotificationBell from '@/components/shared/NotificationBell'
-
 function UnreadBadge({ count }: { count: number }) {
   if (count === 0) return null
   return (
