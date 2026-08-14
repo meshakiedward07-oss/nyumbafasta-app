@@ -1,5 +1,6 @@
 'use client'
 import { useState, Suspense, useEffect } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -18,23 +19,16 @@ interface AgreementData {
   checkboxes_checked: Record<string, boolean>
 }
 
-const ROLES: { key: Role; icon: string; label: string; sub: string; badge?: string }[] = [
-  { key: 'client',    icon: 'home-search',     label: 'Natafuta Nyumba',    sub: 'Napenda kupata nyumba au chumba cha kupanga'       },
-  { key: 'dalali',    icon: 'building-store',  label: 'Dalali / Wakala',    sub: 'Napanga au nauza nyumba kwa wateja',  badge: 'Dalali' },
-  { key: 'org_owner', icon: 'building-estate', label: 'Shirika / Mmiliki',  sub: 'Nina jengo/nyumba — nataka mfumo wa kusimamia'    },
-  { key: 'tenant',    icon: 'key',             label: 'Mpangaji',           sub: 'Tayari nina nyumba — nataka kuona malipo yangu'    },
-  { key: 'fundi',     icon: 'tools',           label: 'Fundi / Mchezaji',   sub: 'Nafanya kazi za ukarabati na matengenezo nyumba'  },
-]
-
 function PasswordStrength({ value }: { value: string }) {
+  const { t } = useLanguage()
   if (!value) return null
   const weak   = value.length < 8
   const strong = value.length >= 12 && /[0-9!@#$%^&*]/.test(value)
   const mid    = !weak && !strong
   const pct    = weak ? 33 : mid ? 66 : 100
-  const label  = weak ? 'Dhaifu' : mid ? 'Wastani' : 'Nguvu'
+  const label  = weak ? t('auth_password_strength_weak') : mid ? t('auth_password_strength_fair') : t('auth_password_strength_strong')
   return (
-    <div role="progressbar" aria-valuenow={pct} aria-valuemax={100} aria-valuetext={`Nguvu: ${label}`}
+    <div role="progressbar" aria-valuenow={pct} aria-valuemax={100} aria-valuetext={`${t('auth_password')}: ${label}`}
       className="mt-1.5 flex items-center gap-2">
       <div className="flex gap-1 flex-1">
         <div className={`h-1 flex-1 rounded-full transition-colors ${value.length >= 1 ? 'bg-red-400' : 'bg-gray-200'}`} />
@@ -60,11 +54,20 @@ function FieldInput({ label, icon, children }: { label: string; icon?: string; c
 const INPUT = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300'
 
 function RegisterForm() {
+  const { t, lang }  = useLanguage()
   const supabase     = createClient()
   const router       = useRouter()
   const searchParams = useSearchParams()
 
   const initRole = (searchParams.get('role') as Role | null) ?? 'client'
+
+  const ROLES: { key: Role; icon: string; label: string; sub: string; badge?: string }[] = [
+    { key: 'client',    icon: 'home-search',     label: t('role_client'),    sub: lang === 'en' ? 'Looking for a house or room to rent'      : 'Napenda kupata nyumba au chumba cha kupanga'    },
+    { key: 'dalali',    icon: 'building-store',  label: t('role_dalali'),    sub: lang === 'en' ? 'I rent or sell homes for clients'          : 'Napanga au nauza nyumba kwa wateja', badge: 'Dalali' },
+    { key: 'org_owner', icon: 'building-estate', label: t('role_org_owner'), sub: lang === 'en' ? 'I own a building — I need a management system' : 'Nina jengo/nyumba — nataka mfumo wa kusimamia' },
+    { key: 'tenant',    icon: 'key',             label: t('role_tenant'),    sub: lang === 'en' ? 'Already renting — I want to view my payments'  : 'Tayari nina nyumba — nataka kuona malipo yangu' },
+    { key: 'fundi',     icon: 'tools',           label: t('role_fundi'),     sub: lang === 'en' ? 'I do repair and maintenance work'             : 'Nafanya kazi za ukarabati na matengenezo nyumba' },
+  ]
 
   const [step,    setStep]    = useState<Step>('role')
   const [role,    setRole]    = useState<Role>(initRole)
@@ -106,11 +109,11 @@ function RegisterForm() {
   // ── Error mapper ─────────────────────────────────────────────────────────
   function mapError(msg: string) {
     return msg.includes('user already registered') || msg.includes('already been registered')
-      ? 'Barua pepe hii imeshasajiliwa. Jaribu kuingia.'
+      ? `${t('auth_email_taken')}. ${t('auth_sign_in_instead')}.`
       : msg.includes('invalid email')   ? 'Barua pepe si sahihi. Angalia tena.'
-      : msg.includes('password')        ? 'Nenosiri ni fupi sana — angalau herufi 8.'
+      : msg.includes('password')        ? t('auth_password_min')
       : msg.includes('too many')        ? 'Maombi mengi mfululizo. Subiri dakika chache.'
-      : 'Imeshindwa kusajili. Jaribu tena.'
+      : t('common_error')
   }
 
   // ── Validate details step ────────────────────────────────────────────────
@@ -253,16 +256,16 @@ function RegisterForm() {
           <div className="w-20 h-20 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="ti ti-mail text-4xl text-primary-500" aria-hidden="true" />
           </div>
-          <h2 className="font-bold text-xl text-gray-800 mb-2">Angalia Barua Pepe Yako!</h2>
+          <h2 className="font-bold text-xl text-gray-800 mb-2">{t('auth_check_email')}!</h2>
           <p className="text-gray-500 text-sm mb-1">Tumetuma email ya uthibitisho kwa:</p>
           <p className="font-semibold text-gray-800 mb-5">{regEmail}</p>
           <div className="bg-primary-50 rounded-xl p-4 mb-5 text-left">
             <p className="text-primary-800 text-sm font-medium mb-3">Hatua za kufuata:</p>
             <div className="space-y-2.5">
-              {['Fungua Gmail au email yako', 'Tafuta email kutoka NyumbaFasta', 'Bonyeza "Thibitisha Akaunti Yangu"'].map((t, i) => (
+              {['Fungua Gmail au email yako', 'Tafuta email kutoka NyumbaFasta', 'Bonyeza "Thibitisha Akaunti Yangu"'].map((stepText, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <span className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{i+1}</span>
-                  <p className="text-primary-800 text-xs">{t}</p>
+                  <p className="text-primary-800 text-xs">{stepText}</p>
                 </div>
               ))}
             </div>
@@ -270,7 +273,7 @@ function RegisterForm() {
           <ResendEmailButton email={regEmail} />
           <p className="text-gray-400 text-xs mt-4">Angalia spam/junk folder kama email haionekani</p>
           <button onClick={() => router.push('/login')} className="mt-4 min-h-[44px] px-4 text-primary-500 text-sm underline flex items-center mx-auto">
-            Rudi Login →
+            {t('auth_login_title')} →
           </button>
         </div>
       </div>
@@ -289,9 +292,9 @@ function RegisterForm() {
         <div className="flex-1 px-4 -mt-4 pb-8 max-w-sm mx-auto w-full">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-50">
-              <button onClick={() => setStep('role')} aria-label="Rudi"
+              <button onClick={() => setStep('role')} aria-label={t('common_back')}
                 className="text-gray-400 text-lg min-h-[44px] min-w-[44px] flex items-center justify-center">←</button>
-              <p className="text-sm font-semibold text-gray-800">Akaunti ya Mpangaji</p>
+              <p className="text-sm font-semibold text-gray-800">{t('role_tenant')}</p>
             </div>
             <div className="p-6 space-y-5">
               <div className="text-center">
@@ -312,7 +315,7 @@ function RegisterForm() {
                   <i className="ti ti-check text-white text-xl" aria-hidden="true" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-primary-800 text-sm">Ndio, Nina Akaunti ya Zamani</p>
+                  <p className="font-semibold text-primary-800 text-sm">{t('auth_yes_have_account')}</p>
                   <p className="text-xs text-primary-600 mt-0.5">Badilisha akaunti yangu ya kutafuta nyumba hadi mpangaji</p>
                 </div>
                 <i className="ti ti-arrow-right text-primary-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
@@ -326,7 +329,7 @@ function RegisterForm() {
                   <i className="ti ti-user-plus text-gray-500 text-xl" aria-hidden="true" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-700 text-sm">Hapana, Niunde Akaunti Mpya</p>
+                  <p className="font-semibold text-gray-700 text-sm">{t('auth_no_create_new')}</p>
                   <p className="text-xs text-gray-400 mt-0.5">Sijawahi kutumia NyumbaFasta kutafuta nyumba</p>
                 </div>
                 <i className="ti ti-arrow-right text-gray-300 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
@@ -334,8 +337,8 @@ function RegisterForm() {
             </div>
           </div>
           <p className="text-center text-sm text-gray-500 mt-5">
-            Una akaunti ya portal tayari?{' '}
-            <Link href="/portal/login?type=tenant" className="text-primary-600 font-medium">Ingia hapa</Link>
+            {t('auth_have_account')}{' '}
+            <Link href="/portal/login?type=tenant" className="text-primary-600 font-medium">{t('auth_login_button')}</Link>
           </p>
         </div>
       </div>
@@ -354,9 +357,9 @@ function RegisterForm() {
         <div className="flex-1 px-4 -mt-4 pb-8 max-w-sm mx-auto w-full">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-50">
-              <button onClick={() => { setConvertError(''); setStep('marketplace_check') }} aria-label="Rudi"
+              <button onClick={() => { setConvertError(''); setStep('marketplace_check') }} aria-label={t('common_back')}
                 className="text-gray-400 text-lg min-h-[44px] min-w-[44px] flex items-center justify-center">←</button>
-              <p className="text-sm font-semibold text-gray-800">Badilisha Akaunti ya Zamani</p>
+              <p className="text-sm font-semibold text-gray-800">{t('auth_yes_have_account')}</p>
             </div>
             <div className="p-5 space-y-4">
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
@@ -370,7 +373,7 @@ function RegisterForm() {
                 </div>
               )}
 
-              <FieldInput label="Barua pepe ya akaunti ya zamani" icon="mail">
+              <FieldInput label={t('auth_email')} icon="mail">
                 <input
                   type="email" required autoComplete="email" placeholder="jina@gmail.com"
                   value={convertEmail} onChange={e => setConvertEmail(e.target.value)}
@@ -378,7 +381,7 @@ function RegisterForm() {
                 />
               </FieldInput>
 
-              <FieldInput label="Nenosiri" icon="lock">
+              <FieldInput label={t('auth_password')} icon="lock">
                 <div className="relative">
                   <input
                     type={convertShowPass ? 'text' : 'password'} required autoComplete="current-password"
@@ -386,14 +389,14 @@ function RegisterForm() {
                     className={`${INPUT} pr-11`}
                   />
                   <button type="button" onClick={() => setConvertShowPass(p => !p)}
-                    aria-label={convertShowPass ? 'Ficha' : 'Onyesha'}
+                    aria-label={convertShowPass ? t('auth_hide_pass') : t('auth_show_pass')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
                     <i className={`ti ti-${convertShowPass ? 'eye-off' : 'eye'}`} aria-hidden="true" />
                   </button>
                 </div>
               </FieldInput>
 
-              <FieldInput label="Nambari ya Simu (inayopendekezwa)" icon="phone">
+              <FieldInput label={`${t('auth_phone')} ${t('common_optional')}`} icon="phone">
                 <input
                   type="tel" autoComplete="tel" placeholder="+255 7XX XXX XXX"
                   value={convertPhone} onChange={e => setConvertPhone(e.target.value)}
@@ -408,7 +411,7 @@ function RegisterForm() {
                 className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-primary-600 transition active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 {converting
-                  ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />Inabadilisha...</>
+                  ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />{t('common_loading')}</>
                   : <><i className="ti ti-key" aria-hidden="true" />Badilisha Akaunti Yangu &amp; Ingia</>
                 }
               </button>
@@ -418,7 +421,7 @@ function RegisterForm() {
                   onClick={() => { setConvertError(''); setStep('details') }}
                   className="text-sm text-primary-600 font-medium hover:underline"
                 >
-                  Badala yake, niunde akaunti mpya kabisa →
+                  {t('auth_no_create_new')} →
                 </button>
               </div>
             </div>
@@ -444,7 +447,7 @@ function RegisterForm() {
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl p-6 text-center">
               <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-sm text-gray-600">Inasajili...</p>
+              <p className="text-sm text-gray-600">{t('auth_creating_account')}</p>
             </div>
           </div>
         )}
@@ -455,7 +458,7 @@ function RegisterForm() {
   // ── AGREEMENT — portal roles (inline) ────────────────────────────────────
   if (step === 'agreement' && (role === 'org_owner' || role === 'tenant')) {
     const dest = role === 'org_owner' ? '/property/dashboard' : '/tenant'
-    const roleLabel = role === 'org_owner' ? 'Shirika / Mmiliki' : 'Mpangaji'
+    const roleLabel = t(role === 'org_owner' ? 'role_org_owner' : 'role_tenant')
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <div className="bg-primary-500 px-4 pt-10 pb-8 flex justify-center">
@@ -466,7 +469,7 @@ function RegisterForm() {
         <div className="flex-1 px-4 -mt-4 pb-8">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-50">
-              <button onClick={() => { setStep('details'); setError('') }} aria-label="Rudi"
+              <button onClick={() => { setStep('details'); setError('') }} aria-label={t('common_back')}
                 className="text-gray-400 text-lg min-h-[44px] min-w-[44px] flex items-center justify-center">←</button>
               <p className="text-sm font-semibold text-gray-800">Masharti — {roleLabel}</p>
             </div>
@@ -499,13 +502,13 @@ function RegisterForm() {
                     className="w-5 h-5 rounded border-gray-300 text-primary-500 focus:ring-primary-300" />
                 </span>
                 <span className="text-sm text-gray-700">
-                  Nimesoma na nakubaliana na <span className="text-primary-600 font-medium">masharti ya matumizi</span> ya NyumbaFasta.
+                  {t('auth_agree_terms')}
                 </span>
               </label>
 
               <button onClick={handlePortalSignup} disabled={!agreed || loading}
                 className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-600 transition active:scale-[0.98]">
-                {loading ? 'Inasajili...' : `Unda Akaunti ya ${roleLabel} →`}
+                {loading ? t('auth_creating_account') : `${t('auth_create_account_for')} ${roleLabel} →`}
               </button>
               <p className="text-xs text-gray-400 text-center">
                 Baada ya kusajili utapelekwa kwenye{' '}
@@ -532,7 +535,7 @@ function RegisterForm() {
         {/* ── STEP 1: Role selection ──────────────────────────────────────── */}
         {step === 'role' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h2 className="text-base font-bold text-gray-900 text-center mb-0.5">Wewe ni nani?</h2>
+            <h2 className="text-base font-bold text-gray-900 text-center mb-0.5">{t('auth_choose_role')}</h2>
             <p className="text-xs text-gray-400 text-center mb-5">Chagua aina ya akaunti inayokufaa</p>
 
             <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 mb-5">
@@ -592,7 +595,7 @@ function RegisterForm() {
 
             <button onClick={() => setStep(role === 'tenant' ? 'marketplace_check' : 'details')}
               className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-xl text-sm font-semibold hover:bg-primary-600 transition active:scale-[0.98]">
-              Endelea →
+              {t('common_next')} →
             </button>
           </div>
         )}
@@ -601,14 +604,15 @@ function RegisterForm() {
         {step === 'details' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-50">
-              <button onClick={() => { setStep('role'); setError('') }} aria-label="Rudi nyuma"
+              <button onClick={() => { setStep('role'); setError('') }} aria-label={t('common_back')}
                 className="text-gray-400 text-lg min-h-[44px] min-w-[44px] flex items-center justify-center">←</button>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-800">
-                  {role === 'client'    ? 'Akaunti ya Mtafutaji'   :
-                   role === 'dalali'    ? 'Akaunti ya Dalali'      :
-                   role === 'org_owner' ? 'Akaunti ya Shirika/PM'  :
-                   role === 'tenant'    ? 'Akaunti ya Mpangaji'    : ''}
+                  {`${t('auth_create_account_for')} ${t(
+                    role === 'client'    ? 'role_client'    :
+                    role === 'dalali'    ? 'role_dalali'    :
+                    role === 'org_owner' ? 'role_org_owner' : 'role_tenant'
+                  )}`}
                 </p>
               </div>
               {/* Step dots */}
@@ -627,23 +631,23 @@ function RegisterForm() {
               <form onSubmit={e => { e.preventDefault(); const err = validate(); if (err) { setError(err); return } setError(''); proceedToAgreement('email') }} className="space-y-4">
 
                 {/* Common fields */}
-                <FieldInput label="Jina lako kamili" icon="user">
+                <FieldInput label={t('auth_fullname')} icon="user">
                   <input type="text" required autoComplete="name" placeholder="Jina Bingwa"
                     value={fullName} onChange={e => setFullName(e.target.value)} className={INPUT} />
                 </FieldInput>
 
-                <FieldInput label="Barua pepe" icon="mail">
+                <FieldInput label={t('auth_email')} icon="mail">
                   <input type="email" required autoComplete="email" placeholder="jina@gmail.com"
                     value={email} onChange={e => setEmail(e.target.value)} className={INPUT} />
                 </FieldInput>
 
-                <FieldInput label="Nenosiri" icon="lock">
+                <FieldInput label={t('auth_password')} icon="lock">
                   <div className="relative">
                     <input type={showPass ? 'text' : 'password'} required minLength={8} autoComplete="new-password"
                       placeholder="Angalau herufi 8" value={password} onChange={e => setPassword(e.target.value)}
                       className={`${INPUT} pr-11`} />
                     <button type="button" onClick={() => setShowPass(p => !p)}
-                      aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
+                      aria-label={showPass ? t('auth_hide_pass') : t('auth_show_pass')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
                       <i className={`ti ti-${showPass ? 'eye-off' : 'eye'}`} aria-hidden="true" />
                     </button>
@@ -653,7 +657,7 @@ function RegisterForm() {
 
                 {/* Dalali extra — WhatsApp */}
                 {role === 'dalali' && (
-                  <FieldInput label="Nambari ya WhatsApp *">
+                  <FieldInput label={`${t('auth_phone')} (WhatsApp) *`}>
                     <div className="flex gap-2">
                       <span className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">+255</span>
                       <input type="tel" inputMode="numeric" required autoComplete="tel" placeholder="712 345 678"
@@ -671,7 +675,7 @@ function RegisterForm() {
 
                 {/* Org owner / tenant extra — phone */}
                 {(role === 'org_owner' || role === 'tenant') && (
-                  <FieldInput label="Nambari ya Simu / WhatsApp *" icon="phone">
+                  <FieldInput label={`${t('auth_phone')} *`} icon="phone">
                     <input type="tel" required autoComplete="tel" placeholder="+255 7XX XXX XXX"
                       value={phone} onChange={e => setPhone(e.target.value)} className={INPUT} />
                   </FieldInput>
@@ -704,7 +708,7 @@ function RegisterForm() {
 
                 <button type="submit" disabled={loading}
                   className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-primary-600 transition active:scale-[0.98]">
-                  {loading ? 'Inaendelea...' : 'Endelea →'}
+                  {loading ? t('common_loading') : `${t('common_next')} →`}
                 </button>
 
                 {/* Google — marketplace only */}
@@ -712,7 +716,7 @@ function RegisterForm() {
                   <>
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-px bg-gray-100" />
-                      <span className="text-xs text-gray-400">au</span>
+                      <span className="text-xs text-gray-400">{t('common_or')}</span>
                       <div className="flex-1 h-px bg-gray-100" />
                     </div>
                     <button type="button"
@@ -725,7 +729,7 @@ function RegisterForm() {
                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                       </svg>
-                      {!fullName.trim() ? 'Weka jina kwanza' : 'Sajili na Google'}
+                      {!fullName.trim() ? 'Weka jina kwanza' : t('auth_google')}
                     </button>
                   </>
                 )}
@@ -737,8 +741,8 @@ function RegisterForm() {
         {/* Login link */}
         {(step === 'role' || step === 'details') && (
           <p className="text-center text-sm text-gray-500 mt-5">
-            Una akaunti tayari?{' '}
-            <Link href="/login" className="text-primary-600 font-medium">Ingia hapa</Link>
+            {t('auth_have_account')}{' '}
+            <Link href="/login" className="text-primary-600 font-medium">{t('auth_login_button')}</Link>
           </p>
         )}
 

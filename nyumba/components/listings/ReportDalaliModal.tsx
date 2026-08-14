@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 const REPORT_REASONS = [
   { value: 'Anaomba pesa nje ya app', icon: 'alert-triangle' },
@@ -17,6 +18,7 @@ type Props = {
 }
 
 export default function ReportDalaliModal({ listingId, dalaliName, onClose }: Props) {
+  const { t } = useLanguage()
   const [reason, setReason]   = useState('')
   const [details, setDetails] = useState('')
   const [loading, setLoading] = useState(false)
@@ -57,22 +59,22 @@ export default function ReportDalaliModal({ listingId, dalaliName, onClose }: Pr
         {done ? (
           <div className="px-6 pt-2 text-center pb-4">
             <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></div>
-            <h2 className="text-base font-bold text-gray-900 mb-2">Ripoti Imetumwa!</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-2">{t('cl_report_sent')}</h2>
             <p className="text-sm text-gray-500 mb-5">
-              Asante kwa kutuarifu. Timu yetu itaangalia ripoti yako ndani ya saa 24.
+              {t('cl_report_sent_body')}
             </p>
             <button
               onClick={onClose}
               className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold"
             >
-              Funga
+              {t('common_close')}
             </button>
           </div>
         ) : (
           <div className="px-6 pt-2">
-            <h2 className="text-base font-bold text-gray-900 mb-1 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />Ripoti Dalali</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-1 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />{t('cl_report_agent_title')}</h2>
             <p className="text-xs text-gray-400 mb-4">
-              Dalali: <span className="font-medium text-gray-600">{dalaliName}</span>
+              {t('cl_agent_label')} <span className="font-medium text-gray-600">{dalaliName}</span>
             </p>
 
             {error && (
@@ -82,7 +84,7 @@ export default function ReportDalaliModal({ listingId, dalaliName, onClose }: Pr
             )}
 
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-              Chagua sababu:
+              {t('cl_choose_reason')}
             </p>
             <div className="space-y-2 mb-4">
               {REPORT_REASONS.map(r => (
@@ -105,9 +107,9 @@ export default function ReportDalaliModal({ listingId, dalaliName, onClose }: Pr
             </div>
 
             <div className="mb-5">
-              <label className="text-xs text-gray-500 mb-1.5 block">Maelezo ya ziada (optional)</label>
+              <label className="text-xs text-gray-500 mb-1.5 block">{t('cl_extra_details')}</label>
               <textarea
-                placeholder="Elezea zaidi hali uliyoona..."
+                placeholder={t('cl_details_placeholder')}
                 value={details}
                 onChange={e => setDetails(e.target.value)}
                 rows={2}
@@ -126,12 +128,12 @@ export default function ReportDalaliModal({ listingId, dalaliName, onClose }: Pr
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Inatuma...
+                  {t('common_sending')}
                 </span>
-              ) : 'Tuma Ripoti'}
+              ) : t('cl_submit_report')}
             </button>
             <button onClick={onClose} className="w-full py-3 text-sm text-gray-400">
-              Ghairi
+              {t('common_cancel')}
             </button>
           </div>
         )}

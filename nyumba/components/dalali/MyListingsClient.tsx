@@ -9,17 +9,33 @@ import QuickEditModal from '@/components/dalali/QuickEditModal'
 import ListingAnalyticsCard from '@/components/dalali/ListingAnalyticsCard'
 import { ListingDeadlineBanner } from '@/components/dalali/ListingDeadlineBanner'
 import type { Listing } from '@/lib/types/database'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-  active:   { label: 'Inapatikana',  cls: 'bg-primary-50 text-primary-700' },
-  pending:  { label: 'Inasubiri',    cls: 'bg-blue-50 text-blue-700' },
-  taken:    { label: 'Imepangishwa', cls: 'bg-amber-50 text-amber-700' },
-  expired:  { label: 'Imeisha',      cls: 'bg-gray-100 text-gray-500' },
-  rejected: { label: 'Ilikataliwa',  cls: 'bg-red-50 text-red-600' },
+const STATUS_CLS: Record<string, string> = {
+  active:   'bg-primary-50 text-primary-700',
+  pending:  'bg-blue-50 text-blue-700',
+  taken:    'bg-amber-50 text-amber-700',
+  expired:  'bg-gray-100 text-gray-500',
+  rejected: 'bg-red-50 text-red-600',
 }
 
-const TYPE: Record<string, string> = {
-  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
+const STATUS_KEYS: Record<string, TKey> = {
+  active: 'my_status_active', pending: 'my_status_pending', taken: 'my_status_taken',
+  expired: 'my_status_expired', rejected: 'my_status_rejected',
+}
+
+const TYPE_KEYS: Record<string, TKey> = {
+  chumba: 'my_type_chumba', apartment: 'my_type_apartment', nyumba: 'my_type_nyumba',
+  studio: 'my_type_studio', duka: 'my_type_duka',
+}
+
+function getTypeName(type: string, t: (k: TKey) => string): string {
+  return TYPE_KEYS[type] ? t(TYPE_KEYS[type]) : type
+}
+
+function getStatusLabel(status: string, t: (k: TKey) => string): string {
+  return STATUS_KEYS[status] ? t(STATUS_KEYS[status]) : status
 }
 
 function fmt(n: number) {
@@ -35,10 +51,11 @@ function daysLeft(expiresAt: string | null): number {
 
 // ── Expiry Badge ──────────────────────────────────────────
 function ListingExpiryBadge({ expiresAt, status }: { expiresAt: string | null; status: string }) {
+  const { t } = useLanguage()
   if (status === 'expired') {
     return (
       <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
-        <i className="ti ti-circle-x" aria-hidden="true" /> Imekwisha
+        <i className="ti ti-circle-x" aria-hidden="true" /> {t('my_expired_label')}
       </span>
     )
   }
@@ -46,22 +63,22 @@ function ListingExpiryBadge({ expiresAt, status }: { expiresAt: string | null; s
   const days = daysLeft(expiresAt)
   if (days <= 7) return (
     <span suppressHydrationWarning className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium animate-pulse">
-      <i className="ti ti-circle-dot" aria-hidden="true" /> Siku {days} tu!
+      <i className="ti ti-circle-dot" aria-hidden="true" /> {t('my_days_urgent').replace('{{n}}', String(days))}
     </span>
   )
   if (days <= 14) return (
     <span suppressHydrationWarning className="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full font-medium">
-      <i className="ti ti-alert-triangle" aria-hidden="true" /> Siku {days}
+      <i className="ti ti-alert-triangle" aria-hidden="true" /> {t('my_days_remaining').replace('{{n}}', String(days))}
     </span>
   )
   if (days <= 30) return (
     <span suppressHydrationWarning className="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full font-medium">
-      <i className="ti ti-clock" aria-hidden="true" /> Siku {days}
+      <i className="ti ti-clock" aria-hidden="true" /> {t('my_days_remaining').replace('{{n}}', String(days))}
     </span>
   )
   return (
     <span suppressHydrationWarning className="bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full">
-      <i className="ti ti-circle-check" aria-hidden="true" /> Siku {days}
+      <i className="ti ti-circle-check" aria-hidden="true" /> {t('my_days_remaining').replace('{{n}}', String(days))}
     </span>
   )
 }
@@ -69,6 +86,7 @@ function ListingExpiryBadge({ expiresAt, status }: { expiresAt: string | null; s
 // ── Renew Button ──────────────────────────────────────────
 function RenewButton({ listing, onRenewed, autoOpen }: { listing: Listing; onRenewed: () => void; autoOpen?: boolean }) {
   const supabase = createClient()
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(!!autoOpen)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
@@ -92,7 +110,7 @@ function RenewButton({ listing, onRenewed, autoOpen }: { listing: Listing; onRen
       })
       if (error) throw error
       setShowModal(false)
-      showToast(`"${listing.title || `${TYPE[listing.type]} — ${listing.district}`}" imehuishwa kwa siku 90!`, true)
+      showToast(`"${listing.title || `${getTypeName(listing.type, t)} — ${listing.district}`}" ${t('my_renew_success')}`, true)
       onRenewed()
     } catch (err) {
       showToast('Kosa: ' + String(err), false)
@@ -112,7 +130,7 @@ function RenewButton({ listing, onRenewed, autoOpen }: { listing: Listing; onRen
           listing.status === 'expired' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white'
         }`}
       >
-        <i className="ti ti-refresh" aria-hidden="true" /> Huisha
+        <i className="ti ti-refresh" aria-hidden="true" /> {t('my_renew_btn')}
       </button>
 
       {/* Toast */}
@@ -134,41 +152,39 @@ function RenewButton({ listing, onRenewed, autoOpen }: { listing: Listing; onRen
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4 sm:hidden" />
-            <h3 className="font-bold text-lg mb-2 flex items-center gap-1.5"><i className="ti ti-refresh" aria-hidden="true" /> Huisha Listing</h3>
+            <h3 className="font-bold text-lg mb-2 flex items-center gap-1.5"><i className="ti ti-refresh" aria-hidden="true" /> {t('my_renew_title')}</h3>
 
             {/* Listing preview */}
             <div className="bg-gray-50 rounded-xl p-3 mb-4">
               <p className="font-medium text-sm">
-                {listing.title || `${TYPE[listing.type] || listing.type} — ${listing.district}`}
+                {listing.title || `${getTypeName(listing.type, t)} — ${listing.district}`}
               </p>
               <p className="text-gray-500 text-xs mt-0.5 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" /> {listing.district}, {listing.region}</p>
               <p className="text-primary-500 font-semibold text-sm mt-1">
-                Tsh {listing.price_monthly?.toLocaleString()}/mwezi
+                Tsh {listing.price_monthly?.toLocaleString()}{t('my_per_month')}
               </p>
             </div>
 
             {/* Info */}
             <div className="space-y-2 mb-4">
-              {[
-                'Picha na maelezo yanabaki kama yalivyo',
-                'Bei inabaki kama ilivyo',
-                'Itaonekana kwa wateja kwa siku 90 zaidi',
-              ].map(txt => (
-                <div key={txt} className="flex items-center gap-2 text-sm">
+              {([
+                'my_renew_info1', 'my_renew_info2', 'my_renew_info3',
+              ] as const).map(key => (
+                <div key={key} className="flex items-center gap-2 text-sm">
                   <i className="ti ti-check text-green-500" aria-hidden="true" />
-                  <span className="text-gray-600">{txt}</span>
+                  <span className="text-gray-600">{t(key)}</span>
                 </div>
               ))}
               <div className="flex items-center gap-2 text-sm">
                 <i className="ti ti-info-circle text-blue-500" aria-hidden="true" />
-                <span className="text-gray-600">Hii ni bure — inahuisha muda tu</span>
+                <span className="text-gray-600">{t('my_renew_free')}</span>
               </div>
             </div>
 
             {/* New expiry */}
             <div suppressHydrationWarning className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-center">
-              <p className="text-green-700 text-sm font-medium">Baada ya kuhuisha:</p>
-              <p className="text-green-600 text-xs mt-0.5">Itaisha {renewDate}</p>
+              <p className="text-green-700 text-sm font-medium">{t('my_renew_after')}</p>
+              <p className="text-green-600 text-xs mt-0.5">{t('my_renew_expires').replace('{{date}}', renewDate)}</p>
             </div>
 
             {/* Buttons */}
@@ -177,14 +193,14 @@ function RenewButton({ listing, onRenewed, autoOpen }: { listing: Listing; onRen
                 onClick={() => setShowModal(false)}
                 className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium"
               >
-                Ghairi
+                {t('common_cancel')}
               </button>
               <button
                 onClick={handleRenew}
                 disabled={loading}
                 className="flex-1 py-3 rounded-xl bg-primary-500 text-white text-sm font-bold disabled:opacity-50"
               >
-                {loading ? 'Inahuisha...' : <><i className="ti ti-circle-check" aria-hidden="true" /> Huisha Sasa</>}
+                {loading ? t('my_renewing') : <><i className="ti ti-circle-check" aria-hidden="true" /> {t('my_renew_now_btn')}</>}
               </button>
             </div>
           </div>
@@ -203,6 +219,7 @@ type SlotInfo = { current: number; limit: number; plan: string | null } | null
 
 export default function MyListingsClient({ listings: initial, autoRenewId }: { listings: Listing[]; autoRenewId?: string }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [listings, setListings] = useState(initial)
   const [apiLoading, setApiLoading] = useState(true)
   const [slotInfo, setSlotInfo] = useState<SlotInfo>(null)
@@ -277,7 +294,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
       })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
-        alert(d.error ?? 'Imeshindwa kubadilisha hali ya listing')
+        alert(d.error ?? t('my_err_status'))
         return
       }
       setListings(prev => prev.map(l => l.id === id ? { ...l, status } : l))
@@ -292,7 +309,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
     try {
       const res  = await fetch(`/api/v1/listings/${id}/duplicate`, { method: 'POST' })
       const data = await res.json()
-      if (!res.ok) { alert(data.error ?? 'Imeshindwa kunakili'); return }
+      if (!res.ok) { alert(data.error ?? t('my_err_duplicate')); return }
       router.refresh()
     } finally { setDuplicating(null) }
   }
@@ -305,13 +322,13 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
       const res = await fetch(`/api/v1/listings/${id}`, { method: 'DELETE' })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
-        setDeleteError(json.error ?? 'Imeshindwa kufuta. Jaribu tena.')
+        setDeleteError(json.error ?? t('my_err_delete'))
         return
       }
       setListings(prev => prev.filter(l => l.id !== id))
       router.refresh()
     } catch {
-      setDeleteError('Hitilafu ya mtandao. Jaribu tena.')
+      setDeleteError(t('my_err_network'))
     } finally {
       setLoading(null)
     }
@@ -346,9 +363,9 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
       <div className="bg-primary-500 px-4 pb-4" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-white text-lg font-bold">Listings Zangu</h1>
+            <h1 className="text-white text-lg font-bold">{t('my_listings_title')}</h1>
             <p className="text-green-100 text-xs">
-              {activeCount} zinafanya kazi · {pendingCount} zinasubiri
+              {activeCount} {t('my_active_working')} · {pendingCount} {t('my_pending_waiting')}
             </p>
             {slotInfo && (
               <div className="flex items-center gap-1.5 mt-1">
@@ -359,7 +376,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                   />
                 </div>
                 <span className="text-[10px] text-green-100 font-medium">
-                  {slotInfo.current}/{slotInfo.limit} slots
+                  {slotInfo.current}/{slotInfo.limit} {t('my_slots_label')}
                 </span>
               </div>
             )}
@@ -368,27 +385,27 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
             href="/dashboard/listings/new"
             className="flex items-center gap-1 bg-white text-primary-600 text-xs font-semibold px-3 py-2 rounded-full"
           >
-            <i className="ti ti-circle-plus" aria-hidden="true" /> Ongeza
+            <i className="ti ti-circle-plus" aria-hidden="true" /> {t('my_add_btn')}
           </Link>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {([
-            { key: 'all',     label: `Zote (${listings.length})` },
-            { key: 'active',  label: `Zinaendelea (${listings.filter(l => l.status !== 'expired').length})` },
-            { key: 'expired', label: `Zilizokwisha (${expiredCount})` },
-          ] as { key: Tab; label: string }[]).map(t => (
+            { key: 'all',     label: `${t('my_tab_all')} (${listings.length})` },
+            { key: 'active',  label: `${t('my_tab_active')} (${listings.filter(l => l.status !== 'expired').length})` },
+            { key: 'expired', label: `${t('my_tab_expired')} (${expiredCount})` },
+          ] as { key: Tab; label: string }[]).map(tb => (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+              key={tb.key}
+              onClick={() => setTab(tb.key)}
               className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
-                tab === t.key
+                tab === tb.key
                   ? 'bg-white text-primary-700'
                   : 'bg-white/20 text-white'
               }`}
             >
-              {t.label}
+              {tb.label}
             </button>
           ))}
         </div>
@@ -424,16 +441,16 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
               <i className="ti ti-eye-off text-amber-600 text-lg" aria-hidden="true" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-amber-800 text-sm">Huna listing hai sasa hivi</p>
+              <p className="font-bold text-amber-800 text-sm">{t('my_no_active_title')}</p>
               <p className="text-xs text-amber-700 mt-0.5 leading-snug">
-                Wateja hawawezi kukupata. Ongeza listing mpya au subiri idhini ya iliyowasilishwa.
+                {t('my_no_active_desc')}
               </p>
             </div>
             <Link
               href="/dashboard/listings/new"
               className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 active:scale-[0.97] text-white text-xs font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all"
             >
-              Ongeza
+              {t('my_add_btn')}
             </Link>
           </div>
         )}
@@ -452,19 +469,19 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
           return (
             <div className="bg-white rounded-2xl border border-gray-100 p-3 flex gap-2">
               <div className="flex-1 bg-primary-50 rounded-xl p-2.5 text-center">
-                <p className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-0.5"><i className="ti ti-flame" aria-hidden="true" /> Inafanya vizuri</p>
+                <p className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-0.5"><i className="ti ti-flame" aria-hidden="true" /> {t('my_perf_good')}</p>
                 <p className="text-xs font-semibold text-gray-800 truncate">
-                  {TYPE[best.type] || best.type} — {best.district}
+                  {getTypeName(best.type, t)} — {best.district}
                 </p>
-                <p className="text-[10px] text-primary-600">{best.view_count ?? 0} waliotazama</p>
+                <p className="text-[10px] text-primary-600">{best.view_count ?? 0} {t('my_views_label')}</p>
               </div>
               {worst.id !== best.id && (
                 <div className="flex-1 bg-amber-50 rounded-xl p-2.5 text-center">
-                  <p className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-0.5"><i className="ti ti-bulb" aria-hidden="true" /> Inahitaji nguvu</p>
+                  <p className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-0.5"><i className="ti ti-bulb" aria-hidden="true" /> {t('my_perf_needs')}</p>
                   <p className="text-xs font-semibold text-gray-800 truncate">
-                    {TYPE[worst.type] || worst.type} — {worst.district}
+                    {getTypeName(worst.type, t)} — {worst.district}
                   </p>
-                  <p className="text-[10px] text-amber-600">{worst.view_count ?? 0} waliotazama</p>
+                  <p className="text-[10px] text-amber-600">{worst.view_count ?? 0} {t('my_views_label')}</p>
                 </div>
               )}
             </div>
@@ -476,26 +493,26 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
             {tab === 'expired' ? (
               <>
                 <div className="text-5xl mb-3"><i className="ti ti-circle-check text-5xl text-green-400" aria-hidden="true" /></div>
-                <p className="text-sm text-gray-600 font-medium">Hakuna listings zilizokwisha</p>
-                <p className="text-xs text-gray-400 mt-1">Vizuri sana — listings zako ziko active!</p>
+                <p className="text-sm text-gray-600 font-medium">{t('my_no_expired_title')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('my_no_expired_sub')}</p>
               </>
             ) : (
               <>
                 <div className="text-5xl mb-3"><i className="ti ti-home-2 text-5xl text-gray-300" aria-hidden="true" /></div>
-                <p className="text-sm text-gray-600 font-medium mb-1">Bado hujaweka listing yoyote</p>
-                <p className="text-xs text-gray-400 mb-5">Anza sasa — wateja wanangoja!</p>
+                <p className="text-sm text-gray-600 font-medium mb-1">{t('my_empty_title')}</p>
+                <p className="text-xs text-gray-400 mb-5">{t('my_empty_sub')}</p>
                 <Link
                   href="/dashboard/listings/new"
                   className="inline-block bg-primary-500 text-white text-sm font-semibold px-6 py-3 rounded-2xl"
                 >
-                  <i className="ti ti-circle-plus" aria-hidden="true" /> Ongeza Listing ya Kwanza
+                  <i className="ti ti-circle-plus" aria-hidden="true" /> {t('my_empty_btn')}
                 </Link>
               </>
             )}
           </div>
         ) : (
           displayed.map(listing => {
-            const cfg       = STATUS[listing.status] ?? { label: listing.status, cls: 'bg-gray-100 text-gray-500' }
+            const cfg       = { label: getStatusLabel(listing.status, t), cls: STATUS_CLS[listing.status] ?? 'bg-gray-100 text-gray-500' }
             const isLoading = loading === listing.id
             const isExpired = listing.status === 'expired'
 
@@ -509,7 +526,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                 {/* Expired banner */}
                 {isExpired && (
                   <div className="bg-red-50 px-3 py-2 flex items-center justify-between">
-                    <p className="text-red-600 text-xs font-medium flex items-center gap-1"><i className="ti ti-circle-x" aria-hidden="true" /> Imekwisha — haionekani kwa wateja</p>
+                    <p className="text-red-600 text-xs font-medium flex items-center gap-1"><i className="ti ti-circle-x" aria-hidden="true" /> {t('my_expired_banner')}</p>
                     <RenewButton listing={listing} onRenewed={refreshListings} />
                   </div>
                 )}
@@ -524,7 +541,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                     )}
                     {listing.status === 'taken' && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <span className="text-white text-[10px] font-bold">IMEPANGISHWA</span>
+                        <span className="text-white text-[10px] font-bold">{t('my_taken_overlay')}</span>
                       </div>
                     )}
                   </div>
@@ -532,7 +549,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-0.5">
                       <p className="text-sm font-semibold text-gray-900 truncate">
-                        {TYPE[listing.type] || listing.type} — {listing.district}
+                        {getTypeName(listing.type, t)} — {listing.district}
                       </p>
                       {/* ⋮ dots menu */}
                       <div className="relative flex-shrink-0" ref={openMenu === listing.id ? menuRef : undefined}>
@@ -550,14 +567,14 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                               onClick={() => setOpenMenu(null)}
                               className="flex items-center gap-3 px-4 py-3.5 text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-50"
                             >
-                              <i className="ti ti-eye text-base text-gray-400" aria-hidden="true" /> Angalia Listing
+                              <i className="ti ti-eye text-base text-gray-400" aria-hidden="true" /> {t('my_menu_view')}
                             </Link>
                             <Link
                               href={`/listings/${listing.id}/edit`}
                               onClick={() => setOpenMenu(null)}
                               className="flex items-center gap-3 px-4 py-3.5 text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-50"
                             >
-                              <i className="ti ti-pencil text-base text-gray-400" aria-hidden="true" /> Hariri Listing
+                              <i className="ti ti-pencil text-base text-gray-400" aria-hidden="true" /> {t('my_menu_edit')}
                             </Link>
 
                             <button
@@ -566,18 +583,18 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                               className="flex items-center gap-3 px-4 py-3.5 text-sm text-blue-600 hover:bg-blue-50 active:bg-blue-50 w-full text-left disabled:opacity-50"
                             >
                               <i className="ti ti-copy text-base text-blue-400" aria-hidden="true" />
-                              {duplicating === listing.id ? 'Inanakili...' : 'Nakili Listing'}
+                              {duplicating === listing.id ? t('my_menu_duplicating') : t('my_menu_duplicate')}
                             </button>
 
                             {listing.status === 'active' && (
                               <button
                                 onClick={() => {
                                   setOpenMenu(null)
-                                  setDialog({ type: 'taken', listingId: listing.id, title: `${TYPE[listing.type]} — ${listing.district}` })
+                                  setDialog({ type: 'taken', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })
                                 }}
                                 className="flex items-center gap-3 px-4 py-3.5 text-sm text-amber-700 hover:bg-amber-50 active:bg-amber-50 w-full text-left"
                               >
-                                <i className="ti ti-circle-dot text-base text-amber-500" aria-hidden="true" /> Imepangishwa
+                                <i className="ti ti-circle-dot text-base text-amber-500" aria-hidden="true" /> {t('my_menu_taken')}
                               </button>
                             )}
 
@@ -585,11 +602,11 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                               <button
                                 onClick={() => {
                                   setOpenMenu(null)
-                                  setDialog({ type: 'available', listingId: listing.id, title: `${TYPE[listing.type]} — ${listing.district}` })
+                                  setDialog({ type: 'available', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })
                                 }}
                                 className="flex items-center gap-3 px-4 py-3.5 text-sm text-primary-700 hover:bg-primary-50 active:bg-primary-50 w-full text-left"
                               >
-                                <i className="ti ti-circle-check text-base text-primary-500" aria-hidden="true" /> Inapatikana tena
+                                <i className="ti ti-circle-check text-base text-primary-500" aria-hidden="true" /> {t('my_menu_available')}
                               </button>
                             )}
 
@@ -597,11 +614,11 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                               <button
                                 onClick={() => {
                                   setOpenMenu(null)
-                                  setDialog({ type: 'delete', listingId: listing.id, title: `${TYPE[listing.type]} — ${listing.district}` })
+                                  setDialog({ type: 'delete', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })
                                 }}
                                 className="flex items-center gap-3 px-4 py-3.5 text-sm text-red-500 hover:bg-red-50 active:bg-red-50 w-full text-left"
                               >
-                                <i className="ti ti-trash text-base" aria-hidden="true" /> Futa Listing
+                                <i className="ti ti-trash text-base" aria-hidden="true" /> {t('my_menu_delete')}
                               </button>
                             </div>
                           </div>
@@ -614,7 +631,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                     </span>
 
                     <p className="text-primary-600 font-bold text-xs mb-1">
-                      Tsh {fmt(listing.price_monthly)} / mwezi
+                      Tsh {fmt(listing.price_monthly)} {t('my_per_month')}
                     </p>
                     <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
                       <span className="flex items-center gap-0.5"><i className="ti ti-eye" aria-hidden="true" /> {listing.view_count ?? 0}</span>
@@ -622,7 +639,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                       <span className="flex items-center gap-0.5"><i className="ti ti-phone" aria-hidden="true" /> {listing.lead_count ?? 0}</span>
                       {listing.is_boosted && (
                         <span className="text-yellow-600 font-semibold" suppressHydrationWarning>
-                          <i className="ti ti-rocket" aria-hidden="true" /> Imeimarishwa
+                          <i className="ti ti-rocket" aria-hidden="true" /> {t('my_boosted_label')}
                         </span>
                       )}
                     </div>
@@ -642,21 +659,21 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                   <div className="flex border-t border-gray-100">
                     {listing.status === 'active' ? (
                       <button
-                        onClick={() => setDialog({ type: 'taken', listingId: listing.id, title: `${TYPE[listing.type]} — ${listing.district}` })}
+                        onClick={() => setDialog({ type: 'taken', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })}
                         disabled={isLoading}
                         className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-amber-700 active:bg-amber-50 transition-colors"
                       >
                         <i className="ti ti-circle-dot text-base" aria-hidden="true" />
-                        Imepangishwa
+                        {t('my_btn_taken')}
                       </button>
                     ) : (
                       <button
-                        onClick={() => setDialog({ type: 'available', listingId: listing.id, title: `${TYPE[listing.type]} — ${listing.district}` })}
+                        onClick={() => setDialog({ type: 'available', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })}
                         disabled={isLoading}
                         className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-primary-600 active:bg-primary-50 transition-colors"
                       >
                         <i className="ti ti-circle-check text-base" aria-hidden="true" />
-                        Inapatikana
+                        {t('my_btn_available')}
                       </button>
                     )}
                     <div className="w-px bg-gray-100" />
@@ -677,7 +694,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                       }`}
                     >
                       <i className="ti ti-chart-bar text-base" aria-hidden="true" />
-                      Takwimu
+                      {t('my_btn_analytics')}
                     </button>
                     <div className="w-px bg-gray-100" />
                     <button
@@ -685,7 +702,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                       className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-primary-700 active:bg-primary-50 transition-colors"
                     >
                       <i className="ti ti-bolt text-base" aria-hidden="true" />
-                      Sasisha
+                      {t('my_btn_update')}
                     </button>
                   </div>
                 )}
@@ -730,18 +747,18 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
               <>
                 <div className="text-center mb-4">
                   <div className="text-4xl mb-2"><i className="ti ti-circle-dot text-4xl text-amber-500" aria-hidden="true" /></div>
-                  <h3 className="text-base font-bold text-gray-900">Imepangishwa?</h3>
+                  <h3 className="text-base font-bold text-gray-900">{t('my_dialog_taken_title')}</h3>
                   <p className="text-sm text-gray-500 mt-1">
                     <strong>{dialog.title}</strong><br />
-                    Listing haitaonekana tena kwa wateja. Wateja walioisave wataarifiwa.
+                    {t('my_dialog_taken_desc')}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => setDialog(null)} className="py-3 rounded-2xl bg-gray-100 text-gray-700 text-sm font-semibold">
-                    Hapana
+                    {t('my_dialog_no')}
                   </button>
                   <button onClick={() => setStatus(dialog.listingId, 'taken')} className="py-3 rounded-2xl bg-amber-500 text-white text-sm font-semibold active:scale-95">
-                    Ndiyo, imepangishwa
+                    {t('my_dialog_yes_taken')}
                   </button>
                 </div>
               </>
@@ -751,18 +768,18 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
               <>
                 <div className="text-center mb-4">
                   <div className="text-4xl mb-2"><i className="ti ti-circle-check text-4xl text-primary-500" aria-hidden="true" /></div>
-                  <h3 className="text-base font-bold text-gray-900">Rudisha listing?</h3>
+                  <h3 className="text-base font-bold text-gray-900">{t('my_dialog_avail_title')}</h3>
                   <p className="text-sm text-gray-500 mt-1">
                     <strong>{dialog.title}</strong><br />
-                    Listing itaonekana tena kwa wateja.
+                    {t('my_dialog_avail_desc')}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => setDialog(null)} className="py-3 rounded-2xl bg-gray-100 text-gray-700 text-sm font-semibold">
-                    Hapana
+                    {t('my_dialog_no')}
                   </button>
                   <button onClick={() => setStatus(dialog.listingId, 'active')} className="py-3 rounded-2xl bg-primary-500 text-white text-sm font-semibold active:scale-95">
-                    Ndiyo, rudisha
+                    {t('my_dialog_yes_avail')}
                   </button>
                 </div>
               </>
@@ -772,18 +789,18 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
               <>
                 <div className="text-center mb-4">
                   <div className="text-4xl mb-2"><i className="ti ti-trash text-4xl text-red-500" aria-hidden="true" /></div>
-                  <h3 className="text-base font-bold text-gray-900">Futa listing?</h3>
+                  <h3 className="text-base font-bold text-gray-900">{t('my_dialog_del_title')}</h3>
                   <p className="text-sm text-gray-500 mt-1">
                     <strong>{dialog.title}</strong><br />
-                    Listing haitaonekana tena. Hatua hii haiwezi kutenduliwa.
+                    {t('my_dialog_del_desc')}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => setDialog(null)} className="py-3 rounded-2xl bg-gray-100 text-gray-700 text-sm font-semibold">
-                    Hapana
+                    {t('my_dialog_no')}
                   </button>
                   <button onClick={() => deleteListing(dialog.listingId)} className="py-3 rounded-2xl bg-red-500 text-white text-sm font-semibold active:scale-95">
-                    Ndiyo, futa
+                    {t('my_dialog_yes_del')}
                   </button>
                 </div>
               </>
@@ -806,7 +823,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
       {boostListing && (
         <BoostModal
           listingId={boostListing.id}
-          listingTitle={`${TYPE[boostListing.type] || boostListing.type} — ${boostListing.district}`}
+          listingTitle={`${getTypeName(boostListing.type, t)} — ${boostListing.district}`}
           isCurrentlyBoosted={boostListing.is_boosted}
           boostedUntil={boostListing.boosted_until}
           onClose={() => setBoostListing(null)}

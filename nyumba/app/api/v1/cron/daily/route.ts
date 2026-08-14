@@ -9,7 +9,7 @@ import { saveScorecardsSnapshot } from '@/lib/scorecards/snapshot'
 
 export const dynamic = 'force-dynamic'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 async function sendEmail(to: string, subject: string, html: string) {
   await sendMail({ to, subject, html })
@@ -1097,7 +1097,7 @@ async function runDailyTasks() {
         `*NyumbaFasta — ${urgency} Majaribio Yanakwisha*\n\n` +
         `Kipindi chako cha majaribio kitakwisha siku *${daysLeft}* ${daysLeft === 1 ? 'LEO' : 'zinazokuja'}.\n\n` +
         `Fanya malipo ya usajili ili kuendelea kutumia huduma zote:\n` +
-        `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/property/usajili`
+        `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/property/usajili`
 
       if (owner.phone) {
         await sendTextMessage(formatPhoneNumber(owner.phone), waMsg).catch(() => {})
@@ -1158,7 +1158,7 @@ async function runDailyTasks() {
         `*NyumbaFasta — ${urgency} Usajili Unakwisha*\n\n` +
         `Mpango wako wa *${planName}* utakwisha siku *${daysLeft}* ${daysLeft === 1 ? 'LEO' : 'zinazokuja'}.\n\n` +
         `Fanya malipo ya upya usipoteze ufikiaji wa huduma zako:\n` +
-        `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/property/usajili`
+        `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/property/usajili`
 
       if (owner.phone) {
         await sendTextMessage(formatPhoneNumber(owner.phone), waMsg).catch(() => {})
@@ -1209,7 +1209,7 @@ async function runDailyTasks() {
           `*NyumbaFasta — Malipo Yanachelewa* ⚠️\n\n` +
           `Usajili wako wa *${planName}* umeisha na haujafanya upya.\n\n` +
           `Fanya malipo sasa ili kuepuka kusimamishwa kwa huduma:\n` +
-          `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/property/usajili`
+          `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/property/usajili`
         if (owner.phone) {
           await sendTextMessage(formatPhoneNumber(owner.phone), waMsg).catch(() => {})
         }
@@ -1247,7 +1247,7 @@ async function runDailyTasks() {
           `*NyumbaFasta — Usajili Umesimamishwa* 🚫\n\n` +
           `Mpango wako wa *${planName}* umesimamishwa kwa kutolipa.\n\n` +
           `Fanya malipo ya upya ili kurudisha ufikiaji kamili:\n` +
-          `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/property/usajili`
+          `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/property/usajili`
         if (owner.phone) {
           await sendTextMessage(formatPhoneNumber(owner.phone), waMsg).catch(() => {})
         }
@@ -1309,7 +1309,7 @@ async function runDailyTasks() {
         const waMsg =
           `*NyumbaFasta — Mpango Umebadilishwa* 🔄\n\n` +
           `Mpango wako umebadilika kutoka *${oldPlanName}* kwenda *${newPlan.name}* leo.\n\n` +
-          `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/property/usajili`
+          `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/property/usajili`
         if (owner.phone) await sendTextMessage(formatPhoneNumber(owner.phone), waMsg).catch(() => {})
         try {
           await admin.from('notifications').insert({
@@ -1399,7 +1399,7 @@ async function runDailyTasks() {
       const listingLabel = (lease.listing as unknown as { title: string; district: string } | null)?.title ?? ''
       const dueStr       = new Date(payment.due_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
       const amount       = `TZS ${payment.amount_due.toLocaleString()}`
-      const appUrl       = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const appUrl       = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
       const proofUrl     = `${appUrl}/rent/proof/${payment.id}`
 
       // In-app notification
@@ -1500,7 +1500,7 @@ async function runDailyTasks() {
       } catch { /* non-fatal */ }
 
       if (owner.phone) {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
         const msg =
           `⚠️ *NyumbaFasta — Kodi Imechelewa*\n\n` +
           `${tenant?.full_name ?? 'Mpangaji'} (${unitLabel}) hajalipa kodi ya *${amount}*\n` +
@@ -1635,7 +1635,7 @@ async function runDailyTasks() {
 
         const unitLabel = (lease.unit as unknown as { unit_number: string } | null)?.unit_number ?? 'kitengo chako'
         const dueStr    = new Date(payment.due_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
-        const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
         const msg = `⏰ *NyumbaFasta — Kikumbusho cha Kodi*\n\nHabari ${tenant.full_name ?? ''}!\n\nKodi ya *${unitLabel}* ya *TZS ${payment.amount_due.toLocaleString()}* inastahili tarehe *${dueStr}*.\n\nLipa kwa wakati ili kuepuka faini.\n${appUrl}/tenant`
         const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
         sendTextMessage(formatPhoneNumber(tenant.phone), msg).catch(() => {})
@@ -1667,7 +1667,7 @@ async function runDailyTasks() {
 
         const unitLabel = (lease.unit as unknown as { unit_number: string } | null)?.unit_number ?? 'kitengo chako'
         const dueStr    = new Date(payment.due_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
-        const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+        const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
         const msg = `🔴 *NyumbaFasta — Kodi Imechelewa*\n\nHabari ${tenant.full_name ?? ''}!\n\nKodi ya *${unitLabel}* ya *TZS ${payment.amount_due.toLocaleString()}* ilipaswa kulipwa tarehe *${dueStr}* na bado haijalipiwa.\n\nTafadhali lipa haraka ili kuepuka hatua zaidi.\n${appUrl}/tenant`
         const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
         sendTextMessage(formatPhoneNumber(tenant.phone), msg).catch(() => {})

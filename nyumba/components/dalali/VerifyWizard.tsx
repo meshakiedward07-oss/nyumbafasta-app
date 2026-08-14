@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Props = {
   currentStatus: string
@@ -42,6 +43,7 @@ function StepBar({ step, total }: { step: number; total: number }) {
 function UploadBox({
   label, value, onPick, loading, error,
 }: { label: string; value: string | null; onPick: () => void; loading: boolean; error?: string }) {
+  const { t } = useLanguage()
   return (
     <div>
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{label}</p>
@@ -53,7 +55,7 @@ function UploadBox({
             onClick={onPick}
             className="absolute inset-0 bg-black/30 flex items-center justify-center text-white text-sm font-medium"
           >
-            Badilisha
+            {t('verify_change_photo')}
           </button>
         </div>
       ) : (
@@ -72,7 +74,7 @@ function UploadBox({
           ) : (
             <>
               <i className="ti ti-camera text-3xl" aria-hidden="true" />
-              <span className="text-xs">Bonyeza kupakia picha</span>
+              <span className="text-xs">{t('verify_tap_upload')}</span>
             </>
           )}
         </button>
@@ -87,6 +89,7 @@ function UploadBox({
 }
 
 export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsapp }: Props) {
+  const { t } = useLanguage()
   const router = useRouter()
 
   const [step, setStep]               = useState(0)
@@ -104,8 +107,8 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
 
   // Steps: 0=NIDA, [1=WhatsApp if needed], last-2=front, last-1=back, last=selfie+license
   const steps = hasWhatsapp
-    ? ['Nambari ya NIDA', 'Kitambulisho (Mbele)', 'Kitambulisho (Nyuma)', 'Selfie + Leseni']
-    : ['Nambari ya NIDA', 'Nambari ya WhatsApp', 'Kitambulisho (Mbele)', 'Kitambulisho (Nyuma)', 'Selfie + Leseni']
+    ? [t('verify_step_nida'), t('verify_step_front'), t('verify_step_back'), t('verify_step_selfie')]
+    : [t('verify_step_nida'), t('verify_step_wa'), t('verify_step_front'), t('verify_step_back'), t('verify_step_selfie')]
 
   const totalSteps = steps.length
 
@@ -127,7 +130,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
   ) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) { setError('Picha ni kubwa sana (max 5MB)'); return }
+    if (file.size > 5 * 1024 * 1024) { setError(t('verify_photo_large')); return }
     setUploading(key)
     setError('')
     try {
@@ -144,7 +147,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
   async function handleLicensePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 10 * 1024 * 1024) { setError('PDF ni kubwa sana (max 10MB)'); return }
+    if (file.size > 10 * 1024 * 1024) { setError(t('verify_pdf_large')); return }
     setUploading('license')
     setError('')
     try {
@@ -152,7 +155,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
       setLicenseUrl(url)
       setLicenseName(file.name)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Upload ya leseni ilishindwa')
+      setError(err instanceof Error ? err.message : t('verify_license_fail'))
     } finally {
       setUploading(null)
       e.target.value = ''
@@ -190,11 +193,11 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center max-w-sm w-full">
           <div className="text-5xl mb-3">⏳</div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Inakaguliwa</h2>
-          <p className="text-sm text-gray-500">Hati zako zinakaguliwa na admin — kawaida masaa 24.</p>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">{t('verify_reviewing')}</h2>
+          <p className="text-sm text-gray-500">{t('verify_reviewing_sub')}</p>
           <button onClick={() => router.push('/dashboard')}
             className="mt-5 w-full bg-primary-500 text-white py-3 rounded-2xl text-sm font-semibold">
-            Rudi Dashboard
+            {t('verify_back_dash')}
           </button>
         </div>
       </div>
@@ -206,11 +209,11 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center max-w-sm w-full">
           <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Umeshathibitishwa!</h2>
-          <p className="text-sm text-gray-500">Akaunti yako ina badge ya Verified.</p>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">{t('verify_verified_title')}</h2>
+          <p className="text-sm text-gray-500">{t('verify_verified_sub')}</p>
           <button onClick={() => router.push('/dashboard')}
             className="mt-5 w-full bg-primary-500 text-white py-3 rounded-2xl text-sm font-semibold">
-            Rudi Dashboard
+            {t('verify_back_dash')}
           </button>
         </div>
       </div>
@@ -222,16 +225,16 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center max-w-sm w-full">
           <div className="text-5xl mb-3 flex justify-center"><i className="ti ti-confetti text-primary-500" aria-hidden="true" /></div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Imetumwa!</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">{t('verify_sent_title')}</h2>
           <p className="text-sm text-gray-500">
-            Hati zako zimetumwa. Utapata jibu ndani ya masaa 24.
+            {t('verify_sent_sub')}
             {licenseUrl && (
-              <> Umejumuisha leseni ya udalali — ukipitishwa utapata badge ya <strong>Dalali Halisi ✦</strong>.</>
+              <> {t('verify_license_incl')} <strong>Dalali Halisi ✦</strong>.</>
             )}
           </p>
           <button onClick={() => router.push('/dashboard')}
             className="mt-5 w-full bg-primary-500 text-white py-3 rounded-2xl text-sm font-semibold">
-            Rudi Dashboard
+            {t('verify_back_dash')}
           </button>
         </div>
       </div>
@@ -258,8 +261,8 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
             ←
           </button>
           <div className="flex-1">
-            <h1 className="text-sm font-bold text-gray-900">Thibitisha Utambulisho</h1>
-            <p className="text-xs text-gray-400">Hatua {step + 1} ya {totalSteps} — {steps[step]}</p>
+            <h1 className="text-sm font-bold text-gray-900">{t('verify_title')}</h1>
+            <p className="text-xs text-gray-400">{t('verify_step_n_of').replace('{{n}}', String(step + 1))} {totalSteps} — {steps[step]}</p>
           </div>
         </div>
         <StepBar step={step} total={totalSteps} />
@@ -268,7 +271,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
       <div className="px-4 pt-4 space-y-4">
         {currentStatus === 'rejected' && rejectionReason && (
           <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-700">
-            <i className="ti ti-circle-x" aria-hidden="true" /> Ombi lako la awali lilikataliwa. Sababu: <strong>{rejectionReason}</strong>
+            <i className="ti ti-circle-x" aria-hidden="true" /> {t('verify_rejected')} <strong>{rejectionReason}</strong>
           </div>
         )}
 
@@ -280,10 +283,10 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
         {currentContent === 'nida' && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-3">
             <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-xs text-primary-700">
-              <i className="ti ti-lock" aria-hidden="true" /> Taarifa zako za utambulisho zinashughulikiwa kwa usalama na usiri.
+              <i className="ti ti-lock" aria-hidden="true" /> {t('verify_nida_privacy')}
             </div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-              Nambari ya NIDA <span className="text-red-400">*</span>
+              {t('verify_nida_label')} <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
@@ -295,7 +298,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base
                          focus:outline-none focus:ring-2 focus:ring-primary-300 tracking-widest"
             />
-            <p className="text-xs text-gray-400">Nambari yako ya NIDA ina tarakimu 20.</p>
+            <p className="text-xs text-gray-400">{t('verify_nida_hint')}</p>
           </div>
         )}
 
@@ -303,10 +306,10 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
         {currentContent === 'whatsapp' && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-3">
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
-              <i className="ti ti-alert-triangle" aria-hidden="true" /> Unahitaji nambari ya WhatsApp kwa verification. Wateja watalipa Tsh 2,000 kupata nambari hii.
+              <i className="ti ti-alert-triangle" aria-hidden="true" /> {t('verify_wa_notice')}
             </div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-              Nambari ya WhatsApp <span className="text-red-400">*</span>
+              {t('verify_wa_label')} <span className="text-red-400">*</span>
             </label>
             <div className="flex gap-2">
               <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
@@ -331,17 +334,17 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
             <input ref={frontRef} type="file" accept="image/*" capture="environment" className="hidden"
               onChange={e => handleFilePick(e, setFront, 'front')} />
             <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 mb-3">
-              <p className="text-xs text-blue-700 font-medium flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />Kitambulisho kinachokubalika:</p>
-              <p className="text-xs text-blue-600 mt-0.5">Kitambulisho cha NIDA <span className="text-blue-400">(kinachopendekezwa)</span> au Passport ya Tanzania — nambari na picha ziwe wazi.</p>
+              <p className="text-xs text-blue-700 font-medium flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />{t('verify_id_accepted')}</p>
+              <p className="text-xs text-blue-600 mt-0.5">{t('verify_id_accepted_sub')}</p>
             </div>
             <UploadBox
-              label="Upande wa Mbele wa Kitambulisho (NIDA / Passport)"
+              label={t('verify_front_label')}
               value={front}
               onPick={() => frontRef.current?.click()}
               loading={uploading === 'front'}
               error={error || undefined}
             />
-            <p className="text-xs text-gray-400 mt-2">Hakikisha maandishi yanaonekana wazi.</p>
+            <p className="text-xs text-gray-400 mt-2">{t('verify_ensure_clear')}</p>
           </div>
         )}
 
@@ -351,7 +354,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
             <input ref={backRef} type="file" accept="image/*" capture="environment" className="hidden"
               onChange={e => handleFilePick(e, setBack, 'back')} />
             <UploadBox
-              label="Upande wa Nyuma wa Kitambulisho"
+              label={t('verify_back_label')}
               value={back}
               onPick={() => backRef.current?.click()}
               loading={uploading === 'back'}
@@ -367,14 +370,14 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
               <input ref={selfieRef} type="file" accept="image/*" capture="user" className="hidden"
                 onChange={e => handleFilePick(e, setSelfie, 'selfie')} />
               <UploadBox
-                label="Selfie — Piga picha ukishikilia kitambulisho chako"
+                label={t('verify_selfie_label')}
                 value={selfie}
                 onPick={() => selfieRef.current?.click()}
                 loading={uploading === 'selfie'}
                 error={error || undefined}
               />
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
-                <i className="ti ti-bulb" aria-hidden="true" /> Piga picha ya uso wako ukishikilia kitambulisho — uso na picha ya kitambulisho zinaonekana wazi.
+                <i className="ti ti-bulb" aria-hidden="true" /> {t('verify_selfie_hint')}
               </div>
             </div>
 
@@ -382,22 +385,22 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">Leseni ya Udalali</p>
-                  <p className="text-xs text-gray-400">Si lazima — lakini unapata badge ya <span className="text-amber-600 font-semibold">Dalali Halisi ✦</span></p>
+                  <p className="text-sm font-semibold text-gray-900">{t('verify_license_title')}</p>
+                  <p className="text-xs text-gray-400">{t('verify_license_opt')} <span className="text-amber-600 font-semibold">Dalali Halisi ✦</span></p>
                 </div>
                 <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wide">
-                  Hiari
+                  {t('verify_optional_badge')}
                 </span>
               </div>
 
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 space-y-1">
                 <p className="font-semibold flex items-center gap-1">
-                  <i className="ti ti-rosette-discount-check" aria-hidden="true" /> Faida ya badge ya Dalali Halisi:
+                  <i className="ti ti-rosette-discount-check" aria-hidden="true" /> {t('verify_license_bens')}
                 </p>
                 <ul className="list-disc list-inside space-y-0.5 text-amber-600">
-                  <li>Wateja wanakuamini zaidi</li>
-                  <li>Orodha zako zinaonekana kwanza</li>
-                  <li>Badge ya dhahabu kwenye kadi zako</li>
+                  <li>{t('verify_license_ben1')}</li>
+                  <li>{t('verify_license_ben2')}</li>
+                  <li>{t('verify_license_ben3')}</li>
                 </ul>
               </div>
 
@@ -415,7 +418,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
                     <i className="ti ti-file-type-pdf text-red-500 text-xl flex-shrink-0" aria-hidden="true" />
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-gray-800 truncate">{licenseName}</p>
-                      <p className="text-[10px] text-green-600">Imepakiwa ✓</p>
+                      <p className="text-[10px] text-green-600">{t('verify_uploaded')}</p>
                     </div>
                   </div>
                   <button
@@ -423,7 +426,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
                     onClick={() => { setLicenseUrl(null); setLicenseName(null) }}
                     className="text-xs text-gray-400 hover:text-red-400 flex-shrink-0 ml-2"
                   >
-                    Ondoa
+                    {t('verify_remove')}
                   </button>
                 </div>
               ) : (
@@ -440,8 +443,8 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
                   ) : (
                     <>
                       <i className="ti ti-file-type-pdf text-2xl" aria-hidden="true" />
-                      <span className="text-xs font-medium">Bonyeza kupakia Leseni ya Udalali (PDF)</span>
-                      <span className="text-[10px] text-amber-500">Hadi 10MB</span>
+                      <span className="text-xs font-medium">{t('verify_upload_license')}</span>
+                      <span className="text-[10px] text-amber-500">{t('verify_max_10mb')}</span>
                     </>
                   )}
                 </button>
@@ -466,7 +469,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
             className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold
                        disabled:opacity-40 active:scale-95 transition-all"
           >
-            Endelea →
+            {t('edit_continue_to')}
           </button>
         ) : (
           <button
@@ -478,9 +481,9 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Inatuma...
+                {t('verify_submitting')}
               </span>
-            ) : 'Wasilisha kwa Ukaguzi'}
+            ) : t('verify_submit_btn')}
           </button>
         )}
       </div>

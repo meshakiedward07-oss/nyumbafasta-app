@@ -336,7 +336,7 @@ async function directSearch(
   sessionId: string,
   parsed: { location: string; listing_type?: ListingType; price_max?: number; bedrooms?: number },
 ): Promise<string> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   try {
     let q = supabaseAdmin
       .from('listings')
@@ -388,7 +388,7 @@ async function searchAndRespond(
   sessionId: string,
   requirements: Record<string, unknown>,
 ): Promise<string> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   try {
     let query = supabaseAdmin
       .from('listings')
@@ -443,7 +443,7 @@ async function handleFollowUpClient(
   message: string,
 ): Promise<string> {
   const history = await getHistory(session.id, 6)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
@@ -490,7 +490,7 @@ export async function handleDalaliRegisterFlow(
   message: string,
 ): Promise<string> {
   const data = session.flow_data
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
   switch (session.flow_step) {
     case 'greeting':
@@ -574,7 +574,7 @@ export async function handleDalaliListingFlow(
   mediaUrls?: string[],
 ): Promise<string> {
   const data = session.flow_data
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
   // First check if dalali has an account
   if (!data.dalali_id && session.flow_step === 'greeting') {
@@ -791,7 +791,7 @@ function formatTZPhone(raw: string): string {
 async function checkListingLimit(
   dalaliId: string,
 ): Promise<{ allowed: boolean; message: string }> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
   const { data: sub } = await supabaseAdmin
     .from('subscriptions')
@@ -833,7 +833,7 @@ async function submitListing(
   session: ChatSession,
   data: Record<string, unknown>,
 ): Promise<string> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   try {
     const loc = String(data.location ?? '')
     const parts = loc.split(',')
@@ -924,7 +924,7 @@ export async function handleCustomerCare(
   kbContext?: string,
 ): Promise<string> {
   const history = await getHistory(session.id, 8)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
   const kbBlock = kbContext
     ? `\n\nMAALUMU YA ZIADA (yametafutwa kutoka maktaba ya maarifa yetu — tumia kama rejeo, sio kunakili neno kwa neno):\n${kbContext}`

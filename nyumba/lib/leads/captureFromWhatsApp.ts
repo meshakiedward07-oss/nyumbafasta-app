@@ -117,7 +117,7 @@ async function notifyAdminNewLead(
     if (!adminPhone) return
 
     const { sendTextMessage } = await import('@/lib/whatsapp/client')
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
     const platformLabel =
       data.source === 'whatsapp_amina' ? 'WhatsApp' :

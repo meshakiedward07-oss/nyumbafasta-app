@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     let q = supabaseAdmin
       .from('leads')
-      .select('id,full_name,phone,phone_2,email,ward,district,region,lead_type,source,notes,facebook_url,instagram_url,tiktok_url,whatsapp_number,facebook_status,instagram_status,tiktok_status,whatsapp_status,social_score,contact_quality,has_valid_phone,has_any_social,is_dead_lead,is_duplicate,duplicate_reason,name_similarity_score,status,contacted_at,registered_at,assigned_to,linked_user_id,import_batch_id,created_at,assigned_user:assigned_to(id,full_name)', { count: 'exact' })
+      .select('id,full_name,phone,phone_2,email,ward,district,region,lead_type,source,notes,facebook_url,instagram_url,tiktok_url,whatsapp_number,facebook_status,instagram_status,tiktok_status,whatsapp_status,social_score,contact_quality,has_valid_phone,has_any_social,is_dead_lead,is_duplicate,duplicate_reason,name_similarity_score,status,contacted_at,registered_at,assigned_to,linked_user_id,import_batch_id,created_at', { count: 'exact' })
 
     // Explicit filter so "duplicates" view shows ONLY duplicates, not everything
     if (showDups) q = q.eq('is_duplicate', true)
@@ -70,8 +70,28 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error
 
+    // Resolve assigned_to UUIDs → user names (avoids FK join which needs a proper FK column)
+    const assignedIds = [...new Set((data || []).map(l => l.assigned_to).filter(Boolean))] as string[]
+    let staffMap: Record<string, string> = {}
+    if (assignedIds.length > 0) {
+      const { data: staffRows } = await supabaseAdmin
+        .from('users')
+        .select('id, full_name')
+        .in('id', assignedIds)
+      if (staffRows) {
+        staffMap = Object.fromEntries(staffRows.map(u => [u.id, u.full_name]))
+      }
+    }
+
+    const leads = (data || []).map(lead => ({
+      ...lead,
+      assigned_user: lead.assigned_to && staffMap[lead.assigned_to]
+        ? { id: lead.assigned_to as string, full_name: staffMap[lead.assigned_to] }
+        : null,
+    }))
+
     return NextResponse.json({
-      leads: data || [],
+      leads,
       pagination: {
         page, limit,
         total: count || 0,

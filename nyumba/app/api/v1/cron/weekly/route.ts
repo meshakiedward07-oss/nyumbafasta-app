@@ -7,7 +7,7 @@ import { checkStaleListings } from '@/lib/listings/staleListingCheck'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 function getAdmin() {
   return createSupabaseClient(

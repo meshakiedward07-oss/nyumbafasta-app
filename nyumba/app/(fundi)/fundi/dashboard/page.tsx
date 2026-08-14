@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { MAINTENANCE_CATEGORY_LABELS, MAINTENANCE_PRIORITY_LABELS, MAINTENANCE_STATUS_LABELS, STATUS_COLORS, PRIORITY_COLORS } from '@/lib/types/property'
 import type { MaintenanceStatus, MaintenancePriority, MaintenanceCategory } from '@/lib/types/property'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface Job {
   id: string; title: string; description: string | null
@@ -26,6 +27,7 @@ function fmt(iso: string) {
 }
 
 export default function FundiDashboardPage() {
+  const { t }  = useLanguage()
   const [jobs,        setJobs]        = useState<Job[]>([])
   const [fundi,       setFundi]       = useState<FundiProfile | null>(null)
   const [loading,     setLoading]     = useState(true)
@@ -63,21 +65,21 @@ export default function FundiDashboardPage() {
           <i className={`ti ti-id text-xl flex-shrink-0 mt-0.5 ${fundi.kyc_status === 'rejected' ? 'text-red-500' : 'text-amber-500'}`} aria-hidden="true" />
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-semibold ${fundi.kyc_status === 'rejected' ? 'text-red-800' : 'text-amber-800'}`}>
-              {fundi.kyc_status === 'none'     && 'Tuma hati zako za KYC'}
-              {fundi.kyc_status === 'pending'  && 'KYC Inakaguliwa...'}
-              {fundi.kyc_status === 'rejected' && 'KYC Ilikataliwa — Tuma Tena'}
+              {fundi.kyc_status === 'none'     && t('fp_dash_kyc_title_none')}
+              {fundi.kyc_status === 'pending'  && t('fp_dash_kyc_title_pending')}
+              {fundi.kyc_status === 'rejected' && t('fp_dash_kyc_title_rejected')}
             </p>
             <p className={`text-xs mt-0.5 ${fundi.kyc_status === 'rejected' ? 'text-red-600' : 'text-amber-600'}`}>
-              {fundi.kyc_status === 'none'    && 'Hati zako lazima zithibitishwe ili mashirika yakupate.'}
-              {fundi.kyc_status === 'pending' && 'Timu yetu inakagua hati zako. Utaarifiwa hivi karibuni.'}
-              {fundi.kyc_status === 'rejected'&& 'Hati zako hazikukubaliwa. Tuma hati sahihi ili kuendelea.'}
+              {fundi.kyc_status === 'none'    && t('fp_dash_kyc_sub_none')}
+              {fundi.kyc_status === 'pending' && t('fp_dash_kyc_sub_pending')}
+              {fundi.kyc_status === 'rejected'&& t('fp_dash_kyc_sub_rejected')}
             </p>
           </div>
           <Link href="/fundi/kyc"
             className={`text-xs px-3 py-1.5 rounded-xl font-semibold flex-shrink-0 ${
               fundi.kyc_status === 'rejected' ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-amber-500 text-white hover:bg-amber-600'
             } transition`}>
-            {fundi.kyc_status === 'none' ? 'Tuma KYC' : fundi.kyc_status === 'rejected' ? 'Tuma Tena' : 'Angalia'}
+            {fundi.kyc_status === 'none' ? t('fp_dash_kyc_btn_none') : fundi.kyc_status === 'rejected' ? t('fp_dash_kyc_btn_rejected') : t('fp_view')}
           </Link>
         </div>
       )}
@@ -86,9 +88,9 @@ export default function FundiDashboardPage() {
       {fundi && !fundi.business_name && (
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-5 flex items-center gap-3">
           <i className="ti ti-user-circle text-blue-500 text-xl flex-shrink-0" aria-hidden="true" />
-          <p className="text-sm text-blue-700 flex-1 min-w-0">Kamilisha wasifu wako ili mashirika yakujue vyema.</p>
+          <p className="text-sm text-blue-700 flex-1 min-w-0">{t('fp_dash_profile_incomplete')}</p>
           <Link href="/fundi/profile" className="text-xs px-3 py-1.5 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition flex-shrink-0">
-            Wasifu
+            {t('fp_nav_profile')}
           </Link>
         </div>
       )}
@@ -96,13 +98,13 @@ export default function FundiDashboardPage() {
       {/* Header stats */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Kazi Zangu</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{activeCount} zinazoendelea · {resolvedCount} zilizokamilika</p>
+          <h1 className="text-xl font-bold text-gray-900">{t('fp_nav_my_jobs')}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{activeCount} {t('fp_dash_in_progress')} · {resolvedCount} {t('fp_dash_completed')}</p>
         </div>
         {fundi?.is_available !== undefined && (
           <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium ${fundi.is_available ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${fundi.is_available ? 'bg-green-500' : 'bg-gray-400'}`} aria-hidden="true" />
-            {fundi.is_available ? 'Ninapatikana' : 'Sipatikani'}
+            {fundi.is_available ? t('fp_available') : t('fp_unavailable')}
           </span>
         )}
       </div>
@@ -114,7 +116,7 @@ export default function FundiDashboardPage() {
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap ${
               statusFilter === s ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
             }`}>
-            {s === 'all' ? 'Zote' : MAINTENANCE_STATUS_LABELS[s as MaintenanceStatus] ?? s}
+            {s === 'all' ? t('common_all') : MAINTENANCE_STATUS_LABELS[s as MaintenanceStatus] ?? s}
           </button>
         ))}
       </div>
@@ -126,12 +128,10 @@ export default function FundiDashboardPage() {
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
           <i className="ti ti-hammer text-5xl text-gray-200" aria-hidden="true" />
           <p className="text-gray-500 font-medium mt-3">
-            {jobs.length === 0 ? 'Huna kazi bado' : 'Hakuna kazi za aina hii'}
+            {jobs.length === 0 ? t('fp_dash_no_jobs') : t('fp_dash_no_jobs_filter')}
           </p>
           <p className="text-sm text-gray-400 mt-1">
-            {jobs.length === 0
-              ? 'Kazi zitakuja baada ya shirika kukupangia kupitia mfumo.'
-              : 'Badilisha kichujio kuona kazi nyingine.'}
+            {jobs.length === 0 ? t('fp_dash_no_jobs_sub') : t('fp_dash_no_jobs_filter_sub')}
           </p>
         </div>
       ) : (
@@ -153,7 +153,7 @@ export default function FundiDashboardPage() {
                   {job.unit && (
                     <span className="flex items-center gap-1">
                       <i className="ti ti-door" aria-hidden="true" />
-                      Kitengo {job.unit.unit_number}
+                      {t('fp_unit')} {job.unit.unit_number}
                     </span>
                   )}
                   <span className={`px-2 py-0.5 rounded-full ${PRIORITY_COLORS[job.priority as MaintenancePriority] ?? 'bg-gray-100 text-gray-500'}`}>
@@ -167,7 +167,7 @@ export default function FundiDashboardPage() {
                 {job.scheduled_at && (
                   <p className="text-xs text-primary-600 mt-1.5 flex items-center gap-1">
                     <i className="ti ti-calendar" aria-hidden="true" />
-                    Ratiba: {fmt(job.scheduled_at)}
+                    {t('fp_schedule')}: {fmt(job.scheduled_at)}
                   </p>
                 )}
               </div>

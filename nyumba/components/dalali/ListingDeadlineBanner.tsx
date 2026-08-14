@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Status = {
   hasListings: boolean
@@ -12,6 +13,7 @@ type Status = {
 }
 
 export function ListingDeadlineBanner() {
+  const { t } = useLanguage()
   const [status, setStatus] = useState<Status | null>(null)
 
   useEffect(() => {
@@ -40,12 +42,12 @@ export function ListingDeadlineBanner() {
   const iconName  = isCritical ? 'alarm' : isUrgent ? 'alert-triangle' : isWarning ? 'clock' : 'info-circle'
 
   const heading = isCritical
-    ? `Akaunti yako itafutwa siku ${daysRemaining}!`
+    ? t('dal_deadline_critical').replace('{{n}}', String(daysRemaining))
     : isUrgent
-    ? `Siku ${daysRemaining} zimesalia — weka listing sasa`
+    ? t('dal_deadline_urgent').replace('{{n}}', String(daysRemaining))
     : isWarning
-    ? `Siku ${daysRemaining} zimesalia — anza kuweka nyumba zako`
-    : `Karibu! Una siku ${daysRemaining} za kuanza. Ongeza listing yako ya kwanza`
+    ? t('dal_deadline_warning').replace('{{n}}', String(daysRemaining))
+    : t('dal_deadline_info').replace('{{n}}', String(daysRemaining))
 
   return (
     <div className={`rounded-xl p-4 mb-4 border-2 ${colorBg} ${colorBdr}`}>
@@ -54,22 +56,22 @@ export function ListingDeadlineBanner() {
         <div className="flex-1 min-w-0">
           <p className={`font-semibold text-sm ${colorHead}`}>{heading}</p>
           <p className={`text-xs mt-0.5 ${colorSub}`}>
-            Madalali wasio na listing baada ya siku {deadlineDays} wanafutwa kiotomatiki
+            {t('dal_deadline_auto_del').replace('{{n}}', String(deadlineDays))}
           </p>
         </div>
         <Link
           href="/dashboard/listings/new"
           className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold text-white ${colorBtn}`}
         >
-          Weka Listing
+          {t('dal_deadline_add')}
         </Link>
       </div>
 
       <div className="mt-3">
         <div className={`flex justify-between text-xs mb-1 ${colorSub}`}>
-          <span>Usajili</span>
-          <span>{daysSince}/{deadlineDays} siku</span>
-          <span>Kufutwa</span>
+          <span>{t('dal_deadline_registered')}</span>
+          <span>{daysSince}/{deadlineDays} {t('dal_days_unit')}</span>
+          <span>{t('dal_deadline_deleted')}</span>
         </div>
         <div className="w-full bg-white/70 rounded-full h-1.5">
           <div className={`h-1.5 rounded-full transition-all ${colorBar}`} style={{ width: `${pct}%` }} />

@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       const owner = ownerRow?.user as unknown as { id: string; phone: string | null } | null
       if (!owner) return
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
       try {
         await admin.from('notifications').insert({

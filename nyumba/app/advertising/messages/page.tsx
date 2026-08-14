@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AttachmentCompose, { type PendingAttachment } from '@/components/messages/AttachmentCompose'
 import AttachmentDisplay from '@/components/messages/AttachmentDisplay'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -50,15 +52,15 @@ interface Message {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function relativeTime(iso: string | null): string {
+function relativeTime(iso: string | null, t: (k: TKey) => string): string {
   if (!iso) return ''
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60000)
-  if (m < 1) return 'Sasa hivi'
-  if (m < 60) return `Dakika ${m} zilizopita`
+  if (m < 1) return t('adv_just_now')
+  if (m < 60) return t('adv_minutes_ago').replace('{n}', String(m))
   const h = Math.floor(m / 60)
-  if (h < 24) return `Saa ${h} zilizopita`
-  return `Siku ${Math.floor(h / 24)} zilizopita`
+  if (h < 24) return t('adv_hours_ago').replace('{n}', String(h))
+  return t('adv_days_ago').replace('{n}', String(Math.floor(h / 24)))
 }
 
 function initials(name: string | null): string {
@@ -73,17 +75,18 @@ function Avatar({ src, name, size = 8 }: { src?: string | null; name: string | n
   return <div className={`${cls} bg-primary-100 text-primary-700`}>{initials(name)}</div>
 }
 
-function convLabel(conv: Conversation, uid: string): string {
+function convLabel(conv: Conversation, uid: string, t: (k: TKey) => string): string {
   if (conv.title) return conv.title
   const others = (conv.participants ?? [])
     .filter((p) => p.user_id !== uid)
-    .map((p) => p.user?.full_name ?? 'Mtumiaji')
-  return others.length ? others.slice(0, 2).join(', ') : 'Mazungumzo'
+    .map((p) => p.user?.full_name ?? t('adv_user_label'))
+  return others.length ? others.slice(0, 2).join(', ') : t('adv_conversation_label')
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AdvertiserMessagesPage() {
+  const { t } = useLanguage()
   const [uid, setUid] = useState<string | null>(null)
   const [userName, setUserName] = useState('')
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
@@ -165,10 +168,10 @@ export default function AdvertiserMessagesPage() {
 
   useEffect(() => {
     if (!selected) return
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       if (!realtimeOk.current) { loadThread(selected.id); loadConversations() }
     }, 30000)
-    return () => clearInterval(t)
+    return () => clearInterval(timer)
   }, [selected, loadThread, loadConversations])
 
   useEffect(() => {
@@ -239,7 +242,7 @@ export default function AdvertiserMessagesPage() {
   }
 
   const filtered = conversations.filter((c) =>
-    !searchQ || convLabel(c, uid ?? '').toLowerCase().includes(searchQ.toLowerCase())
+    !searchQ || convLabel(c, uid ?? '', t).toLowerCase().includes(searchQ.toLowerCase())
   )
 
   // ── Conversation List ──────────────────────────────────────────────────────
@@ -248,11 +251,11 @@ export default function AdvertiserMessagesPage() {
     <div className={`flex flex-col bg-white border-r border-gray-100 ${selected ? 'hidden lg:flex lg:w-80 lg:flex-shrink-0' : 'flex-1 lg:w-80 lg:flex-shrink-0'}`}>
       <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-gray-100">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-gray-900 text-base">Ujumbe wa Msaada</h2>
+          <h2 className="font-bold text-gray-900 text-base">{t('adv_messages_title')}</h2>
           <button
             onClick={() => { setShowNew(true); loadStaffContacts() }}
             className="w-8 h-8 bg-primary-500 text-white rounded-xl flex items-center justify-center hover:bg-primary-600 transition-colors"
-            title="Wasiliana na Msaada"
+            title={t('adv_contact_support')}
           >
             <i className="ti ti-pencil text-sm" aria-hidden="true" />
           </button>
@@ -261,7 +264,7 @@ export default function AdvertiserMessagesPage() {
           <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
           <input
             className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-300"
-            placeholder="Tafuta mazungumzo..."
+            placeholder={t('adv_search_conversations')}
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
           />
@@ -284,21 +287,21 @@ export default function AdvertiserMessagesPage() {
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center">
             <i className="ti ti-message-circle-off text-5xl text-gray-200 block mb-3" aria-hidden="true" />
-            <p className="text-sm font-medium text-gray-400">Hakuna ujumbe bado</p>
+            <p className="text-sm font-medium text-gray-400">{t('adv_no_messages')}</p>
             <p className="text-xs text-gray-300 mt-1 leading-relaxed mb-4">
-              Wasiliana na timu ya NyumbaFasta kuhusu matangazo yako
+              {t('adv_no_messages_desc')}
             </p>
             <button
               onClick={() => { setShowNew(true); loadStaffContacts() }}
               className="px-4 py-2 bg-primary-500 text-white rounded-xl text-xs font-semibold"
             >
-              Anza Mazungumzo
+              {t('adv_start_conversation')}
             </button>
           </div>
         ) : (
           filtered.map((conv) => {
             const isActive = selected?.id === conv.id
-            const label = convLabel(conv, uid ?? '')
+            const label = convLabel(conv, uid ?? '', t)
             const otherP = (conv.participants ?? []).find((p) => p.user_id !== uid)
             return (
               <button
@@ -319,10 +322,10 @@ export default function AdvertiserMessagesPage() {
                       {label}
                     </span>
                     <span className="text-[10px] text-gray-300 flex-shrink-0 whitespace-nowrap">
-                      {relativeTime(conv.last_message_at)}
+                      {relativeTime(conv.last_message_at, t)}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 truncate">{conv.last_message_body ?? 'Bonyeza kuona'}</p>
+                  <p className="text-xs text-gray-400 truncate">{conv.last_message_body ?? t('adv_tap_to_view')}</p>
                 </div>
                 {conv.unread_count > 0 && (
                   <span className="flex-shrink-0 min-w-[20px] h-5 flex items-center justify-center bg-primary-500 text-white text-[10px] font-bold rounded-full px-1">
@@ -350,12 +353,12 @@ export default function AdvertiserMessagesPage() {
         </button>
         <Avatar
           src={(selected.participants ?? []).find((p) => p.user_id !== uid)?.user?.avatar_url}
-          name={convLabel(selected, uid ?? '')}
+          name={convLabel(selected, uid ?? '', t)}
           size={9}
         />
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm text-gray-900 truncate">{convLabel(selected, uid ?? '')}</p>
-          <p className="text-xs text-gray-400">Timu ya NyumbaFasta</p>
+          <p className="font-semibold text-sm text-gray-900 truncate">{convLabel(selected, uid ?? '', t)}</p>
+          <p className="text-xs text-gray-400">{t('adv_support_team')}</p>
         </div>
       </div>
 
@@ -372,13 +375,13 @@ export default function AdvertiserMessagesPage() {
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-12 text-center">
             <i className="ti ti-message text-5xl text-gray-200 mb-3" aria-hidden="true" />
-            <p className="text-sm font-medium text-gray-400">Hakuna ujumbe bado</p>
-            <p className="text-xs text-gray-300 mt-1">Andika chini kuanza mazungumzo</p>
+            <p className="text-sm font-medium text-gray-400">{t('adv_no_messages')}</p>
+            <p className="text-xs text-gray-300 mt-1">{t('adv_start_chat_hint')}</p>
           </div>
         ) : (
           messages.map((msg) => {
             const isMe = msg.sender_id === uid
-            const name = isMe ? (userName || 'Wewe') : (msg.sender?.full_name ?? 'Timu')
+            const name = isMe ? (userName || t('adv_you')) : (msg.sender?.full_name ?? t('adv_team'))
             return (
               <div key={msg.id} className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
                 {!isMe && <Avatar src={msg.sender?.avatar_url} name={name} size={7} />}
@@ -416,7 +419,7 @@ export default function AdvertiserMessagesPage() {
             className="flex-1 resize-none px-3 py-2.5 text-sm rounded-2xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-300 placeholder-gray-400 leading-relaxed"
             style={{ minHeight: '44px', maxHeight: '120px' }}
             rows={1}
-            placeholder="Andika ujumbe..."
+            placeholder={t('adv_message_placeholder')}
             value={draft}
             onChange={handleDraftChange}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
@@ -438,8 +441,8 @@ export default function AdvertiserMessagesPage() {
     <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-50">
       <div className="text-center">
         <i className="ti ti-messages text-6xl text-gray-200 block mb-3" aria-hidden="true" />
-        <p className="text-gray-400 text-sm font-medium">Chagua mazungumzo kushoto</p>
-        <p className="text-xs text-gray-300 mt-1">au anza mazungumzo mapya</p>
+        <p className="text-gray-400 text-sm font-medium">{t('adv_select_conversation')}</p>
+        <p className="text-xs text-gray-300 mt-1">{t('adv_or_start_new')}</p>
       </div>
     </div>
   )
@@ -460,7 +463,7 @@ export default function AdvertiserMessagesPage() {
           <div className="bg-white rounded-t-2xl px-4 pt-4 pb-8 max-h-[80dvh] flex flex-col"
             style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="font-bold text-gray-900">Wasiliana na Timu</p>
+              <p className="font-bold text-gray-900">{t('adv_contact_team')}</p>
               <button
                 onClick={() => { setShowNew(false); setPickedStaff(null); setNewMsg('') }}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"
@@ -471,7 +474,7 @@ export default function AdvertiserMessagesPage() {
 
             {!pickedStaff ? (
               <div className="flex-1 overflow-y-auto">
-                <p className="text-xs text-gray-400 mb-3">Chagua mfanyakazi wa kuwasiliana naye:</p>
+                <p className="text-xs text-gray-400 mb-3">{t('adv_select_staff')}</p>
                 {staffLoading ? (
                   <div className="space-y-2">
                     {[1,2,3].map(i => (
@@ -482,7 +485,7 @@ export default function AdvertiserMessagesPage() {
                     ))}
                   </div>
                 ) : staffContacts.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-8">Hakuna wafanyakazi wanaopatikana</p>
+                  <p className="text-sm text-gray-400 text-center py-8">{t('adv_no_staff')}</p>
                 ) : (
                   <div className="space-y-1">
                     {staffContacts.map((s) => (
@@ -493,8 +496,10 @@ export default function AdvertiserMessagesPage() {
                       >
                         <Avatar src={s.avatar_url} name={s.full_name} size={10} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{s.full_name ?? 'Mfanyakazi'}</p>
-                          <p className="text-xs text-gray-400 capitalize">{s.role === 'admin' ? 'Msimamizi' : 'Mfanyakazi'}</p>
+                          <p className="text-sm font-semibold text-gray-900 truncate">{s.full_name ?? t('adv_staff_role')}</p>
+                          <p className="text-xs text-gray-400 capitalize">
+                            {s.role === 'admin' ? t('adv_admin_role') : t('adv_staff_role')}
+                          </p>
                         </div>
                         <i className="ti ti-chevron-right text-gray-300 flex-shrink-0" aria-hidden="true" />
                       </button>
@@ -505,19 +510,21 @@ export default function AdvertiserMessagesPage() {
             ) : (
               <div className="flex flex-col gap-4">
                 <button onClick={() => setPickedStaff(null)} className="flex items-center gap-2 text-xs text-primary-600 font-medium -mt-1">
-                  <i className="ti ti-arrow-left text-sm" aria-hidden="true" /> Badilisha mtu
+                  <i className="ti ti-arrow-left text-sm" aria-hidden="true" /> {t('adv_change_person')}
                 </button>
                 <div className="flex items-center gap-3 px-3 py-3 bg-primary-50 rounded-xl">
                   <Avatar src={pickedStaff.avatar_url} name={pickedStaff.full_name} size={9} />
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{pickedStaff.full_name}</p>
-                    <p className="text-xs text-gray-400">{pickedStaff.role === 'admin' ? 'Msimamizi' : 'Mfanyakazi'}</p>
+                    <p className="text-xs text-gray-400">
+                      {pickedStaff.role === 'admin' ? t('adv_admin_role') : t('adv_staff_role')}
+                    </p>
                   </div>
                 </div>
                 <textarea
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-300 placeholder-gray-400"
                   rows={3}
-                  placeholder="Andika ujumbe wako wa kwanza..."
+                  placeholder={t('adv_first_message_placeholder')}
                   value={newMsg}
                   onChange={(e) => setNewMsg(e.target.value)}
                 />
@@ -528,7 +535,7 @@ export default function AdvertiserMessagesPage() {
                 >
                   {creating
                     ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    : <><i className="ti ti-send text-sm" aria-hidden="true" />Tuma Ujumbe</>
+                    : <><i className="ti ti-send text-sm" aria-hidden="true" />{t('adv_send_message')}</>
                   }
                 </button>
               </div>

@@ -2,7 +2,7 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { generateScorecards } from '@/lib/scorecards/scorer'
 import { sendTextMessage, formatPhoneNumber } from '@/lib/whatsapp/client'
 
-const APP_URL     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 const ADMIN_PHONE = process.env.ADMIN_WHATSAPP_NUMBER ?? '255615261147'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

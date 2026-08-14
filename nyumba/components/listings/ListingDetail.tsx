@@ -18,6 +18,8 @@ import { getFullLocation, getShortLocation } from '@/lib/listings/formatLocation
 import { BOOSTED_LABEL, STATUS_LABELS } from '@/lib/config/listing-status'
 import { buildContactWhatsAppMessage } from '@/lib/utils/whatsappTemplates'
 import { formatCommission, calculateCommissionAmount } from '@/lib/listings/commission'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 const SimilarListings = dynamic(
   () => import('@/components/listings/SimilarListings'),
@@ -72,20 +74,19 @@ const typeLabel: Record<string, string> = {
   duka: 'Duka',
 }
 
-const furnishedLabel: Record<string, string> = {
-  furnished: 'Ina Samani',
-  semi: 'Nusu Samani',
-  empty: 'Bila Samani',
-}
+// furnishedLabel is built inside the component using t()
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (k: TKey) => string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const days = Math.floor(diff / 86_400_000)
-  if (days === 0) return 'leo'
-  if (days === 1) return 'jana'
-  if (days < 7) return `siku ${days} zilizopita`
-  if (days < 30) return `wiki ${Math.floor(days / 7)} iliyopita`
-  return `mwezi ${Math.floor(days / 30)} uliopita`
+  if (days === 0) return t('lst_ago_today').toLowerCase()
+  if (days === 1) return t('lst_ago_yesterday').toLowerCase()
+  if (days < 7) return t('lst_ago_days').replace('{{n}}', String(days)).toLowerCase()
+  if (days < 30) {
+    const weeks = Math.floor(days / 7)
+    return `wiki ${weeks} iliyopita`
+  }
+  return t('lst_ago_1month').toLowerCase()
 }
 
 function formatPrice(amount: number): string {
@@ -109,6 +110,12 @@ type Props = {
 
 export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlockId, unlockCreatedAt, hasReviewed, reviews, whatsappNumber: initialWhatsappNumber, agentProfileUrl }: Props) {
   const router = useRouter()
+  const { t } = useLanguage()
+  const furnishedLabel: Record<string, string> = {
+    furnished: t('lst_furnished_full'),
+    semi:      t('lst_furnished_semi'),
+    empty:     t('lst_furnished_empty'),
+  }
   const [activeImg, setActiveImg] = useState(0)
   const [unlockPrice, setUnlockPrice] = useState(2000)
   useEffect(() => {
@@ -184,10 +191,10 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
       return (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
           <p className="text-sm font-semibold text-amber-700 mb-3 flex items-center gap-1.5">
-            <i className="ti ti-circle-dot" aria-hidden="true" /> Nyumba hii imeshapangishwa
+            <i className="ti ti-circle-dot" aria-hidden="true" /> {t('lst_listing_taken')}
           </p>
           <a href={`/?region=${listing.region}`} className="btn-primary w-full py-3 text-sm block text-center">
-            <i className="ti ti-search" aria-hidden="true" /> Tafuta zinazofanana
+            <i className="ti ti-search" aria-hidden="true" /> {t('lst_search_similar')}
           </a>
         </div>
       )
@@ -201,16 +208,16 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                          bg-green-500 text-white font-semibold text-sm shadow-md active:scale-95 transition-transform">
               <i className="ti ti-brand-whatsapp text-xl" aria-hidden="true" />
               <span>WhatsApp</span>
-              <span className="text-[10px] font-normal opacity-75">Na maelezo ya listing</span>
+              <span className="text-[10px] font-normal opacity-75">{t('lst_whatsapp_subtitle')}</span>
             </a>
             <a href={`tel:+${waPhone}`}
               className="flex flex-col items-center justify-center gap-1 py-3 rounded-2xl
                          bg-blue-500 text-white font-semibold text-sm shadow-md active:scale-95 transition-transform">
               <i className="ti ti-phone text-xl" aria-hidden="true" />
-              <span>Piga Simu</span>
+              <span>{t('lst_call_phone')}</span>
             </a>
           </div>
-          <p className="text-center text-xs text-gray-400">Namba moja inatumika kwa njia zote mbili</p>
+          <p className="text-center text-xs text-gray-400">{t('lst_same_number')}</p>
         </div>
       )
     }
@@ -223,10 +230,10 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           }}
           className="btn-primary w-full py-3.5 text-sm"
         >
-          <i className="ti ti-lock-open" aria-hidden="true" /> Pata Namba ya WhatsApp ya {dalaliDisplayName} – Tsh {unlockPrice.toLocaleString()}
+          <i className="ti ti-lock-open" aria-hidden="true" /> {t('lst_unlock_cta')} {dalaliDisplayName} – Tsh {unlockPrice.toLocaleString()}
         </button>
         <p className="text-center text-xs text-gray-400 mt-1.5">
-          Lipa mara moja kupata nambari ya dalali
+          {t('lst_pay_once_hint')}
         </p>
       </div>
     )
@@ -267,7 +274,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             )}
             {listing.type === 'duka' && (listing as typeof listing & { floor_level?: number | null }).floor_level != null && (
               <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                <i className="ti ti-building" aria-hidden="true" /> {(listing as typeof listing & { floor_level?: number | null }).floor_level === 0 ? 'Chini' : `Ghorofa ${(listing as typeof listing & { floor_level?: number | null }).floor_level}`}
+                <i className="ti ti-building" aria-hidden="true" /> {(listing as typeof listing & { floor_level?: number | null }).floor_level === 0 ? t('lst_ground_floor') : `Ghorofa ${(listing as typeof listing & { floor_level?: number | null }).floor_level}`}
               </span>
             )}
             {listing.type === 'duka' && (listing as typeof listing & { commercial_use?: string | null }).commercial_use && (
@@ -282,26 +289,26 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {listing.commission_type && (
           <section className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
-              <i className="ti ti-coins" aria-hidden="true" /> Kamisheni ya Dalali
+              <i className="ti ti-coins" aria-hidden="true" /> {t('lst_commission')}
             </h3>
             {localUnlocked ? (
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between py-1 border-b border-gray-50">
-                  <span className="text-sm text-gray-500">Aina</span>
+                  <span className="text-sm text-gray-500">{t('lst_commission_type')}</span>
                   <span className="text-sm font-semibold text-gray-800">
                     {formatCommission(listing.commission_type, listing.commission_value ?? null)}
                   </span>
                 </div>
                 {listing.commission_type !== 'negotiable' && listing.commission_type !== 'one_month' && listing.commission_value ? (
                   <div className="flex items-center justify-between py-1 border-b border-gray-50">
-                    <span className="text-sm text-gray-500">Kiasi</span>
+                    <span className="text-sm text-gray-500">{t('lst_commission_amount')}</span>
                     <span className="text-sm font-bold text-primary-700">
                       Tsh {calculateCommissionAmount(listing.commission_type, listing.commission_value, listing.price_monthly)?.toLocaleString() ?? '—'}
                     </span>
                   </div>
                 ) : listing.commission_type === 'one_month' ? (
                   <div className="flex items-center justify-between py-1 border-b border-gray-50">
-                    <span className="text-sm text-gray-500">Kiasi</span>
+                    <span className="text-sm text-gray-500">{t('lst_commission_amount')}</span>
                     <span className="text-sm font-bold text-primary-700">
                       Tsh {listing.price_monthly.toLocaleString()}
                     </span>
@@ -319,7 +326,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 </span>
                 <span className="text-xs text-gray-400 flex items-center gap-1">
                   <i className="ti ti-lock text-xs" aria-hidden="true" />
-                  Maelezo baada ya kulipa
+                  {t('lst_unlock_to_see')}
                 </span>
               </div>
             )}
@@ -329,7 +336,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Location */}
         <section className="card p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
-            <i className="ti ti-map-pin" aria-hidden="true" /> Mahali
+            <i className="ti ti-map-pin" aria-hidden="true" /> {t('lst_location')}
           </h3>
           {(() => {
             const summary = getFullLocation(listing)
@@ -341,34 +348,34 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           })()}
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Mkoa</p>
+              <p className="text-xs text-gray-400 mb-0.5">{t('lst_region')}</p>
               <p className="text-sm font-medium text-gray-800">{listing.region}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Wilaya</p>
+              <p className="text-xs text-gray-400 mb-0.5">{t('lst_district')}</p>
               <p className="text-sm font-medium text-gray-800">{listing.district}</p>
             </div>
             {listing.ward && (
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">Kata</p>
+                <p className="text-xs text-gray-400 mb-0.5">{t('lst_ward')}</p>
                 <p className="text-sm font-medium text-gray-800">{listing.ward}</p>
               </div>
             )}
             {listing.mtaa && (
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">Mtaa / Kijiji</p>
+                <p className="text-xs text-gray-400 mb-0.5">{t('lst_mtaa')}</p>
                 <p className="text-sm font-medium text-gray-800">{listing.mtaa}</p>
               </div>
             )}
             {listing.street && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-400 mb-0.5">Barabara</p>
+                <p className="text-xs text-gray-400 mb-0.5">{t('lst_street')}</p>
                 <p className="text-sm font-medium text-gray-800">{listing.street}</p>
               </div>
             )}
             {listing.address_full && listing.address_full !== listing.location_display && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-400 mb-0.5">Anwani Kamili</p>
+                <p className="text-xs text-gray-400 mb-0.5">{t('lst_full_address')}</p>
                 <p className="text-sm font-medium text-gray-800">{listing.address_full}</p>
               </div>
             )}
@@ -395,13 +402,13 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 <i className="ti ti-map text-2xl text-gray-500" aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800">Angalia kwenye Google Maps</p>
+                <p className="text-sm font-semibold text-gray-800">{t('lst_view_on_maps')}</p>
                 <p className="text-xs text-gray-500 truncate mt-0.5">
                   {[listing.street, listing.mtaa, listing.district, listing.region].filter(Boolean).join(' › ')}
                 </p>
               </div>
               <span className="text-xs font-semibold text-primary-600 flex-shrink-0 bg-primary-50 px-2 py-1 rounded-lg">
-                Fungua →
+                {t('lst_open')}
               </span>
             </a>
           )}
@@ -411,7 +418,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {listing.description && (
           <section className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-              <i className="ti ti-file-text" aria-hidden="true" /> Maelezo
+              <i className="ti ti-file-text" aria-hidden="true" /> {t('lst_description')}
             </h3>
             <p className="text-gray-600 text-sm leading-relaxed">{listing.description}</p>
           </section>
@@ -421,7 +428,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {listing.amenities?.length > 0 && (
           <div className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
-              <i className="ti ti-check" aria-hidden="true" /> Huduma zilizopo
+              <i className="ti ti-check" aria-hidden="true" /> {t('lst_amenities')}
             </h3>
             <div className="flex flex-wrap gap-2">
               {listing.amenities.map(a => (
@@ -444,8 +451,8 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             <div className="flex items-center gap-3 mb-2.5">
               <i className="ti ti-circle-check text-2xl text-primary-600 flex-shrink-0" aria-hidden="true" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-primary-800">Umeshazungumza na dalali huyu</p>
-                <p className="text-xs text-primary-600" suppressHydrationWarning>Ulifungua contact {timeAgo(unlockCreatedAt)}</p>
+                <p className="text-sm font-semibold text-primary-800">{t('lst_already_contacted')}</p>
+                <p className="text-xs text-primary-600" suppressHydrationWarning>{t('lst_contact_opened')} {timeAgo(unlockCreatedAt, t)}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -455,7 +462,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               </a>
               <a href={`tel:+${waPhone}`}
                 className="flex items-center justify-center gap-1.5 bg-blue-500 text-white text-xs px-3 py-2 rounded-xl font-semibold active:scale-95 transition-transform">
-                <i className="ti ti-phone" aria-hidden="true" /> Piga Simu
+                <i className="ti ti-phone" aria-hidden="true" /> {t('lst_call_phone')}
               </a>
             </div>
           </div>
@@ -467,7 +474,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {/* Dalali card */}
         <div className="card p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
-            <i className="ti ti-user" aria-hidden="true" /> Kuhusu Dalali
+            <i className="ti ti-user" aria-hidden="true" /> {t('lst_about_agent')}
           </h3>
           <div className="flex items-start gap-3">
             <Avatar src={listing.dalali?.avatar_url} name={listing.dalali?.full_name ?? 'Dalali'} size={56} />
@@ -476,12 +483,12 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 <span className="font-semibold text-gray-900 text-sm">{listing.dalali?.full_name ?? 'Dalali'}</span>
                 {isVerified && (
                   <span className="bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                    <i className="ti ti-check" aria-hidden="true" /> Amethibitishwa
+                    <i className="ti ti-check" aria-hidden="true" /> {t('lst_verified')}
                   </span>
                 )}
                 {isFavourite && (
                   <span className="bg-amber-400 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5 font-semibold">
-                    <i className="ti ti-rosette-discount-check" aria-hidden="true" /> Dalali Halisi
+                    <i className="ti ti-rosette-discount-check" aria-hidden="true" /> {t('lst_fav_agent')}
                   </span>
                 )}
               </div>
@@ -505,7 +512,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             <a href={agentProfileUrl}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary-200 bg-primary-50 text-primary-700 text-xs font-semibold active:scale-[0.97] transition-all">
               <i className="ti ti-user-circle text-sm" aria-hidden="true" />
-              Angalia listings zote za {listing.dalali?.full_name ?? 'dalali huyu'} →
+              {t('lst_view_all_agent_listings')} {listing.dalali?.full_name ?? 'dalali huyu'} →
             </a>
           </div>
         )}
@@ -518,7 +525,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               className="text-xs text-gray-400 flex items-center gap-1 min-h-[44px] px-2 hover:text-red-500 transition-colors"
             >
               <i className="ti ti-alert-triangle" aria-hidden="true" />
-              <span>Ripoti dalali huyu</span>
+              <span>{t('lst_report_agent')}</span>
             </button>
           </div>
         )}
@@ -546,9 +553,9 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 <div className="flex items-center gap-3">
                   <i className="ti ti-star-filled text-2xl text-amber-400" aria-hidden="true" />
                   <div>
-                    <p className="text-sm font-semibold text-primary-700">Tutakuomba toa maoni</p>
+                    <p className="text-sm font-semibold text-primary-700">{t('lst_review_later_title')}</p>
                     <p className="text-xs text-primary-500 mt-0.5">
-                      Baada ya siku 3 utapata arifa kukuomba utoe maoni kuhusu dalali
+                      {t('lst_review_later_body')}
                     </p>
                   </div>
                 </div>
@@ -565,7 +572,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 flex items-center gap-3 px-4 py-3">
         <button
           onClick={() => window.history.length > 2 ? router.back() : router.push('/')}
-          aria-label="Rudi nyuma"
+          aria-label={t('common_back')}
           className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 flex-shrink-0"
         >
           ←
@@ -603,7 +610,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
                 <i className="ti ti-home text-5xl text-gray-300" aria-hidden="true" />
-                <span className="text-sm">Hakuna picha</span>
+                <span className="text-sm">{t('lst_no_photos')}</span>
               </div>
             )}
 
@@ -668,7 +675,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           {videoUrl && (
             <div className="px-4 lg:px-0 pt-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <i className="ti ti-video" aria-hidden="true" /> Video ya Nyumba
+                <i className="ti ti-video" aria-hidden="true" /> {t('lst_video_label')}
               </p>
               <VideoPlayer src={videoUrl} poster={images[0]} />
             </div>
@@ -695,7 +702,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               region={listing.region}
               placement="listing_detail"
               limit={3}
-              title="Biashara Karibu Nawe"
+              title={t('cl_nearby_biz')}
             />
           </div>
 
@@ -733,10 +740,10 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         {isTaken ? (
           <div className="text-center pb-1">
             <p className="text-sm font-semibold text-amber-700 mb-1 flex items-center gap-1.5">
-              <i className="ti ti-circle-dot" aria-hidden="true" /> Nyumba hii imeshapangishwa
+              <i className="ti ti-circle-dot" aria-hidden="true" /> {t('lst_listing_taken')}
             </p>
             <a href={`/?region=${listing.region}`} className="btn-primary w-full py-3 text-sm">
-              <i className="ti ti-search" aria-hidden="true" /> Tafuta zinazofanana — {listing.region}
+              <i className="ti ti-search" aria-hidden="true" /> {t('lst_search_similar')} — {listing.region}
             </a>
           </div>
         ) : localUnlocked && waPhone ? (
@@ -747,16 +754,16 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                            bg-green-500 text-white font-semibold text-sm shadow-md active:scale-95 transition-transform">
                 <i className="ti ti-brand-whatsapp text-xl" aria-hidden="true" />
                 <span>WhatsApp</span>
-                <span className="text-[10px] font-normal opacity-75">Na maelezo ya listing</span>
+                <span className="text-[10px] font-normal opacity-75">{t('lst_whatsapp_subtitle')}</span>
               </a>
               <a href={`tel:+${waPhone}`}
                 className="flex flex-col items-center justify-center gap-1 py-3 rounded-2xl
                            bg-blue-500 text-white font-semibold text-sm shadow-md active:scale-95 transition-transform">
                 <i className="ti ti-phone text-xl" aria-hidden="true" />
-                <span>Piga Simu</span>
+                <span>{t('lst_call_phone')}</span>
               </a>
             </div>
-            <p className="text-center text-xs text-gray-400">Namba moja inatumika kwa njia zote mbili</p>
+            <p className="text-center text-xs text-gray-400">{t('lst_same_number')}</p>
           </div>
         ) : (
           <div>
@@ -767,10 +774,10 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
               }}
               className="btn-primary w-full py-3.5 text-sm"
             >
-              <i className="ti ti-lock-open" aria-hidden="true" /> Pata Namba ya WhatsApp ya {dalaliDisplayName} – Tsh {unlockPrice.toLocaleString()}
+              <i className="ti ti-lock-open" aria-hidden="true" /> {t('lst_unlock_cta')} {dalaliDisplayName} – Tsh {unlockPrice.toLocaleString()}
             </button>
             <p className="text-center text-xs text-gray-400 mt-1.5">
-              Lipa mara moja kupata nambari ya dalali
+              {t('lst_pay_once_hint')}
             </p>
           </div>
         )}

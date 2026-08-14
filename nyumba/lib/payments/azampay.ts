@@ -326,7 +326,7 @@ export function detectProvider(phone: string): MobileProvider {
   if (TIGO_PFX.includes(prefix3))   return 'Tigo'
   if (HALO_PFX.includes(prefix3))   return 'Halopesa'
 
-  return 'Mpesa'  // safe default
+  return 'Tigo'  // default to a working provider
 }
 
 export function generateExternalId(prefix = 'NYF'): string {

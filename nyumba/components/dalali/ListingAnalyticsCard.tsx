@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface ListingAnalytics {
   totalViews:       number
@@ -11,10 +12,10 @@ interface ListingAnalytics {
   performanceScore: number
 }
 
-function ScoreBadge({ score }: { score: number }) {
-  if (score >= 70) return <span className="text-primary-600 font-semibold text-xs"><i className="ti ti-flame" aria-hidden="true" /> Inafanya vizuri</span>
-  if (score >= 30) return <span className="text-amber-600 font-semibold text-xs"><i className="ti ti-arrow-right" aria-hidden="true" /> Wastani</span>
-  return <span className="text-red-500 font-semibold text-xs"><i className="ti ti-alert-triangle" aria-hidden="true" /> Inahitaji kuangaliwa</span>
+function ScoreBadge({ score, labels }: { score: number; labels: [string, string, string] }) {
+  if (score >= 70) return <span className="text-primary-600 font-semibold text-xs"><i className="ti ti-flame" aria-hidden="true" /> {labels[0]}</span>
+  if (score >= 30) return <span className="text-amber-600 font-semibold text-xs"><i className="ti ti-arrow-right" aria-hidden="true" /> {labels[1]}</span>
+  return <span className="text-red-500 font-semibold text-xs"><i className="ti ti-alert-triangle" aria-hidden="true" /> {labels[2]}</span>
 }
 
 function ScoreBar({ score }: { score: number }) {
@@ -27,6 +28,7 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export default function ListingAnalyticsCard({ listingId }: { listingId: string }) {
+  const { t } = useLanguage()
   const [data, setData]       = useState<ListingAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(false)
@@ -66,8 +68,8 @@ export default function ListingAnalyticsCard({ listingId }: { listingId: string 
         {/* Performance bar */}
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-gray-500">Utendaji</span>
-            <ScoreBadge score={data.performanceScore} />
+            <span className="text-xs text-gray-500">{t('analytics_performance')}</span>
+            <ScoreBadge score={data.performanceScore} labels={[t('analytics_good'), t('analytics_avg'), t('analytics_needs_attn')]} />
           </div>
           <ScoreBar score={data.performanceScore} />
         </div>
@@ -76,28 +78,28 @@ export default function ListingAnalyticsCard({ listingId }: { listingId: string 
         <div className="grid grid-cols-4 gap-2">
           <div className="bg-white rounded-lg p-2 text-center">
             <p className="text-base font-bold text-gray-900">{data.totalViews}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-eye" aria-hidden="true" /> Waliotazama</p>
+            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-eye" aria-hidden="true" /> {t('analytics_views')}</p>
           </div>
           <div className="bg-white rounded-lg p-2 text-center">
             <p className="text-base font-bold text-gray-900">{data.totalLeads}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-lock-open" aria-hidden="true" /> Unlocks</p>
+            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-lock-open" aria-hidden="true" /> {t('analytics_unlocks')}</p>
           </div>
           <div className="bg-white rounded-lg p-2 text-center">
             <p className="text-base font-bold text-gray-900">{data.totalSaves}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-heart" aria-hidden="true" /> Saved</p>
+            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-heart" aria-hidden="true" /> {t('analytics_saved')}</p>
           </div>
           <div className="bg-white rounded-lg p-2 text-center">
             <p className="text-base font-bold text-gray-900">
               {data.avgRating > 0 ? data.avgRating.toFixed(1) : '—'}
             </p>
-            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-star-filled" aria-hidden="true" /> Rating</p>
+            <p className="text-[10px] text-gray-400 mt-0.5"><i className="ti ti-star-filled" aria-hidden="true" /> {t('analytics_rating')}</p>
           </div>
         </div>
 
         {/* Low-performance hint */}
         {data.performanceScore < 30 && data.totalViews < 5 && (
           <p className="text-[10px] text-amber-600 mt-2 text-center">
-            <i className="ti ti-bulb" aria-hidden="true" /> Jaribu kupunguza bei au kuongeza picha zaidi
+            <i className="ti ti-bulb" aria-hidden="true" /> {t('analytics_improve_hint')}
           </p>
         )}
       </div>

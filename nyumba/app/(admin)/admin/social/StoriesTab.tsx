@@ -223,7 +223,7 @@ export default function StoriesTab() {
                 </>
               )}
               <p className="text-xs text-gray-400 mt-1">
-                Picha ya listing itapigwa 9:16, watermark itaongezwa. Story itatumwa kwa IG + FB + TikTok (kama video ipo).
+                IG: picha 9:16 + watermark. FB: video ya listing au picha inabadilishwa kuwa video ya 3s. TikTok: video tu (kama listing ina video).
               </p>
             </div>
           )}
@@ -267,7 +267,8 @@ export default function StoriesTab() {
         <div className="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
 <p className="font-semibold mb-1 flex items-center gap-1"><i className="ti ti-info-circle" aria-hidden="true" /> Kuhusu Stories (IG + FB + TikTok):</p>
           <ul className="list-disc list-inside space-y-0.5">
-            <li>IG Story + FB Story zinachapishwa kwa picha daima</li>
+            <li>IG Story inachapishwa kwa picha (9:16 crop + watermark)</li>
+            <li>FB Story inachapishwa kama video — listing ina video itatumia hiyo, vinginevyo picha inabadilishwa kuwa video fupi ya sekunde 3 kiotomatiki</li>
             <li>TikTok Story inachapishwa kama video (kama listing ina video)</li>
             <li>Stories zinaisha kiotomatiki baada ya masaa 24</li>
             <li>Link sticker (IG) inahitaji ruhusa ya <code>pages_read_engagement</code></li>

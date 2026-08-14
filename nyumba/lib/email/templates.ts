@@ -1,4 +1,4 @@
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.nyumbafasta.co'
 const LOGO_URL = 'https://nyumbafasta.co/logo_nyumbafasta.png'
 
 // All styles are fully inline — <style> blocks are stripped by Gmail and Outlook.

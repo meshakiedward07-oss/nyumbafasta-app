@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 const IncomeForm     = dynamic(() => import('./components/IncomeForm'),     { ssr: false })
 const ExpenseForm    = dynamic(() => import('./components/ExpenseForm'),    { ssr: false })
@@ -43,18 +45,55 @@ function fmt(n: number) {
 }
 function fmtFull(n: number) { return `TSh ${n.toLocaleString()}` }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  commission: 'Kamisheni', viewing_fee: 'Viewing', consultation: 'Ushauri',
-  service: 'Huduma', transport: 'Usafiri', marketing: 'Matangazo',
-  phone: 'Simu/Data', office: 'Ofisi', other: 'Nyingine',
+// ─── i18n helpers ─────────────────────────────────────────────────────────────
+
+const CAT_KEY_MAP: Partial<Record<string, TKey>> = {
+  commission:   'hesabu_cat_commission',
+  viewing_fee:  'hesabu_cat_viewing',
+  consultation: 'hesabu_cat_consultation',
+  service:      'hesabu_cat_service',
+  transport:    'hesabu_cat_transport',
+  marketing:    'hesabu_cat_marketing',
+  phone:        'hesabu_cat_phone',
+  office:       'hesabu_cat_office',
+  other:        'hesabu_cat_other',
 }
-const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  paid:    { label: 'Imelipwa',   cls: 'bg-green-100  text-green-700'  },
-  partial: { label: 'Sehemu',     cls: 'bg-blue-100   text-blue-700'   },
-  pending: { label: 'Inasubiri',  cls: 'bg-amber-100  text-amber-700'  },
-  overdue: { label: 'Imechelewa', cls: 'bg-red-100    text-red-700'    },
+function getCatLabel(cat: string, t: (key: TKey) => string): string {
+  const key = CAT_KEY_MAP[cat]
+  return key ? t(key) : cat
 }
-const MONTHS = ['','Januari','Februari','Machi','Aprili','Mei','Juni','Julai','Agosti','Septemba','Oktoba','Novemba','Desemba']
+
+const STATUS_CSS: Record<string, string> = {
+  paid:    'bg-green-100  text-green-700',
+  partial: 'bg-blue-100   text-blue-700',
+  pending: 'bg-amber-100  text-amber-700',
+  overdue: 'bg-red-100    text-red-700',
+}
+const STATUS_LABEL_KEY: Record<string, TKey> = {
+  paid:    'hesabu_status_paid',
+  partial: 'hesabu_status_partial',
+  pending: 'hesabu_status_pending',
+  overdue: 'hesabu_status_overdue',
+}
+
+const MONTH_KEYS: TKey[] = [
+  'hesabu_month_1',  'hesabu_month_2',  'hesabu_month_3',
+  'hesabu_month_4',  'hesabu_month_5',  'hesabu_month_6',
+  'hesabu_month_7',  'hesabu_month_8',  'hesabu_month_9',
+  'hesabu_month_10', 'hesabu_month_11', 'hesabu_month_12',
+]
+function getMonthName(month: number, t: (key: TKey) => string): string {
+  return month >= 1 && month <= 12 ? t(MONTH_KEYS[month - 1]) : ''
+}
+
+const TAB_IDS = ['muhtasari', 'mapato', 'matumizi', 'commission', 'ripoti'] as const
+const TAB_LABEL_KEYS: Record<string, TKey> = {
+  muhtasari:  'hesabu_tab_muhtasari',
+  mapato:     'hesabu_tab_mapato',
+  matumizi:   'hesabu_tab_matumizi',
+  commission: 'hesabu_tab_commission',
+  ripoti:     'hesabu_tab_ripoti',
+}
 
 // ─── Stat Tile ────────────────────────────────────────────────────────────────
 function StatTile({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
@@ -69,6 +108,7 @@ function StatTile({ label, value, sub, color }: { label: string; value: string; 
 
 // ─── Category Bar ─────────────────────────────────────────────────────────────
 function CategoryBar({ data, color }: { data: Record<string, number>; color: string }) {
+  const { t } = useLanguage()
   const entries = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 5)
   const max = entries[0]?.[1] ?? 1
   return (
@@ -76,7 +116,7 @@ function CategoryBar({ data, color }: { data: Record<string, number>; color: str
       {entries.map(([cat, val]) => (
         <div key={cat}>
           <div className="flex justify-between text-xs text-gray-600 mb-0.5">
-            <span>{CATEGORY_LABELS[cat] ?? cat}</span>
+            <span>{getCatLabel(cat, t)}</span>
             <span className="font-medium">TSh {fmt(val)}</span>
           </div>
           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -90,6 +130,7 @@ function CategoryBar({ data, color }: { data: Record<string, number>; color: str
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function HesabuPage() {
+  const { t } = useLanguage()
   const [tab,     setTab]     = useState<'muhtasari' | 'mapato' | 'matumizi' | 'commission' | 'ripoti'>('muhtasari')
   const [stats,   setStats]   = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -201,9 +242,9 @@ export default function HesabuPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <i className="ti ti-coins text-primary-500" aria-hidden="true" /> Hesabu Zangu
+                <i className="ti ti-coins text-primary-500" aria-hidden="true" /> {t('hesabu_title')}
               </h1>
-              <p className="text-[11px] text-gray-400">{MONTHS[period.month]} {period.year}</p>
+              <p className="text-[11px] text-gray-400">{getMonthName(period.month, t)} {period.year}</p>
             </div>
             <div className="flex items-center gap-2">
               {/* Month picker */}
@@ -220,14 +261,14 @@ export default function HesabuPage() {
                   return { m: d.getMonth() + 1, y: d.getFullYear() }
                 }).map(({ m, y }) => (
                   <option key={`${y}-${m}`} value={`${y}-${m}`}>
-                    {MONTHS[m]} {y}
+                    {getMonthName(m, t)} {y}
                   </option>
                 ))}
               </select>
               <button
                 onClick={() => setModal('income')}
                 className="w-8 h-8 flex items-center justify-center rounded-xl bg-primary-500 text-white shadow-sm"
-                title="Ongeza mapato"
+                title={t('hesabu_add_income')}
               >
                 <i className="ti ti-plus text-sm" aria-hidden="true" />
               </button>
@@ -236,11 +277,11 @@ export default function HesabuPage() {
 
           {/* Tabs */}
           <div className="flex gap-1 mt-3 overflow-x-auto no-scrollbar -mx-1 px-1">
-            {([ ['muhtasari','Muhtasari'], ['mapato','Mapato'], ['matumizi','Matumizi'], ['commission','Kamisheni'], ['ripoti','Ripoti'] ] as const).map(([id, label]) => (
+            {TAB_IDS.map(id => (
               <button key={id} onClick={() => setTab(id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
                   tab === id ? 'bg-primary-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600'}`}>
-                {label}
+                {t(TAB_LABEL_KEYS[id])}
               </button>
             ))}
           </div>
@@ -262,10 +303,10 @@ export default function HesabuPage() {
               <>
                 {/* Hero stats */}
                 <div className="grid grid-cols-2 gap-3">
-                  <StatTile label="Mapato leo"    value={`TSh ${fmt(stats.summary.today)}`}        color="text-green-600" />
-                  <StatTile label="Wiki hii"      value={`TSh ${fmt(stats.summary.week)}`}         color="text-blue-600" />
-                  <StatTile label="Mwezi huu"     value={`TSh ${fmt(stats.summary.monthIncome)}`}  color="text-gray-900" />
-                  <StatTile label="Faida halisi"  value={`TSh ${fmt(stats.summary.monthProfit)}`}  color={profitColor} />
+                  <StatTile label={t('hesabu_today')}        value={`TSh ${fmt(stats.summary.today)}`}        color="text-green-600" />
+                  <StatTile label={t('hesabu_week')}         value={`TSh ${fmt(stats.summary.week)}`}         color="text-blue-600" />
+                  <StatTile label={t('hesabu_month_income')} value={`TSh ${fmt(stats.summary.monthIncome)}`}  color="text-gray-900" />
+                  <StatTile label={t('hesabu_profit')}       value={`TSh ${fmt(stats.summary.monthProfit)}`}  color={profitColor} />
                 </div>
 
                 {/* Goal progress */}
@@ -286,30 +327,30 @@ export default function HesabuPage() {
                         style={{ width: `${Math.min(100, stats.goal.current_amount / stats.goal.target_amount * 100)}%` }}
                       />
                     </div>
-                    <button onClick={() => setModal('goal')} className="mt-2 text-[11px] text-primary-600 font-medium">Badilisha lengo →</button>
+                    <button onClick={() => setModal('goal')} className="mt-2 text-[11px] text-primary-600 font-medium">{t('hesabu_change_goal')}</button>
                   </div>
                 ) : (
                   <button onClick={() => setModal('goal')}
                     className="w-full bg-white border-2 border-dashed border-primary-200 rounded-2xl p-4 text-sm text-primary-600 font-medium text-center">
-                    + Weka lengo la mapato mwezi huu
+                    {t('hesabu_set_goal')}
                   </button>
                 )}
 
                 {/* Commissions summary */}
                 <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                  <p className="text-xs font-semibold text-gray-700 mb-3">Kamisheni</p>
+                  <p className="text-xs font-semibold text-gray-700 mb-3">{t('hesabu_commission_section')}</p>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="text-center">
                       <p className="text-base font-bold text-amber-600">{fmtFull(stats.commissions.pending).replace('TSh ', 'TSh\n')}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Inasubiri</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{t('hesabu_comm_pending_label')}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-base font-bold text-red-600">{fmtFull(stats.commissions.overdue).replace('TSh ', 'TSh\n')}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Imechelewa</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{t('hesabu_comm_overdue_label')}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-base font-bold text-green-600">{fmtFull(stats.commissions.paid).replace('TSh ', 'TSh\n')}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Imelipwa</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{t('hesabu_comm_paid_label')}</p>
                     </div>
                   </div>
                 </div>
@@ -317,7 +358,7 @@ export default function HesabuPage() {
                 {/* Income breakdown */}
                 {Object.keys(stats.incomeByCategory).length > 0 && (
                   <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                    <p className="text-xs font-semibold text-gray-700 mb-3">Mapato kwa aina</p>
+                    <p className="text-xs font-semibold text-gray-700 mb-3">{t('hesabu_income_by_cat')}</p>
                     <CategoryBar data={stats.incomeByCategory} color="bg-green-400" />
                   </div>
                 )}
@@ -325,7 +366,7 @@ export default function HesabuPage() {
                 {/* Expense breakdown */}
                 {Object.keys(stats.expenseByCategory).length > 0 && (
                   <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                    <p className="text-xs font-semibold text-gray-700 mb-3">Matumizi kwa aina</p>
+                    <p className="text-xs font-semibold text-gray-700 mb-3">{t('hesabu_expense_by_cat')}</p>
                     <CategoryBar data={stats.expenseByCategory} color="bg-red-400" />
                   </div>
                 )}
@@ -334,14 +375,16 @@ export default function HesabuPage() {
                 <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-4 text-white">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-xs font-bold">A</div>
-                    <p className="text-sm font-semibold">Amina AI — Ushauri</p>
+                    <p className="text-sm font-semibold">{t('hesabu_amina_title')}</p>
                   </div>
                   {advice ? (
                     <p className="text-sm text-gray-200 whitespace-pre-line leading-relaxed">{advice}</p>
                   ) : (
                     <button onClick={fetchAdvice} disabled={advLoading}
                       className="w-full bg-white/10 hover:bg-white/20 rounded-xl py-2.5 text-sm font-medium transition-all disabled:opacity-50">
-                      {advLoading ? <span className="flex items-center justify-center gap-2"><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Amina anafikiri...</span> : <span className="flex items-center justify-center gap-1.5"><i className="ti ti-message-chatbot text-sm" aria-hidden="true" />Pata ushauri wa biashara</span>}
+                      {advLoading
+                        ? <span className="flex items-center justify-center gap-2"><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{t('hesabu_amina_thinking')}</span>
+                        : <span className="flex items-center justify-center gap-1.5"><i className="ti ti-message-chatbot text-sm" aria-hidden="true" />{t('hesabu_amina_btn')}</span>}
                     </button>
                   )}
                 </div>
@@ -349,7 +392,7 @@ export default function HesabuPage() {
             ) : (
               <div className="text-center py-12 text-gray-400">
                 <i className="ti ti-coins text-4xl" aria-hidden="true" />
-                <p className="mt-2 text-sm">Hakuna takwimu</p>
+                <p className="mt-2 text-sm">{t('hesabu_no_data')}</p>
               </div>
             )}
           </>
@@ -360,12 +403,12 @@ export default function HesabuPage() {
           <>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">Mapato yote</p>
+                <p className="text-xs text-gray-500">{t('hesabu_all_income')}</p>
                 <p className="text-xl font-bold text-green-600">TSh {fmt(stats?.summary.monthIncome ?? 0)}</p>
               </div>
               <button onClick={() => setModal('income')}
                 className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5">
-                <i className="ti ti-plus" aria-hidden="true" /> Ongeza
+                <i className="ti ti-plus" aria-hidden="true" /> {t('dal_nav_add')}
               </button>
             </div>
 
@@ -376,9 +419,9 @@ export default function HesabuPage() {
             ) : (stats?.recentIncome?.length ?? 0) === 0 ? (
               <div className="text-center py-12 text-gray-400">
                 <i className="ti ti-trending-up text-4xl" aria-hidden="true" />
-                <p className="mt-2 text-sm">Hakuna mapato bado</p>
+                <p className="mt-2 text-sm">{t('hesabu_no_income')}</p>
                 <button onClick={() => setModal('income')} className="mt-3 px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold">
-                  Ongeza mapato ya kwanza
+                  {t('hesabu_add_first_income')}
                 </button>
               </div>
             ) : (
@@ -391,7 +434,7 @@ export default function HesabuPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="text-sm font-semibold text-gray-800 truncate">
-                          {CATEGORY_LABELS[row.category] ?? row.category}
+                          {getCatLabel(row.category, t)}
                         </p>
                         <p className="text-sm font-bold text-green-600 shrink-0">+TSh {fmt(row.amount)}</p>
                       </div>
@@ -401,7 +444,7 @@ export default function HesabuPage() {
                       {row.description && <p className="text-xs text-gray-400 truncate">{row.description}</p>}
                     </div>
                     <button
-                      onClick={() => setDeleteConfirm({ id: row.id, type: 'income', label: CATEGORY_LABELS[row.category] ?? row.category })}
+                      onClick={() => setDeleteConfirm({ id: row.id, type: 'income', label: getCatLabel(row.category, t) })}
                       disabled={deleting === row.id}
                       className="w-7 h-7 flex items-center justify-center rounded-xl hover:bg-red-50 shrink-0">
                       <i className={`ti ${deleting === row.id ? 'ti-loader animate-spin' : 'ti-trash'} text-red-400 text-xs`} aria-hidden="true" />
@@ -418,12 +461,12 @@ export default function HesabuPage() {
           <>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">Matumizi yote</p>
+                <p className="text-xs text-gray-500">{t('hesabu_all_expenses')}</p>
                 <p className="text-xl font-bold text-red-600">TSh {fmt(stats?.summary.monthExpenses ?? 0)}</p>
               </div>
               <button onClick={() => setModal('expense')}
                 className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5">
-                <i className="ti ti-plus" aria-hidden="true" /> Ongeza
+                <i className="ti ti-plus" aria-hidden="true" /> {t('dal_nav_add')}
               </button>
             </div>
 
@@ -434,9 +477,9 @@ export default function HesabuPage() {
             ) : (stats?.recentExpenses?.length ?? 0) === 0 ? (
               <div className="text-center py-12 text-gray-400">
                 <i className="ti ti-trending-down text-4xl" aria-hidden="true" />
-                <p className="mt-2 text-sm">Hakuna matumizi bado</p>
+                <p className="mt-2 text-sm">{t('hesabu_no_expenses')}</p>
                 <button onClick={() => setModal('expense')} className="mt-3 px-5 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold">
-                  Rekodi matumizi ya kwanza
+                  {t('hesabu_add_first_expense')}
                 </button>
               </div>
             ) : (
@@ -449,7 +492,7 @@ export default function HesabuPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="text-sm font-semibold text-gray-800 truncate">
-                          {CATEGORY_LABELS[row.category] ?? row.category}
+                          {getCatLabel(row.category, t)}
                         </p>
                         <p className="text-sm font-bold text-red-500 shrink-0">−TSh {fmt(row.amount)}</p>
                       </div>
@@ -459,12 +502,12 @@ export default function HesabuPage() {
                       {row.description && <p className="text-xs text-gray-400 truncate">{row.description}</p>}
                       {row.receipt_url && (
                         <a href={row.receipt_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 flex items-center gap-1 mt-0.5">
-                          <i className="ti ti-receipt text-[11px]" aria-hidden="true" />Risiti
+                          <i className="ti ti-receipt text-[11px]" aria-hidden="true" />{t('hesabu_receipt')}
                         </a>
                       )}
                     </div>
                     <button
-                      onClick={() => setDeleteConfirm({ id: row.id, type: 'expense', label: CATEGORY_LABELS[row.category] ?? row.category })}
+                      onClick={() => setDeleteConfirm({ id: row.id, type: 'expense', label: getCatLabel(row.category, t) })}
                       disabled={deleting === row.id}
                       className="w-7 h-7 flex items-center justify-center rounded-xl hover:bg-red-50 shrink-0">
                       <i className={`ti ${deleting === row.id ? 'ti-loader animate-spin' : 'ti-trash'} text-red-400 text-xs`} aria-hidden="true" />
@@ -481,11 +524,11 @@ export default function HesabuPage() {
           <>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">Zinazosumbua ({stats?.commissions.list.filter(c => c.status !== 'paid').length ?? 0})</p>
+                <p className="text-xs text-gray-500">{t('hesabu_comm_outstanding').replace('{{n}}', String(stats?.commissions.list.filter(c => c.status !== 'paid').length ?? 0))}</p>
               </div>
               <button onClick={() => setModal('commission')}
                 className="px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5">
-                <i className="ti ti-plus" aria-hidden="true" /> Ongeza
+                <i className="ti ti-plus" aria-hidden="true" /> {t('dal_nav_add')}
               </button>
             </div>
 
@@ -496,12 +539,13 @@ export default function HesabuPage() {
             ) : (stats?.commissions.list?.length ?? 0) === 0 ? (
               <div className="text-center py-12 text-gray-400">
                 <i className="ti ti-receipt text-4xl" aria-hidden="true" />
-                <p className="mt-2 text-sm">Hakuna commission bado</p>
+                <p className="mt-2 text-sm">{t('hesabu_no_commission')}</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {stats!.commissions.list.map(c => {
-                  const st = STATUS_LABELS[c.status] ?? STATUS_LABELS.pending
+                  const stCls   = STATUS_CSS[c.status]       ?? STATUS_CSS.pending
+                  const stLabel = t(STATUS_LABEL_KEY[c.status] ?? 'hesabu_status_pending')
                   const isPaying = commPaying === c.id
                   return (
                     <div key={c.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
@@ -510,20 +554,20 @@ export default function HesabuPage() {
                           <p className="text-sm font-semibold text-gray-800 truncate">{c.client_name}</p>
                           <p className="text-xs text-gray-400 truncate">{c.property_title}</p>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${st.cls}`}>{st.label}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${stCls}`}>{stLabel}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs mb-3">
                         <div>
-                          <p className="text-gray-400">Inayotarajiwa</p>
+                          <p className="text-gray-400">{t('hesabu_comm_expected')}</p>
                           <p className="font-bold text-gray-800">TSh {fmt(c.expected_amount)}</p>
                         </div>
                         <div>
-                          <p className="text-gray-400">Imelipwa</p>
+                          <p className="text-gray-400">{t('hesabu_comm_paid_amount')}</p>
                           <p className="font-bold text-green-600">TSh {fmt(c.paid_amount)}</p>
                         </div>
                         {c.expected_amount > c.paid_amount && (
                           <div>
-                            <p className="text-gray-400">Baki</p>
+                            <p className="text-gray-400">{t('hesabu_comm_balance')}</p>
                             <p className="font-bold text-red-500">TSh {fmt(c.expected_amount - c.paid_amount)}</p>
                           </div>
                         )}
@@ -537,7 +581,7 @@ export default function HesabuPage() {
                       {/* Pay inline */}
                       {isPaying ? (
                         <div className="flex gap-2">
-                          <input type="number" inputMode="numeric" placeholder="Kiasi kilicholipwa"
+                          <input type="number" inputMode="numeric" placeholder={t('hesabu_comm_pay_ph')}
                             value={commPayAmount} onChange={e => setCommPayAmount(e.target.value)}
                             className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                           <button onClick={() => payCommission(c.id)}
@@ -550,7 +594,7 @@ export default function HesabuPage() {
                           {c.status !== 'paid' && (
                             <button onClick={() => { setCommPaying(c.id); setCommPayAmount('') }}
                               className="flex-1 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-semibold border border-amber-200">
-                              Rekodi malipo
+                              {t('hesabu_comm_record')}
                             </button>
                           )}
                           <button
@@ -579,14 +623,14 @@ export default function HesabuPage() {
                   <i className="ti ti-printer text-gray-600 text-lg" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-800">Ripoti ya PDF</p>
-                  <p className="text-xs text-gray-400">Chapisha au save kama PDF</p>
+                  <p className="text-sm font-semibold text-gray-800">{t('hesabu_report_title')}</p>
+                  <p className="text-xs text-gray-400">{t('hesabu_report_sub')}</p>
                 </div>
               </div>
               <button onClick={openReport}
                 className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2">
                 <i className="ti ti-download" aria-hidden="true" />
-                Pakua Ripoti — {MONTHS[period.month]} {period.year}
+                {t('hesabu_download_btn')} — {getMonthName(period.month, t)} {period.year}
               </button>
             </div>
 
@@ -594,7 +638,7 @@ export default function HesabuPage() {
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
               <p className="text-xs font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
                 <i className="ti ti-history text-primary-500 text-sm" aria-hidden="true" />
-                Historia ya Upakuaji
+                {t('hesabu_download_history')}
               </p>
               {dlLoading ? (
                 <div className="space-y-2">
@@ -603,14 +647,14 @@ export default function HesabuPage() {
                   ))}
                 </div>
               ) : downloads.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-4">Bado hujapakua ripoti yoyote</p>
+                <p className="text-xs text-gray-400 text-center py-4">{t('hesabu_no_downloads')}</p>
               ) : (
                 <div className="divide-y divide-gray-50">
                   {downloads.map(d => (
                     <div key={d.id} className="flex items-center justify-between py-2.5">
                       <div className="flex items-center gap-2">
                         <i className="ti ti-file-text text-gray-400 text-sm" aria-hidden="true" />
-                        <span className="text-xs font-medium text-gray-700">{MONTHS[d.month]} {d.year}</span>
+                        <span className="text-xs font-medium text-gray-700">{getMonthName(d.month, t)} {d.year}</span>
                       </div>
                       <span className="text-[11px] text-gray-400">
                         {new Date(d.downloaded_at).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -647,14 +691,14 @@ export default function HesabuPage() {
             <div className="text-4xl mb-3 flex justify-center">
               <i className="ti ti-trash text-red-400" aria-hidden="true" />
             </div>
-            <h3 className="font-bold text-gray-900 mb-1">Futa rekodi?</h3>
+            <h3 className="font-bold text-gray-900 mb-1">{t('hesabu_delete_title')}</h3>
             <p className="text-sm text-gray-500 mb-5 truncate">{deleteConfirm.label}</p>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
                 className="py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold"
               >
-                Hapana
+                {t('hesabu_hapana')}
               </button>
               <button
                 onClick={() => {
@@ -665,7 +709,7 @@ export default function HesabuPage() {
                 disabled={!!deleting}
                 className="py-3 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-50"
               >
-                {deleting ? 'Inafuta...' : 'Ndiyo, futa'}
+                {deleting ? t('hesabu_deleting') : t('hesabu_yes_delete')}
               </button>
             </div>
           </div>

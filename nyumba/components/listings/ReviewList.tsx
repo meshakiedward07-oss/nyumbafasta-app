@@ -1,5 +1,7 @@
 'use client'
 import { useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 type SortOrder = 'recent' | 'highest' | 'helpful'
 
@@ -21,18 +23,18 @@ type Props = {
   ratingCount: number
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (k: TKey) => string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const days = Math.floor(diff / 86_400_000)
-  if (days === 0) return 'leo'
-  if (days === 1) return 'jana'
-  if (days < 7) return `siku ${days} zilizopita`
-  if (days < 30) return `wiki ${Math.floor(days / 7)} zilizopita`
-  if (days < 365) return `mwezi ${Math.floor(days / 30)} uliopita`
-  return `mwaka ${Math.floor(days / 365)} uliopita`
+  if (days === 0) return t('lst_ago_today').toLowerCase()
+  if (days === 1) return t('lst_ago_yesterday').toLowerCase()
+  if (days < 30) return t('lst_ago_days').replace('{{n}}', String(days)).toLowerCase()
+  if (days < 60) return t('lst_ago_1month').toLowerCase()
+  return t('lst_ago_months').replace('{{n}}', String(Math.floor(days / 30))).toLowerCase()
 }
 
 export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
+  const { t } = useLanguage()
   const [sort, setSort] = useState<SortOrder>('recent')
   const [helpfulVoted, setHelpfulVoted] = useState<Set<string>>(new Set())
   const [helpfulCounts, setHelpfulCounts] = useState<Record<string, number>>(
@@ -64,7 +66,7 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-gray-50">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-gray-900"><i className="ti ti-star-filled text-amber-400" aria-hidden="true" /> Maoni ya Wateja</h3>
+          <h3 className="text-sm font-bold text-gray-900"><i className="ti ti-star-filled text-amber-400" aria-hidden="true" /> {t('cl_reviews_header')}</h3>
           <div className="flex items-center gap-1">
             <i className="ti ti-star-filled text-amber-400 text-base" aria-hidden="true" />
             <span className="font-bold text-gray-900 text-sm">{ratingAvg.toFixed(1)}</span>
@@ -94,9 +96,9 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
         {/* Sort tabs */}
         <div className="flex bg-gray-100 rounded-xl p-0.5 gap-0.5">
           {([
-            { key: 'recent',  label: 'Hivi karibuni' },
-            { key: 'highest', label: 'Juu zaidi' },
-            { key: 'helpful', label: 'Msaada' },
+            { key: 'recent',  label: t('cl_sort_recent')  },
+            { key: 'highest', label: t('cl_sort_highest') },
+            { key: 'helpful', label: t('cl_sort_helpful') },
           ] as { key: SortOrder; label: string }[]).map(({ key, label }) => (
             <button key={key} onClick={() => setSort(key)}
               className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -125,11 +127,11 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-semibold text-gray-800">
-                      {review.reviewer?.full_name ?? 'Mteja'}
+                      {review.reviewer?.full_name ?? t('cl_customer')}
                     </span>
                     {review.is_verified && (
                       <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">
-                        <i className="ti ti-circle-check" aria-hidden="true" /> Amethibitishwa
+                        <i className="ti ti-circle-check" aria-hidden="true" /> {t('lst_verified')}
                       </span>
                     )}
                   </div>
@@ -139,7 +141,7 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
                         <i key={i} className={`ti ti-star-filled text-sm ${i <= review.rating ? 'text-amber-400' : 'text-gray-200'}`} aria-hidden="true" />
                       ))}
                     </div>
-                    <span className="text-xs text-gray-400" suppressHydrationWarning>{timeAgo(review.created_at)}</span>
+                    <span className="text-xs text-gray-400" suppressHydrationWarning>{timeAgo(review.created_at, t)}</span>
                   </div>
                 </div>
               </div>
@@ -163,7 +165,7 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
                   }`}
                 >
                   <i className="ti ti-thumb-up" aria-hidden="true" />
-                  <span>{voted ? 'Umepiga kura' : 'Ilikuwa na msaada'}</span>
+                  <span>{voted ? t('cl_voted') : t('cl_was_helpful')}</span>
                   {hCount > 0 && <span className="font-semibold">({hCount})</span>}
                 </button>
               </div>
@@ -171,10 +173,10 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
               {/* Dalali reply */}
               {review.response && (
                 <div className="mt-3 ml-11 bg-primary-50 rounded-xl px-3 py-2.5 border-l-2 border-primary-300">
-                  <p className="text-xs font-semibold text-primary-700 mb-1 flex items-center gap-1"><i className="ti ti-message-circle" aria-hidden="true" />Jibu la Dalali</p>
+                  <p className="text-xs font-semibold text-primary-700 mb-1 flex items-center gap-1"><i className="ti ti-message-circle" aria-hidden="true" />{t('cl_agent_reply')}</p>
                   <p className="text-xs text-gray-600 leading-relaxed">{review.response}</p>
                   {review.response_at && (
-                    <p className="text-xs text-gray-400 mt-1" suppressHydrationWarning>{timeAgo(review.response_at)}</p>
+                    <p className="text-xs text-gray-400 mt-1" suppressHydrationWarning>{timeAgo(review.response_at, t)}</p>
                   )}
                 </div>
               )}

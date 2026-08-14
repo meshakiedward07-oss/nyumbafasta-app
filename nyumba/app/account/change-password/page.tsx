@@ -4,10 +4,12 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 function ChangePasswordForm() {
   const supabase = createClient()
   const searchParams = useSearchParams()
+  const { t } = useLanguage()
 
   // 'reset' = arrived from password-reset email link; 'forced' = staff first login
   const [flowType, setFlowType] = useState<'reset' | 'forced' | 'unknown'>('unknown')
@@ -121,8 +123,8 @@ function ChangePasswordForm() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-sm">
           <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></div>
-          <h2 className="font-bold text-gray-900 text-lg mb-2">Password Imebadilishwa!</h2>
-          <p className="text-gray-500 text-sm">Unakwenda kwenye dashboard yako...</p>
+          <h2 className="font-bold text-gray-900 text-lg mb-2">{t('cl_password_changed_title')}</h2>
+          <p className="text-gray-500 text-sm">{t('cl_redirecting')}</p>
         </div>
       </div>
     )
@@ -148,12 +150,10 @@ function ChangePasswordForm() {
           <div className="text-center mb-5">
             <div className="text-3xl mb-2 flex justify-center"><i className="ti ti-key text-gray-600" aria-hidden="true" /></div>
             <h2 className="font-bold text-gray-900">
-              {flowType === 'forced' ? 'Weka Password Mpya' : 'Badilisha Nenosiri'}
+              {flowType === 'forced' ? t('cl_set_new_password') : t('cl_change_password')}
             </h2>
             <p className="text-xs text-gray-400 mt-1">
-              {flowType === 'forced'
-                ? 'Lazima ubadilishe password ya muda kabla ya kuendelea'
-                : 'Weka nenosiri jipya la akaunti yako'}
+              {flowType === 'forced' ? t('cl_forced_password_hint') : t('cl_password_new_hint')}
             </p>
           </div>
 
@@ -165,13 +165,13 @@ function ChangePasswordForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs text-gray-500 mb-1.5 block">Password Mpya</label>
+              <label className="text-xs text-gray-500 mb-1.5 block">{t('cl_new_password_label')}</label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
                   required
                   minLength={8}
-                  placeholder="Angalau herufi 8"
+                  placeholder={t('cl_password_min')}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
@@ -179,7 +179,7 @@ function ChangePasswordForm() {
                 <button
                   type="button"
                   onClick={() => setShowPass(p => !p)}
-                  aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
+                  aria-label={showPass ? t('cl_hide_password') : t('cl_show_password')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1"
                 >
                   {showPass ? <i className="ti ti-eye-off" aria-hidden="true" /> : <i className="ti ti-eye" aria-hidden="true" />}
@@ -188,12 +188,12 @@ function ChangePasswordForm() {
             </div>
 
             <div>
-              <label className="text-xs text-gray-500 mb-1.5 block">Thibitisha Password</label>
+              <label className="text-xs text-gray-500 mb-1.5 block">{t('cl_confirm_password_label')}</label>
               <div className="relative">
                 <input
                   type={showConfirm ? 'text' : 'password'}
                   required
-                  placeholder="Rudia password mpya"
+                  placeholder={t('cl_repeat_password')}
                   value={confirm}
                   onChange={e => setConfirm(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
@@ -201,7 +201,7 @@ function ChangePasswordForm() {
                 <button
                   type="button"
                   onClick={() => setShowConfirm(p => !p)}
-                  aria-label={showConfirm ? 'Ficha uthibitisho' : 'Onyesha uthibitisho'}
+                  aria-label={showConfirm ? t('cl_hide_confirm') : t('cl_show_confirm')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm p-1"
                 >
                   {showConfirm ? <i className="ti ti-eye-off" aria-hidden="true" /> : <i className="ti ti-eye" aria-hidden="true" />}
@@ -214,7 +214,7 @@ function ChangePasswordForm() {
               disabled={saving}
               className="w-full bg-primary-500 text-white py-3.5 rounded-xl text-sm font-semibold disabled:opacity-50"
             >
-              {saving ? 'Inabadilisha...' : 'Badilisha Password'}
+              {saving ? t('cl_changing') : t('cl_change_password')}
             </button>
           </form>
         </div>

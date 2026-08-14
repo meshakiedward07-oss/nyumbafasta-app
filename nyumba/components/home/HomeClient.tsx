@@ -1,6 +1,7 @@
 'use client'
 import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 import ListingsSection from '@/components/listings/ListingsSection'
 import BannerAd from '@/components/ads/BannerAd'
 import VideoAdCard from '@/components/ads/VideoAdCard'
@@ -8,6 +9,7 @@ import type { ListingWithDalali } from '@/lib/types/database'
 
 // Isolated so useSearchParams doesn't block SSR of the header + listings above it
 function WelcomeModal() {
+  const { t } = useLanguage()
   const searchParams = useSearchParams()
   const router = useRouter()
   const [dismissed, setDismissed] = useState(false)
@@ -22,18 +24,18 @@ function WelcomeModal() {
           <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
             <i className="ti ti-rosette-discount-check text-white text-3xl" aria-hidden="true" />
           </div>
-          <h2 className="font-bold text-lg text-white leading-tight">Akaunti Imethibitishwa</h2>
-          <p className="text-primary-100 text-sm mt-1">Karibu NyumbaFasta Tanzania</p>
+          <h2 className="font-bold text-lg text-white leading-tight">{t('home_welcome_title')}</h2>
+          <p className="text-primary-100 text-sm mt-1">{t('home_welcome_sub')}</p>
         </div>
         <div className="px-6 py-5 text-center">
           <p className="text-gray-600 text-sm leading-relaxed">
-            Uko tayari kutafuta nyumba na vyumba bora Tanzania yote.
+            {t('home_welcome_body')}
           </p>
           <button
             onClick={() => { setDismissed(true); router.replace('/') }}
             className="mt-4 w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
           >
-            Anza Kutumia
+            {t('home_welcome_btn')}
           </button>
         </div>
       </div>

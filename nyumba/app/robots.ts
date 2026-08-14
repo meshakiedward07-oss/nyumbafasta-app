@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 // Private/auth-only areas — kept out of all crawlers.
 // /login has no SEO value (auth wall); /register is intentionally NOT listed (public conversion page).

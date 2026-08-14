@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { formatPhoneNumber, sendTextMessage } from '@/lib/whatsapp/client'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 // ── Internal helpers ───────────────────────────────────────────────────────────
 

@@ -2,8 +2,10 @@
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { supportWaUrl } from '@/lib/config/support'
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function AccountBannedPage() {
+  const { t }    = useLanguage()
   const supabase = createClient()
   const router   = useRouter()
 
@@ -22,23 +24,22 @@ export default function AccountBannedPage() {
         </div>
 
         <h1 className="text-xl font-bold text-gray-900 mb-2">
-          Akaunti Imefutwa
+          {t('auth_banned_title')}
         </h1>
 
         <div className="bg-red-50 border border-red-100 rounded-xl p-4 my-5 text-left space-y-2">
-          <p className="text-sm text-red-800 font-medium">Akaunti yako imefutwa kwa sababu ya:</p>
+          <p className="text-sm text-red-800 font-medium">{t('auth_banned_reason_hd')}</p>
           <ul className="text-xs text-red-700 space-y-1.5 list-disc list-inside">
-            <li>Ukiukaji mkubwa wa masharti ya matumizi</li>
-            <li>Ulaghai au udanganyifu uliothibitishwa</li>
-            <li>Malalamiko mengi yaliyothibitishwa</li>
-            <li>Vitendo vya uhalifu vinavyohusiana na jukwaa</li>
+            <li>{t('auth_banned_r1')}</li>
+            <li>{t('auth_banned_r2')}</li>
+            <li>{t('auth_banned_r3')}</li>
+            <li>{t('auth_banned_r4')}</li>
           </ul>
         </div>
 
         <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-5">
           <p className="text-xs text-gray-600">
-            Uamuzi huu ni wa mwisho na umefanywa baada ya uchunguzi wa kina.
-            Kufungua akaunti mpya kwa kutumia jina lingine pia ni ukiukaji wa masharti yetu.
+            {t('auth_banned_final')}
           </p>
         </div>
 
@@ -49,14 +50,14 @@ export default function AccountBannedPage() {
           rel="noopener noreferrer"
           className="block w-full bg-gray-800 text-white py-3.5 rounded-xl text-sm font-semibold mb-3 hover:bg-gray-700 transition-colors"
         >
-          <i className="ti ti-pencil" aria-hidden="true" /> Omba Rufaa (Appeal)
+          <i className="ti ti-pencil" aria-hidden="true" /> {t('auth_banned_appeal')}
         </a>
 
         <button
           onClick={handleSignOut}
           className="w-full border border-gray-200 text-gray-600 py-3 rounded-xl text-sm hover:bg-gray-50 transition-colors"
         >
-          Toka / Sign Out
+          {t('auth_sign_out')}
         </button>
 
         <p className="text-[10px] text-gray-400 mt-4">

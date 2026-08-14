@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface Props {
   listingId: string
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function SaveButton({ listingId, className = '', size = 'md' }: Props) {
+  const { t } = useLanguage()
   const supabase = createClient()
   const router   = useRouter()
 
@@ -76,7 +78,7 @@ export default function SaveButton({ listingId, className = '', size = 'md' }: P
     <button
       onClick={toggle}
       disabled={loading}
-      aria-label={saved ? 'Ondoa kwenye saved' : 'Hifadhi listing'}
+      aria-label={saved ? t('cl_remove_from_saved') : t('cl_save_listing')}
       className={`
         ${sz} rounded-full flex items-center justify-center
         transition-all duration-150 active:scale-90

@@ -1,7 +1,7 @@
 import { sendTextMessage, formatPhoneNumber } from '@/lib/whatsapp/client'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 
-const APP_URL     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 const ADMIN_PHONE = process.env.ADMIN_WHATSAPP_NUMBER ?? '255615261147'
 
 // Called after a SOP's last_reviewed_at is updated.

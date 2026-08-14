@@ -1,5 +1,7 @@
 'use client'
 import { formatCommission, type CommissionType } from '@/lib/listings/commission'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 export interface CommissionState {
   enabled: boolean
@@ -13,22 +15,23 @@ interface Props {
   onChange: (v: CommissionState) => void
 }
 
-const COMMISSION_TYPES = [
-  { key: 'one_month'  as CommissionType, label: 'Miezi 1 ya Kodi', icon: 'calendar-month' },
-  { key: 'percentage' as CommissionType, label: 'Asilimia (%)',    icon: 'percentage'     },
-  { key: 'fixed'      as CommissionType, label: 'Kiasi Maalum',    icon: 'cash'           },
-  { key: 'negotiable' as CommissionType, label: 'Inajadiliwa',     icon: 'message-2'      },
+const COMMISSION_TYPE_KEYS: { key: CommissionType; labelKey: TKey; icon: string }[] = [
+  { key: 'one_month',  labelKey: 'cfield_one_month',  icon: 'calendar-month' },
+  { key: 'percentage', labelKey: 'cfield_percentage', icon: 'percentage'     },
+  { key: 'fixed',      labelKey: 'cfield_fixed',      icon: 'cash'           },
+  { key: 'negotiable', labelKey: 'cfield_negotiable', icon: 'message-2'      },
 ]
 
 export default function CommissionField({ value, onChange }: Props) {
+  const { t } = useLanguage()
   const set = (patch: Partial<CommissionState>) => onChange({ ...value, ...patch })
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Kamisheni (Hiari)</p>
-          <p className="text-[11px] text-gray-400 mt-0.5">Mteja ataona baada ya kulipa unlock</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('cfield_title')}</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">{t('cfield_hint')}</p>
         </div>
         <button
           type="button"
@@ -49,7 +52,7 @@ export default function CommissionField({ value, onChange }: Props) {
         <div className="space-y-3 pt-1">
           {/* Type grid */}
           <div className="grid grid-cols-2 gap-2">
-            {COMMISSION_TYPES.map(opt => (
+            {COMMISSION_TYPE_KEYS.map(opt => (
               <button
                 key={opt.key}
                 type="button"
@@ -65,7 +68,7 @@ export default function CommissionField({ value, onChange }: Props) {
                   aria-hidden="true"
                 />
                 <span className={`text-xs font-medium leading-tight ${value.type === opt.key ? 'text-primary-700' : 'text-gray-600'}`}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </span>
               </button>
             ))}
@@ -75,7 +78,7 @@ export default function CommissionField({ value, onChange }: Props) {
           {value.type === 'percentage' && (
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                Asilimia (%)
+                {t('cfield_pct_label')}
               </label>
               <div className="relative">
                 <input
@@ -85,7 +88,7 @@ export default function CommissionField({ value, onChange }: Props) {
                   max="100"
                   value={value.value}
                   onChange={e => set({ value: e.target.value })}
-                  placeholder="Mf. 10"
+                  placeholder={t('cfield_pct_ph')}
                   className="w-full pr-10 pl-4 py-3 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">%</span>
@@ -97,7 +100,7 @@ export default function CommissionField({ value, onChange }: Props) {
           {value.type === 'fixed' && (
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                Kiasi (Tsh)
+                {t('cfield_fixed_label')}
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">Tsh</span>
@@ -107,7 +110,7 @@ export default function CommissionField({ value, onChange }: Props) {
                   min="0"
                   value={value.value}
                   onChange={e => set({ value: e.target.value })}
-                  placeholder="Mf. 500000"
+                  placeholder={t('cfield_fixed_ph')}
                   className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               </div>
@@ -118,13 +121,13 @@ export default function CommissionField({ value, onChange }: Props) {
           {value.type && (
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                Maelezo ya Ziada (Hiari)
+                {t('cfield_notes_label')}
               </label>
               <input
                 type="text"
                 value={value.notes}
                 onChange={e => set({ notes: e.target.value })}
-                placeholder="Mf. Kamisheni ni ya mwezi wa kwanza tu"
+                placeholder={t('cfield_notes_ph')}
                 maxLength={200}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
               />
@@ -136,7 +139,7 @@ export default function CommissionField({ value, onChange }: Props) {
             <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 flex items-center gap-2">
               <i className="ti ti-coins text-primary-500 text-sm" aria-hidden="true" />
               <span className="text-xs text-primary-700 font-medium">
-                Itaonyeshwa kama:{' '}
+                {t('cfield_preview_label')}{' '}
                 <strong>{formatCommission(value.type, parseFloat(value.value) || null)}</strong>
               </span>
             </div>

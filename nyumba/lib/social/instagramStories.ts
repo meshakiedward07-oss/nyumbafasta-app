@@ -146,6 +146,24 @@ export async function postInstagramStory(params: {
 }
 
 // ── Facebook Story ────────────────────────────────────────────────────────────
+//
+// Facebook Stories require video — photo_stories is not supported on most page types.
+// When the listing has no video we convert the Cloudinary story image to a 3-second MP4
+// by changing the delivery type from image to video and requesting the .mp4 extension.
+// Cloudinary renders the same 9:16 crop + watermark transformations as the image version.
+
+function buildFBStoryVideoUrl(imageUrl: string): string | null {
+  const marker = '/image/upload/'
+  const idx    = imageUrl.indexOf(marker)
+  if (idx === -1) return null
+
+  const base        = imageUrl.slice(0, idx)
+  const afterUpload = imageUrl.slice(idx + marker.length)
+  const withMp4     = afterUpload.replace(/\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i, '.mp4$2')
+
+  // du_3 = 3-second duration clip; preserves all existing transforms (9:16 crop, watermark)
+  return `${base}/video/upload/du_3/${withMp4}`
+}
 
 export async function postFacebookStory(params: {
   imageUrl:  string
@@ -156,26 +174,33 @@ export async function postFacebookStory(params: {
   }
 
   try {
-    // Video story takes priority over image story when video is provided
-    if (params.videoUrl) {
-      const res  = await fetch(`${GRAPH}/${fbPageId()}/video_stories`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          video:        { file_url: params.videoUrl },
-          access_token: fbToken(),
-        }),
-      })
-      const data = await res.json() as { post_id?: string; error?: { message: string } }
-      if (data.error) throw new Error(data.error.message)
-      console.log('[FB Story] Video story posted:', data.post_id)
-      return { success: true, storyId: data.post_id }
+    // Use provided video, or convert the Cloudinary story image → 3-second MP4
+    const storyVideoUrl = params.videoUrl ?? buildFBStoryVideoUrl(params.imageUrl)
+
+    if (!storyVideoUrl) {
+      return { success: false, error: 'Haiwezi kuunda video ya FB Story — picha sio Cloudinary URL' }
     }
 
-    // FB photo_stories is not supported on all page types (returns code=1 "unknown error").
-    // When no video is available we skip FB story silently — IG story still posts.
-    console.warn('[FB Story] photo_stories not supported for this page — skipping FB image story')
-    return { success: false, error: 'FB page haisaidii photo_stories (video story inafanya kazi)' }
+    // Pre-warm Cloudinary video URL so it is cached before Facebook fetches it
+    try {
+      await fetch(storyVideoUrl, { signal: AbortSignal.timeout(20_000) })
+      console.log('[FB Story] Video URL pre-warmed')
+    } catch (e) {
+      console.warn('[FB Story] Pre-warm failed, attempting anyway:', e)
+    }
+
+    const res  = await fetch(`${GRAPH}/${fbPageId()}/video_stories`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        video:        { file_url: storyVideoUrl },
+        access_token: fbToken(),
+      }),
+    })
+    const data = await res.json() as { post_id?: string; error?: { message: string } }
+    if (data.error) throw new Error(data.error.message)
+    console.log('[FB Story] Video story posted:', data.post_id)
+    return { success: true, storyId: data.post_id }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[FB Story] Exception:', msg)
@@ -259,7 +284,7 @@ export async function postListingStory(
   }
 
   const storyImageUrl = buildStoryImageUrl(rawImageUrl)
-  const appUrl        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   const listingUrl    = `${appUrl}/listings/${listing.id}`
 
   const result = await postInstagramStory({ imageUrl: storyImageUrl, listingUrl })
@@ -331,7 +356,7 @@ export async function postListingStoryAllPlatforms(
   }
 
   const storyImageUrl = buildStoryImageUrl(rawImageUrl)
-  const appUrl        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   const listingUrl    = `${appUrl}/listings/${listing.id}`
   const videoUrl      = (listing as Listing & { video_url?: string | null }).video_url ?? undefined
 

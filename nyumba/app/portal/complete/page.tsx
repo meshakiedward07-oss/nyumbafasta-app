@@ -3,8 +3,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function PortalCompletePage() {
+  const { t }    = useLanguage()
   const supabase = createClient()
   const router   = useRouter()
   const [status,  setStatus]  = useState<'loading' | 'error'>('loading')
@@ -21,7 +23,7 @@ export default function PortalCompletePage() {
       const res = await fetch('/api/v1/portal/register', { method: 'POST' })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
-        setMsg((d as { error?: string }).error ?? 'Kuna tatizo. Jaribu tena.')
+        setMsg((d as { error?: string }).error ?? t('portal_error_default'))
         setStatus('error'); return
       }
       const d = await res.json() as { portal_type?: string }
@@ -31,7 +33,7 @@ export default function PortalCompletePage() {
                  : '/'
       router.replace(dest)
     } catch {
-      setMsg('Hitilafu ya mtandao. Angalia muunganiko wako.')
+      setMsg(t('portal_network_error'))
       setStatus('error')
     }
   }, [supabase, router])
@@ -48,20 +50,20 @@ export default function PortalCompletePage() {
         {status === 'loading' ? (
           <>
             <div className="w-14 h-14 border-[3px] border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <h2 className="font-bold text-gray-900 text-lg mb-1">Inakamilisha Usajili...</h2>
-            <p className="text-sm text-gray-500">Subiri sekunde chache.</p>
+            <h2 className="font-bold text-gray-900 text-lg mb-1">{t('portal_completing_reg')}</h2>
+            <p className="text-sm text-gray-500">{t('portal_wait_moment')}</p>
           </>
         ) : (
           <>
             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="ti ti-alert-circle text-red-500 text-3xl" aria-hidden="true" />
             </div>
-            <h2 className="font-bold text-gray-900 text-lg mb-2">Imeshindwa</h2>
+            <h2 className="font-bold text-gray-900 text-lg mb-2">{t('portal_failed_title')}</h2>
             <p className="text-sm text-gray-500 mb-5">{msg}</p>
             <button
               onClick={() => setAttempt(n => n + 1)}
               className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
-              Jaribu Tena
+              {t('common_retry')}
             </button>
           </>
         )}

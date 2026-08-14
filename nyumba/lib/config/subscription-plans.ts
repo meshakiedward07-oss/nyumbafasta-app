@@ -37,11 +37,11 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
     icon: 'home',
     description: 'Anza bila malipo — bure kwa siku 90',
     listings: 2,
-    photos: 2,
+    photos: 3,
     extraListingPrice: 0,
     features: [
       { label: 'Listings 2 active', included: true },
-      { label: 'Picha 2 kwa listing', included: true },
+      { label: 'Picha 3 kwa listing', included: true },
       { label: 'WhatsApp visible kwa wateja', included: true },
       { label: 'Video ya listing', included: false },
       { label: 'Boost listing', included: false },
@@ -51,7 +51,7 @@ export const SUBSCRIPTION_PLANS: Plan[] = [
       { label: 'Support', included: false },
     ],
     limits: {
-      listings: 2, photos: 2, videos: false, boost: false,
+      listings: 2, photos: 3, videos: false, boost: false,
       analytics: 'none', verifiedBadge: false,
       searchPriority: 'low', support: 'none', extraListings: false,
     },

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
 import { detectProvider } from '@/lib/payments/azampay'
 import type { PaymentMethod as PaymentProvider } from '@/components/payments/PaymentMethodSelector'
+import { useLanguage } from '@/lib/i18n/context'
 
 const PROVIDERS = Object.fromEntries(
   PAYMENT_METHODS.map(m => [m.id, {
@@ -38,6 +39,8 @@ function normalisePhone(raw: string): { normalized: string; valid: boolean } {
   return { normalized: `255${stripped}`, valid: stripped.length === 9 }
 }
 
+// ── USSD Preview — simulation of Tanzania mobile money prompt (kept in Swahili
+//    intentionally: this is a realistic mock of the on-device experience) ──────
 function UssdPreview({ amount, provider }: { amount: number; provider: PaymentProvider }) {
   const names: Record<PaymentProvider, string> = {
     Mpesa: 'M-PESA', Airtel: 'AIRTEL MONEY', Tigo: 'TIGO PESA',
@@ -82,11 +85,12 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params)
   const router  = useRouter()
   const supabase = createClient()
+  const { t }   = useLanguage()
 
   const [campaign, setCampaign]           = useState<Campaign | null>(null)
   const [loadError, setLoadError]         = useState('')
   const [step, setStep]                   = useState<Step>('select')
-  const [provider, setProvider]           = useState<PaymentProvider>('Mpesa')
+  const [provider, setProvider]           = useState<PaymentProvider>('Tigo')
   const [phone, setPhone]                 = useState('')
   const [loading, setLoading]             = useState(false)
   const [error, setError]                 = useState('')
@@ -103,14 +107,15 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
     fetch(`/api/v1/advertising/campaigns/${id}`)
       .then(r => r.json())
       .then(d => {
-        if (!d.campaign) { setLoadError('Kampeni haikupatikana'); return }
+        if (!d.campaign) { setLoadError(t('adv_campaign_not_found')); return }
         if (d.campaign.payment_status === 'completed') {
           router.replace('/advertising/dashboard?paid=1')
           return
         }
         setCampaign(d.campaign)
       })
-      .catch(() => setLoadError('Imeshindwa kupakua data ya kampeni'))
+      .catch(() => setLoadError(t('adv_campaign_load_error')))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, router])
 
   const stopAll = useCallback(() => {
@@ -149,7 +154,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
     if (step !== 'waiting') return
     timerRef.current = setInterval(() => {
       setSecondsLeft(s => {
-        if (s <= 1) { handleFailed('Muda umeisha. Jaribu tena.'); return 0 }
+        if (s <= 1) { handleFailed(t('adv_timeout')); return 0 }
         return s - 1
       })
     }, 1000)
@@ -158,6 +163,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
       if (timerRef.current)  clearInterval(timerRef.current)
       if (sentTimer.current) clearInterval(sentTimer.current)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, handleFailed])
 
   const subscribeRealtime = useCallback((pmtId: string) => {
@@ -168,16 +174,17 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
         payload => {
           const status = (payload.new as { status?: string }).status
           if (status === 'completed') handleSuccess()
-          else if (status === 'failed') handleFailed('Malipo hayakufanikiwa. Jaribu tena.')
+          else if (status === 'failed') handleFailed(t('adv_pay_rejected'))
         })
       .subscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, handleSuccess, handleFailed])
 
   async function submitPay(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     const { normalized, valid } = normalisePhone(phone)
-    if (!valid) { setError('Namba ya simu si sahihi. Mfano: 0744 123 456'); return }
+    if (!valid) { setError(t('adv_invalid_phone')); return }
 
     setLoading(true)
     try {
@@ -186,7 +193,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
         body: JSON.stringify({ campaign_id: id, phone: normalized, provider }),
       })
       const d = await res.json()
-      if (!res.ok) { setError(d.error ?? 'Imeshindwa kuanzisha malipo'); return }
+      if (!res.ok) { setError(d.error ?? t('adv_pay_initiate_error')); return }
 
       setPaymentId(d.payment_id)
       setSecondsSinceSent(0)
@@ -194,7 +201,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
       setStep('waiting')
       subscribeRealtime(d.payment_id)
     } catch {
-      setError('Haikuweza kuunganika. Jaribu tena.')
+      setError(t('adv_connection_error'))
     } finally {
       setLoading(false)
     }
@@ -274,7 +281,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
         {/* ── SELECT ── */}
         {step === 'select' && (
           <div className="px-5 pt-4 pb-2">
-            <h1 className="text-base font-bold text-gray-900 text-center mb-0.5">Malipo ya Tangazo</h1>
+            <h1 className="text-base font-bold text-gray-900 text-center mb-0.5">{t('adv_pay_title')}</h1>
             <p className="text-xs text-gray-400 text-center mb-4">
               {campaign!.title}
             </p>
@@ -283,7 +290,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
               <div className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3 mb-5">
                 <div>
                   <p className="text-xs font-semibold text-gray-700">{plan.name}</p>
-                  <p className="text-[11px] text-gray-400">Siku {plan.duration_days}</p>
+                  <p className="text-[11px] text-gray-400">{t('adv_days_label')} {plan.duration_days}</p>
                 </div>
                 <p className="text-primary-600 font-bold text-base">
                   Tsh {plan.price_tzs.toLocaleString()}
@@ -303,7 +310,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
             />
 
             <p className="text-[11px] text-center text-gray-400 mt-4">
-              Malipo yanafanywa kwa usalama kupitia <strong>AzamPay</strong> Tanzania
+              {t('adv_azampay_notice')}
             </p>
           </div>
         )}
@@ -330,7 +337,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
 
             <div className="mb-5">
               <p className="text-[10px] text-gray-400 text-center mb-2 uppercase tracking-wide font-semibold">
-                Utaona hivi kwenye simu yako
+                {t('adv_ussd_preview')}
               </p>
               <UssdPreview amount={amount} provider={provider} />
             </div>
@@ -342,7 +349,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
             <form onSubmit={submitPay} className="space-y-4">
               <div>
                 <label htmlFor="pay-phone" className="text-xs text-gray-500 mb-1.5 block">
-                  Namba ya simu ya {pInfo.name}
+                  {t('adv_pay_phone_label')} {pInfo.name}
                 </label>
                 <div className="flex gap-2">
                   <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">+255</div>
@@ -365,7 +372,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
                 className="w-full text-white py-3.5 min-h-[48px] rounded-2xl text-sm font-semibold disabled:opacity-50 transition-all active:scale-[0.98]"
                 style={{ backgroundColor: loading || normalisePhone(phone).normalized.length !== 12 ? '#9CA3AF' : pInfo.btnColor }}
               >
-                {loading ? 'Inatuma ombi...' : `Lipa Tsh ${amount.toLocaleString()}`}
+                {loading ? t('adv_pay_processing') : `${t('adv_pay_btn')} Tsh ${amount.toLocaleString()}`}
               </button>
             </form>
 
@@ -373,7 +380,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
               onClick={() => { setStep('select'); setError('') }}
               className="w-full py-3 min-h-[44px] text-sm text-gray-400 text-center mt-1"
             >
-              ← Badilisha mtandao
+              {t('adv_change_network')}
             </button>
           </div>
         )}
@@ -383,7 +390,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
           <div className="px-5 pt-3 pb-2">
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4 text-xs text-amber-700 font-medium flex items-center gap-2">
               <i className="ti ti-alert-triangle flex-shrink-0" aria-hidden="true" />
-              Usifunge — malipo yanashughulikiwa
+              {t('adv_dont_close')}
             </div>
 
             <div className="text-center mb-4">
@@ -394,38 +401,38 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
                   <span className="w-2 h-2 bg-white rounded-full" />
                 </span>
               </div>
-              <h2 className="text-base font-bold text-gray-900 mb-1">Angalia Simu Yako!</h2>
+              <h2 className="text-base font-bold text-gray-900 mb-1">{t('adv_check_phone')}</h2>
               <p className="text-sm text-gray-500">
-                Ombi la PIN limetumwa kwa <span className="font-bold text-gray-800">+255{displayPhone.replace(/^0/, '')}</span>
+                {t('adv_pin_sent_label')} <span className="font-bold text-gray-800">+255{displayPhone.replace(/^0/, '')}</span>
               </p>
             </div>
 
             <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-4">
               <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-3">
-                Ombi linalokungojea kwenye simu
+                {t('adv_waiting_request')}
               </p>
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">NYF</div>
                 <div>
                   <p className="text-sm font-semibold text-gray-800">{pInfo.name} — NyumbaFasta</p>
                   <p className="text-sm text-gray-600 mt-0.5">
-                    Weka namba ya siri kukamilisha malipo ya{' '}
+                    {t('adv_enter_pin_msg')}{' '}
                     <span className="font-bold text-gray-800">Tsh {amount.toLocaleString()}</span>{' '}
                     kwenda <span className="text-primary-600 font-bold">NyumbaFasta</span>
                   </p>
                 </div>
               </div>
               <div className="flex gap-2 mt-3">
-                <div className="flex-1 py-1.5 rounded-lg bg-gray-200 text-center text-xs font-semibold text-gray-500">Kataa</div>
-                <div className="flex-1 py-1.5 rounded-lg bg-primary-500 text-center text-xs font-semibold text-white">Thibitisha →</div>
+                <div className="flex-1 py-1.5 rounded-lg bg-gray-200 text-center text-xs font-semibold text-gray-500">{t('adv_decline')}</div>
+                <div className="flex-1 py-1.5 rounded-lg bg-primary-500 text-center text-xs font-semibold text-white">{t('common_confirm')} →</div>
               </div>
             </div>
 
             <div className="space-y-2 mb-4">
               {[
-                { n: 1, text: 'Angalia simu yako — ombi la PIN limetumwa moja kwa moja', done: secondsSinceSent > 5 },
-                { n: 2, text: 'Bonyeza "Thibitisha" na ingiza PIN yako', done: false },
-                { n: 3, text: 'Tangazo lako litaanzishwa mara malipo yakikamilika', done: false },
+                { n: 1, text: t('adv_step_check_phone'),   done: secondsSinceSent > 5 },
+                { n: 2, text: t('adv_step_enter_pin'),     done: false },
+                { n: 3, text: t('adv_step_campaign_start'),done: false },
               ].map(s => (
                 <div key={s.n} className="flex items-start gap-3">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all duration-500
@@ -440,7 +447,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
             <div className="bg-gray-100 rounded-full h-1.5 mb-1.5 overflow-hidden">
               <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${progressPct}%`, backgroundColor: pInfo.btnColor }} />
             </div>
-            <p className="text-xs text-gray-400 text-center mb-4">Inasubiri uthibitisho... ({secondsLeft}s)</p>
+            <p className="text-xs text-gray-400 text-center mb-4">{t('adv_waiting_confirmation')} ({secondsLeft}s)</p>
 
             {secondsSinceSent >= RESEND_AFTER_SECS && (
               <button
@@ -448,12 +455,12 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
                 className="w-full py-2.5 rounded-xl border border-primary-200 bg-primary-50 text-sm text-primary-600 font-medium mb-3 active:scale-[0.98] transition-all"
               >
                 <i className="ti ti-refresh mr-1.5" aria-hidden="true" />
-                Sijapata ombi — Tuma tena
+                {t('adv_resend')}
               </button>
             )}
 
             <button onClick={handleRetry} className="w-full py-2 min-h-[44px] text-xs text-gray-400 text-center">
-              ← Badilisha mtandao au namba
+              {t('adv_change_network_number')}
             </button>
           </div>
         )}
@@ -464,14 +471,14 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 mb-3">
               <i className="ti ti-confetti text-4xl text-primary-500" aria-hidden="true" />
             </div>
-            <h2 className="text-base font-bold text-gray-900 mb-1">Malipo Yamefanikiwa!</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-1">{t('adv_pay_success')}</h2>
             <p className="text-sm text-gray-500 mb-2">
-              Tangazo lako <span className="font-semibold text-gray-800">{campaign!.title}</span> linaendelea.
+              <span className="font-semibold text-gray-800">{campaign!.title}</span> {t('adv_campaign_live')}
             </p>
-            <p className="text-xs text-gray-400 mb-5">Unabadilishwa kwenye dashibodi yako...</p>
+            <p className="text-xs text-gray-400 mb-5">{t('adv_redirecting_dashboard')}</p>
             <div className="flex justify-center items-center gap-2 text-sm text-primary-600">
               <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
-              <span>Tafadhali subiri...</span>
+              <span>{t('adv_please_wait')}</span>
             </div>
           </div>
         )}
@@ -482,22 +489,22 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-3">
               <i className="ti ti-circle-x text-4xl text-red-500" aria-hidden="true" />
             </div>
-            <h2 className="text-base font-bold text-gray-900 mb-2">Malipo Hayakufanikiwa</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-2">{t('adv_pay_failed')}</h2>
             <p className="text-sm text-red-500 mb-1">{error}</p>
             <p className="text-xs text-gray-400 mb-5">
-              Hakikisha una salio la kutosha na mtandao unafanya kazi, kisha jaribu tena.
+              {t('adv_pay_failed_hint')}
             </p>
             <button
               onClick={handleRetry}
               className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold mb-3 min-h-[48px] active:scale-[0.98] transition-transform shadow-md"
             >
-              Jaribu Tena
+              {t('common_retry')}
             </button>
             <button
               onClick={() => router.push('/advertising/dashboard')}
               className="w-full py-3 min-h-[44px] text-sm text-gray-400"
             >
-              Rudi Dashibodi
+              {t('adv_back_dashboard')}
             </button>
           </div>
         )}

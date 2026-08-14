@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Props = {
   unlockId: string
@@ -9,6 +10,7 @@ type Props = {
 }
 
 export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismiss }: Props) {
+  const { t } = useLanguage()
   const [rating, setRating]     = useState(0)
   const [hovered, setHovered]   = useState(0)
   const [comment, setComment]   = useState('')
@@ -17,7 +19,7 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
   const [error, setError]       = useState('')
 
   async function handleSubmit() {
-    if (rating === 0) { setError('Chagua nyota kwanza'); return }
+    if (rating === 0) { setError(t('cl_star_required')); return }
     setError('')
     setSubmitting(true)
     try {
@@ -35,7 +37,7 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
       if (!res.ok) { setError(json.error || 'Hitilafu ilitokea'); return }
       onSubmitted()
     } catch {
-      setError('Hakuna mtandao. Jaribu tena.')
+      setError(t('cl_no_internet'))
     } finally {
       setSubmitting(false)
     }
@@ -49,8 +51,8 @@ export default function ReviewForm({ unlockId, dalaliName, onSubmitted, onDismis
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-bold text-gray-900"><i className="ti ti-star-filled text-amber-400" aria-hidden="true" /> Toa Maoni</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Je, ulifurahi na huduma ya {dalaliName}?</p>
+          <h3 className="text-sm font-bold text-gray-900"><i className="ti ti-star-filled text-amber-400" aria-hidden="true" /> {t('cl_review_title')}</h3>
+          <p className="text-xs text-gray-400 mt-0.5">{t('cl_review_subtitle')} {dalaliName}?</p>
         </div>
         {onDismiss && (
           <button aria-label="Funga" onClick={onDismiss} className="text-gray-400 text-xl leading-none w-11 h-11 flex items-center justify-center"><i className="ti ti-x" aria-hidden="true" /></button>

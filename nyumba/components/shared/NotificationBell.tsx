@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface Props {
   className?: string
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function NotificationBell({ className = '', asLink = true, href = '/notifications' }: Props) {
+  const { t } = useLanguage()
   const [unread, setUnread] = useState(0)
   const lastFetched = useRef(0)
 
@@ -65,7 +67,7 @@ export default function NotificationBell({ className = '', asLink = true, href =
   }
 
   return (
-    <Link href={href} aria-label={`Arifa${unread > 0 ? ` (${unread} mpya)` : ''}`} className={`relative inline-flex items-center justify-center ${className}`}>
+    <Link href={href} aria-label={`${t('nav_notifications')}${unread > 0 ? ` (${unread} ${t('cl_new_count')})` : ''}`} className={`relative inline-flex items-center justify-center ${className}`}>
       {inner}
     </Link>
   )

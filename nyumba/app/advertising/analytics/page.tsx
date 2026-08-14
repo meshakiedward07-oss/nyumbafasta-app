@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Summary = {
@@ -47,32 +48,39 @@ function AdTypeIcon({ type, className = 'w-4 h-4' }: { type: string; className?:
 // ── Formatters ─────────────────────────────────────────────────────────────
 function fmtNum(n: number) { return n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : String(n) }
 
-// ── Status Config ──────────────────────────────────────────────────────────
-const STATUS_CFG: Record<string, { label: string; cls: string; dot: string; stripe: string }> = {
-  active:         { label: 'Inafanya Kazi',  cls: 'bg-green-100 text-green-700',  dot: 'bg-green-400', stripe: 'bg-green-400'  },
-  approved:       { label: 'Imeidhinishwa',  cls: 'bg-blue-100 text-blue-700',    dot: 'bg-blue-400',  stripe: 'bg-blue-400'   },
-  pending_review: { label: 'Inasubiri',      cls: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400', stripe: 'bg-amber-400'  },
-  expired:        { label: 'Imekwisha',      cls: 'bg-gray-100 text-gray-500',    dot: 'bg-gray-300',  stripe: 'bg-gray-200'   },
-  rejected:       { label: 'Imekataliwa',    cls: 'bg-red-100 text-red-600',      dot: 'bg-red-400',   stripe: 'bg-red-400'    },
-  paused:         { label: 'Imesimamishwa',  cls: 'bg-gray-100 text-gray-500',    dot: 'bg-gray-400',  stripe: 'bg-gray-300'   },
-  suspended:      { label: 'Imezuiwa',       cls: 'bg-red-100 text-red-600',      dot: 'bg-red-500',   stripe: 'bg-red-500'    },
-}
-
-const CTA_LABELS: Record<string, string> = { whatsapp: 'WhatsApp', call: 'Simu', website: 'Tovuti' }
-
 // ── Main Page ──────────────────────────────────────────────────────────────
 export default function AdvertiserAnalyticsPage() {
+  const { t } = useLanguage()
   const [summary, setSummary]     = useState<Summary | null>(null)
   const [campaigns, setCampaigns] = useState<CampaignStat[]>([])
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
 
+  // ── Status config (inside component so labels use t()) ────────────────────
+  const STATUS_CFG: Record<string, { label: string; cls: string; dot: string; stripe: string }> = {
+    active:         { label: t('adv_status_active'),   cls: 'bg-green-100 text-green-700',  dot: 'bg-green-400', stripe: 'bg-green-400'  },
+    approved:       { label: t('adv_status_approved'), cls: 'bg-blue-100 text-blue-700',    dot: 'bg-blue-400',  stripe: 'bg-blue-400'   },
+    pending_review: { label: t('adv_status_pending'),  cls: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400', stripe: 'bg-amber-400'  },
+    expired:        { label: t('adv_status_expired'),  cls: 'bg-gray-100 text-gray-500',    dot: 'bg-gray-300',  stripe: 'bg-gray-200'   },
+    rejected:       { label: t('adv_status_rejected'), cls: 'bg-red-100 text-red-600',      dot: 'bg-red-400',   stripe: 'bg-red-400'    },
+    paused:         { label: t('adv_status_paused'),   cls: 'bg-gray-100 text-gray-500',    dot: 'bg-gray-400',  stripe: 'bg-gray-300'   },
+    suspended:      { label: t('adv_status_suspended'),cls: 'bg-red-100 text-red-600',      dot: 'bg-red-500',   stripe: 'bg-red-500'    },
+  }
+
+  // ── CTA labels (inside component so labels use t()) ───────────────────────
+  const CTA_LABELS: Record<string, string> = {
+    whatsapp: 'WhatsApp',
+    call:     t('adv_cta_call_short'),
+    website:  t('adv_cta_website'),
+  }
+
   useEffect(() => {
     fetch('/api/v1/advertising/analytics')
       .then(async r => { if (!r.ok) throw new Error(); return r.json() })
       .then(d => { setSummary(d.summary); setCampaigns(d.campaigns ?? []) })
-      .catch(() => setError('Imeshindwa kupakua data. Jaribu tena.'))
+      .catch(() => setError(t('adv_load_error')))
       .finally(() => setLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const maxImpr = Math.max(...campaigns.map(c => c.impressions), 1)
@@ -91,8 +99,8 @@ export default function AdvertiserAnalyticsPage() {
             <IcChart />
           </div>
           <div>
-            <h1 className="text-base font-bold text-gray-900">Analytics ya Matangazo</h1>
-            <p className="text-[11px] text-gray-400">Ufanisi wa matangazo yako</p>
+            <h1 className="text-base font-bold text-gray-900">{t('adv_analytics_title')}</h1>
+            <p className="text-[11px] text-gray-400">{t('adv_analytics_subtitle')}</p>
           </div>
         </div>
       </div>
@@ -113,7 +121,7 @@ export default function AdvertiserAnalyticsPage() {
           <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
             <p className="text-sm text-red-600 font-medium">{error}</p>
             <button onClick={() => window.location.reload()} className="mt-2 text-xs text-red-400 underline">
-              Jaribu tena
+              {t('common_retry')}
             </button>
           </div>
         )}
@@ -122,31 +130,31 @@ export default function AdvertiserAnalyticsPage() {
           <>
             {/* Summary KPI cards */}
             <section>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Muhtasari wa Jumla</p>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">{t('adv_analytics_summary')}</p>
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Impressions */}
                 <div className="bg-white rounded-2xl border border-blue-100 shadow-sm p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[11px] text-gray-400">Maoni (Impressions)</p>
+                    <p className="text-[11px] text-gray-400">{t('adv_analytics_impressions')}</p>
                     <span className="w-7 h-7 bg-blue-50 rounded-xl p-1.5 text-blue-500 flex-shrink-0">
                       <IcEye />
                     </span>
                   </div>
                   <p className="text-2xl font-bold text-gray-900 tabular-nums">{fmtNum(summary.total_impressions)}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">mara tangazo lilionekana</p>
+                  <p className="text-[10px] text-gray-400 mt-1">{t('adv_analytics_impressions_sub')}</p>
                 </div>
 
                 {/* Clicks */}
                 <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[11px] text-gray-400">Hatua (Clicks)</p>
+                    <p className="text-[11px] text-gray-400">{t('adv_analytics_clicks')}</p>
                     <span className="w-7 h-7 bg-emerald-50 rounded-xl p-1.5 text-emerald-500 flex-shrink-0">
                       <IcCursor />
                     </span>
                   </div>
                   <p className="text-2xl font-bold text-gray-900 tabular-nums">{fmtNum(summary.total_clicks)}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">mtu alichukua hatua</p>
+                  <p className="text-[10px] text-gray-400 mt-1">{t('adv_analytics_clicks_sub')}</p>
                 </div>
 
                 {/* CTR */}
@@ -155,7 +163,7 @@ export default function AdvertiserAnalyticsPage() {
                   summary.overall_ctr >= 1 ? 'border-amber-100' : 'border-gray-100'
                 }`}>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[11px] text-gray-400">CTR ya Jumla</p>
+                    <p className="text-[11px] text-gray-400">{t('adv_analytics_ctr')}</p>
                     <span className={`w-7 h-7 rounded-xl p-1.5 flex-shrink-0 ${
                       summary.overall_ctr >= 3 ? 'bg-green-50 text-green-500' :
                       summary.overall_ctr >= 1 ? 'bg-amber-50 text-amber-500' : 'bg-gray-50 text-gray-400'
@@ -167,19 +175,21 @@ export default function AdvertiserAnalyticsPage() {
                     summary.overall_ctr >= 3 ? 'text-green-700' :
                     summary.overall_ctr >= 1 ? 'text-amber-700' : 'text-gray-600'
                   }`}>{summary.overall_ctr}%</p>
-                  <p className="text-[10px] text-gray-400 mt-1">click-through rate</p>
+                  <p className="text-[10px] text-gray-400 mt-1">{t('adv_analytics_ctr_sub')}</p>
                 </div>
 
                 {/* Active campaigns */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[11px] text-gray-400">Kampeni Hai</p>
+                    <p className="text-[11px] text-gray-400">{t('adv_analytics_active_campaigns')}</p>
                     <span className="w-7 h-7 bg-primary-50 rounded-xl p-1.5 text-primary-600 flex-shrink-0">
                       <IcBriefcase />
                     </span>
                   </div>
                   <p className="text-2xl font-bold text-gray-900 tabular-nums">{summary.active_campaigns}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">kati ya {summary.total_campaigns} zote</p>
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    {t('adv_analytics_of_total').replace('{n}', String(summary.total_campaigns))}
+                  </p>
                 </div>
               </div>
 
@@ -201,16 +211,16 @@ export default function AdvertiserAnalyticsPage() {
                       summary.overall_ctr >= 1 ? 'text-amber-800' : 'text-blue-800'
                     }`}>
                       {summary.overall_ctr >= 3
-                        ? 'CTR nzuri sana — wateja wanaitika kwa matangazo yako'
+                        ? t('adv_ctr_good')
                         : summary.overall_ctr >= 1
-                        ? 'CTR ya wastani — matangazo yanafanya kazi vizuri'
-                        : 'CTR bado iko chini — jaribu kuongeza picha na maelezo mazuri'}
+                        ? t('adv_ctr_average')
+                        : t('adv_ctr_low')}
                     </p>
                     <p className={`text-[11px] mt-0.5 ${
                       summary.overall_ctr >= 3 ? 'text-green-700' :
                       summary.overall_ctr >= 1 ? 'text-amber-700' : 'text-blue-700'
                     }`}>
-                      Kati ya watu 100 wanaokiona tangazo lako, <strong>{summary.overall_ctr}</strong> wanachukua hatua. CTR nzuri ni zaidi ya 2%.
+                      {t('adv_ctr_explanation').replace('{n}', String(summary.overall_ctr))}
                     </p>
                   </div>
                 </div>
@@ -220,7 +230,7 @@ export default function AdvertiserAnalyticsPage() {
             {/* Per-campaign stats */}
             {campaigns.length > 0 && (
               <section>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Ufanisi kwa Kila Kampeni</p>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">{t('adv_campaign_performance')}</p>
                 <div className="space-y-3">
                   {campaigns.map(c => {
                     const sc = STATUS_CFG[c.status] ?? { label: c.status, cls: 'bg-gray-100 text-gray-500', dot: 'bg-gray-300', stripe: 'bg-gray-200' }
@@ -269,7 +279,7 @@ export default function AdvertiserAnalyticsPage() {
                                 }`}>{c.days_remaining}</p>
                                 <p className={`text-[9px] font-medium ${
                                   c.days_remaining <= 3 ? 'text-red-500' : 'text-primary-500'
-                                }`}>siku</p>
+                                }`}>{t('adv_days_remaining_label')}</p>
                               </div>
                             )}
                           </div>
@@ -278,7 +288,7 @@ export default function AdvertiserAnalyticsPage() {
                           <div className="grid grid-cols-3 gap-2 mb-3">
                             <div className="bg-gray-50 rounded-xl p-2.5 text-center">
                               <p className="text-lg font-bold text-gray-900 tabular-nums leading-tight">{fmtNum(c.impressions)}</p>
-                              <p className="text-[10px] text-gray-400 mt-0.5">Maoni</p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">{t('adv_impressions_label')}</p>
                             </div>
                             <div className="bg-blue-50 rounded-xl p-2.5 text-center">
                               <p className="text-lg font-bold text-blue-700 tabular-nums leading-tight">{fmtNum(c.clicks)}</p>
@@ -300,8 +310,10 @@ export default function AdvertiserAnalyticsPage() {
                           {c.impressions > 0 && (
                             <div>
                               <div className="flex justify-between items-center mb-1">
-                                <p className="text-[10px] text-gray-400">Maoni ya kampeni hii</p>
-                                <p className="text-[10px] font-semibold text-gray-500 tabular-nums">{imprPct}% ya bora zaidi</p>
+                                <p className="text-[10px] text-gray-400">{t('adv_impressions_this_campaign')}</p>
+                                <p className="text-[10px] font-semibold text-gray-500 tabular-nums">
+                                  {imprPct}% {t('adv_impressions_pct_best')}
+                                </p>
                               </div>
                               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                 <div className="h-full bg-primary-500 rounded-full" style={{ width: `${imprPct}%` }} />
@@ -316,10 +328,10 @@ export default function AdvertiserAnalyticsPage() {
                                 <span className="w-3.5 h-3.5 flex-shrink-0 text-amber-500"><IcClock /></span>
                                 <p className="text-[11px] text-amber-700">
                                   {c.status === 'active'
-                                    ? 'Kampeni imewashwa hivi karibuni — data itaonekana hivi karibuni.'
+                                    ? t('adv_campaign_just_started')
                                     : c.status === 'pending_review'
-                                    ? 'Inasubiri idhini — maoni yataanza baada ya kuidhinishwa.'
-                                    : 'Hakuna data ya maoni kwa kampeni hii.'}
+                                    ? t('adv_campaign_awaiting_approval')
+                                    : t('adv_no_impressions')}
                                 </p>
                               </div>
                             </div>
@@ -330,9 +342,9 @@ export default function AdvertiserAnalyticsPage() {
                             <div className="flex items-center gap-1.5 mt-2">
                               <span className="w-3 h-3 text-gray-300 flex-shrink-0"><IcClock /></span>
                               <p className="text-[10px] text-gray-400">
-                                {c.starts_at && `Ilianza: ${new Date(c.starts_at).toLocaleDateString('sw-TZ')}`}
+                                {c.starts_at && `${t('adv_started_at')} ${new Date(c.starts_at).toLocaleDateString('sw-TZ')}`}
                                 {c.starts_at && c.expires_at && '  ·  '}
-                                {c.expires_at && `Inaisha: ${new Date(c.expires_at).toLocaleDateString('sw-TZ')}`}
+                                {c.expires_at && `${t('adv_expires_at_label')} ${new Date(c.expires_at).toLocaleDateString('sw-TZ')}`}
                               </p>
                             </div>
                           )}
@@ -350,12 +362,12 @@ export default function AdvertiserAnalyticsPage() {
                 <div className="w-12 h-12 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center p-3 text-gray-400">
                   <IcBriefcase />
                 </div>
-                <p className="font-semibold text-gray-600">Bado hauna kampeni</p>
-                <p className="text-sm text-gray-400 mt-1 mb-4">Unda tangazo lako la kwanza ili uone analytics</p>
+                <p className="font-semibold text-gray-600">{t('adv_no_campaigns')}</p>
+                <p className="text-sm text-gray-400 mt-1 mb-4">{t('adv_no_campaigns_desc')}</p>
                 <Link href="/advertising/new"
                   className="inline-flex items-center gap-2 bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-primary-600 transition">
                   <span className="w-4 h-4"><IcPlus /></span>
-                  Unda Kampeni
+                  {t('adv_create_campaign')}
                 </Link>
               </div>
             )}
@@ -363,14 +375,14 @@ export default function AdvertiserAnalyticsPage() {
         )}
       </div>
 
-      {/* Bottom nav — SVG icons, no emojis */}
+      {/* Bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-20">
         <div className="flex justify-around max-w-2xl mx-auto px-2 py-2">
           {([
-            { href: '/advertising/dashboard', icon: <IcHome />,      label: 'Nyumbani'     },
-            { href: '/advertising/analytics', icon: <IcChart />,     label: 'Analytics', active: true },
-            { href: '/advertising/new',       icon: <IcPlus />,      label: 'Kampeni Mpya' },
-            { href: '/advertising/profile',   icon: <IcUser />,      label: 'Wasifu'       },
+            { href: '/advertising/dashboard', icon: <IcHome />,  label: t('adv_nav_home')          },
+            { href: '/advertising/analytics', icon: <IcChart />, label: t('adv_nav_analytics'), active: true },
+            { href: '/advertising/new',       icon: <IcPlus />,  label: t('adv_nav_new_campaign')  },
+            { href: '/advertising/profile',   icon: <IcUser />,  label: t('adv_nav_profile')       },
           ] as { href: string; icon: React.ReactNode; label: string; active?: boolean }[]).map(n => (
             <Link key={n.href} href={n.href}
               className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition ${

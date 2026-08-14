@@ -5,7 +5,7 @@ import { sendMail } from '@/lib/email/resend'
 import { adminLegalActionEmail } from '@/lib/email/templates'
 import { hasPermission, logStaffActivity } from '@/lib/staff/checkPermission'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP_NUMBER ?? '255615261147'
 
 export async function PATCH(req: NextRequest) {

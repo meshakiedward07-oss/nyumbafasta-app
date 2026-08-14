@@ -4,15 +4,12 @@ import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Role = 'staff' | 'admin'
 
-const ROLE_OPTIONS: { value: Role; label: string; icon: string; desc: string }[] = [
-  { value: 'staff', label: 'Mfanyakazi',  icon: 'ti-user-check',   desc: 'Staff dashboard & leads' },
-  { value: 'admin', label: 'Msimamizi',   icon: 'ti-shield-check',  desc: 'Udhibiti wote wa mfumo' },
-]
-
 function StaffLoginForm() {
+  const { t } = useLanguage()
   const supabase      = createClient()
   const searchParams  = useSearchParams()
   const redirectTo    = searchParams.get('redirect') || ''
@@ -28,6 +25,11 @@ function StaffLoginForm() {
   const [forgotMode,  setForgotMode]   = useState(false)
   const [resetEmail,  setResetEmail]   = useState('')
   const [resetSent,   setResetSent]    = useState(false)
+
+  const ROLE_OPTIONS: { value: Role; label: string; icon: string; desc: string }[] = [
+    { value: 'staff', label: t('auth_role_staff_label'), icon: 'ti-user-check',  desc: t('auth_role_staff_desc') },
+    { value: 'admin', label: t('auth_role_admin_label'), icon: 'ti-shield-check', desc: t('auth_role_admin_desc') },
+  ]
 
   // ── Role-based redirect ─────────────────────────────────────────────
   async function redirectByRole(userId: string) {
@@ -60,21 +62,21 @@ function StaffLoginForm() {
     // Only staff and admin are allowed through this portal
     if (role !== 'admin' && role !== 'staff') {
       await supabase.auth.signOut()
-      setError('Hii mlango ni kwa wafanyakazi na wasimamizi pekee. Wateja na madalali wanatumia mlango wa kawaida.')
+      setError(t('auth_staff_wrong_portal'))
       setLoading(false)
       return
     }
 
     if (profileData?.is_active === false) {
       await supabase.auth.signOut()
-      setError('Akaunti yako imesimamishwa. Wasiliana na msimamizi wako.')
+      setError(t('auth_staff_deactivated'))
       setLoading(false)
       return
     }
 
     if (role === 'staff' && profileData?.staff_active === false) {
       await supabase.auth.signOut()
-      setError('Akaunti yako ya mfanyakazi imezimwa. Wasiliana na msimamizi wako.')
+      setError(t('auth_staff_member_deactivated'))
       setLoading(false)
       return
     }
@@ -138,16 +140,16 @@ function StaffLoginForm() {
         const msg = result.error.message.toLowerCase()
         throw new Error(
           msg.includes('invalid login credentials') || msg.includes('invalid email or password')
-            ? 'Barua pepe au nenosiri si sahihi. Tumia "Umesahau nenosiri?" kupata kiungo cha kuingia.'
+            ? t('auth_invalid_credentials')
             : msg.includes('too many requests')
-            ? 'Maombi mengi. Subiri dakika chache.'
-            : 'Imeshindwa kuingia. Jaribu tena.'
+            ? t('auth_too_many_requests')
+            : t('auth_login_failed')
         )
       }
 
       await redirectByRole(result.data!.user.id)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Imeshindwa kuingia.')
+      setError(err instanceof Error ? err.message : t('auth_login_failed'))
       setLoading(false)
     }
   }
@@ -168,11 +170,11 @@ function StaffLoginForm() {
       })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
-        throw new Error((d as { error?: string }).error || 'Imeshindwa kutuma barua pepe.')
+        throw new Error((d as { error?: string }).error || t('auth_send_failed'))
       }
       setResetSent(true)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Imeshindwa kutuma barua pepe.')
+      setError(err instanceof Error ? err.message : t('auth_send_failed'))
     } finally {
       setLoading(false)
     }
@@ -203,10 +205,10 @@ function StaffLoginForm() {
         <div className="mt-3 flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-3 py-1">
           <i className="ti ti-shield-lock text-xs text-white/70" aria-hidden="true" />
           <span className="text-white/80 text-xs font-semibold tracking-widest uppercase">
-            Mfumo wa Wafanyakazi
+            {t('auth_staff_system_label')}
           </span>
         </div>
-        <p className="text-white/40 text-[11px] mt-1.5">Mlango huu ni kwa wafanyakazi na wasimamizi pekee</p>
+        <p className="text-white/40 text-[11px] mt-1.5">{t('auth_staff_door_note')}</p>
       </div>
 
       <div className="flex-1 px-4 -mt-5 pb-10">
@@ -228,28 +230,27 @@ function StaffLoginForm() {
               resetSent ? (
                 <div className="text-center py-6">
                   <i className="ti ti-mail text-5xl text-primary-500" aria-hidden="true" />
-                  <h3 className="text-base font-bold text-gray-900 mt-3 mb-2">Barua pepe imetumwa!</h3>
+                  <h3 className="text-base font-bold text-gray-900 mt-3 mb-2">{t('auth_reset_sent')}!</h3>
                   <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-                    Angalia inbox yako na ubonyeze kiungo cha kubadilisha nenosiri.
-                    Angalia pia folda ya Spam.
+                    {t('auth_reset_link_sent_body')}
                   </p>
                   <button
                     onClick={() => { setForgotMode(false); setResetSent(false); setResetEmail('') }}
                     className="w-full py-3.5 rounded-xl text-sm font-semibold text-white"
                     style={{ background: 'linear-gradient(135deg, #085041, #0d3d2e)' }}
                   >
-                    ← Rudi Kuingia
+                    {t('auth_back_to_login')}
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleForgotPassword} className="space-y-4">
                   <div className="text-center mb-2">
                     <i className="ti ti-key text-3xl text-gray-400" aria-hidden="true" />
-                    <h3 className="text-base font-bold text-gray-900 mt-1">Badilisha Nenosiri</h3>
-                    <p className="text-xs text-gray-400 mt-1">Tutakutumia kiungo cha kubadilisha nenosiri</p>
+                    <h3 className="text-base font-bold text-gray-900 mt-1">{t('auth_reset_password')}</h3>
+                    <p className="text-xs text-gray-400 mt-1">{t('auth_reset_link_hint')}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 mb-1.5 block">Barua pepe yako</label>
+                    <label className="text-xs text-gray-500 mb-1.5 block">{t('auth_email_placeholder_staff')}</label>
                     <input
                       type="email"
                       required
@@ -267,14 +268,14 @@ function StaffLoginForm() {
                     className="w-full py-3.5 min-h-[48px] rounded-xl text-sm font-semibold text-white disabled:opacity-50"
                     style={{ background: 'linear-gradient(135deg, #085041, #0d3d2e)' }}
                   >
-                    {loading ? 'Inatuma...' : 'Tuma Kiungo'}
+                    {loading ? t('common_sending') : t('auth_send_link')}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setForgotMode(false); setError('') }}
                     className="w-full text-sm text-gray-400 py-3 min-h-[44px]"
                   >
-                    ← Rudi
+                    ← {t('common_back')}
                   </button>
                 </form>
               )
@@ -284,7 +285,7 @@ function StaffLoginForm() {
 
                 {/* Role selector */}
                 <div>
-                  <p className="text-xs text-gray-500 mb-2 font-medium">Chagua nafasi yako</p>
+                  <p className="text-xs text-gray-500 mb-2 font-medium">{t('auth_choose_your_role')}</p>
                   <div className="grid grid-cols-2 gap-2">
                     {ROLE_OPTIONS.map(opt => (
                       <button
@@ -309,7 +310,7 @@ function StaffLoginForm() {
                 <div>
                   <label className="text-xs text-gray-500 mb-1.5 flex items-center gap-1 block">
                     <i className="ti ti-mail" aria-hidden="true" />
-                    Barua pepe
+                    {t('auth_email')}
                   </label>
                   <input
                     type="email"
@@ -327,7 +328,7 @@ function StaffLoginForm() {
                 <div>
                   <label className="text-xs text-gray-500 mb-1.5 flex items-center gap-1 block">
                     <i className="ti ti-lock" aria-hidden="true" />
-                    Nenosiri
+                    {t('auth_password')}
                   </label>
                   <div className="relative">
                     <input
@@ -343,7 +344,7 @@ function StaffLoginForm() {
                     <button
                       type="button"
                       onClick={() => setShowPass(p => !p)}
-                      aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
+                      aria-label={showPass ? t('auth_hide_pass') : t('auth_show_pass')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
                     >
                       <i className={`ti ${showPass ? 'ti-eye-off' : 'ti-eye'}`} aria-hidden="true" />
@@ -358,7 +359,7 @@ function StaffLoginForm() {
                     onClick={() => { setForgotMode(true); setResetEmail(email); setError('') }}
                     className="text-xs text-primary-600 font-medium min-h-[44px] px-2 inline-flex items-center active:opacity-70"
                   >
-                    Umesahau nenosiri?
+                    {t('auth_forgot_password')}
                   </button>
                 </div>
 
@@ -374,10 +375,10 @@ function StaffLoginForm() {
                   }}
                 >
                   {loading
-                    ? 'Inaingia...'
+                    ? t('auth_signing_in')
                     : selectedRole === 'admin'
-                    ? 'Ingia kama Msimamizi'
-                    : 'Ingia kama Mfanyakazi'}
+                    ? t('auth_sign_in_as_admin')
+                    : t('auth_sign_in_as_staff')}
                 </button>
 
               </form>
@@ -388,9 +389,9 @@ function StaffLoginForm() {
         {/* Back to regular login */}
         {!forgotMode && (
           <p className="text-center text-sm text-gray-500 mt-5 pb-4">
-            Si mfanyakazi?{' '}
+            {t('auth_not_staff')}{' '}
             <Link href="/login" className="text-primary-600 font-medium">
-              Rudi kwenye mlango wa kawaida
+              {t('auth_back_to_regular')}
             </Link>
           </p>
         )}

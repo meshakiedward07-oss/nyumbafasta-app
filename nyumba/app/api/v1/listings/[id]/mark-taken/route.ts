@@ -39,7 +39,7 @@ export async function GET(
 
 // ── Simple branded HTML page returned to dalali's browser ─────────────────────
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 type PageType = 'success' | 'error' | 'already'
 

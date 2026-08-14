@@ -2,10 +2,12 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { subscribeToPush, isPushSupported, getPushPermission } from '@/lib/notifications/subscribe'
+import { useLanguage } from '@/lib/i18n/context'
 
 const STORAGE_KEY = 'nyumba_push_asked'
 
 export default function PushSetup() {
+  const { t } = useLanguage()
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading]     = useState(false)
   const [done, setDone]           = useState(false)
@@ -59,8 +61,8 @@ export default function PushSetup() {
         {done ? (
           <div className="text-center py-4">
             <div className="text-4xl mb-3 flex justify-center"><i className="ti ti-confetti text-primary-500" aria-hidden="true" /></div>
-            <p className="text-base font-bold text-gray-900">Asante! Utapokea arifa</p>
-            <p className="text-sm text-gray-500 mt-1">Tutakuarifu mambo muhimu tu</p>
+            <p className="text-base font-bold text-gray-900">{t('common_push_done_title')}</p>
+            <p className="text-sm text-gray-500 mt-1">{t('common_push_done_sub')}</p>
           </div>
         ) : (
           <>
@@ -70,25 +72,25 @@ export default function PushSetup() {
             </div>
 
             <h3 className="text-lg font-bold text-gray-900 text-center mb-1">
-              Pokea Arifa za NyumbaFasta
+              {t('common_push_title')}
             </h3>
             <p className="text-sm text-gray-500 text-center mb-5">
-              Tuambie utakuwa mbali — tutakuarifu mambo muhimu
+              {t('common_push_sub')}
             </p>
 
             {/* Benefits list */}
             <div className="space-y-3 mb-7">
-              {[
-                { icon: 'home', text: 'Listing mpya eneo unalolipenda' },
-                { icon: 'phone', text: 'Mteja amefungua contact yako (dalali)' },
-                { icon: 'circle-check', text: 'Listing yako imeidhibitishwa na admin' },
-                { icon: 'confetti', text: 'Akaunti yako imethibitishwa (verified)' },
-              ].map(b => (
-                <div key={b.text} className="flex items-center gap-3">
+              {([
+                { icon: 'home',         key: 'common_push_ben1' },
+                { icon: 'phone',        key: 'common_push_ben2' },
+                { icon: 'circle-check', key: 'common_push_ben3' },
+                { icon: 'confetti',     key: 'common_push_ben4' },
+              ] as { icon: string; key: import('@/lib/i18n/translations').TKey }[]).map(b => (
+                <div key={b.key} className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
                     <i className={`ti ti-${b.icon} text-base text-primary-600`} aria-hidden="true" />
                   </div>
-                  <p className="text-sm text-gray-700">{b.text}</p>
+                  <p className="text-sm text-gray-700">{t(b.key)}</p>
                 </div>
               ))}
             </div>
@@ -100,13 +102,13 @@ export default function PushSetup() {
               className="w-full py-4 rounded-2xl bg-primary-500 text-white font-bold text-sm
                          disabled:opacity-60 active:scale-[0.97] transition-transform mb-3"
             >
-              {loading ? 'Inaomba ruhusa...' : 'Ndiyo, Niarifu'}
+              {loading ? t('common_push_requesting') : t('common_push_allow')}
             </button>
             <button
               onClick={handleDismiss}
               className="w-full py-3 rounded-2xl text-sm text-gray-400 font-medium"
             >
-              Sasa hivi hapana
+              {t('common_push_decline')}
             </button>
           </>
         )}

@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface FileUploadButtonProps {
   value: string
@@ -8,10 +9,12 @@ interface FileUploadButtonProps {
   accept?: string
 }
 
-export function FileUploadButton({ value, onChange, label = 'Pakia Faili', accept = 'image/*' }: FileUploadButtonProps) {
+export function FileUploadButton({ value, onChange, label, accept = 'image/*' }: FileUploadButtonProps) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { t } = useLanguage()
+  const btnLabel = label ?? t('pr_upload_btn')
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -23,7 +26,7 @@ export function FileUploadButton({ value, onChange, label = 'Pakia Faili', accep
       fd.append('file', file)
       const res  = await fetch('/api/v1/upload/listing', { method: 'POST', body: fd })
       const data = await res.json() as { url?: string; error?: string }
-      if (!res.ok || !data.url) { setError(data.error ?? 'Upload ilishindwa'); return }
+      if (!res.ok || !data.url) { setError(data.error ?? t('pr_upload_err')); return }
       onChange(data.url)
     } catch {
       setError('Haikuweza kupakia. Jaribu tena.')
@@ -50,8 +53,8 @@ export function FileUploadButton({ value, onChange, label = 'Pakia Faili', accep
           className="flex items-center gap-1.5 px-3 py-2.5 border border-primary-200 bg-primary-50 text-primary-700 rounded-xl text-xs font-semibold hover:bg-primary-100 transition disabled:opacity-50 flex-shrink-0"
         >
           {uploading
-            ? <><i className="ti ti-loader-2 animate-spin" /> Inapakia...</>
-            : <><i className="ti ti-upload" /> {label}</>
+            ? <><i className="ti ti-loader-2 animate-spin" /> {t('pr_upload_uploading')}</>
+            : <><i className="ti ti-upload" /> {btnLabel}</>
           }
         </button>
       </div>

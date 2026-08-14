@@ -54,8 +54,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         if (!fundiUser?.phone) return
         const { sendTextMessage, formatPhoneNumber } = await import('@/lib/whatsapp/client')
         const msg = action === 'approve'
-          ? `✅ *NyumbaFasta — KYC Imeidhinishwa*\n\nHabari ${fundiUser.full_name ?? 'Fundi'}!\n\nHati yako ya KYC imeidhinishwa. Sasa unaweza kupata kazi kutoka kwa mashirika kwenye NyumbaFasta.\n\nIngia: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/fundi/dashboard`
-          : `❌ *NyumbaFasta — KYC Ilikataliwa*\n\nHabari ${fundiUser.full_name ?? 'Fundi'}!\n\nHati yako ya KYC ilikataliwa.${rejection_reason?.trim() ? '\nSababu: ' + rejection_reason.trim() : ''}\n\nTuma hati sahihi: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/fundi/kyc`
+          ? `✅ *NyumbaFasta — KYC Imeidhinishwa*\n\nHabari ${fundiUser.full_name ?? 'Fundi'}!\n\nHati yako ya KYC imeidhinishwa. Sasa unaweza kupata kazi kutoka kwa mashirika kwenye NyumbaFasta.\n\nIngia: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/fundi/dashboard`
+          : `❌ *NyumbaFasta — KYC Ilikataliwa*\n\nHabari ${fundiUser.full_name ?? 'Fundi'}!\n\nHati yako ya KYC ilikataliwa.${rejection_reason?.trim() ? '\nSababu: ' + rejection_reason.trim() : ''}\n\nTuma hati sahihi: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/fundi/kyc`
         sendTextMessage(formatPhoneNumber(fundiUser.phone), msg).catch(() => {})
       } catch { /* non-fatal */ }
     })().catch(() => {})

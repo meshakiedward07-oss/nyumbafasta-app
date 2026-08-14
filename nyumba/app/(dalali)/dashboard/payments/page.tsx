@@ -129,7 +129,7 @@ function parseExtraCount(externalId: string | null): number {
 function RetryForm({ target, onClose }: { target: RetryTarget; onClose: () => void }) {
   const { t } = useLanguage()
   const [msisdn,   setMsisdn]   = useState('')
-  const [provider, setProvider] = useState('Mpesa')
+  const [provider, setProvider] = useState('Tigo')
   const [loading,  setLoading]  = useState(false)
   const [msg,      setMsg]      = useState<{ text: string; ok: boolean } | null>(null)
 
@@ -289,7 +289,7 @@ function CancelButton({ subId, onDone }: { subId: string; onDone: () => void }) 
 function UpgradeModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const { t } = useLanguage()
   const [msisdn,   setMsisdn]   = useState('')
-  const [provider, setProvider] = useState('Mpesa')
+  const [provider, setProvider] = useState('Tigo')
   const [plan,     setPlan]     = useState('premium')
   const [loading,  setLoading]  = useState(false)
   const [msg,      setMsg]      = useState<{ text: string; ok: boolean } | null>(null)

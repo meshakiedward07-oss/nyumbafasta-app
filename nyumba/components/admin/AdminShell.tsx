@@ -37,13 +37,6 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    titleKey: 'admin_nav_sec_whatsapp',
-    items: [
-      { href: '/admin/whatsapp',           labelKey: 'admin_nav_conversations', icon: 'brand-whatsapp', exact: false, badge: true },
-      { href: '/admin/whatsapp/broadcast', labelKey: 'admin_nav_broadcast',     icon: 'speakerphone',   exact: false },
-    ],
-  },
-  {
     titleKey: 'admin_nav_sec_social',
     items: [
       { href: '/admin/social',             labelKey: 'admin_nav_social_overview', icon: 'chart-bar',    exact: true  },
@@ -60,10 +53,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: 'admin_nav_sec_comms',
     items: [
-      { href: '/admin/messages',      labelKey: 'admin_nav_messages',          icon: 'message-2',    exact: false, badge: 'messages' as const },
-      { href: '/admin/email',         labelKey: 'admin_nav_email',             icon: 'mail',         exact: false },
-      { href: '/admin/notifications', labelKey: 'admin_nav_notify_broadcast',  icon: 'bell',         exact: false },
-      { href: '/admin/knowledge',     labelKey: 'admin_nav_knowledge',         icon: 'academic-cap', exact: false },
+      { href: '/admin/communications', labelKey: 'admin_nav_sec_comms', icon: 'messages', exact: false, badge: true },
     ],
   },
   {
@@ -115,10 +105,10 @@ const NAV_SECTIONS: NavSection[] = [
 type BottomNavItem = { href: string; icon: string; labelKey: TKey; exact: boolean }
 
 const BOTTOM_NAV: BottomNavItem[] = [
-  { href: '/admin',          icon: 'chart-bar',      labelKey: 'admin_nav_home',          exact: true  },
-  { href: '/admin/whatsapp', icon: 'brand-whatsapp', labelKey: 'admin_nav_conversations', exact: false },
-  { href: '/admin/email',    icon: 'mail',            labelKey: 'admin_nav_email_short',   exact: false },
-  { href: '/admin/leads',    icon: 'users',           labelKey: 'admin_nav_leads_mgmt',    exact: false },
+  { href: '/admin',                icon: 'chart-bar', labelKey: 'admin_nav_home',     exact: true  },
+  { href: '/admin/communications', icon: 'messages',  labelKey: 'admin_nav_sec_comms', exact: false },
+  { href: '/admin/social',         icon: 'camera',    labelKey: 'admin_nav_social_overview', exact: false },
+  { href: '/admin/leads',          icon: 'users',     labelKey: 'admin_nav_leads_mgmt', exact: false },
 ]
 
 type StaffNavItem = { href: string; icon: string; labelKey: TKey; exact: boolean; permission: 'leads' | null }
@@ -498,7 +488,7 @@ export default function AdminShell({
   const isStaff = userRole === 'staff'
 
   // Full-viewport overlays — hides sidebar, footer, body scroll
-  if (pathname.startsWith('/admin/social') || pathname === '/admin/property-management' || pathname.startsWith('/admin/messages')) {
+  if (pathname.startsWith('/admin/social') || pathname === '/admin/property-management' || pathname.startsWith('/admin/messages') || pathname.startsWith('/admin/communications')) {
     return <div className="fixed inset-0 overflow-hidden bg-[#f4f4f0] z-10">{children}</div>
   }
 

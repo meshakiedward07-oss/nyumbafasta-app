@@ -3,6 +3,7 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { REGION_NAMES } from '@/lib/data/tanzania-locations'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Campaign = {
   id: string; title: string; body_text: string | null; cta_type: string | null; cta_value: string | null
@@ -10,15 +11,16 @@ type Campaign = {
   admin_note: string | null; ad_type: string; status: string
 }
 
-const CTA_TYPES = [
-  { value: 'whatsapp', label: '💬 WhatsApp', placeholder: '255712345678' },
-  { value: 'call',     label: '📞 Piga Simu', placeholder: '255712345678' },
-  { value: 'website',  label: '🌐 Tovuti',    placeholder: 'https://...' },
-]
-
 export default function EditCampaignPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
+  const { t }  = useLanguage()
+
+  const CTA_TYPES = [
+    { value: 'whatsapp', label: '💬 WhatsApp',                   placeholder: '255712345678' },
+    { value: 'call',     label: `📞 ${t('adv_cta_call')}`,        placeholder: '255712345678' },
+    { value: 'website',  label: `🌐 ${t('adv_cta_website')}`,     placeholder: 'https://...' },
+  ]
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [loading, setLoading]   = useState(true)
@@ -38,7 +40,7 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
       .then(r => r.json())
       .then(d => {
         const c = d.campaign as Campaign
-        if (!c) { setError('Kampeni haikupatikana'); setLoading(false); return }
+        if (!c) { setError(t('adv_campaign_not_found')); setLoading(false); return }
         if (c.status !== 'rejected') {
           router.replace('/advertising/dashboard')
           return
@@ -55,7 +57,8 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
         })
         setLoading(false)
       })
-      .catch(() => { setError('Imeshindwa kupakua data'); setLoading(false) })
+      .catch(() => { setError(t('adv_load_data_error')); setLoading(false) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, router])
 
   async function submit(e: React.FormEvent) {
@@ -76,11 +79,11 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
         }),
       })
       const d = await res.json()
-      if (!res.ok) { setError(d.error ?? 'Imeshindwa kuhifadhi'); return }
+      if (!res.ok) { setError(d.error ?? t('adv_save_failed')); return }
       setSuccess(true)
       setTimeout(() => router.push('/advertising/dashboard'), 2000)
     } catch {
-      setError('Haikuweza kuunganika. Jaribu tena.')
+      setError(t('adv_connection_error'))
     } finally {
       setSaving(false)
     }
@@ -98,7 +101,9 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
     return (
       <div className="max-w-lg mx-auto py-16 px-4 text-center text-gray-500">
         <p className="mb-4">{error}</p>
-        <Link href="/advertising/dashboard" className="text-primary-600 hover:underline text-sm">← Rudi Dashboard</Link>
+        <Link href="/advertising/dashboard" className="text-primary-600 hover:underline text-sm">
+          {t('adv_back_to_dashboard')}
+        </Link>
       </div>
     )
   }
@@ -107,8 +112,8 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
     return (
       <div className="max-w-lg mx-auto py-16 px-4 text-center">
         <div className="text-5xl mb-4">✅</div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Imehifadhiwa na Kuwasilishwa!</h2>
-        <p className="text-gray-500 text-sm">Tangazo lako limewasilishwa tena kwa ukaguzi. Unabadilishwa...</p>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">{t('adv_saved_submitted')}</h2>
+        <p className="text-gray-500 text-sm">{t('adv_resubmit_success')}</p>
       </div>
     )
   }
@@ -122,14 +127,14 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
           ←
         </Link>
         <div>
-          <h1 className="text-lg font-bold text-gray-800">Rekebisha Tangazo</h1>
-          <p className="text-xs text-gray-400">Fanya mabadiliko na uwasilishe tena kwa ukaguzi</p>
+          <h1 className="text-lg font-bold text-gray-800">{t('adv_edit_campaign_title')}</h1>
+          <p className="text-xs text-gray-400">{t('adv_edit_campaign_subtitle')}</p>
         </div>
       </div>
 
       {campaign?.admin_note && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5">
-          <p className="text-xs font-bold text-red-600 mb-1">Sababu ya Kukataliwa:</p>
+          <p className="text-xs font-bold text-red-600 mb-1">{t('adv_rejection_reason')}</p>
           <p className="text-sm text-red-700">{campaign.admin_note}</p>
         </div>
       )}
@@ -140,37 +145,37 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Kichwa cha Tangazo *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('adv_campaign_title_label')} *</label>
           <input
             required value={form.title} onChange={e => set('title', e.target.value)}
             className="w-full border border-gray-300 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-            placeholder="Mfano: Kodi za Nyumba Dar es Salaam"
+            placeholder={t('adv_edit_title_placeholder')}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Maandishi ya Tangazo</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('adv_campaign_body')}</label>
           <textarea
             value={form.body_text} onChange={e => set('body_text', e.target.value)}
             rows={3}
             className="w-full border border-gray-300 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
-            placeholder="Elezea biashara yako kwa ufupi..."
+            placeholder={t('adv_body_placeholder')}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Mkoa *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('adv_region_label')} *</label>
           <select
             required value={form.target_region} onChange={e => set('target_region', e.target.value)}
             className="w-full border border-gray-300 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
           >
-            <option value="">Chagua mkoa...</option>
+            <option value="">{t('adv_select_region')}</option>
             {REGION_NAMES.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Aina ya Mawasiliano</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('adv_cta_type')}</label>
           <div className="grid grid-cols-3 gap-2 mb-2">
             {CTA_TYPES.map(c => (
               <button
@@ -197,7 +202,7 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
           type="submit" disabled={saving}
           className="w-full bg-primary-500 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-primary-600 transition disabled:opacity-50 mt-2"
         >
-          {saving ? 'Inahifadhi...' : '✅ Hifadhi na Wasilisha Tena →'}
+          {saving ? t('adv_saving') : `✅ ${t('adv_save_resubmit')}`}
         </button>
       </form>
     </div>

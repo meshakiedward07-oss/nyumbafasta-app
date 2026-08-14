@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { BOOSTED_LABEL } from '@/lib/config/listing-status'
+import { useLanguage } from '@/lib/i18n/context'
 
 const UnlockModal = dynamic(() => import('@/components/payments/UnlockModal'), { ssr: false })
 
@@ -78,6 +79,7 @@ const BED_OPTIONS = [
 type BedKey = typeof BED_OPTIONS[number]['key']
 
 export default function AgentProfileClient({ dalali, listings, reviews, primaryRegion, primaryDistrict }: Props) {
+  const { t } = useLanguage()
   const [typeFilter, setTypeFilter]   = useState<string>('zote')
   const [priceFilter, setPriceFilter] = useState<PriceKey>('yote')
   const [bedFilter, setBedFilter]     = useState<BedKey>('yote')
@@ -119,8 +121,8 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
   const locationLabel  = primaryDistrict  ? primaryDistrict : (primaryRegion ?? null)
   const exploreHref    = regionSlug       ? `/mali/${regionSlug}` : '/'
   const exploreLabel   = locationLabel
-    ? `Angalia nyumba zote ${locationLabel}`
-    : 'Angalia nyumba zote Tanzania'
+    ? `${t('cl_browse_all_in')} ${locationLabel}`
+    : t('cl_browse_all_tz')
 
   // Track profile view once on mount
   useEffect(() => {
@@ -231,7 +233,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
             />
           </Link>
           <Link href="/" className="text-white/80 text-xs font-medium hover:text-white transition-colors">
-            Tafuta nyumba →
+            {t('cl_search_homes')}
           </Link>
         </div>
       </header>
@@ -259,26 +261,26 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                 {dalali.isVerified && (
                   <span className="inline-flex items-center gap-1 bg-primary-500 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">
                     <i className="ti ti-rosette-discount-check text-xs" aria-hidden="true" />
-                    Amethibitishwa
+                    {t('lst_verified')}
                   </span>
                 )}
               </div>
 
               <p className="text-xs text-gray-400 mt-0.5">
-                Dalali wa NyumbaFasta · Tanzania
+                {t('cl_agent_tagline')}
               </p>
 
               {dalali.ratingCount > 0 && (
                 <div className="flex items-center gap-1 mt-1">
                   <i className="ti ti-star-filled text-amber-400 text-sm" aria-hidden="true" />
                   <span className="text-sm font-semibold text-gray-800">{dalali.ratingAvg.toFixed(1)}</span>
-                  <span className="text-xs text-gray-400">({dalali.ratingCount} maoni)</span>
+                  <span className="text-xs text-gray-400">({dalali.ratingCount} {t('cl_maoni')})</span>
                 </div>
               )}
 
               <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
                 <i className="ti ti-home text-xs" aria-hidden="true" />
-                <span>{listings.length} listing{listings.length !== 1 ? 's' : ''} hai</span>
+                <span>{listings.length} listing{listings.length !== 1 ? 's' : ''} {t('cl_hai')}</span>
               </div>
             </div>
           </div>
@@ -297,7 +299,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
               className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 active:scale-[0.98] transition-all"
             >
               <i className="ti ti-lock text-sm" aria-hidden="true" />
-              Wasiliana naye
+              {t('cl_contact_agent')}
             </button>
 
             {/* Share */}
@@ -326,7 +328,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
 
           <p className="text-[11px] text-gray-400 text-center mt-2 flex items-center justify-center gap-1">
             <i className="ti ti-lock text-[10px]" aria-hidden="true" />
-            Mawasiliano yanapatikana baada ya malipo ya Tsh 2,000
+            {t('cl_contact_price_hint')}
           </p>
         </section>
 
@@ -357,7 +359,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                 }`}
               >
                 <i className="ti ti-star text-sm" aria-hidden="true" />
-                Maoni
+                {t('cl_reviews')}
                 <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
                   activeSection === 'reviews' ? 'bg-amber-400 text-white' : 'bg-gray-200 text-gray-500'
                 }`}>{reviews.length}</span>
@@ -369,7 +371,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
         {/* ── Listings section ────────────────────────────────── */}
         <section id="section-listings" ref={listingsSectionRef}>
           <h2 className="text-sm font-semibold text-gray-700 mb-3">
-            Listings za {dalali.name.split(' ')[0]}
+            {t('cl_agent_listings_heading')} {dalali.name.split(' ')[0]}
           </h2>
 
           {/* Search */}
@@ -381,7 +383,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                   type="text"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="Tafuta listing..."
+                  placeholder={t('cl_search_listing_ph')}
                   className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400"
                 />
               </div>
@@ -395,18 +397,18 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
               {/* Aina */}
               {types.length > 2 && (
                 <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
-                  <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">Aina</span>
-                  {types.map(t => (
+                  <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">{t('cl_type_filter_label')}</span>
+                  {types.map(typ => (
                     <button
-                      key={t}
-                      onClick={() => setTypeFilter(t)}
+                      key={typ}
+                      onClick={() => setTypeFilter(typ)}
                       className={`flex-shrink-0 px-2.5 py-2 min-h-[36px] rounded-lg text-xs font-medium border transition-all ${
-                        typeFilter === t
+                        typeFilter === typ
                           ? 'bg-primary-500 text-white border-primary-500'
                           : 'bg-white text-gray-600 border-gray-200'
                       }`}
                     >
-                      {t === 'zote' ? 'Zote' : (TYPE_LABELS[t] ?? t)}
+                      {typ === 'zote' ? t('cl_filter_all') : (TYPE_LABELS[typ] ?? typ)}
                     </button>
                   ))}
                 </div>
@@ -414,7 +416,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
 
               {/* Bei */}
               <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
-                <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">Bei</span>
+                <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">{t('cl_price_filter_label')}</span>
                 {PRICE_RANGES.map(r => (
                   <button
                     key={r.key}
@@ -425,7 +427,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                         : 'bg-white text-gray-600 border-gray-200'
                     }`}
                   >
-                    {r.label}
+                    {r.key === 'yote' ? t('cl_filter_all') : r.label}
                   </button>
                 ))}
               </div>
@@ -433,7 +435,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
               {/* Vyumba */}
               {listings.some(l => l.bedrooms !== null) && (
                 <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
-                  <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">Vyumba</span>
+                  <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">{t('cl_beds_filter_label')}</span>
                   {BED_OPTIONS.map(b => (
                     <button
                       key={b.key}
@@ -444,7 +446,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                           : 'bg-white text-gray-600 border-gray-200'
                       }`}
                     >
-                      {b.label}
+                      {b.key === 'yote' ? t('cl_filter_all') : b.label}
                     </button>
                   ))}
                 </div>
@@ -453,7 +455,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
               {/* Eneo */}
               {districts.length > 2 && (
                 <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
-                  <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">Eneo</span>
+                  <span className="flex-shrink-0 text-[10px] font-semibold text-gray-400 uppercase tracking-wide self-center pr-1">{t('cl_area_filter_label')}</span>
                   {districts.map(d => (
                     <button
                       key={d}
@@ -464,7 +466,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                           : 'bg-white text-gray-600 border-gray-200'
                       }`}
                     >
-                      {d === 'yote' ? 'Yote' : d}
+                      {d === 'yote' ? t('cl_filter_all') : d}
                     </button>
                   ))}
                 </div>
@@ -477,13 +479,13 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-gray-500">
               {activeFilterCount > 0
-                ? <><span className="font-semibold text-gray-800">{filtered.length}</span> kati ya {listings.length} listings</>
-                : <><span className="font-semibold text-gray-800">{listings.length}</span> listing{listings.length !== 1 ? 's' : ''} hai</>
+                ? <><span className="font-semibold text-gray-800">{filtered.length}</span> {t('cl_kati_ya')} {listings.length} listings</>
+                : <><span className="font-semibold text-gray-800">{listings.length}</span> listing{listings.length !== 1 ? 's' : ''} {t('cl_hai')}</>
               }
             </p>
             {activeFilterCount > 0 && (
               <button onClick={clearFilters} className="text-xs text-primary-600 font-medium min-h-[44px] px-2 inline-flex items-center">
-                Futa filters
+                {t('cl_remove_all_filters')}
               </button>
             )}
           </div>
@@ -491,16 +493,16 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
           {listings.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 py-14 text-center text-gray-400 px-6">
               <i className="ti ti-home-off text-4xl block mb-3 text-gray-300" aria-hidden="true" />
-              <p className="text-sm font-semibold text-gray-600 mb-1">Hakuna listings hai sasa hivi</p>
-              <p className="text-xs text-gray-400 mb-4">{dalali.name.split(' ')[0]} hana matangazo ya sasa.</p>
+              <p className="text-sm font-semibold text-gray-600 mb-1">{t('cl_no_active_listings')}</p>
+              <p className="text-xs text-gray-400 mb-4">{dalali.name.split(' ')[0]} {t('cl_no_ads_now')}.</p>
               <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-primary-600 font-medium underline">
-                <i className="ti ti-search text-xs" aria-hidden="true" /> Tafuta kwenye NyumbaFasta
+                <i className="ti ti-search text-xs" aria-hidden="true" /> {t('cl_search_on_nyumbafasta')}
               </Link>
             </div>
           ) : filtered.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 py-12 text-center text-gray-400">
               <i className="ti ti-home-off text-3xl block mb-2" aria-hidden="true" />
-              <p className="text-sm">Hakuna listings zinazolingana</p>
+              <p className="text-sm">{t('cl_no_matching')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
@@ -551,12 +553,12 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
                     </p>
                     <p className="text-sm font-bold text-gray-900">
                       Tsh {fmtPrice(listing.price_monthly)}
-                      <span className="text-xs font-normal text-gray-400">/mwezi</span>
+                      <span className="text-xs font-normal text-gray-400">{t('lst_per_month')}</span>
                     </p>
                     {listing.bedrooms && (
                       <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
                         <i className="ti ti-bed text-[11px]" aria-hidden="true" />
-                        {listing.bedrooms} vyumba
+                        {listing.bedrooms} {t('cl_vyumba')}
                       </p>
                     )}
                   </div>
@@ -571,7 +573,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
           <section id="section-reviews" ref={reviewsSectionRef} className="mt-6">
             <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <i className="ti ti-star text-amber-400" aria-hidden="true" />
-              Maoni ya wateja ({reviews.length})
+              {t('cl_customer_reviews')} ({reviews.length})
             </h2>
             <div className="space-y-3">
               {reviews.slice(0, 5).map(r => (
@@ -630,14 +632,14 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-end mb-1">
-              <button onClick={() => setShowContact(false)} aria-label="Funga" className="text-gray-300 text-xl p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">×</button>
+              <button onClick={() => setShowContact(false)} aria-label={t('common_close')} className="text-gray-300 text-xl p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">×</button>
             </div>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
             <p className="text-sm text-gray-500 text-center py-4">
-              {dalali.name.split(' ')[0]} hana listings hai sasa hivi.
+              {dalali.name.split(' ')[0]} {t('cl_no_listings_now')}.
             </p>
             <Link href="/" className="flex items-center justify-center gap-2 w-full py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl">
-              <i className="ti ti-search" aria-hidden="true" /> Tafuta Madalali Wengine
+              <i className="ti ti-search" aria-hidden="true" /> {t('cl_search_other_agents')}
             </Link>
           </div>
         </div>
@@ -669,7 +671,7 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full py-4 bg-green-500 text-white font-bold text-sm rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
           >
-            <i className="ti ti-brand-whatsapp text-lg" aria-hidden="true" /> Zungumza na {dalali.name.split(' ')[0]} kwenye WhatsApp
+            <i className="ti ti-brand-whatsapp text-lg" aria-hidden="true" /> {t('cl_chat_on_wa')} {dalali.name.split(' ')[0]} {t('cl_on_whatsapp')}
           </a>
         </div>
       )}

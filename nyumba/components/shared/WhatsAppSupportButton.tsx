@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 
 const HIDDEN_PREFIXES = ['/admin', '/staff-login', '/fundi']
 
@@ -8,6 +9,7 @@ export default function WhatsAppSupportButton() {
   const [pressed, setPressed] = useState(false)
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
+  const { t }    = useLanguage()
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -22,8 +24,8 @@ export default function WhatsAppSupportButton() {
       href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Msaada wa NyumbaFasta"
-      title="Msaada wa Wateja"
+      aria-label={t('common_support')}
+      title={t('common_support')}
       onPointerDown={() => setPressed(true)}
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}

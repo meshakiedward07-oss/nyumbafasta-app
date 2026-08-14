@@ -3,17 +3,12 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { REGION_NAMES } from '@/lib/data/tanzania-locations'
 import UploadCreative from '@/components/ads/UploadCreative'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Plan = {
   id: string; name: string; ad_type: string; price_tzs: number
   duration_days: number; slot_limit: number; description: string | null; features: string[]
 }
-
-const CTA_TYPES = [
-  { value: 'whatsapp', label: '💬 WhatsApp', placeholder: '255712345678' },
-  { value: 'call',     label: '📞 Piga Simu', placeholder: '255712345678' },
-  { value: 'website',  label: '🌐 Tovuti',    placeholder: 'https://...' },
-]
 
 const TYPE_LABELS: Record<string, string> = {
   banner: 'Banner Ad', search: 'Search Ad', nearby: 'Nearby Ad', video: 'Video Ad', featured: 'Featured Business',
@@ -22,6 +17,13 @@ const TYPE_LABELS: Record<string, string> = {
 function NewCampaignForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useLanguage()
+
+  const CTA_TYPES = [
+    { value: 'whatsapp', label: '💬 WhatsApp',           placeholder: '255712345678' },
+    { value: 'call',     label: `📞 ${t('adv_cta_call')}`, placeholder: '255712345678' },
+    { value: 'website',  label: `🌐 ${t('adv_cta_website')}`, placeholder: 'https://...' },
+  ]
 
   const [plans, setPlans]         = useState<Plan[]>([])
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
@@ -68,7 +70,7 @@ function NewCampaignForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedPlan) { setError('Tafadhali chagua mpango wa tangazo'); return }
+    if (!selectedPlan) { setError(t('adv_select_plan_error')); return }
     setLoading(true); setError('')
     try {
       const res = await fetch('/api/v1/advertising/campaigns', {
@@ -78,13 +80,13 @@ function NewCampaignForm() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error ?? 'Kuna tatizo')
+        setError(data.error ?? t('common_error'))
         return
       }
       if (data.waiting_list) { router.push('/advertising/dashboard?waiting=1'); return }
       // Show creative upload step before going to dashboard
       setCreatedCampaignId(data.campaign.id)
-    } catch { setError('Haikuweza kuunganika. Jaribu tena.') }
+    } catch { setError(t('adv_connection_error')) }
     finally { setLoading(false) }
   }
 
@@ -95,12 +97,10 @@ function NewCampaignForm() {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">✓</span>
-            <span className="text-sm text-green-600 font-medium">Kampeni imeundwa!</span>
+            <span className="text-sm text-green-600 font-medium">{t('adv_campaign_created')}</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Pakia Creative ya Tangazo</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Pakia picha au video — mfumo utatengeneza mifumo yote ya banner, nearby, na featured kiotomatiki.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-800">{t('adv_upload_creative_title')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t('adv_upload_creative_desc')}</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
           <UploadCreative
@@ -117,10 +117,10 @@ function NewCampaignForm() {
     return (
       <div className="max-w-md mx-auto py-16 px-4 text-center">
         <div className="text-4xl mb-4">⚠️</div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Akaunti Haikupatikana</h2>
-        <p className="text-gray-500 text-sm mb-6">Jiandikishe kwanza kama mfanyabiashara ili uweze kuweka matangazo.</p>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">{t('adv_account_not_found')}</h2>
+        <p className="text-gray-500 text-sm mb-6">{t('adv_register_first')}</p>
         <a href="/advertising/register" className="bg-primary-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-600 transition">
-          Jiandikishe Bure
+          {t('adv_register_free')}
         </a>
       </div>
     )
@@ -135,8 +135,8 @@ function NewCampaignForm() {
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Tangazo Jipya</h1>
-        <p className="text-gray-500 text-sm mt-1">Jaza maelezo ya kampeni yako ya matangazo</p>
+        <h1 className="text-2xl font-bold text-gray-800">{t('adv_new_campaign_title')}</h1>
+        <p className="text-gray-500 text-sm mt-1">{t('adv_new_campaign_subtitle')}</p>
       </div>
 
       {error && (
@@ -146,7 +146,7 @@ function NewCampaignForm() {
       <form onSubmit={submit} className="space-y-5">
         {/* Plan selection */}
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <h2 className="font-bold text-gray-700 mb-3">1. Chagua Mpango</h2>
+          <h2 className="font-bold text-gray-700 mb-3">{t('adv_step1_choose_plan')}</h2>
           {Object.entries(byType).map(([type, typePlans]) => (
             <div key={type} className="mb-4">
               <h3 className="text-sm font-medium text-gray-500 mb-2">{TYPE_LABELS[type] ?? type}</h3>
@@ -172,7 +172,7 @@ function NewCampaignForm() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="font-bold text-primary-600 text-sm">TZS {p.price_tzs.toLocaleString()}</div>
-                      <div className="text-xs text-gray-400">Siku {p.duration_days}</div>
+                      <div className="text-xs text-gray-400">{t('adv_days_label')} {p.duration_days}</div>
                     </div>
                   </label>
                 ))}
@@ -180,7 +180,7 @@ function NewCampaignForm() {
             </div>
           ))}
           {plans.length === 0 && (
-            <p className="text-sm text-gray-400">Mipango inapakia...</p>
+            <p className="text-sm text-gray-400">{t('adv_plans_loading')}</p>
           )}
         </div>
 
@@ -188,41 +188,40 @@ function NewCampaignForm() {
           <>
             {/* Content */}
             <div className="bg-white rounded-2xl border border-gray-200 p-4">
-              <h2 className="font-bold text-gray-700 mb-3">2. Maudhui ya Tangazo</h2>
+              <h2 className="font-bold text-gray-700 mb-3">{t('adv_step2_content')}</h2>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kichwa cha Tangazo *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_campaign_title_label')} *</label>
                   <input
                     required value={form.title}
                     onChange={e => set('title', e.target.value)}
                     maxLength={100}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    placeholder="Mfano: Pata Nyumba Bora Dar es Salaam..."
+                    placeholder={t('adv_campaign_title_placeholder')}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Maelezo (hiari)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_campaign_desc_label')}</label>
                   <textarea
                     value={form.body_text}
                     onChange={e => set('body_text', e.target.value)}
                     rows={3}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
-                    placeholder="Eleza zaidi biashara au ofa yako..."
+                    placeholder={t('adv_campaign_desc_placeholder')}
                   />
                 </div>
 
                 <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 text-xs text-blue-700">
-                  📸 Hatua inayofuata: baada ya kuwasilisha fomu hii, utapakia picha au video yako.
-                  Mfumo utatengeneza kiotomatiki mifumo yote ya banner, nearby, na featured.
+                  📸 {t('adv_creative_next_hint')}
                 </div>
               </div>
             </div>
 
             {/* CTA */}
             <div className="bg-white rounded-2xl border border-gray-200 p-4">
-              <h2 className="font-bold text-gray-700 mb-3">3. Jinsi Wateja Wanavyowasiliana</h2>
+              <h2 className="font-bold text-gray-700 mb-3">{t('adv_step3_cta')}</h2>
 
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {CTA_TYPES.map(ct => (
@@ -253,24 +252,24 @@ function NewCampaignForm() {
               />
               {form.cta_type === 'whatsapp' && advertiserWa && form.cta_value === advertiserWa && (
                 <p className="text-xs text-green-600 mt-1">
-                  ✅ Kutoka kwa profaili yako ya mfanyabiashara
+                  ✅ {t('adv_from_profile')}
                 </p>
               )}
             </div>
 
             {/* Targeting */}
             <div className="bg-white rounded-2xl border border-gray-200 p-4">
-              <h2 className="font-bold text-gray-700 mb-3">4. Eneo la Tangazo</h2>
+              <h2 className="font-bold text-gray-700 mb-3">{t('adv_step4_targeting')}</h2>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mkoa / Mji *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_target_region')} *</label>
                   <select
                     required value={form.target_region}
                     onChange={e => set('target_region', e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                   >
-                    <option value="">Chagua mkoa...</option>
+                    <option value="">{t('adv_select_region')}</option>
                     {(REGION_NAMES ?? []).map((r: string) => (
                       <option key={r} value={r}>{r}</option>
                     ))}
@@ -278,12 +277,12 @@ function NewCampaignForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Wilaya (hiari)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_target_district')}</label>
                   <input
                     value={form.target_district}
                     onChange={e => set('target_district', e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    placeholder="Mfano: Kinondoni"
+                    placeholder={t('adv_district_placeholder')}
                   />
                 </div>
               </div>
@@ -293,11 +292,11 @@ function NewCampaignForm() {
               type="submit" disabled={loading}
               className="w-full bg-primary-500 text-white py-3 rounded-xl font-bold hover:bg-primary-600 transition disabled:opacity-50"
             >
-              {loading ? 'Inawasilisha...' : 'Wasilisha Tangazo →'}
+              {loading ? t('adv_submitting') : t('adv_submit_campaign')}
             </button>
 
             <p className="text-xs text-center text-gray-400">
-              Tangazo lako litakaguliwa na timu yetu ndani ya saa 24. Baada ya kukaguliwa, utalipa ili lianze.
+              {t('adv_review_notice')}
             </p>
           </>
         )}

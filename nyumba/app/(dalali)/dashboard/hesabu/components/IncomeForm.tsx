@@ -1,13 +1,6 @@
 'use client'
 import { useState } from 'react'
-
-const CATEGORIES = [
-  { value: 'commission',    label: 'Kamisheni' },
-  { value: 'viewing_fee',   label: 'Viewing Fee' },
-  { value: 'consultation',  label: 'Ushauri' },
-  { value: 'service',       label: 'Huduma nyingine' },
-  { value: 'other',         label: 'Nyingine' },
-]
+import { useLanguage } from '@/lib/i18n/context'
 
 const PAYMENT_METHODS = [
   { value: 'cash',   label: 'Cash' },
@@ -20,6 +13,7 @@ const PAYMENT_METHODS = [
 interface Props { onClose: () => void; onSuccess: () => void }
 
 export default function IncomeForm({ onClose, onSuccess }: Props) {
+  const { t } = useLanguage()
   const [form, setForm] = useState({
     amount: '', category: 'commission',
     date: new Date().toISOString().split('T')[0],
@@ -30,8 +24,16 @@ export default function IncomeForm({ onClose, onSuccess }: Props) {
 
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
 
+  const CATEGORIES = [
+    { value: 'commission',   label: t('hesabu_cat_commission')    },
+    { value: 'viewing_fee',  label: t('hesabu_cat_viewing_fee')   },
+    { value: 'consultation', label: t('hesabu_cat_consultation')  },
+    { value: 'service',      label: t('hesabu_cat_service_other') },
+    { value: 'other',        label: t('hesabu_cat_other')         },
+  ]
+
   async function handleSubmit() {
-    if (!form.amount || parseInt(form.amount) <= 0) { setError('Weka kiasi sahihi'); return }
+    if (!form.amount || parseInt(form.amount) <= 0) { setError(t('hesabu_if_err_amount')); return }
     setSaving(true); setError('')
     try {
       const res = await fetch('/api/v1/dalali/finance/income', {
@@ -41,7 +43,7 @@ export default function IncomeForm({ onClose, onSuccess }: Props) {
       })
       const data = await res.json()
       if (data.success) onSuccess()
-      else setError(data.error || 'Imeshindwa')
+      else setError(data.error || t('hesabu_if_err_amount'))
     } finally { setSaving(false) }
   }
 
@@ -51,7 +53,7 @@ export default function IncomeForm({ onClose, onSuccess }: Props) {
         <div className="p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-              <i className="ti ti-trending-up text-green-500" aria-hidden="true" /> Ongeza mapato
+              <i className="ti ti-trending-up text-green-500" aria-hidden="true" /> {t('hesabu_if_title')}
             </h2>
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100">
               <i className="ti ti-x text-gray-500" aria-hidden="true" />
@@ -62,7 +64,7 @@ export default function IncomeForm({ onClose, onSuccess }: Props) {
 
           {/* Amount */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Kiasi (TSh) *</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('hesabu_if_amount_label')}</label>
             <input
               type="number" inputMode="numeric" placeholder="e.g. 150000"
               value={form.amount} onChange={e => set('amount', e.target.value)}
@@ -72,7 +74,7 @@ export default function IncomeForm({ onClose, onSuccess }: Props) {
 
           {/* Category chips */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Aina ya mapato *</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">{t('hesabu_if_cat_label')}</label>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map(c => (
                 <button key={c.value} type="button" onClick={() => set('category', c.value)}
@@ -85,20 +87,20 @@ export default function IncomeForm({ onClose, onSuccess }: Props) {
 
           {/* Date */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Tarehe *</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('hesabu_if_date_label')}</label>
             <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300" />
           </div>
 
-          {/* Client + description */}
+          {/* Client + listing */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Jina la mteja</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('hesabu_if_client_label')}</label>
               <input type="text" placeholder="Juma Ali" value={form.client_name} onChange={e => set('client_name', e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Nyumba</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('hesabu_if_listing_label')}</label>
               <input type="text" placeholder="Mbezi Beach 2BR" value={form.listing_title} onChange={e => set('listing_title', e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
@@ -106,14 +108,14 @@ export default function IncomeForm({ onClose, onSuccess }: Props) {
 
           {/* Description */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Maelezo (hiari)</label>
-            <input type="text" placeholder="Maelezo ya ziada..." value={form.description} onChange={e => set('description', e.target.value)}
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('hesabu_if_desc_label')}</label>
+            <input type="text" placeholder={t('hesabu_if_desc_ph')} value={form.description} onChange={e => set('description', e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
           </div>
 
           {/* Payment method chips */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Njia ya malipo</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">{t('hesabu_if_payment_label')}</label>
             <div className="flex flex-wrap gap-2">
               {PAYMENT_METHODS.map(p => (
                 <button key={p.value} type="button" onClick={() => set('payment_method', p.value)}
@@ -126,7 +128,7 @@ export default function IncomeForm({ onClose, onSuccess }: Props) {
 
           <button onClick={handleSubmit} disabled={saving}
             className="w-full bg-green-600 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-50 active:scale-[0.98] transition-all">
-            {saving ? 'Inahifadhi...' : '✓ Hifadhi Mapato'}
+            {saving ? t('hesabu_if_saving') : t('hesabu_if_save_btn')}
           </button>
         </div>
       </div>

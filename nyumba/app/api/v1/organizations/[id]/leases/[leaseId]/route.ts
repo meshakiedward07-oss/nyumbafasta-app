@@ -68,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (current.org_id !== orgId && !isAdminStaff) return NextResponse.json({ error: 'Mkataba huu si wa shirika lako' }, { status: 403 })
 
     const now = new Date().toISOString()
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
     function notifyTenant(
       notifTitle: string, notifBody: string, type: string, waMsg: string,

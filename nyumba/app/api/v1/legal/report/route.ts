@@ -6,7 +6,7 @@ import { sendMail } from '@/lib/email/resend'
 import { adminLegalReportEmail } from '@/lib/email/templates'
 
 const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP_NUMBER ?? '255615261147'
-const APP_URL        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 const VIOLATION_LABELS: Record<string, string> = {
   fake_listing:      'Orodha ya Ulaghai / Fake Listing',

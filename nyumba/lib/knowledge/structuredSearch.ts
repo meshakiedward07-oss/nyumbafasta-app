@@ -5,7 +5,7 @@
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import type { ExtractedEntities } from '@/lib/knowledge/entities'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 // ── Listing search ────────────────────────────────────────────────────────────
 

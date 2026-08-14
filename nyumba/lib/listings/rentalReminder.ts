@@ -10,7 +10,7 @@ function getAdmin() {
   )
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 // ── Secure token for one-click WhatsApp mark-taken link ───────────────────────
 // Uses HMAC-SHA256 with CRON_SECRET so the token can't be forged without the key.

@@ -3,6 +3,7 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 const CATEGORIES = [
   'Nyumba na Mali', 'Hoteli na Lodges', 'Biashara ya Chakula', 'Afya na Dawa',
@@ -14,6 +15,7 @@ function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planId = searchParams.get('plan')
+  const { t } = useLanguage()
 
   const [step, setStep]       = useState(1)
   const [loading, setLoading] = useState(false)
@@ -35,12 +37,12 @@ function RegisterForm() {
     setError('')
     if (step === 1) {
       if (!form.business_name || !form.business_category || !form.contact_phone || !form.whatsapp_number || !form.city) {
-        setError('Jaza sehemu zote zinazohitajika (*)'); return
+        setError(t('adv_fill_required')); return
       }
       setStep(2); return
     }
-    if (form.password !== form.confirm_password) { setError('Nywila hazifanani'); return }
-    if (form.password.length < 8) { setError('Nywila iwe na angalau herufi 8'); return }
+    if (form.password !== form.confirm_password) { setError(t('adv_passwords_mismatch')); return }
+    if (form.password.length < 8) { setError(t('adv_password_too_short')); return }
 
     setLoading(true)
     try {
@@ -50,10 +52,10 @@ function RegisterForm() {
         body: JSON.stringify(form),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setError(data.error ?? t('common_error')); return }
       router.push(planId ? `/advertising/new?plan=${planId}` : '/advertising/dashboard')
     } catch {
-      setError('Haikuweza kuunganika. Jaribu tena.')
+      setError(t('adv_connection_error'))
     } finally { setLoading(false) }
   }
 
@@ -65,7 +67,7 @@ function RegisterForm() {
           <Image src="/transparent_logo_nyumbafasta.png" alt="NyumbaFasta" width={28} height={28} className="object-contain" />
           <span className="font-bold text-base">NyumbaFasta</span>
         </div>
-        <p className="text-xs text-primary-200">Sajili Biashara yako — Bure</p>
+        <p className="text-xs text-primary-200">{t('adv_register_subtitle')}</p>
       </div>
 
       <div className="flex-1 flex items-start justify-center pt-6 px-4 pb-12">
@@ -74,8 +76,8 @@ function RegisterForm() {
           {/* Step indicator */}
           <div className="flex items-center gap-2 mb-6">
             {[
-              { n: 1, label: 'Biashara' },
-              { n: 2, label: 'Akaunti' },
+              { n: 1, label: t('adv_step_business') },
+              { n: 2, label: t('adv_step_account') },
             ].map((s, i) => (
               <div key={s.n} className="flex items-center gap-2 flex-1">
                 <div className={`flex items-center gap-2 ${i > 0 ? 'flex-1' : ''}`}>
@@ -96,7 +98,7 @@ function RegisterForm() {
           </div>
 
           <h1 className="text-lg font-bold text-gray-800 mb-4">
-            {step === 1 ? 'Taarifa za Biashara Yako' : 'Unda Akaunti Yako'}
+            {step === 1 ? t('adv_business_info_title') : t('adv_create_account_title')}
           </h1>
 
           {error && (
@@ -109,53 +111,53 @@ function RegisterForm() {
           <form onSubmit={submit} className="space-y-4">
             {step === 1 && (
               <>
-                <Field label="Jina la Biashara *" required>
+                <Field label={`${t('adv_business_name')} *`} required>
                   <input
                     required value={form.business_name}
                     onChange={e => set('business_name', e.target.value)}
                     className="input"
-                    placeholder="Mfano: Duka la Nguruwe, Salon ya Amina..."
+                    placeholder={t('adv_biz_name_placeholder')}
                   />
                 </Field>
 
-                <Field label="Aina ya Biashara *" required>
+                <Field label={`${t('adv_business_category')} *`} required>
                   <select
                     required value={form.business_category}
                     onChange={e => set('business_category', e.target.value)}
                     className="input"
                   >
-                    <option value="">Chagua aina...</option>
+                    <option value="">{t('adv_select_category')}</option>
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </Field>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Nambari ya Simu *">
+                  <Field label={`${t('adv_contact_phone')} *`}>
                     <input
                       required type="tel" value={form.contact_phone}
                       onChange={e => set('contact_phone', e.target.value)}
                       className="input" placeholder="0712345678"
                     />
                   </Field>
-                  <Field label="WhatsApp *">
+                  <Field label={`${t('adv_whatsapp')} *`}>
                     <input
                       required type="tel" value={form.whatsapp_number}
                       onChange={e => set('whatsapp_number', e.target.value)}
                       className="input" placeholder="255712345678"
                     />
-                    <p className="text-[10px] text-gray-400 mt-0.5">Wateja watabonyeza hadi WhatsApp yako</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{t('adv_whatsapp_hint')}</p>
                   </Field>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Mji / Mkoa *">
+                  <Field label={`${t('adv_city_region')} *`}>
                     <input
                       required value={form.city}
                       onChange={e => set('city', e.target.value)}
                       className="input" placeholder="Dar es Salaam"
                     />
                   </Field>
-                  <Field label="Wilaya">
+                  <Field label={t('adv_district')}>
                     <input
                       value={form.district}
                       onChange={e => set('district', e.target.value)}
@@ -164,17 +166,17 @@ function RegisterForm() {
                   </Field>
                 </div>
 
-                <Field label="Maelezo ya Biashara (hiari)">
+                <Field label={t('adv_biz_desc_optional')}>
                   <textarea
                     value={form.description}
                     onChange={e => set('description', e.target.value)}
                     rows={3}
                     className="input resize-none"
-                    placeholder="Eleza biashara yako kwa ufupi..."
+                    placeholder={t('adv_business_desc_placeholder')}
                   />
                 </Field>
 
-                <Field label="Tovuti (hiari)">
+                <Field label={t('adv_website_optional')}>
                   <input
                     type="url" value={form.website_url}
                     onChange={e => set('website_url', e.target.value)}
@@ -188,10 +190,10 @@ function RegisterForm() {
               <>
                 <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-sm text-primary-800 flex items-start gap-2">
                   <span>✅</span>
-                  <span>Taarifa za biashara zimehifadhiwa. Sasa unda akaunti ya kuingia.</span>
+                  <span>{t('adv_biz_saved')}</span>
                 </div>
 
-                <Field label="Barua Pepe *">
+                <Field label={`${t('adv_email_label')} *`}>
                   <input
                     required type="email" value={form.email}
                     onChange={e => set('email', e.target.value)}
@@ -200,28 +202,28 @@ function RegisterForm() {
                   />
                 </Field>
 
-                <Field label="Nywila *">
+                <Field label={`${t('adv_password_label')} *`}>
                   <div className="relative">
                     <input
                       required type={showPw ? 'text' : 'password'} value={form.password}
                       onChange={e => set('password', e.target.value)}
-                      className="input pr-16" placeholder="Angalau herufi 8"
+                      className="input pr-16" placeholder={t('adv_password_hint')}
                       autoComplete="new-password"
                     />
                     <button
                       type="button" onClick={() => setShowPw(v => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600"
                     >
-                      {showPw ? 'Ficha' : 'Onyesha'}
+                      {showPw ? t('adv_hide') : t('adv_show')}
                     </button>
                   </div>
                 </Field>
 
-                <Field label="Thibitisha Nywila *">
+                <Field label={`${t('adv_confirm_password')} *`}>
                   <input
                     required type={showPw ? 'text' : 'password'} value={form.confirm_password}
                     onChange={e => set('confirm_password', e.target.value)}
-                    className="input" placeholder="Rudia nywila"
+                    className="input" placeholder={t('adv_confirm_password_placeholder')}
                     autoComplete="new-password"
                   />
                 </Field>
@@ -234,22 +236,22 @@ function RegisterForm() {
                   type="button" onClick={() => { setStep(1); setError('') }}
                   className="flex-1 border border-gray-300 text-gray-600 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
                 >
-                  ← Rudi
+                  ← {t('common_back')}
                 </button>
               )}
               <button
                 type="submit" disabled={loading}
                 className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-bold hover:bg-primary-600 transition disabled:opacity-50"
               >
-                {loading ? 'Inasajili...' : step === 1 ? 'Endelea →' : 'Unda Akaunti'}
+                {loading ? t('adv_registering') : step === 1 ? `${t('common_continue')} →` : t('adv_create_account_btn')}
               </button>
             </div>
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-5">
-            Una akaunti tayari?{' '}
+            {t('adv_have_account')}{' '}
             <Link href="/advertising/login" className="text-primary-600 font-semibold hover:underline">
-              Ingia hapa
+              {t('adv_login_here')}
             </Link>
           </p>
         </div>

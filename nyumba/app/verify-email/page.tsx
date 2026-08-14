@@ -2,11 +2,19 @@
 import { Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import ResendEmailButton from '@/components/auth/ResendEmailButton'
+import { useLanguage } from '@/lib/i18n/context'
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { t } = useLanguage()
   const email = searchParams.get('email') ?? ''
+
+  const steps = [
+    t('auth_step_open_email'),
+    t('auth_step_find_email'),
+    t('auth_step_click_verify'),
+  ]
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
@@ -16,23 +24,19 @@ function VerifyEmailContent() {
           <i className="ti ti-mail text-4xl text-primary-500" aria-hidden="true" />
         </div>
 
-        <h2 className="font-bold text-xl text-gray-800 mb-2">Thibitisha Barua Pepe Yako</h2>
+        <h2 className="font-bold text-xl text-gray-800 mb-2">{t('auth_verify_email_title')}</h2>
 
         <p className="text-gray-500 text-sm mb-1">
-          Unahitaji kuthibitisha barua pepe yako ili kuendelea.
+          {t('auth_verify_email_sub')}
         </p>
         {email && (
           <p className="font-semibold text-gray-800 mb-5">{email}</p>
         )}
 
         <div className="bg-primary-50 rounded-xl p-4 mb-5 text-left">
-          <p className="text-primary-800 text-sm font-medium mb-3">Hatua za kufuata:</p>
+          <p className="text-primary-800 text-sm font-medium mb-3">{t('auth_next_steps')}</p>
           <div className="space-y-2.5">
-            {[
-              'Fungua Gmail au email yako',
-              'Tafuta email kutoka NyumbaFasta',
-              'Bonyeza "Thibitisha Akaunti Yangu"',
-            ].map((txt, i) => (
+            {steps.map((txt, i) => (
               <div key={i} className="flex items-center gap-2">
                 <span className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                   {i + 1}
@@ -46,14 +50,14 @@ function VerifyEmailContent() {
         {email && <ResendEmailButton email={email} />}
 
         <p className="text-gray-400 text-xs mt-4">
-          Angalia spam/junk folder kama email haionekani
+          {t('auth_check_spam')}
         </p>
 
         <button
           onClick={() => router.push('/login')}
           className="mt-4 text-primary-500 text-sm underline"
         >
-          Rudi Login →
+          {t('auth_back_to_login')} →
         </button>
       </div>
     </div>

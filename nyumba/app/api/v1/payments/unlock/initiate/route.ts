@@ -236,7 +236,11 @@ export async function POST(req: NextRequest) {
     if (!result.ok) {
       console.error('[Unlock/initiate] mobileCheckout failed | message:', result.message, '| raw:', JSON.stringify(result.raw ?? {}))
       await admin.from('contact_unlocks').delete().eq('id', unlock.id)
-      return NextResponse.json({ error: result.message }, { status: 502 })
+      const rawMsg = result.message ?? ''
+      const userMsg = rawMsg.toLowerCase().includes('invalid vendor')
+        ? `Mtoa huduma wa ${azamProvider} haujasajiliwa kwenye akaunti yetu bado. Tafadhali tumia Tigo, Airtel, au HaloPesa.`
+        : rawMsg || 'Imeshindwa kuanzisha malipo. Jaribu tena.'
+      return NextResponse.json({ error: userMsg }, { status: 502 })
     }
 
     return NextResponse.json({ unlock_id: unlock.id, payment_ref, amount: UNLOCK_AMOUNT })

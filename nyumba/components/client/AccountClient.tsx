@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/shared/BottomNav'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Props = {
   fullName: string
@@ -18,6 +19,7 @@ type Props = {
 
 export default function AccountClient({ fullName, email, phone, role, joinedAt, savedCount, unlocksCount = 0, totalSpent = 0 }: Props) {
   const router = useRouter()
+  const { t } = useLanguage()
   const supabase = createClient()
 
   const [editing, setEditing] = useState(false)
@@ -54,11 +56,11 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         body: JSON.stringify({ full_name: name }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
-      setSuccess('Jina limehifadhiwa!')
+      setSuccess(t('cl_name_saved'))
       setEditing(false)
       setTimeout(() => setSuccess(''), 5000)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Imeshindwa kuhifadhi')
+      setError(err instanceof Error ? err.message : t('common_error'))
     } finally {
       setSaving(false)
     }
@@ -78,7 +80,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
       router.push('/?signed_out=1')
       router.refresh()
     } catch {
-      setError('Imeshindwa kutoka kwenye vifaa vyote. Jaribu tena.')
+      setError(t('cl_confirm_logout_all'))
       setLoggingOutAll(false)
       setShowLogoutAllConfirm(false)
     }
@@ -92,12 +94,12 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
       const res = await fetch('/api/v1/account/delete', { method: 'DELETE' })
       if (!res.ok) {
         const d = await res.json().catch(() => ({})) as { error?: string }
-        throw new Error(d.error ?? 'Imeshindwa kufuta akaunti')
+        throw new Error(d.error ?? t('common_error'))
       }
       await supabase.auth.signOut()
       router.replace('/account-deleted')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Imeshindwa kufuta akaunti')
+      setError(err instanceof Error ? err.message : t('common_error'))
       setDeleting(false)
       setShowDeleteConfirm(false)
     }
@@ -110,11 +112,11 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
       <div className="bg-primary-500 px-4 pt-10 pb-8">
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => router.back()}
-            aria-label="Rudi nyuma"
+            aria-label={t('common_back')}
             className="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white text-lg">
             ←
           </button>
-          <h1 className="text-white text-lg font-bold">Akaunti Yangu</h1>
+          <h1 className="text-white text-lg font-bold">{t('cl_my_account')}</h1>
         </div>
 
         {/* Avatar + name + role */}
@@ -160,7 +162,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 text-sm">Admin Panel</p>
-                  <p className="text-xs text-gray-500">Simamia platform yote</p>
+                  <p className="text-xs text-gray-500">{t('cl_manage_platform')}</p>
                 </div>
               </div>
               <span className="text-gray-400 text-lg" aria-hidden="true">→</span>
@@ -177,7 +179,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 text-sm">Dalali Dashboard</p>
-                  <p className="text-xs text-gray-500">Simamia listings zako</p>
+                  <p className="text-xs text-gray-500">{t('cl_manage_listings')}</p>
                 </div>
               </div>
               <span className="text-gray-400 text-lg" aria-hidden="true">→</span>
@@ -188,19 +190,19 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         {/* ── Taarifa zangu (profile card) ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 border-b border-gray-50 flex justify-between items-center">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Taarifa Zangu</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('cl_my_info')}</p>
             {!editing ? (
               <button onClick={() => setEditing(true)}
                 className="text-xs text-primary-600 font-semibold min-h-[44px] px-2">
-                <i className="ti ti-pencil" aria-hidden="true" /> Hariri
+                <i className="ti ti-pencil" aria-hidden="true" /> {t('common_edit')}
               </button>
             ) : (
               <div className="flex gap-1">
                 <button onClick={() => { setEditing(false); setName(fullName) }}
-                  className="text-xs text-gray-400 font-medium min-h-[44px] px-3">Ghairi</button>
+                  className="text-xs text-gray-400 font-medium min-h-[44px] px-3">{t('common_cancel')}</button>
                 <button onClick={handleSaveName} disabled={saving}
                   className="text-xs text-primary-600 font-semibold min-h-[44px] px-3 disabled:opacity-50">
-                  {saving ? 'Inahifadhi...' : 'Hifadhi'}
+                  {saving ? t('cl_saving') : t('common_save')}
                 </button>
               </div>
             )}
@@ -208,7 +210,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
 
           <div className="divide-y divide-gray-50">
             <div className="px-4 py-3">
-              <p className="text-xs text-gray-400 mb-1">Jina kamili</p>
+              <p className="text-xs text-gray-400 mb-1">{t('cl_full_name')}</p>
               {editing ? (
                 <input
                   type="text"
@@ -223,18 +225,18 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             </div>
             {email && (
               <div className="px-4 py-3">
-                <p className="text-xs text-gray-400 mb-1">Barua pepe</p>
+                <p className="text-xs text-gray-400 mb-1">{t('cl_email')}</p>
                 <p className="text-sm text-gray-800">{email}</p>
               </div>
             )}
             {phone && (
               <div className="px-4 py-3">
-                <p className="text-xs text-gray-400 mb-1">Nambari ya simu</p>
+                <p className="text-xs text-gray-400 mb-1">{t('cl_phone')}</p>
                 <p className="text-sm text-gray-800">{phone}</p>
               </div>
             )}
             <div className="px-4 py-3">
-              <p className="text-xs text-gray-400 mb-1">Alijiunga</p>
+              <p className="text-xs text-gray-400 mb-1">{t('cl_joined')}</p>
               <p className="text-sm text-gray-800">{joinDate}</p>
             </div>
           </div>
@@ -247,7 +249,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             <i className="ti ti-heart text-2xl text-red-400" aria-hidden="true" />
             <div>
               <p className="text-lg font-bold text-gray-900">{savedCount}</p>
-              <p className="text-xs text-gray-400">Zilizohifadhiwa</p>
+              <p className="text-xs text-gray-400">{t('nav_saved')}</p>
             </div>
           </Link>
           {!isDalali && !isAdmin ? (
@@ -256,7 +258,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
               <i className="ti ti-message-circle text-2xl text-blue-400" aria-hidden="true" />
               <div>
                 <p className="text-lg font-bold text-gray-900">{unlocksCount}</p>
-                <p className="text-xs text-gray-400">Mawasiliano</p>
+                <p className="text-xs text-gray-400">{t('cl_contacts')}</p>
               </div>
             </Link>
           ) : isDalali ? (
@@ -264,8 +266,8 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
               className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-center gap-3 active:scale-[0.97] transition-transform">
               <i className="ti ti-settings text-2xl text-gray-400" aria-hidden="true" />
               <div>
-                <p className="text-sm font-bold text-gray-900">Wasifu</p>
-                <p className="text-xs text-gray-400">Dalali profile</p>
+                <p className="text-sm font-bold text-gray-900">{t('cl_profile')}</p>
+                <p className="text-xs text-gray-400">{t('cl_dalali_profile_sub')}</p>
               </div>
             </Link>
           ) : null}
@@ -280,9 +282,9 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                 <i className="ti ti-list text-lg text-green-600" aria-hidden="true" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Historia ya Mawasiliano</p>
+                <p className="text-sm font-semibold text-gray-900">{t('cl_contact_history')}</p>
                 <p className="text-xs text-gray-500">
-                  {unlocksCount} dalali · Jumla Tsh {totalSpent.toLocaleString()} uliotumia
+                  {unlocksCount} dalali · Jumla Tsh {totalSpent.toLocaleString()} {t('cl_spent')}
                 </p>
               </div>
             </div>
@@ -293,25 +295,25 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         {/* ── AKAUNTI section ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 border-b border-gray-50">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Akaunti</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('nav_account')}</p>
           </div>
           <Link href="/notifications"
             className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <i className="ti ti-bell text-xl text-gray-400" aria-hidden="true" />
-            <span className="text-sm text-gray-700 flex-1">Mipangilio ya Arifa</span>
+            <span className="text-sm text-gray-700 flex-1">{t('cl_notification_settings')}</span>
             <span className="text-gray-300 text-lg">›</span>
           </Link>
           <Link href="/saved"
             className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <i className="ti ti-heart text-xl text-red-400" aria-hidden="true" />
-            <span className="text-sm text-gray-700 flex-1">Listings Zilizohifadhiwa</span>
+            <span className="text-sm text-gray-700 flex-1">{t('cl_saved_listings')}</span>
             <span className="text-gray-300 text-lg">›</span>
           </Link>
           {!isDalali && !isAdmin && (
             <Link href="/account/contacts"
               className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all">
               <i className="ti ti-message-circle text-xl text-blue-400" aria-hidden="true" />
-              <span className="text-sm text-gray-700 flex-1">Mawasiliano ya Dalali</span>
+              <span className="text-sm text-gray-700 flex-1">{t('cl_agent_contacts')}</span>
               <span className="text-gray-300 text-lg">›</span>
             </Link>
           )}
@@ -320,12 +322,12 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         {/* ── MSAADA section ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 border-b border-gray-50">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Msaada</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('cl_footer_help')}</p>
           </div>
           <Link href="/terms"
             className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <i className="ti ti-file-text text-xl text-gray-400" aria-hidden="true" />
-            <span className="text-sm text-gray-700 flex-1">Masharti ya Matumizi</span>
+            <span className="text-sm text-gray-700 flex-1">{t('cl_terms')}</span>
             <span className="text-gray-300 text-lg">›</span>
           </Link>
         </div>
@@ -333,21 +335,21 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         {/* ── Security section ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 border-b border-gray-50">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Usalama</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('cl_security')}</p>
           </div>
           <Link href="/account/security"
             className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <i className="ti ti-shield-lock text-xl text-primary-500" aria-hidden="true" />
             <div className="flex-1">
-              <p className="text-sm text-gray-700">Usalama wa Akaunti</p>
-              <p className="text-xs text-gray-400">Nenosiri · 2FA · Vifaa</p>
+              <p className="text-sm text-gray-700">{t('cl_account_security')}</p>
+              <p className="text-xs text-gray-400">{t('cl_security_sub')}</p>
             </div>
             <span className="text-gray-300 text-lg">›</span>
           </Link>
           <Link href="/account/change-password"
             className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <i className="ti ti-lock text-xl text-gray-400" aria-hidden="true" />
-            <span className="text-sm text-gray-700 flex-1">Badilisha Nenosiri</span>
+            <span className="text-sm text-gray-700 flex-1">{t('cl_change_password')}</span>
             <span className="text-gray-300 text-lg">›</span>
           </Link>
           <button
@@ -355,8 +357,8 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all text-left">
             <i className="ti ti-devices text-xl text-amber-500" aria-hidden="true" />
             <div className="flex-1">
-              <p className="text-sm text-gray-700">Toka Vifaa Vyote</p>
-              <p className="text-xs text-gray-400">Futa vikao vyote kwenye vifaa vingine</p>
+              <p className="text-sm text-gray-700">{t('cl_logout_all')}</p>
+              <p className="text-xs text-gray-400">{t('cl_logout_all_sub')}</p>
             </div>
             <span className="text-gray-300 text-lg">›</span>
           </button>
@@ -368,22 +370,22 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
           className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl
                      bg-red-50 border border-red-100 text-red-500 font-semibold
                      hover:bg-red-100 active:scale-[0.98] transition-all text-sm">
-          <i className="ti ti-door-exit" aria-hidden="true" /> Toka — Sign Out
+          <i className="ti ti-door-exit" aria-hidden="true" /> {t('cl_sign_out')}
         </button>
 
         {/* ── Danger zone ── */}
         {!isAdmin && (
           <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
             <div className="px-4 py-2.5 border-b border-red-50">
-              <p className="text-xs font-bold text-red-400 uppercase tracking-wider">Hatari</p>
+              <p className="text-xs font-bold text-red-400 uppercase tracking-wider">{t('cl_danger_zone')}</p>
             </div>
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="w-full flex items-center gap-3 px-4 py-4 hover:bg-red-50 active:scale-[0.98] transition-all text-left">
               <i className="ti ti-trash text-xl text-red-500" aria-hidden="true" />
               <div className="flex-1">
-                <p className="text-sm text-red-600 font-medium">Futa Akaunti Yangu</p>
-                <p className="text-xs text-gray-400">Kitendo hiki hakiwezi kutenduliwa</p>
+                <p className="text-sm text-red-600 font-medium">{t('cl_delete_account')}</p>
+                <p className="text-xs text-gray-400">{t('cl_irreversible')}</p>
               </div>
             </button>
           </div>
@@ -397,18 +399,18 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowLogoutConfirm(false)}>
           <div className="bg-white w-full rounded-t-3xl px-6 pt-6 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
-            <h3 className="text-base font-bold text-gray-900 mb-2">Una uhakika unataka kutoka?</h3>
+            <h3 className="text-base font-bold text-gray-900 mb-2">{t('cl_confirm_logout')}</h3>
             <p className="text-sm text-gray-500 mb-7">
-              Utahitaji kuingia tena kuendelea kutumia akaunti yako.
+              {t('cl_confirm_logout_body')}
             </p>
             <div className="flex gap-3">
               <button onClick={() => setShowLogoutConfirm(false)}
                 className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm active:scale-[0.97] transition-transform">
-                Ghairi
+                {t('common_cancel')}
               </button>
               <button onClick={handleLogout} disabled={loggingOut}
                 className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold text-sm disabled:opacity-60 active:scale-[0.97] transition-transform">
-                {loggingOut ? 'Inatoka...' : <><i className="ti ti-door-exit" aria-hidden="true" /> Ndio, Toka</>}
+                {loggingOut ? t('cl_signing_out') : <><i className="ti ti-door-exit" aria-hidden="true" /> {t('cl_yes_sign_out')}</>}
               </button>
             </div>
           </div>
@@ -423,18 +425,18 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="ti ti-devices text-amber-500 text-2xl" aria-hidden="true" />
             </div>
-            <h3 className="text-base font-bold text-gray-900 mb-2 text-center">Toka Vifaa Vyote?</h3>
+            <h3 className="text-base font-bold text-gray-900 mb-2 text-center">{t('cl_confirm_logout_all')}</h3>
             <p className="text-sm text-gray-500 mb-7 text-center">
-              Vikao vyote vya akaunti yako kwenye simu, kompyuta, na vifaa vingine vitafutwa. Utahitaji kuingia tena kwenye kila kifaa.
+              {t('cl_confirm_logout_all_body')}
             </p>
             <div className="flex gap-3">
               <button onClick={() => setShowLogoutAllConfirm(false)}
                 className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm">
-                Ghairi
+                {t('common_cancel')}
               </button>
               <button onClick={handleLogoutAllDevices} disabled={loggingOutAll}
                 className="flex-1 py-3.5 rounded-2xl bg-amber-500 text-white font-bold text-sm disabled:opacity-60">
-                {loggingOutAll ? 'Inafuta...' : 'Ndio, Toka Kila Mahali'}
+                {loggingOutAll ? t('cl_deleting') : t('cl_yes_sign_out_all')}
               </button>
             </div>
           </div>
@@ -449,15 +451,15 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="ti ti-trash text-red-500 text-2xl" aria-hidden="true" />
             </div>
-            <h3 className="text-base font-bold text-gray-900 mb-2 text-center">Futa Akaunti Yangu?</h3>
+            <h3 className="text-base font-bold text-gray-900 mb-2 text-center">{t('cl_confirm_delete')}</h3>
             <p className="text-sm text-gray-500 mb-4 text-center">
-              Hatua hii itafuta akaunti yako na data yote kabisa. <strong>Haiwezi kutenduliwa.</strong>
+              {t('cl_confirm_delete_body')} <strong>{t('cl_irreversible')}</strong>
             </p>
             <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-4 text-xs text-red-700">
-              Kwa kufuta akaunti utapoteza: listings, historia ya malipo, mawasiliano, na data yote.
+              {t('cl_delete_warning')}
             </div>
             <label className="text-xs font-medium text-gray-600 block mb-1.5">
-              Andika <strong>futa akaunti</strong> kuthibitisha:
+              {t('cl_delete_confirm_label')}
             </label>
             <input
               type="text"
@@ -469,13 +471,13 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             <div className="flex gap-3">
               <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
                 className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm">
-                Ghairi
+                {t('common_cancel')}
               </button>
               <button
                 onClick={handleDeleteAccount}
                 disabled={deleting || deleteConfirmText.toLowerCase() !== 'futa akaunti'}
                 className="flex-1 py-3.5 rounded-2xl bg-red-600 text-white font-bold text-sm disabled:opacity-40">
-                {deleting ? 'Inafuta...' : 'Futa Kabisa'}
+                {deleting ? t('cl_deleting') : t('cl_delete_final')}
               </button>
             </div>
           </div>

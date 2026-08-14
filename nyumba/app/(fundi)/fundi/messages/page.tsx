@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AttachmentCompose, { type PendingAttachment } from '@/components/messages/AttachmentCompose'
 import AttachmentDisplay from '@/components/messages/AttachmentDisplay'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,15 +45,15 @@ interface Message {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function relativeTime(iso: string | null): string {
+function relativeTime(iso: string | null, t: (k: TKey) => string): string {
   if (!iso) return ''
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60000)
-  if (m < 1) return 'Sasa hivi'
-  if (m < 60) return `Dakika ${m} zilizopita`
+  if (m < 1) return t('fp_msg_just_now')
+  if (m < 60) return t('fp_msg_min_ago').replace('{{n}}', String(m))
   const h = Math.floor(m / 60)
-  if (h < 24) return `Saa ${h} zilizopita`
-  return `Siku ${Math.floor(h / 24)} zilizopita`
+  if (h < 24) return t('fp_msg_hr_ago').replace('{{n}}', String(h))
+  return t('fp_msg_days_ago').replace('{{n}}', String(Math.floor(h / 24)))
 }
 
 function initials(name: string | null): string {
@@ -66,17 +68,20 @@ function Avatar({ src, name, size = 8 }: { src?: string | null; name: string | n
   return <div className={`${cls} bg-primary-100 text-primary-700`}>{initials(name)}</div>
 }
 
-function convLabel(conv: Conversation, uid: string): string {
+function convLabel(conv: Conversation, uid: string, tUser: string, tConv: string): string {
   if (conv.title) return conv.title
   const others = (conv.participants ?? [])
     .filter((p) => p.user_id !== uid)
-    .map((p) => p.user?.full_name ?? 'Mtumiaji')
-  return others.length ? others.slice(0, 2).join(', ') : 'Mazungumzo'
+    .map((p) => p.user?.full_name ?? tUser)
+  return others.length ? others.slice(0, 2).join(', ') : tConv
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function FundiMessagesPage() {
+  const { t } = useLanguage()
+  const tUser = t('fp_msg_user')
+  const tConv = t('fp_msg_conversation')
   const [uid, setUid] = useState<string | null>(null)
   const [userName, setUserName] = useState('Fundi')
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
@@ -195,7 +200,7 @@ export default function FundiMessagesPage() {
   }
 
   const filtered = conversations.filter((c) =>
-    !searchQ || convLabel(c, uid ?? '').toLowerCase().includes(searchQ.toLowerCase())
+    !searchQ || convLabel(c, uid ?? '', tUser, tConv).toLowerCase().includes(searchQ.toLowerCase())
   )
 
   // ── Conversation List ──────────────────────────────────────────────────────
@@ -205,12 +210,12 @@ export default function FundiMessagesPage() {
       ${selected ? 'hidden lg:flex lg:w-80 lg:flex-shrink-0' : 'flex-1 lg:w-80 lg:flex-shrink-0'}
     `}>
       <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-gray-100">
-        <h2 className="font-bold text-gray-900 text-base mb-3">Ujumbe Wangu</h2>
+        <h2 className="font-bold text-gray-900 text-base mb-3">{t('fp_msg_heading')}</h2>
         <div className="relative">
           <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
           <input
             className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-300"
-            placeholder="Tafuta mazungumzo..."
+            placeholder={t('fp_msg_search')}
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
           />
@@ -233,15 +238,13 @@ export default function FundiMessagesPage() {
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center">
             <i className="ti ti-message-circle-off text-5xl text-gray-200 block mb-3" aria-hidden="true" />
-            <p className="text-sm font-medium text-gray-400">Hakuna ujumbe bado</p>
-            <p className="text-xs text-gray-300 mt-1 leading-relaxed">
-              Wateja au mashirika yatawasiliana nawe hapa
-            </p>
+            <p className="text-sm font-medium text-gray-400">{t('fp_msg_empty')}</p>
+            <p className="text-xs text-gray-300 mt-1 leading-relaxed">{t('fp_msg_empty_sub')}</p>
           </div>
         ) : (
           filtered.map((conv) => {
             const isActive = selected?.id === conv.id
-            const label = convLabel(conv, uid ?? '')
+            const label = convLabel(conv, uid ?? '', tUser, tConv)
             const otherP = (conv.participants ?? []).find((p) => p.user_id !== uid)
             return (
               <button
@@ -262,10 +265,10 @@ export default function FundiMessagesPage() {
                       {label}
                     </span>
                     <span className="text-[10px] text-gray-300 flex-shrink-0 whitespace-nowrap">
-                      {relativeTime(conv.last_message_at)}
+                      {relativeTime(conv.last_message_at, t)}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 truncate">{conv.last_message_body ?? 'Bonyeza kuona'}</p>
+                  <p className="text-xs text-gray-400 truncate">{conv.last_message_body ?? t('fp_msg_tap_to_view')}</p>
                 </div>
                 {conv.unread_count > 0 && (
                   <span className="flex-shrink-0 min-w-[20px] h-5 flex items-center justify-center bg-primary-500 text-white text-[10px] font-bold rounded-full px-1">
@@ -287,18 +290,18 @@ export default function FundiMessagesPage() {
         <button
           className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 flex-shrink-0 active:bg-gray-200"
           onClick={() => setSelected(null)}
-          aria-label="Rudi nyuma"
+          aria-label={t('fp_msg_back')}
         >
           <i className="ti ti-arrow-left text-base" aria-hidden="true" />
         </button>
         <Avatar
           src={(selected.participants ?? []).find((p) => p.user_id !== uid)?.user?.avatar_url}
-          name={convLabel(selected, uid ?? '')}
+          name={convLabel(selected, uid ?? '', tUser, tConv)}
           size={9}
         />
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm text-gray-900 truncate">{convLabel(selected, uid ?? '')}</p>
-          <p className="text-xs text-gray-400">{selected.status === 'open' ? 'Ikiwa wazi' : 'Imefungwa'}</p>
+          <p className="font-semibold text-sm text-gray-900 truncate">{convLabel(selected, uid ?? '', tUser, tConv)}</p>
+          <p className="text-xs text-gray-400">{selected.status === 'open' ? t('fp_msg_open') : t('fp_msg_closed')}</p>
         </div>
       </div>
 
@@ -315,13 +318,13 @@ export default function FundiMessagesPage() {
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-12 text-center">
             <i className="ti ti-message text-5xl text-gray-200 mb-3" aria-hidden="true" />
-            <p className="text-sm font-medium text-gray-400">Hakuna ujumbe bado</p>
-            <p className="text-xs text-gray-300 mt-1">Jibu ujumbe hapa chini</p>
+            <p className="text-sm font-medium text-gray-400">{t('fp_msg_empty')}</p>
+            <p className="text-xs text-gray-300 mt-1">{t('fp_msg_empty_thread_sub')}</p>
           </div>
         ) : (
           messages.map((msg) => {
             const isMe = msg.sender_id === uid
-            const name = isMe ? userName : (msg.sender?.full_name ?? 'Mteja')
+            const name = isMe ? userName : (msg.sender?.full_name ?? t('fp_msg_client'))
             return (
               <div key={msg.id} className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
                 {!isMe && <Avatar src={msg.sender?.avatar_url} name={name} size={7} />}
@@ -374,7 +377,7 @@ export default function FundiMessagesPage() {
                        focus:outline-none focus:ring-2 focus:ring-primary-300 placeholder-gray-400 leading-relaxed"
             style={{ minHeight: '44px', maxHeight: '120px' }}
             rows={1}
-            placeholder="Andika jibu..."
+            placeholder={t('fp_msg_placeholder')}
             value={draft}
             onChange={handleDraftChange}
             onKeyDown={(e) => {
@@ -387,7 +390,7 @@ export default function FundiMessagesPage() {
             className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl
                        bg-primary-500 text-white active:bg-primary-600
                        disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            aria-label="Tuma"
+            aria-label={t('common_send')}
           >
             {sending
               ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -401,7 +404,7 @@ export default function FundiMessagesPage() {
     <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-50">
       <div className="text-center">
         <i className="ti ti-messages text-6xl text-gray-200 block mb-3" aria-hidden="true" />
-        <p className="text-gray-400 text-sm font-medium">Chagua mazungumzo kushoto</p>
+        <p className="text-gray-400 text-sm font-medium">{t('fp_msg_select_conv')}</p>
       </div>
     </div>
   )

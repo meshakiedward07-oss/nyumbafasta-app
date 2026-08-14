@@ -8,28 +8,18 @@ import { useLanguage } from '@/lib/i18n/context'
 export type PaymentMethod = 'Mpesa' | 'Airtel' | 'Tigo' | 'Halopesa' | 'Azampesa'
 
 export const PAYMENT_METHODS: Array<{
-  id:       PaymentMethod
-  name:     string
-  company:  string
-  color:    string
-  bgColor:  string
-  type:     'mobile'
-  hint:     string
-  iconSrc:  string
-  iconAlt:  string
-  iconChar?: string
+  id:          PaymentMethod
+  name:        string
+  company:     string
+  color:       string
+  bgColor:     string
+  type:        'mobile'
+  hint:        string
+  iconSrc:     string
+  iconAlt:     string
+  iconChar?:   string
+  unavailable?: boolean
 }> = [
-  {
-    id:      'Mpesa',
-    name:    'M-Pesa',
-    company: 'Vodacom',
-    color:   '#E40000',
-    bgColor: '#FFF5F5',
-    type:    'mobile',
-    hint:    '074/075/076 XXX XXXX',
-    iconSrc: '/payment_icons/mpesa.png',
-    iconAlt: 'M-Pesa',
-  },
   {
     id:      'Tigo',
     name:    'Tigo Pesa',
@@ -53,27 +43,41 @@ export const PAYMENT_METHODS: Array<{
     iconAlt: 'Airtel Money',
   },
   {
-    id:      'Halopesa',
-    name:    'HaloPesa',
-    company: 'TTCL',
-    color:   '#F15A22',
-    bgColor: '#FFF5F0',
-    type:    'mobile',
-    hint:    '062 XXX XXXX',
-    iconSrc: '/payment_icons/halopesa.png',
-    iconAlt: 'HaloPesa',
+    id:          'Halopesa',
+    name:        'HaloPesa',
+    company:     'TTCL',
+    color:       '#F15A22',
+    bgColor:     '#FFF5F0',
+    type:        'mobile',
+    hint:        '062 XXX XXXX',
+    iconSrc:     '/payment_icons/halopesa.png',
+    iconAlt:     'HaloPesa',
+    unavailable: true,
   },
   {
-    id:       'Azampesa',
-    name:     'AzamPesa',
-    company:  'AzamPay',
-    color:    '#7C3AED',
-    bgColor:  '#F5F3FF',
-    type:     'mobile',
-    hint:     '06x XXX XXXX',
-    iconSrc:  '',
-    iconAlt:  'AzamPesa',
-    iconChar: 'AZ',
+    id:          'Mpesa',
+    name:        'M-Pesa',
+    company:     'Vodacom',
+    color:       '#E40000',
+    bgColor:     '#FFF5F5',
+    type:        'mobile',
+    hint:        '074/075/076 XXX XXXX',
+    iconSrc:     '/payment_icons/mpesa.png',
+    iconAlt:     'M-Pesa',
+    unavailable: true,
+  },
+  {
+    id:          'Azampesa',
+    name:        'AzamPesa',
+    company:     'AzamPay',
+    color:       '#7C3AED',
+    bgColor:     '#F5F3FF',
+    type:        'mobile',
+    hint:        '06x XXX XXXX',
+    iconSrc:     '',
+    iconAlt:     'AzamPesa',
+    iconChar:    'AZ',
+    unavailable: true,
   },
 ]
 
@@ -116,6 +120,23 @@ function ProviderButton({
   m, selected, onSelect,
 }: { m: typeof PAYMENT_METHODS[number]; selected: PaymentMethod | null; onSelect: (id: PaymentMethod) => void }) {
   const isSelected = selected === m.id
+  if (m.unavailable) {
+    return (
+      <div
+        className="relative flex flex-col items-center justify-center gap-1.5 p-3
+                   rounded-2xl border-2 border-gray-200 bg-gray-50 min-h-[80px] cursor-not-allowed opacity-60"
+        title="Haipatikani sasa hivi"
+      >
+        <div className="h-10 flex items-center justify-center">
+          <PaymentIcon iconSrc={m.iconSrc} iconAlt={m.iconAlt} iconChar={m.iconChar} color="#9CA3AF" />
+        </div>
+        <p className="text-xs font-semibold text-gray-400 text-center leading-tight">{m.name}</p>
+        <span className="text-[8px] font-bold text-white bg-gray-400 px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+          Haipatikani
+        </span>
+      </div>
+    )
+  }
   return (
     <button
       role="radio"
@@ -151,16 +172,21 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
 
       {/* Mobile Money */}
       <div role="radiogroup" aria-label="Chagua njia ya kulipa">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-          <i className="ti ti-device-mobile" aria-hidden="true" /> Mobile Money
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <i className="ti ti-device-mobile" aria-hidden="true" /> Mobile Money
+          </p>
+          <span className="text-[9px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-full">
+            Tigo &amp; Airtel zinapatikana
+          </span>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           {MOBILE.map(m => <ProviderButton key={m.id} m={m} selected={selected} onSelect={onSelect} />)}
         </div>
       </div>
 
-      {/* Action button — shown when any method is selected */}
-      {selected && selectedInfo && (
+      {/* Action button — shown when an available method is selected */}
+      {selected && selectedInfo && !selectedInfo.unavailable && (
         <div className="pt-1">
           <div className="flex items-center justify-center gap-2 mb-3">
             <div className="h-7 flex items-center">

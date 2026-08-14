@@ -1,6 +1,9 @@
+'use client'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function SiteFooter() {
+  const { t } = useLanguage()
   const year = new Date().getFullYear()
 
   return (
@@ -11,20 +14,20 @@ export default function SiteFooter() {
           <div>
             <p className="text-sm font-semibold text-gray-700 mb-3">NyumbaFasta</p>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Platform inayowakutanisha madalali wa nyumba na wateja Tanzania nzima.
+              {t('cl_footer_desc')}
             </p>
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-700 mb-3">Viungo</p>
+            <p className="text-sm font-semibold text-gray-700 mb-3">{t('cl_footer_links')}</p>
             <div className="space-y-2">
-              <Link href="/" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">Tafuta Nyumba</Link>
-              <Link href="/directory" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">Madalali</Link>
-              <Link href="/register" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">Jiandikishe kama Dalali</Link>
-              <Link href="/advertising" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">Tangaza Biashara Yako</Link>
+              <Link href="/" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">{t('cl_footer_search_home')}</Link>
+              <Link href="/directory" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">{t('nav_directory')}</Link>
+              <Link href="/register" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">{t('cl_footer_register_agent')}</Link>
+              <Link href="/advertising" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">{t('cl_footer_advertise')}</Link>
             </div>
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-700 mb-3">Msaada</p>
+            <p className="text-sm font-semibold text-gray-700 mb-3">{t('cl_footer_help')}</p>
             <div className="space-y-2">
               <Link href="/terms" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">Terms of Service</Link>
               <Link href="/privacy" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">Privacy Policy</Link>
@@ -36,16 +39,16 @@ export default function SiteFooter() {
 
         {/* Mobile: centered links */}
         <div className="lg:hidden flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-500 mb-3">
-          <Link href="/advertising" className="hover:text-primary-600 hover:underline font-medium">Tangaza Biashara</Link>
+          <Link href="/advertising" className="hover:text-primary-600 hover:underline font-medium">{t('cl_footer_advertise_mob')}</Link>
           <Link href="/terms" className="hover:text-primary-600 hover:underline">Terms of Service</Link>
           <Link href="/privacy" className="hover:text-primary-600 hover:underline">Privacy Policy</Link>
           <Link href="/data-deletion" className="hover:text-primary-600 hover:underline">Data Deletion</Link>
-          <a href="mailto:support@nyumbafasta.co" className="hover:text-primary-600 hover:underline">Contact Us</a>
+          <a href="mailto:support@nyumbafasta.co" className="hover:text-primary-600 hover:underline">{t('cl_footer_contact')}</a>
         </div>
 
         <div className="border-t border-gray-100 lg:pt-6 pt-3">
           <p className="text-center text-xs text-gray-400">
-            © {year} NyumbaFasta Tanzania · All rights reserved
+            © {year} NyumbaFasta Tanzania · {t('cl_footer_rights')}
           </p>
         </div>
       </div>

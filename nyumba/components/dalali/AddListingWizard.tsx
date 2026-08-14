@@ -11,6 +11,8 @@ import { VideoUpload } from '@/components/listings/VideoUpload'
 import { useDalaliProfile } from '@/lib/hooks/useDalaliProfile'
 import CommissionField, { type CommissionState } from '@/components/listings/CommissionField'
 import { formatCommission } from '@/lib/listings/commission'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 const ListingLocationPicker = dynamic(
   () => import('@/components/maps/ListingLocationPicker'),
@@ -96,6 +98,7 @@ function StepBar({ current, total }: { current: number; total: number }) {
 export default function AddListingWizard() {
   const router = useRouter()
   const { profile: dalaliProfile } = useDalaliProfile()
+  const { t } = useLanguage()
 
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -149,7 +152,7 @@ export default function AddListingWizard() {
   }
 
   async function handleBuyExtra() {
-    if (!extraPhone.trim()) { setError('Weka nambari ya simu'); return }
+    if (!extraPhone.trim()) { setError(t('wiz_err_phone_required')); return }
     setPayingExtra(true)
     setError('')
     try {
@@ -159,11 +162,11 @@ export default function AddListingWizard() {
         body: JSON.stringify({ count: extraCount, msisdn: extraPhone }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa')
+      if (!res.ok) throw new Error(data.error ?? t('wiz_err_generic'))
       setExtraDone(true)
       await loadLimit()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
+      setError(err instanceof Error ? err.message : t('wiz_err_generic'))
     } finally {
       setPayingExtra(false)
     }
@@ -229,10 +232,10 @@ export default function AddListingWizard() {
     if (!draftKey) return
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { images: _images, ...formWithoutImages } = form
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       try { localStorage.setItem(draftKey, JSON.stringify({ ...formWithoutImages, _commission: commission })) } catch {}
     }, 500)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
   }, [form, commission, draftKey])
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
@@ -278,11 +281,11 @@ export default function AddListingWizard() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa kuunda listing')
+      if (!res.ok) throw new Error(data.error ?? t('wiz_err_create_failed'))
       try { if (draftKey) localStorage.removeItem(draftKey) } catch {}
       setSubmitted({ autoApproved: data.auto_approved === true, listingId: data.id })
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
+      setError(err instanceof Error ? err.message : t('wiz_err_generic'))
       setSubmitting(false)
     }
   }
@@ -291,36 +294,36 @@ export default function AddListingWizard() {
   const qualityChecks = [
     {
       key: 'photos',
-      label: 'Picha 3 au zaidi',
-      hint: `${form.images.length}/3 picha`,
+      label: t('wiz_qc_photos_label'),
+      hint: t('wiz_qc_photos_hint').replace('{{n}}', String(form.images.length)),
       passed: form.images.length >= 3,
       required: true,
     },
     {
       key: 'description',
-      label: 'Maelezo ya kutosha (≥30 herufi)',
-      hint: `${form.description.trim().length}/30 herufi`,
+      label: t('wiz_qc_desc_label'),
+      hint: t('wiz_qc_desc_hint').replace('{{n}}', String(form.description.trim().length)),
       passed: form.description.trim().length >= 30,
       required: true,
     },
     {
       key: 'ward',
-      label: 'Kata (eneo halisi)',
-      hint: form.ward || 'Haijawekwa',
+      label: t('wiz_qc_ward_label'),
+      hint: form.ward || t('wiz_qc_not_set'),
       passed: form.ward.trim().length > 1,
       required: true,
     },
     {
       key: 'amenities',
-      label: 'Huduma angalau 1',
-      hint: `${form.amenities.length} zilizochaguliwa`,
+      label: t('wiz_qc_amenities_label'),
+      hint: t('wiz_qc_amenities_hint').replace('{{n}}', String(form.amenities.length)),
       passed: form.amenities.length >= 1,
       required: false,
     },
     {
       key: 'location',
-      label: 'Pin ya ramani',
-      hint: form.latitude !== null ? 'Imewekwa' : 'Haijawekwa',
+      label: t('wiz_qc_location_label'),
+      hint: form.latitude !== null ? t('wiz_qc_location_set') : t('wiz_qc_not_set'),
       passed: form.latitude !== null && form.longitude !== null,
       required: false,
     },
@@ -335,7 +338,21 @@ export default function AddListingWizard() {
     allRequiredPassed,
   ][step]
 
-  const stepTitles = ['Maelezo', 'Mahali', 'Huduma', 'Picha & Kagua']
+  const stepTitles = [
+    t('edit_step_details'),
+    t('edit_step_location'),
+    t('edit_step_amenities'),
+    t('edit_step_photos'),
+  ]
+
+  // Helper: translate listing type label using existing my_type_* keys
+  const typeKeyMap: Record<ListingType, TKey> = {
+    chumba:    'my_type_chumba',
+    apartment: 'my_type_apartment',
+    nyumba:    'my_type_nyumba',
+    studio:    'my_type_studio',
+    duka:      'my_type_duka',
+  }
 
   // ── KYC gate — block unverified dalalis before they fill the form ────────
   // Admin sets verification_status = 'approved'; treat it the same as 'verified'.
@@ -349,23 +366,23 @@ export default function AddListingWizard() {
           <i className={`ti text-4xl ${isPending ? 'ti-clock text-amber-500' : isRejected ? 'ti-alert-circle text-red-500' : 'ti-shield-check text-blue-500'}`} aria-hidden="true" />
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">
-          {isPending ? 'Uthibitisho Unasubiri' : isRejected ? 'Uthibitisho Ulikataliwa' : 'Thibitisha Akaunti Kwanza'}
+          {isPending ? t('wiz_kyc_pending_title') : isRejected ? t('wiz_kyc_rejected_title') : t('wiz_kyc_unverified_title')}
         </h2>
         <p className="text-sm text-gray-500 mb-6 max-w-xs">
           {isPending
-            ? 'Ombi lako la uthibitisho liko chini ya ukaguzi. Utapata taarifa hivi karibuni.'
+            ? t('wiz_kyc_pending_desc')
             : isRejected
-            ? 'Ombi lako lilikataliwa. Wasiliana na msaada au tuma tena nyaraka sahihi.'
-            : 'Unahitaji kuthibitisha utambulisho wako kabla ya kuongeza listings. Mchakato huchukua dakika 2 tu.'}
+            ? t('wiz_kyc_rejected_desc')
+            : t('wiz_kyc_unverified_desc')}
         </p>
         <Link
           href="/dashboard/verify"
           className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition ${isPending ? 'bg-amber-500 hover:bg-amber-600' : isRejected ? 'bg-red-500 hover:bg-red-600' : 'bg-primary-500 hover:bg-primary-600'}`}
         >
           <i className="ti ti-shield-check" aria-hidden="true" />
-          {isPending ? 'Angalia Hali' : isRejected ? 'Tuma Tena' : 'Thibitisha Sasa →'}
+          {isPending ? t('wiz_kyc_check_status') : isRejected ? t('wiz_kyc_resubmit') : t('wiz_kyc_verify_now')}
         </Link>
-        <button onClick={() => router.back()} className="mt-4 text-sm text-gray-400 hover:text-gray-600">← Rudi nyuma</button>
+        <button onClick={() => router.back()} className="mt-4 text-sm text-gray-400 hover:text-gray-600">{t('wiz_kyc_go_back')}</button>
       </div>
     )
   }
@@ -379,30 +396,30 @@ export default function AddListingWizard() {
         </div>
         {submitted.autoApproved ? (
           <>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Imechapishwa!</h2>
-            <p className="text-sm text-gray-500 mb-1">Listing yako imepita ukaguzi wa ubora na inaweza kuonekana na wateja <strong>sasa hivi</strong>.</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{t('wiz_success_approved_title')}</h2>
+            <p className="text-sm text-gray-500 mb-1">{t('wiz_success_approved_desc')}</p>
             <p className="text-xs text-green-600 mb-8 flex items-center justify-center gap-1">
-              <i className="ti ti-stars" aria-hidden="true" /> Umeweka picha, maelezo, na eneo — hongera!
+              <i className="ti ti-stars" aria-hidden="true" /> {t('wiz_success_approved_quality')}
             </p>
           </>
         ) : (
           <>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Imepokelewa</h2>
-            <p className="text-sm text-gray-500 mb-1">Listing yako imewasilishwa na inangojea ukaguzi wa mwisho.</p>
-            <p className="text-xs text-amber-600 mb-8">Kawaida inachukua masaa 24 kuidhinishwa.</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{t('wiz_success_pending_title')}</h2>
+            <p className="text-sm text-gray-500 mb-1">{t('wiz_success_pending_desc')}</p>
+            <p className="text-xs text-amber-600 mb-8">{t('wiz_success_pending_hours')}</p>
           </>
         )}
         <button
           onClick={() => { router.push('/dashboard'); router.refresh() }}
           className="w-full max-w-xs bg-primary-500 text-white py-3.5 rounded-2xl font-semibold text-sm mb-3"
         >
-          Angalia Dashboard →
+          {t('wiz_success_dashboard_btn')}
         </button>
         <button
           onClick={() => { setSubmitted(null); setStep(0); setCommission({ enabled: false, type: null, value: '', notes: '' }); setForm({ type: 'chumba', price_monthly: '', bedrooms: '', furnished: 'empty', description: '', region: '', district: '', ward: '', mtaa: '', amenities: [], images: [], video_url: null, latitude: null, longitude: null, address_full: '', place_id: '', shop_size_sqm: '', floor_level: '', commercial_use: '', listing_unit_type: 'single', total_capacity: '', auto_deactivate_on_full: true }) }}
           className="text-sm text-gray-400 underline"
         >
-          Ongeza listing nyingine
+          {t('wiz_success_add_another')}
         </button>
       </div>
     )
@@ -415,7 +432,7 @@ export default function AddListingWizard() {
       {draftRestored && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-3">
           <p className="text-xs text-amber-700 flex items-center gap-1.5">
-            <i className="ti ti-file-text" aria-hidden="true" /> Rasimu yako ya awali imerejeshwa
+            <i className="ti ti-file-text" aria-hidden="true" /> {t('wiz_draft_restored')}
           </p>
           <button
             onClick={() => {
@@ -426,7 +443,7 @@ export default function AddListingWizard() {
             }}
             className="text-xs text-amber-600 font-medium underline"
           >
-            Anza upya
+            {t('wiz_draft_reset')}
           </button>
         </div>
       )}
@@ -436,14 +453,18 @@ export default function AddListingWizard() {
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={() => step === 0 ? router.back() : setStep(s => s - 1)}
-            aria-label="Rudi nyuma"
+            aria-label={t('wiz_kyc_go_back')}
             className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"
           >
             ←
           </button>
           <div className="flex-1">
-            <h1 className="text-sm font-bold text-gray-900">Ongeza Listing</h1>
-            <p className="text-xs text-gray-400">Hatua {step + 1} ya 4 — {stepTitles[step]}</p>
+            <h1 className="text-sm font-bold text-gray-900">{t('wiz_header_title')}</h1>
+            <p className="text-xs text-gray-400">
+              {t('wiz_header_step')
+                .replace('{{step}}', String(step + 1))
+                .replace('{{title}}', stepTitles[step])}
+            </p>
           </div>
         </div>
         <StepBar current={step} total={4} />
@@ -465,24 +486,24 @@ export default function AddListingWizard() {
             {/* Type selector */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                Aina ya Mali
+                {t('wiz_type_label')}
               </label>
               <div className="grid grid-cols-2 gap-2">
-                {LISTING_TYPES.map((t, i) => (
+                {LISTING_TYPES.map((lt, i) => (
                   <button
-                    key={t.value}
-                    onClick={() => set('type', t.value)}
+                    key={lt.value}
+                    onClick={() => set('type', lt.value)}
                     className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                      form.type === t.value
+                      form.type === lt.value
                         ? 'border-primary-500 bg-primary-50'
                         : 'border-gray-100 bg-gray-50'
                     } ${i === LISTING_TYPES.length - 1 && LISTING_TYPES.length % 2 !== 0 ? 'col-span-2' : ''}`}
                   >
-                    <i className={`ti ti-${t.icon} text-xl`} aria-hidden="true" />
-                    <span className={`text-sm font-medium ${form.type === t.value ? 'text-primary-700' : 'text-gray-700'}`}>
-                      {t.label}
+                    <i className={`ti ti-${lt.icon} text-xl`} aria-hidden="true" />
+                    <span className={`text-sm font-medium ${form.type === lt.value ? 'text-primary-700' : 'text-gray-700'}`}>
+                      {t(typeKeyMap[lt.value])}
                     </span>
-                    {form.type === t.value && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
+                    {form.type === lt.value && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
                   </button>
                 ))}
               </div>
@@ -492,7 +513,7 @@ export default function AddListingWizard() {
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-4">
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                  Bei ya Kodi (Tsh / mwezi) <span className="text-red-400">*</span>
+                  {t('wiz_price_label')} <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">Tsh</span>
@@ -508,7 +529,7 @@ export default function AddListingWizard() {
                   />
                 </div>
                 {form.price_monthly && parseInt(form.price_monthly) <= 0 && (
-                  <p className="text-xs text-red-500 mt-1">Bei lazima iwe zaidi ya 0</p>
+                  <p className="text-xs text-red-500 mt-1">{t('wiz_price_error')}</p>
                 )}
               </div>
 
@@ -516,7 +537,7 @@ export default function AddListingWizard() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                      Vyumba vya Kulala
+                      {t('wiz_rooms_label')}
                     </label>
                     <select
                       value={form.bedrooms}
@@ -524,16 +545,16 @@ export default function AddListingWizard() {
                       className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                                  focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                     >
-                      <option value="">Si lazima</option>
+                      <option value="">{t('edit_optional')}</option>
                       {[1,2,3,4,5,6].map(n => (
-                        <option key={n} value={n}>Vyumba {n}</option>
+                        <option key={n} value={n}>{t('wiz_rooms_n').replace('{{n}}', String(n))}</option>
                       ))}
                     </select>
                   </div>
 
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                      Hali ya Samani
+                      {t('wiz_furnished_label')}
                     </label>
                     <select
                       value={form.furnished}
@@ -541,9 +562,9 @@ export default function AddListingWizard() {
                       className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                                  focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                     >
-                      <option value="empty">Bila Samani</option>
-                      <option value="semi">Nusu Samani</option>
-                      <option value="furnished">Ina Samani</option>
+                      <option value="empty">{t('edit_furnished_empty')}</option>
+                      <option value="semi">{t('edit_furnished_semi')}</option>
+                      <option value="furnished">{t('edit_furnished_yes')}</option>
                     </select>
                   </div>
                 </div>
@@ -554,7 +575,7 @@ export default function AddListingWizard() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                        Ukubwa (m²)
+                        {t('wiz_size_label')}
                       </label>
                       <input
                         type="number"
@@ -569,7 +590,7 @@ export default function AddListingWizard() {
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                        Ghorofa
+                        {t('wiz_floor_label')}
                       </label>
                       <select
                         value={form.floor_level}
@@ -577,17 +598,17 @@ export default function AddListingWizard() {
                         className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                                    focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                       >
-                        <option value="">Chagua</option>
-                        <option value="0">Chini (Ground)</option>
+                        <option value="">{t('wiz_floor_choose')}</option>
+                        <option value="0">{t('wiz_floor_ground')}</option>
                         {[1,2,3,4,5].map(n => (
-                          <option key={n} value={n}>Ghorofa {n}</option>
+                          <option key={n} value={n}>{t('wiz_floor_n').replace('{{n}}', String(n))}</option>
                         ))}
                       </select>
                     </div>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                      Matumizi ya Biashara
+                      {t('wiz_commercial_use')}
                     </label>
                     <input
                       type="text"
@@ -605,7 +626,7 @@ export default function AddListingWizard() {
             {/* Unit type & capacity */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                Aina ya Upatikanaji
+                {t('wiz_unit_type_label')}
               </label>
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <button
@@ -618,7 +639,7 @@ export default function AddListingWizard() {
                 >
                   <i className="ti ti-home text-xl" aria-hidden="true" />
                   <span className={`text-sm font-medium ${form.listing_unit_type === 'single' ? 'text-primary-700' : 'text-gray-700'}`}>
-                    Moja tu
+                    {t('wiz_unit_single')}
                   </span>
                   {form.listing_unit_type === 'single' && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
                 </button>
@@ -632,7 +653,7 @@ export default function AddListingWizard() {
                 >
                   <i className="ti ti-building text-xl" aria-hidden="true" />
                   <span className={`text-sm font-medium ${form.listing_unit_type === 'multi' ? 'text-primary-700' : 'text-gray-700'}`}>
-                    Vyumba vingi
+                    {t('wiz_unit_multi')}
                   </span>
                   {form.listing_unit_type === 'multi' && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
                 </button>
@@ -642,7 +663,7 @@ export default function AddListingWizard() {
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                      Idadi ya Vyumba / Nafasi
+                      {t('wiz_capacity_label')}
                     </label>
                     <input
                       type="number"
@@ -660,7 +681,7 @@ export default function AddListingWizard() {
                     <button
                       role="switch"
                       aria-checked={form.auto_deactivate_on_full}
-                      aria-label="Funga listing automatically inapojaa"
+                      aria-label={t('wiz_auto_deactivate')}
                       onClick={() => set('auto_deactivate_on_full', !form.auto_deactivate_on_full)}
                       className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
                         form.auto_deactivate_on_full ? 'bg-primary-500' : 'bg-gray-200'
@@ -671,7 +692,7 @@ export default function AddListingWizard() {
                       }`} />
                     </button>
                     <span className="text-xs text-gray-600">
-                      Funga listing automatically inapojaa
+                      {t('wiz_auto_deactivate')}
                     </span>
                   </div>
                 </div>
@@ -681,11 +702,11 @@ export default function AddListingWizard() {
             {/* Description */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                Maelezo <span className="text-red-400">*</span>
+                {t('edit_desc_label')} <span className="text-red-400">*</span>
               </label>
               <textarea
                 rows={4}
-                placeholder={form.type === 'duka' ? 'Elezea duka lako — eneo, jirani, ukubwa, masharti maalum...' : 'Elezea nyumba yako — eneo, jirani, ghorofa, masharti maalum...'}
+                placeholder={form.type === 'duka' ? t('wiz_desc_placeholder_duka') : t('wiz_desc_placeholder')}
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
                 maxLength={500}
@@ -703,10 +724,10 @@ export default function AddListingWizard() {
                   form.description.length > 0 ? 'text-amber-600' : 'text-gray-400'
                 }`}>
                   {form.description.trim().length >= 30
-                    ? '✓ Maelezo yanafaa'
+                    ? t('wiz_desc_good')
                     : form.description.length > 0
-                    ? `Herufi ${form.description.trim().length}/30 — ongeza zaidi`
-                    : 'Lazima angalau herufi 30'}
+                    ? t('wiz_desc_short').replace('{{n}}', String(form.description.trim().length))
+                    : t('wiz_desc_min')}
                 </p>
                 <p className={`text-xs ${form.description.length >= 490 ? 'text-amber-500' : 'text-gray-400'}`}>
                   {form.description.length}/500
@@ -728,7 +749,7 @@ export default function AddListingWizard() {
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-4">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                Mkoa <span className="text-red-400">*</span>
+                {t('wiz_region_label')} <span className="text-red-400">*</span>
               </label>
               <select
                 value={form.region}
@@ -741,7 +762,7 @@ export default function AddListingWizard() {
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                            focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
               >
-                <option value="">Chagua Mkoa</option>
+                <option value="">{t('wiz_region_choose')}</option>
                 {TANZANIA_REGIONS.map(r => (
                   <option key={r.name} value={r.name}>{r.name}</option>
                 ))}
@@ -750,7 +771,7 @@ export default function AddListingWizard() {
 
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                Wilaya <span className="text-red-400">*</span>
+                {t('wiz_district_label')} <span className="text-red-400">*</span>
               </label>
               {form.region && getDistricts(form.region).length > 0 ? (
                 <select
@@ -759,7 +780,7 @@ export default function AddListingWizard() {
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                              focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                 >
-                  <option value="">Chagua Wilaya</option>
+                  <option value="">{t('wiz_district_choose')}</option>
                   {getDistricts(form.region).map(d => (
                     <option key={d} value={d}>{d}</option>
                   ))}
@@ -767,7 +788,7 @@ export default function AddListingWizard() {
               ) : (
                 <input
                   type="text"
-                  placeholder={form.region ? 'Andika jina la wilaya' : 'Chagua mkoa kwanza'}
+                  placeholder={form.region ? t('wiz_district_type') : t('wiz_district_choose_region')}
                   value={form.district}
                   onChange={e => { set('district', e.target.value); set('ward', ''); set('mtaa', '') }}
                   disabled={!form.region}
@@ -781,7 +802,7 @@ export default function AddListingWizard() {
             {/* Kata (Ward) */}
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                Kata <span className="text-red-400">*</span>
+                {t('wiz_ward_label')} <span className="text-red-400">*</span>
               </label>
               {form.district && getWards(form.region, form.district).length > 0 ? (
                 <select
@@ -790,7 +811,7 @@ export default function AddListingWizard() {
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                              focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                 >
-                  <option value="">Chagua Kata</option>
+                  <option value="">{t('wiz_ward_choose')}</option>
                   {getWards(form.region, form.district).map(w => (
                     <option key={w} value={w}>{w}</option>
                   ))}
@@ -798,7 +819,7 @@ export default function AddListingWizard() {
               ) : (
                 <input
                   type="text"
-                  placeholder={form.district ? 'Andika jina la kata' : 'Chagua wilaya kwanza'}
+                  placeholder={form.district ? t('wiz_ward_type') : t('wiz_ward_choose_district')}
                   value={form.ward}
                   onChange={e => set('ward', e.target.value)}
                   disabled={!form.district}
@@ -808,18 +829,18 @@ export default function AddListingWizard() {
                 />
               )}
               {!form.ward && form.district && (
-                <p className="text-xs text-amber-600 mt-1">Kata inahitajika ili listing ichapishwe moja kwa moja</p>
+                <p className="text-xs text-amber-600 mt-1">{t('wiz_ward_required')}</p>
               )}
             </div>
 
             {/* Mtaa / Kijiji */}
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                Mtaa / Kijiji
+                {t('wiz_mtaa_label')}
               </label>
               <input
                 type="text"
-                placeholder={form.district ? 'mfano: Mtaa wa Uhuru, Kijiji cha Mikorosheni...' : 'Chagua wilaya kwanza'}
+                placeholder={form.district ? t('wiz_mtaa_placeholder') : t('wiz_ward_choose_district')}
                 value={form.mtaa}
                 onChange={e => set('mtaa', e.target.value)}
                 disabled={!form.district}
@@ -828,7 +849,7 @@ export default function AddListingWizard() {
                            focus:outline-none focus:ring-2 focus:ring-primary-300
                            disabled:bg-gray-50 disabled:text-gray-400"
               />
-              <p className="text-xs text-gray-400 mt-1">Ongeza maelezo ya ziada kama barabara au alama (hiari)</p>
+              <p className="text-xs text-gray-400 mt-1">{t('wiz_mtaa_hint')}</p>
             </div>
 
             {/* Location picker map */}
@@ -854,7 +875,7 @@ export default function AddListingWizard() {
             </div>
 
             <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-xs text-primary-700">
-              Weka mtaa au wilaya halisi. Pin ya ramani ni optional lakini inasaidia wateja kukupata.
+              {t('wiz_location_tip')}
             </div>
           </div>
         )}
@@ -865,7 +886,7 @@ export default function AddListingWizard() {
         {step === 2 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-              Chagua Huduma Zilizopo ({form.amenities.length} zilizochaguliwa)
+              {t('wiz_amenities_label').replace('{{n}}', String(form.amenities.length))}
             </label>
             <div className="grid grid-cols-2 gap-2">
               {AMENITIES.map(a => {
@@ -901,7 +922,7 @@ export default function AddListingWizard() {
             {/* Bulk photo upload */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                Picha za Nyumba
+                {t('edit_photos_label')}
               </label>
               <BulkPhotoUpload
                 onChange={(urls, uploading) => {
@@ -912,14 +933,16 @@ export default function AddListingWizard() {
               />
               <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
                 <i className="ti ti-info-circle" aria-hidden="true" />
-                Plan yako ({limitInfo?.plan ?? 'free'}) inaruhusu picha {getPhotoLimit(limitInfo?.plan)} kwa kila listing.
+                {t('wiz_photos_plan_hint')
+                  .replace('{{plan}}', limitInfo?.plan ?? 'free')
+                  .replace('{{n}}', String(getPhotoLimit(limitInfo?.plan)))}
               </p>
             </div>
 
             {/* ── Video upload ── */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                <i className="ti ti-video" aria-hidden="true" /> Video ya Nyumba (hiari)
+                <i className="ti ti-video" aria-hidden="true" /> {t('wiz_video_label')}
               </label>
               {canUseFeature(limitInfo?.plan, 'videos') ? (
                 <VideoUpload
@@ -931,14 +954,14 @@ export default function AddListingWizard() {
               ) : (
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
                   <i className="ti ti-lock text-gray-400 text-2xl mb-1 block" aria-hidden="true" />
-                  <p className="text-sm font-medium text-gray-600">Video haipo kwa plan ya Free</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Upgrade kwenda Basic au zaidi kupakia video</p>
+                  <p className="text-sm font-medium text-gray-600">{t('wiz_video_no_free')}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{t('wiz_video_upgrade_hint')}</p>
                   <button
                     type="button"
                     onClick={() => router.push('/dashboard/subscription')}
                     className="mt-3 text-xs bg-primary-500 text-white px-4 py-2 rounded-lg font-semibold"
                   >
-                    Upgrade Sasa
+                    {t('dash_upgrade_now')}
                   </button>
                 </div>
               )}
@@ -946,48 +969,48 @@ export default function AddListingWizard() {
 
             {/* Preview summary */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />Muhtasari wa Listing</h3>
+              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />{t('wiz_summary_title')}</h3>
               <div className="space-y-2 text-sm">
-                <Row label="Aina" value={LISTING_TYPES.find(t => t.value === form.type)?.label ?? form.type} />
-                <Row label="Bei" value={`Tsh ${parseInt(form.price_monthly || '0').toLocaleString()} / mwezi`} />
-                {form.type !== 'duka' && form.bedrooms && <Row label="Vyumba" value={`Vyumba ${form.bedrooms}`} />}
+                <Row label={t('wiz_sum_type')} value={t(typeKeyMap[form.type])} />
+                <Row label={t('wiz_sum_price')} value={t('wiz_sum_price_val').replace('{{n}}', parseInt(form.price_monthly || '0').toLocaleString())} />
+                {form.type !== 'duka' && form.bedrooms && <Row label={t('wiz_sum_rooms')} value={t('wiz_sum_rooms_val').replace('{{n}}', form.bedrooms)} />}
                 {form.type !== 'duka' && (
-                  <Row label="Samani" value={
-                    form.furnished === 'furnished' ? 'Ina Samani'
-                    : form.furnished === 'semi' ? 'Nusu Samani'
-                    : 'Bila Samani'
+                  <Row label={t('wiz_sum_furnished')} value={
+                    form.furnished === 'furnished' ? t('edit_furnished_yes')
+                    : form.furnished === 'semi' ? t('edit_furnished_semi')
+                    : t('edit_furnished_empty')
                   } />
                 )}
-                {form.type === 'duka' && form.shop_size_sqm && <Row label="Ukubwa" value={`${form.shop_size_sqm} m²`} />}
-                {form.type === 'duka' && form.floor_level !== '' && <Row label="Ghorofa" value={form.floor_level === '0' ? 'Chini' : `Ghorofa ${form.floor_level}`} />}
-                {form.type === 'duka' && form.commercial_use && <Row label="Matumizi" value={form.commercial_use} />}
-                <Row label="Mkoa / Wilaya" value={`${form.district}, ${form.region}`} />
-                {form.ward && <Row label="Kata" value={form.ward} />}
-                {form.mtaa && <Row label="Mtaa" value={form.mtaa} />}
+                {form.type === 'duka' && form.shop_size_sqm && <Row label={t('wiz_sum_size')} value={t('wiz_sum_size_val').replace('{{n}}', form.shop_size_sqm)} />}
+                {form.type === 'duka' && form.floor_level !== '' && <Row label={t('wiz_sum_floor')} value={form.floor_level === '0' ? t('wiz_sum_floor_ground') : t('wiz_sum_floor_n').replace('{{n}}', form.floor_level)} />}
+                {form.type === 'duka' && form.commercial_use && <Row label={t('wiz_sum_commercial')} value={form.commercial_use} />}
+                <Row label={t('wiz_sum_location')} value={`${form.district}, ${form.region}`} />
+                {form.ward && <Row label={t('wiz_sum_ward')} value={form.ward} />}
+                {form.mtaa && <Row label={t('wiz_sum_mtaa')} value={form.mtaa} />}
                 {form.amenities.length > 0 && (
-                  <Row label="Huduma" value={`${form.amenities.length} zilizochaguliwa`} />
+                  <Row label={t('wiz_sum_amenities')} value={t('wiz_sum_amenities_val').replace('{{n}}', String(form.amenities.length))} />
                 )}
-                <Row label="Picha" value={`${form.images.length} picha`} />
-                {form.video_url && <Row label="Video" value="Imepakiwa" />}
+                <Row label={t('wiz_sum_photos')} value={t('wiz_sum_photos_val').replace('{{n}}', String(form.images.length))} />
+                {form.video_url && <Row label={t('wiz_sum_video')} value={t('wiz_sum_video_uploaded')} />}
                 {commission.enabled && commission.type && (
-                  <Row label="Kamisheni" value={formatCommission(commission.type, parseFloat(commission.value) || null)} />
+                  <Row label={t('wiz_sum_commission')} value={formatCommission(commission.type, parseFloat(commission.value) || null)} />
                 )}
               </div>
 
               {/* WhatsApp ya mawasiliano — read-only */}
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Mawasiliano ya Wateja
+                  {t('wiz_contact_title')}
                 </p>
                 <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <i className="ti ti-device-mobile text-base" aria-hidden="true" />
                     <div>
-                      <p className="text-xs text-gray-400">WhatsApp</p>
+                      <p className="text-xs text-gray-400">{t('wiz_contact_whatsapp')}</p>
                       <p className="text-sm font-medium text-gray-800">
                         {dalaliProfile?.whatsappNumber
                           ? `+${dalaliProfile.whatsappNumber}`
-                          : <span className="text-amber-600">Hujaweka namba</span>
+                          : <span className="text-amber-600">{t('wiz_contact_no_number')}</span>
                         }
                       </p>
                     </div>
@@ -996,11 +1019,11 @@ export default function AddListingWizard() {
                     href="/dashboard/profile"
                     className="text-xs text-primary-600 font-medium underline"
                   >
-                    Badilisha
+                    {t('wiz_contact_change')}
                   </Link>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">
-                  Wateja watawasiliana nawe kwa namba hii baada ya kulipa
+                  {t('wiz_contact_hint')}
                 </p>
               </div>
             </div>
@@ -1009,7 +1032,7 @@ export default function AddListingWizard() {
             <div className={`rounded-2xl border p-4 ${allRequiredPassed ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
               <p className={`text-xs font-bold mb-3 flex items-center gap-1.5 ${allRequiredPassed ? 'text-green-700' : 'text-amber-700'}`}>
                 <i className={`ti ${allRequiredPassed ? 'ti-stars text-green-500' : 'ti-list-check text-amber-500'}`} aria-hidden="true" />
-                {allRequiredPassed ? 'Ubora wa Listing — Tayari Kuchapishwa Moja kwa Moja!' : 'Ubora wa Listing — Kamilisha ili Ichapishwe Moja kwa Moja'}
+                {t(allRequiredPassed ? 'wiz_quality_ready' : 'wiz_quality_incomplete')}
               </p>
               <div className="space-y-2">
                 {qualityChecks.map(check => (
@@ -1027,7 +1050,7 @@ export default function AddListingWizard() {
                       <span className={`text-xs font-medium ${check.passed ? 'text-green-700' : check.required ? 'text-red-700' : 'text-gray-500'}`}>
                         {check.label}
                       </span>
-                      {!check.required && <span className="text-[10px] text-gray-400 ml-1">(hiari)</span>}
+                      {!check.required && <span className="text-[10px] text-gray-400 ml-1">{t('wiz_quality_optional')}</span>}
                     </div>
                     <span className={`text-[10px] font-mono ${check.passed ? 'text-green-600' : check.required ? 'text-red-500' : 'text-gray-400'}`}>
                       {check.hint}
@@ -1037,7 +1060,7 @@ export default function AddListingWizard() {
               </div>
               {!allRequiredPassed && (
                 <p className="text-[10px] text-amber-600 mt-3 pt-2 border-t border-amber-200">
-                  Vitu vilivyoashiria (!) vinahitajika ili listing ichapishwe moja kwa moja. Bila hivyo, itasubiri ukaguzi wa admin.
+                  {t('wiz_quality_note')}
                 </p>
               )}
             </div>
@@ -1046,10 +1069,9 @@ export default function AddListingWizard() {
             <div suppressHydrationWarning className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-2">
               <span className="text-blue-500 flex-shrink-0">ℹ️</span>
               <p className="text-blue-700 text-xs">
-                Listing yako itaonekana kwa wateja kwa siku 90 — hadi{' '}
-                {new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString('sw-TZ', {
+                {t('wiz_expiry_info').replace('{{date}}', new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString('sw-TZ', {
                   day: 'numeric', month: 'long', year: 'numeric',
-                })}
+                }))}
               </p>
             </div>
           </>
@@ -1066,7 +1088,7 @@ export default function AddListingWizard() {
             className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold
                        disabled:opacity-40 active:scale-95 transition-all"
           >
-            Endelea → {stepTitles[step + 1]}
+            {t('wiz_cta_continue').replace('{{title}}', stepTitles[step + 1])}
           </button>
         ) : (
           <button
@@ -1079,23 +1101,23 @@ export default function AddListingWizard() {
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Inachapisha...
+                {t('wiz_cta_publishing')}
               </span>
             ) : videoUploading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Subiri video ikamilike...
+                {t('wiz_cta_wait_video')}
               </span>
             ) : photosUploading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Subiri picha zikamilike...
+                {t('edit_wait_photos')}
               </span>
             ) : allRequiredPassed ? (
               <span className="flex items-center justify-center gap-2">
-                <i className="ti ti-stars" aria-hidden="true" /> Chapisha Listing Sasa
+                <i className="ti ti-stars" aria-hidden="true" /> {t('wiz_cta_publish')}
               </span>
-            ) : 'Kamilisha Ubora Kwanza'}
+            ) : t('wiz_cta_quality_first')}
           </button>
         )}
       </div>
@@ -1105,30 +1127,30 @@ export default function AddListingWizard() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setShowLimitModal(false)}>
           <div className="bg-white w-full rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-            <h3 className="font-bold text-lg text-gray-900 mb-1 flex items-center gap-2"><i className="ti ti-chart-bar" aria-hidden="true" />Umefika Limit ya Listings</h3>
+            <h3 className="font-bold text-lg text-gray-900 mb-1 flex items-center gap-2"><i className="ti ti-chart-bar" aria-hidden="true" />{t('wiz_limit_title')}</h3>
             <p className="text-gray-500 text-sm mb-5">
-              Plan yako inaruhusu listings <strong>{limitInfo?.limit ?? 0}</strong> tu.
-              Umeshapakia listings <strong>{limitInfo?.current ?? 0}</strong> (pamoja na zilizofutwa, taken, na pending).
-              Kufuta listing iliyopo hakuongezi nafasi — lazima ununue nafasi ya ziada.
+              {t('wiz_limit_desc')
+                .replace('{{limit}}', String(limitInfo?.limit ?? 0))
+                .replace('{{current}}', String(limitInfo?.current ?? 0))}
             </p>
 
             <div className="space-y-3">
               {/* Option 1 — Buy extra */}
               {!extraDone ? (
                 <div className="border border-primary-200 rounded-2xl p-4 bg-primary-50">
-                  <p className="font-semibold text-primary-800 mb-0.5 flex items-center gap-1"><i className="ti ti-plus" aria-hidden="true" />Ongeza Listings za Ziada</p>
-                  <p className="text-sm text-primary-600 mb-3">Tsh 2,000 kwa listing moja kwa mwezi</p>
+                  <p className="font-semibold text-primary-800 mb-0.5 flex items-center gap-1"><i className="ti ti-plus" aria-hidden="true" />{t('wiz_limit_buy_extra_title')}</p>
+                  <p className="text-sm text-primary-600 mb-3">{t('wiz_limit_buy_extra_price')}</p>
                   <div className="flex items-center gap-3 mb-3">
                     <button onClick={() => setExtraCount(c => Math.max(1, c - 1))}
                       className="min-w-[44px] min-h-[44px] rounded-full bg-primary-200 text-primary-800 font-bold text-lg flex items-center justify-center">−</button>
                     <span className="font-bold text-xl text-primary-900 w-6 text-center">{extraCount}</span>
                     <button onClick={() => setExtraCount(c => Math.min(10, c + 1))}
                       className="min-w-[44px] min-h-[44px] rounded-full bg-primary-200 text-primary-800 font-bold text-lg flex items-center justify-center">+</button>
-                    <span className="text-sm text-gray-500 ml-1">= Tsh {(extraCount * 2000).toLocaleString()}/mwezi</span>
+                    <span className="text-sm text-gray-500 ml-1">{t('wiz_limit_extra_count').replace('{{n}}', (extraCount * 2000).toLocaleString())}</span>
                   </div>
                   <input
                     type="tel" inputMode="numeric"
-                    placeholder="Nambari ya simu (e.g. 0712345678)"
+                    placeholder={t('wiz_limit_phone_placeholder')}
                     value={extraPhone}
                     onChange={e => setExtraPhone(e.target.value)}
                     className="w-full text-base border border-primary-200 rounded-xl px-4 py-3 mb-3 focus:outline-none bg-white"
@@ -1136,18 +1158,18 @@ export default function AddListingWizard() {
                   {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
                   <button onClick={handleBuyExtra} disabled={payingExtra}
                     className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-60">
-                    {payingExtra ? 'Inatuma...' : `Lipa Tsh ${(extraCount * 2000).toLocaleString()}`}
+                    {payingExtra ? t('wiz_limit_paying') : t('wiz_limit_pay_btn').replace('{{n}}', (extraCount * 2000).toLocaleString())}
                   </button>
                 </div>
               ) : (
                 <div className="border border-green-200 rounded-2xl p-4 bg-green-50 text-center">
                   <p className="text-3xl mb-1 flex justify-center"><i className="ti ti-circle-check text-primary-500" aria-hidden="true" /></p>
-                  <p className="font-semibold text-green-800">Listings {extraCount} za ziada zimeongezwa!</p>
-                  <p className="text-sm text-green-600 mt-1">Sasa unaweza kuendelea.</p>
+                  <p className="font-semibold text-green-800">{t('wiz_limit_success_msg').replace('{{n}}', String(extraCount))}</p>
+                  <p className="text-sm text-green-600 mt-1">{t('wiz_limit_success_sub')}</p>
                   <button
                     onClick={() => { setShowLimitModal(false); setExtraDone(false); handleSubmit() }}
                     className="mt-3 w-full bg-green-500 text-white py-3 rounded-xl font-semibold text-sm">
-                    Endelea Kupost Listing →
+                    {t('wiz_limit_continue_btn')}
                   </button>
                 </div>
               )}
@@ -1155,12 +1177,12 @@ export default function AddListingWizard() {
               {/* Option 2 — Upgrade */}
               {limitInfo?.plan === 'basic' && !extraDone && (
                 <div className="border border-amber-200 rounded-2xl p-4 bg-amber-50">
-                  <p className="font-semibold text-amber-800 mb-0.5"><i className="ti ti-star-filled mr-1" aria-hidden="true" />Upgrade kwenda Premium</p>
-                  <p className="text-sm text-amber-600 mb-1">Listings 20 + boost + verified badge + analytics</p>
-                  <p className="font-bold text-amber-700">Tsh 25,000/mwezi</p>
+                  <p className="font-semibold text-amber-800 mb-0.5"><i className="ti ti-star-filled mr-1" aria-hidden="true" />{t('wiz_limit_upgrade_title')}</p>
+                  <p className="text-sm text-amber-600 mb-1">{t('wiz_limit_upgrade_desc')}</p>
+                  <p className="font-bold text-amber-700">{t('wiz_limit_upgrade_price')}</p>
                   <button onClick={() => router.push('/dashboard/subscription')}
                     className="mt-3 w-full bg-amber-500 text-white py-3 rounded-xl font-semibold text-sm">
-                    Upgrade Sasa
+                    {t('dash_upgrade_now')}
                   </button>
                 </div>
               )}
@@ -1169,7 +1191,7 @@ export default function AddListingWizard() {
 
             {!extraDone && (
               <button onClick={() => setShowLimitModal(false)} className="mt-4 w-full text-gray-400 text-sm">
-                Ghairi
+                {t('wiz_limit_cancel')}
               </button>
             )}
           </div>

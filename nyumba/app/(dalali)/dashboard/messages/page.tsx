@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 import AttachmentCompose, { type PendingAttachment } from '@/components/messages/AttachmentCompose'
 import AttachmentDisplay from '@/components/messages/AttachmentDisplay'
 
@@ -50,15 +52,15 @@ interface Message {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function relativeTime(iso: string | null): string {
+function relativeTime(iso: string | null, t: (k: TKey) => string): string {
   if (!iso) return ''
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60000)
-  if (m < 1) return 'Sasa hivi'
-  if (m < 60) return `Dakika ${m} zilizopita`
+  if (m < 1) return t('msg_time_now')
+  if (m < 60) return t('msg_time_mins').replace('{{n}}', String(m))
   const h = Math.floor(m / 60)
-  if (h < 24) return `Saa ${h} zilizopita`
-  return `Siku ${Math.floor(h / 24)} zilizopita`
+  if (h < 24) return t('msg_time_hours').replace('{{n}}', String(h))
+  return t('msg_time_days').replace('{{n}}', String(Math.floor(h / 24)))
 }
 
 function initials(name: string | null): string {
@@ -73,17 +75,18 @@ function Avatar({ src, name, size = 8 }: { src?: string | null; name: string | n
   return <div className={`${cls} bg-primary-100 text-primary-700`}>{initials(name)}</div>
 }
 
-function convLabel(conv: Conversation, uid: string): string {
+function convLabel(conv: Conversation, uid: string, t: (k: TKey) => string): string {
   if (conv.title) return conv.title
   const others = (conv.participants ?? [])
     .filter((p) => p.user_id !== uid)
-    .map((p) => p.user?.full_name ?? 'Mtumiaji')
-  return others.length ? others.slice(0, 2).join(', ') : 'Mazungumzo'
+    .map((p) => p.user?.full_name ?? t('msg_anon_user'))
+  return others.length ? others.slice(0, 2).join(', ') : t('msg_fallback_title')
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DalaliMessagesPage() {
+  const { t } = useLanguage()
   const [uid, setUid] = useState<string | null>(null)
   const [userName, setUserName] = useState('Dalali')
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
@@ -166,10 +169,10 @@ export default function DalaliMessagesPage() {
 
   useEffect(() => {
     if (!selected) return
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       if (!realtimeOk.current) { loadThread(selected.id); loadConversations() }
     }, 30000)
-    return () => clearInterval(t)
+    return () => clearInterval(timer)
   }, [selected, loadThread, loadConversations])
 
   useEffect(() => {
@@ -229,7 +232,7 @@ export default function DalaliMessagesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         participant_ids: [pickedStaff.id],
-        first_message: newMsg.trim() || `Habari, mimi ni ${userName}`,
+        first_message: newMsg.trim() || t('msg_default_first_msg').replace('{{name}}', userName),
       }),
     })
     if (res.ok) {
@@ -244,7 +247,7 @@ export default function DalaliMessagesPage() {
   }
 
   const filtered = conversations.filter((c) =>
-    !searchQ || convLabel(c, uid ?? '').toLowerCase().includes(searchQ.toLowerCase())
+    !searchQ || convLabel(c, uid ?? '', t).toLowerCase().includes(searchQ.toLowerCase())
   )
 
   // ── Conversation List Panel ────────────────────────────────────────────────
@@ -260,11 +263,11 @@ export default function DalaliMessagesPage() {
       {/* Header */}
       <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-gray-100">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-gray-900 text-base">Ujumbe Wangu</h2>
+          <h2 className="font-bold text-gray-900 text-base">{t('msg_panel_title')}</h2>
           <button
             onClick={() => { setShowNew(true); loadStaffContacts() }}
             className="w-8 h-8 bg-primary-500 text-white rounded-xl flex items-center justify-center active:bg-primary-600 transition-colors"
-            title="Anza mazungumzo mapya"
+            title={t('msg_new_conv_tooltip')}
           >
             <i className="ti ti-pencil text-sm" aria-hidden="true" />
           </button>
@@ -273,7 +276,7 @@ export default function DalaliMessagesPage() {
           <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true" />
           <input
             className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-300"
-            placeholder="Tafuta mazungumzo..."
+            placeholder={t('msg_search_ph')}
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
           />
@@ -297,28 +300,28 @@ export default function DalaliMessagesPage() {
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center">
             <i className="ti ti-message-circle-off text-5xl text-gray-200 block mb-3" aria-hidden="true" />
-            <p className="text-sm font-medium text-gray-400">Hakuna ujumbe bado</p>
+            <p className="text-sm font-medium text-gray-400">{t('msg_empty_title')}</p>
             <p className="text-xs text-gray-300 mt-1 leading-relaxed mb-4">
-              Wasiliana na timu ya NyumbaFasta hapa
+              {t('msg_empty_sub')}
             </p>
             <button
               onClick={() => { setShowNew(true); loadStaffContacts() }}
               className="px-4 py-2 bg-primary-500 text-white rounded-xl text-xs font-semibold"
             >
-              Anza Mazungumzo
+              {t('msg_start_btn')}
             </button>
           </div>
         ) : (
           filtered.map((conv) => {
-            const isActive = selected?.id === conv.id
-            const label = convLabel(conv, uid ?? '')
+            const isSelected = selected?.id === conv.id
+            const label = convLabel(conv, uid ?? '', t)
             const otherP = (conv.participants ?? []).find((p) => p.user_id !== uid)
             return (
               <button
                 key={conv.id}
                 onClick={() => setSelected(conv)}
                 className={`w-full text-left px-4 py-3.5 flex items-center gap-3 border-b border-gray-50 transition-colors active:bg-gray-50
-                  ${isActive ? 'bg-primary-50 border-l-2 border-l-primary-500' : 'hover:bg-gray-50'}`}
+                  ${isSelected ? 'bg-primary-50 border-l-2 border-l-primary-500' : 'hover:bg-gray-50'}`}
               >
                 <div className="relative flex-shrink-0">
                   <Avatar src={otherP?.user?.avatar_url} name={otherP?.user?.full_name ?? label} size={10} />
@@ -332,10 +335,12 @@ export default function DalaliMessagesPage() {
                       {label}
                     </span>
                     <span className="text-[10px] text-gray-500 flex-shrink-0 whitespace-nowrap">
-                      {relativeTime(conv.last_message_at)}
+                      {relativeTime(conv.last_message_at, t)}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 truncate">{conv.last_message_body ?? 'Bonyeza kuona'}</p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {conv.last_message_body ?? t('msg_preview_fallback')}
+                  </p>
                 </div>
                 {conv.unread_count > 0 && (
                   <span className="flex-shrink-0 min-w-[20px] h-5 flex items-center justify-center bg-primary-500 text-white text-[10px] font-bold rounded-full px-1">
@@ -360,19 +365,19 @@ export default function DalaliMessagesPage() {
         <button
           className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 flex-shrink-0 active:bg-gray-200 transition-colors"
           onClick={() => setSelected(null)}
-          aria-label="Rudi nyuma"
+          aria-label={t('msg_back_label')}
         >
           <i className="ti ti-arrow-left text-base" aria-hidden="true" />
         </button>
         <Avatar
           src={(selected.participants ?? []).find((p) => p.user_id !== uid)?.user?.avatar_url}
-          name={convLabel(selected, uid ?? '')}
+          name={convLabel(selected, uid ?? '', t)}
           size={9}
         />
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm text-gray-900 truncate">{convLabel(selected, uid ?? '')}</p>
+          <p className="font-semibold text-sm text-gray-900 truncate">{convLabel(selected, uid ?? '', t)}</p>
           <p className="text-xs text-gray-400">
-            {selected.status === 'open' ? 'Ikiwa wazi' : 'Imefungwa'}
+            {selected.status === 'open' ? t('msg_status_open') : t('msg_status_closed')}
           </p>
         </div>
       </div>
@@ -391,16 +396,16 @@ export default function DalaliMessagesPage() {
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-12 text-center">
             <i className="ti ti-message text-5xl text-gray-200 mb-3" aria-hidden="true" />
-            <p className="text-sm font-medium text-gray-400">Hakuna ujumbe bado</p>
-            <p className="text-xs text-gray-300 mt-1">Anza mazungumzo hapa chini</p>
+            <p className="text-sm font-medium text-gray-400">{t('msg_thread_empty_title')}</p>
+            <p className="text-xs text-gray-300 mt-1">{t('msg_thread_empty_sub')}</p>
           </div>
         ) : (
-          messages.map((msg) => {
-            const isMe = msg.sender_id === uid
-            const name = isMe ? userName : (msg.sender?.full_name ?? 'Timu')
+          messages.map((msgItem) => {
+            const isMe = msgItem.sender_id === uid
+            const name = isMe ? userName : (msgItem.sender?.full_name ?? t('msg_team_name'))
             return (
-              <div key={msg.id} className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-                {!isMe && <Avatar src={msg.sender?.avatar_url} name={name} size={7} />}
+              <div key={msgItem.id} className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                {!isMe && <Avatar src={msgItem.sender?.avatar_url} name={name} size={7} />}
                 <div className={`flex flex-col gap-1 max-w-[78%] ${isMe ? 'items-end' : 'items-start'}`}>
                   {!isMe && <span className="text-xs text-gray-400 px-1">{name}</span>}
                   <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words
@@ -409,11 +414,11 @@ export default function DalaliMessagesPage() {
                       : 'bg-white text-gray-900 rounded-bl-sm shadow-sm border border-gray-100'
                     }`}
                   >
-                    {msg.body && <p>{msg.body}</p>}
-                    {msg.attachments?.length ? <AttachmentDisplay attachments={msg.attachments} /> : null}
+                    {msgItem.body && <p>{msgItem.body}</p>}
+                    {msgItem.attachments?.length ? <AttachmentDisplay attachments={msgItem.attachments} /> : null}
                   </div>
                   <span className="text-[10px] text-gray-500 px-1">
-                    {new Date(msg.created_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(msgItem.created_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               </div>
@@ -458,7 +463,7 @@ export default function DalaliMessagesPage() {
                        placeholder-gray-400 leading-relaxed"
             style={{ minHeight: '44px', maxHeight: '120px' }}
             rows={1}
-            placeholder="Andika ujumbe..."
+            placeholder={t('msg_input_ph')}
             value={draft}
             onChange={handleDraftChange}
             onKeyDown={(e) => {
@@ -473,7 +478,7 @@ export default function DalaliMessagesPage() {
             className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl
                        bg-primary-500 text-white active:bg-primary-600
                        disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            aria-label="Tuma ujumbe"
+            aria-label={t('msg_send_label')}
           >
             {sending
               ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -488,8 +493,8 @@ export default function DalaliMessagesPage() {
     <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-50">
       <div className="text-center">
         <i className="ti ti-messages text-6xl text-gray-200 block mb-3" aria-hidden="true" />
-        <p className="text-gray-400 text-sm font-medium">Chagua mazungumzo kushoto</p>
-        <p className="text-xs text-gray-300 mt-1">Mazungumzo yako yataonekana hapa</p>
+        <p className="text-gray-400 text-sm font-medium">{t('msg_desktop_empty_title')}</p>
+        <p className="text-xs text-gray-300 mt-1">{t('msg_desktop_empty_sub')}</p>
       </div>
     </div>
   )
@@ -517,7 +522,7 @@ export default function DalaliMessagesPage() {
           >
             {/* Sheet header */}
             <div className="flex items-center justify-between mb-4">
-              <p className="font-bold text-gray-900">Anza Mazungumzo</p>
+              <p className="font-bold text-gray-900">{t('msg_start_btn')}</p>
               <button
                 onClick={() => { setShowNew(false); setPickedStaff(null); setNewMsg('') }}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"
@@ -529,7 +534,7 @@ export default function DalaliMessagesPage() {
             {/* Staff list */}
             {!pickedStaff ? (
               <div className="flex-1 overflow-y-auto">
-                <p className="text-xs text-gray-400 mb-3">Chagua mfanyakazi wa kuwasiliana naye:</p>
+                <p className="text-xs text-gray-400 mb-3">{t('msg_pick_staff')}</p>
                 {staffLoading ? (
                   <div className="space-y-2">
                     {[1,2,3].map(i => (
@@ -540,19 +545,23 @@ export default function DalaliMessagesPage() {
                     ))}
                   </div>
                 ) : staffContacts.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-8">Hakuna wafanyakazi wanaopatikana</p>
+                  <p className="text-sm text-gray-400 text-center py-8">{t('msg_no_staff')}</p>
                 ) : (
                   <div className="space-y-1">
-                    {staffContacts.map((s) => (
+                    {staffContacts.map((sc) => (
                       <button
-                        key={s.id}
-                        onClick={() => setPickedStaff(s)}
+                        key={sc.id}
+                        onClick={() => setPickedStaff(sc)}
                         className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 text-left transition-colors"
                       >
-                        <Avatar src={s.avatar_url} name={s.full_name} size={10} />
+                        <Avatar src={sc.avatar_url} name={sc.full_name} size={10} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{s.full_name ?? 'Mfanyakazi'}</p>
-                          <p className="text-xs text-gray-400 capitalize">{s.role === 'admin' ? 'Msimamizi' : 'Mfanyakazi'}</p>
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {sc.full_name ?? t('msg_staff_anon')}
+                          </p>
+                          <p className="text-xs text-gray-400 capitalize">
+                            {sc.role === 'admin' ? t('msg_role_admin') : t('msg_role_staff')}
+                          </p>
                         </div>
                         <i className="ti ti-chevron-right text-gray-300 flex-shrink-0" aria-hidden="true" />
                       </button>
@@ -568,19 +577,21 @@ export default function DalaliMessagesPage() {
                   className="flex items-center gap-2 text-xs text-primary-600 font-medium -mt-1"
                 >
                   <i className="ti ti-arrow-left text-sm" aria-hidden="true" />
-                  Badilisha mtu
+                  {t('msg_change_person')}
                 </button>
                 <div className="flex items-center gap-3 px-3 py-3 bg-primary-50 rounded-xl">
                   <Avatar src={pickedStaff.avatar_url} name={pickedStaff.full_name} size={9} />
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{pickedStaff.full_name}</p>
-                    <p className="text-xs text-gray-400">{pickedStaff.role === 'admin' ? 'Msimamizi' : 'Mfanyakazi'}</p>
+                    <p className="text-xs text-gray-400">
+                      {pickedStaff.role === 'admin' ? t('msg_role_admin') : t('msg_role_staff')}
+                    </p>
                   </div>
                 </div>
                 <textarea
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-300 placeholder-gray-400"
                   rows={3}
-                  placeholder="Andika ujumbe wako wa kwanza..."
+                  placeholder={t('msg_first_msg_ph')}
                   value={newMsg}
                   onChange={(e) => setNewMsg(e.target.value)}
                 />
@@ -591,7 +602,7 @@ export default function DalaliMessagesPage() {
                 >
                   {creating
                     ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    : <><i className="ti ti-send text-sm" aria-hidden="true" />Tuma Ujumbe</>
+                    : <><i className="ti ti-send text-sm" aria-hidden="true" />{t('msg_send_new_btn')}</>
                   }
                 </button>
               </div>

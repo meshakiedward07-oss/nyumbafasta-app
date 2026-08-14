@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
   const { email, business_name } = await req.json() as { email?: string; business_name?: string }
   if (!email) return NextResponse.json({ error: 'email required' }, { status: 400 })
 
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
   // Check if auth account already exists
   const { data: { users } } = await adminClient.auth.admin.listUsers({ perPage: 1000 })

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function AdvertisingError({
   error,
@@ -9,6 +10,7 @@ export default function AdvertisingError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const { t } = useLanguage()
   useEffect(() => {
     console.error('Advertising error:', error)
   }, [error])
@@ -19,9 +21,9 @@ export default function AdvertisingError({
         <div className="text-5xl mb-4 flex justify-center">
           <i className="ti ti-speakerphone text-gray-300" aria-hidden="true" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Hitilafu imetokea</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">{t('common_error_occurred')}</h2>
         <p className="text-sm text-gray-500 mb-1">
-          {error.message || 'Kuna tatizo kwenye ukurasa huu'}
+          {error.message || t('common_page_error')}
         </p>
         {error.digest && (
           <p className="text-xs text-gray-400 mb-4 font-mono">ID: {error.digest}</p>
@@ -31,11 +33,11 @@ export default function AdvertisingError({
             onClick={reset}
             className="px-5 py-2.5 bg-primary-500 text-white rounded-xl font-semibold text-sm"
           >
-            Jaribu tena
+            {t('common_retry')}
           </button>
           <Link href="/advertising/dashboard">
             <button className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm">
-              Dashboard
+              {t('common_dashboard')}
             </button>
           </Link>
         </div>

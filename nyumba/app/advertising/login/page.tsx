@@ -4,10 +4,12 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 function LoginForm() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/advertising/dashboard'
+  const { t } = useLanguage()
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -31,7 +33,7 @@ function LoginForm() {
           redirectTo: `${window.location.origin}/auth/callback?redirect=/account/change-password`,
         }),
       })
-      if (!res.ok) { setError('Haikufanikiwa kutuma. Jaribu tena.') }
+      if (!res.ok) { setError(t('adv_send_failed')) }
       else setForgotSent(true)
       setLoading(false)
       return
@@ -39,7 +41,7 @@ function LoginForm() {
 
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     if (signInError) {
-      setError('Barua pepe au nywila si sahihi.')
+      setError(t('adv_invalid_credentials'))
       setLoading(false); return
     }
     let meData: { advertiser?: { status?: string } } = {}
@@ -48,13 +50,13 @@ function LoginForm() {
       if (!res.ok) {
         const d = await res.json().catch(() => ({})) as { error?: string }
         await supabase.auth.signOut()
-        setError(d.error ?? 'Akaunti ya mfanyabiashara haikupatikana. Jiandikishe kwanza.')
+        setError(d.error ?? t('adv_no_advertiser'))
         setLoading(false); return
       }
       meData = await res.json()
     } catch {
       await supabase.auth.signOut()
-      setError('Hitilafu ya mtandao. Jaribu tena.')
+      setError(t('adv_network_error'))
       setLoading(false); return
     }
 
@@ -67,8 +69,8 @@ function LoginForm() {
       await supabase.auth.signOut()
       setError(
         status === 'rejected'
-          ? 'Akaunti yako ilikataliwa. Wasiliana na msimamizi.'
-          : 'Akaunti yako imesimamishwa. Wasiliana na msimamizi.'
+          ? t('adv_account_rejected')
+          : t('adv_account_suspended')
       )
       setLoading(false); return
     }
@@ -80,15 +82,15 @@ function LoginForm() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 w-full max-w-sm p-7 text-center">
           <div className="text-5xl mb-4">📧</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Angalia Barua Pepe Yako</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">{t('adv_check_email_title')}</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Tumekutumia kiungo cha kubadilisha nywila kwenye <strong>{email}</strong>.
+            {t('adv_check_email_desc')} <strong>{email}</strong>.
           </p>
           <button
             onClick={() => { setForgotMode(false); setForgotSent(false) }}
             className="text-primary-600 font-medium text-sm hover:underline"
           >
-            ← Rudi Kuingia
+            {t('adv_back_to_login')}
           </button>
         </div>
       </div>
@@ -103,7 +105,7 @@ function LoginForm() {
           <Image src="/transparent_logo_nyumbafasta.png" alt="NyumbaFasta" width={28} height={28} className="object-contain" />
           <span className="font-bold text-base">NyumbaFasta</span>
         </div>
-        <p className="text-xs text-primary-200">Jukwaa la Matangazo ya Biashara</p>
+        <p className="text-xs text-primary-200">{t('adv_ads_platform')}</p>
       </div>
 
       <div className="flex-1 flex items-start justify-center pt-8 px-4 pb-12">
@@ -111,12 +113,10 @@ function LoginForm() {
 
           <div className="mb-6">
             <h1 className="text-xl font-bold text-gray-800">
-              {forgotMode ? 'Umesahau Nywila?' : 'Ingia kwa Akaunti'}
+              {forgotMode ? t('adv_forgot_title') : t('adv_login_title')}
             </h1>
             <p className="text-sm text-gray-500 mt-1">
-              {forgotMode
-                ? 'Tutakutumia kiungo cha kubadilisha nywila'
-                : 'Simamia matangazo ya biashara yako'}
+              {forgotMode ? t('adv_forgot_subtitle') : t('adv_login_subtitle')}
             </p>
           </div>
 
@@ -129,7 +129,7 @@ function LoginForm() {
 
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Barua pepe</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('adv_email_label')}</label>
               <input
                 required type="email" value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -141,7 +141,7 @@ function LoginForm() {
 
             {!forgotMode && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nywila</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('adv_password_label')}</label>
                 <div className="relative">
                   <input
                     required type={showPw ? 'text' : 'password'} value={password}
@@ -155,7 +155,7 @@ function LoginForm() {
                     onClick={() => setShowPw(v => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs min-w-[44px] min-h-[44px] flex items-center justify-center"
                   >
-                    {showPw ? 'Ficha' : 'Onyesha'}
+                    {showPw ? t('adv_hide') : t('adv_show')}
                   </button>
                 </div>
                 <div className="text-right mt-1.5">
@@ -164,7 +164,7 @@ function LoginForm() {
                     onClick={() => { setForgotMode(true); setError('') }}
                     className="text-xs text-primary-600 hover:underline"
                   >
-                    Umesahau nywila?
+                    {t('adv_forgot_link')}
                   </button>
                 </div>
               </div>
@@ -175,8 +175,8 @@ function LoginForm() {
               className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-bold hover:bg-primary-600 transition disabled:opacity-50 mt-1"
             >
               {loading
-                ? (forgotMode ? 'Inatuma...' : 'Inaingia...')
-                : (forgotMode ? 'Tuma Kiungo' : 'Ingia →')
+                ? (forgotMode ? t('adv_sending_link') : t('adv_logging_in'))
+                : (forgotMode ? t('adv_send_link') : t('adv_login_btn'))
               }
             </button>
           </form>
@@ -187,14 +187,14 @@ function LoginForm() {
                 onClick={() => { setForgotMode(false); setError('') }}
                 className="text-primary-600 font-medium hover:underline"
               >
-                ← Rudi kuingia
+                {t('adv_back_to_login')}
               </button>
             </p>
           ) : (
             <p className="text-center text-sm text-gray-500 mt-5">
-              Bado hujasajili?{' '}
+              {t('adv_no_account')}{' '}
               <Link href="/advertising/register" className="text-primary-600 font-semibold hover:underline">
-                Unda akaunti bure →
+                {t('adv_create_account')}
               </Link>
             </p>
           )}

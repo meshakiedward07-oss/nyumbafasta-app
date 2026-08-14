@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/PaymentMethodSelector'
 import type { PaymentMethod } from '@/components/payments/PaymentMethodSelector'
+import { useLanguage } from '@/lib/i18n/context'
 
 type BoostStep = 'select_package' | 'select_payment' | 'mobile_phone' | 'processing' | 'waiting' | 'success'
 
@@ -28,6 +29,7 @@ function fmt(n: number) { return n.toLocaleString() }
 export default function BoostModal({
   listingId, listingTitle, boostedUntil, onClose, onBoosted,
 }: Props) {
+  const { t } = useLanguage()
   const [boostStep,         setBoostStep]         = useState<BoostStep>('select_package')
   const [selectedWeeks,     setSelectedWeeks]     = useState<1 | 2 | 4>(1)
   const [selectedMethod,    setSelectedMethod]    = useState<PaymentMethod | null>(null)
@@ -58,7 +60,7 @@ export default function BoostModal({
           setBoostStep('success')
         } else if (data.status === 'failed') {
           stopPolling()
-          setError('Malipo hayakufanikiwa. Jaribu tena.')
+          setError(t('boost_payment_failed'))
           setBoostStep('select_payment')
         }
       } catch {
@@ -74,7 +76,7 @@ export default function BoostModal({
       setSecondsLeft(s => {
         if (s <= 1) {
           stopPolling()
-          setError('Muda umeisha. Jaribu tena.')
+          setError(t('boost_timeout'))
           setBoostStep('select_payment')
           return 0
         }
@@ -132,7 +134,7 @@ export default function BoostModal({
 
   function handlePhoneSubmit() {
     if (!validatePhone(phoneNumber)) {
-      setPhoneError('Nambari si sahihi — ingiza nambari ya Tanzania (mfano: 0754 XXX XXX)')
+      setPhoneError(t('boost_phone_invalid'))
       return
     }
     setPhoneError('')
@@ -191,7 +193,7 @@ export default function BoostModal({
                 <i className="ti ti-rocket text-xl" aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-gray-900">Boost Listing Yako</h3>
+                <h3 className="text-base font-bold text-gray-900">{t('boost_title')}</h3>
                 <p className="text-xs text-gray-500 truncate">{listingTitle}</p>
               </div>
               <button aria-label="Funga" onClick={onClose} className="text-gray-400 text-xl leading-none min-h-[44px] min-w-[44px] flex items-center justify-center"><i className="ti ti-x" aria-hidden="true" /></button>
@@ -201,18 +203,18 @@ export default function BoostModal({
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-4">
                 <div className="flex items-center gap-2 mb-1">
                   <i className="ti ti-bolt text-base" aria-hidden="true" />
-                  <p className="text-xs font-semibold text-yellow-800">Imeboostwa tayari</p>
+                  <p className="text-xs font-semibold text-yellow-800">{t('boost_already_active')}</p>
                 </div>
                 <p className="text-xs text-yellow-600 mb-1" suppressHydrationWarning>
-                  Inaisha: {boostedUntilDate!.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {t('boost_expires')} {boostedUntilDate!.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
                 <p className="text-xs text-yellow-700 font-medium">
-                  Boost mpya itaongeza muda kutoka tarehe ya mwisho ya boost iliyopo.
+                  {t('boost_extend_notice')}
                 </p>
               </div>
             )}
 
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Chagua Muda</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{t('boost_choose_duration')}</p>
             <div className="space-y-2 mb-4">
               {WEEK_OPTIONS.map(opt => (
                 <button
@@ -239,31 +241,28 @@ export default function BoostModal({
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-gray-900">Tsh {fmt(opt.price)}</p>
-                    <p className="text-xs text-gray-400">Tsh {fmt(Math.round(opt.price / opt.weeks))} / wiki</p>
+                    <p className="text-xs text-gray-400">Tsh {fmt(Math.round(opt.price / opt.weeks))} {t('boost_per_week')}</p>
                   </div>
                 </button>
               ))}
             </div>
 
             <div className="bg-primary-50 rounded-2xl p-4 mb-4">
-              <p className="text-xs font-bold text-primary-800 mb-2">Faida za Boost</p>
+              <p className="text-xs font-bold text-primary-800 mb-2">{t('boost_benefits_title')}</p>
               <div className="space-y-1.5">
-                {[
-                  'Inaonekana JUU ya listings zote',
-                  'Badge ya Inashauriwa inayovutia',
-                  'Wateja wengi zaidi wanakuona',
-                  'Maombi zaidi kutoka kwa wateja wanaotafuta',
-                ].map(b => (
-                  <div key={b} className="flex items-center gap-2">
+                {([
+                  'boost_ben1', 'boost_ben2', 'boost_ben3', 'boost_ben4',
+                ] as const).map(key => (
+                  <div key={key} className="flex items-center gap-2">
                     <i className="ti ti-check text-primary-500 text-xs" aria-hidden="true" />
-                    <p className="text-xs text-primary-700">{b}</p>
+                    <p className="text-xs text-primary-700">{t(key)}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="flex justify-between items-center py-3 border-t border-gray-100 mb-4">
-              <p className="text-sm font-semibold text-gray-700">Jumla ya Kulipa</p>
+              <p className="text-sm font-semibold text-gray-700">{t('boost_total')}</p>
               <p className="text-lg font-bold text-gray-900">Tsh {fmt(amount)}</p>
             </div>
 
@@ -274,10 +273,10 @@ export default function BoostModal({
                          flex items-center justify-center gap-2"
             >
               <i className="ti ti-rocket" aria-hidden="true" />
-              Endelea → Lipa Tsh {fmt(amount)}
+              {t('boost_continue_pay')} Tsh {fmt(amount)}
             </button>
             <button onClick={onClose} className="w-full py-3 text-sm text-gray-400 mt-2">
-              Ghairi
+              {t('common_cancel')}
             </button>
           </div>
         )}
@@ -289,11 +288,11 @@ export default function BoostModal({
               onClick={() => setBoostStep('select_package')}
               className="flex items-center gap-1 text-sm text-gray-500 mb-4 active:opacity-70"
             >
-              ← Rudi
+              ← {t('common_back')}
             </button>
-            <h3 className="font-bold text-base text-gray-900 mb-1 flex items-center gap-1"><i className="ti ti-credit-card" aria-hidden="true" />Chagua Njia ya Kulipa</h3>
+            <h3 className="font-bold text-base text-gray-900 mb-1 flex items-center gap-1"><i className="ti ti-credit-card" aria-hidden="true" />{t('boost_choose_payment')}</h3>
             <p className="text-gray-400 text-sm mb-4">
-              Jumla: <span className="font-semibold text-gray-700">Tsh {fmt(amount)}</span>
+              {t('boost_total_label')} <span className="font-semibold text-gray-700">Tsh {fmt(amount)}</span>
             </p>
 
             {error && (
@@ -310,7 +309,7 @@ export default function BoostModal({
             />
 
             <button onClick={onClose} className="w-full py-3 text-sm text-gray-400 mt-3">
-              Ghairi
+              {t('common_cancel')}
             </button>
           </div>
         )}
@@ -322,7 +321,7 @@ export default function BoostModal({
               onClick={() => setBoostStep('select_payment')}
               className="flex items-center gap-1 text-sm text-gray-500 mb-4 active:opacity-70"
             >
-              ← Rudi
+              ← {t('common_back')}
             </button>
 
             <div className="flex items-center gap-2 mb-4">
@@ -330,7 +329,7 @@ export default function BoostModal({
                 <Image src={providerInfo.iconSrc} alt={providerInfo.iconAlt} width={48} height={24} className="h-6 w-auto object-contain" />
               )}
               <div>
-                <h3 className="font-bold text-base text-gray-900 flex items-center gap-1"><i className="ti ti-device-mobile" aria-hidden="true" />Nambari ya Simu</h3>
+                <h3 className="font-bold text-base text-gray-900 flex items-center gap-1"><i className="ti ti-device-mobile" aria-hidden="true" />{t('boost_phone_title')}</h3>
                 <p className="text-xs text-gray-400">
                   {providerInfo?.name ?? 'Mobile Money'} · Tsh {fmt(amount)}
                 </p>
@@ -378,7 +377,7 @@ export default function BoostModal({
 
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4">
               <p className="text-blue-700 text-xs">
-                ℹ️ Utapata ombi la PIN kwenye simu yako — ingiza PIN kukamilisha malipo ya{' '}
+                ℹ️ {t('boost_pin_hint')}{' '}
                 <span className="font-semibold">Tsh {fmt(amount)}</span>
               </p>
             </div>
@@ -394,10 +393,10 @@ export default function BoostModal({
                   : '#9CA3AF'
               }}
             >
-              Endelea → Ingiza PIN Kwenye Simu
+              {t('boost_enter_pin_btn')}
             </button>
             <button onClick={onClose} className="w-full py-3 text-sm text-gray-400 mt-2">
-              Ghairi
+              {t('common_cancel')}
             </button>
           </div>
         )}
@@ -407,8 +406,8 @@ export default function BoostModal({
           <div className="text-center py-14">
             <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full
                             animate-spin mx-auto mb-5" />
-            <p className="font-semibold text-lg text-gray-900">⏳ Inawasiliana na AzamPay...</p>
-            <p className="text-gray-400 text-sm mt-1">Tafadhali subiri</p>
+            <p className="font-semibold text-lg text-gray-900">{t('boost_processing')}</p>
+            <p className="text-gray-400 text-sm mt-1">{t('boost_please_wait')}</p>
           </div>
         )}
 
@@ -419,17 +418,17 @@ export default function BoostModal({
                             animate-spin mx-auto mb-5" />
             <div className="inline-flex items-center gap-1.5 bg-green-50 border border-green-100
                             text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-              <i className="ti ti-circle-check" aria-hidden="true" /> Subiri USSD popup kwenye simu yako
+              <i className="ti ti-circle-check" aria-hidden="true" /> {t('boost_wait_ussd')}
             </div>
             <p className="text-gray-500 text-sm mb-1">
-              Ingiza PIN yako ya {providerInfo?.name ?? 'mobile money'} kukamilisha malipo
+              {t('boost_enter_pin_for')} {providerInfo?.name ?? 'mobile money'} {t('boost_complete_payment')}
             </p>
             <p className="text-gray-400 text-xs mb-6">
-              Tsh {fmt(amount)} · Inakagua kiotomatiki...
+              Tsh {fmt(amount)} · {t('boost_auto_checking')}
             </p>
             <div className="bg-gray-50 rounded-2xl p-3 mb-4">
               <p className="text-gray-400 text-xs">
-                Muda uliobaki: <span className="font-semibold text-gray-600">{secondsLeft}s</span>
+                {t('boost_time_left')} <span className="font-semibold text-gray-600">{secondsLeft}s</span>
               </p>
             </div>
             {error && (
@@ -444,11 +443,11 @@ export default function BoostModal({
         {boostStep === 'success' && (
           <div className="text-center py-8">
             <div className="text-6xl mb-4 flex justify-center"><i className="ti ti-rocket text-primary-500" aria-hidden="true" /></div>
-            <h3 className="font-bold text-xl text-gray-900 mb-2">Listing Imeboostwa!</h3>
-            <p className="text-gray-500 text-sm mb-1">Listing yako itaonekana juu ya wote</p>
+            <h3 className="font-bold text-xl text-gray-900 mb-2">{t('boost_success_title')}</h3>
+            <p className="text-gray-500 text-sm mb-1">{t('boost_success_sub')}</p>
             {finalBoostedUntil && (
               <p className="text-gray-400 text-xs mb-6" suppressHydrationWarning>
-                Hadi: {new Date(finalBoostedUntil).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {t('boost_until')} {new Date(finalBoostedUntil).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
             )}
             <button
@@ -456,7 +455,7 @@ export default function BoostModal({
               className="w-full bg-yellow-400 text-gray-900 py-3 rounded-2xl font-bold
                          active:scale-[0.97] transition-transform"
             >
-              Sawa, Asante!
+              {t('boost_ok_thanks')}
             </button>
           </div>
         )}

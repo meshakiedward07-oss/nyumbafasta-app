@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react'
 import Image from 'next/image'
 import type { Listing } from '@/lib/types/database'
+import { useLanguage } from '@/lib/i18n/context'
 
 async function uploadToCloudinary(file: File): Promise<string> {
   const fd = new FormData()
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
+  const { t } = useLanguage()
   const [price,    setPrice]    = useState(String(listing.price_monthly))
   const [images,   setImages]   = useState<string[]>(listing.images ?? [])
   const [saving,   setSaving]   = useState(false)
@@ -39,7 +41,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
       const urls = await Promise.all(files.map(uploadToCloudinary))
       setImages(prev => [...prev, ...urls])
     } catch {
-      setError('Baadhi ya picha hazikupakiwa. Jaribu tena.')
+      setError(t('qe_upload_failed'))
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
@@ -55,7 +57,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
     setError('')
     const priceNum = parseInt(price, 10)
     if (!Number.isFinite(priceNum) || priceNum < 10000) {
-      setError('Bei si sahihi — kodi ya chini kabisa ni Tsh 10,000/mwezi')
+      setError(t('qe_price_invalid'))
       return
     }
 
@@ -103,7 +105,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
 
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900"><i className="ti ti-bolt" aria-hidden="true" /> Update Haraka</h2>
+          <h2 className="font-bold text-gray-900"><i className="ti ti-bolt" aria-hidden="true" /> {t('qe_title')}</h2>
           <button
             onClick={onClose}
             aria-label="Funga"
@@ -129,7 +131,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
           {/* Price */}
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-              Bei ya Kodi (Tsh / mwezi)
+              {t('qe_price_label')}
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">Tsh</span>
@@ -149,7 +151,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
           {isMulti && (
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
-                Wapangaji wa Sasa ({listing.total_capacity} nafasi)
+                {t('qe_tenants_label')} ({listing.total_capacity} {t('qe_slots')})
               </label>
               <div className="flex items-center gap-4">
                 <button
@@ -171,7 +173,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
               </div>
               {occupancy >= listing.total_capacity && (
                 <p className="text-xs text-amber-600 mt-1.5 text-center">
-                  Imejaa — listing itafungwa automatically
+                  {t('qe_full_auto_close')}
                 </p>
               )}
             </div>
@@ -181,7 +183,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Picha ({images.length}/10)
+                {t('qe_photos_label')} ({images.length}/10)
               </label>
               {images.length < 10 && (
                 <button
@@ -189,7 +191,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
                   disabled={uploading}
                   className="text-xs text-primary-600 font-medium bg-primary-50 px-3 py-1 rounded-full disabled:opacity-50"
                 >
-                  {uploading ? 'Inapakia...' : '+ Ongeza'}
+                  {uploading ? t('qe_uploading') : `+ ${t('common_add')}`}
                 </button>
               )}
             </div>
@@ -210,7 +212,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
                            flex flex-col items-center justify-center gap-1 text-gray-400"
               >
                 <i className="ti ti-camera text-2xl text-gray-400" aria-hidden="true" />
-                <span className="text-xs">Bonyeza kupakia picha</span>
+                <span className="text-xs">{t('qe_click_upload')}</span>
               </button>
             ) : (
               <div className="grid grid-cols-4 gap-2">
@@ -231,7 +233,7 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
                     )}
                     {i === 0 && (
                       <div className="absolute bottom-0 left-0 right-0 bg-primary-500/80 text-white text-[9px] text-center py-0.5">
-                        Kuu
+                        {t('qe_main_photo')}
                       </div>
                     )}
                     <button
@@ -270,9 +272,9 @@ export default function QuickEditModal({ listing, onClose, onSaved }: Props) {
             {saving ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Inahifadhi...
+                {t('qe_saving')}
               </span>
-            ) : 'Hifadhi Mabadiliko'}
+            ) : t('qe_save_btn')}
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 // ── Helpers ───────────────────────────────────────────────
 const amenityEmoji: Record<string, string> = {
@@ -101,6 +102,7 @@ interface Props {
 }
 
 export default function ShareButton({ listing, variant = 'detail', className = '' }: Props) {
+  const { t } = useLanguage()
   const [copied, setCopied]   = useState(false)
   const [shared, setShared]   = useState(false)
 
@@ -160,8 +162,8 @@ export default function ShareButton({ listing, variant = 'detail', className = '
     return (
       <button
         onClick={doShare}
-        aria-label="Shiriki listing hii"
-        title="Shiriki listing hii"
+        aria-label={t('cl_share_aria')}
+        title={t('cl_share_aria')}
         className={`flex items-center justify-center w-11 h-11 rounded-full
                     bg-white/90 text-green-600 shadow-sm
                     hover:bg-green-50 active:scale-90 transition-all ${className}`}
@@ -181,8 +183,8 @@ export default function ShareButton({ listing, variant = 'detail', className = '
                     active:scale-[0.97] transition-all ${className}`}
       >
         {shared
-          ? 'Imeshirikiwa!'
-          : <><ShareIcon size={11} /> Shiriki</>
+          ? t('cl_shared')
+          : <><ShareIcon size={11} /> {t('cl_share')}</>
         }
       </button>
     )
@@ -198,7 +200,7 @@ export default function ShareButton({ listing, variant = 'detail', className = '
                    hover:bg-[#1ebe59] active:scale-[0.98] transition-all"
       >
         <WhatsAppIcon size={18} />
-        {shared ? 'Imeshirikiwa!' : 'Shiriki kwenye WhatsApp'}
+        {shared ? t('cl_shared') : t('cl_share_whatsapp')}
       </button>
       <button
         onClick={doCopy}
@@ -206,7 +208,7 @@ export default function ShareButton({ listing, variant = 'detail', className = '
                    bg-gray-100 text-gray-700 font-medium text-sm
                    hover:bg-gray-200 active:scale-[0.98] transition-all"
       >
-        {copied ? <><i className="ti ti-circle-check" aria-hidden="true" /> Link imenakiliwa!</> : <><i className="ti ti-link" aria-hidden="true" /> Nakili Link</>}
+        {copied ? <><i className="ti ti-circle-check" aria-hidden="true" /> {t('cl_link_copied')}</> : <><i className="ti ti-link" aria-hidden="true" /> {t('cl_copy_link')}</>}
       </button>
     </div>
   )

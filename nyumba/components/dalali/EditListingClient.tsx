@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 import dynamic from 'next/dynamic'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
 import type { LocationData } from '@/components/maps/ListingLocationPicker'
@@ -76,6 +77,7 @@ function StepBar({ current, total }: { current: number; total: number }) {
 }
 
 export default function EditListingClient({ listing }: { listing: ListingData }) {
+  const { t } = useLanguage()
   const router = useRouter()
 
   const [step, setStep] = useState(0)
@@ -181,7 +183,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
     true,
   ][step]
 
-  const stepTitles = ['Maelezo', 'Mahali', 'Huduma', 'Picha & Kagua']
+  const stepTitles = [t('edit_step_details'), t('edit_step_location'), t('edit_step_amenities'), t('edit_step_photos')]
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
@@ -192,12 +194,12 @@ export default function EditListingClient({ listing }: { listing: ListingData })
           <button onClick={() => step === 0 ? router.back() : setStep(s => s - 1)}
             className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600">←</button>
           <div className="flex-1">
-            <h1 className="text-sm font-bold text-gray-900">Hariri Listing</h1>
-            <p className="text-xs text-gray-400">Hatua {step + 1} ya 4 — {stepTitles[step]}</p>
+            <h1 className="text-sm font-bold text-gray-900">{t('edit_title')}</h1>
+            <p className="text-xs text-gray-400">{t('edit_step_of').replace('{{n}}', String(step + 1))}{stepTitles[step]}</p>
           </div>
           {listing.status === 'active' && (
             <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-              <i className="ti ti-alert-triangle" aria-hidden="true" /> Itasubiri idhini tena
+              <i className="ti ti-alert-triangle" aria-hidden="true" /> {t('edit_pending_again')}
             </span>
           )}
         </div>
@@ -213,7 +215,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
         {step === 0 && (
           <>
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">Aina ya Nyumba</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">{t('edit_listing_type')}</label>
               <div className="grid grid-cols-2 gap-2">
                 {LISTING_TYPES.map((t, i) => (
                   <button key={t.value} onClick={() => setType(t.value)}
@@ -230,7 +232,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
 
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Bei (Tsh / mwezi) *</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('edit_price_label')}</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">Tsh</span>
                   <input type="number" inputMode="numeric" min="0" value={price} onChange={e => setPrice(e.target.value)}
@@ -239,25 +241,25 @@ export default function EditListingClient({ listing }: { listing: ListingData })
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Vyumba</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('edit_rooms_label')}</label>
                   <select value={bedrooms} onChange={e => setBedrooms(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                    <option value="">Si lazima</option>
-                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>Vyumba {n}</option>)}
+                    <option value="">{t('edit_optional')}</option>
+                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{t('edit_rooms_n')} {n}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Samani</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('edit_furnished_label')}</label>
                   <select value={furnished} onChange={e => setFurnished(e.target.value as Furnished)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                    <option value="empty">Bila Samani</option>
-                    <option value="semi">Nusu Samani</option>
-                    <option value="furnished">Ina Samani</option>
+                    <option value="empty">{t('edit_furnished_empty')}</option>
+                    <option value="semi">{t('edit_furnished_semi')}</option>
+                    <option value="furnished">{t('edit_furnished_yes')}</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Maelezo</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('edit_desc_label')}</label>
                 <textarea rows={3} value={description} onChange={e => setDescription(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
               </div>
@@ -274,14 +276,14 @@ export default function EditListingClient({ listing }: { listing: ListingData })
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Mkoa *</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('edit_region_label')}</label>
                 <select value={region} onChange={e => setRegion(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
                   {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Mtaa / Wilaya *</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">{t('edit_district_label')}</label>
                 <input type="text" value={district} onChange={e => setDistrict(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300" />
               </div>
@@ -290,7 +292,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
             {/* Satellite location picker */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                <i className="ti ti-map-pin" aria-hidden="true" /> Pin ya Ramani (hiari)
+                <i className="ti ti-map-pin" aria-hidden="true" /> {t('edit_map_pin')}
               </label>
               <ListingLocationPicker
                 initialLocation={
@@ -308,7 +310,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
         {step === 2 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-              Huduma Zilizopo ({amenities.length} zilizochaguliwa)
+              {t('edit_amenities_sel')} ({amenities.length} {t('edit_selected')})
             </label>
             <div className="grid grid-cols-2 gap-2">
               {AMENITIES.map(a => {
@@ -333,7 +335,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
           <>
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                Picha za Nyumba
+                {t('edit_photos_label')}
               </label>
               <BulkPhotoUpload
                 existingImages={listing.images ?? []}
@@ -347,15 +349,15 @@ export default function EditListingClient({ listing }: { listing: ListingData })
 
             {/* Summary */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-2 text-sm">
-              <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />Muhtasari</h3>
+              <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />{t('edit_summary')}</h3>
               {[
-                ['Aina', LISTING_TYPES.find(t => t.value === type)?.label ?? type],
-                ['Bei', `Tsh ${parseInt(price || '0').toLocaleString()} / mwezi`],
-                ['Mahali', `${district}, ${region}`],
-                ['Huduma', `${amenities.length} zilizochaguliwa`],
-                ['Picha', `${images.length} picha`],
+                [t('edit_sum_type'), LISTING_TYPES.find(lt => lt.value === type)?.label ?? type],
+                [t('edit_sum_price'), `Tsh ${parseInt(price || '0').toLocaleString()} ${t('dash_per_month')}`],
+                [t('edit_sum_location'), `${district}, ${region}`],
+                [t('edit_sum_amenities'), `${amenities.length} ${t('edit_selected')}`],
+                [t('edit_sum_photos'), `${images.length} ${t('edit_photos_count')}`],
                 ...(commission.enabled && commission.type
-                  ? [['Komisho', formatCommission(commission.type, parseFloat(commission.value) || null)]]
+                  ? [[t('edit_sum_commission'), formatCommission(commission.type, parseFloat(commission.value) || null)]]
                   : []),
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between border-b border-gray-50 pb-1.5 last:border-0">
@@ -366,7 +368,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
             </div>
 
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
-              ℹ️ Baada ya kubadilisha, listing itapitiwa tena na admin kabla ya kuonekana.
+              ℹ️ {t('edit_review_notice')}
             </div>
           </>
         )}
@@ -377,7 +379,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
         {step < 3 ? (
           <button onClick={() => setStep(s => s + 1)} disabled={!canProceed}
             className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
-            Endelea → {stepTitles[step + 1]}
+            {t('edit_continue_to')} {stepTitles[step + 1]}
           </button>
         ) : (
           <button onClick={handleSubmit} disabled={submitting || photosUploading}
@@ -385,14 +387,14 @@ export default function EditListingClient({ listing }: { listing: ListingData })
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Inahifadhi...
+                {t('qe_saving')}
               </span>
             ) : photosUploading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Subiri picha zikamilike...
+                {t('edit_wait_photos')}
               </span>
-            ) : 'Hifadhi Mabadiliko'}
+            ) : t('qe_save_btn')}
           </button>
         )}
       </div>

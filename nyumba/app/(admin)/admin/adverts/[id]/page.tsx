@@ -204,6 +204,9 @@ export default function CampaignDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* Diagnostic panel */}
+            <DiagnosticPanel campaign={campaign} />
           </div>
 
           {/* ── RIGHT COLUMN ── */}
@@ -347,6 +350,322 @@ export default function CampaignDetailPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Diagnostic engine ─────────────────────────────────────────────────────────
+
+type Severity = 'critical' | 'warning' | 'info' | 'success'
+
+interface DiagItem {
+  id:          string
+  severity:    Severity
+  title:       string
+  explanation: string
+  solution:    string
+}
+
+function runDiagnostics(campaign: Campaign): DiagItem[] {
+  const items: DiagItem[] = []
+  const now   = new Date()
+  const pmts  = campaign.payments ?? []
+  const adv   = campaign.advertiser
+
+  // ── Advertiser account issues ──────────────────────────────────────────────
+  if (adv?.status === 'suspended') {
+    items.push({
+      id: 'adv_suspended', severity: 'critical',
+      title: 'Akaunti ya Mfanyabiashara Imesimamishwa',
+      explanation: `Akaunti ya ${adv.business_name} imesimamishwa na admin. Kampeni zake zote haziwezi kufanya kazi hadi akaunti iamilishwe tena.`,
+      solution: 'Nenda kwenye "Wafanyabiashara" → angalia sababu ya kusimamishwa → ikiwa tatizo limetatuliwa, amilisha akaunti ya mfanyabiashara kwanza, kisha urudi uamilishe kampeni hii.',
+    })
+  }
+
+  if (adv?.status === 'pending_review') {
+    items.push({
+      id: 'adv_pending', severity: 'critical',
+      title: 'Akaunti ya Mfanyabiashara Bado Haijaidhinishwa',
+      explanation: `${adv.business_name} bado hajakaguliwa na admin. Kampeni haiwezi kuendelea hadi akaunti ya mfanyabiashara ikaguliwe na kuidhinishwa kwanza.`,
+      solution: 'Nenda kwenye sehemu ya "Wafanyabiashara", tafuta mfanyabiashara huyu, kagua taarifa zake za biashara, kisha uidhinishe akaunti yake. Baada ya hapo, rudi hapa ukague kampeni hii.',
+    })
+  }
+
+  if (adv?.status === 'rejected') {
+    items.push({
+      id: 'adv_rejected', severity: 'critical',
+      title: 'Akaunti ya Mfanyabiashara Imekataliwa',
+      explanation: `Akaunti ya ${adv.business_name} ilikataliwa. Kampeni yoyote inayomilikiwa na mfanyabiashara huyu haiwezi kufanya kazi hadi wajisajili upya na wakubaliwe.`,
+      solution: 'Wasiliana na mfanyabiashara — eleza sababu ya kukataliwa na waambie wajisajili upya ikiwa tatizo limetatuliwa. Unaweza kuwafikia kwa WhatsApp au barua pepe zilizopo katika kadi ya "Mfanyabiashara" hapo juu.',
+    })
+  }
+
+  // ── Payment ↔ Status mismatches ────────────────────────────────────────────
+  if (campaign.status === 'pending_review' && campaign.payment_status === 'completed') {
+    items.push({
+      id: 'paid_unreviewed', severity: 'critical',
+      title: 'Malipo Yamekamilika — Kampeni Inasubiri Ukaguzi Wako',
+      explanation: `Mfanyabiashara amekwisha lipa kikamilifu lakini kampeni bado haijapitia ukaguzi. Hali hii inaweza kumkasirisha mfanyabiashara kwani pesa yake imeshughulikiwa lakini tangazo lake halijaingia bado. Kila siku inayopita bila kukagua ni hasara ya pesa za mfanyabiashara.`,
+      solution: 'Kagua kampeni haraka sasa. Angalia: (1) Picha ya tangazo — iko katika "Creative" hapo juu, (2) Maandishi ya tangazo na kiungo, (3) Mkoa na kategoria zilizowekwa. Ikiwa yote iko sawa, bonyeza "Idhinisha" — kampeni itaanza mara moja kwa sababu malipo yamekwisha lipa.',
+    })
+  }
+
+  if (campaign.status === 'approved' && campaign.payment_status !== 'completed') {
+    const hint = campaign.payment_status === 'failed'
+      ? 'Malipo yameshindwa — omba mfanyabiashara ajaribu tena au atumie nambari nyingine ya simu. Angalia sehemu ya "Malipo" hapo chini kwa maelezo zaidi.'
+      : campaign.payment_status === 'pending'
+        ? 'Malipo yanachakatwa — subiri dakika 5-10 kisha uburudishe ukurasa ili kuona kama hali imebadilika.'
+        : 'Mfanyabiashara bado hajalipa — tuma ukumbusho wa WhatsApp au barua pepe ukimwambia kampeni yake imeidhinishwa na anasubiriwa kulipa.'
+    items.push({
+      id: 'approved_unpaid', severity: 'warning',
+      title: 'Kampeni Imeidhinishwa — Malipo Hayajakamilika',
+      explanation: `Admin ameidhinisha kampeni lakini malipo bado hayajakamilika (hali ya malipo: "${campaign.payment_status ?? 'haijajulikana'}"). Kampeni haitaanza hadi malipo yapokelewa. Mfanyabiashara anachelewa kuanza kutangaza.`,
+      solution: hint,
+    })
+  }
+
+  if (campaign.status === 'pending_review' && campaign.payment_status !== 'completed') {
+    items.push({
+      id: 'pending_unpaid', severity: 'info',
+      title: 'Kampeni Inasubiri Ukaguzi na Malipo',
+      explanation: `Kampeni bado haijapitia ukaguzi na malipo pia hayajakamilika. Hii ni hali ya kawaida kwa kampeni mpya — mfanyabiashara anasubiri ukaguzi wa awali kabla ya kulipa.`,
+      solution: 'Kagua maudhui ya kampeni (picha, maandishi, mkoa). Ikiwa yote iko sawa, unaweza kuiidhinisha — kampeni itaanza moja kwa moja mara malipo yanapokewa. Ikiwa kuna tatizo la maudhui, ikatae sasa na ueleze sababu wazi.',
+    })
+  }
+
+  // ── Creative missing ───────────────────────────────────────────────────────
+  if (!campaign.creative_id && !campaign.image_url) {
+    items.push({
+      id: 'no_creative', severity: campaign.status === 'active' ? 'critical' : 'warning',
+      title: campaign.status === 'active'
+        ? 'Tatizo: Kampeni Inafanya Kazi Bila Picha ya Tangazo'
+        : 'Picha ya Tangazo Haijapakuliwa',
+      explanation: campaign.status === 'active'
+        ? 'Tangazo linafanya kazi lakini haina picha (creative). Wateja wanaona tangazo lisilo na muonekano mzuri, ambalo linathiri ubora wa kampeni na inaweza kupunguza ufanisi wake kwa kiasi kikubwa.'
+        : 'Kampeni haina picha ya tangazo (creative). Bila picha, tangazo haliwezi kuonyeshwa vizuri kwa wateja na linaweza kukataliwa baada ya ukaguzi.',
+      solution: 'Omba mfanyabiashara apakue picha ya tangazo kupitia akaunti yao (Dashboard → Matangazo → Hariri). Picha inapaswa: (1) Kuwa angalau 1200×628 px, (2) Chini ya 2MB, (3) Muundo wa JPG au PNG wenye ubora wa juu.',
+    })
+  }
+
+  // ── Date/expiry issues ─────────────────────────────────────────────────────
+  if (campaign.expires_at) {
+    const expiresAt = new Date(campaign.expires_at)
+    const daysLeft  = Math.ceil((expiresAt.getTime() - now.getTime()) / 86_400_000)
+
+    if (campaign.status === 'active' && daysLeft <= 3 && daysLeft > 0) {
+      items.push({
+        id: 'expiring_soon', severity: 'warning',
+        title: `Kampeni Inaisha Baada ya Siku ${daysLeft} Tu`,
+        explanation: `Tangazo hili litakwisha tarehe ${expiresAt.toLocaleDateString('sw-TZ')}. Baada ya tarehe hiyo, tangazo litaacha kuonekana kwa wateja na hali itabadilika kuwa "Imekwisha" otomatiki.`,
+        solution: `Wasiliana na mfanyabiashara leo hii. Wataarifu kwa WhatsApp au barua pepe kwamba kampeni yao inaisha baada ya siku ${daysLeft} na wanaweza kuagiza mpango mpya ili kuendelea kutangaza. Kiungo cha kuagiza ni: [akaunti yao → Matangazo → Agiza Upya].`,
+      })
+    }
+
+    if (expiresAt < now && campaign.status === 'active') {
+      items.push({
+        id: 'past_expiry_active', severity: 'critical',
+        title: 'Tatizo la Mfumo: Kampeni Imekwisha Lakini Bado Inaonyesha "Inafanya Kazi"',
+        explanation: `Tarehe ya kumalizika ilikuwa ${expiresAt.toLocaleDateString('sw-TZ')} lakini hali ya kampeni bado ni "active". Hii inamaanisha cron job haikutekelezwa kwa wakati, au kuna tatizo la mfumo. Mfanyabiashara anaweza kufikiri bado anapata huduma lakini kwa kweli kampeni inahitaji kusasishwa.`,
+        solution: 'Hatua mbili zinazohitajika: (1) Badilisha hali ya kampeni hii kuwa "Expired" moja kwa moja kwa kutumia API ya admin, (2) Nenda Admin → Crons na angalia cron ya "expire_ad_campaigns" kuhakikisha inafanya kazi vizuri kwa kampeni nyingine pia.',
+      })
+    }
+  }
+
+  if (!campaign.starts_at && campaign.status === 'active') {
+    items.push({
+      id: 'active_no_start', severity: 'warning',
+      title: 'Kampeni Iko Active Bila Tarehe ya Kuanza Iliyorekodiwa',
+      explanation: 'Kampeni inafanya kazi lakini tarehe ya kuanza haijawekwa katika mfumo. Hii inafanya iwe vigumu kufuatilia muda kamili wa kampeni na kuhesabu siku zilizobaki.',
+      solution: 'Angalia rekodi za malipo hapo chini — tarehe ya malipo yaliyofanikiwa ndiyo tarehe ya kuanza. Weka tarehe hiyo katika rekodi ya kampeni ili takwimu za kampeni ziwe sahihi.',
+    })
+  }
+
+  // ── Payment issues ─────────────────────────────────────────────────────────
+  const failedPmts    = pmts.filter(p => p.status === 'failed')
+  const pendingPmts   = pmts.filter(p => p.status === 'pending')
+  const completedPmts = pmts.filter(p => p.status === 'completed')
+
+  if (failedPmts.length > 0 && completedPmts.length === 0) {
+    items.push({
+      id: 'payment_failed', severity: 'critical',
+      title: `Malipo Yameshindwa — Majaribio ${failedPmts.length}`,
+      explanation: `Mfanyabiashara amejaribu kulipa mara ${failedPmts.length} kupitia ${failedPmts[0].provider} lakini majaribio yote yameshindwa. Mfanyabiashara hawezi kuendelea na kampeni yake hadi tatizo la malipo litatuliwe. Kila siku inayopita ni msongo wa mawazo kwa mfanyabiashara.`,
+      solution: 'Wasiliana na mfanyabiashara haraka sana. Waambie: (1) Hakikisha pesa ya kutosha ipo kwenye akaunti ya simu — kiasi kinachohitajika ni Tsh ' + (campaign.plan?.price_tzs ?? 0).toLocaleString() + ', (2) Jaribu nambari nyingine ya simu ya mtandao tofauti, (3) Ikiwa tatizo linaendelea, wasiliana na timu ya usaidizi wa ' + failedPmts[0].provider + ' moja kwa moja.',
+    })
+  }
+
+  if (pendingPmts.length > 0 && completedPmts.length === 0) {
+    items.push({
+      id: 'payment_pending', severity: 'warning',
+      title: 'Malipo Yako Katika Hali ya Kusubiri Uthibitisho',
+      explanation: `Kuna malipo yanayosubiri kuthibitishwa kupitia ${pendingPmts[0].provider}. Kawaida huchukua dakika 1-5 kupata uthibitisho. Ikiwa imechukua zaidi ya dakika 15, inaweza kuwa tatizo la webhook au API ya malipo haiisiliani na mfumo wetu vizuri.`,
+      solution: 'Subiri dakika 5-10 kisha uburudishe ukurasa huu. Ikiwa hali haibadiliki, angalia logs za webhook katika Admin → Crons au seva logs. Unaweza pia kumuuliza mfanyabiashara kama walipokea ombi la malipo (pop-up) kwenye simu yao na kama walikubali au kukataa.',
+    })
+  }
+
+  if (pmts.length === 0 && !['rejected', 'expired'].includes(campaign.status)) {
+    items.push({
+      id: 'no_payment', severity: 'info',
+      title: 'Hakuna Jaribio la Malipo Bado',
+      explanation: campaign.status === 'approved'
+        ? 'Kampeni imeidhinishwa lakini mfanyabiashara bado hajajaribu kulipa. Kampeni haionekani kwa wateja. Inawezekana hawakupata taarifa ya kuidhinishwa, au wanasubiri kitu fulani.'
+        : 'Kampeni bado haijapitia ukaguzi na malipo pia hayajaanza. Hii ni hali ya kawaida kabisa kwa kampeni mpya inayosubiri ukaguzi wa awali.',
+      solution: campaign.status === 'approved'
+        ? 'Tuma ukumbusho kwa mfanyabiashara sasa hivi kwa WhatsApp au barua pepe. Ujumbe: "Kampeni yako ya [jina] imeidhinishwa! Lipa sasa kupitia akaunti yako ili ianze kuonekana kwa wateja." Angalia mawasiliano yao katika kadi ya Mfanyabiashara hapo juu.'
+        : 'Hakuna hatua zinazohitajika sasa. Mfanyabiashara atalipa baada ya kampeni kupitiwa na kuidhinishwa.',
+    })
+  }
+
+  // ── Suspended campaign ─────────────────────────────────────────────────────
+  if (campaign.status === 'suspended') {
+    items.push({
+      id: 'suspended', severity: 'warning',
+      title: 'Kampeni Imesimamishwa — Haionekani kwa Wateja',
+      explanation: `Kampeni imesimamishwa${campaign.admin_note ? ` kwa sababu hii iliyowekwa na admin: "${campaign.admin_note}"` : ' (sababu haikurekodiwa)'}. Tangazo halikuonekani kwa wateja wakati wote hali hii ipo. Mfanyabiashara anapoteza muda wa malipo yake.`,
+      solution: `Hatua kabla ya kuamilisha: (1) Hakikisha mfanyabiashara ametatua tatizo lililofanya isimamishwe, (2) Angalia picha na maudhui ya tangazo kuhakikisha yanakidhi vigezo, (3) Ikiwa kila kitu iko sawa, bonyeza "Amilisha" ili kampeni ianze tena. ${!campaign.admin_note ? 'Pia, ingiza sababu ya kusimamishwa kwenye kumbuka ya admin ili historia iwe wazi.' : ''}`,
+    })
+  }
+
+  // ── Rejected campaign ──────────────────────────────────────────────────────
+  if (campaign.status === 'rejected') {
+    items.push({
+      id: 'rejected', severity: 'info',
+      title: 'Kampeni Ilikataliwa',
+      explanation: campaign.admin_note
+        ? `Kampeni hii ilikataliwa na admin. Sababu iliyopewa: "${campaign.admin_note}". Mfanyabiashara anaweza kuunda kampeni mpya baada ya kutatua tatizo hili.`
+        : 'Kampeni hii ilikataliwa lakini sababu haikuwekwa katika mfumo. Hii inaweza kuchanganya mfanyabiashara kwa sababu hawajui hasa ni nini kilichokwenda vibaya.',
+      solution: !campaign.admin_note
+        ? 'Sababu ya kukataa haikuwekwa — wasiliana na mfanyabiashara moja kwa moja kueleza tatizo halisi. Mfanyabiashara anayechanganyika anaweza kuacha huduma zetu. Daima weka sababu wazi wakati wa kukataa kampeni.'
+        : 'Hakikisha mfanyabiashara amepokea taarifa ya kukataliwa (angalia ikiwa una WhatsApp/barua pepe yao hapo juu). Ikiwa hawakupata, wasiliana nao moja kwa moja na ueleze sababu na jinsi ya kuboresha kampeni yao.',
+    })
+  }
+
+  // ── All good ───────────────────────────────────────────────────────────────
+  if (items.length === 0) {
+    items.push({
+      id: 'ok', severity: 'success',
+      title: 'Kampeni Iko Sawa — Hakuna Matatizo Yaliyopatikana',
+      explanation: `Kampeni "${campaign.title}" iko katika hali nzuri. ${campaign.status === 'active' ? 'Inafanya kazi vizuri na inaonekana kwa wateja.' : 'Inaendelea vizuri bila matatizo yoyote yanayohitaji hatua ya haraka.'}`,
+      solution: 'Hakuna hatua zinazohitajika kwa sasa. Endelea kufuatilia takwimu za kampeni ili kuhakikisha inafanya kazi vizuri na inafikia wateja wanaolengwa.',
+    })
+  }
+
+  return items
+}
+
+// ── Severity UI config ─────────────────────────────────────────────────────────
+
+const SEV_CFG: Record<Severity, { bg: string; border: string; icon: string; color: string; label: string }> = {
+  critical: { bg: '#fef2f2', border: '#fecaca', icon: 'alert-circle',   color: '#dc2626', label: 'Tatizo Kubwa' },
+  warning:  { bg: '#fffbeb', border: '#fde68a', icon: 'alert-triangle', color: '#d97706', label: 'Tahadhari'    },
+  info:     { bg: '#eff6ff', border: '#bfdbfe', icon: 'info-circle',    color: '#2563eb', label: 'Taarifa'      },
+  success:  { bg: '#f0fdf4', border: '#bbf7d0', icon: 'circle-check',   color: '#16a34a', label: 'Sawa'         },
+}
+
+function DiagnosticPanel({ campaign }: { campaign: Campaign }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const items     = runDiagnostics(campaign)
+  const criticals = items.filter(i => i.severity === 'critical').length
+  const warnings  = items.filter(i => i.severity === 'warning').length
+
+  function toggle(id: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) { next.delete(id) } else { next.add(id) }
+      return next
+    })
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50">
+        <div className="flex items-center gap-2">
+          <i className="ti ti-microscope text-gray-500 text-base" aria-hidden="true" />
+          <h2 className="text-sm font-bold text-gray-700">Uchunguzi wa Kampeni</h2>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {criticals > 0 && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+              {criticals} Makubwa
+            </span>
+          )}
+          {warnings > 0 && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              {warnings} Tahadhari
+            </span>
+          )}
+          {criticals === 0 && warnings === 0 && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+              ✓ Sawa
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Diagnostic items */}
+      <div className="p-4 space-y-2.5">
+        {items.map(item => {
+          const cfg  = SEV_CFG[item.severity]
+          const open = expanded.has(item.id)
+          return (
+            <div
+              key={item.id}
+              className="rounded-xl border overflow-hidden"
+              style={{ borderColor: cfg.border }}
+            >
+              {/* Summary row — always visible, clickable to expand */}
+              <button
+                onClick={() => toggle(item.id)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left transition-opacity hover:opacity-80"
+                style={{ background: cfg.bg }}
+              >
+                <i className={`ti ti-${cfg.icon} text-base flex-shrink-0`} style={{ color: cfg.color }} aria-hidden="true" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-gray-800">{item.title}</p>
+                    <span
+                      className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                      style={{ background: cfg.border, color: cfg.color }}
+                    >
+                      {cfg.label}
+                    </span>
+                  </div>
+                </div>
+                <i
+                  className={`ti ti-chevron-${open ? 'up' : 'down'} text-sm flex-shrink-0 transition-transform`}
+                  style={{ color: cfg.color }}
+                  aria-hidden="true"
+                />
+              </button>
+
+              {/* Expanded detail */}
+              {open && (
+                <div className="px-4 pb-4 pt-3 space-y-3" style={{ background: cfg.bg }}>
+                  {/* Divider */}
+                  <div className="h-px" style={{ background: cfg.border }} />
+
+                  {/* Explanation */}
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: cfg.color }}>
+                      <i className="ti ti-info-circle mr-1" aria-hidden="true" />Maelezo ya Tatizo
+                    </p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{item.explanation}</p>
+                  </div>
+
+                  {/* Solution */}
+                  <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.7)', border: `1px solid ${cfg.border}` }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: cfg.color }}>
+                      <i className="ti ti-bulb mr-1" aria-hidden="true" />Jinsi ya Kutatua
+                    </p>
+                    <p className="text-sm text-gray-800 leading-relaxed">{item.solution}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

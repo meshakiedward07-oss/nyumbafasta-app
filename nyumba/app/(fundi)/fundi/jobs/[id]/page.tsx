@@ -3,6 +3,7 @@ import { useEffect, useState, use } from 'react'
 import Link from 'next/link'
 import { MAINTENANCE_CATEGORY_LABELS, MAINTENANCE_PRIORITY_LABELS, MAINTENANCE_STATUS_LABELS, STATUS_COLORS, PRIORITY_COLORS } from '@/lib/types/property'
 import type { MaintenanceStatus, MaintenancePriority, MaintenanceCategory } from '@/lib/types/property'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface Job {
   id: string; title: string; description: string | null
@@ -22,6 +23,7 @@ function fmt(iso: string) {
 
 export default function FundiJobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const { t }  = useLanguage()
   const [job,      setJob]      = useState<Job | null>(null)
   const [updates,  setUpdates]  = useState<Update[]>([])
   const [loading,  setLoading]  = useState(true)
@@ -33,11 +35,11 @@ export default function FundiJobDetailPage({ params }: { params: Promise<{ id: s
   async function load() {
     try {
       const res  = await fetch(`/api/v1/fundi/jobs/${id}/updates`)
-      if (!res.ok) { setError('Kazi haipatikani.'); return }
+      if (!res.ok) { setError(t('fp_job_not_found')); return }
       const data = await res.json()
       setJob(data.job ?? null)
       setUpdates(data.updates ?? [])
-    } catch { setError('Hitilafu ya mtandao.') }
+    } catch { setError(t('fp_job_network_error')) }
     finally { setLoading(false) }
   }
 
@@ -53,10 +55,10 @@ export default function FundiJobDetailPage({ params }: { params: Promise<{ id: s
         body:    JSON.stringify({ message: message.trim() }),
       })
       const data = await res.json()
-      if (!res.ok) { setSendErr(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setSendErr(data.error ?? t('fp_err_generic')); return }
       setMessage('')
       setUpdates(prev => [...prev, data.update])
-    } catch { setSendErr('Haikuweza kutuma. Jaribu tena.') }
+    } catch { setSendErr(t('fp_send_error')) }
     finally { setSending(false) }
   }
 
@@ -71,8 +73,8 @@ export default function FundiJobDetailPage({ params }: { params: Promise<{ id: s
   if (error || !job) {
     return (
       <div className="p-6 text-center">
-        <p className="text-red-500 font-medium">{error ?? 'Kazi haipatikani'}</p>
-        <Link href="/fundi/dashboard" className="text-primary-600 text-sm mt-2 inline-block">← Rudi</Link>
+        <p className="text-red-500 font-medium">{error ?? t('fp_job_not_found')}</p>
+        <Link href="/fundi/dashboard" className="text-primary-600 text-sm mt-2 inline-block">← {t('common_back')}</Link>
       </div>
     )
   }
@@ -112,23 +114,23 @@ export default function FundiJobDetailPage({ params }: { params: Promise<{ id: s
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             {job.unit && (
               <>
-                <dt className="text-gray-400">Kitengo</dt>
+                <dt className="text-gray-400">{t('fp_unit')}</dt>
                 <dd className="font-medium text-gray-700">{job.unit.unit_number}</dd>
               </>
             )}
             {job.scheduled_at && (
               <>
-                <dt className="text-gray-400">Ratiba</dt>
+                <dt className="text-gray-400">{t('fp_schedule')}</dt>
                 <dd className="font-medium text-gray-700">{fmt(job.scheduled_at)}</dd>
               </>
             )}
-            <dt className="text-gray-400">Iliombwa</dt>
+            <dt className="text-gray-400">{t('fp_job_requested_at')}</dt>
             <dd className="font-medium text-gray-700">{fmt(job.created_at)}</dd>
           </dl>
 
           {job.notes && (
             <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs font-medium text-gray-500 mb-1">Maelezo ya Ziada</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">{t('fp_job_extra_notes')}</p>
               <p className="text-sm text-gray-700">{job.notes}</p>
             </div>
           )}
@@ -137,7 +139,7 @@ export default function FundiJobDetailPage({ params }: { params: Promise<{ id: s
         {/* Org contact */}
         {org && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Mawasiliano na Shirika</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('fp_job_org_contact')}</p>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center flex-shrink-0">
                 <i className="ti ti-building text-primary-600 text-lg" aria-hidden="true" />
@@ -151,7 +153,7 @@ export default function FundiJobDetailPage({ params }: { params: Promise<{ id: s
               {org.phone && (
                 <a href={`tel:${org.phone}`}
                   className="flex-1 flex items-center justify-center gap-2 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
-                  <i className="ti ti-phone" aria-hidden="true" /> Piga Simu
+                  <i className="ti ti-phone" aria-hidden="true" /> {t('fp_job_call')}
                 </a>
               )}
               {org.phone && (
@@ -166,9 +168,9 @@ export default function FundiJobDetailPage({ params }: { params: Promise<{ id: s
 
         {/* Updates timeline */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Taarifa za Kazi ({updates.length})</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('fp_job_updates_title')} ({updates.length})</p>
           {updates.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Bado hujatoa taarifa yoyote.</p>
+            <p className="text-sm text-gray-400 text-center py-4">{t('fp_job_no_updates')}</p>
           ) : (
             <div className="space-y-3">
               {updates.map(u => (
@@ -194,7 +196,7 @@ export default function FundiJobDetailPage({ params }: { params: Promise<{ id: s
           <textarea
             value={message} onChange={e => setMessage(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-            placeholder="Toa taarifa kuhusu kazi..."
+            placeholder={t('fp_job_update_placeholder')}
             rows={2}
             className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
           />
@@ -203,7 +205,7 @@ export default function FundiJobDetailPage({ params }: { params: Promise<{ id: s
             <i className={`ti ti-${sending ? 'loader-2 animate-spin' : 'send'} text-lg`} aria-hidden="true" />
           </button>
         </div>
-        <p className="text-[10px] text-gray-400 mt-1">Taarifa yako itaonekana kwa shirika.</p>
+        <p className="text-[10px] text-gray-400 mt-1">{t('fp_job_update_hint')}</p>
       </div>
     </div>
   )

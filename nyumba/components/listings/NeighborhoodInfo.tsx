@@ -1,5 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 interface NearbyPlace {
   name:     string
@@ -19,15 +21,15 @@ interface NeighborhoodData {
 }
 
 const CATEGORIES: {
-  key:   keyof Pick<NeighborhoodData, 'schools' | 'hospitals' | 'markets' | 'transport' | 'banks'>
-  label: string
-  icon: string
+  key:      keyof Pick<NeighborhoodData, 'schools' | 'hospitals' | 'markets' | 'transport' | 'banks'>
+  labelKey: TKey
+  icon:     string
 }[] = [
-  { key: 'schools',   label: 'Shule',     icon: 'school' },
-  { key: 'hospitals', label: 'Hospitali', icon: 'building-hospital' },
-  { key: 'markets',   label: 'Masoko',    icon: 'shopping-cart' },
-  { key: 'transport', label: 'Usafiri',   icon: 'bus' },
-  { key: 'banks',     label: 'Benki',     icon: 'building-bank' },
+  { key: 'schools',   labelKey: 'lst_cat_schools',   icon: 'school' },
+  { key: 'hospitals', labelKey: 'lst_cat_hospitals',  icon: 'building-hospital' },
+  { key: 'markets',   labelKey: 'lst_cat_markets',    icon: 'shopping-cart' },
+  { key: 'transport', labelKey: 'lst_cat_transport',  icon: 'bus' },
+  { key: 'banks',     labelKey: 'lst_cat_banks',      icon: 'building-bank' },
 ]
 
 function Skeleton() {
@@ -46,6 +48,7 @@ function Skeleton() {
 }
 
 export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
+  const { t } = useLanguage()
   const [data, setData]       = useState<NeighborhoodData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(false)
@@ -68,9 +71,9 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
   if (error || !data) {
     return (
       <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5"><i className="ti ti-map-pin" aria-hidden="true" /> Habari za Mtaa</h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5"><i className="ti ti-map-pin" aria-hidden="true" /> {t('lst_neighborhood_title')}</h3>
         <p className="text-xs text-gray-400">
-          Taarifa za mtaa hazikupatikana kwa sasa. Jaribu tena baadaye.
+          {t('lst_neighborhood_error')}
         </p>
       </section>
     )
@@ -78,10 +81,10 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
 
   return (
     <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-      <h3 className="text-sm font-semibold text-gray-700 mb-0.5 flex items-center gap-1.5"><i className="ti ti-map-pin" aria-hidden="true" /> Habari za Mtaa
+      <h3 className="text-sm font-semibold text-gray-700 mb-0.5 flex items-center gap-1.5"><i className="ti ti-map-pin" aria-hidden="true" /> {t('lst_neighborhood_title')}
       </h3>
       <p className="text-xs text-gray-400 mb-4">
-        Vitu vilivyo karibu na nyumba hii
+        {t('lst_neighborhood_sub')}
       </p>
 
       {/* CBD distance */}
@@ -89,12 +92,12 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
         <i className="ti ti-building-skyscraper text-2xl flex-shrink-0 text-primary-500" aria-hidden="true" />
         <div>
           <p className="text-sm font-semibold text-primary-800">
-            Umbali kutoka {data.cbdLabel}
+            {t('lst_distance_from')} {data.cbdLabel}
           </p>
           <p className="text-xs text-primary-600">
             {data.cbdDistanceKm} km
             {data.cbdDurationMin > 0 && (
-              <span> · dakika {data.cbdDurationMin} kwa gari</span>
+              <span> · {t('lst_car_minutes').replace('{{n}}', String(data.cbdDurationMin))}</span>
             )}
           </p>
         </div>
@@ -104,16 +107,17 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
       <div className="grid grid-cols-2 gap-3">
         {CATEGORIES.map(cat => {
           const items = data[cat.key] as NearbyPlace[]
+          const label = t(cat.labelKey)
           return (
             <div key={cat.key} className="bg-gray-50 rounded-xl p-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <i className={`ti ti-${cat.icon} text-base leading-none`} aria-hidden="true" />
-                <span className="text-xs font-semibold text-gray-700">{cat.label}</span>
+                <span className="text-xs font-semibold text-gray-700">{label}</span>
               </div>
 
               {items.length === 0 ? (
                 <p className="text-xs text-gray-400">
-                  Hakuna {cat.label.toLowerCase()} karibu
+                  {t('lst_no_nearby')} {label.toLowerCase()}
                 </p>
               ) : (
                 <ul className="space-y-1.5">
@@ -133,7 +137,7 @@ export default function NeighborhoodInfo({ listingId }: { listingId: string }) {
       </div>
 
       <p className="text-xs text-gray-400 mt-3">
-        * Umbali wa takriban — taarifa kutoka OpenStreetMap
+        {t('lst_distance_disclaimer')}
       </p>
     </section>
   )

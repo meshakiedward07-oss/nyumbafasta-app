@@ -188,7 +188,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     // Non-fatal: welcome tenant via in-app + WhatsApp
     ;(async () => {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
       const unitLabel = (unit as unknown as { unit_number?: string } | null)?.unit_number ?? 'kitengo chako'
       const startStr = new Date(start_date).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
       const rentStr = `TZS ${monthly_rent.toLocaleString()}`

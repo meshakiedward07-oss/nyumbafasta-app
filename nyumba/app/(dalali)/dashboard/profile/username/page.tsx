@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function UsernamePage() {
+  const { t } = useLanguage()
   const [username, setUsername]         = useState('')
   const [checking, setChecking]         = useState(false)
   const [available, setAvailable]       = useState<boolean | null>(null)
@@ -59,11 +61,11 @@ export default function UsernamePage() {
       const data = await res.json() as { success?: boolean; error?: string; username?: string }
 
       if (!res.ok || data.error) {
-        showToast(data.error ?? 'Imeshindwa kuhifadhi', false)
+        showToast(data.error ?? t('usr_save_error'), false)
       } else {
         setCurrent(data.username ?? username)
         setAvailable(null)
-        showToast('Username imehifadhiwa! ✅')
+        showToast(t('usr_save_success'))
       }
     } finally {
       setSaving(false)
@@ -88,17 +90,14 @@ export default function UsernamePage() {
       <div className="max-w-lg mx-auto px-4 py-8">
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
           <i className="ti ti-lock text-3xl text-amber-500 block mb-3" aria-hidden="true" />
-          <h1 className="font-semibold text-gray-900 mb-2">Profile URL inahitaji uthibitisho</h1>
-          <p className="text-sm text-gray-600 mb-4">
-            Profile URL ya umma inapatikana tu kwa dalali walioidhibitiwa (Verified Dalali).
-            Thibitisha akaunti yako kwanza.
-          </p>
+          <h1 className="font-semibold text-gray-900 mb-2">{t('usr_gate_title')}</h1>
+          <p className="text-sm text-gray-600 mb-4">{t('usr_gate_desc')}</p>
           <Link
             href="/dashboard/profile"
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-sm font-semibold rounded-xl"
           >
             <i className="ti ti-arrow-left text-sm" aria-hidden="true" />
-            Rudi kwenye profile
+            {t('usr_gate_btn')}
           </Link>
         </div>
       </div>
@@ -118,12 +117,10 @@ export default function UsernamePage() {
       {/* Header */}
       <div>
         <Link href="/dashboard/profile" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-3">
-          <i className="ti ti-arrow-left text-xs" aria-hidden="true" /> Rudi
+          <i className="ti ti-arrow-left text-xs" aria-hidden="true" /> {t('usr_back')}
         </Link>
-        <h1 className="text-xl font-bold text-gray-900">Link yako ya profile</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Share link hii kwenye social media yako — wateja wataona nyumba zako zote
-        </p>
+        <h1 className="text-xl font-bold text-gray-900">{t('usr_title')}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t('usr_subtitle')}</p>
       </div>
 
       {/* Current URL display */}
@@ -131,18 +128,18 @@ export default function UsernamePage() {
         <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
           <p className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5">
             <i className="ti ti-circle-check text-sm" aria-hidden="true" />
-            Link yako ya sasa
+            {t('usr_current_link')}
           </p>
           <div className="flex items-center gap-2">
             <div className="flex-1 font-mono text-sm text-green-800 bg-white border border-green-200 rounded-xl px-3 py-2 truncate">
               {profileUrl}
             </div>
             <button
-              onClick={() => navigator.clipboard.writeText(profileUrl).then(() => showToast('Link imenakiliwa!'))}
+              onClick={() => navigator.clipboard.writeText(profileUrl).then(() => showToast(t('usr_link_copied')))}
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-xs font-semibold rounded-xl hover:bg-green-700 transition-colors"
             >
               <i className="ti ti-copy text-xs" aria-hidden="true" />
-              Nakili
+              {t('usr_copy_btn')}
             </button>
           </div>
           <div className="flex gap-2 mt-3">
@@ -153,7 +150,7 @@ export default function UsernamePage() {
               className="flex items-center gap-1.5 text-xs text-green-700 font-medium hover:underline"
             >
               <i className="ti ti-external-link text-xs" aria-hidden="true" />
-              Angalia profile yako
+              {t('usr_view_profile')}
             </a>
           </div>
 
@@ -170,10 +167,10 @@ export default function UsernamePage() {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-green-800 mb-1 flex items-center gap-1.5">
                 <i className="ti ti-qrcode text-sm" aria-hidden="true" />
-                QR Code ya Profile
+                {t('usr_qr_title')}
               </p>
               <p className="text-[11px] text-green-700 leading-relaxed mb-3">
-                Chapisha na uweke kwenye mlango, business card, au share kwenye story yako. Wateja wakiscan wataona listings zako zote.
+                {t('usr_qr_desc')}
               </p>
               <div className="flex gap-2 flex-wrap">
                 <a
@@ -183,7 +180,7 @@ export default function UsernamePage() {
                              px-3 py-1.5 rounded-lg hover:bg-green-700 transition-colors"
                 >
                   <i className="ti ti-download text-xs" aria-hidden="true" />
-                  Pakua PNG
+                  {t('usr_qr_download')}
                 </a>
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(`Angalia listings zangu za nyumba kwenye NyumbaFasta:\n${profileUrl}`)}`}
@@ -193,7 +190,7 @@ export default function UsernamePage() {
                              bg-white px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
                 >
                   <i className="ti ti-brand-whatsapp text-xs" aria-hidden="true" />
-                  Shiriki
+                  {t('usr_qr_share')}
                 </a>
               </div>
             </div>
@@ -204,7 +201,7 @@ export default function UsernamePage() {
       {/* Username input */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5">
         <label className="text-sm font-semibold text-gray-800 block mb-3">
-          {current ? 'Badilisha username' : 'Chagua username yako'}
+          {current ? t('usr_input_change') : t('usr_input_choose')}
         </label>
 
         <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-gray-400 transition-colors">
@@ -228,18 +225,18 @@ export default function UsernamePage() {
 
         {available === true  && username !== current && (
           <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-            <i className="ti ti-check text-xs" aria-hidden="true" /> &ldquo;{username}&rdquo; inapatikana
+            <i className="ti ti-check text-xs" aria-hidden="true" /> {t('usr_available').replace('{{name}}', username)}
           </p>
         )}
         {available === false && (
           <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
-            <i className="ti ti-x text-xs" aria-hidden="true" /> &ldquo;{username}&rdquo; imechukuliwa — jaribu jina lingine
+            <i className="ti ti-x text-xs" aria-hidden="true" /> {t('usr_taken').replace('{{name}}', username)}
           </p>
         )}
 
         <p className="text-xs text-gray-400 mt-3">
-          Herufi ndogo, nambari, na underscore tu (a–z, 0–9, _). Min 3, max 30 chars.
-          {current && ' Unaweza kubadilisha mara moja kila siku 30.'}
+          {t('usr_format_hint')}
+          {current && ` ${t('usr_change_hint')}`}
         </p>
       </div>
 
@@ -250,29 +247,11 @@ export default function UsernamePage() {
         className="w-full py-3 bg-gray-900 text-white text-sm font-semibold rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
       >
         {saving
-          ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inasave...</>
-          : <><i className="ti ti-check" aria-hidden="true" /> Hifadhi username</>
+          ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> {t('usr_saving')}</>
+          : <><i className="ti ti-check" aria-hidden="true" /> {t('usr_save_btn')}</>
         }
       </button>
 
-      {/* Analytics link if active */}
-      {current && (
-        <Link
-          href="/dashboard/profile/analytics"
-          className="flex items-center justify-between bg-white border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center">
-              <i className="ti ti-chart-bar text-gray-600 text-base" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">Analytics ya profile</p>
-              <p className="text-xs text-gray-400 mt-0.5">Angalia ni watu wangapi wanatembelea</p>
-            </div>
-          </div>
-          <i className="ti ti-chevron-right text-gray-400" aria-hidden="true" />
-        </Link>
-      )}
     </div>
   )
 }

@@ -2,8 +2,10 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function FundiLoginPage() {
+  const { t } = useLanguage()
   const supabase = createClient()
   const [email,      setEmail]      = useState('')
   const [password,   setPassword]   = useState('')
@@ -27,13 +29,13 @@ export default function FundiLoginPage() {
             redirectTo: `${window.location.origin}/auth/callback?redirect=/account/change-password`,
           }),
         })
-        if (!res.ok) setError('Haikufanikiwa kutuma. Jaribu tena.')
+        if (!res.ok) setError(t('auth_forgot_send_failed'))
         else setForgotSent(true)
         return
       }
 
       const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password })
-      if (authErr) { setError('Barua pepe au nenosiri si sahihi.'); return }
+      if (authErr) { setError(t('auth_invalid_credentials')); return }
 
       const { data: profile } = await supabase
         .from('users')
@@ -43,22 +45,22 @@ export default function FundiLoginPage() {
 
       if (profile?.role !== 'fundi') {
         await supabase.auth.signOut()
-        setError('Akaunti hii si ya fundi. Tumia ukurasa sahihi wa kuingia.')
+        setError(t('auth_fundi_wrong_portal'))
         return
       }
       if (profile?.account_status === 'banned') {
         await supabase.auth.signOut()
-        setError('Akaunti yako imefungwa. Wasiliana na msimamizi.')
+        setError(t('auth_fundi_banned'))
         return
       }
       if (profile?.account_status === 'suspended' || profile?.is_active === false) {
         await supabase.auth.signOut()
-        setError('Akaunti yako imesimamishwa kwa muda. Wasiliana na msimamizi.')
+        setError(t('auth_fundi_suspended'))
         return
       }
       window.location.href = '/fundi/dashboard'
     } catch {
-      setError('Hitilafu ya mtandao. Jaribu tena.')
+      setError(t('auth_network_error'))
     } finally {
       setLoading(false)
     }
@@ -71,15 +73,15 @@ export default function FundiLoginPage() {
           <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="ti ti-mail-check text-green-500 text-3xl" aria-hidden="true" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Angalia Barua Pepe</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">{t('auth_check_email')}</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Kiungo cha kubadilisha nenosiri kimetumwa kwa <strong>{email}</strong>.
+            {t('auth_magic_link_sent')}
           </p>
           <button
             onClick={() => { setForgotMode(false); setForgotSent(false) }}
             className="text-primary-600 font-medium text-sm hover:underline"
           >
-            ← Rudi Kuingia
+            ← {t('auth_back_to_login')}
           </button>
         </div>
       </div>
@@ -95,19 +97,19 @@ export default function FundiLoginPage() {
             <i className="ti ti-tools text-white text-3xl" aria-hidden="true" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {forgotMode ? 'Umesahau Nenosiri?' : 'Ingia — Fundi'}
+            {forgotMode ? t('auth_forgot_password_q') : t('auth_fundi_login_title')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             {forgotMode
-              ? 'Tutakutumia kiungo cha kubadilisha nenosiri'
-              : 'NyumbaFasta Fundi Portal'}
+              ? t('auth_reset_link_hint')
+              : t('auth_fundi_portal')}
           </p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Barua Pepe</label>
+              <label className="text-xs font-medium text-gray-600 block mb-1">{t('auth_email')}</label>
               <input
                 type="email" value={email} onChange={e => setEmail(e.target.value)} required
                 placeholder="juma@example.com"
@@ -117,7 +119,7 @@ export default function FundiLoginPage() {
 
             {!forgotMode && (
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Nenosiri</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('auth_password')}</label>
                 <div className="relative">
                   <input
                     type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required
@@ -127,7 +129,7 @@ export default function FundiLoginPage() {
                   <button
                     type="button" onClick={() => setShowPass(v => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400"
-                    aria-label={showPass ? 'Ficha nenosiri' : 'Onyesha nenosiri'}
+                    aria-label={showPass ? t('auth_hide_pass') : t('auth_show_pass')}
                   >
                     <i className={`ti ti-${showPass ? 'eye-off' : 'eye'} text-base`} aria-hidden="true" />
                   </button>
@@ -138,7 +140,7 @@ export default function FundiLoginPage() {
                     onClick={() => { setForgotMode(true); setError('') }}
                     className="text-xs text-primary-600 hover:underline"
                   >
-                    Umesahau nenosiri?
+                    {t('auth_forgot_password')}
                   </button>
                 </div>
               </div>
@@ -149,8 +151,8 @@ export default function FundiLoginPage() {
             <button type="submit" disabled={loading}
               className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
               {loading
-                ? (forgotMode ? 'Inatuma...' : 'Inaingia...')
-                : (forgotMode ? 'Tuma Kiungo' : 'Ingia')}
+                ? (forgotMode ? t('common_sending') : t('auth_signing_in'))
+                : (forgotMode ? t('auth_send_link') : t('auth_login_button'))}
             </button>
 
             {forgotMode && (
@@ -159,20 +161,20 @@ export default function FundiLoginPage() {
                 onClick={() => { setForgotMode(false); setError('') }}
                 className="w-full text-sm text-gray-500 hover:text-gray-700 py-2"
               >
-                ← Rudi kuingia
+                ← {t('auth_back_to_login')}
               </button>
             )}
           </form>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-4">
-          Huna akaunti?{' '}
+          {t('auth_fundi_no_account')}{' '}
           <Link href="/fundi/register" className="text-primary-600 font-semibold hover:underline">
-            Jiandikishe
+            {t('auth_fundi_register_link')}
           </Link>
         </p>
         <p className="text-center text-xs text-gray-400 mt-2">
-          <Link href="/login" className="hover:underline">Ingia kama mtumiaji wa kawaida</Link>
+          <Link href="/login" className="hover:underline">{t('auth_login_regular')}</Link>
         </p>
       </div>
     </div>

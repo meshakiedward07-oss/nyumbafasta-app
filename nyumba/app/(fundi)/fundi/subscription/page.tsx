@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface Plan {
   id: string; name: string; description: string | null
@@ -11,12 +12,6 @@ interface ActiveSub {
   id: string; plan_id: string; status: string
   starts_at: string | null; expires_at: string | null
   plan: { name: string; billing_cycle: string; max_job_forms: number } | null
-}
-
-const CYCLE_LABELS: Record<string, string> = {
-  monthly:   'kila mwezi',
-  quarterly: 'kila robo mwaka',
-  annual:    'kila mwaka',
 }
 
 const PROVIDERS = [
@@ -38,6 +33,12 @@ function daysLeft(expires: string | null) {
 }
 
 export default function FundiSubscriptionPage() {
+  const { t } = useLanguage()
+  const CYCLE_LABELS: Record<string, string> = {
+    monthly:   t('fp_sub_cycle_monthly'),
+    quarterly: t('fp_sub_cycle_quarterly'),
+    annual:    t('fp_sub_cycle_annual'),
+  }
   const [plans,      setPlans]      = useState<Plan[]>([])
   const [activeSub,  setActiveSub]  = useState<ActiveSub | null>(null)
   const [loading,    setLoading]    = useState(true)
@@ -68,8 +69,8 @@ export default function FundiSubscriptionPage() {
   }, [])
 
   async function handlePay() {
-    if (!selectedId) { setErr('Chagua mpango kwanza'); return }
-    if (!msisdn.trim()) { setErr('Ingiza namba yako ya simu ya mobile money'); return }
+    if (!selectedId) { setErr(t('fp_sub_select_plan_err')); return }
+    if (!msisdn.trim()) { setErr(t('fp_sub_phone_required')); return }
     setPaying(true); setErr(null); setSuccess(null)
     try {
       const res  = await fetch('/api/v1/payments/fundi-subscription/initiate', {
@@ -78,13 +79,13 @@ export default function FundiSubscriptionPage() {
         body:    JSON.stringify({ plan_id: selectedId, msisdn: msisdn.trim(), provider }),
       })
       const data = await res.json()
-      if (!res.ok) { setErr(data.error ?? 'Kuna tatizo. Jaribu tena.'); return }
+      if (!res.ok) { setErr(data.error ?? t('fp_sub_generic_error')); return }
       if (data.mock) {
         window.location.reload()
         return
       }
       setSuccess({ payment_ref: data.payment_ref, amount: data.amount })
-    } catch { setErr('Haikuweza. Angalia muunganisho wako na ujaribu tena.') }
+    } catch { setErr(t('fp_sub_connection_error')) }
     finally { setPaying(false) }
   }
 
@@ -104,8 +105,8 @@ export default function FundiSubscriptionPage() {
     <div className="p-4 lg:p-6 max-w-xl mx-auto">
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Usajili wa Fundi</h1>
-        <p className="text-sm text-gray-500">Lipa usajili ili ujibu maombi ya kazi ya wateja</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('fp_sub_heading')}</h1>
+        <p className="text-sm text-gray-500">{t('fp_sub_sub')}</p>
       </div>
 
       {/* Active subscription banner */}
@@ -116,12 +117,12 @@ export default function FundiSubscriptionPage() {
           </div>
           <div className="flex-1 min-w-0">
             <p className={`font-bold text-sm ${isExpiringSoon ? 'text-amber-800' : 'text-green-800'}`}>
-              {isExpiringSoon ? `Usajili Unaisha Hivi Karibuni — Siku ${days}` : 'Usajili Wako Uko Hai'}
+              {isExpiringSoon ? t('fp_sub_expiring_soon').replace('{{n}}', String(days)) : t('fp_sub_active')}
             </p>
             <p className={`text-xs mt-0.5 ${isExpiringSoon ? 'text-amber-700' : 'text-green-700'}`}>
-              Mpango: <strong>{activeSub.plan?.name ?? '—'}</strong> ·
-              Fomu {activeSub.plan?.max_job_forms && activeSub.plan.max_job_forms >= 999 ? 'bila kikomo' : `${activeSub.plan?.max_job_forms}/mwezi`} ·
-              Inaisha: {fmtDate(activeSub.expires_at)}
+              {t('fp_sub_plan')}: <strong>{activeSub.plan?.name ?? '—'}</strong> ·
+              {activeSub.plan?.max_job_forms && activeSub.plan.max_job_forms >= 999 ? t('fp_sub_forms_unlimited') : t('fp_sub_forms_count').replace('{{n}}', String(activeSub.plan?.max_job_forms ?? 0))} ·
+              {t('fp_sub_expires')}: {fmtDate(activeSub.expires_at)}
             </p>
           </div>
         </div>
@@ -131,8 +132,8 @@ export default function FundiSubscriptionPage() {
         <div className="rounded-2xl p-4 mb-6 bg-red-50 border border-red-200 flex items-start gap-3">
           <i className="ti ti-alert-circle text-red-500 text-xl flex-shrink-0 mt-0.5" aria-hidden="true" />
           <div>
-            <p className="font-semibold text-red-800 text-sm">Usajili Wako Umeisha</p>
-            <p className="text-xs text-red-700">Uliisha: {fmtDate(activeSub.expires_at)}. Fanya upya ili kuendelea kupata maombi ya kazi.</p>
+            <p className="font-semibold text-red-800 text-sm">{t('fp_sub_expired_title')}</p>
+            <p className="text-xs text-red-700">{t('fp_sub_expired_at')}: {fmtDate(activeSub.expires_at)}. {t('fp_sub_expired_renew')}</p>
           </div>
         </div>
       )}
@@ -143,18 +144,18 @@ export default function FundiSubscriptionPage() {
           <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <i className="ti ti-device-mobile text-2xl text-green-600" aria-hidden="true" />
           </div>
-          <p className="font-bold text-green-800 text-base">Angalia Simu Yako!</p>
-          <p className="text-sm text-green-700 mt-1">USSD popup inatumwa kwa namba yako ya mobile money.</p>
-          <p className="text-xs text-green-600 mt-2">Kiasi: <strong>TZS {success.amount.toLocaleString()}</strong></p>
+          <p className="font-bold text-green-800 text-base">{t('fp_sub_check_phone')}</p>
+          <p className="text-sm text-green-700 mt-1">{t('fp_sub_ussd_sent')}</p>
+          <p className="text-xs text-green-600 mt-2">{t('fp_sub_amount')}: <strong>TZS {success.amount.toLocaleString()}</strong></p>
           <p className="text-[10px] text-green-500 mt-1 font-mono">Ref: {success.payment_ref}</p>
-          <p className="text-xs text-green-700 mt-3">Baada ya kulipa, usajili utawashwa moja kwa moja. Unaweza kufunga ukurasa huu.</p>
+          <p className="text-xs text-green-700 mt-3">{t('fp_sub_payment_done')}</p>
         </div>
       )}
 
       {/* Plan selection */}
       {!success && plans.length > 0 && (
         <>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Chagua Mpango</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('fp_sub_choose_plan')}</p>
           <div className="space-y-3 mb-6">
             {plans.map(plan => {
               const isSelected = selectedId === plan.id
@@ -167,7 +168,7 @@ export default function FundiSubscriptionPage() {
                         <span className="font-bold text-gray-900">{plan.name}</span>
                         {plan.is_default && (
                           <span className="text-[10px] bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full font-semibold">
-                            Maarufu
+                            {t('fp_sub_popular')}
                           </span>
                         )}
                       </div>
@@ -177,7 +178,7 @@ export default function FundiSubscriptionPage() {
                       <div className="flex items-center gap-3 text-xs text-gray-500">
                         <span className="flex items-center gap-1">
                           <i className="ti ti-file-text text-xs" aria-hidden="true" />
-                          {plan.max_job_forms >= 999 ? 'Fomu bila kikomo' : `Fomu ${plan.max_job_forms}/mwezi`}
+                          {plan.max_job_forms >= 999 ? t('fp_sub_forms_unlimited') : t('fp_sub_forms_count').replace('{{n}}', String(plan.max_job_forms))}
                         </span>
                         <span className="flex items-center gap-1">
                           <i className="ti ti-clock text-xs" aria-hidden="true" />
@@ -200,10 +201,10 @@ export default function FundiSubscriptionPage() {
 
           {/* Payment form */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Malipo ya Mobile Money</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">{t('fp_sub_payment_title')}</p>
 
             <div className="mb-4">
-              <label className="text-xs font-semibold text-gray-600 block mb-1.5">Mtoa Huduma</label>
+              <label className="text-xs font-semibold text-gray-600 block mb-1.5">{t('fp_sub_provider')}</label>
               <div className="grid grid-cols-2 gap-2">
                 {PROVIDERS.map(pv => (
                   <button key={pv.value} onClick={() => setProvider(pv.value)}
@@ -215,7 +216,7 @@ export default function FundiSubscriptionPage() {
             </div>
 
             <div className="mb-5">
-              <label className="text-xs font-semibold text-gray-600 block mb-1.5">Namba ya Simu *</label>
+              <label className="text-xs font-semibold text-gray-600 block mb-1.5">{t('fp_sub_phone_label')} *</label>
               <input
                 type="tel"
                 value={msisdn}
@@ -223,12 +224,12 @@ export default function FundiSubscriptionPage() {
                 placeholder="0712 345 678"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
               />
-              <p className="text-[10px] text-gray-400 mt-1">Format ya Tanzania: 07XXXXXXXX au 06XXXXXXXX</p>
+              <p className="text-[10px] text-gray-400 mt-1">{t('fp_sub_phone_format')}</p>
             </div>
 
             {selectedPlan && (
               <div className="bg-gray-50 rounded-xl p-3 mb-4 flex items-center justify-between">
-                <span className="text-sm text-gray-600">Jumla ya kulipa:</span>
+                <span className="text-sm text-gray-600">{t('fp_sub_total')}:</span>
                 <span className="text-lg font-bold text-primary-600">TZS {selectedPlan.price_tzs.toLocaleString()}</span>
               </div>
             )}
@@ -238,13 +239,13 @@ export default function FundiSubscriptionPage() {
             <button onClick={handlePay} disabled={paying || !selectedId}
               className="w-full bg-primary-500 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-primary-600 disabled:opacity-40 transition flex items-center justify-center gap-2">
               {paying ? (
-                <><i className="ti ti-loader animate-spin" aria-hidden="true" /> Inatuma ombi...</>
+                <><i className="ti ti-loader animate-spin" aria-hidden="true" /> {t('fp_sub_paying')}</>
               ) : (
-                <><i className="ti ti-device-mobile" aria-hidden="true" /> Lipa Sasa</>
+                <><i className="ti ti-device-mobile" aria-hidden="true" /> {t('fp_sub_pay_now')}</>
               )}
             </button>
             <p className="text-[10px] text-gray-400 text-center mt-3">
-              Malipo yanashughulikiwa salama kupitia AzamPay. Subiri USSD popup kwenye simu yako.
+              {t('fp_sub_payment_note')}
             </p>
           </div>
         </>
@@ -253,8 +254,8 @@ export default function FundiSubscriptionPage() {
       {!success && plans.length === 0 && (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
           <i className="ti ti-currency-dollar text-5xl text-gray-200" aria-hidden="true" />
-          <p className="text-gray-500 font-medium mt-3">Hakuna mipango inayopatikana sasa hivi.</p>
-          <p className="text-xs text-gray-400 mt-1">Wasiliana na NyumbaFasta kwa msaada.</p>
+          <p className="text-gray-500 font-medium mt-3">{t('fp_sub_no_plans')}</p>
+          <p className="text-xs text-gray-400 mt-1">{t('fp_sub_no_plans_sub')}</p>
         </div>
       )}
     </div>

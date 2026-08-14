@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 
 const REASONS = [
   'Situmii tena',
@@ -14,6 +15,7 @@ const CONFIRM_PHRASE = 'FUTA AKAUNTI YANGU'
 type Step = 1 | 2 | 3
 
 export default function DeleteAccountModal({ onClose }: { onClose: () => void }) {
+  const { t } = useLanguage()
   const router = useRouter()
 
   const [step, setStep]           = useState<Step>(1)
@@ -78,20 +80,17 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
           <div className="px-6">
             <div className="text-4xl text-center mb-3 flex justify-center"><i className="ti ti-alert-triangle text-red-500" aria-hidden="true" /></div>
             <h2 className="text-base font-bold text-gray-900 text-center mb-4">
-              Una uhakika unataka kufuta akaunti?
+              {t('dal_delete_title')}
             </h2>
 
             <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-6 space-y-2">
-              {[
-                'Listings zako zote zitafutwa',
-                'Subscription yako itaisha mara moja',
-                'Historia ya malipo itafutwa',
-                'Wateja hawataweza kukupata tena',
-                'Haiwezi kurejeshwa',
-              ].map(item => (
-                <div key={item} className="flex items-center gap-2">
+              {([
+                'dal_delete_warn1', 'dal_delete_warn2', 'dal_delete_warn3',
+                'dal_delete_warn4', 'dal_delete_warn5',
+              ] as const).map(key => (
+                <div key={key} className="flex items-center gap-2">
                   <i className="ti ti-x text-red-400 text-sm flex-shrink-0" aria-hidden="true" />
-                  <p className="text-sm text-red-700">{item}</p>
+                  <p className="text-sm text-red-700">{t(key)}</p>
                 </div>
               ))}
             </div>
@@ -100,10 +99,10 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
               onClick={() => setStep(2)}
               className="w-full bg-red-500 text-white py-3.5 rounded-2xl text-sm font-semibold mb-3 active:scale-[0.98] transition-all"
             >
-              Endelea →
+              {t('dal_delete_proceed')} →
             </button>
             <button onClick={onClose} className="w-full py-3 text-sm text-gray-400">
-              Ghairi — Baki na akaunti yangu
+              {t('dal_delete_keep')}
             </button>
           </div>
         )}
@@ -111,8 +110,8 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
         {/* ── STEP 2: Reason ── */}
         {step === 2 && (
           <div className="px-6">
-            <h2 className="text-base font-bold text-gray-900 mb-1">Kwa nini unataka kufuta?</h2>
-            <p className="text-xs text-gray-400 mb-4">Maoni yako yanasaidia kuboresha NyumbaFasta</p>
+            <h2 className="text-base font-bold text-gray-900 mb-1">{t('dal_delete_why')}</h2>
+            <p className="text-xs text-gray-400 mb-4">{t('dal_delete_why_sub')}</p>
 
             <div className="space-y-2 mb-4">
               {REASONS.map(r => (
@@ -149,10 +148,10 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
               onClick={() => setStep(3)}
               className="w-full bg-red-500 text-white py-3.5 rounded-2xl text-sm font-semibold mb-3 active:scale-[0.98] transition-all"
             >
-              Endelea →
+              {t('dal_delete_proceed')} →
             </button>
             <button onClick={() => setStep(1)} className="w-full py-3 text-sm text-gray-400">
-              ← Rudi
+              ← {t('common_back')}
             </button>
           </div>
         )}
@@ -162,7 +161,7 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
           <div className="px-6">
             <div className="text-3xl text-center mb-3 flex justify-center"><i className="ti ti-lock text-gray-600" aria-hidden="true" /></div>
             <h2 className="text-base font-bold text-gray-900 text-center mb-4">
-              Thibitisha Ufutaji
+              {t('dal_delete_confirm')}
             </h2>
 
             {error && (
@@ -174,7 +173,7 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
             <div className="space-y-4">
               <div>
                 <label className="text-xs text-gray-500 mb-1.5 block">
-                  Andika hapa hasa: <span className="font-mono font-bold text-red-600">{CONFIRM_PHRASE}</span>
+                  {t('dal_delete_type_msg')} <span className="font-mono font-bold text-red-600">{CONFIRM_PHRASE}</span>
                 </label>
                 <input
                   type="text"
@@ -191,7 +190,7 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 mb-1.5 block"><i className="ti ti-lock" aria-hidden="true" /> Nenosiri lako</label>
+                <label className="text-xs text-gray-500 mb-1.5 block"><i className="ti ti-lock" aria-hidden="true" /> {t('dal_delete_pw_label')}</label>
                 <div className="relative">
                   <input
                     type={showPass ? 'text' : 'password'}
@@ -222,12 +221,12 @@ export default function DeleteAccountModal({ onClose }: { onClose: () => void })
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Inafuta...
+                  {t('dal_delete_deleting')}
                 </span>
-              ) : 'Futa Akaunti Yangu Kabisa'}
+              ) : t('dal_delete_btn')}
             </button>
             <button onClick={() => setStep(2)} className="w-full py-3 text-sm text-gray-400 mt-2">
-              ← Rudi
+              ← {t('common_back')}
             </button>
           </div>
         )}

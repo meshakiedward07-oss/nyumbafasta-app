@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import AgreementModal from '@/components/legal/AgreementModal'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Role = 'client' | 'dalali'
 
@@ -14,6 +15,7 @@ interface AgreementData {
 }
 
 export default function AgreementRequiredPage() {
+  const { t }    = useLanguage()
   const supabase = createClient()
   const router   = useRouter()
   const [role, setRole] = useState<Role | null>(null)
@@ -69,14 +71,14 @@ export default function AgreementRequiredPage() {
 
       if (!res.ok) {
         const d = await res.json()
-        throw new Error(d.error || 'Imeshindwa kukubali')
+        throw new Error(d.error || t('auth_accept_failed'))
       }
 
       // Redirect to appropriate dashboard
       const dest = role === 'dalali' ? '/dashboard' : '/'
       router.replace(dest)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Imeshindwa kukubali. Jaribu tena.')
+      setError(err instanceof Error ? err.message : t('auth_accept_failed'))
       setSubmitting(false)
     }
   }
@@ -101,9 +103,7 @@ export default function AgreementRequiredPage() {
       {/* Notice banner */}
       <div className="bg-amber-500 px-4 py-3 flex-shrink-0">
         <p className="text-white text-xs text-center font-medium max-w-lg mx-auto">
-          Ili kuendelea kutumia NyumbaFasta, lazima ukubali masharti ya matumizi kwanza.
-          {' / '}
-          To continue using NyumbaFasta, you must accept the terms of use first.
+          {t('auth_accept_terms_notice')}
         </p>
       </div>
 
@@ -126,7 +126,7 @@ export default function AgreementRequiredPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 text-center">
             <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm text-gray-600">Inakubali masharti...</p>
+            <p className="text-sm text-gray-600">{t('auth_accepting_terms')}</p>
           </div>
         </div>
       )}
@@ -137,7 +137,7 @@ export default function AgreementRequiredPage() {
           onClick={handleSignOut}
           className="text-xs text-gray-400 underline"
         >
-          Toka kwenye akaunti / Sign out
+          {t('auth_sign_out_account')}
         </button>
       </div>
     </div>

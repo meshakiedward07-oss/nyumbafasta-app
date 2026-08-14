@@ -37,9 +37,11 @@ type Props = {
   onUnlocked:          (whatsappNumber: string) => void
 }
 
-const TIMEOUT_SECS          = 240
+const TIMEOUT_SECS          = 240   // visual countdown before "checking" message
+const HARD_LIMIT_SECS       = 480   // 8 min total before truly giving up
+const POLL_INTERVAL_MS      = 5_000 // poll DB every 5s as Realtime fallback
 const CONTACT_FETCH_TIMEOUT = 10_000
-const RESEND_AFTER_SECS     = 70  // show resend button after 70s
+const RESEND_AFTER_SECS     = 70    // show resend button after 70s
 
 async function getContactNumber(listingId: string): Promise<string> {
   try {
@@ -114,7 +116,7 @@ export default function UnlockModal({
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [step, setStep]           = useState<ModalStep>('select')
-  const [provider, setProvider]   = useState<PaymentProvider>('Mpesa')
+  const [provider, setProvider]   = useState<PaymentProvider>('Tigo')
   const [phone, setPhone]         = useState('')
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
@@ -122,10 +124,14 @@ export default function UnlockModal({
   const [secondsSinceSent, setSecondsSinceSent] = useState(0)
   const [contactPhone, setContactPhone]         = useState<string | null>(null)
   const [contactTimedOut, setContactTimedOut]   = useState(false)
+  const [isOverdue, setIsOverdue]               = useState(false)
   const userChoseProvider = useRef(false)
+  const unlockIdRef       = useRef<string | null>(null)
 
   const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null)
   const sentTimer    = useRef<ReturnType<typeof setInterval> | null>(null)
+  const hardTimer    = useRef<ReturnType<typeof setTimeout>  | null>(null)
+  const pollRef      = useRef<ReturnType<typeof setInterval> | null>(null)
   const channelRef   = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   const waPhone   = contactPhone?.replace(/\D/g, '').replace(/^0/, '255') ?? null
@@ -155,8 +161,10 @@ export default function UnlockModal({
   }, [step])
 
   const stopAll = useCallback(() => {
-    if (timerRef.current)  clearInterval(timerRef.current)
-    if (sentTimer.current) clearInterval(sentTimer.current)
+    if (timerRef.current)  { clearInterval(timerRef.current);  timerRef.current  = null }
+    if (sentTimer.current) { clearInterval(sentTimer.current); sentTimer.current = null }
+    if (pollRef.current)   { clearInterval(pollRef.current);   pollRef.current   = null }
+    if (hardTimer.current) { clearTimeout(hardTimer.current);  hardTimer.current = null }
     if (channelRef.current) { channelRef.current.unsubscribe(); channelRef.current = null }
   }, [])
   useEffect(() => () => stopAll(), [stopAll])
@@ -175,14 +183,48 @@ export default function UnlockModal({
     setStep('failed')
   }, [stopAll])
 
+  // Poll the DB every 5s as a fallback for when Supabase Realtime drops on mobile networks.
+  // Runs alongside the Realtime subscription so whichever fires first wins.
+  const startPolling = useCallback((id: string) => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/v1/payments/unlock/${id}/status`)
+        if (!res.ok) return
+        const { status } = await res.json() as { status: string }
+        if (status === 'completed') handleConfirmed()
+        else if (status === 'failed') handleFailed('Malipo hayakufanikiwa. Jaribu tena.')
+      } catch { /* network hiccup — will retry on next tick */ }
+    }, POLL_INTERVAL_MS)
+  }, [handleConfirmed, handleFailed])
+
   // Countdown + seconds-since-sent (for resend button)
   useEffect(() => {
     if (step !== 'waiting') return
+    setIsOverdue(false)
+    // Visual countdown — when it hits 0 we switch to "Tunaendelea kuangalia..." message
+    // but DO NOT stop polling or fail. The hard timer below is the true deadline.
     timerRef.current = setInterval(() => {
-      setSecondsLeft(s => { if (s <= 1) { handleFailed('Muda umeisha. Jaribu tena.'); return 0 } return s - 1 })
+      setSecondsLeft(s => {
+        if (s <= 1) {
+          if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+          setIsOverdue(true)
+          return 0
+        }
+        return s - 1
+      })
     }, 1000)
     sentTimer.current = setInterval(() => setSecondsSinceSent(s => s + 1), 1000)
-    return () => { if (timerRef.current) clearInterval(timerRef.current); if (sentTimer.current) clearInterval(sentTimer.current) }
+    // Hard limit — only truly give up after HARD_LIMIT_SECS total
+    hardTimer.current = setTimeout(
+      () => handleFailed('Malipo hayakupokelewa kwa muda. Jaribu tena.'),
+      HARD_LIMIT_SECS * 1000,
+    )
+    return () => {
+      if (timerRef.current)  { clearInterval(timerRef.current);  timerRef.current  = null }
+      if (sentTimer.current) { clearInterval(sentTimer.current); sentTimer.current = null }
+      if (hardTimer.current) { clearTimeout(hardTimer.current);  hardTimer.current = null }
+    }
   }, [step, handleFailed])
 
   // Supabase Realtime — instant status update when webhook fires
@@ -223,10 +265,13 @@ export default function UnlockModal({
       }
       if (data.mock) { await handleConfirmed(); return }
 
+      unlockIdRef.current = data.unlock_id
       setSecondsSinceSent(0)
       setSecondsLeft(TIMEOUT_SECS)
+      setIsOverdue(false)
       setStep('waiting')
       subscribeRealtime(data.unlock_id)
+      startPolling(data.unlock_id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
     } finally {
@@ -245,7 +290,11 @@ export default function UnlockModal({
       })
       if (res.ok) {
         const data = await res.json()
-        if (data?.unlock_id) subscribeRealtime(data.unlock_id)
+        if (data?.unlock_id) {
+          unlockIdRef.current = data.unlock_id
+          subscribeRealtime(data.unlock_id)
+          startPolling(data.unlock_id)
+        }
       }
     } catch { /* old channel still active */ }
   }
@@ -268,8 +317,9 @@ export default function UnlockModal({
   function handleRetry() {
     stopAll()
     userChoseProvider.current = false
+    unlockIdRef.current = null
     setStep('select'); setError(''); setPhone('')
-    setSecondsLeft(TIMEOUT_SECS); setSecondsSinceSent(0)
+    setSecondsLeft(TIMEOUT_SECS); setSecondsSinceSent(0); setIsOverdue(false)
   }
 
   const pInfo = PROVIDERS[provider]
@@ -459,9 +509,19 @@ export default function UnlockModal({
 
             {/* Progress */}
             <div className="bg-gray-100 rounded-full h-1.5 mb-1.5 overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${progressPct}%`, backgroundColor: pInfo.btnColor }} />
+              <div className="h-full rounded-full transition-all duration-1000"
+                style={{ width: isOverdue ? '100%' : `${progressPct}%`, backgroundColor: isOverdue ? '#F59E0B' : pInfo.btnColor }} />
             </div>
-            <p className="text-xs text-gray-400 text-center mb-4">{t('cl_waiting_confirmation')} ({secondsLeft}s)</p>
+            {isOverdue ? (
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <div className="w-3 h-3 border-2 border-amber-400 border-t-amber-600 rounded-full animate-spin flex-shrink-0" />
+                <p className="text-xs text-amber-600 text-center font-medium">
+                  Tunaendelea kuangalia malipo yako...
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 text-center mb-4">{t('cl_waiting_confirmation')} ({secondsLeft}s)</p>
+            )}
 
             {/* Resend */}
             {secondsSinceSent >= RESEND_AFTER_SECS && (

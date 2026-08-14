@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 import AttachmentCompose, { type PendingAttachment } from '@/components/messages/AttachmentCompose'
 import AttachmentDisplay from '@/components/messages/AttachmentDisplay'
 
@@ -102,21 +103,23 @@ const NOTIF_ICONS: Record<string, string> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function dateFmt(iso: string | null) {
+function dateFmt(iso: string | null, lang: 'sw' | 'en' = 'sw') {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
+  const locale = lang === 'sw' ? 'sw-TZ' : 'en-US'
+  return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-function timeFmt(iso: string) {
+function timeFmt(iso: string, lang: 'sw' | 'en' = 'sw') {
   const d = new Date(iso)
   const now = new Date()
   const diffMs = now.getTime() - d.getTime()
   const diffH  = Math.floor(diffMs / 3_600_000)
-  if (diffH < 1)  return 'Sasa hivi'
-  if (diffH < 24) return `Saa ${diffH} iliyopita`
+  if (diffH < 1)  return lang === 'sw' ? 'Sasa hivi' : 'Just now'
+  if (diffH < 24) return lang === 'sw' ? `Saa ${diffH} iliyopita` : `${diffH}h ago`
   const diffD = Math.floor(diffH / 24)
-  if (diffD < 7)  return `Siku ${diffD} iliyopita`
-  return d.toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short' })
+  if (diffD < 7)  return lang === 'sw' ? `Siku ${diffD} iliyopita` : `${diffD}d ago`
+  const locale = lang === 'sw' ? 'sw-TZ' : 'en-US'
+  return d.toLocaleDateString(locale, { day: '2-digit', month: 'short' })
 }
 
 function daysUntil(iso: string) {
@@ -141,6 +144,7 @@ function BRow({ label, value, bold }: { label: string; value: string; bold?: boo
 }
 
 function BankingCard({ banking }: { banking: Banking }) {
+  const { t } = useLanguage()
   const [copied, setCopied] = useState(false)
   function copyAccount() {
     navigator.clipboard.writeText(banking.account_number).then(() => {
@@ -151,30 +155,30 @@ function BankingCard({ banking }: { banking: Banking }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-        <i className="ti ti-building-bank" aria-hidden="true" /> Lipa Kodi Kwenye Akaunti Hii
+        <i className="ti ti-building-bank" aria-hidden="true" /> {t('tenant_bank_title')}
       </p>
       <div className="space-y-2">
-        <BRow label="Benki"           value={banking.bank_name}    />
-        <BRow label="Jina la Akaunti" value={banking.account_name} />
+        <BRow label={t('tenant_bank_name')}    value={banking.bank_name}    />
+        <BRow label={t('tenant_account_name')} value={banking.account_name} />
         <div className="flex justify-between items-center">
-          <BRow label="Nambari ya Akaunti" value={banking.account_number} bold />
+          <BRow label={t('tenant_account_no')} value={banking.account_number} bold />
           <button onClick={copyAccount}
             className="ml-2 text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1">
             <i className={`ti ti-${copied ? 'check' : 'copy'}`} aria-hidden="true" />
-            {copied ? 'Imenakiliwa' : 'Nakili'}
+            {copied ? t('common_copied') : t('common_copy')}
           </button>
         </div>
-        {banking.branch && <BRow label="Tawi" value={banking.branch} />}
+        {banking.branch && <BRow label={t('tenant_branch')} value={banking.branch} />}
         {banking.mobile_money_number && (
           <BRow
-            label={banking.mobile_money_provider ?? 'Simu'}
+            label={banking.mobile_money_provider ?? t('tenant_phone_label')}
             value={banking.mobile_money_number}
             bold
           />
         )}
         {banking.additional_instructions && (
           <div className="pt-2 border-t border-gray-50">
-            <p className="text-xs text-gray-400 mb-0.5">Maelezo Zaidi</p>
+            <p className="text-xs text-gray-400 mb-0.5">{t('tenant_extra_info')}</p>
             <p className="text-sm text-gray-600">{banking.additional_instructions}</p>
           </div>
         )}
@@ -184,9 +188,17 @@ function BankingCard({ banking }: { banking: Banking }) {
 }
 
 function PaymentCard({ p }: { p: Payment; leaseId: string }) {
+  const { t, lang } = useLanguage()
   const isOverdue = ['pending', 'partial'].includes(p.status) && new Date(p.due_date) < new Date()
   const daysLeft  = daysUntil(p.due_date)
   const s = PAYMENT_STATUS[p.status] ?? PAYMENT_STATUS.pending
+  const payStatusLabels: Record<string, string> = {
+    pending:        t('pay_status_pending'),
+    partial:        t('pay_status_partial'),
+    proof_uploaded: t('pay_status_proof_uploaded'),
+    paid:           t('pay_status_paid'),
+    void:           t('pay_status_void'),
+  }
 
   return (
     <div className={`rounded-2xl border p-4 ${
@@ -197,42 +209,42 @@ function PaymentCard({ p }: { p: Payment; leaseId: string }) {
     }`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-gray-400 mb-0.5">Kodi ya Mwezi</p>
+          <p className="text-xs text-gray-400 mb-0.5">{t('tenant_monthly_rent')}</p>
           <p className="text-xl font-bold text-gray-900 tabular-nums">
             TZS {p.amount_due.toLocaleString()}
           </p>
           <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-gray-500">
-            <span>Inastahili: <strong className={isOverdue ? 'text-red-600' : ''}>{dateFmt(p.due_date)}</strong></span>
+            <span>{t('tenant_due')}: <strong className={isOverdue ? 'text-red-600' : ''}>{dateFmt(p.due_date, lang)}</strong></span>
             {isOverdue && (
-              <span className="text-red-500 font-medium">(siku {Math.abs(daysLeft)} zimepita)</span>
+              <span className="text-red-500 font-medium">({Math.abs(daysLeft)} {t('tenant_days_overdue')})</span>
             )}
             {!isOverdue && daysLeft >= 0 && daysLeft <= 7 && p.status === 'pending' && (
-              <span className="text-amber-500 font-medium">(siku {daysLeft} zimebaki)</span>
+              <span className="text-amber-500 font-medium">({daysLeft} {t('tenant_days_left')})</span>
             )}
           </div>
           {p.paid_date && (
             <p className="text-xs text-green-600 mt-1">
-              <i className="ti ti-circle-check" aria-hidden="true" /> Ilipwa: {dateFmt(p.paid_date)}
+              <i className="ti ti-circle-check" aria-hidden="true" /> {t('tenant_paid_on')}: {dateFmt(p.paid_date, lang)}
             </p>
           )}
           {p.verified_at && (
             <p className="text-xs text-green-500 mt-0.5">
-              <i className="ti ti-shield-check" aria-hidden="true" /> Imethibitishwa: {dateFmt(p.verified_at)}
+              <i className="ti ti-shield-check" aria-hidden="true" /> {t('tenant_verified')}: {dateFmt(p.verified_at, lang)}
             </p>
           )}
         </div>
         <span className={`flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${s.cls}`}>
           <i className={`ti ti-${s.icon}`} aria-hidden="true" />
-          {s.label}
+          {payStatusLabels[p.status] ?? payStatusLabels.pending}
         </span>
       </div>
 
       {p.status === 'proof_uploaded' && (
         <div className="mt-3 bg-blue-50 rounded-xl p-3 text-xs text-blue-700">
           <p className="font-medium mb-0.5">
-            <i className="ti ti-upload mr-1" aria-hidden="true" />Ushahidi umepakiwa
+            <i className="ti ti-upload mr-1" aria-hidden="true" />{t('tenant_proof_uploaded_title')}
           </p>
-          <p className="text-blue-500">Mmiliki ataona na atathibitisha hivi karibuni.</p>
+          <p className="text-blue-500">{t('tenant_proof_uploaded_body')}</p>
           {p.proof_url && (
             <a href={p.proof_url} target="_blank" rel="noopener noreferrer"
                className="mt-1 block text-blue-600 underline truncate">{p.proof_url}</a>
@@ -244,7 +256,7 @@ function PaymentCard({ p }: { p: Payment; leaseId: string }) {
         <Link href={`/rent/proof/${p.id}`}
           className="mt-3 flex items-center justify-center gap-2 w-full bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
           <i className="ti ti-upload" aria-hidden="true" />
-          Pakia Ushahidi wa Malipo
+          {t('tenant_upload_proof')}
         </Link>
       )}
     </div>
@@ -285,6 +297,31 @@ export default function TenantPage() {
   const [tenantAttach,   setTenantAttach]   = useState<PendingAttachment | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const msgEndRef = useRef<HTMLDivElement>(null)
+
+  const { t, lang } = useLanguage()
+
+  const maintStatusLabels: Record<string, string> = {
+    open:        t('maint_status_open'),
+    in_progress: t('maint_status_in_progress'),
+    resolved:    t('maint_status_resolved'),
+    closed:      t('maint_status_closed'),
+  }
+  const maintCatLabels: Record<string, string> = {
+    plumbing:   t('maint_cat_plumbing'),
+    electrical: t('maint_cat_electrical'),
+    structural: t('maint_cat_structural'),
+    cleaning:   t('maint_cat_cleaning'),
+    security:   t('maint_cat_security'),
+    appliance:  t('maint_cat_appliance'),
+    other:      t('maint_cat_other'),
+  }
+  const payStatusLabels: Record<string, string> = {
+    pending:        t('pay_status_pending'),
+    partial:        t('pay_status_partial'),
+    proof_uploaded: t('pay_status_proof_uploaded'),
+    paid:           t('pay_status_paid'),
+    void:           t('pay_status_void'),
+  }
 
   useEffect(() => {
     async function load() {
@@ -369,7 +406,7 @@ export default function TenantPage() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          message:     body || (attachment ? attachment.file_name ?? 'Faili' : ''),
+          message:     body || (attachment ? attachment.file_name ?? t('tenant_file_label') : ''),
           attachments: attachment ? [{ file_url: attachment.url, file_name: attachment.file_name, file_type: attachment.file_type, file_size: attachment.file_size }] : undefined,
         }),
       })
@@ -396,7 +433,7 @@ export default function TenantPage() {
 
   async function handleMaintSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!maintForm.title.trim()) { setMaintErr('Kichwa cha tatizo kinahitajika.'); return }
+    if (!maintForm.title.trim()) { setMaintErr(t('tenant_maint_required')); return }
     setMaintSubmitting(true); setMaintErr(null)
     try {
       const res  = await fetch('/api/v1/my-maintenance', {
@@ -405,11 +442,11 @@ export default function TenantPage() {
         body:    JSON.stringify(maintForm),
       })
       const data = await res.json()
-      if (!res.ok) { setMaintErr(data.error ?? 'Imeshindwa kutuma.'); return }
+      if (!res.ok) { setMaintErr(data.error ?? t('tenant_maint_send_fail')); return }
       setRequests(prev => [data.request, ...prev])
       setMaintForm({ title: '', description: '', category: 'other', priority: 'medium' })
       setShowMaintForm(false)
-    } catch { setMaintErr('Imeshindwa kutuma. Angalia muunganiko wako.') }
+    } catch { setMaintErr(t('tenant_maint_send_fail_net')) }
     finally { setMaintSubmitting(false) }
   }
 
@@ -432,13 +469,13 @@ export default function TenantPage() {
           <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="ti ti-lock text-3xl text-primary-400" aria-hidden="true" />
           </div>
-          <h2 className="font-bold text-gray-900 text-lg mb-2">Ingia kwanza</h2>
+          <h2 className="font-bold text-gray-900 text-lg mb-2">{t('tenant_login_prompt')}</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Unahitaji kuingia katika akaunti yako ya mpangaji ili kuona malipo yako.
+            {t('tenant_login_sub')}
           </p>
           <Link href="/login?redirect=/tenant">
             <button className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold hover:bg-primary-600 transition">
-              Ingia Sasa
+              {t('tenant_login_btn')}
             </button>
           </Link>
         </div>
@@ -453,20 +490,20 @@ export default function TenantPage() {
           <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="ti ti-home-off text-3xl text-amber-400" aria-hidden="true" />
           </div>
-          <h2 className="font-bold text-gray-900 text-lg mb-2">Huna mkataba bado</h2>
+          <h2 className="font-bold text-gray-900 text-lg mb-2">{t('tenant_no_lease')}</h2>
           <p className="text-sm text-gray-500 mb-4">
-            Akaunti yako bado haijaunganishwa na mkataba wowote wa upangaji.
+            {t('tenant_no_lease_desc')}
           </p>
           <p className="text-xs text-gray-400 mb-6">
-            Mmiliki wako amepata taarifa ya usajili wako — hivi karibuni atakusajilishe kwenye mfumo wa mkataba wako. Ukiwa na haraka, wasiliana naye moja kwa moja.
+            {t('tenant_no_lease_detail')}
           </p>
           <div className="border-t border-gray-100 pt-5">
-            <p className="text-xs text-gray-400 mb-3">Unatafuta nyumba ya kupanga?</p>
+            <p className="text-xs text-gray-400 mb-3">{t('tenant_find_home')}</p>
             <Link href="/"
               className="inline-flex items-center gap-2 bg-primary-500 text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
             >
               <i className="ti ti-home-search" aria-hidden="true" />
-              Tafuta Nyumba kwenye Soko
+              {t('tenant_search_market')}
             </Link>
           </div>
         </div>
@@ -497,7 +534,7 @@ export default function TenantPage() {
           <div className="flex-1 bg-black/40" onClick={() => setShowNotifPanel(false)} />
           <div className="w-full max-w-sm bg-white h-full overflow-y-auto shadow-2xl flex flex-col">
             <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
-              <h2 className="font-bold text-gray-900">Arifa</h2>
+              <h2 className="font-bold text-gray-900">{t('tenant_notifications')}</h2>
               <button onClick={() => setShowNotifPanel(false)}
                 className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition">
                 <i className="ti ti-x text-sm text-gray-600" aria-hidden="true" />
@@ -510,7 +547,7 @@ export default function TenantPage() {
             ) : notifs.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                 <i className="ti ti-bell-off text-5xl text-gray-200" aria-hidden="true" />
-                <p className="text-gray-500 font-medium mt-3">Hakuna arifa bado</p>
+                <p className="text-gray-500 font-medium mt-3">{t('tenant_no_notifs')}</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
@@ -522,7 +559,7 @@ export default function TenantPage() {
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium ${!n.is_read ? 'text-gray-900' : 'text-gray-700'}`}>{n.title}</p>
                       <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.body}</p>
-                      <p className="text-[10px] text-gray-400 mt-1">{timeFmt(n.created_at)}</p>
+                      <p className="text-[10px] text-gray-400 mt-1">{timeFmt(n.created_at, lang)}</p>
                     </div>
                     {!n.is_read && (
                       <div className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-1.5" />
@@ -541,7 +578,7 @@ export default function TenantPage() {
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <p className="text-primary-200 text-xs mb-1">{org_name ?? 'NyumbaFasta'}</p>
-              <h1 className="text-xl font-bold">Malipo Yangu ya Kodi</h1>
+              <h1 className="text-xl font-bold">{t('tenant_title')}</h1>
               <div className="flex items-center gap-2 mt-1.5 text-primary-100 text-sm flex-wrap">
                 {unit && (
                   <span className="flex items-center gap-1">
@@ -560,7 +597,7 @@ export default function TenantPage() {
             <button
               onClick={openNotifications}
               className="relative ml-3 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center flex-shrink-0"
-              aria-label="Arifa"
+              aria-label={t('tenant_notifications')}
             >
               <i className="ti ti-bell text-white text-lg" aria-hidden="true" />
               {unreadNotifs > 0 && (
@@ -584,7 +621,7 @@ export default function TenantPage() {
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${
                     activeLeaseIdx === i ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'
                   }`}>
-                  {u?.unit_number ?? `Mkataba ${i + 1}`}
+                  {u?.unit_number ?? `${t('tenant_lease_no')} ${i + 1}`}
                 </button>
               )
             })}
@@ -598,39 +635,39 @@ export default function TenantPage() {
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
             <div>
-              <p className="text-xs text-gray-400">Kodi ya Mwezi</p>
+              <p className="text-xs text-gray-400">{t('tenant_monthly_rent')}</p>
               <p className="font-bold text-primary-600 text-lg tabular-nums">
                 TZS {lease.monthly_rent.toLocaleString()}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Hali ya Mkataba</p>
+              <p className="text-xs text-gray-400">{t('tenant_contract_status')}</p>
               <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
                 lease.status === 'active'  ? 'bg-green-50 text-green-700' :
                 lease.status === 'expired' ? 'bg-amber-50 text-amber-700' :
                 'bg-gray-100 text-gray-500'
               }`}>
                 <i className="ti ti-circle-filled text-[6px]" aria-hidden="true" />
-                {lease.status === 'active' ? 'Inaendelea' : lease.status === 'expired' ? 'Imekwisha' : lease.status}
+                {lease.status === 'active' ? t('tenant_lease_active') : lease.status === 'expired' ? t('tenant_lease_expired') : lease.status}
               </span>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Ilianza</p>
-              <p className="font-medium text-gray-700">{dateFmt(lease.start_date)}</p>
+              <p className="text-xs text-gray-400">{t('tenant_start_date')}</p>
+              <p className="font-medium text-gray-700">{dateFmt(lease.start_date, lang)}</p>
             </div>
             {lease.end_date && (
               <div>
-                <p className="text-xs text-gray-400">Muda wa Mwisho</p>
-                <p className="font-medium text-gray-700">{dateFmt(lease.end_date)}</p>
+                <p className="text-xs text-gray-400">{t('tenant_end_date')}</p>
+                <p className="font-medium text-gray-700">{dateFmt(lease.end_date, lang)}</p>
               </div>
             )}
             {lease.deposit_amount && (
               <div>
-                <p className="text-xs text-gray-400">Amana</p>
+                <p className="text-xs text-gray-400">{t('tenant_deposit')}</p>
                 <p className={`font-medium text-sm ${lease.deposit_paid ? 'text-green-600' : 'text-amber-600'}`}>
                   TZS {lease.deposit_amount.toLocaleString()}
                   {' '}
-                  <span className="text-xs">({lease.deposit_paid ? '✓ Imelipwa' : '✗ Haijalipiwa'})</span>
+                  <span className="text-xs">({lease.deposit_paid ? `✓ ${t('tenant_deposit_paid')}` : `✗ ${t('tenant_deposit_unpaid')}`})</span>
                 </p>
               </div>
             )}
@@ -641,7 +678,7 @@ export default function TenantPage() {
         {(org_phone || org_email) && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-              <i className="ti ti-building-estate" aria-hidden="true" /> Mawasiliano na {org_name ?? 'Mmiliki'}
+              <i className="ti ti-building-estate" aria-hidden="true" /> {t('tenant_contact_title')} {org_name ?? t('tenant_landlord')}
             </p>
             <div className="flex flex-wrap gap-3">
               {org_phone && (
@@ -680,11 +717,11 @@ export default function TenantPage() {
         {/* ── Tab switcher ───────────────────────────────────────────────── */}
         <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
           {([
-            { key: 'malipo',      label: 'Malipo',       icon: 'cash'     },
-            { key: 'historia',    label: 'Historia',     icon: 'history'  },
-            { key: 'mazungumzo',  label: 'Mazungumzo',   icon: 'message'  },
-            { key: 'matengenezo', label: 'Matengenezo',  icon: 'tool'     },
-          ] as const).map(tab => (
+            { key: 'malipo',      label: t('tenant_tab_payments'),    icon: 'cash'     },
+            { key: 'historia',    label: t('tenant_tab_history'),     icon: 'history'  },
+            { key: 'mazungumzo',  label: t('tenant_tab_messages'),    icon: 'message'  },
+            { key: 'matengenezo', label: t('tenant_tab_maintenance'), icon: 'tool'     },
+          ] as { key: 'malipo' | 'historia' | 'mazungumzo' | 'matengenezo'; label: string; icon: string }[]).map(tab => (
             <button
               key={tab.key}
               onClick={() => {
@@ -714,9 +751,11 @@ export default function TenantPage() {
               <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3">
                 <i className="ti ti-alert-triangle text-red-500 text-xl mt-0.5 flex-shrink-0" aria-hidden="true" />
                 <div>
-                  <p className="font-semibold text-red-700 text-sm">Malipo {overdueCount} Yamechelewa</p>
+                  <p className="font-semibold text-red-700 text-sm">
+                    {lang === 'sw' ? `Malipo ${overdueCount} Yamechelewa` : `${overdueCount} ${t('tenant_overdue_title')}`}
+                  </p>
                   <p className="text-xs text-red-500 mt-0.5">
-                    Tafadhali lipa na upaki ushahidi haraka ili kuepuka matatizo.
+                    {t('tenant_overdue_body')}
                   </p>
                 </div>
               </div>
@@ -728,7 +767,7 @@ export default function TenantPage() {
               <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3">
                 <i className="ti ti-info-circle text-amber-500 text-xl flex-shrink-0" aria-hidden="true" />
                 <p className="text-sm text-amber-700">
-                  Mmiliki bado hajaweka taarifa za akaunti ya benki. Wasiliana nao moja kwa moja.
+                  {t('tenant_no_banking')}
                 </p>
               </div>
             )}
@@ -736,7 +775,7 @@ export default function TenantPage() {
             {pendingPayments.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">
-                  Malipo Yanayosubiri ({pendingPayments.length})
+                  {t('tenant_pending_label')} ({pendingPayments.length})
                 </p>
                 <div className="space-y-3">
                   {pendingPayments.map(p => <PaymentCard key={p.id} p={p} leaseId={lease.id} />)}
@@ -747,7 +786,7 @@ export default function TenantPage() {
             {pastPayments.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">
-                  Historia ya Malipo
+                  {t('tenant_history_label')}
                 </p>
                 <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                   {pastPayments.map((p, i) => (
@@ -759,13 +798,13 @@ export default function TenantPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800">TZS {p.amount_due.toLocaleString()}</p>
-                        <p className="text-xs text-gray-400">{dateFmt(p.due_date)}</p>
+                        <p className="text-xs text-gray-400">{dateFmt(p.due_date, lang)}</p>
                       </div>
                       <div className="text-right">
-                        {p.paid_date && <p className="text-xs text-green-600">{dateFmt(p.paid_date)}</p>}
+                        {p.paid_date && <p className="text-xs text-green-600">{dateFmt(p.paid_date, lang)}</p>}
                         {p.verified_at && (
                           <p className="text-[10px] text-green-400 flex items-center gap-0.5 justify-end">
-                            <i className="ti ti-shield-check" aria-hidden="true" /> Imethibitishwa
+                            <i className="ti ti-shield-check" aria-hidden="true" /> {t('tenant_verified')}
                           </p>
                         )}
                       </div>
@@ -778,9 +817,9 @@ export default function TenantPage() {
             {pendingPayments.length === 0 && pastPayments.length === 0 && (
               <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
                 <i className="ti ti-calendar-event text-5xl text-gray-200" aria-hidden="true" />
-                <p className="text-gray-500 font-medium mt-3">Hakuna malipo bado</p>
+                <p className="text-gray-500 font-medium mt-3">{t('tenant_no_payments')}</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Malipo ya kodi yataonekana hapa punde tu yatakapotengenezwa na mmiliki wako.
+                  {t('tenant_no_payments_sub')}
                 </p>
               </div>
             )}
@@ -794,7 +833,7 @@ export default function TenantPage() {
             const u = l.lease.unit as unknown as LeaseUnit | null
             return l.payments.map(p => ({
               ...p,
-              unitLabel: u?.unit_number ?? 'Mkataba',
+              unitLabel: u?.unit_number ?? t('tenant_lease_no'),
               orgLabel:  l.org_name ?? 'NyumbaFasta',
             }))
           })
@@ -804,7 +843,7 @@ export default function TenantPage() {
             return (
               <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
                 <i className="ti ti-history text-5xl text-gray-200" aria-hidden="true" />
-                <p className="text-gray-500 font-medium mt-3">Hakuna historia ya malipo</p>
+                <p className="text-gray-500 font-medium mt-3">{t('tenant_no_history')}</p>
               </div>
             )
           }
@@ -812,7 +851,7 @@ export default function TenantPage() {
           return (
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">
-                Historia Yote ya Malipo ({flat.length})
+                {t('tenant_all_history')} ({flat.length})
               </p>
               <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 {flat.map((p, i) => {
@@ -833,25 +872,25 @@ export default function TenantPage() {
                           <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{p.unitLabel}</span>
                         </div>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          Ankara: {dateFmt(p.due_date)}
-                          {p.paid_date && ` · Ilipwa: ${dateFmt(p.paid_date)}`}
+                          {t('tenant_invoice')}: {dateFmt(p.due_date, lang)}
+                          {p.paid_date && ` · ${t('tenant_paid_on')}: ${dateFmt(p.paid_date, lang)}`}
                         </p>
                         {p.verified_at && (
                           <p className="text-[10px] text-green-500 mt-0.5 flex items-center gap-0.5">
-                            <i className="ti ti-shield-check" aria-hidden="true" /> Imethibitishwa
+                            <i className="ti ti-shield-check" aria-hidden="true" /> {t('tenant_verified')}
                           </p>
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${s.cls}`}>{s.label}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${s.cls}`}>{payStatusLabels[p.status] ?? payStatusLabels.pending}</span>
                         {p.status === 'paid' && (
                           <a href={`/rent/receipt/${p.id}`} className="text-[10px] text-primary-600 hover:underline flex items-center gap-0.5">
-                            <i className="ti ti-receipt text-[10px]" aria-hidden="true" /> Risiti
+                            <i className="ti ti-receipt text-[10px]" aria-hidden="true" /> {t('tenant_receipt')}
                           </a>
                         )}
                         {['pending', 'partial'].includes(p.status) && (
                           <a href={`/rent/proof/${p.id}`} className="text-[10px] text-amber-600 hover:underline flex items-center gap-0.5">
-                            <i className="ti ti-upload text-[10px]" aria-hidden="true" /> Lipa
+                            <i className="ti ti-upload text-[10px]" aria-hidden="true" /> {t('tenant_pay')}
                           </a>
                         )}
                       </div>
@@ -877,10 +916,10 @@ export default function TenantPage() {
                   </button>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">
-                      {activeConv.title ?? org_name ?? 'Mazungumzo'}
+                      {activeConv.title ?? org_name ?? t('tenant_tab_messages')}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {activeConv.participants.length} washiriki
+                      {activeConv.participants.length} {t('tenant_participants')}
                     </p>
                   </div>
                 </div>
@@ -890,7 +929,7 @@ export default function TenantPage() {
                   {messages.length === 0 ? (
                     <div className="text-center py-8">
                       <i className="ti ti-message-off text-3xl text-gray-200" aria-hidden="true" />
-                      <p className="text-sm text-gray-400 mt-2">Hakuna ujumbe bado</p>
+                      <p className="text-sm text-gray-400 mt-2">{t('tenant_no_messages')}</p>
                     </div>
                   ) : (
                     messages.map(msg => {
@@ -910,7 +949,7 @@ export default function TenantPage() {
                           <div className={`max-w-[75%] ${isMe ? 'order-2' : ''}`}>
                             {!isMe && (
                               <p className="text-[10px] text-gray-400 mb-1 ml-1">
-                                {msg.sender?.full_name ?? 'Mmiliki'}
+                                {msg.sender?.full_name ?? t('tenant_landlord')}
                               </p>
                             )}
                             <div className={`px-3 py-2 rounded-2xl text-sm ${
@@ -922,7 +961,7 @@ export default function TenantPage() {
                               {msg.attachments?.length ? <AttachmentDisplay attachments={msg.attachments} /> : null}
                             </div>
                             <p className={`text-[10px] text-gray-400 mt-0.5 ${isMe ? 'text-right' : 'ml-1'}`}>
-                              {timeFmt(msg.created_at)}
+                              {timeFmt(msg.created_at, lang)}
                             </p>
                           </div>
                         </div>
@@ -952,7 +991,7 @@ export default function TenantPage() {
                       value={newMsg}
                       onChange={e => setNewMsg(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && (newMsg.trim() || tenantAttach)) { e.preventDefault(); handleSendMsg(activeConv.id) } }}
-                      placeholder="Andika ujumbe..."
+                      placeholder={t('tenant_write_message')}
                       className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                     />
                     <button
@@ -978,16 +1017,16 @@ export default function TenantPage() {
                 ) : convs.length === 0 ? (
                   <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
                     <i className="ti ti-message-off text-5xl text-gray-200" aria-hidden="true" />
-                    <p className="text-gray-500 font-medium mt-3">Hakuna mazungumzo bado</p>
+                    <p className="text-gray-500 font-medium mt-3">{t('tenant_no_convs')}</p>
                     <p className="text-sm text-gray-400 mt-1">
-                      Mazungumzo kati yako na mmiliki yataonekana hapa baada ya mkataba kuanzishwa.
+                      {t('tenant_no_convs_sub')}
                     </p>
                   </div>
                 ) : (
                   <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                     {convs.map((conv, i) => {
                       const otherParticipant = conv.participants.find(p => p.user_id !== currentUserId)
-                      const displayName = conv.title ?? otherParticipant?.user?.full_name ?? org_name ?? 'Mazungumzo'
+                      const displayName = conv.title ?? otherParticipant?.user?.full_name ?? org_name ?? t('tenant_tab_messages')
                       return (
                         <button
                           key={conv.id}
@@ -1003,12 +1042,12 @@ export default function TenantPage() {
                                 {displayName}
                               </p>
                               {conv.last_message_at && (
-                                <p className="text-[10px] text-gray-400 flex-shrink-0">{timeFmt(conv.last_message_at)}</p>
+                                <p className="text-[10px] text-gray-400 flex-shrink-0">{timeFmt(conv.last_message_at, lang)}</p>
                               )}
                             </div>
                             {conv.last_message && (
                               <p className={`text-xs mt-0.5 truncate ${conv.unread_count > 0 ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-                                {conv.last_message.sender_id === currentUserId ? 'Wewe: ' : ''}{conv.last_message.body}
+                                {conv.last_message.sender_id === currentUserId ? `${t('tenant_you')}: ` : ''}{conv.last_message.body}
                               </p>
                             )}
                           </div>
@@ -1035,33 +1074,33 @@ export default function TenantPage() {
               className="w-full flex items-center justify-center gap-2 bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary-600 transition"
             >
               <i className={`ti ti-${showMaintForm ? 'x' : 'plus'}`} aria-hidden="true" />
-              {showMaintForm ? 'Funga Fomu' : 'Wasilisha Tatizo Jipya'}
+              {showMaintForm ? t('maint_close_form') : t('maint_submit_new')}
             </button>
 
             {showMaintForm && (
               <form onSubmit={handleMaintSubmit} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-                <p className="text-sm font-semibold text-gray-700">Maelezo ya Tatizo</p>
+                <p className="text-sm font-semibold text-gray-700">{t('maint_issue_title')}</p>
 
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Kichwa cha Tatizo <span className="text-red-400">*</span>
+                    {t('maint_title_label')} <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
                     value={maintForm.title}
                     onChange={e => setMaintForm(p => ({ ...p, title: e.target.value }))}
-                    placeholder="mfano: Bomba linachuruzika bafuni"
+                    placeholder={t('maint_title_ph')}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Maelezo ya Ziada</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('maint_desc_label')}</label>
                   <textarea
                     value={maintForm.description}
                     onChange={e => setMaintForm(p => ({ ...p, description: e.target.value }))}
-                    placeholder="Elezea tatizo kwa undani zaidi..."
+                    placeholder={t('maint_desc_ph')}
                     rows={3}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
                   />
@@ -1069,26 +1108,26 @@ export default function TenantPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Aina ya Tatizo</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('maint_category')}</label>
                     <select
                       value={maintForm.category}
                       onChange={e => setMaintForm(p => ({ ...p, category: e.target.value }))}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                     >
-                      {MAINT_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      {MAINT_CATEGORIES.map(c => <option key={c.value} value={c.value}>{maintCatLabels[c.value] ?? c.label}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Haraka</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('maint_priority')}</label>
                     <select
                       value={maintForm.priority}
                       onChange={e => setMaintForm(p => ({ ...p, priority: e.target.value }))}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                     >
-                      <option value="urgent">Dharura</option>
-                      <option value="high">Juu</option>
-                      <option value="medium">Kati</option>
-                      <option value="low">Chini</option>
+                      <option value="urgent">{t('priority_urgent')}</option>
+                      <option value="high">{t('priority_high')}</option>
+                      <option value="medium">{t('priority_medium')}</option>
+                      <option value="low">{t('priority_low')}</option>
                     </select>
                   </div>
                 </div>
@@ -1106,8 +1145,8 @@ export default function TenantPage() {
                   className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-60 hover:bg-primary-600 transition flex items-center justify-center gap-2"
                 >
                   {maintSubmitting
-                    ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />Inatuma...</>
-                    : <><i className="ti ti-send" aria-hidden="true" />Tuma Ombi</>
+                    ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />{t('maint_sending')}</>
+                    : <><i className="ti ti-send" aria-hidden="true" />{t('maint_send')}</>
                   }
                 </button>
               </form>
@@ -1120,22 +1159,22 @@ export default function TenantPage() {
             ) : requests.length === 0 ? (
               <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
                 <i className="ti ti-tool text-5xl text-gray-200" aria-hidden="true" />
-                <p className="text-gray-500 font-medium mt-3">Hakuna maombi bado</p>
+                <p className="text-gray-500 font-medium mt-3">{t('maint_no_requests')}</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Kama una tatizo lolote la nyumba, bonyeza kitufe hapo juu.
+                  {t('maint_no_req_sub')}
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {requests.map(r => {
                   const s = MAINT_STATUS[r.status] ?? MAINT_STATUS.open
-                  const catLabel = MAINT_CATEGORIES.find(c => c.value === r.category)?.label ?? r.category
+                  const catLabel = maintCatLabels[r.category] ?? r.category
                   return (
                     <div key={r.id} className="bg-white rounded-2xl border border-gray-100 p-4">
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <p className="font-semibold text-gray-900 text-sm flex-1">{r.title}</p>
                         <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${s.cls}`}>
-                          {s.label}
+                          {maintStatusLabels[r.status] ?? maintStatusLabels.open}
                         </span>
                       </div>
                       {r.description && (
@@ -1147,7 +1186,7 @@ export default function TenantPage() {
                         </span>
                         <span className="flex items-center gap-1">
                           <i className="ti ti-calendar" aria-hidden="true" />
-                          {new Date(r.created_at).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {new Date(r.created_at).toLocaleDateString(lang === 'sw' ? 'sw-TZ' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </span>
                         {r.assignee?.full_name && (
                           <span className="flex items-center gap-1 text-primary-600">
@@ -1158,7 +1197,7 @@ export default function TenantPage() {
                         {r.resolved_at && (
                           <span className="flex items-center gap-1 text-green-500">
                             <i className="ti ti-circle-check" aria-hidden="true" />
-                            Imeshughulikiwa
+                            {t('maint_status_resolved')}
                           </span>
                         )}
                       </div>
@@ -1176,10 +1215,10 @@ export default function TenantPage() {
             className="w-full flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
           >
             <i className="ti ti-home-search text-primary-500" aria-hidden="true" />
-            Tafuta Nyumba Nyingine kwenye Soko
+            {t('tenant_search_market_other')}
           </Link>
           <p className="text-center text-xs text-gray-400">
-            NyumbaFasta · Msaada: <a href="https://wa.me/255665831694" className="underline">WhatsApp</a>
+            NyumbaFasta · {t('common_support')}: <a href="https://wa.me/255665831694" className="underline">WhatsApp</a>
           </p>
         </div>
       </div>

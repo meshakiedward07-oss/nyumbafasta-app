@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 // ── Tax system is DORMANT — set NEXT_PUBLIC_TAX_ENABLED=true on Vercel when ready ──
 const TAX_ENABLED = process.env.NEXT_PUBLIC_TAX_ENABLED === 'true'
@@ -12,11 +14,14 @@ function dateFmt(iso: string | null) {
 }
 function fmt(n: number) { return `TZS ${(n ?? 0).toLocaleString()}` }
 
-const STATUS: Record<string, { label: string; cls: string; next?: string; nextLabel?: string }> = {
-  draft:     { label: 'Rasimu',    cls: 'bg-gray-100 text-gray-600',    next: 'sent',      nextLabel: 'Tuma' },
-  sent:      { label: 'Imetumwa', cls: 'bg-blue-50 text-blue-700',    next: 'paid',      nextLabel: 'Imelipwa' },
-  paid:      { label: 'Imelipwa', cls: 'bg-green-50 text-green-700' },
-  cancelled: { label: 'Imefutwa', cls: 'bg-red-50 text-red-500' },
+// ── Status meta — built with t() so labels are translated ────────────────────
+function statusMeta(t: (k: TKey) => string): Record<string, { label: string; cls: string; next?: string; nextLabel?: string }> {
+  return {
+    draft:     { label: t('inv_status_draft'),     cls: 'bg-gray-100 text-gray-600',  next: 'sent', nextLabel: t('inv_action_send') },
+    sent:      { label: t('inv_status_sent'),      cls: 'bg-blue-50 text-blue-700',   next: 'paid', nextLabel: t('inv_action_paid') },
+    paid:      { label: t('inv_status_paid'),      cls: 'bg-green-50 text-green-700' },
+    cancelled: { label: t('inv_status_cancelled'), cls: 'bg-red-50 text-red-500' },
+  }
 }
 
 interface InvoiceItem { description: string; quantity: string; unit_price: string }
@@ -34,6 +39,7 @@ const EMPTY_FORM = {
 const EMPTY_ITEM: InvoiceItem = { description: '', quantity: '1', unit_price: '' }
 
 export default function InvoicesPage() {
+  const { t } = useLanguage()
   const [invoices,     setInvoices]     = useState<Invoice[]>([])
   const [loading,      setLoading]      = useState(true)
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -43,6 +49,9 @@ export default function InvoicesPage() {
   const [items,        setItems]        = useState<InvoiceItem[]>([{ ...EMPTY_ITEM }])
   const [saving,       setSaving]       = useState(false)
   const [formError,    setFormError]    = useState('')
+
+  // ── STATUS computed from t ────────────────────────────────────────────────
+  const STATUS = statusMeta(t)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -70,9 +79,9 @@ export default function InvoicesPage() {
   // ── Create invoice ───────────────────────────────────────────────────────
   async function handleCreate() {
     setFormError('')
-    if (!form.client_name.trim()) { setFormError('Jina la mteja linahitajika'); return }
+    if (!form.client_name.trim()) { setFormError(t('inv_err_client_name')); return }
     if (items.some(it => !it.description.trim() || !it.unit_price)) {
-      setFormError('Kila kitu kinahitaji maelezo na bei'); return
+      setFormError(t('inv_err_items_req')); return
     }
     setSaving(true)
     try {
@@ -93,7 +102,7 @@ export default function InvoicesPage() {
         }),
       })
       const json = await res.json()
-      if (!res.ok) { setFormError(json.error ?? 'Imeshindwa'); return }
+      if (!res.ok) { setFormError(json.error ?? t('inv_err_failed')); return }
       setShowCreate(false)
       setForm(EMPTY_FORM)
       setItems([{ ...EMPTY_ITEM }])
@@ -122,14 +131,14 @@ export default function InvoicesPage() {
   // ── Share invoice via WhatsApp ────────────────────────────────────────────
   function shareInvoiceWhatsApp(inv: typeof viewInvoice) {
     if (!inv) return
-    const items = inv.items?.map(it => `  • ${it.description}: ${fmt(it.amount)}`).join('\n') ?? ''
+    const invItems = inv.items?.map(it => `  • ${it.description}: ${fmt(it.amount)}`).join('\n') ?? ''
     const msg =
       `🧾 *Invoice ${inv.invoice_number}*\n` +
       `━━━━━━━━━━━━━━━\n` +
       `Mteja: ${inv.client_name}\n` +
       `Tarehe: ${dateFmt(inv.issue_date)}\n` +
       (inv.due_date ? `Mwisho wa kulipa: ${dateFmt(inv.due_date)}\n` : '') +
-      `\n*Huduma:*\n${items}\n` +
+      `\n*Huduma:*\n${invItems}\n` +
       `━━━━━━━━━━━━━━━\n` +
       `*JUMLA: ${fmt(inv.total_tzs)}*\n` +
       (inv.notes ? `\n_${inv.notes}_\n` : '') +
@@ -144,7 +153,7 @@ export default function InvoicesPage() {
 
   // ── Delete draft ─────────────────────────────────────────────────────────
   async function deleteDraft(id: string) {
-    if (!confirm('Futa invoice hii?')) return
+    if (!confirm(t('inv_confirm_delete'))) return
     await fetch(`/api/v1/dalali/invoices/${id}`, { method: 'DELETE' })
     setInvoices(prev => prev.filter(i => i.id !== id))
     if (viewInvoice?.id === id) setViewInvoice(null)
@@ -160,29 +169,31 @@ export default function InvoicesPage() {
       <div className="p-4 border-b border-gray-100 bg-white sticky top-0 z-10">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Invoices</h1>
-            <p className="text-xs text-gray-400 mt-0.5">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''}</p>
+            <h1 className="text-xl font-bold text-gray-900">{t('inv_header_title')}</h1>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {t('inv_header_count').replace('{{n}}', String(invoices.length))}
+            </p>
           </div>
           <button
             onClick={() => { setShowCreate(true); setForm(EMPTY_FORM); setItems([{ ...EMPTY_ITEM }]); setFormError('') }}
             className="bg-primary-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors"
           >
-            + Unda Invoice
+            {t('inv_create_btn')}
           </button>
         </div>
 
         {/* Summary row */}
         <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="bg-gray-50 rounded-xl p-2.5 text-center">
-            <p className="text-[10px] text-gray-400 mb-0.5">Jumla</p>
+            <p className="text-[10px] text-gray-400 mb-0.5">{t('inv_stat_total')}</p>
             <p className="text-sm font-bold text-gray-900">{fmt(totalValue)}</p>
           </div>
           <div className="bg-green-50 rounded-xl p-2.5 text-center">
-            <p className="text-[10px] text-gray-400 mb-0.5">Imelipwa</p>
+            <p className="text-[10px] text-gray-400 mb-0.5">{t('inv_stat_paid')}</p>
             <p className="text-sm font-bold text-green-700">{fmt(paidValue)}</p>
           </div>
           <div className="bg-amber-50 rounded-xl p-2.5 text-center">
-            <p className="text-[10px] text-gray-400 mb-0.5">Inasubiri</p>
+            <p className="text-[10px] text-gray-400 mb-0.5">{t('inv_stat_pending')}</p>
             <p className="text-sm font-bold text-amber-700">{fmt(totalValue - paidValue)}</p>
           </div>
         </div>
@@ -197,7 +208,7 @@ export default function InvoicesPage() {
                 filterStatus === s ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {s === 'all' ? 'Zote' : STATUS[s]?.label ?? s}
+              {s === 'all' ? t('inv_filter_all') : STATUS[s]?.label ?? s}
             </button>
           ))}
         </div>
@@ -212,9 +223,9 @@ export default function InvoicesPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">🧾</p>
-            <p className="font-medium">Hakuna invoices bado</p>
+            <p className="font-medium">{t('inv_empty_msg')}</p>
             <button onClick={() => setShowCreate(true)} className="mt-4 text-primary-500 text-sm font-medium">
-              + Unda invoice ya kwanza
+              {t('inv_empty_create')}
             </button>
           </div>
         ) : (
@@ -236,7 +247,11 @@ export default function InvoicesPage() {
                     <div className="flex items-center gap-3 mt-2">
                       <span className="text-base font-bold text-gray-900">{fmt(inv.total_tzs)}</span>
                       <span className="text-xs text-gray-400">· {dateFmt(inv.issue_date)}</span>
-                      {inv.due_date && <span className="text-xs text-gray-400">Mwisho: {dateFmt(inv.due_date)}</span>}
+                      {inv.due_date && (
+                        <span className="text-xs text-gray-400">
+                          {t('inv_due_label').replace('{{date}}', dateFmt(inv.due_date))}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {/* Quick status action */}
@@ -260,7 +275,7 @@ export default function InvoicesPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="font-semibold text-gray-900">Unda Invoice Mpya</h2>
+              <h2 className="font-semibold text-gray-900">{t('inv_create_title')}</h2>
               <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-700 text-xl">✕</button>
             </div>
 
@@ -269,22 +284,26 @@ export default function InvoicesPage() {
 
               {/* Client info */}
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Mteja *</label>
-                <input type="text" placeholder="Jina kamili la mteja" value={form.client_name}
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                  {t('inv_label_client')}
+                </label>
+                <input type="text" placeholder={t('inv_ph_client_name')} value={form.client_name}
                   onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 mb-2" />
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="tel" placeholder="Simu (hiari)" value={form.client_phone}
+                  <input type="tel" placeholder={t('inv_ph_phone')} value={form.client_phone}
                     onChange={e => setForm(f => ({ ...f, client_phone: e.target.value }))}
                     className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-                  <input type="email" placeholder="Barua pepe (hiari)" value={form.client_email}
+                  <input type="email" placeholder={t('inv_ph_email')} value={form.client_email}
                     onChange={e => setForm(f => ({ ...f, client_email: e.target.value }))}
                     className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Tarehe ya Mwisho (hiari)</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                  {t('inv_label_due_date')}
+                </label>
                 <input type="date" value={form.due_date}
                   onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
@@ -292,22 +311,24 @@ export default function InvoicesPage() {
 
               {/* Line items */}
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Vitu vya Invoice *</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                  {t('inv_label_items')}
+                </label>
                 <div className="space-y-2">
                   {items.map((it, idx) => (
                     <div key={idx} className="bg-gray-50 rounded-xl p-3 space-y-2">
-                      <input type="text" placeholder="Maelezo ya huduma/kazi..." value={it.description}
+                      <input type="text" placeholder={t('inv_ph_item_desc')} value={it.description}
                         onChange={e => setItems(prev => prev.map((x, i) => i === idx ? { ...x, description: e.target.value } : x))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white" />
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[10px] text-gray-400 mb-0.5 block">Idadi</label>
+                          <label className="text-[10px] text-gray-400 mb-0.5 block">{t('inv_col_qty')}</label>
                           <input type="number" min="0.01" step="0.01" value={it.quantity}
                             onChange={e => setItems(prev => prev.map((x, i) => i === idx ? { ...x, quantity: e.target.value } : x))}
                             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white" />
                         </div>
                         <div>
-                          <label className="text-[10px] text-gray-400 mb-0.5 block">Bei (TZS)</label>
+                          <label className="text-[10px] text-gray-400 mb-0.5 block">{t('inv_col_price')}</label>
                           <input type="number" min="0" placeholder="0" value={it.unit_price}
                             onChange={e => setItems(prev => prev.map((x, i) => i === idx ? { ...x, unit_price: e.target.value } : x))}
                             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white" />
@@ -319,7 +340,7 @@ export default function InvoicesPage() {
                         </span>
                         {items.length > 1 && (
                           <button onClick={() => setItems(prev => prev.filter((_, i) => i !== idx))}
-                            className="text-xs text-red-400 hover:text-red-600">Futa</button>
+                            className="text-xs text-red-400 hover:text-red-600">{t('inv_item_delete')}</button>
                         )}
                       </div>
                     </div>
@@ -327,14 +348,16 @@ export default function InvoicesPage() {
                 </div>
                 <button onClick={() => setItems(prev => [...prev, { ...EMPTY_ITEM }])}
                   className="mt-2 text-xs text-primary-500 font-medium hover:text-primary-700">
-                  + Ongeza kitu
+                  {t('inv_add_item')}
                 </button>
               </div>
 
               {/* Tax — dormant until NEXT_PUBLIC_TAX_ENABLED=true */}
               {TAX_ENABLED && (
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Kodi ya Serikali (TZS)</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                    {t('inv_label_tax')}
+                  </label>
                   <input type="number" min="0" value={form.tax_tzs}
                     onChange={e => setForm(f => ({ ...f, tax_tzs: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
@@ -344,31 +367,33 @@ export default function InvoicesPage() {
               {/* Totals preview */}
               <div className="bg-gray-50 rounded-xl p-3 space-y-1.5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Jumla ndogo</span>
+                  <span className="text-gray-500">{t('inv_subtotal')}</span>
                   <span className="font-medium">{fmt(subtotal)}</span>
                 </div>
                 {TAX_ENABLED && tax > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Kodi ya Serikali</span>
+                    <span className="text-gray-500">{t('inv_tax_label')}</span>
                     <span className="font-medium">{fmt(tax)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-base font-bold pt-1 border-t border-gray-200">
-                  <span>Jumla Kuu</span>
+                  <span>{t('inv_grand_total')}</span>
                   <span className="text-primary-600">{fmt(total)}</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Maelezo ya Ziada</label>
-                <textarea rows={2} placeholder="Hiari — masharti ya malipo, shukrani, n.k." value={form.notes}
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                  {t('inv_label_notes')}
+                </label>
+                <textarea rows={2} placeholder={t('inv_ph_notes')} value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
               </div>
 
               <button onClick={handleCreate} disabled={saving || !form.client_name.trim() || subtotal === 0}
                 className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                {saving ? 'Inatengeneza...' : '🧾 Tengeneza Invoice'}
+                {saving ? t('inv_saving_btn') : t('inv_create_submit')}
               </button>
             </div>
           </div>
@@ -387,11 +412,11 @@ export default function InvoicesPage() {
               <div className="flex items-center gap-2">
                 <button onClick={() => shareInvoiceWhatsApp(viewInvoice)}
                   className="text-xs bg-green-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-green-600 flex items-center gap-1">
-                  <i className="ti ti-brand-whatsapp text-sm" /> Tuma
+                  <i className="ti ti-brand-whatsapp text-sm" /> {t('inv_share_wa')}
                 </button>
                 <button onClick={() => window.print()}
                   className="text-xs border border-gray-200 px-2.5 py-1.5 rounded-lg text-gray-600 hover:bg-gray-50">
-                  🖨 Chapisha
+                  {t('inv_print_btn')}
                 </button>
                 <button onClick={() => setViewInvoice(null)} className="text-gray-400 hover:text-gray-700 text-xl">✕</button>
               </div>
@@ -401,17 +426,17 @@ export default function InvoicesPage() {
               {/* Invoice header */}
               <div className="flex justify-between text-sm">
                 <div>
-                  <p className="text-xs text-gray-400">Mteja</p>
+                  <p className="text-xs text-gray-400">{t('inv_view_client_label')}</p>
                   <p className="font-medium">{viewInvoice.client_name}</p>
                   {viewInvoice.client_phone && <p className="text-xs text-gray-500">{viewInvoice.client_phone}</p>}
                   {viewInvoice.client_email && <p className="text-xs text-gray-500">{viewInvoice.client_email}</p>}
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-400">Tarehe</p>
+                  <p className="text-xs text-gray-400">{t('inv_view_date_label')}</p>
                   <p className="font-medium">{dateFmt(viewInvoice.issue_date)}</p>
                   {viewInvoice.due_date && (
                     <>
-                      <p className="text-xs text-gray-400 mt-1">Mwisho</p>
+                      <p className="text-xs text-gray-400 mt-1">{t('inv_view_due_label')}</p>
                       <p className="font-medium">{dateFmt(viewInvoice.due_date)}</p>
                     </>
                   )}
@@ -424,10 +449,10 @@ export default function InvoicesPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 text-xs text-gray-500">
                       <tr>
-                        <th className="px-3 py-2 text-left">Maelezo</th>
-                        <th className="px-3 py-2 text-right">Idadi</th>
-                        <th className="px-3 py-2 text-right">Bei</th>
-                        <th className="px-3 py-2 text-right">Jumla</th>
+                        <th className="px-3 py-2 text-left">{t('inv_col_desc')}</th>
+                        <th className="px-3 py-2 text-right">{t('inv_col_qty')}</th>
+                        <th className="px-3 py-2 text-right">{t('inv_col_price_hdr')}</th>
+                        <th className="px-3 py-2 text-right">{t('inv_col_amount')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -442,17 +467,17 @@ export default function InvoicesPage() {
                     </tbody>
                     <tfoot className="bg-gray-50">
                       <tr>
-                        <td colSpan={3} className="px-3 py-2 text-right text-xs text-gray-500">Jumla ndogo</td>
+                        <td colSpan={3} className="px-3 py-2 text-right text-xs text-gray-500">{t('inv_subtotal')}</td>
                         <td className="px-3 py-2 text-right font-medium">{fmt(viewInvoice.subtotal_tzs)}</td>
                       </tr>
                       {TAX_ENABLED && viewInvoice.tax_tzs > 0 && (
                         <tr>
-                          <td colSpan={3} className="px-3 py-2 text-right text-xs text-gray-500">Kodi ya Serikali</td>
+                          <td colSpan={3} className="px-3 py-2 text-right text-xs text-gray-500">{t('inv_tax_label')}</td>
                           <td className="px-3 py-2 text-right font-medium">{fmt(viewInvoice.tax_tzs)}</td>
                         </tr>
                       )}
                       <tr className="font-bold">
-                        <td colSpan={3} className="px-3 py-2 text-right text-sm">JUMLA KUU</td>
+                        <td colSpan={3} className="px-3 py-2 text-right text-sm">{t('inv_grand_total_upper')}</td>
                         <td className="px-3 py-2 text-right text-primary-600">{fmt(viewInvoice.total_tzs)}</td>
                       </tr>
                     </tfoot>
@@ -462,7 +487,7 @@ export default function InvoicesPage() {
 
               {viewInvoice.notes && (
                 <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-600">
-                  <p className="text-xs text-gray-400 mb-1">Maelezo</p>
+                  <p className="text-xs text-gray-400 mb-1">{t('inv_view_notes_label')}</p>
                   {viewInvoice.notes}
                 </div>
               )}
@@ -486,7 +511,7 @@ export default function InvoicesPage() {
                       onClick={() => updateStatus(viewInvoice.id, 'cancelled')}
                       className="text-xs border border-red-200 text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50"
                     >
-                      Futa
+                      {t('inv_action_cancel_sent')}
                     </button>
                   )}
                   {viewInvoice.status === 'draft' && (
@@ -494,7 +519,7 @@ export default function InvoicesPage() {
                       onClick={() => deleteDraft(viewInvoice.id)}
                       className="text-xs border border-red-200 text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50"
                     >
-                      Futa
+                      {t('inv_action_delete')}
                     </button>
                   )}
                 </div>

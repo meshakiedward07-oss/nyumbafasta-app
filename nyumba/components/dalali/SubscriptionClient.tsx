@@ -12,6 +12,7 @@ import {
   getPlan,
   type PlanType,
 } from '@/lib/config/subscription-plans'
+import { useLanguage } from '@/lib/i18n/context'
 
 const PAYMENT_PROVIDERS = PAYMENT_METHODS
 
@@ -55,6 +56,7 @@ export default function SubscriptionClient({
   isTrial, trialEndsAt, defaultPhone,
 }: Props) {
   const router = useRouter()
+  const { t } = useLanguage()
 
   // Live pricing from DB — overrides static defaults when available
   const [livePrices, setLivePrices] = useState<Record<string, number>>({
@@ -78,7 +80,7 @@ export default function SubscriptionClient({
   )
   const [step, setStep]             = useState<'overview' | 'new_plan' | 'provider' | 'phone' | 'renew_phone' | 'waiting' | 'success'>('overview')
   const [renewPlan, setRenewPlan]   = useState<PlanType | null>(null)
-  const [provider, setProvider]     = useState<PaymentProvider>('Mpesa')
+  const [provider, setProvider]     = useState<PaymentProvider>('Tigo')
   const [phone, setPhone]           = useState('')
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState('')
@@ -118,11 +120,11 @@ export default function SubscriptionClient({
         setStep('success')
       } else if (data?.status === 'cancelled' || data?.status === 'failed') {
         stopPolling()
-        setError('Malipo hayakufanikiwa. Jaribu tena.')
+        setError(t('sub_err_pay_failed'))
         if (onFail) { onFail() } else { setStep('phone') }
       }
     }, 3000)
-  }, [supabase, stopPolling])
+  }, [supabase, stopPolling, t])
 
   useEffect(() => {
     if (step !== 'waiting') return
@@ -144,7 +146,7 @@ export default function SubscriptionClient({
       setSecondsLeft(s => {
         if (s <= 1) {
           stopPolling()
-          setError('Muda umeisha. Jaribu tena.')
+          setError(t('sub_err_timeout'))
           setStep('phone')
           return 0
         }
@@ -186,10 +188,10 @@ export default function SubscriptionClient({
     setError('')
 
     const digits = phone.replace(/\D/g, '')
-    if (!digits) { setError('Weka namba yako ya simu ya malipo'); return }
+    if (!digits) { setError(t('sub_err_phone_empty')); return }
     const normalized = digits.startsWith('0') ? `255${digits.slice(1)}` : `255${digits}`
     if (!normalized.startsWith('255') || normalized.length !== 12) {
-      setError('Namba ya simu si sahihi. Mfano: 0744 123 456')
+      setError(t('sub_err_phone_invalid'))
       return
     }
 
@@ -220,12 +222,12 @@ export default function SubscriptionClient({
     // Validate phone format before sending
     const digits = phone.replace(/\D/g, '')
     if (!digits) {
-      setError('Weka namba yako ya simu ya malipo')
+      setError(t('sub_err_phone_empty'))
       return
     }
     const normalized = digits.startsWith('0') ? `255${digits.slice(1)}` : `255${digits}`
     if (!normalized.startsWith('255') || normalized.length !== 12) {
-      setError('Namba ya simu si sahihi. Mfano: 0744 123 456')
+      setError(t('sub_err_phone_invalid'))
       return
     }
 
@@ -237,12 +239,12 @@ export default function SubscriptionClient({
         body: JSON.stringify({ plan: selectedPlan, msisdn: normalized, provider }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Imeshindwa kuwasiliana na AzamPay')
+      if (!res.ok) throw new Error(data.error ?? t('sub_err_azampay'))
       if (data.mock) { setStep('success'); return }
       setStep('waiting')
       startPolling(data.subscription_id)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Hitilafu imetokea. Jaribu tena.')
+      setError(err instanceof Error ? err.message : t('sub_err_network'))
     } finally {
       setLoading(false)
     }
@@ -273,13 +275,13 @@ export default function SubscriptionClient({
       {step === 'success' && (
         <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
           <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-confetti text-primary-500" aria-hidden="true" /></div>
-          <p className="text-lg font-bold text-gray-900 mb-2">Subscription Imewashwa!</p>
-          <p className="text-sm text-gray-500 mb-6">Listings zako zinaendelea kuonekana kwa wateja.</p>
+          <p className="text-lg font-bold text-gray-900 mb-2">{t('sub_success_title')}</p>
+          <p className="text-sm text-gray-500 mb-6">{t('sub_success_sub')}</p>
           <button
             onClick={() => router.push('/dashboard')}
             className="bg-primary-500 text-white px-8 py-3.5 rounded-2xl text-sm font-semibold active:scale-95 transition-all"
           >
-            Rudi Dashboard →
+            {t('sub_back_dashboard')}
           </button>
         </div>
       )}
@@ -289,7 +291,7 @@ export default function SubscriptionClient({
         <div className="px-4 pt-4 pb-4">
           <div className="flex items-center gap-2 mb-4">
             <button onClick={() => setStep('new_plan')} className="text-gray-400 text-lg">←</button>
-            <p className="text-sm font-bold text-gray-900">Chagua Njia ya Kulipa</p>
+            <p className="text-sm font-bold text-gray-900">{t('sub_choose_provider')}</p>
           </div>
 
           {/* Plan summary */}
@@ -300,11 +302,11 @@ export default function SubscriptionClient({
               <div className="rounded-2xl p-3 mb-4 flex justify-between items-center"
                 style={{ backgroundColor: plan.bgColor }}>
                 <div>
-                  <p className="text-xs text-gray-500">Plan uliyochagua</p>
+                  <p className="text-xs text-gray-500">{t('sub_plan_selected')}</p>
                   <p className="text-sm font-bold text-gray-900"><><i className={`ti ti-${plan.icon}`} aria-hidden="true" /> {plan.name}</></p>
                 </div>
                 <p className="font-bold text-sm" style={{ color: plan.color }}>
-                  Tsh {fmt(price)}/mwezi
+                  Tsh {fmt(price)}{t('sub_per_month')}
                 </p>
               </div>
             )
@@ -335,9 +337,9 @@ export default function SubscriptionClient({
                 return p ? (
                   <div className="flex items-center gap-1.5">
                     <Image src={p.iconSrc} alt={p.iconAlt} width={56} height={28} className="h-7 w-auto object-contain" />
-                    <span className="text-sm font-bold text-gray-900">Lipa kwa {p.name}</span>
+                    <span className="text-sm font-bold text-gray-900">{t('sub_pay_with').replace('{{name}}', p.name)}</span>
                   </div>
-                ) : <span className="text-sm font-bold text-gray-900">Lipa kwa Mobile Money</span>
+                ) : <span className="text-sm font-bold text-gray-900">{t('sub_pay_mobile')}</span>
               })()}
             </div>
             {(() => {
@@ -353,7 +355,7 @@ export default function SubscriptionClient({
             <form onSubmit={handlePay} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
-                  Nambari ya simu
+                  {t('sub_phone_label')}
                 </label>
                 <div className="flex gap-2">
                   <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
@@ -369,7 +371,7 @@ export default function SubscriptionClient({
               {error && <p className="text-xs text-red-500">{error}</p>}
               <button type="submit" disabled={loading || phone.replace(/\D/g,'').length < 9}
                 className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
-                {loading ? 'Inawasiliana...' : 'Lipa Sasa'}
+                {loading ? t('sub_connecting') : t('sub_pay_now')}
               </button>
             </form>
           </div>
@@ -382,7 +384,7 @@ export default function SubscriptionClient({
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
               <button onClick={() => { setError(''); setStep('overview') }} className="text-gray-400 text-base">←</button>
-              <span className="text-sm font-bold text-gray-900">Huisha Subscription</span>
+              <span className="text-sm font-bold text-gray-900">{t('sub_renew_sub_title')}</span>
             </div>
             {renewPlan && (() => {
               const rp = getPlan(renewPlan)
@@ -391,11 +393,11 @@ export default function SubscriptionClient({
                 <div className="rounded-xl p-3 mb-4 flex justify-between items-center"
                   style={{ backgroundColor: rp.bgColor }}>
                   <div>
-                    <p className="text-xs text-gray-500">Plan ya kuhuisha</p>
+                    <p className="text-xs text-gray-500">{t('sub_plan_renew')}</p>
                     <p className="text-sm font-bold text-gray-900"><><i className={`ti ti-${rp.icon}`} aria-hidden="true" /> {rp.name}</></p>
                   </div>
                   <p className="font-bold text-sm" style={{ color: rp.color }}>
-                    Tsh {fmt(price)}/mwezi{discount > 0 ? ` (-${discount}%)` : ''}
+                    Tsh {fmt(price)}{t('sub_per_month')}{discount > 0 ? ` (-${discount}%)` : ''}
                   </p>
                 </div>
               )
@@ -411,7 +413,7 @@ export default function SubscriptionClient({
             <form onSubmit={handleRenewSubmit} className="space-y-4 mt-4">
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
-                  Nambari ya simu ya malipo
+                  {t('sub_phone_pay_label')}
                 </label>
                 <div className="flex gap-2">
                   <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 text-sm text-gray-500 flex-shrink-0">
@@ -427,7 +429,7 @@ export default function SubscriptionClient({
               {error && <p className="text-xs text-red-500">{error}</p>}
               <button type="submit" disabled={renewLoading || phone.replace(/\D/g,'').length < 9}
                 className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">
-                {renewLoading ? 'Inawasiliana...' : 'Lipa Sasa'}
+                {renewLoading ? t('sub_connecting') : t('sub_pay_now')}
               </button>
             </form>
           </div>
@@ -438,24 +440,24 @@ export default function SubscriptionClient({
       {step === 'waiting' && (
         <div className="px-4 pt-10 text-center">
           <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-device-mobile text-primary-500" aria-hidden="true" /></div>
-          <h2 className="text-base font-bold text-gray-900 mb-1">Angalia Simu Yako!</h2>
+          <h2 className="text-base font-bold text-gray-900 mb-1">{t('sub_waiting_title')}</h2>
 
           {/* Success hint */}
           <div className="inline-flex items-center gap-1.5 bg-primary-50 border border-primary-100 text-primary-700
                           text-xs font-semibold px-3 py-1.5 rounded-full mb-3">
-            <i className="ti ti-circle-check" aria-hidden="true" /> Subiri USSD popup kwenye simu yako
+            <i className="ti ti-circle-check" aria-hidden="true" /> {t('sub_waiting_hint')}
           </div>
 
           <p className="text-sm text-gray-500 mb-1">
-            Ombi la malipo limetumwa kwa{' '}
+            {t('sub_waiting_sent')}{' '}
             <span className="font-semibold text-gray-800">+255{phone.replace(/^0/, '')}</span>
           </p>
           <p className="text-sm text-gray-500 mb-6">
-            Ingiza PIN yako ya{' '}
+            {t('sub_waiting_enter_pin')}{' '}
             <span className="font-semibold">
               {PAYMENT_PROVIDERS.find(p => p.id === provider)?.name ?? provider}
             </span>{' '}
-            kuthibitisha malipo
+            {t('sub_waiting_confirm')}
           </p>
 
           <div className="bg-gray-100 rounded-full h-2 mb-1.5 overflow-hidden mx-6">
@@ -464,13 +466,13 @@ export default function SubscriptionClient({
               style={{ width: `${((120 - secondsLeft) / 120) * 100}%` }}
             />
           </div>
-          <p className="text-xs text-gray-400 mb-6">Inasubiri uthibitisho... ({secondsLeft}s)</p>
+          <p className="text-xs text-gray-400 mb-6">{t('sub_waiting_checking')} ({secondsLeft}s)</p>
 
           <button
             onClick={() => { stopPolling(); setError(''); setStep(renewPlan ? 'renew_phone' : 'phone') }}
             className="text-sm text-primary-600 font-medium py-2 min-h-[44px] mb-3"
           >
-            ← Badilisha njia ya kulipa
+            {t('sub_change_method')}
           </button>
 
           <div className="flex justify-center mb-6">
@@ -478,23 +480,23 @@ export default function SubscriptionClient({
           </div>
 
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-xs text-amber-700 text-left mx-2 mb-4">
-            <p className="font-semibold mb-1">Jinsi ya kuthibitisha:</p>
+            <p className="font-semibold mb-1">{t('sub_how_confirm')}</p>
             <ol className="list-decimal list-inside space-y-1">
-              <li>Angalia SMS au ombi la USSD kwenye simu</li>
-              <li>Ingiza PIN yako ya {PAYMENT_PROVIDERS.find(p => p.id === provider)?.name ?? provider}</li>
-              <li>Thibitisha kiasi kinachohitajika</li>
+              <li>{t('sub_confirm_step1')}</li>
+              <li>{t('sub_confirm_step2').replace('{{name}}', PAYMENT_PROVIDERS.find(p => p.id === provider)?.name ?? provider)}</li>
+              <li>{t('sub_confirm_step3')}</li>
             </ol>
           </div>
 
           {error && (
             <div className="bg-red-50 border border-red-100 rounded-xl p-3 mx-2 mb-3">
-              <p className="text-sm font-semibold text-red-700 mb-1 flex items-center gap-1"><i className="ti ti-circle-x" aria-hidden="true" />Malipo hayakufanikiwa</p>
+              <p className="text-sm font-semibold text-red-700 mb-1 flex items-center gap-1"><i className="ti ti-circle-x" aria-hidden="true" />{t('sub_payment_failed_title')}</p>
               <p className="text-xs text-red-600">{error}</p>
               <button
                 onClick={() => { stopPolling(); setError(''); setStep(renewPlan ? 'renew_phone' : 'phone') }}
                 className="mt-2 w-full bg-red-600 text-white py-2.5 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
               >
-                <i className="ti ti-refresh" aria-hidden="true" /> Jaribu Tena
+                <i className="ti ti-refresh" aria-hidden="true" /> {t('sub_retry_btn')}
               </button>
             </div>
           )}
@@ -510,13 +512,13 @@ export default function SubscriptionClient({
             <div className="bg-primary-50 border border-primary-100 rounded-2xl p-3 flex items-center gap-3">
               <i className="ti ti-confetti text-primary-500 text-2xl" aria-hidden="true" />
               <div>
-                <p className="text-sm font-semibold text-primary-800">Umekuwa nasi miezi {completedMonths}!</p>
-                <p className="text-xs text-primary-600">Unapata punguzo la {discount}% ya uaminifu</p>
+                <p className="text-sm font-semibold text-primary-800">{t('sub_loyalty_title').replace('{{n}}', String(completedMonths))}</p>
+                <p className="text-xs text-primary-600">{t('sub_loyalty_discount').replace('{{n}}', String(discount))}</p>
               </div>
             </div>
           )}
 
-          <p className="text-sm font-bold text-gray-800">Chagua Plan Yako</p>
+          <p className="text-sm font-bold text-gray-800">{t('sub_choose_plan_title')}</p>
 
           {plans.map(plan => {
             const isCurrent = currentPlan === plan.id
@@ -543,7 +545,7 @@ export default function SubscriptionClient({
                 {plan.id === 'premium' && (
                   <div className="text-center py-1.5 text-white text-xs font-bold"
                     style={{ backgroundColor: plan.color }}>
-                    <i className="ti ti-star-filled mr-1" aria-hidden="true" />INAPENDELEWA ZAIDI
+                    <i className="ti ti-star-filled mr-1" aria-hidden="true" />{t('sub_popular_badge')}
                   </div>
                 )}
 
@@ -561,12 +563,12 @@ export default function SubscriptionClient({
                           {isCurrent && (
                             <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
                               style={{ backgroundColor: plan.color }}>
-                              Plan Yako
+                              {t('sub_your_plan_badge')}
                             </span>
                           )}
                           {isSelected && !isCurrent && isPaid && (
                             <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium bg-primary-500">
-                              Imechaguliwa
+                              {t('sub_selected_badge')}
                             </span>
                           )}
                         </div>
@@ -576,7 +578,7 @@ export default function SubscriptionClient({
 
                     <div className="text-right">
                       {plan.price === 0 ? (
-                        <p className="font-bold text-lg text-gray-600">Bure</p>
+                        <p className="font-bold text-lg text-gray-600">{t('sub_free_price')}</p>
                       ) : (
                         <>
                           <p className="font-bold text-lg" style={{ color: plan.color }}>
@@ -585,7 +587,7 @@ export default function SubscriptionClient({
                           {discount > 0 && (
                             <p className="text-xs text-gray-400 line-through">Tsh {fmt(plan.price)}</p>
                           )}
-                          <p className="text-gray-400 text-xs">/mwezi</p>
+                          <p className="text-gray-400 text-xs">{t('sub_per_month')}</p>
                         </>
                       )}
                     </div>
@@ -598,19 +600,19 @@ export default function SubscriptionClient({
                       <p className="font-bold text-lg" style={{ color: plan.color }}>
                         {plan.listings}
                       </p>
-                      <p className="text-xs text-gray-500">Listings</p>
+                      <p className="text-xs text-gray-500">{t('sub_listings_label')}</p>
                     </div>
                     <div className="text-center border-x border-gray-200">
                       <p className="font-bold text-lg" style={{ color: plan.color }}>
                         {plan.photos}
                       </p>
-                      <p className="text-xs text-gray-500">Picha</p>
+                      <p className="text-xs text-gray-500">{t('sub_photos_label')}</p>
                     </div>
                     <div className="text-center">
                       <p className="font-bold text-lg" style={{ color: plan.color }}>
                         {plan.limits.videos ? <i className="ti ti-check" aria-hidden="true" /> : <i className="ti ti-x" aria-hidden="true" />}
                       </p>
-                      <p className="text-xs text-gray-500">Video</p>
+                      <p className="text-xs text-gray-500">{t('sub_video_label')}</p>
                     </div>
                   </div>
 
@@ -636,11 +638,11 @@ export default function SubscriptionClient({
                   {isCurrent ? (
                     <div className="w-full py-3 rounded-xl text-center text-sm font-semibold"
                       style={{ backgroundColor: plan.bgColor, color: plan.color }}>
-                      <i className="ti ti-check" aria-hidden="true" /> Plan Yako ya Sasa
+                      <i className="ti ti-check" aria-hidden="true" /> {t('sub_current_plan_btn')}
                     </div>
                   ) : plan.price === 0 ? (
                     <div className="w-full py-3 rounded-xl text-center text-sm text-gray-400 bg-gray-50">
-                      Plan ya Msingi — Daima Bure
+                      {t('sub_free_basic')}
                     </div>
                   ) : (
                     <div
@@ -653,8 +655,10 @@ export default function SubscriptionClient({
                       style={{ backgroundColor: plan.color }}
                     >
                       {isSelected
-                        ? `${(PLAN_ORDER[currentPlan ?? 'free'] ?? 0) < PLAN_ORDER[plan.id] ? 'Upgrade' : 'Downgrade'} kwenda ${plan.name}`
-                        : `Chagua ${plan.name}`
+                        ? ((PLAN_ORDER[currentPlan ?? 'free'] ?? 0) < PLAN_ORDER[plan.id]
+                            ? t('sub_upgrade_to').replace('{{name}}', plan.name)
+                            : t('sub_downgrade_to').replace('{{name}}', plan.name))
+                        : t('sub_select_plan').replace('{{name}}', plan.name)
                       }
                     </div>
                   )}
@@ -665,9 +669,9 @@ export default function SubscriptionClient({
 
           {/* Note ya ulinganisho */}
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-700">
-            <p className="font-semibold mb-1 flex items-center gap-1"><i className="ti ti-bulb" aria-hidden="true" />Unajua?</p>
+            <p className="font-semibold mb-1 flex items-center gap-1"><i className="ti ti-bulb" aria-hidden="true" />{t('sub_tip_title')}</p>
             <p className="text-xs">
-              Madalali wa Premium wanapata leads mara 3 zaidi kuliko Free tier. Jaribu Basic kwanza — Tsh {livePrices.basic?.toLocaleString() ?? '10,000'}/mwezi tu.
+              {t('sub_tip_body').replace('{{price}}', livePrices.basic?.toLocaleString() ?? '10,000')}
             </p>
           </div>
 
@@ -676,7 +680,7 @@ export default function SubscriptionClient({
             disabled={!selectedPlan || selectedPlan === currentPlan || selectedPlan === 'free'}
             className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all"
           >
-            {selectedPlan && selectedPlan !== 'free' ? `Endelea na ${getPlan(selectedPlan).name} →` : 'Chagua plan kwanza'}
+            {selectedPlan && selectedPlan !== 'free' ? t('sub_continue_with').replace('{{name}}', getPlan(selectedPlan).name) : t('sub_choose_first')}
           </button>
         </div>
       )}
@@ -690,18 +694,18 @@ export default function SubscriptionClient({
           {/* ── Grace period banner ── */}
           {isGrace && (
             <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-4">
-              <p className="font-bold text-yellow-800 mb-1 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />Subscription Imekwisha!</p>
+              <p className="font-bold text-yellow-800 mb-1 flex items-center gap-1"><i className="ti ti-alert-triangle" aria-hidden="true" />{t('sub_grace_title')}</p>
               <p className="text-sm text-yellow-700 mb-1">
-                Grace period: siku {Math.max(0, graceDays ?? 0)} zimebaki
+                {t('sub_grace_days').replace('{{n}}', String(Math.max(0, graceDays ?? 0)))}
               </p>
               <p className="text-xs text-yellow-600 mb-4">
-                Listings zako bado zinaonekana, lakini zitasimama grace period ikiisha.
+                {t('sub_grace_visible')}
               </p>
               <button onClick={() => handleRenew()} disabled={renewLoading}
                 className="w-full bg-yellow-500 text-white py-3.5 rounded-2xl text-sm font-bold disabled:opacity-60 active:scale-[0.97] transition-all">
-                {renewLoading ? 'Inafanya upya...' : `Huisha Sasa — Tsh ${fmt(renewPrice)}`}
+                {renewLoading ? t('sub_renew_loading') : t('sub_renew_now_price').replace('{{price}}', fmt(renewPrice))}
               </button>
-              {discount > 0 && <p className="text-xs text-yellow-600 text-center mt-1">Punguzo {discount}% ya uaminifu limetumika</p>}
+              {discount > 0 && <p className="text-xs text-yellow-600 text-center mt-1">{t('sub_loyalty_applied').replace('{{n}}', String(discount))}</p>}
             </div>
           )}
 
@@ -713,12 +717,12 @@ export default function SubscriptionClient({
                   <i className="ti ti-confetti text-primary-500 text-2xl" aria-hidden="true" />
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-green-900">Trial ya Bure</p>
+                      <p className="text-sm font-bold text-green-900">{t('sub_trial_title')}</p>
                       <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-medium">
-                        Inafanya Kazi
+                        {t('sub_active_badge')}
                       </span>
                     </div>
-                    <p className="text-xs text-green-700">Basic plan — listings 5 · Bila malipo</p>
+                    <p className="text-xs text-green-700">{t('sub_trial_plan_desc')}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -729,20 +733,20 @@ export default function SubscriptionClient({
                   }`}>
                     {Math.max(0, trialDaysLeft ?? 0)}
                   </p>
-                  <p className="text-xs text-green-600">siku zimebaki</p>
+                  <p className="text-xs text-green-600">{t('sub_days_left')}</p>
                 </div>
               </div>
 
               <p className="text-xs text-green-700 mb-1" suppressHydrationWarning>
-                Trial inaisha: {fmtDate(trialEndsAt)}
+                {t('sub_trial_expires').replace('{{date}}', fmtDate(trialEndsAt))}
               </p>
               <p className="text-xs text-green-600 mb-4">
-                Baada ya trial utabaki kwenye Free Plan (listings 2) bila kukatizwa.
+                {t('sub_trial_free_after')}
               </p>
 
               {(trialDaysLeft ?? 0) <= 7 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-2 mb-3 text-xs text-amber-700">
-                  <i className="ti ti-alert-triangle" aria-hidden="true" /> Trial yako inaisha hivi karibuni! Upgrade sasa ili usipoteze listings zako.
+                  <i className="ti ti-alert-triangle" aria-hidden="true" /> {t('sub_trial_warning')}
                 </div>
               )}
 
@@ -750,7 +754,7 @@ export default function SubscriptionClient({
                 onClick={() => { setSelectedPlan('basic'); setStep('new_plan') }}
                 className="w-full py-3 rounded-2xl text-sm font-semibold active:scale-[0.97] transition-all text-white bg-green-600"
               >
-                <i className="ti ti-rocket" aria-hidden="true" /> Upgrade Sasa — Tangu Tsh {livePrices.basic?.toLocaleString() ?? '10,000'}/mwezi
+                <i className="ti ti-rocket" aria-hidden="true" /> {t('sub_upgrade_now_price').replace('{{price}}', livePrices.basic?.toLocaleString() ?? '10,000')}
               </button>
             </div>
           )}
@@ -770,7 +774,7 @@ export default function SubscriptionClient({
                       <p className="text-sm font-bold text-gray-900">{currentPlanData.name}</p>
                       <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
                         style={{ backgroundColor: currentPlanData.color }}>
-                        Inafanya Kazi
+                        {t('sub_active_badge')}
                       </span>
                     </div>
                   </div>
@@ -779,27 +783,27 @@ export default function SubscriptionClient({
                   <p className={`text-lg font-bold ${daysLeft <= 7 ? 'text-red-600' : daysLeft <= 14 ? 'text-amber-600' : 'text-gray-900'}`}>
                     {daysLeft}
                   </p>
-                  <p className="text-xs text-gray-400">siku zimebaki</p>
+                  <p className="text-xs text-gray-400">{t('sub_days_left')}</p>
                 </div>
               </div>
               <p className="text-xs text-gray-500 mb-3" suppressHydrationWarning>
-                Inaisha: {expiresAt ? fmtDate(expiresAt) : '—'}
+                {expiresAt ? t('sub_expires_label').replace('{{date}}', fmtDate(expiresAt)) : '—'}
               </p>
 
               {daysLeft <= 7 && (
                 <div className="bg-red-50 border border-red-100 rounded-xl p-2 mb-3 text-xs text-red-600">
-                  <i className="ti ti-alert-triangle" aria-hidden="true" /> Subscription yako inaisha hivi karibuni! Fanya upya usipoteze wateja.
+                  <i className="ti ti-alert-triangle" aria-hidden="true" /> {t('sub_expiry_warning')}
                 </div>
               )}
 
               <button onClick={() => handleRenew()} disabled={renewLoading}
                 className="w-full py-3 rounded-2xl text-sm font-semibold disabled:opacity-60 active:scale-[0.97] transition-all text-white"
                 style={{ backgroundColor: currentPlanData.color }}>
-                {renewLoading ? 'Inafanya upya...' : `Huisha Mapema — Tsh ${fmt(renewPrice)}`}
+                {renewLoading ? t('sub_renew_loading') : t('sub_early_renew').replace('{{price}}', fmt(renewPrice))}
               </button>
               {discount > 0 && (
                 <p className="text-xs text-gray-500 text-center mt-1">
-                  Punguzo {discount}% limetumika — unaokoa Tsh {fmt(currentPlanData.price - renewPrice)}/mwezi
+                  {t('sub_discount_saving').replace('{{n}}', String(discount)).replace('{{amount}}', fmt(currentPlanData.price - renewPrice))}
                 </p>
               )}
             </div>
@@ -812,14 +816,14 @@ export default function SubscriptionClient({
                 <i className="ti ti-home text-2xl" aria-hidden="true" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-gray-700">Mpango wa Bure</p>
-                    <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">Daima Bure</span>
+                    <p className="text-sm font-bold text-gray-700">{t('sub_free_plan_title')}</p>
+                    <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{t('sub_always_free')}</span>
                   </div>
-                  <p className="text-xs text-gray-500">Listings 2 · Picha 2 · Bila video</p>
+                  <p className="text-xs text-gray-500">{t('sub_free_limits')}</p>
                 </div>
               </div>
               <p className="text-xs text-gray-500 mb-3">
-                Upgrade ili kupata listings zaidi, video, boost, na analytics.
+                {t('sub_free_upgrade_hint')}
               </p>
             </div>
           )}
@@ -829,12 +833,12 @@ export default function SubscriptionClient({
             <div className="bg-primary-50 border border-primary-100 rounded-2xl p-3 flex items-center gap-3">
               <i className="ti ti-confetti text-primary-500 text-2xl" aria-hidden="true" />
               <div>
-                <p className="text-sm font-semibold text-primary-800">Asante kwa uaminifu wako!</p>
+                <p className="text-sm font-semibold text-primary-800">{t('sub_loyalty_thanks')}</p>
                 <p className="text-xs text-primary-600">
-                  Miezi {completedMonths} nasi — unapata punguzo la {discount}%
+                  {t('sub_loyalty_months').replace('{{n}}', String(completedMonths)).replace('{{n2}}', String(discount))}
                 </p>
                 <p className="text-xs font-semibold text-primary-700 mt-0.5">
-                  Unaokoa Tsh {fmt(currentPlanData.price - renewPrice)}/mwezi
+                  {t('sub_loyalty_saving_mo').replace('{{amount}}', fmt(currentPlanData.price - renewPrice))}
                 </p>
               </div>
             </div>
@@ -847,13 +851,13 @@ export default function SubscriptionClient({
               {badge.label.charAt(0)}
             </div>
             <div className="flex-1">
-              <p className="text-xs text-gray-500">Plan ya Sasa</p>
+              <p className="text-xs text-gray-500">{t('sub_current_plan_label')}</p>
               <p className="font-semibold text-sm" style={{ color: badge.color }}>{badge.label}</p>
             </div>
             <button onClick={() => setStep('new_plan')}
               className="text-xs font-semibold px-3 py-1.5 rounded-full text-white"
               style={{ backgroundColor: badge.color }}>
-              Badilisha
+              {t('sub_change_plan_btn')}
             </button>
           </div>
 
@@ -866,8 +870,8 @@ export default function SubscriptionClient({
                 <div className="flex items-center gap-3">
                   <i className="ti ti-rocket text-xl" aria-hidden="true" />
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-900">Panda Daraja — Basic</p>
-                    <p className="text-xs text-gray-500">Tsh {livePrices.basic?.toLocaleString() ?? '10,000'}/mwezi — listings 5</p>
+                    <p className="text-sm font-semibold text-gray-900">{t('sub_upgrade_basic')}</p>
+                    <p className="text-xs text-gray-500">{t('sub_upgrade_basic_desc').replace('{{price}}', livePrices.basic?.toLocaleString() ?? '10,000')}</p>
                   </div>
                 </div>
                 <span className="text-primary-500 font-bold">→</span>
@@ -880,8 +884,8 @@ export default function SubscriptionClient({
                 <div className="flex items-center gap-3">
                   <span className="text-xl">⬆️</span>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-900">Panda Daraja — Enterprise</p>
-                    <p className="text-xs text-gray-500">Tsh {fmt(applyDiscount(livePrices.enterprise ?? 50_000, discount))}/mwezi — listings 50{discount > 0 ? ` (-${discount}%)` : ''}</p>
+                    <p className="text-sm font-semibold text-gray-900">{t('sub_upgrade_enterprise')}</p>
+                    <p className="text-xs text-gray-500">{t('sub_upgrade_enterprise_desc').replace('{{price}}', fmt(applyDiscount(livePrices.enterprise ?? 50_000, discount))).replace('{{discount}}', discount > 0 ? ` (-${discount}%)` : '')}</p>
                   </div>
                 </div>
                 <span className="text-purple-500 font-bold">→</span>
@@ -894,8 +898,8 @@ export default function SubscriptionClient({
                 <div className="flex items-center gap-3">
                   <span className="text-xl">⬆️</span>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-900">Panda Daraja — Premium</p>
-                    <p className="text-xs text-gray-500">Tsh {fmt(applyDiscount(livePrices.premium ?? 25_000, discount))}/mwezi{discount > 0 ? ` (-${discount}%)` : ''}</p>
+                    <p className="text-sm font-semibold text-gray-900">{t('sub_upgrade_premium')}</p>
+                    <p className="text-xs text-gray-500">{t('sub_upgrade_premium_desc').replace('{{price}}', fmt(applyDiscount(livePrices.premium ?? 25_000, discount))).replace('{{discount}}', discount > 0 ? ` (-${discount}%)` : '')}</p>
                   </div>
                 </div>
                 <span className="text-amber-500 font-bold">→</span>
@@ -904,7 +908,7 @@ export default function SubscriptionClient({
 
             <button onClick={() => setStep('new_plan')}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-gray-100 text-gray-600 text-sm font-medium active:scale-[0.97] transition-all">
-              <i className="ti ti-clipboard-list" aria-hidden="true" /> Angalia Plans Zote
+              <i className="ti ti-clipboard-list" aria-hidden="true" /> {t('sub_view_all_plans')}
             </button>
           </div>
 
@@ -912,7 +916,7 @@ export default function SubscriptionClient({
           {history.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-50">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Historia ya Malipo</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">{t('sub_history_title')}</p>
               </div>
               <div className="divide-y divide-gray-50">
                 {history.map(h => {
@@ -928,14 +932,14 @@ export default function SubscriptionClient({
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-semibold text-gray-800">
-                          {h.amount_paid ? `Tsh ${fmt(h.amount_paid)}` : h.plan === 'free' ? 'Bure' : '—'}
+                          {h.amount_paid ? `Tsh ${fmt(h.amount_paid)}` : h.plan === 'free' ? t('sub_history_free') : '—'}
                         </p>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                           h.status === 'active' ? 'bg-primary-50 text-primary-600' :
                           h.status === 'grace_period' ? 'bg-yellow-50 text-yellow-700' :
                           'bg-gray-100 text-gray-400'
                         }`}>
-                          {h.status === 'active' ? 'Inafanya Kazi' : h.status === 'grace_period' ? 'Grace' : 'Imeisha'}
+                          {h.status === 'active' ? t('sub_status_active') : h.status === 'grace_period' ? t('sub_status_grace') : t('sub_status_expired')}
                         </span>
                       </div>
                     </div>

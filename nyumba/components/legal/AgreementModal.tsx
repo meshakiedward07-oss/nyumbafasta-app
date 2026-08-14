@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useState, useEffect, useCallback } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 import {
   CLIENT_AGREEMENT_CONTENT_SW,
   CLIENT_AGREEMENT_CONTENT_EN,
@@ -38,6 +39,7 @@ export default function AgreementModal({
   onBack,
   fullPage = false,
 }: AgreementModalProps) {
+  const { t } = useLanguage()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [hasScrolled, setHasScrolled] = useState(false)
   const [lang, setLang] = useState<'sw' | 'en'>('sw')
@@ -101,7 +103,7 @@ export default function AgreementModal({
         checkboxes_checked: checkboxes,
       })
     } catch {
-      setError('Imeshindwa kukubali. Jaribu tena.')
+      setError(t('common_error'))
       setSubmitting(false)
     }
   }

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { exchangeCodeForToken, getTikTokUserInfo } from '@/lib/social/tiktok'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)

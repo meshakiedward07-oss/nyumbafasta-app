@@ -17,7 +17,7 @@ export async function notifyNewLead(
     `Mteja *${clientName}* anatafuta:\n${requirement}\n\n` +
     `Wasiliana nao haraka ili usipoteze fursa!\n\n` +
     `Angalia dashboard yako:\n` +
-    `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/dashboard`
+    `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/dashboard`
   return sendTextMessage(to, message)
 }
 
@@ -29,7 +29,7 @@ export async function notifyStaffNewProspect(
   source: string,
 ): Promise<boolean> {
   const to = formatPhoneNumber(staffPhone)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   const sourceLabel: Record<string, string> = {
     google_maps: 'Google Maps', google_business: 'Google Business',
     facebook_pages: 'Facebook Pages', facebook_groups: 'Facebook Groups',
@@ -59,7 +59,7 @@ export async function notifySubscriptionExpiring(
     `${urgency}\n\n` +
     `Subscription yako ya NyumbaFasta itakwisha siku *${daysLeft}* ${daysLeft === 1 ? 'LEO' : 'zinazokuja'}.\n\n` +
     `Fanya upya sasa usipoteze listings na wateja wako:\n` +
-    `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/dashboard/subscription`
+    `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/dashboard/subscription`
   return sendTextMessage(to, message)
 }
 
@@ -69,7 +69,7 @@ export async function notifyListingApproved(
   listingId?: string,
 ): Promise<boolean> {
   const to = formatPhoneNumber(dalaliPhone)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   const link = listingId ? `${appUrl}/listings/${listingId}` : `${appUrl}/dashboard/listings`
   const message =
     `Listing Imeidhinishwa! ✅\n\n` +
@@ -96,7 +96,7 @@ export async function notifyPaymentReceived(
     `Malipo Yamefanikiwa! ✅\n\n` +
     `Malipo ya *Tsh ${fmt(amount)}* kwa ${label} yamepokewa.\n\n` +
     `Asante kwa kutumia NyumbaFasta! 🙏\n\n` +
-    `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/dashboard`
+    `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/dashboard`
   return sendTextMessage(to, message)
 }
 
@@ -111,7 +111,7 @@ export async function notifyListingRejected(
     `Listing Imekataliwa ❌\n\n` +
     `Listing yako *"${listingTitle}"* imekataliwa na admin.${reasonText}\n\n` +
     `Rekebisha na utume tena:\n` +
-    `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'}/dashboard/listings`
+    `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'}/dashboard/listings`
   return sendTextMessage(to, message)
 }
 

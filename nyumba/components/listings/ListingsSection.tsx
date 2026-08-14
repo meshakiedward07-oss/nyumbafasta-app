@@ -13,6 +13,7 @@ import NearbyAds from '@/components/ads/NearbyAds'
 import RankedAdSlot from '@/components/ads/RankedAdSlot'
 import { TANZANIA_REGIONS, PRIORITY_REGIONS, shortName } from '@/lib/data/tanzania-locations'
 import type { ListingWithDalali } from '@/lib/types/database'
+import { useLanguage } from '@/lib/i18n/context'
 
 const MapView = dynamic(() => import('@/components/listings/MapView'), {
   ssr: false,
@@ -66,6 +67,7 @@ type Props = {
 
 export default function ListingsSection({ initialListings, initialTotal }: Props = {}) {
   const supabase = useMemo(() => createClient(), [])
+  const { t } = useLanguage()
 
   const hasInitialData = !!(initialListings?.length)
   const skippedFirstFetch = useRef(hasInitialData)
@@ -180,8 +182,8 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
   }
 
   useEffect(() => {
-    const t = setTimeout(() => applyFilter('search', searchInput), 300)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => applyFilter('search', searchInput), 300)
+    return () => clearTimeout(timer)
   }, [searchInput]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function clearFilters() {
@@ -198,7 +200,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
       <input
         type="search"
         inputMode="search"
-        placeholder="Tafuta mtaa, wilaya, mkoa..."
+        placeholder={t('cl_search_placeholder')}
         value={searchInput}
         onChange={e => setSearchInput(e.target.value)}
         className="w-full pl-10 pr-10 py-3 rounded-2xl bg-white text-sm
@@ -210,7 +212,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
         <button
           onClick={() => setSearchInput('')}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
-          aria-label="Futa utafutaji"
+          aria-label={t('cl_clear_search')}
         >
           <i className="ti ti-x text-sm" aria-hidden="true" />
         </button>
@@ -251,27 +253,27 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           <nav className="hidden lg:flex items-center gap-0.5 flex-shrink-0" aria-label="Urambazaji mkuu">
             <Link href="/saved"
               className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
-              <i className="ti ti-heart text-sm" aria-hidden="true" /> Zilizohifadhiwa
+              <i className="ti ti-heart text-sm" aria-hidden="true" /> {t('nav_saved')}
             </Link>
             <Link href="/directory"
               className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
-              <i className="ti ti-building-store text-sm" aria-hidden="true" /> Soko
+              <i className="ti ti-building-store text-sm" aria-hidden="true" /> {t('nav_directory')}
             </Link>
             {userRole === 'dalali' && (
               <Link href="/dashboard"
                 className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
-                <i className="ti ti-chart-bar text-sm" aria-hidden="true" /> Dashboard
+                <i className="ti ti-chart-bar text-sm" aria-hidden="true" /> {t('nav_dashboard')}
               </Link>
             )}
             {userRole === 'admin' && (
               <Link href="/admin"
                 className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
-                <i className="ti ti-shield text-sm" aria-hidden="true" /> Admin
+                <i className="ti ti-shield text-sm" aria-hidden="true" /> {t('nav_admin')}
               </Link>
             )}
             <Link href="/account"
               className="text-white/90 hover:text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-1.5">
-              <i className="ti ti-user text-sm" aria-hidden="true" /> Akaunti
+              <i className="ti ti-user text-sm" aria-hidden="true" /> {t('nav_account')}
             </Link>
           </nav>
 
@@ -321,7 +323,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
                 ? 'bg-primary-500 text-white border-primary-500'
                 : 'bg-white text-gray-500 border-gray-200'}`}
           >
-            <option value="">Mikoa Mingine</option>
+            <option value="">{t('cl_other_regions')}</option>
             {TANZANIA_REGIONS.map(r => (
               <option key={r.name} value={r.name}>{r.name}</option>
             ))}
@@ -336,7 +338,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold focus:outline-none cursor-pointer transition-all duration-200
               ${filters?.type ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-500 border-gray-200'}`}
           >
-            {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {TYPES.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
 
           <button
@@ -345,7 +347,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
               transition-all duration-200 flex items-center gap-1.5
               ${showFilters || hasExtraFilters ? 'bg-primary-500 text-white border-primary-500 shadow-[0_2px_8px_rgba(29,158,117,0.3)]' : 'bg-white text-gray-500 border-gray-200'}`}
           >
-            <i className="ti ti-adjustments-horizontal text-xs" aria-hidden="true" /> Chuja
+            <i className="ti ti-adjustments-horizontal text-xs" aria-hidden="true" /> {t('cl_filter_label')}
             {hasExtraFilters && <span className="w-2 h-2 rounded-full bg-amber-400 border-2 border-white shadow" />}
           </button>
         </div>
@@ -355,21 +357,21 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           <div className="mx-4 lg:mx-8 mb-3 bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <div className="col-span-2 lg:col-span-4">
-                <label className="text-xs text-gray-500 mb-1 block">Mkoa</label>
+                <label className="text-xs text-gray-500 mb-1 block">{t('cl_region_label')}</label>
                 <select
                   value={filters?.region ?? ''}
                   onChange={e => applyFilter('region', e.target.value)}
                   className="w-full text-base border border-gray-200 rounded-xl px-3 py-2.5
                              focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                 >
-                  <option value="">Mikoa Yote Tanzania</option>
+                  <option value="">{t('cl_all_regions')}</option>
                   {TANZANIA_REGIONS.map(r => (
                     <option key={r.name} value={r.name}>{r.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Bei ya chini (Tsh)</label>
+                <label className="text-xs text-gray-500 mb-1 block">{t('cl_filter_min_price')}</label>
                 <input
                   type="number" inputMode="numeric" placeholder="50,000"
                   value={filters?.min_price ?? ''}
@@ -378,7 +380,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Bei ya juu (Tsh)</label>
+                <label className="text-xs text-gray-500 mb-1 block">{t('cl_filter_max_price')}</label>
                 <input
                   type="number" inputMode="numeric" placeholder="500,000"
                   value={filters?.max_price ?? ''}
@@ -387,9 +389,9 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
                 />
               </div>
               <div className="col-span-2 lg:col-span-2">
-                <label className="text-xs text-gray-500 mb-1 block">Hali ya samani</label>
+                <label className="text-xs text-gray-500 mb-1 block">{t('cl_filter_furnished')}</label>
                 <div className="grid grid-cols-4 gap-2">
-                  {[{ value: '', label: 'Yote' }, { value: 'furnished', label: 'Ina Samani' }, { value: 'semi', label: 'Nusu Samani' }, { value: 'empty', label: 'Bila Samani' }].map(f => (
+                  {[{ value: '', label: t('cl_filter_all') }, { value: 'furnished', label: t('cl_furnished') }, { value: 'semi', label: t('cl_semi_furnished') }, { value: 'empty', label: t('cl_empty') }].map(f => (
                     <button
                       key={f.value}
                       onClick={() => applyFilter('furnished', f.value)}
@@ -412,8 +414,8 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
         <div className="px-4 lg:px-8 mb-3 flex justify-between items-center">
           <p className="text-xs font-medium text-gray-400 truncate min-w-0 mr-2">
             {loading
-              ? <span className="animate-pulse">Inatafuta...</span>
-              : <><span className="text-gray-700 font-bold">{total}</span> {total !== 1 ? 'nyumba' : 'nyumba'}{filters?.region ? ` – ${filters.region}` : ' Tanzania'}</>}
+              ? <span className="animate-pulse">{t('cl_searching')}</span>
+              : <><span className="text-gray-700 font-bold">{total}</span> nyumba{filters?.region ? ` – ${filters.region}` : ' Tanzania'}</>}
           </p>
           <div className="flex-shrink-0 flex bg-gray-100/80 rounded-xl p-0.5 gap-0.5">
             <button
@@ -428,7 +430,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
               aria-pressed={viewMode === 'map'}
               className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
             >
-              <i className="ti ti-map-2" aria-hidden="true" /> Ramani
+              <i className="ti ti-map-2" aria-hidden="true" /> {t('cl_map')}
             </button>
           </div>
         </div>
@@ -439,7 +441,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             <div className="px-4 lg:px-8 flex items-center gap-2 mb-2">
               <i className="ti ti-star-filled text-amber-400 text-base" aria-hidden="true" />
               <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                Zinashauriwa na NyumbaFasta
+                {t('cl_featured')}
               </p>
             </div>
             <div className="relative">
@@ -471,24 +473,24 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
                 <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-map text-gray-400" aria-hidden="true" /></div>
                 {filters?.region ? (
                   <>
-                    <p className="text-gray-700 font-semibold mb-1">Hakuna nyumba {filters.region}</p>
+                    <p className="text-gray-700 font-semibold mb-1">{t('cl_no_listings_in').replace('{{region}}', filters.region)}</p>
                     <p className="text-gray-400 text-sm mb-5 px-4">
-                      Hakuna listings zinazopatikana kwenye mkoa huu sasa hivi.
+                      {t('cl_no_listings_region_sub')}
                     </p>
                     <button
                       onClick={clearFilters}
                       className="inline-flex items-center gap-2 bg-primary-500 text-white
                                  px-5 py-3 rounded-xl text-sm font-semibold active:scale-[0.97] transition-all"
                     >
-                      <i className="ti ti-search" aria-hidden="true" /> Tafuta Mikoa Mingine
+                      <i className="ti ti-search" aria-hidden="true" /> {t('cl_search_other_regions')}
                     </button>
                   </>
                 ) : (
                   <>
-                    <p className="text-gray-600 font-medium mb-1">Hakuna listings zinazolingana</p>
-                    <p className="text-gray-400 text-sm mb-4">Jaribu kubadilisha filters au mkoa mwingine</p>
+                    <p className="text-gray-600 font-medium mb-1">{t('cl_no_match_filters')}</p>
+                    <p className="text-gray-400 text-sm mb-4">{t('cl_change_filters')}</p>
                     <button onClick={clearFilters} className="text-primary-600 text-sm font-medium underline">
-                      Ondoa filters zote
+                      {t('cl_ondoa_filters')}
                     </button>
                   </>
                 )}
@@ -511,7 +513,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
                     <div key="header-mpya" className="col-span-full flex items-center gap-2 pt-1 pb-2">
                       <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
                       <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                        Mpya — Ndani ya Siku 30
+                        {t('cl_new_within_30')}
                       </p>
                       <div className="flex-1 border-t border-gray-200" />
                     </div>
@@ -519,7 +521,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
                   if (showOlder) items.push(
                     <div key="header-older" className="col-span-full flex items-center gap-2 pt-3 pb-2">
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                        Listings Zingine
+                        {t('cl_other_listings')}
                       </p>
                       <div className="flex-1 border-t border-gray-200" />
                     </div>
@@ -547,7 +549,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
                              active:bg-primary-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <i className="ti ti-chevrons-down text-base" aria-hidden="true" />
-                  Onyesha zaidi ({total - listings.length} zimebaki)
+                  {t('cl_show_more')} ({t('cl_remaining').replace('{{n}}', String(total - listings.length))})
                 </button>
               </div>
             )}
@@ -563,7 +565,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             region={filters?.region || 'Dar es Salaam'}
             placement="directory"
             limit={4}
-            title="Biashara Zinazopendekeza"
+            title={t('cl_recommended_biz')}
           />
         </div>
 

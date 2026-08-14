@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { ListingWithDalali } from '@/lib/types/database'
 import BottomNav from '@/components/shared/BottomNav'
+import { useLanguage } from '@/lib/i18n/context'
 
 type SavedItem = { savedId: string; listing: ListingWithDalali }
 
@@ -20,6 +21,7 @@ function formatPrice(n: number) {
 
 export default function SavedClient({ saved: initial, role = 'client' }: { saved: SavedItem[]; role?: string }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [items, setItems] = useState(initial)
   const [removing, setRemoving] = useState<string | null>(null)
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null)
@@ -42,14 +44,14 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            aria-label="Rudi nyuma"
+            aria-label={t('common_back')}
             className="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white"
           >
             ←
           </button>
           <div>
-            <h1 className="text-white text-lg font-bold">Zilizohifadhiwa</h1>
-            <p className="text-green-100 text-xs">{items.length} mali {items.length === 1 ? 'iliyohifadhiwa' : 'zilizohifadhiwa'}</p>
+            <h1 className="text-white text-lg font-bold">{t('cl_saved_listings')}</h1>
+            <p className="text-green-100 text-xs">{items.length} {t('cl_saved_count')}</p>
           </div>
         </div>
       </div>
@@ -58,13 +60,13 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="text-6xl mb-4 flex justify-center"><i className="ti ti-heart text-gray-300 text-6xl" aria-hidden="true" /></div>
-            <p className="text-gray-600 font-semibold mb-1">Bado hujahifadhi listings</p>
-            <p className="text-gray-400 text-sm mb-6">Bonyeza kwenye listing yoyote kuihifadhi hapa</p>
+            <p className="text-gray-600 font-semibold mb-1">{t('cl_no_saved')}</p>
+            <p className="text-gray-400 text-sm mb-6">{t('cl_no_saved_sub')}</p>
             <Link
               href="/"
               className="bg-primary-500 text-white px-6 py-3 rounded-2xl text-sm font-semibold"
             >
-              Tafuta Listings →
+              {t('cl_browse_listings')}
             </Link>
           </div>
         ) : (
@@ -77,10 +79,10 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                 }`}>
                   {listing.status === 'taken' && (
                     <div className="bg-amber-50 px-3 py-2 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-amber-700 flex items-center gap-1"><i className="ti ti-circle-dot text-red-500" aria-hidden="true" />Nyumba hii imeshapangishwa</span>
+                      <span className="text-xs font-semibold text-amber-700 flex items-center gap-1"><i className="ti ti-circle-dot text-red-500" aria-hidden="true" />{t('lst_listing_taken')}</span>
                       <Link href={`/?region=${listing.region}`}
                         className="text-xs text-primary-600 font-medium underline">
-                        Tafuta nyingine →
+                        {t('cl_find_another')}
                       </Link>
                     </div>
                   )}
@@ -103,7 +105,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                           ? 'bg-amber-100 text-amber-800'
                           : 'bg-gray-100 text-gray-500'
                       }`}>
-                        {listing.status === 'active' ? 'Inapatikana' : listing.status === 'taken' ? 'Imepangishwa' : listing.status}
+                        {listing.status === 'active' ? t('cl_available') : listing.status === 'taken' ? t('cl_taken') : listing.status}
                       </div>
                     </div>
 
@@ -113,7 +115,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                           {typeLabel[listing.type] || listing.type} – {listing.district}
                         </p>
                         <p className="text-primary-600 font-bold text-sm whitespace-nowrap">
-                          {formatPrice(listing.price_monthly)}/mwezi
+                          {formatPrice(listing.price_monthly)}{t('lst_per_month')}
                         </p>
                       </div>
                       <p className="text-xs text-gray-400 mb-2 flex items-center gap-1"><i className="ti ti-map-pin" aria-hidden="true" />{listing.district}, {listing.region}</p>
@@ -133,19 +135,19 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                   <div className="border-t border-gray-50 px-3 py-2 flex justify-end items-center gap-2">
                     {confirmingRemove === listing.id ? (
                       <>
-                        <span className="text-xs text-gray-500">Una uhakika?</span>
+                        <span className="text-xs text-gray-500">{t('cl_are_you_sure')}</span>
                         <button
                           onClick={() => { handleUnsave(listing.id); setConfirmingRemove(null) }}
                           disabled={removing === listing.id}
                           className="text-xs text-white bg-red-500 px-4 py-2.5 min-h-[44px] rounded-xl font-medium disabled:opacity-50 flex items-center"
                         >
-                          {removing === listing.id ? '...' : 'Ondoa'}
+                          {removing === listing.id ? '...' : t('cl_remove')}
                         </button>
                         <button
                           onClick={() => setConfirmingRemove(null)}
                           className="text-xs text-gray-400 px-3 py-2.5 min-h-[44px] flex items-center"
                         >
-                          Ghairi
+                          {t('common_cancel')}
                         </button>
                       </>
                     ) : (
@@ -154,7 +156,7 @@ export default function SavedClient({ saved: initial, role = 'client' }: { saved
                         className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors min-h-[44px] px-2"
                       >
                         <i className="ti ti-trash" aria-hidden="true" />
-                        Ondoa
+                        {t('cl_remove')}
                       </button>
                     )}
                   </div>

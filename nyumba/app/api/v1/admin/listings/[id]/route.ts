@@ -73,7 +73,7 @@ export async function PATCH(
       // WhatsApp + email (non-blocking)
       ;(async () => {
         try {
-          const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+          const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
           const listingLabel = `${listing.type} – ${listing.district}`
 
           // WhatsApp to dalali

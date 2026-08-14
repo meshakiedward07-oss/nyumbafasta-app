@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 import { createAdminClient } from '@/lib/supabase/server'
 import { TANZANIA_REGIONS, PRIORITY_REGIONS } from '@/lib/data/tanzania-locations'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 // Property types that have dedicated region+type SEO pages
 const SEO_TYPES = ['chumba', 'apartment', 'nyumba', 'studio', 'duka']

@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'imageUrl inahitajika kwa promo story' }, { status: 400 })
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
     const result = await postPromoStory({ imageUrl, linkUrl: linkUrl ?? appUrl })
     const expiresAt = result.success
       ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()

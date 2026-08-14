@@ -238,7 +238,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
                              bg-white text-primary-600 font-bold text-sm active:scale-[0.97] transition-all"
                 >
-                  <i className="ti ti-credit-card" aria-hidden="true" /> {t('dash_continue_sub')} — Tsh {basicPrice.toLocaleString()}/mwezi
+                  <i className="ti ti-credit-card" aria-hidden="true" /> {t('dash_continue_sub')} — Tsh {basicPrice.toLocaleString()}{t('dash_per_month')}
                 </Link>
               </div>
             )
@@ -341,7 +341,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                     </p>
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-bold">
-                      <i className="ti ti-rocket" aria-hidden="true" /> {t('dash_upgrade_now')} — Tsh {basicPrice.toLocaleString()}/mwezi
+                      <i className="ti ti-rocket" aria-hidden="true" /> {t('dash_upgrade_now')} — Tsh {basicPrice.toLocaleString()}{t('dash_per_month')}
                     </Link>
                   </div>
                 )}
@@ -358,7 +358,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                     <Link href="/dashboard/subscription"
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-xs font-bold"
                       style={{ backgroundColor: planData.color }}>
-                      <i className="ti ti-star-filled" aria-hidden="true" /> {t('dash_upgrade_basic')} — Tsh {basicPrice.toLocaleString()}/mwezi
+                      <i className="ti ti-star-filled" aria-hidden="true" /> {t('dash_upgrade_basic')} — Tsh {basicPrice.toLocaleString()}{t('dash_per_month')}
                     </Link>
                   </div>
                 )}
@@ -465,11 +465,11 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
             <i className="ti ti-home-2 text-2xl text-primary-600" aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-gray-900 text-sm">Matangazo Yangu</p>
+            <p className="font-bold text-gray-900 text-sm">{t('dl_my_ads_title')}</p>
             <p className="text-gray-400 text-xs mt-0.5">
-              {stats.totalListings} tangazo
-              {stats.activeCount > 0 && <> · <span className="text-primary-600 font-medium">{stats.activeCount} yanafanya kazi</span></>}
-              {stats.pendingCount > 0 && <> · <span className="text-amber-500 font-medium">{stats.pendingCount} yanasubiri</span></>}
+              {stats.totalListings} {t('dl_listing_singular')}
+              {stats.activeCount > 0 && <> · <span className="text-primary-600 font-medium">{stats.activeCount} {t('dl_listing_active_unit')}</span></>}
+              {stats.pendingCount > 0 && <> · <span className="text-amber-500 font-medium">{stats.pendingCount} {t('dl_listing_pending_unit')}</span></>}
             </p>
           </div>
           <i className="ti ti-chevron-right text-gray-300 text-xl flex-shrink-0" aria-hidden="true" />
@@ -521,7 +521,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                         </span>
                       </div>
                       <p className="text-primary-600 font-bold text-sm mb-1.5">
-                        Tsh {formatPrice(listing.price_monthly)}<span className="text-xs font-normal text-gray-400"> /mwezi</span>
+                        Tsh {formatPrice(listing.price_monthly)}<span className="text-xs font-normal text-gray-400"> {t('dash_per_month')}</span>
                       </p>
                       <div className="flex items-center gap-3 text-xs text-gray-400">
                         <span className="flex items-center gap-0.5"><i className="ti ti-eye text-xs" aria-hidden="true" /> {listing.view_count ?? 0}</span>

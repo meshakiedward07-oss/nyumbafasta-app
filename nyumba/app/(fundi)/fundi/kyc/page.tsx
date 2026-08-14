@@ -1,25 +1,25 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface KycDoc {
   id: string; document_type: string; document_url: string; document_name: string | null
   status: 'pending' | 'approved' | 'rejected'; rejection_reason: string | null; submitted_at: string
 }
 
-const DOC_TYPE_LABELS: Record<string, string> = {
-  business_licence:           'Leseni ya Biashara',
-  qualification_certificate:  'Cheti cha Utaalamu',
-  national_id:                'Kitambulisho cha Taifa',
-  other:                      'Hati Nyingine',
-}
-
-const STATUS_STYLE: Record<string, { cls: string; label: string; icon: string }> = {
-  pending:  { cls: 'bg-amber-50 text-amber-700',  label: 'Inakaguliwa', icon: 'clock'        },
-  approved: { cls: 'bg-green-50 text-green-700',  label: 'Imeidhinishwa', icon: 'circle-check'},
-  rejected: { cls: 'bg-red-50 text-red-600',      label: 'Ilikataliwa',  icon: 'circle-x'    },
-}
-
 export default function FundiKycPage() {
+  const { t } = useLanguage()
+  const DOC_TYPE_LABELS: Record<string, string> = {
+    business_licence:           t('fp_kyc_doc_business_licence'),
+    qualification_certificate:  t('fp_kyc_doc_qualification'),
+    national_id:                t('fp_kyc_doc_national_id'),
+    other:                      t('fp_kyc_doc_other'),
+  }
+  const STATUS_STYLE: Record<string, { cls: string; label: string; icon: string }> = {
+    pending:  { cls: 'bg-amber-50 text-amber-700', label: t('fp_kyc_status_pending'),  icon: 'clock'        },
+    approved: { cls: 'bg-green-50 text-green-700', label: t('fp_kyc_status_approved'), icon: 'circle-check' },
+    rejected: { cls: 'bg-red-50 text-red-600',     label: t('fp_kyc_status_rejected'), icon: 'circle-x'    },
+  }
   const [docs,      setDocs]      = useState<KycDoc[]>([])
   const [loading,   setLoading]   = useState(true)
   const [form,      setForm]      = useState({ document_type: 'qualification_certificate', document_url: '', document_name: '' })
@@ -39,7 +39,7 @@ export default function FundiKycPage() {
   useEffect(() => { load() }, [])
 
   async function handleSubmit() {
-    if (!form.document_url.trim()) { setFormErr('Kiungo cha hati kinahitajika'); return }
+    if (!form.document_url.trim()) { setFormErr(t('fp_kyc_url_required')); return }
     setSubmitting(true); setFormErr(null)
     try {
       const res = await fetch('/api/v1/fundi/kyc', {
@@ -48,29 +48,29 @@ export default function FundiKycPage() {
         body:    JSON.stringify(form),
       })
       const data = await res.json()
-      if (!res.ok) { setFormErr(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setFormErr(data.error ?? t('fp_err_generic')); return }
       setForm({ document_type: 'qualification_certificate', document_url: '', document_name: '' })
       setSubmitted(true)
       await load()
-    } catch { setFormErr('Haikuweza kutuma. Jaribu tena.') }
+    } catch { setFormErr(t('fp_send_error')) }
     finally { setSubmitting(false) }
   }
 
   return (
     <div className="p-4 lg:p-6 max-w-lg mx-auto">
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-gray-900">Hati za KYC</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Tuma hati zako ili admin akuthibitishe</p>
+        <h1 className="text-xl font-bold text-gray-900">{t('fp_kyc_heading')}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{t('fp_kyc_sub')}</p>
       </div>
 
       {/* Instructions */}
       <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-5">
-        <p className="text-sm font-semibold text-blue-800 mb-1">Jinsi ya Kutuma Hati</p>
+        <p className="text-sm font-semibold text-blue-800 mb-1">{t('fp_kyc_how_title')}</p>
         <ol className="text-xs text-blue-600 space-y-1 list-decimal list-inside">
-          <li>Pakia hati yako kwenye Google Drive, Dropbox au iCloud</li>
-          <li>Fanya kiungo kiwe cha &quot;mtu yeyote anayeona&quot; (public link)</li>
-          <li>Nakili kiungo na paste hapa chini</li>
-          <li>Chagua aina ya hati na tuma</li>
+          <li>{t('fp_kyc_how_1')}</li>
+          <li>{t('fp_kyc_how_2')}</li>
+          <li>{t('fp_kyc_how_3')}</li>
+          <li>{t('fp_kyc_how_4')}</li>
         </ol>
       </div>
 
@@ -79,7 +79,7 @@ export default function FundiKycPage() {
         <div className="space-y-2 mb-5">{[1,2].map(i => <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-2xl" />)}</div>
       ) : docs.length > 0 && (
         <div className="space-y-3 mb-5">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Hati Zilizotumwa</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('fp_kyc_submitted_docs')}</p>
           {docs.map(doc => {
             const s = STATUS_STYLE[doc.status] ?? STATUS_STYLE.pending
             return (
@@ -92,7 +92,7 @@ export default function FundiKycPage() {
                       {new Date(doc.submitted_at).toLocaleDateString('sw-TZ')}
                     </p>
                     {doc.status === 'rejected' && doc.rejection_reason && (
-                      <p className="text-xs text-red-500 mt-1">Sababu: {doc.rejection_reason}</p>
+                      <p className="text-xs text-red-500 mt-1">{t('fp_kyc_rejection_reason')}: {doc.rejection_reason}</p>
                     )}
                   </div>
                   <span className={`text-[10px] px-2 py-1 rounded-full font-medium flex items-center gap-1 flex-shrink-0 ${s.cls}`}>
@@ -103,7 +103,7 @@ export default function FundiKycPage() {
                 {doc.status !== 'rejected' && (
                   <a href={doc.document_url} target="_blank" rel="noopener noreferrer"
                     className="mt-2 text-xs text-primary-600 hover:underline flex items-center gap-1">
-                    <i className="ti ti-external-link text-xs" aria-hidden="true" /> Angalia Hati
+                    <i className="ti ti-external-link text-xs" aria-hidden="true" /> {t('fp_kyc_view_doc')}
                   </a>
                 )}
               </div>
@@ -116,28 +116,28 @@ export default function FundiKycPage() {
       {submitted && (
         <div className="bg-green-50 border border-green-100 rounded-2xl p-4 mb-5 flex items-center gap-3">
           <i className="ti ti-circle-check text-green-500 text-xl" aria-hidden="true" />
-          <p className="text-sm text-green-700">Hati imetumwa. Admin ataikagua hivi karibuni.</p>
+          <p className="text-sm text-green-700">{t('fp_kyc_success')}</p>
         </div>
       )}
 
       {/* Submit form */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-        <p className="text-sm font-bold text-gray-800">Tuma Hati Mpya</p>
+        <p className="text-sm font-bold text-gray-800">{t('fp_kyc_form_title')}</p>
         <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Aina ya Hati</label>
+          <label className="text-xs font-medium text-gray-600 block mb-1">{t('fp_kyc_doc_type_label')}</label>
           <select value={form.document_type} onChange={e => setForm(f => ({ ...f, document_type: e.target.value }))}
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
             {Object.entries(DOC_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Kiungo cha Hati *</label>
+          <label className="text-xs font-medium text-gray-600 block mb-1">{t('fp_kyc_doc_url_label')} *</label>
           <input value={form.document_url} onChange={e => setForm(f => ({ ...f, document_url: e.target.value }))}
             placeholder="https://drive.google.com/file/..."
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Jina la Hati (hiari)</label>
+          <label className="text-xs font-medium text-gray-600 block mb-1">{t('fp_kyc_doc_name_label')}</label>
           <input value={form.document_name} onChange={e => setForm(f => ({ ...f, document_name: e.target.value }))}
             placeholder="mfano: Leseni_2026.pdf"
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
@@ -145,7 +145,7 @@ export default function FundiKycPage() {
         {formErr && <p className="text-sm text-red-600">{formErr}</p>}
         <button onClick={handleSubmit} disabled={submitting}
           className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
-          {submitting ? 'Inatuma...' : 'Tuma Hati'}
+          {submitting ? t('fp_kyc_submitting') : t('fp_kyc_submit_btn')}
         </button>
       </div>
     </div>

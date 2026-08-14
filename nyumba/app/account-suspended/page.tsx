@@ -2,8 +2,10 @@
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { supportWaUrl } from '@/lib/config/support'
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function AccountSuspendedPage() {
+  const { t }    = useLanguage()
   const supabase = createClient()
   const router   = useRouter()
 
@@ -22,20 +24,20 @@ export default function AccountSuspendedPage() {
         </div>
 
         <h1 className="text-xl font-bold text-gray-900 mb-2">
-          Akaunti Imesimamishwa
+          {t('auth_suspended_title')}
         </h1>
 
         <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 my-5 text-left space-y-2">
-          <p className="text-sm text-orange-800 font-medium">Sababu inayowezekana:</p>
+          <p className="text-sm text-orange-800 font-medium">{t('auth_suspended_reason_hd')}</p>
           <ul className="text-xs text-orange-700 space-y-1.5 list-disc list-inside">
-            <li>Malalamiko yaliyopokelewa kutoka kwa watumiaji wengine</li>
-            <li>Ukiukaji wa masharti ya matumizi ya NyumbaFasta</li>
-            <li>Shughuli ya kutia shaka (taarifa za uongo, spam, n.k.)</li>
+            <li>{t('auth_suspended_r1')}</li>
+            <li>{t('auth_suspended_r2')}</li>
+            <li>{t('auth_suspended_r3')}</li>
           </ul>
         </div>
 
         <p className="text-xs text-gray-500 mb-6">
-          Kama unaamini hii ni kosa, wasiliana nasi kupitia WhatsApp ili tushughulikie hali yako haraka.
+          {t('auth_suspended_contact')}
         </p>
 
         {/* WhatsApp support */}
@@ -45,14 +47,14 @@ export default function AccountSuspendedPage() {
           rel="noopener noreferrer"
           className="block w-full bg-[#25D366] text-white py-3.5 rounded-xl text-sm font-semibold mb-3 hover:bg-[#20b857] transition-colors"
         >
-          <i className="ti ti-brand-whatsapp" aria-hidden="true" /> Wasiliana WhatsApp
+          <i className="ti ti-brand-whatsapp" aria-hidden="true" /> {t('auth_suspended_wa')}
         </a>
 
         <button
           onClick={handleSignOut}
           className="w-full border border-gray-200 text-gray-600 py-3 rounded-xl text-sm hover:bg-gray-50 transition-colors"
         >
-          Toka / Sign Out
+          {t('auth_sign_out')}
         </button>
 
         <p className="text-[10px] text-gray-400 mt-4">

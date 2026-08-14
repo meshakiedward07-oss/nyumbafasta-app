@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { getPlan, type PlanType } from '@/lib/config/subscription-plans'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Props = {
   feature: string
@@ -8,23 +9,24 @@ type Props = {
 }
 
 export default function UpgradePrompt({ feature, requiredPlan }: Props) {
+  const { t } = useLanguage()
   const plan = getPlan(requiredPlan)
 
   return (
     <div className="text-center py-8 px-4">
       <div className="text-4xl mb-3"><i className={`ti ti-${plan.icon} text-4xl text-primary-400`} aria-hidden="true" /></div>
       <p className="font-bold text-gray-800 mb-1">
-        {feature} inahitaji {plan.name}
+        {feature} {t('cl_upgrade_needs')} {plan.name}
       </p>
       <p className="text-gray-500 text-sm mb-4">
-        Upgrade kwenda {plan.name} kwa Tsh {plan.price.toLocaleString()}/mwezi
+        {t('cl_upgrade_to')} {plan.name} kwa Tsh {plan.price.toLocaleString()}{t('home_monthly')}
       </p>
       <Link
         href="/dashboard/subscription"
         className="inline-block px-6 py-3 rounded-xl text-white font-semibold active:scale-95 transition-transform"
         style={{ backgroundColor: plan.color }}
       >
-        Upgrade Sasa →
+        {t('cl_upgrade_now')}
       </Link>
     </div>
   )

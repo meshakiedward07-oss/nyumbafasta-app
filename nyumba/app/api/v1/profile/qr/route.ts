@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Dalali hapatikani' }, { status: 404 })
   }
 
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   const profileUrl = `${APP_URL}/agent/${u}`
 
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(profileUrl)}&margin=20&color=1a1a18&bgcolor=ffffff&ecc=M&format=png`

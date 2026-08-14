@@ -141,7 +141,7 @@ export function buildGroupMessage(listing: Listing, micrositeUrl?: string): stri
     ? '🛋️ Semi-furnished' : '📦 Empty'
 
   const amenities = listing.amenities?.slice(0, 4).join(' • ') ?? ''
-  const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   const linkUrl   = micrositeUrl ?? `${appUrl}/listings/${listing.id}`
 
   return [

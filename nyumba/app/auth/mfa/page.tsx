@@ -3,11 +3,13 @@ import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 function MFAForm() {
   const supabase     = createClient()
   const router       = useRouter()
   const searchParams = useSearchParams()
+  const { t }        = useLanguage()
   const redirectTo   = searchParams.get('redirect') || '/'
 
   const [code,      setCode]      = useState('')
@@ -79,14 +81,14 @@ function MFAForm() {
           <i className="ti ti-shield-lock text-primary-600 text-2xl" aria-hidden="true" />
         </div>
 
-        <h1 className="text-xl font-bold text-gray-900 mb-1 text-center">Thibitisha Utambulisho</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-1 text-center">{t('auth_mfa_title')}</h1>
         <p className="text-sm text-gray-500 mb-6 text-center">
-          Weka nambari ya tarakimu 6 kutoka kwa app yako ya uthibitisho (Google Authenticator, Authy, n.k.)
+          {t('auth_mfa_sub')}
         </p>
 
         <form onSubmit={handleVerify} className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Nambari ya 2FA</label>
+            <label className="text-xs font-medium text-gray-600 block mb-1">{t('auth_mfa_code_label')}</label>
             <input
               type="text"
               inputMode="numeric"
@@ -112,14 +114,14 @@ function MFAForm() {
             disabled={loading || code.length !== 6}
             className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition"
           >
-            {loading ? 'Inathibitisha...' : 'Thibitisha →'}
+            {loading ? t('auth_mfa_verifying') : `${t('auth_mfa_verify_btn')} →`}
           </button>
         </form>
 
         <p className="text-xs text-gray-400 text-center mt-5">
-          Umepoteza ufikiaji wa app yako?{' '}
+          {t('auth_mfa_lost_access')}{' '}
           <a href="mailto:support@nyumbafasta.co.tz" className="text-primary-600 hover:underline">
-            Wasiliana na msaada
+            {t('auth_mfa_contact_support')}
           </a>
         </p>
       </div>

@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
       if (!usernameErr) { generatedUsername = candidate; break }
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
     return NextResponse.json({
       broker:     { user_id: userId, ...profile },
       username:   generatedUsername,

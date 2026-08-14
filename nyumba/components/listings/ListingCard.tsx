@@ -8,13 +8,8 @@ import ShareButton from '@/components/shared/ShareButton'
 import type { ListingWithDalali, CommissionType } from '@/lib/types/database'
 import { getShortLocation } from '@/lib/listings/formatLocation'
 import { BOOSTED_LABEL, STATUS_LABELS } from '@/lib/config/listing-status'
-
-const COMMISSION_SHORT: Record<CommissionType, string> = {
-  one_month:  '1 Mwezi',
-  percentage: 'Komisho %',
-  fixed:      'Komisho',
-  negotiable: 'Inajadiliwa',
-}
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 // ── Property-type visual styles ───────────────────────────────────────────────
 const TYPE_STYLE: Record<string, { icon: string; pillBg: string; pillText: string; label: string }> = {
@@ -171,7 +166,15 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 
 export default function ListingCard({ listing, hasUnlocked = false, priority = false }: { listing: ListingWithDalali; hasUnlocked?: boolean; priority?: boolean }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [imgError, setImgError] = useState(false)
+
+  const COMMISSION_SHORT: Record<CommissionType, string> = {
+    one_month:  t('lst_comm_1month'),
+    percentage: t('lst_comm_pct'),
+    fixed:      t('lst_comm_fixed'),
+    negotiable: t('lst_comm_negotiable'),
+  }
 
   const profile           = listing.dalali?.dalali_profiles
   const rating            = profile?.rating_avg ?? 0
@@ -210,7 +213,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
         {isNew && (
           <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold px-3 py-1 text-center tracking-wide flex items-center justify-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse flex-shrink-0" />
-            Mpya — Imetangazwa Hivi Karibuni
+            {t('lst_card_new_banner')}
           </div>
         )}
 
@@ -266,7 +269,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
             {isNew && (
               <div className="flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
                 <i className="ti ti-sparkles text-[9px]" aria-hidden="true" />
-                Mpya
+                {t('lst_new')}
               </div>
             )}
           </div>
@@ -289,7 +292,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
             </div>
             <div className="text-primary-600 text-sm font-bold whitespace-nowrap flex-shrink-0 tabular-nums">
               {formatPrice(listing.price_monthly)}
-              <span className="text-[10px] font-medium text-gray-400">/mwezi</span>
+              <span className="text-[10px] font-medium text-gray-400">{t('lst_per_month')}</span>
             </div>
           </div>
 
@@ -311,7 +314,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
             {hasUnlocked && (
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border bg-primary-50 border-primary-200 text-primary-700">
                 <i className="ti ti-circle-check text-xs" aria-hidden="true" />
-                Namba Unayo
+                {t('lst_have_number')}
               </span>
             )}
             {listing.commission_type && (
@@ -323,7 +326,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
             {listing.furnished && (
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border bg-amber-50 border-amber-200 text-amber-700">
                 <i className="ti ti-armchair text-xs" aria-hidden="true" />
-                {listing.furnished === 'furnished' ? 'Imejazwa' : listing.furnished === 'semi' ? 'Nusu Samani' : 'Tupu'}
+                {listing.furnished === 'furnished' ? t('lst_furnished_full') : listing.furnished === 'semi' ? t('lst_furnished_semi') : t('lst_furnished_empty')}
               </span>
             )}
             {listing.amenities?.slice(0, 3).map(a => {
@@ -352,7 +355,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
             <div className="mb-2">
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border bg-primary-50 border-primary-100 text-primary-700">
                 <i className="ti ti-building text-xs" aria-hidden="true" />
-                Nafasi {(listing.total_capacity ?? 1) - (listing.current_occupancy ?? 0)} zilizobaki
+                {t('lst_units_left').replace('{{n}}', String((listing.total_capacity ?? 1) - (listing.current_occupancy ?? 0)))}
               </span>
             </div>
           )}
@@ -360,7 +363,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
             <div className="mb-2">
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border bg-red-50 border-red-100 text-red-600">
                 <i className="ti ti-lock text-xs" aria-hidden="true" />
-                Imejaa
+                {t('lst_full')}
               </span>
             </div>
           )}
@@ -408,7 +411,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
               {listing.created_at && (
                 <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
                   <i className="ti ti-clock text-[9px]" aria-hidden="true" />
-                  {listedAgo(listing.created_at)}
+                  {listedAgo(listing.created_at, t)}
                 </span>
               )}
               <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
@@ -431,13 +434,13 @@ function formatPrice(amount: number): string {
   return `Tsh ${amount}`
 }
 
-function listedAgo(iso: string): string {
+function listedAgo(iso: string, t: (k: TKey) => string): string {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-  if (s < 3600)  return 'Leo'
-  if (s < 86400) return `Saa ${Math.floor(s / 3600)} zilizopita`
+  if (s < 3600)  return t('lst_ago_today')
+  if (s < 86400) return t('lst_ago_hours').replace('{{n}}', String(Math.floor(s / 3600)))
   const days = Math.floor(s / 86400)
-  if (days === 1) return 'Jana'
-  if (days < 30)  return `Siku ${days} zilizopita`
-  if (days < 60)  return 'Mwezi 1 uliopita'
-  return `Miezi ${Math.floor(days / 30)} iliyopita`
+  if (days === 1) return t('lst_ago_yesterday')
+  if (days < 30)  return t('lst_ago_days').replace('{{n}}', String(days))
+  if (days < 60)  return t('lst_ago_1month')
+  return t('lst_ago_months').replace('{{n}}', String(Math.floor(days / 30)))
 }

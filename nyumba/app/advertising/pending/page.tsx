@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function AdvertiserPendingPage() {
-  const router  = useRouter()
+  const router   = useRouter()
   const supabase = createClient()
+  const { t }    = useLanguage()
   const [business, setBusiness] = useState('')
   const [email,    setEmail]    = useState('')
   const [checking, setChecking] = useState(true)
@@ -54,6 +56,13 @@ export default function AdvertiserPendingPage() {
     )
   }
 
+  const steps = [
+    { icon: 'check',        color: 'text-primary-500', bg: 'bg-primary-50', label: t('adv_pending_step_submitted'), done: true              },
+    { icon: 'search',       color: 'text-amber-500',   bg: 'bg-amber-50',   label: t('adv_pending_step_reviewing'), done: true, active: true },
+    { icon: 'shield-check', color: 'text-gray-400',    bg: 'bg-gray-50',    label: t('adv_pending_step_approved'),  done: false             },
+    { icon: 'rocket',       color: 'text-gray-400',    bg: 'bg-gray-50',    label: t('adv_pending_step_advertise'), done: false             },
+  ]
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top bar */}
@@ -72,22 +81,20 @@ export default function AdvertiserPendingPage() {
             <i className="ti ti-clock-hour-4 text-amber-500 text-4xl" aria-hidden="true" />
           </div>
 
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Akaunti Inakaguliwa</h1>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">{t('adv_pending_title')}</h1>
           <p className="text-sm text-gray-500 mb-1">
-            {business ? <><strong>{business}</strong> — akaunti yako</> : 'Akaunti yako'} iko chini ya ukaguzi wa timu yetu.
+            {business
+              ? <><strong>{business}</strong> — {t('adv_pending_your_account')}</>
+              : t('adv_pending_your_account')
+            } {t('adv_pending_under_review')}
           </p>
           <p className="text-sm text-gray-500 mb-6">
-            Tutakutumia taarifa kwenye <strong>{email}</strong> ndani ya masaa 24 hadi 48.
+            {t('adv_pending_notify_at')} <strong>{email}</strong> {t('adv_pending_within_hours')}
           </p>
 
           {/* Status steps */}
           <div className="text-left space-y-3 mb-7">
-            {[
-              { icon: 'check', color: 'text-primary-500', bg: 'bg-primary-50', label: 'Maombi yaliyowasilishwa', done: true },
-              { icon: 'search', color: 'text-amber-500', bg: 'bg-amber-50', label: 'Timu inakagua maelezo', done: true, active: true },
-              { icon: 'shield-check', color: 'text-gray-400', bg: 'bg-gray-50', label: 'Idhini ya akaunti', done: false },
-              { icon: 'rocket', color: 'text-gray-400', bg: 'bg-gray-50', label: 'Anza kutangaza!', done: false },
-            ].map((step, i) => (
+            {steps.map((step, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${step.bg}`}>
                   <i className={`ti ti-${step.icon} text-sm ${step.color}`} aria-hidden="true" />
@@ -104,14 +111,14 @@ export default function AdvertiserPendingPage() {
 
           <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-700 mb-6 text-left">
             <i className="ti ti-info-circle mr-1" aria-hidden="true" />
-            Una swali? Wasiliana nasi kupitia WhatsApp au barua pepe ya msaada.
+            {t('adv_pending_help')}
           </div>
 
           <button
             onClick={handleLogout}
             className="w-full border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
           >
-            Toka Akaunti
+            {t('adv_logout')}
           </button>
         </div>
       </div>

@@ -3,13 +3,15 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
-const NAV_ITEMS = [
-  { href: '/fundi/dashboard',    icon: 'layout-dashboard', label: 'Kazi Zangu'  },
-  { href: '/fundi/messages',     icon: 'message',          label: 'Ujumbe'      },
-  { href: '/fundi/profile',      icon: 'user-circle',      label: 'Wasifu'      },
-  { href: '/fundi/kyc',          icon: 'id',               label: 'Hati / KYC'  },
-  { href: '/fundi/subscription', icon: 'star',             label: 'Usajili'     },
+const NAV_ITEM_DEFS: Array<{ href: string; icon: string; labelKey: TKey }> = [
+  { href: '/fundi/dashboard',    icon: 'layout-dashboard', labelKey: 'fp_nav_my_jobs'      },
+  { href: '/fundi/messages',     icon: 'message',          labelKey: 'fp_nav_messages'     },
+  { href: '/fundi/profile',      icon: 'user-circle',      labelKey: 'fp_nav_profile'      },
+  { href: '/fundi/kyc',          icon: 'id',               labelKey: 'fp_nav_kyc'          },
+  { href: '/fundi/subscription', icon: 'star',             labelKey: 'fp_nav_subscription' },
 ]
 
 type Props = { children: React.ReactNode; fundiName: string | null }
@@ -17,6 +19,8 @@ type Props = { children: React.ReactNode; fundiName: string | null }
 export default function FundiShell({ children, fundiName }: Props) {
   const pathname = usePathname()
   const router   = useRouter()
+  const { t }    = useLanguage()
+  const NAV_ITEMS = NAV_ITEM_DEFS.map(d => ({ ...d, label: t(d.labelKey) }))
   const [menuOpen,   setMenuOpen]   = useState(false)
   const [msgUnread,  setMsgUnread]  = useState(0)
 
@@ -54,7 +58,7 @@ export default function FundiShell({ children, fundiName }: Props) {
             </div>
             <div className="min-w-0">
               <p className="font-bold text-gray-900 text-sm truncate">{fundiName ?? 'Fundi'}</p>
-              <p className="text-[10px] text-gray-400">NyumbaFasta Fundi</p>
+              <p className="text-[10px] text-gray-400">{t('fp_brand_sub')}</p>
             </div>
           </div>
         </div>
@@ -86,7 +90,7 @@ export default function FundiShell({ children, fundiName }: Props) {
           <button onClick={handleLogout} className="w-full text-left">
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
               <i className="ti ti-door-exit" aria-hidden="true" />
-              <span>Toka</span>
+              <span>{t('fp_logout')}</span>
             </div>
           </button>
         </div>
@@ -133,7 +137,7 @@ export default function FundiShell({ children, fundiName }: Props) {
             })}
             <button onClick={handleLogout} className="w-full text-left">
               <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
-                <i className="ti ti-door-exit" aria-hidden="true" /> Toka
+                <i className="ti ti-door-exit" aria-hidden="true" /> {t('fp_logout')}
               </div>
             </button>
           </div>

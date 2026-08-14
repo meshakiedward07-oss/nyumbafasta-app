@@ -30,7 +30,7 @@ export async function POST() {
     if (!user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
 
     const admin = createAdminClient()
-    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
     // Fetch current user record
     const { data: me } = await admin

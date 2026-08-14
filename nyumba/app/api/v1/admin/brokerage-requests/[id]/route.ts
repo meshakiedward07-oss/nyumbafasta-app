@@ -3,7 +3,7 @@ import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { recordIncomeFromBrokerageCommission } from '@/lib/accounting/incomeTracker'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 // Fire-and-forget: notify the org contact (WhatsApp + in-app) when staff acts
 async function notifyOrg(

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Factor = { id: string; status: 'verified' | 'unverified'; friendly_name?: string }
 type EnrollState = { qr: string; secret: string; factorId: string } | null
@@ -10,6 +11,7 @@ type EnrollState = { qr: string; secret: string; factorId: string } | null
 export default function SecurityPage() {
   const supabase = createClient()
   const router   = useRouter()
+  const { t }    = useLanguage()
 
   const [factors,       setFactors]       = useState<Factor[]>([])
   const [loading,       setLoading]       = useState(true)
@@ -105,11 +107,11 @@ export default function SecurityPage() {
       <div className="bg-primary-500 px-4 pt-10 pb-7">
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => router.back()}
-            aria-label="Rudi nyuma"
+            aria-label={t('common_back')}
             className="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white text-lg">
             ←
           </button>
-          <h1 className="text-white text-lg font-bold">Usalama wa Akaunti</h1>
+          <h1 className="text-white text-lg font-bold">{t('cl_account_security')}</h1>
         </div>
       </div>
 
@@ -128,7 +130,7 @@ export default function SecurityPage() {
         {/* Password change */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 border-b border-gray-50">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Nenosiri</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('cl_password_section')}</p>
           </div>
           <button
             onClick={() => router.push('/account/change-password')}
@@ -138,8 +140,8 @@ export default function SecurityPage() {
               <i className="ti ti-lock text-gray-500 text-lg" aria-hidden="true" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-800">Badilisha Nenosiri</p>
-              <p className="text-xs text-gray-400">Unda nenosiri jipya salama</p>
+              <p className="text-sm font-medium text-gray-800">{t('cl_change_password')}</p>
+              <p className="text-xs text-gray-400">{t('cl_create_new_password')}</p>
             </div>
             <span className="text-gray-300 text-lg">›</span>
           </button>
@@ -148,10 +150,10 @@ export default function SecurityPage() {
         {/* 2FA card */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 border-b border-gray-50 flex items-center justify-between">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Uthibitisho wa Hatua Mbili (2FA)</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('cl_2fa_section')}</p>
             {!loading && (
               <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${has2FA ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                {has2FA ? 'Imewezeshwa' : 'Imezimwa'}
+                {has2FA ? t('cl_enabled') : t('cl_disabled')}
               </span>
             )}
           </div>
@@ -163,9 +165,9 @@ export default function SecurityPage() {
           ) : enrollData ? (
             /* ── Enrollment flow ── */
             <div className="px-4 py-5 space-y-4">
-              <p className="text-sm text-gray-700 font-medium">Hatua 1: Scan QR Code</p>
+              <p className="text-sm text-gray-700 font-medium">{t('cl_2fa_step1')}</p>
               <p className="text-xs text-gray-500">
-                Fungua app yako ya uthibitisho (Google Authenticator, Authy, au Microsoft Authenticator) kisha scan QR code hii.
+                {t('cl_2fa_step1_body')}
               </p>
               {/* QR Code */}
               <div className="flex justify-center">
@@ -175,14 +177,14 @@ export default function SecurityPage() {
               </div>
               {/* Manual secret */}
               <details className="text-xs">
-                <summary className="text-primary-600 cursor-pointer hover:underline">Haiwezi kuscan? Weka manually</summary>
+                <summary className="text-primary-600 cursor-pointer hover:underline">{t('cl_2fa_manual')}</summary>
                 <div className="mt-2 bg-gray-50 rounded-xl px-3 py-2 font-mono text-gray-700 break-all select-all text-center border border-gray-200">
                   {enrollData.secret}
                 </div>
               </details>
 
-              <p className="text-sm text-gray-700 font-medium mt-2">Hatua 2: Thibitisha</p>
-              <p className="text-xs text-gray-500">Weka nambari ya tarakimu 6 kutoka kwa app yako.</p>
+              <p className="text-sm text-gray-700 font-medium mt-2">{t('cl_2fa_step2')}</p>
+              <p className="text-xs text-gray-500">{t('cl_2fa_step2_body')}</p>
               <input
                 type="text"
                 inputMode="numeric"
@@ -197,14 +199,14 @@ export default function SecurityPage() {
               <div className="flex gap-3 pt-1">
                 <button onClick={cancelEnroll}
                   className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium">
-                  Ghairi
+                  {t('common_cancel')}
                 </button>
                 <button
                   onClick={confirmEnroll}
                   disabled={verifying || verifyCode.length !== 6}
                   className="flex-1 py-3 rounded-xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-40"
                 >
-                  {verifying ? 'Inathibitisha...' : 'Wezesha 2FA'}
+                  {verifying ? t('cl_verifying') : t('cl_enable_2fa')}
                 </button>
               </div>
             </div>
@@ -216,15 +218,15 @@ export default function SecurityPage() {
                   <i className="ti ti-shield-check text-green-600 text-lg" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-800">2FA Imewezeshwa</p>
-                  <p className="text-xs text-gray-500">Akaunti yako inalindwa na uthibitisho wa hatua mbili</p>
+                  <p className="text-sm font-semibold text-gray-800">{t('cl_2fa_enabled')}</p>
+                  <p className="text-xs text-gray-500">{t('cl_2fa_protection_hint')}</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowUnenroll(true)}
                 className="w-full py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition"
               >
-                Ondoa 2FA
+                {t('cl_remove_2fa')}
               </button>
             </div>
           ) : (
@@ -235,9 +237,9 @@ export default function SecurityPage() {
                   <i className="ti ti-shield text-amber-500 text-lg" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-800">2FA Haijawezeshwa</p>
+                  <p className="text-sm font-semibold text-gray-800">{t('cl_2fa_disabled')}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Ongeza safu ya ziada ya usalama kwa akaunti yako. Baada ya kuingia na nenosiri, utahitajika kutoa nambari kutoka app ya uthibitisho.
+                    {t('cl_2fa_disabled_body')}
                   </p>
                 </div>
               </div>
@@ -246,7 +248,7 @@ export default function SecurityPage() {
                 disabled={enrolling}
                 className="w-full py-3 rounded-xl bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition"
               >
-                {enrolling ? 'Inaandaa...' : 'Wezesha 2FA →'}
+                {enrolling ? t('cl_preparing') : `${t('cl_enable_2fa')} →`}
               </button>
             </div>
           )}
@@ -258,18 +260,18 @@ export default function SecurityPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowUnenroll(false)}>
           <div className="bg-white w-full rounded-t-3xl px-6 pt-6 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
-            <h3 className="text-base font-bold text-gray-900 mb-2 text-center">Ondoa 2FA?</h3>
+            <h3 className="text-base font-bold text-gray-900 mb-2 text-center">{t('cl_confirm_remove_2fa')}</h3>
             <p className="text-sm text-gray-500 mb-7 text-center">
-              Kuzima 2FA kutapunguza usalama wa akaunti yako. Una uhakika?
+              {t('cl_confirm_remove_2fa_body')}
             </p>
             <div className="flex gap-3">
               <button onClick={() => setShowUnenroll(false)}
                 className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm">
-                Ghairi
+                {t('common_cancel')}
               </button>
               <button onClick={handleUnenroll} disabled={unenrolling}
                 className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold text-sm disabled:opacity-60">
-                {unenrolling ? 'Inaondoa...' : 'Ndio, Ondoa'}
+                {unenrolling ? t('cl_removing') : t('cl_yes_remove')}
               </button>
             </div>
           </div>

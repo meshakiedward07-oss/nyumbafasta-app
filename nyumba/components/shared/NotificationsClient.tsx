@@ -6,6 +6,7 @@ import BottomNav from '@/components/shared/BottomNav'
 import DalaliBottomNav from '@/components/shared/DalaliBottomNav'
 import ReviewForm from '@/components/listings/ReviewForm'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/context'
 
 const TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
   listing_approved:        { icon: 'circle-check', color: 'bg-primary-50 border-primary-100' },
@@ -30,7 +31,7 @@ const TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
   default:                 { icon: 'bell', color: 'bg-gray-50 border-gray-100' },
 }
 
-function groupByDate(notifications: Notification[]) {
+function groupByDate(notifications: Notification[], tToday: string, tYesterday: string) {
   const groups: Record<string, Notification[]> = {}
   const today     = new Date()
   const yesterday = new Date(today)
@@ -39,8 +40,8 @@ function groupByDate(notifications: Notification[]) {
   notifications.forEach(n => {
     const d = new Date(n.created_at)
     let label: string
-    if (d.toDateString() === today.toDateString())     label = 'Leo'
-    else if (d.toDateString() === yesterday.toDateString()) label = 'Jana'
+    if (d.toDateString() === today.toDateString())         label = tToday
+    else if (d.toDateString() === yesterday.toDateString()) label = tYesterday
     else label = d.toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long' })
     if (!groups[label]) groups[label] = []
     groups[label].push(n)
@@ -61,6 +62,7 @@ type Props = {
 
 export default function NotificationsClient({ notifications, role }: Props) {
   const router = useRouter()
+  const { t } = useLanguage()
   const supabase = createClient()
   const [activeReview, setActiveReview] = useState<ReviewNotifData & { notifId: string } | null>(null)
   const [reviewed, setReviewed] = useState<Set<string>>(new Set())
@@ -72,7 +74,6 @@ export default function NotificationsClient({ notifications, role }: Props) {
       .then(({ data }) => { if (data?.full_name) setReviewDalaliName(data.full_name) })
   }, [activeReview?.dalali_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Mark all as read on mount
   useEffect(() => {
     if (notifications.some(n => !n.is_read)) {
       fetch('/api/v1/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' })
@@ -80,7 +81,9 @@ export default function NotificationsClient({ notifications, role }: Props) {
     }
   }, [notifications])
 
-  const groups = groupByDate(notifications)
+  const tToday     = t('lst_ago_today')
+  const tYesterday = t('lst_ago_yesterday')
+  const groups     = groupByDate(notifications, tToday, tYesterday)
   const isReviewType = (type: string) => type === 'review_request' || type === 'review_reminder'
 
   function handleNotifTap(n: Notification) {
@@ -90,7 +93,6 @@ export default function NotificationsClient({ notifications, role }: Props) {
       }
       return
     }
-    // Navigate to the relevant page for action-type notifications
     if (n.ref_id) {
       if (n.type === 'listing_approved' || n.type === 'listing_rejected' || n.type === 'listing_taken') {
         router.push('/dashboard/listings')
@@ -118,10 +120,10 @@ export default function NotificationsClient({ notifications, role }: Props) {
           className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 active:scale-90 transition-transform">
           ←
         </button>
-        <h1 className="text-base font-bold text-gray-900 flex-1">Arifa</h1>
+        <h1 className="text-base font-bold text-gray-900 flex-1">{t('nav_notifications')}</h1>
         {notifications.some(n => !n.is_read) && (
           <span className="text-xs bg-red-100 text-red-600 font-semibold px-2 py-0.5 rounded-full">
-            {notifications.filter(n => !n.is_read).length} mpya
+            {notifications.filter(n => !n.is_read).length} {t('cl_new_count')}
           </span>
         )}
       </div>
@@ -129,8 +131,8 @@ export default function NotificationsClient({ notifications, role }: Props) {
       {notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center px-6">
           <i className="ti ti-bell text-5xl text-gray-300 mb-4" aria-hidden="true" />
-          <p className="text-gray-600 font-medium mb-1">Hakuna arifa bado</p>
-          <p className="text-gray-400 text-sm">Arifa zitaonekana hapa wakati zinatokea</p>
+          <p className="text-gray-600 font-medium mb-1">{t('cl_no_notifications')}</p>
+          <p className="text-gray-400 text-sm">{t('cl_notifications_hint')}</p>
         </div>
       ) : (
         <div className="px-4 pt-4 space-y-6">
@@ -160,17 +162,17 @@ export default function NotificationsClient({ notifications, role }: Props) {
                         <p className="text-xs text-gray-600 leading-relaxed">{n.body}</p>
                         {isReview && !alreadyReviewed && (
                           <span className="inline-block mt-2 text-xs bg-amber-400 text-white font-semibold px-3 py-1 rounded-full">
-                            Toa Maoni →
+                            {t('cl_leave_review_btn')}
                           </span>
                         )}
                         {alreadyReviewed && (
                           <span className="inline-block mt-2 text-xs text-primary-600 font-medium">
-                            <i className="ti ti-circle-check" aria-hidden="true" /> Maoni yametolewa
+                            <i className="ti ti-circle-check" aria-hidden="true" /> {t('cl_review_submitted')}
                           </span>
                         )}
                         {(n.type === 'listing_expired' || n.type === 'listing_expiring_7days' || n.type === 'listing_expiring_today') && n.ref_id && (
                           <span className="inline-block mt-2 text-xs bg-primary-500 text-white px-3 py-1.5 rounded-lg font-medium">
-                            <i className="ti ti-refresh" aria-hidden="true" /> Huisha Sasa →
+                            <i className="ti ti-refresh" aria-hidden="true" /> {t('cl_renew_now')}
                           </span>
                         )}
                         <p className="text-xs text-gray-400 mt-1.5" suppressHydrationWarning>
@@ -191,7 +193,6 @@ export default function NotificationsClient({ notifications, role }: Props) {
 
       {role === 'dalali' ? <DalaliBottomNav /> : <BottomNav role={role} />}
 
-      {/* Review modal — inafunguka kwa click ya review_request notification */}
       {activeReview && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setActiveReview(null)}>
           <div className="bg-gray-50 w-full rounded-t-3xl max-h-[85vh] overflow-y-auto"

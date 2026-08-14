@@ -13,7 +13,7 @@ export async function GET() {
   }
 
   const secret = process.env.WEBHOOK_SECRET
-  const base   = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+  const base   = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
   if (!secret) {
     return NextResponse.json({ error: 'WEBHOOK_SECRET haijawekwa Vercel' }, { status: 500 })

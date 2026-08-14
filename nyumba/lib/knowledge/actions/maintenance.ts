@@ -5,7 +5,7 @@
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import type { MaintenanceCategory, MaintenancePriority } from '@/lib/knowledge/actionIntent'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
 
 interface ResolvedTenant {
   userId:  string

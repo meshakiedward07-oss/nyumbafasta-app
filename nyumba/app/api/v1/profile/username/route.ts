@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
     }
 
-    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
     return NextResponse.json({
       success: true,
       username: clean,

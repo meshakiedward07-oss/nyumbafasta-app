@@ -120,14 +120,6 @@ const SIDEBAR_GROUPS: { title: string; items: { id: Tab; label: string; icon: st
     ],
   },
   {
-    title: 'Chapisha',
-    items: [
-      { id: 'listings', label: 'Listings Library', icon: 'layout-grid' },
-      { id: 'upload',   label: 'Pakia Video',      icon: 'video' },
-      { id: 'stories',  label: 'Stories',          icon: 'circle-dot' },
-    ],
-  },
-  {
     title: 'Machapisho',
     items: [
       { id: 'posts',    label: 'Machapisho', icon: 'camera' },
@@ -146,7 +138,6 @@ const SIDEBAR_GROUPS: { title: string; items: { id: Tab; label: string; icon: st
     title: 'Usimamizi',
     items: [
       { id: 'comments', label: 'Maoni',       icon: 'message-circle' },
-      { id: 'dms',      label: 'DMs',         icon: 'mail' },
       { id: 'spam',     label: 'Spam',        icon: 'ban' },
       { id: 'besttime', label: 'Wakati Bora', icon: 'clock' },
     ],
@@ -180,6 +171,10 @@ export default function SocialDashboard() {
   const [replyComment, setReplyComment] = useState<Comment | null>(null)
   const [replyText,    setReplyText]    = useState('')
   const [replying,     setReplying]     = useState(false)
+
+  // DM panel state (used in Muhtasari tab)
+  const [selectedDmId,     setSelectedDmId]     = useState<string | null>(null)
+  const [dmPlatformFilter, setDmPlatformFilter] = useState<'all' | 'instagram' | 'facebook'>('all')
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -272,6 +267,15 @@ export default function SocialDashboard() {
     if (activeTab === 'yote') fetchUnified(unifiedPeriod)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unifiedPeriod])
+
+  // Fetch DMs when landing on Muhtasari so the embedded panel is populated
+  useEffect(() => {
+    if (activeTab !== 'yote') return
+    fetch('/api/v1/social/posts?tab=dms&limit=50')
+      .then(r => r.json())
+      .then((d: { dms?: DM[] }) => { setDMs(d.dms ?? []) })
+      .catch(() => {})
+  }, [activeTab])
 
   async function handleCommentReply() {
     if (!replyComment || !replyText.trim()) return
@@ -691,6 +695,212 @@ export default function SocialDashboard() {
                   </div>
                 </div>
               )}
+
+              {/* ── Chapisha ── */}
+              <div className="bg-white rounded-xl border p-5" style={{ borderColor: '#e5e5e0' }}>
+                <h3 className="font-semibold mb-4" style={{ color: '#1a1a18' }}>Chapisha</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {([
+                    { id: 'listings' as Tab, label: 'Listings Library', icon: 'layout-grid', bg: '#eeedfe', color: '#534ab7' },
+                    { id: 'upload'   as Tab, label: 'Pakia Video',      icon: 'video',        bg: '#e6f1fb', color: '#185fa5' },
+                    { id: 'stories'  as Tab, label: 'Stories',          icon: 'circle-dot',   bg: '#eaf3de', color: '#3b6d11' },
+                  ] as { id: Tab; label: string; icon: string; bg: string; color: string }[]).map(t => (
+                    <button key={t.id}
+                      onClick={() => setActiveTab(t.id)}
+                      className="flex flex-col items-center gap-2.5 p-4 rounded-xl transition-all hover:opacity-90 active:scale-95"
+                      style={{ background: t.bg }}
+                    >
+                      <i className={`ti ti-${t.icon} text-2xl`} style={{ color: t.color }} aria-hidden="true" />
+                      <span className="text-xs font-medium text-center leading-tight" style={{ color: t.color }}>{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── DMs za Kijamii ── */}
+              {(() => {
+                const filteredDms = dms.filter(dm => dmPlatformFilter === 'all' || dm.platform === dmPlatformFilter)
+                const selectedDm  = dms.find(d => d.id === selectedDmId) ?? null
+                return (
+                  <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: '#e5e5e0' }}>
+
+                    {/* Header */}
+                    <div className="px-5 py-3.5 flex items-center justify-between flex-shrink-0" style={{ background: '#1a1a18' }}>
+                      <div className="flex items-center gap-2.5">
+                        <i className="ti ti-mail text-white" aria-hidden="true" />
+                        <span className="font-semibold text-white text-sm">DMs za Kijamii</span>
+                        {dms.filter(d => !d.reply_sent).length > 0 && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: '#fcebeb', color: '#a32d2d' }}>
+                            {dms.filter(d => !d.reply_sent).length}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-1 rounded-lg p-0.5" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                        {(['all', 'instagram', 'facebook'] as const).map(p => (
+                          <button key={p}
+                            onClick={() => { setDmPlatformFilter(p); setSelectedDmId(null) }}
+                            className="px-2.5 py-1 rounded-md text-xs font-medium transition-all"
+                            style={dmPlatformFilter === p
+                              ? { background: '#fff', color: '#1a1a18' }
+                              : { color: 'rgba(255,255,255,0.6)' }}
+                          >
+                            {p === 'all' ? 'Zote' : p === 'instagram' ? 'IG' : 'FB'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Two-panel body */}
+                    <div className="flex" style={{ height: '440px' }}>
+
+                      {/* Left: DM list */}
+                      <div className="w-[220px] sm:w-[260px] flex-shrink-0 border-r overflow-y-auto" style={{ borderColor: '#e5e5e0', background: '#f8f8f5' }}>
+                        {filteredDms.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full gap-2" style={{ color: '#999992' }}>
+                            <i className="ti ti-mail-off text-3xl" aria-hidden="true" />
+                            <p className="text-xs text-center px-4">Hakuna DMs{dmPlatformFilter !== 'all' ? ` za ${dmPlatformFilter}` : ''} bado</p>
+                          </div>
+                        ) : (
+                          filteredDms.map(dm => (
+                            <button key={dm.id}
+                              onClick={() => setSelectedDmId(dm.id)}
+                              className="w-full text-left border-b transition-all"
+                              style={{ borderBottomColor: '#e5e5e0' }}
+                            >
+                              <div
+                                className="px-3.5 py-3 border-l-2 transition-all"
+                                style={{
+                                  borderLeftColor: selectedDmId === dm.id ? '#1D9E75' : 'transparent',
+                                  background: selectedDmId === dm.id ? '#e8f7f1' : undefined,
+                                }}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <div
+                                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                    style={{
+                                      background: dm.platform === 'instagram' ? '#f3e0f7' : '#dbeafe',
+                                      color:      dm.platform === 'instagram' ? '#c13584'  : '#1877f2',
+                                    }}
+                                  >
+                                    {(dm.sender_name ?? dm.sender_id ?? '?').charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1 mb-0.5">
+                                      <p className="text-xs font-semibold truncate" style={{ color: '#1a1a18' }}>
+                                        {dm.sender_name ?? dm.sender_id}
+                                      </p>
+                                      <span className="flex-shrink-0"><PlatformIcon platform={dm.platform} /></span>
+                                    </div>
+                                    <p className="text-[11px] truncate" style={{ color: '#999992' }}>{dm.message_text}</p>
+                                  </div>
+                                  <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-0.5 ${dm.reply_sent ? 'bg-green-400' : 'bg-red-400'}`} />
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Right: conversation view */}
+                      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+                        {!selectedDm ? (
+                          <div className="flex flex-col items-center justify-center h-full gap-2 px-6 text-center" style={{ color: '#999992' }}>
+                            <i className="ti ti-messages text-4xl" aria-hidden="true" />
+                            <p className="text-sm font-medium" style={{ color: '#666660' }}>Chagua DM kushoto</p>
+                            <p className="text-xs">Bonyeza DM kwenye orodha kushoto kuona mazungumzo yake yote</p>
+                          </div>
+                        ) : (
+                          <>
+                            {/* Chat header */}
+                            <div className="px-4 py-3 border-b flex items-center gap-3 flex-shrink-0 bg-white" style={{ borderColor: '#e5e5e0' }}>
+                              <div
+                                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                                style={{
+                                  background: selectedDm.platform === 'instagram' ? '#f3e0f7' : '#dbeafe',
+                                  color:      selectedDm.platform === 'instagram' ? '#c13584'  : '#1877f2',
+                                }}
+                              >
+                                {(selectedDm.sender_name ?? '?').charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold leading-tight truncate" style={{ color: '#1a1a18' }}>
+                                  {selectedDm.sender_name ?? selectedDm.sender_id}
+                                </p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <PlatformIcon platform={selectedDm.platform} />
+                                  <span className="text-[11px] capitalize" style={{ color: '#999992' }}>{selectedDm.platform}</span>
+                                  <span className="text-[11px]" style={{ color: '#999992' }}>· {fmtDate(selectedDm.created_at)}</span>
+                                </div>
+                              </div>
+                              {selectedDm.reply_sent
+                                ? <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#eaf3de', color: '#3b6d11' }}>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />Imejibiwa
+                                  </span>
+                                : <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#faeeda', color: '#854f0b' }}>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />Haijalibiwa
+                                  </span>
+                              }
+                            </div>
+
+                            {/* Messages */}
+                            <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4" style={{ background: '#f4f4f0' }}>
+                              {/* Incoming user message */}
+                              <div className="flex items-end gap-2">
+                                <div
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                  style={{
+                                    background: selectedDm.platform === 'instagram' ? '#f3e0f7' : '#dbeafe',
+                                    color:      selectedDm.platform === 'instagram' ? '#c13584'  : '#1877f2',
+                                  }}
+                                >
+                                  {(selectedDm.sender_name ?? '?').charAt(0).toUpperCase()}
+                                </div>
+                                <div className="max-w-[75%]">
+                                  <div className="px-4 py-2.5 rounded-2xl rounded-bl-none text-sm shadow-sm" style={{ background: '#ffffff', color: '#1a1a18' }}>
+                                    {selectedDm.message_text}
+                                  </div>
+                                  <p className="text-[10px] mt-1 ml-1" style={{ color: '#999992' }}>{fmtDate(selectedDm.created_at)}</p>
+                                </div>
+                              </div>
+
+                              {/* Amina's reply */}
+                              {selectedDm.reply_text ? (
+                                <div className="flex items-end gap-2 flex-row-reverse">
+                                  <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                                    A
+                                  </div>
+                                  <div className="max-w-[75%]">
+                                    <div className="px-4 py-2.5 rounded-2xl rounded-br-none text-sm shadow-sm text-white" style={{ background: '#1D9E75' }}>
+                                      {selectedDm.reply_text}
+                                    </div>
+                                    <p className="text-[10px] mt-1 mr-1 text-right" style={{ color: '#999992' }}>Amina AI · auto-reply</p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex justify-center">
+                                  <span className="text-[11px] px-3 py-1.5 rounded-full" style={{ background: '#ebebeb', color: '#999992' }}>
+                                    <i className="ti ti-robot mr-1" aria-hidden="true" />Amina bado hajajibu · inasubiri...
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Footer info */}
+                            <div className="px-4 py-2.5 border-t flex items-center gap-2 flex-shrink-0 bg-white" style={{ borderColor: '#e5e5e0' }}>
+                              <i className="ti ti-robot text-sm flex-shrink-0" style={{ color: '#999992' }} aria-hidden="true" />
+                              <p className="text-[11px]" style={{ color: '#999992' }}>
+                                DMs zinajibiwa otomatiki na Amina AI kwa Kiswahili cha Dar es Salaam
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                    </div>
+                  </div>
+                )
+              })()}
+
             </div>
           )}
 

@@ -1,9 +1,11 @@
 'use client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function TermsPage() {
   const router = useRouter()
+  const { t }  = useLanguage()
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
@@ -17,7 +19,7 @@ export default function TermsPage() {
           ←
         </button>
         <div>
-          <h1 className="text-white text-lg font-bold">Masharti ya Matumizi</h1>
+          <h1 className="text-white text-lg font-bold">{t('common_terms_title')}</h1>
           <p className="text-white/80 text-xs">Terms of Service</p>
         </div>
       </div>

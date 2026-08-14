@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 const PORTAL_TYPES = {
   org:    { label: 'Shirika / Mmiliki / PM', icon: 'building-estate', dest: '/property/dashboard', color: '#7C3AED', bg: '#F5F3FF' },
@@ -11,6 +12,7 @@ const PORTAL_TYPES = {
 }
 
 function PortalLoginForm() {
+  const { t }        = useLanguage()
   const supabase     = createClient()
   const searchParams = useSearchParams()
   const typeParam    = searchParams.get('type') as 'org' | 'tenant' | null
@@ -40,7 +42,7 @@ function PortalLoginForm() {
             redirectTo: `${window.location.origin}/auth/callback?redirect=/account/change-password`,
           }),
         })
-        if (!res.ok) setError('Haikufanikiwa kutuma. Jaribu tena.')
+        if (!res.ok) setError(t('portal_reset_failed'))
         else setForgotSent(true)
         return
       }
@@ -75,9 +77,9 @@ function PortalLoginForm() {
       const msg = err instanceof Error ? err.message.toLowerCase() : ''
       setError(
         msg.includes('invalid login') || msg.includes('invalid email or password')
-          ? 'Barua pepe au nenosiri si sahihi.'
-          : msg.includes('too many') ? 'Maombi mengi. Subiri dakika chache.'
-          : 'Imeshindwa kuingia. Jaribu tena.'
+          ? t('portal_wrong_creds')
+          : msg.includes('too many') ? t('portal_too_many')
+          : t('portal_sign_in_failed')
       )
     } finally {
       setLoading(false)
@@ -91,15 +93,15 @@ function PortalLoginForm() {
           <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="ti ti-mail-check text-green-500 text-3xl" aria-hidden="true" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Angalia Barua Pepe</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">{t('portal_check_email')}</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Kiungo cha kubadilisha nenosiri kimetumwa kwa <strong>{email}</strong>.
+            {t('portal_reset_sent_to')} <strong>{email}</strong>.
           </p>
           <button
             onClick={() => { setForgotMode(false); setForgotSent(false) }}
             className="text-primary-600 font-medium text-sm hover:underline"
           >
-            ← Rudi Kuingia
+            {t('auth_back_to_login')}
           </button>
         </div>
       </div>
@@ -122,7 +124,7 @@ function PortalLoginForm() {
             <p className="text-white/90 text-sm font-medium">{info.label}</p>
           </div>
         )}
-        {!info && <p className="text-white/75 text-sm">Portal ya Usimamizi</p>}
+        {!info && <p className="text-white/75 text-sm">{t('portal_mgmt_sub')}</p>}
       </div>
 
       <div className="flex-1 px-4 -mt-5 pb-8 max-w-sm mx-auto w-full">
@@ -130,12 +132,10 @@ function PortalLoginForm() {
 
           <div className="px-5 pt-5 pb-1">
             <h1 className="text-lg font-bold text-gray-900">
-              {forgotMode ? 'Umesahau Nenosiri?' : 'Karibu Tena'}
+              {forgotMode ? t('portal_forgot_pw') : t('portal_welcome_back')}
             </h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              {forgotMode
-                ? 'Tutakutumia kiungo cha kubadilisha nenosiri'
-                : 'Ingia katika akaunti yako'}
+              {forgotMode ? t('portal_send_reset_sub') : t('portal_sign_in_account')}
             </p>
           </div>
 
@@ -146,7 +146,7 @@ function PortalLoginForm() {
 
             <div>
               <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1">
-                <i className="ti ti-mail" aria-hidden="true" /> Barua pepe
+                <i className="ti ti-mail" aria-hidden="true" /> {t('auth_email')}
               </label>
               <input type="email" required autoComplete="email" placeholder="jina@gmail.com"
                 value={email} onChange={e => setEmail(e.target.value)}
@@ -156,7 +156,7 @@ function PortalLoginForm() {
             {!forgotMode && (
               <div>
                 <label className="text-xs text-gray-500 mb-1.5 block flex items-center gap-1">
-                  <i className="ti ti-lock" aria-hidden="true" /> Nenosiri
+                  <i className="ti ti-lock" aria-hidden="true" /> {t('auth_password')}
                 </label>
                 <div className="relative">
                   <input type={showPass ? 'text' : 'password'} required autoComplete="current-password"
@@ -174,7 +174,7 @@ function PortalLoginForm() {
                     onClick={() => { setForgotMode(true); setError('') }}
                     className="text-xs text-primary-500 font-medium hover:underline"
                   >
-                    Umesahau nenosiri?
+                    {t('portal_forgot_link')}
                   </button>
                 </div>
               </div>
@@ -184,8 +184,8 @@ function PortalLoginForm() {
               className="w-full text-white py-3.5 min-h-[48px] rounded-xl text-sm font-semibold disabled:opacity-50 transition active:scale-[0.98]"
               style={{ background: info ? info.color : 'linear-gradient(135deg, #27AE72, #117652)' }}>
               {loading
-                ? (forgotMode ? 'Inatuma...' : 'Inaingia...')
-                : (forgotMode ? 'Tuma Kiungo' : 'Ingia')}
+                ? (forgotMode ? t('portal_loading_send') : t('portal_loading_signin'))
+                : (forgotMode ? t('portal_send_link') : t('portal_signin_btn'))}
             </button>
 
             {forgotMode && (
@@ -194,7 +194,7 @@ function PortalLoginForm() {
                 onClick={() => { setForgotMode(false); setError('') }}
                 className="w-full text-sm text-gray-500 hover:text-gray-700 py-1 text-center"
               >
-                ← Rudi kuingia
+                {t('auth_back_to_login')}
               </button>
             )}
           </form>
@@ -204,14 +204,14 @@ function PortalLoginForm() {
         <div className="mt-5 space-y-3 text-center">
           {info && (
             <p className="text-sm text-gray-500">
-              Bado huna akaunti?{' '}
+              {t('portal_no_account')}{' '}
               <Link href={`/register?role=${portalType === 'org' ? 'org_owner' : 'tenant'}`} className="font-medium" style={{ color: info.color }}>
-                Jisajili hapa
+                {t('portal_register_here')}
               </Link>
             </p>
           )}
           <Link href="/portal" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition">
-            <i className="ti ti-arrow-left text-xs" aria-hidden="true" /> Rudi kwenye Portal
+            <i className="ti ti-arrow-left text-xs" aria-hidden="true" /> {t('portal_back_to_portal')}
           </Link>
         </div>
       </div>

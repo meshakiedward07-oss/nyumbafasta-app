@@ -127,6 +127,16 @@ export async function postListingToSocialMedia(
     }
   }
 
+  // Pre-warm Cloudinary lazy-transformation URL so Facebook can fetch it immediately
+  if (imageUrl && imageUrl.includes('res.cloudinary.com')) {
+    try {
+      await fetch(imageUrl, { signal: AbortSignal.timeout(15_000) })
+      console.log('[AutoPost] Image URL pre-warmed')
+    } catch (e) {
+      console.warn('[AutoPost] Image pre-warm failed, continuing:', e)
+    }
+  }
+
   // Create DB record
   const mediaType = videoUrl ? 'video' : 'image'
   const { data: postRecord, error: insertErr } = await supabaseAdmin

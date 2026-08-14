@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/context'
 
 function clearPendingStorage() {
   try { localStorage.removeItem('pending_register') } catch {}
@@ -10,6 +11,7 @@ function clearPendingStorage() {
 
 export default function RegisterCompletePage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -83,24 +85,23 @@ export default function RegisterCompletePage() {
         <div className="text-4xl mb-4 flex justify-center">
           <i className="ti ti-alert-triangle text-amber-500" aria-hidden="true" />
         </div>
-        <p className="text-gray-700 font-medium mb-2">Hitilafu imetokea</p>
+        <p className="text-gray-700 font-medium mb-2">{t('common_error')}</p>
         <p className="text-sm text-red-500 text-center mb-6">{error}</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button
             onClick={() => { setError(''); window.location.reload() }}
             className="bg-primary-500 text-white px-6 py-3 rounded-xl text-sm font-semibold"
           >
-            Jaribu Tena
+            {t('common_retry')}
           </button>
           <button
             onClick={() => {
-              // Clear storage so a fresh reload of /register doesn't re-read stale data
               clearPendingStorage()
               router.replace('/register')
             }}
             className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl text-sm font-semibold"
           >
-            Rudi Usajili
+            {t('auth_back_to_register')}
           </button>
         </div>
       </div>
@@ -110,7 +111,7 @@ export default function RegisterCompletePage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
       <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mb-4" />
-      <p className="text-sm text-gray-500">Inamaliza usajili wako...</p>
+      <p className="text-sm text-gray-500">{t('auth_completing_reg')}</p>
     </div>
   )
 }

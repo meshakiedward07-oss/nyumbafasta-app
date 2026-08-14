@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 const TYPE_META: Record<string, { icon: string; color: string; href?: (refId: string | null) => string }> = {
   new_lead:                { icon: 'ti-phone-incoming', color: 'text-green-500 bg-green-50',  href: () => '/dashboard/leads' },
@@ -19,25 +21,25 @@ const TYPE_META: Record<string, { icon: string; color: string; href?: (refId: st
   info:                    { icon: 'ti-info-circle',    color: 'text-blue-500 bg-blue-50' },
 }
 
-function timeSince(iso: string) {
+function timeSince(iso: string, t: (k: TKey) => string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000
-  if (diff < 60)   return 'sasa hivi'
-  if (diff < 3600) return `dakika ${Math.floor(diff / 60)} zilizopita`
-  if (diff < 86400) return `saa ${Math.floor(diff / 3600)} zilizopita`
+  if (diff < 60)   return t('notif_time_now')
+  if (diff < 3600) return t('notif_time_mins').replace('{{n}}', String(Math.floor(diff / 60)))
+  if (diff < 86400) return t('notif_time_hours').replace('{{n}}', String(Math.floor(diff / 3600)))
   const days = Math.floor(diff / 86400)
-  if (days === 1)  return 'jana'
-  if (days < 7)   return `siku ${days} zilizopita`
-  if (days < 30)  return `wiki ${Math.floor(days / 7)} zilizopita`
-  return `mwezi ${Math.floor(days / 30)} uliopita`
+  if (days === 1)  return t('notif_time_yesterday')
+  if (days < 7)   return t('notif_time_days').replace('{{n}}', String(days))
+  if (days < 30)  return t('notif_time_weeks').replace('{{n}}', String(Math.floor(days / 7)))
+  return t('notif_time_months').replace('{{n}}', String(Math.floor(days / 30)))
 }
 
-function groupLabel(iso: string): string {
+function groupLabel(iso: string, t: (k: TKey) => string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000
-  if (diff < 86400)       return 'Leo'
-  if (diff < 2 * 86400)  return 'Jana'
-  if (diff < 7 * 86400)  return 'Wiki hii'
-  if (diff < 30 * 86400) return 'Mwezi huu'
-  return 'Zamani'
+  if (diff < 86400)       return t('notif_grp_today')
+  if (diff < 2 * 86400)  return t('notif_grp_yesterday')
+  if (diff < 7 * 86400)  return t('notif_grp_week')
+  if (diff < 30 * 86400) return t('notif_grp_month')
+  return t('notif_grp_older')
 }
 
 interface Notif {
@@ -46,6 +48,7 @@ interface Notif {
 }
 
 export default function NotificationsPage() {
+  const { t } = useLanguage()
   const [notifs,  setNotifs]  = useState<Notif[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -65,7 +68,7 @@ export default function NotificationsPage() {
   // Group by day bucket
   const groups: { label: string; items: Notif[] }[] = []
   for (const n of notifs) {
-    const label = groupLabel(n.created_at)
+    const label = groupLabel(n.created_at, t)
     const last  = groups[groups.length - 1]
     if (last?.label === label) last.items.push(n)
     else groups.push({ label, items: [n] })
@@ -80,8 +83,8 @@ export default function NotificationsPage() {
             <i className="ti ti-arrow-left text-lg" />
           </Link>
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Arifa</h1>
-            <p className="text-xs text-gray-400">{notifs.filter(n => !n.is_read).length > 0 ? `${notifs.filter(n => !n.is_read).length} mpya` : 'Zote zimesomwa'}</p>
+            <h1 className="text-lg font-bold text-gray-900">{t('notif_title')}</h1>
+            <p className="text-xs text-gray-400">{notifs.filter(n => !n.is_read).length > 0 ? t('notif_unread').replace('{{n}}', String(notifs.filter(n => !n.is_read).length)) : t('notif_all_read')}</p>
           </div>
         </div>
       </div>
@@ -97,8 +100,8 @@ export default function NotificationsPage() {
           <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
             <i className="ti ti-bell-off text-3xl text-gray-300" />
           </div>
-          <p className="font-semibold text-gray-700">Hakuna arifa bado</p>
-          <p className="text-sm text-gray-400 mt-1">Arifa mpya zitaonekana hapa</p>
+          <p className="font-semibold text-gray-700">{t('notif_empty_title')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('notif_empty_sub')}</p>
         </div>
       ) : (
         <div className="p-4 space-y-5">
@@ -120,7 +123,7 @@ export default function NotificationsPage() {
                           {!n.is_read && <div className="w-2 h-2 rounded-full bg-primary-500 mt-1 flex-shrink-0" />}
                         </div>
                         {n.body && <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{n.body}</p>}
-                        <p className="text-[11px] text-gray-400 mt-1">{timeSince(n.created_at)}</p>
+                        <p className="text-[11px] text-gray-400 mt-1">{timeSince(n.created_at, t)}</p>
                       </div>
                     </div>
                   )

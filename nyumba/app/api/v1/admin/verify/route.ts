@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       const username = dalaliUser?.username
         ?? await ensureUsername(admin, dalali_user_id, (dalaliUser as { full_name?: string } | null)?.full_name ?? '')
 
-      const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://nyumbafasta.co'
+      const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
       const micrositeUrl = username ? `${APP_URL}/agent/${username}` : null
 
       const hasLicense = !!(dalaliProfile as { business_license_url?: string | null } | null)?.business_license_url

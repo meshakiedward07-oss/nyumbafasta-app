@@ -7,13 +7,12 @@ export const dynamic = 'force-dynamic'
 // Cloudinary eager transformation chain:
 //   1. Quality + format optimization (f_auto,q_auto,vc_auto): serve VP9/H.265 to supported browsers
 //   2. Watermark overlay in two segments (required by Cloudinary video overlay API):
-//      segment A: layer definition (text, color, background, padding, radius)
+//      segment A: layer definition (text, color, background, radius)
 //      segment B: fl_layer_apply + gravity + y-offset
-// pa_/r_ qualifiers must be in a separate segment from g_/y_ — mixing them causes
-// "invalid transformation parameter" on video overlays.
+// NOTE: pa_ (padding) is not valid for video overlays — image-only qualifier.
 const OVERLAY =
   'f_auto,q_auto,vc_auto' +
-  '/l_text:Arial_38_bold:NyumbaFasta%20%E2%80%A2%20nyumbafasta.co,co_white,b_rgb:000000B3,pa_12,r_20' +
+  '/l_text:Arial_38_bold:NyumbaFasta%20%E2%80%A2%20nyumbafasta.co,co_white,b_rgb:000000B3,r_20' +
   '/fl_layer_apply,g_south,y_50'
 
 // GET /api/v1/social/video/upload-sign

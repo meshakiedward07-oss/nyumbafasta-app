@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Advertiser = {
   id: string; business_name: string; business_category: string
@@ -11,6 +12,7 @@ type Advertiser = {
 
 export default function AdvertiserProfilePage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [advertiser, setAdvertiser] = useState<Advertiser | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -56,15 +58,15 @@ export default function AdvertiserProfilePage() {
     const d = await res.json()
     if (res.ok) {
       setAdvertiser(d.advertiser)
-      setToast({ msg: 'Imehifadhiwa!', ok: true })
+      setToast({ msg: t('adv_saved'), ok: true })
     } else {
-      setToast({ msg: d.error ?? 'Kuna tatizo', ok: false })
+      setToast({ msg: d.error ?? t('common_error'), ok: false })
     }
     setSaving(false)
     setTimeout(() => setToast(null), 3000)
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-400">Inapakia...</div>
+  if (loading) return <div className="p-8 text-center text-gray-400">{t('common_loading')}</div>
   if (!advertiser) {
     router.replace('/advertising/login')
     return null
@@ -84,18 +86,18 @@ export default function AdvertiserProfilePage() {
         <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-700">
           <i className="ti ti-arrow-left text-xl" />
         </button>
-        <h1 className="text-xl font-bold text-gray-800">Wasifu wa Mfanyabiashara</h1>
+        <h1 className="text-xl font-bold text-gray-800">{t('adv_profile_title')}</h1>
       </div>
 
       {missingWa && (
         <div className="bg-red-50 border border-red-300 rounded-xl p-3 mb-5 text-sm text-red-800">
-          ⚠️ <strong>Nambari ya WhatsApp haijawekwa.</strong> Wateja hawataweza kukufikia kupitia matangazo.
+          ⚠️ <strong>{t('adv_missing_whatsapp')}</strong> {t('adv_missing_whatsapp_desc')}
         </div>
       )}
 
       <form onSubmit={save} className="space-y-4 bg-white rounded-2xl border border-gray-200 p-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Jina la Biashara *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_business_name')} *</label>
           <input
             required value={form.business_name}
             onChange={e => set('business_name', e.target.value)}
@@ -105,7 +107,7 @@ export default function AdvertiserProfilePage() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Simu *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_phone_label')} *</label>
             <input
               required type="tel" value={form.contact_phone}
               onChange={e => set('contact_phone', e.target.value)}
@@ -125,13 +127,13 @@ export default function AdvertiserProfilePage() {
                 !form.whatsapp_number ? 'border-red-400 bg-red-50' : 'border-gray-300'
               }`}
             />
-            <p className="text-[11px] text-gray-400 mt-0.5">Wateja watawasiliana nawe hapa moja kwa moja</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{t('adv_whatsapp_contact_hint')}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mkoa / Mji *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_city_region')} *</label>
             <input
               required value={form.city}
               onChange={e => set('city', e.target.value)}
@@ -139,7 +141,7 @@ export default function AdvertiserProfilePage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Wilaya</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_district')}</label>
             <input
               value={form.district}
               onChange={e => set('district', e.target.value)}
@@ -149,7 +151,7 @@ export default function AdvertiserProfilePage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Maelezo ya Biashara</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_business_desc')}</label>
           <textarea
             value={form.description}
             onChange={e => set('description', e.target.value)}
@@ -159,7 +161,7 @@ export default function AdvertiserProfilePage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tovuti</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_website')}</label>
           <input
             type="url" value={form.website_url}
             onChange={e => set('website_url', e.target.value)}
@@ -172,7 +174,7 @@ export default function AdvertiserProfilePage() {
           type="submit" disabled={saving}
           className="w-full bg-primary-500 text-white py-3 rounded-xl font-bold hover:bg-primary-600 transition disabled:opacity-50"
         >
-          {saving ? 'Inahifadhi...' : 'Hifadhi Mabadiliko'}
+          {saving ? t('adv_saving') : t('adv_save_changes')}
         </button>
       </form>
     </div>

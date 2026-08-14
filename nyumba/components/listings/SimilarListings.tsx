@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 type SimilarListingsProps = {
   currentListingId: string
@@ -42,6 +43,7 @@ export default function SimilarListings({
   type,
   priceMonthly,
 }: SimilarListingsProps) {
+  const { t } = useLanguage()
   const supabase = createClient()
   const [listings, setListings] = useState<SimilarListing[]>([])
   const [loading, setLoading] = useState(true)
@@ -99,7 +101,7 @@ export default function SimilarListings({
   if (loading) {
     return (
       <div className="px-4 py-4">
-        <p className="font-semibold text-gray-800 mb-3"><i className="ti ti-map-pin" aria-hidden="true" /> Unaweza kupenda pia</p>
+        <p className="font-semibold text-gray-800 mb-3"><i className="ti ti-map-pin" aria-hidden="true" /> {t('lst_similar_title')}</p>
         <div className="flex gap-3 overflow-x-auto scrollbar-none">
           {[1, 2, 3].map(i => (
             <div
@@ -123,12 +125,12 @@ export default function SimilarListings({
   return (
     <div className="py-4 border-t border-gray-100">
       <div className="px-4 mb-3 flex items-center justify-between">
-        <p className="font-semibold text-gray-800"><i className="ti ti-map-pin" aria-hidden="true" /> Unaweza kupenda pia</p>
+        <p className="font-semibold text-gray-800"><i className="ti ti-map-pin" aria-hidden="true" /> {t('lst_similar_title')}</p>
         <Link
           href={`/?region=${encodeURIComponent(region)}&type=${type}`}
           className="text-xs text-primary-500 underline"
         >
-          Ona zaidi →
+          {t('cl_see_more')}
         </Link>
       </div>
 

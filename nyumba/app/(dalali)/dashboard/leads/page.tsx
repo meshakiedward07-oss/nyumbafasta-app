@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
+import type { TKey } from '@/lib/i18n/translations'
 
 const MONTHS = ['','Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ago','Sep','Okt','Nov','Des']
 function dateFmt(iso: string) {
@@ -20,11 +22,13 @@ interface Lead    {
   listing: Listing | null; client: Client | null
 }
 
-const TYPE: Record<string, string> = {
-  chumba: 'Chumba', apartment: 'Apartment', nyumba: 'Nyumba', studio: 'Studio', duka: 'Duka',
+const TYPE_KEYS: Record<string, TKey> = {
+  chumba: 'my_type_chumba', apartment: 'my_type_apartment', nyumba: 'my_type_nyumba',
+  studio: 'my_type_studio', duka: 'my_type_duka',
 }
 
 export default function LeadsPage() {
+  const { t } = useLanguage()
   const [leads,      setLeads]      = useState<Lead[]>([])
   const [myListings, setMyListings] = useState<{ id: string; title?: string; type: string; district: string }[]>([])
   const [total,      setTotal]      = useState(0)
@@ -89,8 +93,8 @@ export default function LeadsPage() {
             <i className="ti ti-arrow-left text-lg" />
           </Link>
           <div>
-            <h1 className="text-white text-lg font-bold">Historia ya Leads</h1>
-            <p className="text-green-100 text-xs">{total} watu waliofungua mawasiliano yako</p>
+            <h1 className="text-white text-lg font-bold">{t('leads_title')}</h1>
+            <p className="text-green-100 text-xs">{t('leads_subtitle').replace('{{n}}', String(total))}</p>
           </div>
         </div>
 
@@ -100,7 +104,7 @@ export default function LeadsPage() {
             <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
             <input
               type="text"
-              placeholder="Tafuta jina au simu..."
+              placeholder={t('leads_search_ph')}
               value={inputQ}
               onChange={e => setInputQ(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
@@ -108,7 +112,7 @@ export default function LeadsPage() {
             />
           </div>
           <button onClick={handleSearch} className="px-4 py-2.5 bg-white/20 text-white text-sm font-medium rounded-xl hover:bg-white/30 transition-colors">
-            Tafuta
+            {t('leads_search_btn')}
           </button>
         </div>
       </div>
@@ -121,7 +125,7 @@ export default function LeadsPage() {
               onClick={() => handleListingFilter('')}
               className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${!listingId ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'}`}
             >
-              Zote
+              {t('leads_filter_all')}
             </button>
             {myListings.map(l => (
               <button
@@ -129,7 +133,7 @@ export default function LeadsPage() {
                 onClick={() => handleListingFilter(l.id)}
                 className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${listingId === l.id ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'}`}
               >
-                {TYPE[l.type] ?? l.type} — {l.district}
+                {TYPE_KEYS[l.type] ? t(TYPE_KEYS[l.type]) : l.type} — {l.district}
               </button>
             ))}
           </div>
@@ -149,8 +153,8 @@ export default function LeadsPage() {
             <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-4 shadow-sm">
               <i className="ti ti-phone-off text-3xl text-gray-300" />
             </div>
-            <p className="font-semibold text-gray-600">Hakuna leads bado</p>
-            <p className="text-sm text-gray-400 mt-1">Wateja watakaofungua nambari yako wataonekana hapa</p>
+            <p className="font-semibold text-gray-600">{t('leads_empty_title')}</p>
+            <p className="text-sm text-gray-400 mt-1">{t('leads_empty_sub')}</p>
           </div>
         ) : (
           <div className="space-y-5">
@@ -177,7 +181,7 @@ export default function LeadsPage() {
                             <div className="flex items-start justify-between gap-2">
                               <div>
                                 <p className="font-semibold text-gray-900 text-sm">
-                                  {client?.full_name ?? 'Mteja'}
+                                  {client?.full_name ?? t('leads_client_name')}
                                 </p>
                                 {phone && (
                                   <p className="text-xs text-gray-500 mt-0.5">{phone}</p>
@@ -190,14 +194,14 @@ export default function LeadsPage() {
                               <div className="mt-2 bg-gray-50 rounded-lg px-2.5 py-1.5 flex items-center gap-2">
                                 <i className="ti ti-home text-xs text-gray-400" />
                                 <span className="text-xs text-gray-600 truncate">
-                                  {listing.title ?? `${TYPE[listing.type] ?? listing.type} — ${listing.district}`}
+                                  {listing.title ?? `${TYPE_KEYS[listing.type] ? t(TYPE_KEYS[listing.type]) : listing.type} — ${listing.district}`}
                                 </span>
                               </div>
                             )}
 
                             <div className="flex items-center justify-between mt-2.5">
                               <span className="text-[11px] text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">
-                                {fmt(lead.amount_paid)} imelipwa
+                                {t('leads_paid').replace('{{amount}}', fmt(lead.amount_paid))}
                               </span>
                               <div className="flex gap-2">
                                 {callLink && (
@@ -231,7 +235,7 @@ export default function LeadsPage() {
                 disabled={loading}
                 className="w-full py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
               >
-                {loading ? 'Inapakia...' : `Pakia zaidi (${total - leads.length} zimebaki)`}
+                {loading ? t('leads_loading') : t('leads_load_more').replace('{{n}}', String(total - leads.length))}
               </button>
             )}
           </div>
