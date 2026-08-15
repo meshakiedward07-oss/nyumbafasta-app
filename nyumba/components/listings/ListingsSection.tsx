@@ -192,6 +192,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
   }
 
   const hasExtraFilters = !!(filters?.min_price || filters?.max_price || filters?.furnished)
+  const hasAnyFilter    = !!(filters?.region || filters?.type || filters?.min_price || filters?.max_price || filters?.furnished)
   const boosted = listings.filter(l => l.is_boosted)
 
   const searchBox = (extraClass = '') => (
@@ -289,8 +290,8 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
       {/* ── Content — max-width constrained on desktop ── */}
       <div className="max-w-screen-xl mx-auto">
 
-        {/* Region tabs */}
-        <div className="flex gap-1.5 px-4 lg:px-8 pt-3 pb-1 overflow-x-auto scrollbar-none">
+        {/* Mobile-only: region quick-tabs */}
+        <div className="lg:hidden flex gap-1.5 px-4 pt-3 pb-1 overflow-x-auto scrollbar-none">
           <button
             onClick={() => applyFilter('region', '')}
             className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200
@@ -300,7 +301,6 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           >
             <i className="ti ti-world text-[11px]" aria-hidden="true" /> Tanzania
           </button>
-
           {PRIORITY_REGIONS.map(r => (
             <button
               key={r}
@@ -313,12 +313,10 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
               {shortName(r)}
             </button>
           ))}
-
           <select
             value={PRIORITY_REGIONS.includes(filters?.region ?? '') ? '' : (filters?.region ?? '')}
             onChange={e => { if (e.target.value) applyFilter('region', e.target.value) }}
-            className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold
-              focus:outline-none cursor-pointer
+            className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold focus:outline-none cursor-pointer
               ${!PRIORITY_REGIONS.includes(filters?.region ?? '') && filters?.region
                 ? 'bg-primary-500 text-white border-primary-500'
                 : 'bg-white text-gray-500 border-gray-200'}`}
@@ -330,8 +328,8 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           </select>
         </div>
 
-        {/* Filter row */}
-        <div className="flex gap-1.5 px-4 lg:px-8 pb-3 pt-1.5 overflow-x-auto scrollbar-none">
+        {/* Mobile-only: type + filter button row */}
+        <div className="lg:hidden flex gap-1.5 px-4 pb-3 pt-1.5 overflow-x-auto scrollbar-none">
           <select
             value={filters?.type ?? ''}
             onChange={e => applyFilter('type', e.target.value)}
@@ -340,7 +338,6 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           >
             {TYPES.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
-
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex-shrink-0 text-xs px-4 py-2 rounded-full border font-semibold
@@ -352,17 +349,16 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           </button>
         </div>
 
-        {/* Expanded filters */}
+        {/* Mobile-only: expanded filter panel */}
         {showFilters && (
-          <div className="mx-4 lg:mx-8 mb-3 bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div className="col-span-2 lg:col-span-4">
+          <div className="lg:hidden mx-4 mb-3 bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
                 <label className="text-xs text-gray-500 mb-1 block">{t('cl_region_label')}</label>
                 <select
                   value={filters?.region ?? ''}
                   onChange={e => applyFilter('region', e.target.value)}
-                  className="w-full text-base border border-gray-200 rounded-xl px-3 py-2.5
-                             focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                  className="w-full text-base border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                 >
                   <option value="">{t('cl_all_regions')}</option>
                   {TANZANIA_REGIONS.map(r => (
@@ -388,7 +384,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
                   className="w-full text-base border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none"
                 />
               </div>
-              <div className="col-span-2 lg:col-span-2">
+              <div className="col-span-2">
                 <label className="text-xs text-gray-500 mb-1 block">{t('cl_filter_furnished')}</label>
                 <div className="grid grid-cols-4 gap-2">
                   {[{ value: '', label: t('cl_filter_all') }, { value: 'furnished', label: t('cl_furnished') }, { value: 'semi', label: t('cl_semi_furnished') }, { value: 'empty', label: t('cl_empty') }].map(f => (
@@ -407,154 +403,277 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           </div>
         )}
 
-        {/* Search-context ad — amber box, returns null if no campaign */}
-        <SearchAd region={filters?.region} />
+        {/* ── Desktop: sidebar + main layout ── */}
+        <div className="lg:flex lg:items-start">
 
-        {/* Count + view toggle */}
-        <div className="px-4 lg:px-8 mb-3 flex justify-between items-center">
-          <p className="text-xs font-medium text-gray-400 truncate min-w-0 mr-2">
-            {loading
-              ? <span className="animate-pulse">{t('cl_searching')}</span>
-              : <><span className="text-gray-700 font-bold">{total}</span> nyumba{filters?.region ? ` – ${filters.region}` : ' Tanzania'}</>}
-          </p>
-          <div className="flex-shrink-0 flex bg-gray-100/80 rounded-xl p-0.5 gap-0.5">
-            <button
-              onClick={() => setViewMode('grid')}
-              aria-pressed={viewMode === 'grid'}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
-            >
-              <i className="ti ti-layout-grid-add" aria-hidden="true" /> Grid
-            </button>
-            <button
-              onClick={() => setViewMode('map')}
-              aria-pressed={viewMode === 'map'}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
-            >
-              <i className="ti ti-map-2" aria-hidden="true" /> {t('cl_map')}
-            </button>
-          </div>
-        </div>
+          {/* Desktop sidebar filter panel */}
+          <aside className="hidden lg:block w-72 flex-shrink-0">
+            <div className="sticky top-14 px-4 pt-5 pb-8">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
 
-        {/* Boosted strip — grid only */}
-        {viewMode === 'grid' && !loading && boosted.length > 0 && (
-          <div className="mb-2">
-            <div className="px-4 lg:px-8 flex items-center gap-2 mb-2">
-              <i className="ti ti-star-filled text-amber-400 text-base" aria-hidden="true" />
-              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                {t('cl_featured')}
-              </p>
-            </div>
-            <div className="relative">
-              <div className="flex gap-3 px-4 lg:px-8 overflow-x-auto scrollbar-none pb-1">
-                {boosted.map(listing => (
-                  <div key={listing.id} className="flex-shrink-0 w-64 lg:w-72">
-                    <ListingCard listing={listing} hasUnlocked={unlockedIds.includes(listing.id)} />
-                  </div>
-                ))}
-              </div>
-              <div className="absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none" />
-            </div>
-            <div className="border-b border-gray-200 mt-4 mx-4 lg:mx-8" />
-          </div>
-        )}
-
-        {/* Map view */}
-        {viewMode === 'map' && <MapView listings={listings} />}
-
-        {/* Grid view */}
-        {viewMode === 'grid' && (
-          <div className="px-4 lg:px-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {loading ? (
-              <div className="col-span-full">
-                <ListingGridSkeleton count={6} />
-              </div>
-            ) : listings.length === 0 ? (
-              <div className="col-span-full text-center py-12">
-                <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-map text-gray-400" aria-hidden="true" /></div>
-                {filters?.region ? (
-                  <>
-                    <p className="text-gray-700 font-semibold mb-1">{t('cl_no_listings_in').replace('{{region}}', filters.region)}</p>
-                    <p className="text-gray-400 text-sm mb-5 px-4">
-                      {t('cl_no_listings_region_sub')}
-                    </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i className="ti ti-adjustments-horizontal" aria-hidden="true" />
+                    {t('cl_filter_label')}
+                  </p>
+                  {hasAnyFilter && (
                     <button
                       onClick={clearFilters}
-                      className="inline-flex items-center gap-2 bg-primary-500 text-white
-                                 px-5 py-3 rounded-xl text-sm font-semibold active:scale-[0.97] transition-all"
+                      className="text-xs text-primary-600 font-semibold hover:text-primary-700 transition-colors"
                     >
-                      <i className="ti ti-search" aria-hidden="true" /> {t('cl_search_other_regions')}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-gray-600 font-medium mb-1">{t('cl_no_match_filters')}</p>
-                    <p className="text-gray-400 text-sm mb-4">{t('cl_change_filters')}</p>
-                    <button onClick={clearFilters} className="text-primary-600 text-sm font-medium underline">
                       {t('cl_ondoa_filters')}
                     </button>
-                  </>
-                )}
-              </div>
-            ) : (
-              (() => {
-                const nonBoosted = listings.filter(l => !l.is_boosted)
-                const firstOlderIdx = nonBoosted.findIndex(l => !isFresh(l.created_at))
-                const boostedCount = listings.filter(l => l.is_boosted).length
-                const olderStartIdx = firstOlderIdx === -1
-                  ? listings.length
-                  : boostedCount + firstOlderIdx
+                  )}
+                </div>
 
-                return listings.flatMap((listing, idx) => {
-                  const showMpya = !listing.is_boosted && idx === boostedCount && nonBoosted.some(l => isFresh(l.created_at))
-                  const showOlder = idx === olderStartIdx && olderStartIdx < listings.length && olderStartIdx > 0
-                  const items = []
+                <div className="border-t border-gray-100" />
 
-                  if (showMpya) items.push(
-                    <div key="header-mpya" className="col-span-full flex items-center gap-2 pt-1 pb-2">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
-                      <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                        {t('cl_new_within_30')}
-                      </p>
-                      <div className="flex-1 border-t border-gray-200" />
-                    </div>
-                  )
-                  if (showOlder) items.push(
-                    <div key="header-older" className="col-span-full flex items-center gap-2 pt-3 pb-2">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                        {t('cl_other_listings')}
-                      </p>
-                      <div className="flex-1 border-t border-gray-200" />
-                    </div>
-                  )
-                  items.push(
-                    <ListingCard
-                      key={listing.id}
-                      listing={listing}
-                      hasUnlocked={unlockedIds.includes(listing.id)}
-                      priority={idx < 3}
+                {/* Mkoa */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-2">{t('cl_region_label')}</p>
+                  <select
+                    value={filters?.region ?? ''}
+                    onChange={e => applyFilter('region', e.target.value)}
+                    className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                  >
+                    <option value="">{t('cl_all_regions')}</option>
+                    {TANZANIA_REGIONS.map(r => (
+                      <option key={r.name} value={r.name}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Aina ya Mali */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-2">Aina ya Mali</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {TYPES.map(type => (
+                      <button
+                        key={type.value}
+                        onClick={() => applyFilter('type', type.value)}
+                        className={`text-xs py-2 px-2 rounded-xl border font-semibold transition-all ${
+                          (filters?.type ?? '') === type.value
+                            ? 'bg-primary-500 text-white border-primary-500 shadow-sm'
+                            : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-200 hover:bg-primary-50'
+                        }`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bei */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-2">Bei (Tsh/mwezi)</p>
+                  <div className="space-y-2">
+                    <input
+                      type="number" inputMode="numeric" placeholder="Min: 50,000"
+                      value={filters?.min_price ?? ''}
+                      onChange={e => applyFilter('min_price', e.target.value)}
+                      className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-300"
                     />
-                  )
-                  return items
-                })
-              })()
-            )}
+                    <input
+                      type="number" inputMode="numeric" placeholder="Max: 500,000"
+                      value={filters?.max_price ?? ''}
+                      onChange={e => applyFilter('max_price', e.target.value)}
+                      className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    />
+                  </div>
+                </div>
 
-            {/* Load more */}
-            {!loading && total > listings.length && (
-              <div className="col-span-full">
+                {/* Samani */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-2">{t('cl_filter_furnished')}</p>
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      { value: '', label: t('cl_filter_all') },
+                      { value: 'furnished', label: t('cl_furnished') },
+                      { value: 'semi', label: t('cl_semi_furnished') },
+                      { value: 'empty', label: t('cl_empty') },
+                    ].map(f => (
+                      <button
+                        key={f.value}
+                        onClick={() => applyFilter('furnished', f.value)}
+                        className={`text-sm py-2.5 px-3 rounded-xl border font-medium text-left transition-all flex items-center gap-2.5 ${
+                          (filters?.furnished ?? '') === f.value
+                            ? 'bg-primary-50 text-primary-700 border-primary-300'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-primary-200'
+                        }`}
+                      >
+                        <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                          (filters?.furnished ?? '') === f.value
+                            ? 'bg-primary-500 border-primary-500'
+                            : 'border-gray-300'
+                        }`}>
+                          {(filters?.furnished ?? '') === f.value && (
+                            <i className="ti ti-check text-white text-[9px]" aria-hidden="true" />
+                          )}
+                        </span>
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </aside>
+
+          {/* Main content */}
+          <div className="flex-1 min-w-0">
+
+            {/* Search-context ad — amber box, returns null if no campaign */}
+            <SearchAd region={filters?.region} />
+
+            {/* Count + view toggle */}
+            <div className="px-4 mb-3 flex justify-between items-center">
+              <p className="text-xs font-medium text-gray-400 truncate min-w-0 mr-2">
+                {loading
+                  ? <span className="animate-pulse">{t('cl_searching')}</span>
+                  : <><span className="text-gray-700 font-bold">{total}</span> nyumba{filters?.region ? ` – ${filters.region}` : ' Tanzania'}</>}
+              </p>
+              <div className="flex-shrink-0 flex bg-gray-100/80 rounded-xl p-0.5 gap-0.5">
                 <button
-                  onClick={() => setPage(p => p + 1)}
-                  className="w-full min-h-[48px] py-3 rounded-2xl border border-primary-200
-                             text-primary-600 text-sm font-semibold bg-primary-50 hover:bg-primary-100
-                             active:bg-primary-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                  onClick={() => setViewMode('grid')}
+                  aria-pressed={viewMode === 'grid'}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
                 >
-                  <i className="ti ti-chevrons-down text-base" aria-hidden="true" />
-                  {t('cl_show_more')} ({t('cl_remaining').replace('{{n}}', String(total - listings.length))})
+                  <i className="ti ti-layout-grid-add" aria-hidden="true" /> Grid
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  aria-pressed={viewMode === 'map'}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+                >
+                  <i className="ti ti-map-2" aria-hidden="true" /> {t('cl_map')}
                 </button>
               </div>
+            </div>
+
+            {/* Boosted strip — grid only */}
+            {viewMode === 'grid' && !loading && boosted.length > 0 && (
+              <div className="mb-2">
+                <div className="px-4 flex items-center gap-2 mb-2">
+                  <i className="ti ti-star-filled text-amber-400 text-base" aria-hidden="true" />
+                  <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                    {t('cl_featured')}
+                  </p>
+                </div>
+                <div className="relative">
+                  <div className="flex gap-3 px-4 overflow-x-auto scrollbar-none pb-1">
+                    {boosted.map(listing => (
+                      <div key={listing.id} className="flex-shrink-0 w-64 lg:w-72">
+                        <ListingCard listing={listing} hasUnlocked={unlockedIds.includes(listing.id)} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none" />
+                </div>
+                <div className="border-b border-gray-200 mt-4 mx-4" />
+              </div>
             )}
+
+            {/* Map view */}
+            {viewMode === 'map' && <MapView listings={listings} />}
+
+            {/* Grid view */}
+            {viewMode === 'grid' && (
+              <div className="px-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3">
+                {loading ? (
+                  <div className="col-span-full">
+                    <ListingGridSkeleton count={6} />
+                  </div>
+                ) : listings.length === 0 ? (
+                  <div className="col-span-full text-center py-12">
+                    <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-map text-gray-400" aria-hidden="true" /></div>
+                    {filters?.region ? (
+                      <>
+                        <p className="text-gray-700 font-semibold mb-1">{t('cl_no_listings_in').replace('{{region}}', filters.region)}</p>
+                        <p className="text-gray-400 text-sm mb-5 px-4">
+                          {t('cl_no_listings_region_sub')}
+                        </p>
+                        <button
+                          onClick={clearFilters}
+                          className="inline-flex items-center gap-2 bg-primary-500 text-white
+                                     px-5 py-3 rounded-xl text-sm font-semibold active:scale-[0.97] transition-all"
+                        >
+                          <i className="ti ti-search" aria-hidden="true" /> {t('cl_search_other_regions')}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-gray-600 font-medium mb-1">{t('cl_no_match_filters')}</p>
+                        <p className="text-gray-400 text-sm mb-4">{t('cl_change_filters')}</p>
+                        <button onClick={clearFilters} className="text-primary-600 text-sm font-medium underline">
+                          {t('cl_ondoa_filters')}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  (() => {
+                    const nonBoosted = listings.filter(l => !l.is_boosted)
+                    const firstOlderIdx = nonBoosted.findIndex(l => !isFresh(l.created_at))
+                    const boostedCount = listings.filter(l => l.is_boosted).length
+                    const olderStartIdx = firstOlderIdx === -1
+                      ? listings.length
+                      : boostedCount + firstOlderIdx
+
+                    return listings.flatMap((listing, idx) => {
+                      const showMpya = !listing.is_boosted && idx === boostedCount && nonBoosted.some(l => isFresh(l.created_at))
+                      const showOlder = idx === olderStartIdx && olderStartIdx < listings.length && olderStartIdx > 0
+                      const items = []
+
+                      if (showMpya) items.push(
+                        <div key="header-mpya" className="col-span-full flex items-center gap-2 pt-1 pb-2">
+                          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+                          <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                            {t('cl_new_within_30')}
+                          </p>
+                          <div className="flex-1 border-t border-gray-200" />
+                        </div>
+                      )
+                      if (showOlder) items.push(
+                        <div key="header-older" className="col-span-full flex items-center gap-2 pt-3 pb-2">
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                            {t('cl_other_listings')}
+                          </p>
+                          <div className="flex-1 border-t border-gray-200" />
+                        </div>
+                      )
+                      items.push(
+                        <ListingCard
+                          key={listing.id}
+                          listing={listing}
+                          hasUnlocked={unlockedIds.includes(listing.id)}
+                          priority={idx < 3}
+                        />
+                      )
+                      return items
+                    })
+                  })()
+                )}
+
+                {/* Load more */}
+                {!loading && total > listings.length && (
+                  <div className="col-span-full">
+                    <button
+                      onClick={() => setPage(p => p + 1)}
+                      className="w-full min-h-[48px] py-3 rounded-2xl border border-primary-200
+                                 text-primary-600 text-sm font-semibold bg-primary-50 hover:bg-primary-100
+                                 active:bg-primary-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    >
+                      <i className="ti ti-chevrons-down text-base" aria-hidden="true" />
+                      {t('cl_show_more')} ({t('cl_remaining').replace('{{n}}', String(total - listings.length))})
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
-        )}
+        </div>
 
         {/* Nearby business ads — horizontal scroll cards, region-aware */}
         {filters?.region && <NearbyAds region={filters.region} />}

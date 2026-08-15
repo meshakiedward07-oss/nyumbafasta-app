@@ -173,6 +173,24 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
 
       <div className="px-4 pt-4 space-y-4">
 
+        {/* ── Quick actions grid ── */}
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { href: '/dashboard/listings/new', icon: 'ti-circle-plus', label: t('dash_add_btn'),      color: 'text-primary-600', bg: 'bg-primary-50'  },
+            { href: '/dashboard/listings',     icon: 'ti-home-2',       label: t('dl_my_ads_title'),   color: 'text-blue-600',    bg: 'bg-blue-50'     },
+            { href: '/dashboard/subscription', icon: 'ti-crown',        label: t('dash_upgrade'),      color: 'text-amber-600',   bg: 'bg-amber-50'    },
+            { href: '/dashboard/profile',      icon: 'ti-user-edit',    label: t('cl_profile'),        color: 'text-gray-600',    bg: 'bg-gray-100'    },
+          ].map(a => (
+            <Link key={a.href} href={a.href}
+              className="flex flex-col items-center gap-1.5 py-3 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-[0.95] transition-transform">
+              <div className={`w-10 h-10 ${a.bg} rounded-xl flex items-center justify-center`}>
+                <i className={`ti ${a.icon} text-xl ${a.color}`} aria-hidden="true" />
+              </div>
+              <p className="text-[10px] font-semibold text-gray-600 text-center leading-tight px-1">{a.label}</p>
+            </Link>
+          ))}
+        </div>
+
         {/* ── Listing deadline warning (0 listings ever) ── */}
         {stats.totalListings === 0 && <ListingDeadlineBanner />}
 
@@ -453,7 +471,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
             <p className="font-bold">{t('dash_my_stats')}</p>
             <p className="text-green-100 text-xs">{t('dash_stats_sub')}</p>
           </div>
-          <span className="flex-shrink-0 text-green-100">→</span>
+          <i className="ti ti-chevron-right flex-shrink-0 text-green-100 text-xl" aria-hidden="true" />
         </Link>
 
         {/* ── Matangazo Yangu shortcut ── */}

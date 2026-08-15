@@ -33,6 +33,21 @@ function timeAgo(dateStr: string, t: (k: TKey) => string): string {
   return t('lst_ago_months').replace('{{n}}', String(Math.floor(days / 30))).toLowerCase()
 }
 
+function Stars({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClass = size === 'lg' ? 'text-2xl' : size === 'md' ? 'text-lg' : 'text-sm'
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-label={`Nyota ${rating} kati ya 5`}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <i
+          key={i}
+          className={`${i <= rating ? 'ti ti-star-filled text-amber-400' : 'ti ti-star text-gray-200'} ${sizeClass}`}
+          aria-hidden="true"
+        />
+      ))}
+    </span>
+  )
+}
+
 export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
   const { t } = useLanguage()
   const [sort, setSort] = useState<SortOrder>('recent')
@@ -61,128 +76,147 @@ export default function ReviewList({ reviews, ratingAvg, ratingCount }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
 
-      {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-gray-50">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-gray-900"><i className="ti ti-star-filled text-amber-400" aria-hidden="true" /> {t('cl_reviews_header')}</h3>
-          <div className="flex items-center gap-1">
-            <i className="ti ti-star-filled text-amber-400 text-base" aria-hidden="true" />
-            <span className="font-bold text-gray-900 text-sm">{ratingAvg.toFixed(1)}</span>
-            <span className="text-xs text-gray-400">({ratingCount})</span>
+      {/* ── Header: overall score ── */}
+      <div className="bg-gradient-to-r from-amber-400 to-amber-500 px-5 py-4">
+        <div className="flex items-center gap-5">
+          {/* Big score */}
+          <div className="text-center flex-shrink-0">
+            <p className="text-5xl font-extrabold text-white leading-none">{ratingAvg.toFixed(1)}</p>
+            <Stars rating={Math.round(ratingAvg)} size="sm" />
+            <p className="text-amber-100 text-xs mt-1">{ratingCount} maoni</p>
+          </div>
+
+          {/* Distribution bars */}
+          <div className="flex-1 space-y-1.5">
+            {[5, 4, 3, 2, 1].map(star => {
+              const count = reviews.filter(r => r.rating === star).length
+              const pct   = reviews.length > 0 ? (count / reviews.length) * 100 : 0
+              return (
+                <div key={star} className="flex items-center gap-2">
+                  <span className="text-xs text-white/80 w-3 flex-shrink-0 font-medium">{star}</span>
+                  <i className="ti ti-star-filled text-white/70 text-[10px] flex-shrink-0" aria-hidden="true" />
+                  <div className="flex-1 bg-white/25 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-white h-full rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-white/70 w-4 text-right flex-shrink-0">{count}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white">
+        {/* ── Sort tabs ── */}
+        <div className="px-4 pt-3 pb-0">
+          <div className="flex bg-gray-100 rounded-xl p-0.5 gap-0.5">
+            {([
+              { key: 'recent',  label: t('cl_sort_recent')  },
+              { key: 'highest', label: t('cl_sort_highest') },
+              { key: 'helpful', label: t('cl_sort_helpful') },
+            ] as { key: SortOrder; label: string }[]).map(({ key, label }) => (
+              <button key={key} onClick={() => setSort(key)}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  sort === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Star distribution bars */}
-        <div className="space-y-1.5 mb-3">
-          {[5, 4, 3, 2, 1].map(star => {
-            const count = reviews.filter(r => r.rating === star).length
-            const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0
+        {/* ── Review items ── */}
+        <div className="divide-y divide-gray-50">
+          {sorted.map(review => {
+            const hCount = helpfulCounts[review.id] ?? 0
+            const voted  = helpfulVoted.has(review.id)
             return (
-              <div key={star} className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 w-3 flex-shrink-0">{star}</span>
-                <i className="ti ti-star-filled text-amber-400 text-xs flex-shrink-0" aria-hidden="true" />
-                <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                  <div className="bg-amber-400 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%` }} />
+              <div key={review.id} className="px-4 pt-4 pb-4">
+                {/* Reviewer row */}
+                <div className="flex items-start gap-3 mb-3">
+                  {/* Avatar */}
+                  <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-sm font-bold flex-shrink-0">
+                    {review.reviewer?.full_name?.[0]?.toUpperCase() ?? 'W'}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <span className="text-sm font-semibold text-gray-800">
+                        {review.reviewer?.full_name ?? t('cl_customer')}
+                      </span>
+                      {review.is_verified && (
+                        <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                          <i className="ti ti-circle-check text-[10px]" aria-hidden="true" /> {t('lst_verified')}
+                        </span>
+                      )}
+                    </div>
+                    {/* Stars + date */}
+                    <div className="flex items-center gap-2">
+                      <Stars rating={review.rating} size="sm" />
+                      <span className="text-xs text-gray-400" suppressHydrationWarning>
+                        · {timeAgo(review.created_at, t)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Rating number */}
+                  <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold"
+                    style={{
+                      background: review.rating >= 4 ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : review.rating === 3 ? '#f3f4f6' : '#fee2e2',
+                      color: review.rating >= 4 ? '#fff' : review.rating === 3 ? '#6b7280' : '#ef4444',
+                    }}
+                  >
+                    {review.rating}
+                  </div>
                 </div>
-                <span className="text-xs text-gray-400 w-4 text-right flex-shrink-0">{count}</span>
+
+                {/* Comment */}
+                {review.comment && (
+                  <p className="text-sm text-gray-600 leading-relaxed mb-3 pl-12 italic">
+                    &ldquo;{review.comment}&rdquo;
+                  </p>
+                )}
+
+                {/* Helpful + dalali reply */}
+                <div className="pl-12 space-y-2">
+                  <button
+                    onClick={() => handleHelpful(review.id)}
+                    disabled={voted}
+                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all ${
+                      voted
+                        ? 'bg-primary-50 text-primary-600 font-medium border border-primary-200'
+                        : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border border-transparent active:scale-95'
+                    }`}
+                  >
+                    <i className="ti ti-thumb-up" aria-hidden="true" />
+                    <span>{voted ? t('cl_voted') : t('cl_was_helpful')}</span>
+                    {hCount > 0 && <span className="font-semibold">({hCount})</span>}
+                  </button>
+
+                  {review.response && (
+                    <div className="bg-primary-50 rounded-xl px-3 py-2.5 border-l-2 border-primary-400">
+                      <p className="text-xs font-semibold text-primary-700 mb-1 flex items-center gap-1">
+                        <i className="ti ti-message-circle" aria-hidden="true" /> {t('cl_agent_reply')}
+                      </p>
+                      <p className="text-xs text-gray-600 leading-relaxed">{review.response}</p>
+                      {review.response_at && (
+                        <p className="text-xs text-gray-400 mt-1" suppressHydrationWarning>
+                          {timeAgo(review.response_at, t)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )
           })}
         </div>
-
-        {/* Sort tabs */}
-        <div className="flex bg-gray-100 rounded-xl p-0.5 gap-0.5">
-          {([
-            { key: 'recent',  label: t('cl_sort_recent')  },
-            { key: 'highest', label: t('cl_sort_highest') },
-            { key: 'helpful', label: t('cl_sort_helpful') },
-          ] as { key: SortOrder; label: string }[]).map(({ key, label }) => (
-            <button key={key} onClick={() => setSort(key)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                sort === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Review items */}
-      <div className="divide-y divide-gray-50">
-        {sorted.map(review => {
-          const hCount = helpfulCounts[review.id] ?? 0
-          const voted  = helpfulVoted.has(review.id)
-          return (
-            <div key={review.id} className="px-4 py-4">
-              {/* Reviewer */}
-              <div className="flex items-start gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center
-                                text-primary-700 text-xs font-bold flex-shrink-0">
-                  {review.reviewer?.full_name?.[0]?.toUpperCase() ?? 'W'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-gray-800">
-                      {review.reviewer?.full_name ?? t('cl_customer')}
-                    </span>
-                    {review.is_verified && (
-                      <span className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full font-medium">
-                        <i className="ti ti-circle-check" aria-hidden="true" /> {t('lst_verified')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <div className="flex gap-0.5">
-                      {[1, 2, 3, 4, 5].map(i => (
-                        <i key={i} className={`ti ti-star-filled text-sm ${i <= review.rating ? 'text-amber-400' : 'text-gray-200'}`} aria-hidden="true" />
-                      ))}
-                    </div>
-                    <span className="text-xs text-gray-400" suppressHydrationWarning>{timeAgo(review.created_at, t)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Comment */}
-              {review.comment && (
-                <p className="text-sm text-gray-600 leading-relaxed mb-3 pl-11">
-                  &ldquo;{review.comment}&rdquo;
-                </p>
-              )}
-
-              {/* Helpful */}
-              <div className="pl-11">
-                <button
-                  onClick={() => handleHelpful(review.id)}
-                  disabled={voted}
-                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all ${
-                    voted
-                      ? 'bg-primary-50 text-primary-600 font-medium'
-                      : 'bg-gray-50 text-gray-400 hover:bg-gray-100 active:scale-95'
-                  }`}
-                >
-                  <i className="ti ti-thumb-up" aria-hidden="true" />
-                  <span>{voted ? t('cl_voted') : t('cl_was_helpful')}</span>
-                  {hCount > 0 && <span className="font-semibold">({hCount})</span>}
-                </button>
-              </div>
-
-              {/* Dalali reply */}
-              {review.response && (
-                <div className="mt-3 ml-11 bg-primary-50 rounded-xl px-3 py-2.5 border-l-2 border-primary-300">
-                  <p className="text-xs font-semibold text-primary-700 mb-1 flex items-center gap-1"><i className="ti ti-message-circle" aria-hidden="true" />{t('cl_agent_reply')}</p>
-                  <p className="text-xs text-gray-600 leading-relaxed">{review.response}</p>
-                  {review.response_at && (
-                    <p className="text-xs text-gray-400 mt-1" suppressHydrationWarning>{timeAgo(review.response_at, t)}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })}
       </div>
     </div>
   )

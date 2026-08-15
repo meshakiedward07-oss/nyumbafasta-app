@@ -4,6 +4,30 @@
 @import 'leaflet/dist/leaflet.css';
 @import '@tabler/icons-webfont/dist/tabler-icons.min.css';
 
+/* ── Filled icon font ──────────────────────────────────────────────────────────
+   tabler-icons.min.css only loads the outline font. Filled icons (ti-*-filled)
+   need the separate tabler-icons-filled font. We load it here and map the
+   *-filled class names to their correct glyph codes.
+   Selector specificity (0,2,0) beats .ti (0,1,0) so the font-family override
+   works even though both declarations carry !important.
+   ─────────────────────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: "tabler-icons-filled";
+  font-style:  normal;
+  font-weight: 400;
+  src: url("../node_modules/@tabler/icons-webfont/dist/fonts/tabler-icons-filled.woff2?v3.44.0") format("woff2"),
+       url("../node_modules/@tabler/icons-webfont/dist/fonts/tabler-icons-filled.woff") format("woff"),
+       url("../node_modules/@tabler/icons-webfont/dist/fonts/tabler-icons-filled.ttf?v3.44.0") format("truetype");
+}
+.ti.ti-star-filled,
+.ti.ti-heart-filled,
+.ti.ti-phone-filled,
+.ti.ti-circle-filled { font-family: "tabler-icons-filled" !important; }
+.ti-star-filled::before   { content: "\f6a6"; }
+.ti-heart-filled::before  { content: "\f67c"; }
+.ti-phone-filled::before  { content: "\fa49"; }
+.ti-circle-filled::before { content: "\f671"; }
+
 @layer base {
   /* Prevents iOS Safari from zooming on input focus */
   input, textarea, select {

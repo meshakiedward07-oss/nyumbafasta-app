@@ -109,30 +109,35 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
     <div className="min-h-screen bg-gray-50 pb-24">
 
       {/* ── Header ── */}
-      <div className="bg-primary-500 px-4 pt-10 pb-8">
-        <div className="flex items-center gap-3 mb-5">
+      <div className="relative gradient-primary overflow-hidden px-4 pb-8" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
+        {/* Decorative circles */}
+        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/[0.06] pointer-events-none" />
+        <div className="absolute top-4 right-16 w-20 h-20 rounded-full bg-white/[0.05] pointer-events-none" />
+        <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-black/[0.05] pointer-events-none" />
+
+        <div className="relative flex items-center gap-3 mb-6">
           <button onClick={() => router.back()}
             aria-label={t('common_back')}
-            className="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white text-lg">
-            ←
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white">
+            <i className="ti ti-arrow-left text-lg" aria-hidden="true" />
           </button>
           <h1 className="text-white text-lg font-bold">{t('cl_my_account')}</h1>
         </div>
 
         {/* Avatar + name + role */}
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-white text-2xl font-bold shrink-0">
+        <div className="relative flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-white text-2xl font-bold shrink-0">
             {name?.[0]?.toUpperCase() ?? '?'}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-bold text-base truncate">{name}</p>
-            {email && <p className="text-white/70 text-xs truncate">{email}</p>}
-            <span className={`inline-block mt-1 text-xs px-2.5 py-0.5 rounded-full font-semibold ${
-              isAdmin  ? 'bg-red-400 text-white' :
-              isDalali ? 'bg-amber-400 text-white' :
+            {email && <p className="text-white/70 text-xs truncate mt-0.5">{email}</p>}
+            <span className={`inline-flex items-center gap-1 mt-1.5 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-white/20 backdrop-blur-sm ${
+              isAdmin  ? 'bg-red-400/80 text-white' :
+              isDalali ? 'bg-amber-400/80 text-white' :
                          'bg-white/20 text-white'
             }`}>
-              {isAdmin ? <><i className="ti ti-shield" aria-hidden="true" /> Admin</> : isDalali ? <><i className="ti ti-building" aria-hidden="true" /> Dalali</> : <><i className="ti ti-search" aria-hidden="true" /> Mteja</>}
+              {isAdmin ? <><i className="ti ti-shield text-[11px]" aria-hidden="true" /> Admin</> : isDalali ? <><i className="ti ti-building text-[11px]" aria-hidden="true" /> Dalali</> : <><i className="ti ti-search text-[11px]" aria-hidden="true" /> Mteja</>}
             </span>
           </div>
         </div>
@@ -165,7 +170,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                   <p className="text-xs text-gray-500">{t('cl_manage_platform')}</p>
                 </div>
               </div>
-              <span className="text-gray-400 text-lg" aria-hidden="true">→</span>
+              <i className="ti ti-chevron-right text-gray-300 text-xl" aria-hidden="true" />
             </div>
           </Link>
         )}
@@ -182,7 +187,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                   <p className="text-xs text-gray-500">{t('cl_manage_listings')}</p>
                 </div>
               </div>
-              <span className="text-gray-400 text-lg" aria-hidden="true">→</span>
+              <i className="ti ti-chevron-right text-gray-300 text-xl" aria-hidden="true" />
             </div>
           </Link>
         )}
@@ -288,7 +293,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
                 </p>
               </div>
             </div>
-            <span className="text-green-500 font-bold text-lg" aria-hidden="true">→</span>
+            <i className="ti ti-chevron-right text-green-500 text-xl" aria-hidden="true" />
           </Link>
         )}
 
@@ -301,20 +306,20 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <i className="ti ti-bell text-xl text-gray-400" aria-hidden="true" />
             <span className="text-sm text-gray-700 flex-1">{t('cl_notification_settings')}</span>
-            <span className="text-gray-300 text-lg">›</span>
+            <i className="ti ti-chevron-right text-gray-300 text-xl" aria-hidden="true" />
           </Link>
           <Link href="/saved"
             className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <i className="ti ti-heart text-xl text-red-400" aria-hidden="true" />
             <span className="text-sm text-gray-700 flex-1">{t('cl_saved_listings')}</span>
-            <span className="text-gray-300 text-lg">›</span>
+            <i className="ti ti-chevron-right text-gray-300 text-xl" aria-hidden="true" />
           </Link>
           {!isDalali && !isAdmin && (
             <Link href="/account/contacts"
               className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all">
               <i className="ti ti-message-circle text-xl text-blue-400" aria-hidden="true" />
               <span className="text-sm text-gray-700 flex-1">{t('cl_agent_contacts')}</span>
-              <span className="text-gray-300 text-lg">›</span>
+              <i className="ti ti-chevron-right text-gray-300 text-xl" aria-hidden="true" />
             </Link>
           )}
         </div>
@@ -328,7 +333,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <i className="ti ti-file-text text-xl text-gray-400" aria-hidden="true" />
             <span className="text-sm text-gray-700 flex-1">{t('cl_terms')}</span>
-            <span className="text-gray-300 text-lg">›</span>
+            <i className="ti ti-chevron-right text-gray-300 text-xl" aria-hidden="true" />
           </Link>
         </div>
 
@@ -344,13 +349,13 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
               <p className="text-sm text-gray-700">{t('cl_account_security')}</p>
               <p className="text-xs text-gray-400">{t('cl_security_sub')}</p>
             </div>
-            <span className="text-gray-300 text-lg">›</span>
+            <i className="ti ti-chevron-right text-gray-300 text-xl" aria-hidden="true" />
           </Link>
           <Link href="/account/change-password"
             className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 hover:bg-gray-50 active:scale-[0.98] transition-all">
             <i className="ti ti-lock text-xl text-gray-400" aria-hidden="true" />
             <span className="text-sm text-gray-700 flex-1">{t('cl_change_password')}</span>
-            <span className="text-gray-300 text-lg">›</span>
+            <i className="ti ti-chevron-right text-gray-300 text-xl" aria-hidden="true" />
           </Link>
           <button
             onClick={() => setShowLogoutAllConfirm(true)}
@@ -360,7 +365,7 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
               <p className="text-sm text-gray-700">{t('cl_logout_all')}</p>
               <p className="text-xs text-gray-400">{t('cl_logout_all_sub')}</p>
             </div>
-            <span className="text-gray-300 text-lg">›</span>
+            <i className="ti ti-chevron-right text-gray-300 text-xl" aria-hidden="true" />
           </button>
         </div>
 
