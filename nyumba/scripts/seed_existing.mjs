@@ -18,8 +18,8 @@ const env = Object.fromEntries(
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 
 function ok(label, error) {
-  if (error) { console.error(`  ✗ ${label}:`, error.message); return false }
-  console.log(`  ✓ ${label}`)
+  if (error) { console.error('  ✗', label + ':', error.message); return false }
+  console.log('  ✓', label)
   return true
 }
 

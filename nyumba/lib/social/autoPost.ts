@@ -276,7 +276,7 @@ export async function postListingToSocialMedia(
       const { postListingCarousel } = await import('./carouselPost')
       const carouselResult = await postListingCarousel(l)
       carouselPosted = carouselResult.success
-      console.log(`[AutoPost] Carousel: ${carouselPosted ? '✅' : '❌'}`, carouselResult.error ?? '')
+      console.log('[AutoPost] Carousel:', carouselPosted ? '✅' : '❌', carouselResult.error ?? '')
     } catch (err) {
       console.error('[AutoPost] Carousel posting error (non-fatal):', err)
     }

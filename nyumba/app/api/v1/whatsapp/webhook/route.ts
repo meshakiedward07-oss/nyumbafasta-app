@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
       const results = await Promise.allSettled(jobs)
       results.forEach((r, i) => {
         if (r.status === 'rejected') {
-          console.error(`[WA webhook] processMessage[${i}] failed:`, r.reason)
+          console.error('[WA webhook] processMessage failed at index', i, r.reason)
         }
       })
     }

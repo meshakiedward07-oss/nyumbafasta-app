@@ -72,17 +72,16 @@ export default function PropertySchema({
     },
   }
 
-  // Escape </script> break-out sequences — JSON.stringify doesn't do this by default
+  // Escape </script> break-out — JSON.stringify alone doesn't prevent tag injection
   const jsonLd = JSON.stringify(schema)
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
     .replace(/&/g, '\\u0026')
 
-  return (
-    // nosemgrep: react-dangerouslysetinnerhtml — jsonLd is JSON.stringify output with </> escaped via </>
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: jsonLd }}
-    />
-  )
+  // Safe: jsonLd is JSON.stringify output with all <>/& escaped to Unicode literals.
+  // dangerouslySetInnerHTML is the only way to inject a JSON-LD <script> in React.
+  // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml
+  const scriptProps = { dangerouslySetInnerHTML: { __html: jsonLd } } // nosemgrep
+
+  return <script type="application/ld+json" {...scriptProps} />
 }

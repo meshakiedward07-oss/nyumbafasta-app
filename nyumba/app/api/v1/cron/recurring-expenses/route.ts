@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
       })
 
       if (insertErr) {
-        console.error(`[cron/recurring-expenses] Insert error for template ${t.id}:`, insertErr.message)
+        console.error('[cron/recurring-expenses] Insert error for template:', t.id, insertErr.message)
         skipped++
         continue
       }
