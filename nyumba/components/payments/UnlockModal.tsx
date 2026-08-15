@@ -249,6 +249,18 @@ export default function UnlockModal({
 
     setLoading(true)
     try {
+      // Guest checkout: create an anonymous Supabase session if the user is not
+      // already logged in. The trigger on auth.users auto-creates the public.users
+      // row, so all FK constraints are satisfied without a DB migration.
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      if (!currentUser) {
+        const { error: anonError } = await supabase.auth.signInAnonymously()
+        if (anonError) {
+          setError('Imeshindwa kuanzisha. Tafadhali jaribu tena.')
+          return
+        }
+      }
+
       const res = await fetch('/api/v1/payments/unlock/initiate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listing_id: listingId, msisdn: normalized, provider }),

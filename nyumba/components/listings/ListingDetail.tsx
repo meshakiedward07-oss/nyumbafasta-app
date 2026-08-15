@@ -231,10 +231,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
     return (
       <div>
         <button
-          onClick={() => {
-            if (!isLoggedIn) { window.location.href = `/login?redirect=/listings/${listing.id}`; return }
-            setShowUnlockModal(true)
-          }}
+          onClick={() => setShowUnlockModal(true)}
           className="btn-primary w-full py-3.5 text-sm"
         >
           <i className="ti ti-lock-open" aria-hidden="true" /> {t('lst_unlock_cta')} {dalaliDisplayName}
@@ -945,10 +942,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
         ) : (
           <div>
             <button
-              onClick={() => {
-                if (!isLoggedIn) { window.location.href = `/login?redirect=/listings/${listing.id}`; return }
-                setShowUnlockModal(true)
-              }}
+              onClick={() => setShowUnlockModal(true)}
               className="btn-primary w-full py-3.5 text-sm"
             >
               <i className="ti ti-lock-open" aria-hidden="true" /> {t('lst_unlock_cta')} {dalaliDisplayName} – Tsh {unlockPrice.toLocaleString()}
