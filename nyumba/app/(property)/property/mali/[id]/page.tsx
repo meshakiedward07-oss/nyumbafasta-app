@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n/context'
 import { UNIT_TYPE_LABELS, UNIT_STATUS_LABELS } from '@/lib/types/property'
 import type { PropertyUnit, Lease } from '@/lib/types/property'
+import BuildingSetupModal from '@/components/property/BuildingSetupModal'
 
 type UnitWithLease = PropertyUnit & { active_lease: Lease | null }
 
@@ -40,6 +41,11 @@ export default function MaliDetailPage() {
   const [uDesc,        setUDesc]        = useState('')
   const [addingUnit,   setAddingUnit]   = useState(false)
   const [unitError,    setUnitError]    = useState<string | null>(null)
+
+  // Building setup wizard
+  const [showBuildingSetup, setShowBuildingSetup] = useState(false)
+  // Which unit is expanded in the floor grid (null = none)
+  const [expandedUnit, setExpandedUnit] = useState<string | null>(null)
 
   // Edit unit form
   const [editUnit,    setEditUnit]    = useState<UnitWithLease | null>(null)
@@ -365,13 +371,34 @@ export default function MaliDetailPage() {
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-bold text-gray-900">{t('pr_mali_units_heading')} ({units.length})</h2>
         {canManage && (
-          <button
-            onClick={() => setShowAddUnit(true)}
-            className="flex items-center gap-2 bg-primary-500 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
-          >
-            <i className="ti ti-plus" aria-hidden="true" />
-            {t('pr_mali_add_unit')}
-          </button>
+          <div className="flex items-center gap-2">
+            {units.length === 0 ? (
+              <button
+                onClick={() => setShowBuildingSetup(true)}
+                className="flex items-center gap-2 bg-primary-500 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
+              >
+                <i className="ti ti-building-community" aria-hidden="true" />
+                Setup Jengo
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => setShowBuildingSetup(true)}
+                  className="flex items-center gap-1.5 border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-gray-50 transition"
+                >
+                  <i className="ti ti-building-community text-sm" aria-hidden="true" />
+                  Ongeza Ghorofa
+                </button>
+                <button
+                  onClick={() => setShowAddUnit(true)}
+                  className="flex items-center gap-1.5 bg-primary-500 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
+                >
+                  <i className="ti ti-plus" aria-hidden="true" />
+                  {t('pr_mali_add_unit')}
+                </button>
+              </>
+            )}
+          </div>
         )}
       </div>
 
@@ -432,106 +459,220 @@ export default function MaliDetailPage() {
         </div>
       )}
 
-      {/* Units list */}
+      {/* Units — empty state with setup CTA */}
       {units.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
-          <i className="ti ti-door text-4xl text-gray-200" aria-hidden="true" />
-          <p className="text-gray-500 font-medium mt-3">{t('pr_units_empty_title')}</p>
-          <p className="text-sm text-gray-400 mt-1">{t('pr_units_empty_desc')}</p>
+        <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+          <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i className="ti ti-building-community text-3xl text-primary-400" aria-hidden="true" />
+          </div>
+          <p className="text-gray-700 font-semibold">{t('pr_units_empty_title')}</p>
+          <p className="text-sm text-gray-400 mt-1 mb-5">{t('pr_units_empty_desc')}</p>
+          {canManage && (
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <button
+                onClick={() => setShowBuildingSetup(true)}
+                className="flex items-center justify-center gap-2 bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-primary-600 transition"
+              >
+                <i className="ti ti-building-community" aria-hidden="true" />
+                Setup Muundo wa Jengo
+              </button>
+              <button
+                onClick={() => setShowAddUnit(true)}
+                className="flex items-center justify-center gap-2 border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition"
+              >
+                <i className="ti ti-plus" aria-hidden="true" />
+                Ongeza Kitengo Kimoja
+              </button>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="space-y-3">
-          {units.map(unit => {
-            const lease = unit.active_lease
-            const tenant = lease?.tenant as unknown as { full_name: string | null; phone: string | null } | null
-            return (
-              <div key={unit.id} className="bg-white rounded-2xl border border-gray-100 p-4">
-                <div className="flex items-start gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    unit.status === 'occupied' ? 'bg-blue-50' : unit.status === 'vacant' ? 'bg-green-50' : 'bg-amber-50'
-                  }`}>
-                    <i className={`ti ti-door text-base ${
-                      unit.status === 'occupied' ? 'text-blue-500' : unit.status === 'vacant' ? 'text-green-500' : 'text-amber-500'
-                    }`} aria-hidden="true" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-gray-900 text-sm">{unit.unit_number}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[unit.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                        {UNIT_STATUS_LABELS[unit.status]}
+      ) : (() => {
+        // Group units by floor_number (null → floor 0 = "Bila Ghorofa")
+        const byFloor = units.reduce<Record<number, UnitWithLease[]>>((acc, u) => {
+          const f = (u as unknown as { floor_number: number | null }).floor_number ?? 0
+          if (!acc[f]) acc[f] = []
+          acc[f].push(u)
+          return acc
+        }, {})
+        const floorNums = Object.keys(byFloor).map(Number).sort((a, b) => a - b)
+        const hasFloors = floorNums.some(f => f > 0)
+
+        return (
+          <div className="space-y-5">
+            {floorNums.map(floorNum => {
+              const floorUnits = byFloor[floorNum]
+              const floorOccupied = floorUnits.filter(u => u.status === 'occupied').length
+              return (
+                <div key={floorNum}>
+                  {/* Floor header */}
+                  {hasFloors && (
+                    <div className="flex items-center gap-3 mb-2.5">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                        {floorNum === 0 ? 'Bila Ghorofa' : `Ghorofa ${floorNum}`}
                       </span>
-                      <span className="text-xs text-gray-400">{UNIT_TYPE_LABELS[unit.unit_type]}</span>
-                    </div>
-                    <p className="text-sm font-bold text-primary-600 mt-0.5">
-                      TZS {unit.monthly_rent.toLocaleString()}{t('pr_per_month')}
-                      {unit.deposit_months > 0 && (
-                        <span className="text-xs text-gray-400 font-normal ml-2">
-                          · {t('pr_deposit_months_hint')} {unit.deposit_months}
-                        </span>
-                      )}
-                    </p>
-
-                    {/* Tenant info if occupied */}
-                    {unit.status === 'occupied' && lease && (
-                      <div className="mt-2 bg-blue-50 rounded-xl p-2.5">
-                        <p className="text-xs font-semibold text-blue-800">
-                          <i className="ti ti-user mr-1" aria-hidden="true" />
-                          {tenant?.full_name ?? 'Mpangaji'}
-                        </p>
-                        {tenant?.phone && (
-                          <a href={`tel:${tenant.phone}`} className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-0.5">
-                            <i className="ti ti-phone" /> {tenant.phone}
-                          </a>
-                        )}
-                        <div className="flex gap-3 mt-1 text-[10px] text-blue-500">
-                          <span>{t('pr_kuanza_prefix')} {new Date(lease.start_date).toLocaleDateString('sw-TZ')}</span>
-                          {lease.end_date && <span>{t('pr_kumalizika_prefix')} {new Date(lease.end_date).toLocaleDateString('sw-TZ')}</span>}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  {canManage && (
-                    <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                      <button
-                        onClick={() => openEditUnit(unit)}
-                        className="text-xs border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
-                      >
-                        <i className="ti ti-pencil mr-1" />{t('pr_mali_edit')}
-                      </button>
-                      {unit.status === 'vacant' ? (
-                        <>
-                          <button
-                            onClick={() => { setTenantUnit(unit); setTRent(String(unit.monthly_rent)); setTenantError(null) }}
-                            className="text-xs bg-primary-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-primary-600 transition"
-                          >
-                            {t('pr_unit_add_tenant')}
-                          </button>
-                          <a
-                            href={`/property/brokerage/new?unit_id=${unit.id}`}
-                            className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1.5 rounded-lg font-medium hover:bg-amber-100 transition whitespace-nowrap"
-                            title="Omba NyumbaFasta kupata mpangaji kwa niaba yako"
-                          >
-                            🤝 NF Broker
-                          </a>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => handleEndLease(unit)}
-                          className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg font-medium hover:bg-red-100 transition"
-                        >
-                          {t('pr_lease_end_btn')}
-                        </button>
-                      )}
+                      <div className="flex-1 h-px bg-gray-100" />
+                      <span className="text-[10px] text-gray-400 font-medium">
+                        {floorOccupied}/{floorUnits.length} zimepangishwa
+                      </span>
                     </div>
                   )}
+
+                  {/* Unit cards grid */}
+                  <div className="space-y-2.5">
+                    {floorUnits.map(unit => {
+                      const lease  = unit.active_lease
+                      const tenant = lease?.tenant as unknown as { full_name: string | null; phone: string | null } | null
+                      const isExp  = expandedUnit === unit.id
+                      const unitAmenities = (unit as unknown as { amenities?: string[] }).amenities ?? []
+
+                      return (
+                        <div key={unit.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                          {/* Unit summary row (always visible) */}
+                          <button
+                            onClick={() => setExpandedUnit(isExp ? null : unit.id)}
+                            className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition"
+                          >
+                            {/* Status dot */}
+                            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                              unit.status === 'occupied'    ? 'bg-blue-500' :
+                              unit.status === 'vacant'      ? 'bg-green-500' :
+                              unit.status === 'maintenance' ? 'bg-amber-500' : 'bg-purple-500'
+                            }`} />
+
+                            {/* Number + type */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-bold text-gray-900 text-sm">{unit.unit_number}</p>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLORS[unit.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                                  {UNIT_STATUS_LABELS[unit.status]}
+                                </span>
+                                {unit.bedrooms != null && unit.bedrooms > 0 && (
+                                  <span className="text-[10px] text-gray-400">
+                                    <i className="ti ti-bed" /> {unit.bedrooms}
+                                  </span>
+                                )}
+                                {unitAmenities.length > 0 && (
+                                  <span className="text-[10px] text-gray-400">
+                                    {unitAmenities.slice(0, 3).map((a: string) => {
+                                      const icons: Record<string, string> = { sebule: '🛋️', jiko: '🍳', laundry: '🫧', parking: '🚗', balcony: '🌿', wifi: '📶', generator: '⚡', security: '🛡️' }
+                                      return icons[a] ?? ''
+                                    }).join(' ')}
+                                  </span>
+                                )}
+                              </div>
+                              {unit.status === 'occupied' && tenant?.full_name && (
+                                <p className="text-xs text-blue-600 mt-0.5 truncate">
+                                  <i className="ti ti-user text-[10px] mr-0.5" />{tenant.full_name}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Rent + chevron */}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <p className="text-xs font-bold text-primary-600">
+                                {(unit.monthly_rent / 1000).toFixed(0)}k
+                              </p>
+                              <i className={`ti ti-chevron-${isExp ? 'up' : 'down'} text-gray-400 text-sm`} />
+                            </div>
+                          </button>
+
+                          {/* Expanded detail panel */}
+                          {isExp && (
+                            <div className="border-t border-gray-100 p-4 space-y-3">
+                              {/* Full rent + type */}
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-bold text-primary-600">
+                                    TZS {unit.monthly_rent.toLocaleString()}{t('pr_per_month')}
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-0.5">
+                                    {UNIT_TYPE_LABELS[unit.unit_type]}
+                                    {unit.deposit_months > 0 && ` · amana miezi ${unit.deposit_months}`}
+                                    {unit.bedrooms != null && ` · vyumba ${unit.bedrooms}`}
+                                    {(unit as unknown as { bathrooms?: number }).bathrooms != null && ` · vyoo ${(unit as unknown as { bathrooms: number }).bathrooms}`}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Amenities chips */}
+                              {unitAmenities.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {unitAmenities.map((a: string) => {
+                                    const labels: Record<string, string> = { sebule: 'Sebule', jiko: 'Jiko', laundry: 'Laundry', parking: 'Parking', balcony: 'Balcony', wifi: 'WiFi', generator: 'Generator', security: 'Security' }
+                                    const icons:  Record<string, string> = { sebule: 'sofa', jiko: 'tools-kitchen-2', laundry: 'washing-machine', parking: 'car', balcony: 'building-pavilion', wifi: 'wifi', generator: 'bolt', security: 'shield-check' }
+                                    return (
+                                      <span key={a} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded-lg flex items-center gap-1">
+                                        <i className={`ti ti-${icons[a] ?? 'check'} text-[9px]`} />{labels[a] ?? a}
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Tenant info */}
+                              {unit.status === 'occupied' && lease && (
+                                <div className="bg-blue-50 rounded-xl p-3">
+                                  <p className="text-xs font-semibold text-blue-800">
+                                    <i className="ti ti-user mr-1" />{tenant?.full_name ?? 'Mpangaji'}
+                                  </p>
+                                  {tenant?.phone && (
+                                    <a href={`tel:${tenant.phone}`} className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-0.5">
+                                      <i className="ti ti-phone" /> {tenant.phone}
+                                    </a>
+                                  )}
+                                  <div className="flex gap-3 mt-1 text-[10px] text-blue-500">
+                                    <span>{t('pr_kuanza_prefix')} {new Date(lease.start_date).toLocaleDateString('sw-TZ')}</span>
+                                    {lease.end_date && <span>{t('pr_kumalizika_prefix')} {new Date(lease.end_date).toLocaleDateString('sw-TZ')}</span>}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Actions */}
+                              {canManage && (
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    onClick={() => openEditUnit(unit)}
+                                    className="text-xs border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
+                                  >
+                                    <i className="ti ti-pencil mr-1" />{t('pr_mali_edit')}
+                                  </button>
+                                  {unit.status === 'vacant' ? (
+                                    <>
+                                      <button
+                                        onClick={() => { setTenantUnit(unit); setTRent(String(unit.monthly_rent)); setTenantError(null) }}
+                                        className="text-xs bg-primary-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-primary-600 transition"
+                                      >
+                                        {t('pr_unit_add_tenant')}
+                                      </button>
+                                      <a
+                                        href={`/property/brokerage/new?unit_id=${unit.id}`}
+                                        className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1.5 rounded-lg font-medium hover:bg-amber-100 transition whitespace-nowrap"
+                                      >
+                                        🤝 NF Broker
+                                      </a>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleEndLease(unit)}
+                                      className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg font-medium hover:bg-red-100 transition"
+                                    >
+                                      {t('pr_lease_end_btn')}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+              )
+            })}
+          </div>
+        )
+      })()}
 
       {/* Edit unit modal */}
       {editUnit && (
@@ -719,6 +860,19 @@ export default function MaliDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Building setup wizard */}
+      {showBuildingSetup && orgId && (
+        <BuildingSetupModal
+          listingId={id}
+          orgId={orgId}
+          onDone={(newUnits) => {
+            setUnits(prev => [...(newUnits as UnitWithLease[]), ...prev])
+            setShowBuildingSetup(false)
+          }}
+          onClose={() => setShowBuildingSetup(false)}
+        />
       )}
 
       {/* Edit property modal */}
