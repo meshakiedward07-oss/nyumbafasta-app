@@ -209,13 +209,6 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
           </div>
         )}
 
-        {/* Fresh listing banner */}
-        {isNew && (
-          <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold px-3 py-1 text-center tracking-wide flex items-center justify-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse flex-shrink-0" />
-            {t('lst_card_new_banner')}
-          </div>
-        )}
 
         {/* Image area */}
         <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
@@ -284,20 +277,22 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
         {/* Card content */}
         <div className="p-3.5">
 
-          {/* Type chip + Price */}
+          {/* Price + type chip */}
           <div className="flex items-center justify-between gap-2 mb-2">
-            <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${typeStyle.pillBg} ${typeStyle.pillText}`}>
+            <div className="flex-1 min-w-0">
+              <p className="text-primary-600 text-base font-extrabold leading-none tabular-nums">
+                {formatPrice(listing.price_monthly)}
+                <span className="text-[11px] font-medium text-gray-400 ml-0.5">{t('lst_per_month')}</span>
+              </p>
+            </div>
+            <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${typeStyle.pillBg} ${typeStyle.pillText}`}>
               <i className={`ti ${typeStyle.icon} text-xs`} aria-hidden="true" />
               {typeStyle.label}
-            </div>
-            <div className="text-primary-600 text-sm font-bold whitespace-nowrap flex-shrink-0 tabular-nums">
-              {formatPrice(listing.price_monthly)}
-              <span className="text-[10px] font-medium text-gray-400">{t('lst_per_month')}</span>
             </div>
           </div>
 
           {/* Title */}
-          <p className="font-bold text-gray-900 text-[14px] leading-snug mb-1.5 line-clamp-1">
+          <p className="font-bold text-gray-900 text-[14px] leading-snug mb-1.5 line-clamp-2">
             {listing.title || `${typeStyle.label} – ${listing.district}`}
           </p>
 
@@ -309,7 +304,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
             </span>
           </p>
 
-          {/* Amenity pills */}
+          {/* Amenity pills — cap at 2 to keep cards tidy */}
           <div className="flex gap-1 flex-wrap mb-2.5">
             {hasUnlocked && (
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border bg-primary-50 border-primary-200 text-primary-700">
@@ -329,7 +324,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
                 {listing.furnished === 'furnished' ? t('lst_furnished_full') : listing.furnished === 'semi' ? t('lst_furnished_semi') : t('lst_furnished_empty')}
               </span>
             )}
-            {listing.amenities?.slice(0, 3).map(a => {
+            {listing.amenities?.slice(0, 2).map(a => {
               const s = AMENITY_STYLE[a]
               if (!s) return (
                 <span key={a} className="text-xs px-2 py-0.5 rounded-full border bg-gray-50 border-gray-200 text-gray-500">
@@ -343,9 +338,9 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
                 </span>
               )
             })}
-            {listing.amenities?.length > 3 && (
+            {listing.amenities?.length > 2 && (
               <span className="text-xs px-2 py-0.5 rounded-full border bg-gray-50 border-gray-100 text-gray-400">
-                +{listing.amenities.length - 3}
+                +{listing.amenities.length - 2}
               </span>
             )}
           </div>
@@ -369,56 +364,48 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
           )}
 
           {/* Dalali footer */}
-          <div className="flex items-center justify-between pt-2.5 border-t border-gray-100/70">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Avatar
-                  src={listing.dalali?.avatar_url}
-                  name={listing.dalali?.full_name ?? 'Dalali'}
-                  size={28}
-                />
-                {isVerified && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-primary-500 rounded-full flex items-center justify-center border border-white">
-                    <i className="ti ti-check text-white" style={{ fontSize: '7px' }} aria-hidden="true" />
+          <div className="flex items-center gap-2 pt-2.5 border-t border-gray-100/70">
+            <div className="relative flex-shrink-0">
+              <Avatar
+                src={listing.dalali?.avatar_url}
+                name={listing.dalali?.full_name ?? 'Dalali'}
+                size={28}
+              />
+              {isVerified && (
+                <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-primary-500 rounded-full flex items-center justify-center border border-white">
+                  <i className="ti ti-check text-white" style={{ fontSize: '7px' }} aria-hidden="true" />
+                </span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1">
+                <p className="text-xs font-semibold text-gray-700 truncate leading-tight">{listing.dalali?.full_name}</p>
+                {isFavourite && (
+                  <span className="flex-shrink-0 inline-flex items-center bg-amber-100 text-amber-700 text-[9px] font-bold px-1 py-px rounded leading-none">
+                    <i className="ti ti-rosette-discount-check" style={{ fontSize: '9px' }} aria-hidden="true" />
                   </span>
                 )}
               </div>
-              <div>
-                <div className="flex items-center gap-1 flex-wrap">
-                  <p className="text-xs font-medium text-gray-700 leading-tight">{listing.dalali?.full_name}</p>
-                  {isFavourite && (
-                    <span className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
-                      <i className="ti ti-rosette-discount-check" style={{ fontSize: '9px' }} aria-hidden="true" /> Halisi
-                    </span>
-                  )}
+              {rating > 0 ? (
+                <div className="flex items-center gap-0.5 mt-0.5">
+                  {[1,2,3,4,5].map(star => (
+                    <i key={star} className={`ti ti-star-filled text-[9px] ${star <= Math.round(rating) ? 'text-amber-400' : 'text-gray-200'}`} aria-hidden="true" />
+                  ))}
+                  <span className="text-[10px] text-gray-400 ml-0.5">{rating.toFixed(1)}</span>
                 </div>
-                {rating > 0 && (
-                  <div className="flex items-center gap-0.5 mt-0.5">
-                    {[1,2,3,4,5].map(star => (
-                      <i
-                        key={star}
-                        className={`ti ti-star-filled text-[9px] ${star <= Math.round(rating) ? 'text-amber-400' : 'text-gray-200'}`}
-                        aria-hidden="true"
-                      />
-                    ))}
-                    <span className="text-[10px] text-gray-400 ml-0.5">{rating.toFixed(1)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {listing.created_at && (
-                <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+              ) : listing.created_at ? (
+                <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-0.5">
                   <i className="ti ti-clock text-[9px]" aria-hidden="true" />
                   {listedAgo(listing.created_at, t)}
-                </span>
-              )}
-              <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
-                <i className="ti ti-eye text-xs text-gray-400" aria-hidden="true" />
-                <span className="text-xs text-gray-400">{listing.view_count}</span>
-              </div>
+                </p>
+              ) : null}
             </div>
+            {listing.created_at && rating > 0 && (
+              <span className="text-[10px] text-gray-400 flex-shrink-0 flex items-center gap-0.5">
+                <i className="ti ti-clock text-[9px]" aria-hidden="true" />
+                {listedAgo(listing.created_at, t)}
+              </span>
+            )}
           </div>
 
         </div>

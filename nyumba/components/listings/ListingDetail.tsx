@@ -575,7 +575,7 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
           aria-label={t('common_back')}
           className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 flex-shrink-0"
         >
-          ←
+          <i className="ti ti-arrow-left text-lg" aria-hidden="true" />
         </button>
         <p aria-hidden="true" className="flex-1 text-sm font-semibold text-gray-800 truncate">
           {displayTitle}
@@ -608,9 +608,9 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
                 priority
               />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
-                <i className="ti ti-home text-5xl text-gray-300" aria-hidden="true" />
-                <span className="text-sm">{t('lst_no_photos')}</span>
+              <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-blue-50 to-gray-50">
+                <i className="ti ti-home-2 text-6xl text-gray-300" aria-hidden="true" />
+                <span className="text-sm text-gray-400">{t('lst_no_photos')}</span>
               </div>
             )}
 
@@ -627,10 +627,15 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
             {/* Boosted badge */}
             {listing.is_boosted && (
-              <div className="absolute top-3 left-3 bg-primary-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+              <div className="absolute top-3 left-3 bg-primary-500 text-white text-xs font-medium px-2 py-1 rounded-full shadow-sm">
                 <i className="ti ti-bolt" aria-hidden="true" /> {BOOSTED_LABEL}
               </div>
             )}
+
+            {/* Share overlay — top right (SaveButton is in sticky header) */}
+            <div className="absolute top-3 right-3" onClick={e => e.stopPropagation()}>
+              <ShareButton listing={listing} variant="card" />
+            </div>
 
             {/* Dot indicators */}
             {images.length > 1 && (
@@ -655,17 +660,19 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
 
           {/* Thumbnails */}
           {images.length > 1 && (
-            <div className="flex gap-2 px-4 lg:px-0 py-2 overflow-x-auto scrollbar-none bg-white lg:bg-transparent border-b border-gray-100 lg:border-0 lg:mt-2">
+            <div className="flex gap-2 px-4 lg:px-0 py-3 overflow-x-auto scrollbar-none border-b border-gray-100 lg:border-0 lg:mt-2" style={{ background: 'rgba(0,0,0,0.03)' }}>
               {images.map((src, i) => (
                 <button
                   key={i}
                   aria-label={`Angalia picha ${i + 1}`}
                   onClick={() => { setActiveImg(i); setImgError(false) }}
-                  className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
-                    activeImg === i ? 'border-primary-500' : 'border-transparent'
+                  className={`relative flex-shrink-0 w-16 h-12 rounded-xl overflow-hidden transition-all shadow-sm ${
+                    activeImg === i
+                      ? 'ring-2 ring-primary-500 ring-offset-1 opacity-100'
+                      : 'opacity-60 hover:opacity-80'
                   }`}
                 >
-                  <Image fill src={src} alt={`Picha ${i + 1}`} className="object-cover" sizes="56px" />
+                  <Image fill src={src} alt={`Picha ${i + 1}`} className="object-cover" sizes="64px" />
                 </button>
               ))}
             </div>
