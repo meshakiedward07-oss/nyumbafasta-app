@@ -7,7 +7,7 @@ import {
   MAINTENANCE_CATEGORY_LABELS, MAINTENANCE_PRIORITY_LABELS, MAINTENANCE_STATUS_LABELS,
   PRIORITY_COLORS, STATUS_COLORS,
 } from '@/lib/types/property'
-import type { MaintenanceRequest, MaintenanceCategory, MaintenancePriority, MaintenanceStatus } from '@/lib/types/property'
+import type { MaintenanceRequest, MaintenanceCategory, MaintenancePriority } from '@/lib/types/property'
 
 type RichRequest = MaintenanceRequest & {
   reporter: { id: string; full_name: string | null; phone: string | null; avatar_url: string | null } | null
