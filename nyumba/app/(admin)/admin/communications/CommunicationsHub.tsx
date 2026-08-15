@@ -132,23 +132,30 @@ export default function CommunicationsHub({ userId, userName, userAvatar, sender
         style={{ background: '#1a1a18', borderColor: '#2a2a28' }}
       >
         {/* Hub branding */}
-        <div className="px-5 py-4 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
-          <div className="flex items-center gap-2.5">
+        <div className="px-4 py-4 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
+          <div className="flex items-center gap-2.5 mb-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#1D9E75' }}>
               <i className="ti ti-messages text-white text-base" aria-hidden="true" />
             </div>
             <div>
               <p className="font-bold text-white text-sm leading-tight">Mawasiliano</p>
-              <p className="text-[10px]" style={{ color: '#666660' }}>Communication Hub</p>
+              <p className="text-[10px] leading-tight" style={{ color: '#999992' }}>Communication Hub</p>
             </div>
           </div>
+          <a href="/admin"
+            className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-1.5 rounded-lg transition-all hover:bg-white/10"
+            style={{ color: '#999992' }}
+          >
+            <i className="ti ti-arrow-left text-xs" aria-hidden="true" />
+            Admin Panel
+          </a>
         </div>
 
         {/* Nav groups */}
-        <nav className="flex-1 px-3 py-4 space-y-5">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           {GROUPS.map(group => (
             <div key={group.title}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider px-2 mb-1.5" style={{ color: '#666660' }}>
+              <p className="text-[9px] font-bold uppercase tracking-widest px-2 mb-1.5" style={{ color: '#666660' }}>
                 {group.title}
               </p>
               {group.items.map(item => {
@@ -157,15 +164,15 @@ export default function CommunicationsHub({ userId, userName, userAvatar, sender
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 text-left"
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-all mb-0.5 text-left"
                     style={active
                       ? { background: '#1D9E75', color: '#ffffff' }
                       : { color: '#b0b0aa' }
                     }
                   >
-                    <i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
-                    <span>{item.label}</span>
-                    {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60" />}
+                    <i className={`ti ti-${item.icon} text-sm w-4 text-center flex-shrink-0`} aria-hidden="true" />
+                    <span className="truncate">{item.label}</span>
+                    {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />}
                   </button>
                 )
               })}
