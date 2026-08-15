@@ -80,7 +80,7 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
       const isVideo   = firstFile.type.startsWith('video/')
 
       // ── Step 1: ratio pre-check for images (cheap, no upload yet) ──────────
-      if (!isVideo && !force && files.length === 1) {
+      if (!isVideo && !force) {
         setProgress(5)
         const checkForm = new FormData()
         checkForm.append('file', firstFile)
@@ -145,6 +145,12 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
       setProgress(95)
 
       if (!processRes.ok) {
+        if (data.warning) {
+          setWarning(data.message)
+          setPhase('idle')
+          setProgress(0)
+          return
+        }
         const msg = data.error ?? t('adv_generic_error')
         const detail = data.detail ? ` (${data.detail})` : ''
         setError(msg + detail)

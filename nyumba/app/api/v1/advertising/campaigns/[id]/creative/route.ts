@@ -225,6 +225,30 @@ async function handlePresigned({
   const isCarousel = !isVideo && paths.length > 1
   const mediaType  = isVideo ? 'video' : isCarousel ? 'carousel' : 'image'
 
+  // Download files FIRST — before touching the DB
+  let buffers: Buffer[]
+  try {
+    buffers = await Promise.all(
+      paths.map(async path => {
+        const { data, error } = await admin.storage.from('listings').download(path)
+        if (error || !data) throw new Error(`Haikuweza kupakua faili: ${error?.message ?? path}`)
+        return Buffer.from(await data.arrayBuffer())
+      }),
+    )
+  } catch (err) {
+    await admin.storage.from('listings').remove(paths).catch(() => {})
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
+
+  // Ratio check BEFORE creating the DB record — no orphaned records on failure
+  if (!isVideo && !force) {
+    const check = await checkImageRatio(buffers[0])
+    if (!check.ok) {
+      await admin.storage.from('listings').remove(paths).catch(() => {})
+      return NextResponse.json({ warning: true, error: check.message, message: check.message, ratio: check.ratio }, { status: 422 })
+    }
+  }
+
   const { data: creative, error: createErr } = await admin
     .from('ad_creatives')
     .insert({ advertiser_id: advertiserId, campaign_id: campaignId, media_type: mediaType, original_url: '', processing_status: 'processing' })
@@ -239,40 +263,16 @@ async function handlePresigned({
   const basePath   = `ad-creatives/${advertiserId}/${creativeId}`
 
   try {
-    // Download each file from Supabase Storage
-    const buffers = await Promise.all(
-      paths.map(async path => {
-        const { data, error } = await admin.storage.from('listings').download(path)
-        if (error || !data) throw new Error(`Haikuweza kupakua faili: ${error?.message ?? path}`)
-        return Buffer.from(await data.arrayBuffer())
-      }),
-    )
-
     if (isVideo) {
       const result = await uploadVideo(buffers[0], mimeType, advertiserId)
       await admin.from('ad_creatives').update({ media_type: 'video', original_url: result.original_url, video_url: result.video_url, video_thumb_url: result.video_thumb_url, processing_status: 'done' }).eq('id', creativeId)
       await admin.from('ad_campaigns').update({ creative_id: creativeId, video_url: result.video_url, image_url: result.video_thumb_url }).eq('id', campaignId)
     } else if (isCarousel) {
-      // Ratio check first slide unless forced
-      if (!force) {
-        const check = await checkImageRatio(buffers[0])
-        if (!check.ok) {
-          await admin.from('ad_creatives').update({ processing_status: 'failed', error_message: check.message }).eq('id', creativeId)
-          return NextResponse.json({ warning: true, message: check.message, ratio: check.ratio }, { status: 422 })
-        }
-      }
       const originalUrls = await Promise.all(buffers.map((buf, i) => uploadOriginal(buf, mimeType, `${basePath}/original-${i}`)))
       const { carousel_urls, first } = await processCarousel(buffers, basePath, originalUrls)
       await admin.from('ad_creatives').update({ media_type: 'carousel', ...first, original_url: originalUrls[0], carousel_urls, processing_status: 'done' }).eq('id', creativeId)
       await admin.from('ad_campaigns').update({ creative_id: creativeId, image_url: first.banner_url }).eq('id', campaignId)
     } else {
-      if (!force) {
-        const check = await checkImageRatio(buffers[0])
-        if (!check.ok) {
-          await admin.from('ad_creatives').update({ processing_status: 'failed', error_message: check.message }).eq('id', creativeId)
-          return NextResponse.json({ warning: true, message: check.message, ratio: check.ratio }, { status: 422 })
-        }
-      }
       const originalUrl = await uploadOriginal(buffers[0], mimeType, `${basePath}/original`)
       const variants    = await processImage(buffers[0], basePath, originalUrl)
       await admin.from('ad_creatives').update({ media_type: 'image', ...variants, processing_status: 'done' }).eq('id', creativeId)
