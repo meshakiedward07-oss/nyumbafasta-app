@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import type { Vendor } from '@/lib/types/property'
 import { MAINTENANCE_CATEGORY_LABELS, MAINTENANCE_CATEGORY_ICONS } from '@/lib/types/property'
+import { useLanguage } from '@/lib/i18n/context'
 
 const CATEGORIES = [
   'all', 'plumbing', 'electrical', 'structural', 'cleaning', 'security', 'appliance', 'other',
@@ -13,6 +14,7 @@ const EMPTY_FORM = {
 }
 
 export default function VendorsPage() {
+  const { t } = useLanguage()
   const [orgId,        setOrgId]        = useState<string | null>(null)
   const [vendors,      setVendors]      = useState<Vendor[]>([])
   const [loading,      setLoading]      = useState(true)
@@ -64,7 +66,7 @@ export default function VendorsPage() {
   }
 
   async function handleSave() {
-    if (!orgId || !form.name.trim()) { setFormErr('Jina la fundi linahitajika'); return }
+    if (!orgId || !form.name.trim()) { setFormErr(t('pr_vendors_err_name')); return }
     setSaving(true); setFormErr(null)
     try {
       const body = {
@@ -87,20 +89,20 @@ export default function VendorsPage() {
         })
       }
       const data = await res.json()
-      if (!res.ok) { setFormErr(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setFormErr(data.error ?? t('pr_err_generic')); return }
       await load(orgId)
       setModal(null)
       if (modal === 'add') {
-        setSuccessMsg(`${form.name.trim()} amepokelewa na ataonekana hapa baada ya uthibitisho wa admin.`)
+        setSuccessMsg(t('pr_vendors_received_desc').replace('{name}', form.name.trim()))
       }
-    } catch { setFormErr('Haikuweza kuhifadhi. Jaribu tena.') }
+    } catch { setFormErr(t('pr_vendors_err_save')) }
     finally { setSaving(false) }
   }
 
   async function handleToggleActive(vendor: Vendor) {
     if (!orgId) return
     const confirm_ = vendor.is_active
-      ? window.confirm(`Futa ${vendor.name} kutoka kwenye orodha?`)
+      ? window.confirm(t('pr_vendors_deact_confirm').replace('{name}', vendor.name))
       : true
     if (!confirm_) return
     await fetch(`/api/v1/organizations/${orgId}/vendors/${vendor.id}`, {
@@ -129,23 +131,23 @@ export default function VendorsPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-gray-900 mb-1">
-              {modal === 'add' ? 'Ongeza Fundi' : `Hariri — ${editTarget?.name}`}
+              {modal === 'add' ? t('pr_vendors_add') : `${t('pr_vendors_edit_prefix')} ${editTarget?.name}`}
             </h2>
             {modal === 'add' && (
               <p className="text-xs text-amber-600 mb-4 flex items-center gap-1.5">
                 <i className="ti ti-info-circle" aria-hidden="true" />
-                Fundi mpya atapitiwa na admin kabla ya kuonekana kwenye orodha.
+                {t('pr_vendors_new_review_notice')}
               </p>
             )}
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Jina *</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_vendors_name_short')}</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="mfano: Juma Bomba Services"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Aina ya Kazi</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_vendors_job_type')}</label>
                 <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
                   {CATEGORIES.filter(c => c !== 'all').map(c => (
@@ -155,32 +157,32 @@ export default function VendorsPage() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-1">Simu</label>
+                  <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_vendors_phone_short')}</label>
                   <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                     placeholder="+255..."
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-1">Barua pepe</label>
+                  <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_vendors_email_short')}</label>
                   <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                     placeholder="mfano@gmail.com"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Utaalamu (hiari)</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_vendors_specialty_opt')}</label>
                 <input value={form.specialty} onChange={e => setForm(f => ({ ...f, specialty: e.target.value }))}
                   placeholder="mfano: Bomba la maji, umeme wa jua..."
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Eneo (hiari)</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_vendors_location_opt')}</label>
                 <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                   placeholder="mfano: Kinondoni, Dar es Salaam"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Maelezo (hiari)</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_vendors_notes_opt')}</label>
                 <textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="Bei, masaa ya kufanya kazi, nk..."
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
@@ -189,11 +191,11 @@ export default function VendorsPage() {
               <div className="flex gap-2 pt-1">
                 <button onClick={handleSave} disabled={saving || !form.name.trim()}
                   className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
-                  {saving ? 'Inahifadhi...' : modal === 'add' ? 'Ongeza' : 'Hifadhi'}
+                  {saving ? t('pr_vendors_saving') : modal === 'add' ? t('pr_vendors_add_label') : t('pr_vendors_save')}
                 </button>
                 <button onClick={() => setModal(null)}
                   className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-                  Ghairi
+                  {t('pr_cancel')}
                 </button>
               </div>
             </div>
@@ -204,15 +206,15 @@ export default function VendorsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Mafundi</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('pr_vendors_title')}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {activeCount} mafundi wamethibitishwa
+            {t('pr_vendors_active_subtitle').replace('{n}', String(activeCount))}
           </p>
         </div>
         <button onClick={openAdd}
           className="flex items-center gap-2 bg-primary-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition flex-shrink-0">
           <i className="ti ti-plus" aria-hidden="true" />
-          Ongeza
+          {t('pr_vendors_add_label')}
         </button>
       </div>
 
@@ -221,7 +223,7 @@ export default function VendorsPage() {
         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3 mb-4">
           <i className="ti ti-clock text-amber-500 text-xl flex-shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-amber-800">Ombi Limepokelewa</p>
+            <p className="text-sm font-medium text-amber-800">{t('pr_vendors_received_title')}</p>
             <p className="text-xs text-amber-600 mt-0.5">{successMsg}</p>
           </div>
           <button onClick={() => setSuccessMsg(null)} className="text-amber-400 hover:text-amber-600">
@@ -235,9 +237,9 @@ export default function VendorsPage() {
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3 mb-4">
           <i className="ti ti-shield-check text-blue-500 text-xl flex-shrink-0 mt-0.5" aria-hidden="true" />
           <div>
-            <p className="text-sm font-medium text-blue-800">Mafundi Wanapitiwa</p>
+            <p className="text-sm font-medium text-blue-800">{t('pr_vendors_review_title')}</p>
             <p className="text-xs text-blue-600 mt-0.5">
-              Mafundi wanapitiwa na timu yetu kabla ya kuonekana hapa ili kuhakikisha ubora na usalama.
+              {t('pr_vendors_review_desc')}
             </p>
           </div>
         </div>
@@ -245,7 +247,7 @@ export default function VendorsPage() {
 
       {/* Search */}
       <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-        placeholder="Tafuta jina, utaalamu, eneo..."
+        placeholder={t('pr_vendors_search_full_ph')}
         className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary-300" />
 
       {/* Category tabs */}
@@ -257,7 +259,7 @@ export default function VendorsPage() {
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap ${
                 catFilter === c ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}>
-              {c === 'all' ? 'Yote' : (MAINTENANCE_CATEGORY_LABELS[c as keyof typeof MAINTENANCE_CATEGORY_LABELS] ?? c)}
+              {c === 'all' ? t('pr_vendors_filter_all') : (MAINTENANCE_CATEGORY_LABELS[c as keyof typeof MAINTENANCE_CATEGORY_LABELS] ?? c)}
               <span className="ml-1 opacity-70">{count}</span>
             </button>
           )
@@ -273,17 +275,17 @@ export default function VendorsPage() {
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-14 text-center">
           <i className="ti ti-address-book text-5xl text-gray-200" aria-hidden="true" />
           <p className="text-gray-500 font-medium mt-3">
-            {vendors.length === 0 ? 'Huna mafundi bado' : 'Hakuna matokeo'}
+            {vendors.length === 0 ? t('pr_vendors_no_vendors') : t('pr_hati_no_results')}
           </p>
           <p className="text-sm text-gray-400 mt-1">
             {vendors.length === 0
-              ? 'Ongeza fundi wa kwanza. Atahitaji uthibitisho wa admin kabla ya kuonekana.'
-              : 'Badilisha utafutaji au kichujio.'}
+              ? t('pr_vendors_empty_cta')
+              : t('pr_hati_no_results_desc')}
           </p>
           {vendors.length === 0 && (
             <button onClick={openAdd}
               className="mt-4 bg-primary-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
-              Ongeza Fundi
+              {t('pr_vendors_add')}
             </button>
           )}
         </div>
@@ -310,10 +312,10 @@ export default function VendorsPage() {
                       {/* Verification badge — only verified vendors appear here, so always show ✓ */}
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium flex items-center gap-0.5">
                         <i className="ti ti-shield-check text-[9px]" aria-hidden="true" />
-                        Imethibitishwa
+                        {t('pr_vendors_verified_badge')}
                       </span>
                       {!vendor.is_active && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">Amefutwa</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">{t('pr_vendors_deactivated')}</span>
                       )}
                     </div>
                     {vendor.specialty && (
@@ -332,7 +334,7 @@ export default function VendorsPage() {
                       )}
                       {vendor.jobs_completed > 0 && (
                         <span className="flex items-center gap-1 text-green-600">
-                          <i className="ti ti-check" aria-hidden="true" /> {vendor.jobs_completed} kazi
+                          <i className="ti ti-check" aria-hidden="true" /> {vendor.jobs_completed} {t('pr_vendors_jobs')}
                         </span>
                       )}
                     </div>
@@ -353,7 +355,7 @@ export default function VendorsPage() {
                     )}
                     <button onClick={() => openEdit(vendor)}
                       className="text-xs px-2.5 py-1.5 bg-gray-50 text-gray-600 rounded-xl font-medium hover:bg-gray-100 transition">
-                      Hariri
+                      {t('pr_btn_edit')}
                     </button>
                     <button onClick={() => handleToggleActive(vendor)}
                       className={`text-xs px-2.5 py-1.5 rounded-xl font-medium transition ${
@@ -361,7 +363,7 @@ export default function VendorsPage() {
                           ? 'bg-red-50 text-red-500 hover:bg-red-100'
                           : 'bg-green-50 text-green-600 hover:bg-green-100'
                       }`}>
-                      {vendor.is_active ? 'Futa' : 'Rejesha'}
+                      {vendor.is_active ? t('pr_btn_delete') : t('pr_vendors_restore')}
                     </button>
                   </div>
                 </div>

@@ -36,11 +36,11 @@ export default function CampaignCreativePage() {
       <div className="mt-4 bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
         <p className="font-semibold text-gray-700 mb-2">{t('adv_auto_formats')}</p>
         <ul className="space-y-1 text-xs text-gray-500">
-          <li>🎯 <strong>Banner</strong> — 1200×400 (ukurasa mkuu)</li>
-          <li>🔍 <strong>Search</strong> — 600×200 (matokeo ya utafutaji)</li>
-          <li>📍 <strong>Nearby</strong> — 300×200 (biashara karibu)</li>
-          <li>⭐ <strong>Featured</strong> — 800×450 (saraka ya biashara)</li>
-          <li>🎬 <strong>Thumbnail</strong> — 640×360 (video au ukurasa wa dalali)</li>
+          <li>🎯 {t('adv_format_banner')}</li>
+          <li>🔍 {t('adv_format_search')}</li>
+          <li>📍 {t('adv_format_nearby')}</li>
+          <li>⭐ {t('adv_format_featured')}</li>
+          <li>🎬 {t('adv_format_thumb')}</li>
         </ul>
       </div>
     </div>

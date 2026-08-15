@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { FileUploadButton } from '@/components/property/FileUploadButton'
+import { useLanguage } from '@/lib/i18n/context'
 
 const CATEGORIES: Record<string, string> = {
   maintenance: 'Matengenezo',
@@ -76,7 +77,35 @@ const EMPTY_RECUR = {
 }
 
 export default function MatumiziPage() {
+  const { t } = useLanguage()
   const router = useRouter()
+
+  function tCat(cat: string): string {
+    const map: Record<string, string> = {
+      maintenance: t('pr_matumizi_cat_maintenance'),
+      utilities:   t('pr_matumizi_cat_utilities'),
+      salaries:    t('pr_matumizi_cat_salaries'),
+      marketing:   t('pr_matumizi_cat_marketing'),
+      legal:       t('pr_matumizi_cat_legal'),
+      insurance:   t('pr_matumizi_cat_insurance'),
+      taxes:       t('pr_matumizi_cat_taxes'),
+      office:      t('pr_matumizi_cat_office'),
+      other:       t('pr_matumizi_cat_other'),
+    }
+    return map[cat] ?? CATEGORIES[cat] ?? cat
+  }
+
+  function tMethod(method: string): string {
+    const map: Record<string, string> = {
+      cash:          t('pr_matumizi_method_cash'),
+      mpesa:         t('pr_matumizi_method_mpesa'),
+      airtel:        t('pr_matumizi_method_airtel'),
+      bank_transfer: t('pr_matumizi_method_bank'),
+      cheque:        t('pr_matumizi_method_cheque'),
+      other:         t('pr_matumizi_method_other'),
+    }
+    return map[method] ?? METHODS[method] ?? method
+  }
   const now    = new Date()
 
   const [pageTab, setPageTab] = useState<PageTab>('expenses')
@@ -199,7 +228,7 @@ export default function MatumiziPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!orgId || !confirm('Futa matumizi haya?')) return
+    if (!orgId || !confirm(t('pr_matumizi_delete_confirm'))) return
     const res = await fetch(`/api/v1/organizations/${orgId}/expenses?expenseId=${id}`, { method: 'DELETE' })
     if (res.ok) setExpenses(prev => prev.filter(e => e.id !== id))
   }
@@ -210,9 +239,9 @@ export default function MatumiziPage() {
     setShowRecurForm(true)
   }
 
-  function openEditRecur(t: RecurringTemplate) {
-    setEditRecurId(t.id)
-    setRecurForm({ amount_tzs: String(t.amount_tzs), category: t.category, description: t.description, vendor: t.vendor ?? '', payment_method: t.payment_method, day_of_month: t.day_of_month })
+  function openEditRecur(tmpl: RecurringTemplate) {
+    setEditRecurId(tmpl.id)
+    setRecurForm({ amount_tzs: String(tmpl.amount_tzs), category: tmpl.category, description: tmpl.description, vendor: tmpl.vendor ?? '', payment_method: tmpl.payment_method, day_of_month: tmpl.day_of_month })
     setShowRecurForm(true)
   }
 
@@ -244,7 +273,7 @@ export default function MatumiziPage() {
   }
 
   async function handleDeleteRecur(id: string) {
-    if (!orgId || !confirm('Futa kielezo hiki?')) return
+    if (!orgId || !confirm(t('pr_matumizi_delete_recur_confirm'))) return
     const res = await fetch(`/api/v1/organizations/${orgId}/recurring-expenses?templateId=${id}`, { method: 'DELETE' })
     if (res.ok) setTemplates(prev => prev.filter(t => t.id !== id))
   }
@@ -296,7 +325,7 @@ export default function MatumiziPage() {
       <div className="p-4 lg:p-5 border-b border-gray-100 bg-white flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Matumizi</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t('pr_matumizi_title')}</h1>
             <p className="text-xs text-gray-400 mt-0.5">{monthLabel}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -310,7 +339,7 @@ export default function MatumiziPage() {
               onClick={pageTab === 'expenses' ? openAdd : openAddRecur}
               className="bg-primary-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors"
             >
-              + Ongeza
+              + {t('pr_matumizi_add')}
             </button>
           </div>
         </div>
@@ -320,13 +349,13 @@ export default function MatumiziPage() {
             onClick={() => setPageTab('expenses')}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${pageTab === 'expenses' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
           >
-            <i className="ti ti-list mr-1" />Matumizi
+            <i className="ti ti-list mr-1" />{t('pr_matumizi_tab_expenses')}
           </button>
           <button
             onClick={() => setPageTab('recurring')}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1 ${pageTab === 'recurring' ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
           >
-            <i className="ti ti-repeat" />Mara kwa Mara
+            <i className="ti ti-repeat" />{t('pr_matumizi_tab_recurring_long')}
             {templates.length > 0 && (
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${pageTab === 'recurring' ? 'bg-white/20' : 'bg-primary-100 text-primary-700'}`}>{templates.length}</span>
             )}
@@ -348,16 +377,16 @@ export default function MatumiziPage() {
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-red-50 rounded-2xl p-4 border border-red-100">
-                    <p className="text-xs text-gray-500 mb-1">Jumla ya Matumizi</p>
+                    <p className="text-xs text-gray-500 mb-1">{t('pr_matumizi_total_label')}</p>
                     <p className="text-2xl font-bold text-red-600">TZS {fmtMoney(total)}</p>
-                    <p className="text-xs text-gray-400 mt-1">{expenses.length} rekodi</p>
+                    <p className="text-xs text-gray-400 mt-1">{expenses.length} {t('pr_matumizi_records')}</p>
                   </div>
                   <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                    <p className="text-xs text-gray-500 mb-2">Kwa Aina</p>
+                    <p className="text-xs text-gray-500 mb-2">{t('pr_matumizi_by_category')}</p>
                     <div className="space-y-1">
                       {Object.entries(byCat).sort(([,a],[,b]) => b - a).slice(0, 4).map(([cat, amt]) => (
                         <div key={cat} className="flex justify-between text-xs">
-                          <span className="text-gray-600 truncate">{CATEGORIES[cat] ?? cat}</span>
+                          <span className="text-gray-600 truncate">{tCat(cat)}</span>
                           <span className="font-medium text-gray-800 ml-2">{fmtMoney(amt)}</span>
                         </div>
                       ))}
@@ -369,8 +398,8 @@ export default function MatumiziPage() {
                 {expenses.length === 0 ? (
                   <div className="text-center py-16 text-gray-400">
                     <p className="text-4xl mb-3">💸</p>
-                    <p className="font-medium">Hakuna matumizi {monthLabel}</p>
-                    <button onClick={openAdd} className="mt-4 text-primary-500 text-sm font-medium">+ Ongeza matumizi ya kwanza</button>
+                    <p className="font-medium">{t('pr_matumizi_empty_month')} {monthLabel}</p>
+                    <button onClick={openAdd} className="mt-4 text-primary-500 text-sm font-medium">{t('pr_matumizi_add_first')}</button>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -379,22 +408,22 @@ export default function MatumiziPage() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{CATEGORIES[exp.category] ?? exp.category}</span>
+                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{tCat(exp.category)}</span>
                               <span className="text-xs text-gray-400">{exp.expense_date}</span>
                             </div>
                             <p className="font-medium text-gray-900 text-sm">{exp.description}</p>
                             {exp.vendor && <p className="text-xs text-gray-500 mt-0.5">📍 {exp.vendor}</p>}
                             <div className="flex items-center gap-3 mt-2">
                               <span className="text-base font-bold text-red-600">TZS {fmtMoney(exp.amount_tzs)}</span>
-                              <span className="text-xs text-gray-400">{METHODS[exp.payment_method] ?? exp.payment_method}</span>
+                              <span className="text-xs text-gray-400">{tMethod(exp.payment_method)}</span>
                               {exp.receipt_url && (
                                 <a href={exp.receipt_url} target="_blank" rel="noreferrer" className="text-xs text-primary-500">🧾 Risiti</a>
                               )}
                             </div>
                           </div>
                           <div className="flex flex-col gap-1.5 flex-shrink-0">
-                            <button onClick={() => openEdit(exp)} className="text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">Hariri</button>
-                            <button onClick={() => handleDelete(exp.id)} className="text-xs text-red-500 border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-50">Futa</button>
+                            <button onClick={() => openEdit(exp)} className="text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">{t('pr_btn_edit')}</button>
+                            <button onClick={() => handleDelete(exp.id)} className="text-xs text-red-500 border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-50">{t('pr_btn_delete')}</button>
                           </div>
                         </div>
                       </div>
@@ -411,40 +440,40 @@ export default function MatumiziPage() {
           <div className="space-y-3">
             <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-xs text-blue-700">
               <i className="ti ti-info-circle mr-1" />
-              Vielelezo vya matumizi yanayorudiwa kila mwezi. Bonyeza &ldquo;Tumia&rdquo; kuongeza gharama mwezi huu haraka.
+              {t('pr_matumizi_recur_info')}
             </div>
             {templates.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
                 <p className="text-4xl mb-3">🔄</p>
-                <p className="font-medium">Hakuna vielelezo vya matumizi ya mara kwa mara</p>
-                <button onClick={openAddRecur} className="mt-4 text-primary-500 text-sm font-medium">+ Unda kielezo cha kwanza</button>
+                <p className="font-medium">{t('pr_matumizi_recur_empty_title')}</p>
+                <button onClick={openAddRecur} className="mt-4 text-primary-500 text-sm font-medium">{t('pr_matumizi_recur_create_first')}</button>
               </div>
             ) : (
-              templates.map(t => (
-                <div key={t.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+              templates.map(tmpl => (
+                <div key={tmpl.id} className="bg-white rounded-2xl border border-gray-100 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{CATEGORIES[t.category] ?? t.category}</span>
-                        <span className="text-xs text-gray-400">Siku {t.day_of_month} ya mwezi</span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{tCat(tmpl.category)}</span>
+                        <span className="text-xs text-gray-400">{t('pr_matumizi_recur_day').replace('{n}', String(tmpl.day_of_month))}</span>
                       </div>
-                      <p className="font-medium text-gray-900 text-sm">{t.description}</p>
-                      {t.vendor && <p className="text-xs text-gray-500 mt-0.5">📍 {t.vendor}</p>}
+                      <p className="font-medium text-gray-900 text-sm">{tmpl.description}</p>
+                      {tmpl.vendor && <p className="text-xs text-gray-500 mt-0.5">📍 {tmpl.vendor}</p>}
                       <div className="flex items-center gap-3 mt-2">
-                        <span className="text-base font-bold text-red-600">TZS {fmtMoney(Number(t.amount_tzs))}</span>
-                        <span className="text-xs text-gray-400">{METHODS[t.payment_method] ?? t.payment_method}</span>
+                        <span className="text-base font-bold text-red-600">TZS {fmtMoney(Number(tmpl.amount_tzs))}</span>
+                        <span className="text-xs text-gray-400">{tMethod(tmpl.payment_method)}</span>
                       </div>
                     </div>
                     <div className="flex flex-col gap-1.5 flex-shrink-0">
                       <button
-                        onClick={() => applyTemplate(t)}
+                        onClick={() => applyTemplate(tmpl)}
                         disabled={!!applyingId}
                         className="text-xs text-primary-600 border border-primary-200 px-3 py-1.5 rounded-lg hover:bg-primary-50 disabled:opacity-50 font-medium"
                       >
-                        {applyingId === t.id ? '...' : 'Tumia'}
+                        {applyingId === tmpl.id ? '...' : t('pr_btn_apply')}
                       </button>
-                      <button onClick={() => openEditRecur(t)} className="text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">Hariri</button>
-                      <button onClick={() => handleDeleteRecur(t.id)} className="text-xs text-red-500 border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-50">Futa</button>
+                      <button onClick={() => openEditRecur(tmpl)} className="text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">{t('pr_btn_edit')}</button>
+                      <button onClick={() => handleDeleteRecur(tmpl.id)} className="text-xs text-red-500 border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-50">{t('pr_btn_delete')}</button>
                     </div>
                   </div>
                 </div>
@@ -459,12 +488,12 @@ export default function MatumiziPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">{editId ? 'Hariri Gharama' : 'Ongeza Gharama'}</h2>
+              <h2 className="font-semibold text-gray-900">{editId ? t('pr_matumizi_edit_modal') : t('pr_matumizi_add_modal')}</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
             </div>
             <div className="p-4 space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Kiasi (TZS) *</label>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_matumizi_amount_label')}</label>
                 <input
                   type="number" placeholder="0" value={form.amount_tzs}
                   onChange={e => setForm(f => ({ ...f, amount_tzs: e.target.value }))}
@@ -472,7 +501,7 @@ export default function MatumiziPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Maelezo *</label>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_matumizi_desc_label')}</label>
                 <input
                   type="text" placeholder="Elezea gharama hii..." value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -481,34 +510,34 @@ export default function MatumiziPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-700 mb-1 block">Aina</label>
+                  <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_type_label')}</label>
                   <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className={inputCls}>
-                    {Object.entries(CATEGORIES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    {Object.keys(CATEGORIES).map(v => <option key={v} value={v}>{tCat(v)}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-700 mb-1 block">Njia ya Malipo</label>
+                  <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_matumizi_method_label')}</label>
                   <select value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value }))} className={inputCls}>
-                    {Object.entries(METHODS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    {Object.keys(METHODS).map(v => <option key={v} value={v}>{tMethod(v)}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Tarehe *</label>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_hesabu_date_label')} *</label>
                 <input type="date" value={form.expense_date} onChange={e => setForm(f => ({ ...f, expense_date: e.target.value }))} className={inputCls} />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Muuzaji / Mtoaji</label>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_matumizi_vendor_label2')}</label>
                 <input type="text" placeholder="Jina la muuzaji (hiari)" value={form.vendor} onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))} className={inputCls} />
               </div>
               <FileUploadButton
-                label="Pakia Risiti"
+                label={t('pr_matumizi_upload_receipt')}
                 value={form.receipt_url}
                 onChange={url => setForm(f => ({ ...f, receipt_url: url }))}
                 accept="image/*,application/pdf"
               />
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Maelezo zaidi</label>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_matumizi_notes_short')}</label>
                 <textarea
                   rows={2} placeholder="Maelezo ya ziada..." value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
@@ -520,7 +549,7 @@ export default function MatumiziPage() {
                 disabled={saving || !form.amount_tzs || !form.description || !form.expense_date}
                 className="w-full bg-primary-500 text-white py-3 rounded-xl font-medium text-sm hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {saving ? 'Inahifadhi...' : editId ? 'Hifadhi Mabadiliko' : 'Ongeza Gharama'}
+                {saving ? t('pr_matumizi_saving_state') : editId ? t('pr_matumizi_save_changes') : t('pr_matumizi_add_btn')}
               </button>
             </div>
           </div>
@@ -532,12 +561,12 @@ export default function MatumiziPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">{editRecurId ? 'Hariri Kielezo' : 'Kielezo Kipya cha Mara kwa Mara'}</h2>
+              <h2 className="font-semibold text-gray-900">{editRecurId ? t('pr_matumizi_recur_edit_modal') : t('pr_matumizi_recur_new_modal')}</h2>
               <button onClick={() => setShowRecurForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
             </div>
             <div className="p-4 space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Maelezo *</label>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_matumizi_desc_label')}</label>
                 <input
                   type="text" placeholder="e.g. Maji ya mwezi, Umeme, Mlinzi..." value={recurForm.description}
                   onChange={e => setRecurForm(f => ({ ...f, description: e.target.value }))}
@@ -545,7 +574,7 @@ export default function MatumiziPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Kiasi (TZS) *</label>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_matumizi_amount_label')}</label>
                 <input
                   type="number" placeholder="0" value={recurForm.amount_tzs}
                   onChange={e => setRecurForm(f => ({ ...f, amount_tzs: e.target.value }))}
@@ -554,13 +583,13 @@ export default function MatumiziPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-700 mb-1 block">Aina</label>
+                  <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_type_label')}</label>
                   <select value={recurForm.category} onChange={e => setRecurForm(f => ({ ...f, category: e.target.value }))} className={inputCls}>
-                    {Object.entries(CATEGORIES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    {Object.keys(CATEGORIES).map(v => <option key={v} value={v}>{tCat(v)}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-700 mb-1 block">Siku ya Mwezi (1–28)</label>
+                  <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_matumizi_day_of_month')}</label>
                   <input
                     type="number" min={1} max={28} value={recurForm.day_of_month}
                     onChange={e => setRecurForm(f => ({ ...f, day_of_month: Number(e.target.value) }))}
@@ -570,13 +599,13 @@ export default function MatumiziPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-700 mb-1 block">Njia ya Malipo</label>
+                  <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_matumizi_method_label')}</label>
                   <select value={recurForm.payment_method} onChange={e => setRecurForm(f => ({ ...f, payment_method: e.target.value }))} className={inputCls}>
-                    {Object.entries(METHODS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    {Object.keys(METHODS).map(v => <option key={v} value={v}>{tMethod(v)}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-700 mb-1 block">Muuzaji (hiari)</label>
+                  <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_matumizi_vendor_opt')}</label>
                   <input
                     type="text" placeholder="—" value={recurForm.vendor}
                     onChange={e => setRecurForm(f => ({ ...f, vendor: e.target.value }))}
@@ -589,7 +618,7 @@ export default function MatumiziPage() {
                 disabled={recurSaving || !recurForm.amount_tzs || !recurForm.description}
                 className="w-full bg-primary-500 text-white py-3 rounded-xl font-medium text-sm hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {recurSaving ? 'Inahifadhi...' : editRecurId ? 'Hifadhi Mabadiliko' : 'Unda Kielezo'}
+                {recurSaving ? t('pr_matumizi_saving_state') : editRecurId ? t('pr_matumizi_save_changes') : t('pr_matumizi_recur_create')}
               </button>
             </div>
           </div>

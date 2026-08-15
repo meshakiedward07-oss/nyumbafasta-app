@@ -1,6 +1,7 @@
 'use client'
 import Image from 'next/image'
 import { useState, useRef, useCallback } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Creative = {
   id: string
@@ -29,6 +30,7 @@ const PREVIEW_VARIANTS = [
 ] as const
 
 export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
+  const { t } = useLanguage()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [files,    setFiles]    = useState<File[]>([])
@@ -102,7 +104,7 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
       )
       if (!signRes.ok) {
         const d = await signRes.json().catch(() => ({}))
-        throw new Error(d.error ?? 'Haikuweza kupata URL ya upakiaji')
+        throw new Error(d.error ?? t('adv_sign_error'))
       }
       const { uploads } = await signRes.json() as {
         uploads: { signedUrl: string; token: string; path: string }[]
@@ -119,7 +121,7 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
           body:    files[i],
           signal:  controller.signal,
         })
-        if (!putRes.ok) throw new Error(`Upakiaji wa faili ${i + 1} umeshindwa (${putRes.status})`)
+        if (!putRes.ok) throw new Error(t('adv_upload_file_error').replace('{n}', String(i + 1)).replace('{s}', String(putRes.status)))
         paths.push(path)
       }
 
@@ -143,7 +145,7 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
       setProgress(95)
 
       if (!processRes.ok) {
-        const msg = data.error ?? 'Kuna tatizo. Jaribu tena.'
+        const msg = data.error ?? t('adv_generic_error')
         const detail = data.detail ? ` (${data.detail})` : ''
         setError(msg + detail)
         setPhase('failed')
@@ -157,9 +159,7 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
 
     } catch (e) {
       const isAbort = e instanceof Error && e.name === 'AbortError'
-      setError(isAbort
-        ? 'Imechukua muda mrefu sana. Jaribu faili ndogo zaidi au muunganiko bora.'
-        : 'Haikuweza kuunganika. Angalia mtandao na ujaribu tena.')
+      setError(isAbort ? t('adv_timeout_hint') : t('adv_network_check'))
       setPhase('failed')
     } finally {
       clearTimeout(timeoutId)
@@ -181,15 +181,15 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
         <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
           <span className="text-xl">✅</span>
           <div>
-            <p className="font-bold text-sm">Creative imepakiwa!</p>
-            <p className="text-xs text-green-600">Mifumo yote ya matangazo imeundwa kiotomatiki.</p>
+            <p className="font-bold text-sm">{t('adv_creative_uploaded')}</p>
+            <p className="text-xs text-green-600">{t('adv_creative_all_formats')}</p>
           </div>
         </div>
 
         {/* Variant previews */}
         <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-            Mifumo iliyoundwa
+            {t('adv_creative_formats_title')}
           </p>
           {PREVIEW_VARIANTS.map(v => {
             const url = creative[v.key]
@@ -264,24 +264,24 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
             )}
             <p className="text-xs text-gray-500">
               {files.length > 1
-                ? `${files.length} picha zilizochaguliwa`
+                ? t('adv_images_selected').replace('{n}', String(files.length))
                 : files[0].name}
               {' '}<button
                 onClick={e => { e.stopPropagation(); inputRef.current?.click() }}
                 className="text-primary-600 underline"
               >
-                Badilisha
+                {t('adv_change')}
               </button>
             </p>
           </div>
         ) : (
           <>
             <p className="text-3xl mb-2">🖼️</p>
-            <p className="text-sm font-medium text-gray-700">Buruta hapa au bonyeza kuchagua</p>
+            <p className="text-sm font-medium text-gray-700">{t('adv_drop_or_click')}</p>
             <p className="text-xs text-gray-400 mt-1">
-              Picha moja, video moja, au picha nyingi (carousel)
+              {t('adv_file_types_hint')}
             </p>
-            <p className="text-xs text-gray-400">Picha hadi 10MB · Video hadi 100MB</p>
+            <p className="text-xs text-gray-400">{t('adv_file_size_hint')}</p>
           </>
         )}
       </div>
@@ -289,20 +289,20 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
       {/* Portrait warning */}
       {warning && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm">
-          <p className="font-bold text-amber-800 mb-1">⚠️ Picha ndefu sana</p>
+          <p className="font-bold text-amber-800 mb-1">⚠️ {t('adv_portrait_warning')}</p>
           <p className="text-amber-700 text-xs">{warning}</p>
           <div className="flex gap-2 mt-2">
             <button
               onClick={() => upload(true)}
               className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-amber-600 transition"
             >
-              Endelea hata hivyo
+              {t('adv_continue_anyway')}
             </button>
             <button
               onClick={() => { setFiles([]); setPreview(null); setWarning(null) }}
               className="text-xs border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-50 transition"
             >
-              Chagua picha nyingine
+              {t('adv_choose_other_image')}
             </button>
           </div>
         </div>
@@ -319,7 +319,7 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
       {phase === 'uploading' && (
         <div>
           <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>Inashughulikia creative...</span>
+            <span>{t('adv_processing')}</span>
             <span>{progress}%</span>
           </div>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -329,7 +329,7 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
             />
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Mifumo ya banner, nearby, na featured inaundwa kiotomatiki...
+            {t('adv_formats_processing')}
           </p>
         </div>
       )}
@@ -342,21 +342,21 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
             disabled={files.length === 0}
             className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-primary-600 transition disabled:opacity-40"
           >
-            Pakia Creative
+            {t('adv_upload_btn')}
           </button>
           {onSkip && (
             <button
               onClick={onSkip}
               className="border border-gray-200 text-gray-500 text-sm px-4 py-2.5 rounded-xl hover:bg-gray-50 transition"
             >
-              Ruka
+              {t('adv_skip')}
             </button>
           )}
         </div>
       )}
 
       <p className="text-xs text-gray-400 text-center">
-        Landscape (upana zaidi) inafanya kazi vizuri zaidi · WebP · nyumbafasta.co watermark
+        {t('adv_upload_tip')}
       </p>
     </div>
   )

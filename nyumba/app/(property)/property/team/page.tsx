@@ -2,13 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { ORG_ROLE_LABELS } from '@/lib/types/property'
 import type { OrganizationMember, OrgRole } from '@/lib/types/property'
-
-const ASSIGNABLE_ROLES: { value: OrgRole; label: string }[] = [
-  { value: 'branch_manager',          label: 'Meneja wa Tawi'         },
-  { value: 'agent',                   label: 'Wakala'                 },
-  { value: 'maintenance_coordinator', label: 'Mratibu wa Matengenezo' },
-  { value: 'accountant',              label: 'Mhasibu'                },
-]
+import { useLanguage } from '@/lib/i18n/context'
 
 function roleBadgeClass(role: OrgRole) {
   if (role === 'owner')          return 'bg-primary-50 text-primary-700'
@@ -22,6 +16,13 @@ function RoleEditor({ member, orgId, onUpdated }: {
   orgId: string
   onUpdated: (m: OrganizationMember) => void
 }) {
+  const { t } = useLanguage()
+  const ASSIGNABLE_ROLES: { value: OrgRole; label: string }[] = [
+    { value: 'branch_manager',          label: t('pr_team_role_branch_manager') },
+    { value: 'agent',                   label: t('pr_team_role_agent')           },
+    { value: 'maintenance_coordinator', label: t('pr_team_role_maint_coord')     },
+    { value: 'accountant',              label: t('pr_team_role_accountant')       },
+  ]
   const [open, setOpen]     = useState(false)
   const [saving, setSaving] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -82,6 +83,13 @@ function TransferModal({ members, orgId, onDone, onClose }: {
   onDone: () => void
   onClose: () => void
 }) {
+  const { t } = useLanguage()
+  const ASSIGNABLE_ROLES: { value: OrgRole; label: string }[] = [
+    { value: 'branch_manager',          label: t('pr_team_role_branch_manager') },
+    { value: 'agent',                   label: t('pr_team_role_agent')           },
+    { value: 'maintenance_coordinator', label: t('pr_team_role_maint_coord')     },
+    { value: 'accountant',              label: t('pr_team_role_accountant')       },
+  ]
   const eligible   = members.filter(m => m.role !== 'owner')
   const [newId,    setNewId]   = useState(eligible[0]?.user_id ?? '')
   const [prevRole, setPrevRole] = useState<OrgRole>('branch_manager')
@@ -97,18 +105,18 @@ function TransferModal({ members, orgId, onDone, onClose }: {
       body: JSON.stringify({ new_owner_user_id: newId, previous_owner_role: prevRole }),
     })
     const data = await res.json()
-    if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); setSaving(false); return }
+    if (!res.ok) { setError(data.error ?? t('pr_err_generic')); setSaving(false); return }
     onDone()
   }
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-        <h2 className="text-lg font-bold text-gray-900 mb-1">Hamisha Umiliki wa Shirika</h2>
-        <p className="text-sm text-gray-500 mb-4">Hatua hii ni ya kudumu. Mwenye mpya atakuwa na mamlaka kamili ya shirika.</p>
+        <h2 className="text-lg font-bold text-gray-900 mb-1">{t('pr_team_transfer_heading')}</h2>
+        <p className="text-sm text-gray-500 mb-4">{t('pr_team_transfer_permanent')}</p>
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 block">Mwenye Mpya</label>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_team_new_owner_label')}</label>
             <select
               value={newId}
               onChange={e => setNewId(e.target.value)}
@@ -121,7 +129,7 @@ function TransferModal({ members, orgId, onDone, onClose }: {
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 block">Nafasi yako baada ya kuhamisha</label>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_team_your_new_role')}</label>
             <select
               value={prevRole}
               onChange={e => setPrevRole(e.target.value as OrgRole)}
@@ -137,10 +145,10 @@ function TransferModal({ members, orgId, onDone, onClose }: {
               disabled={saving || !newId}
               className="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-red-600 disabled:opacity-40"
             >
-              {saving ? 'Inahamisha...' : 'Hamisha Umiliki'}
+              {saving ? t('pr_team_transfer_doing') : t('pr_team_transfer_btn')}
             </button>
             <button onClick={onClose} className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-              Ghairi
+              {t('pr_cancel')}
             </button>
           </div>
         </div>
@@ -150,6 +158,13 @@ function TransferModal({ members, orgId, onDone, onClose }: {
 }
 
 export default function TeamPage() {
+  const { t } = useLanguage()
+  const ASSIGNABLE_ROLES: { value: OrgRole; label: string }[] = [
+    { value: 'branch_manager',          label: t('pr_team_role_branch_manager') },
+    { value: 'agent',                   label: t('pr_team_role_agent')           },
+    { value: 'maintenance_coordinator', label: t('pr_team_role_maint_coord')     },
+    { value: 'accountant',              label: t('pr_team_role_accountant')       },
+  ]
   const [members,      setMembers]      = useState<OrganizationMember[]>([])
   const [loading,      setLoading]      = useState(true)
   const [orgId,        setOrgId]        = useState<string | null>(null)
@@ -200,17 +215,17 @@ export default function TeamPage() {
       const data = await res.json()
       if (!res.ok) {
         if (data.upgrade_required) { setLimitHit(true); return }
-        setError(data.error ?? 'Kuna tatizo'); return
+        setError(data.error ?? t('pr_err_generic')); return
       }
       setMembers(prev => [...prev, data.member])
       setShowForm(false); setLookup('')
-    } catch { setError('Haikuweza kuunganika. Jaribu tena.') }
+    } catch { setError(t('pr_team_err_network')) }
     finally { setSaving(false) }
   }
 
   async function handleRemove(userId: string) {
     if (!orgId) return
-    if (!confirm('Una uhakika unataka kuondoa mwanachama huyu?')) return
+    if (!confirm(t('pr_team_remove_confirm'))) return
     await fetch(`/api/v1/organizations/${orgId}/members?user_id=${userId}`, { method: 'DELETE' })
     setMembers(prev => prev.filter(m => m.user_id !== userId))
   }
@@ -230,17 +245,15 @@ export default function TeamPage() {
             <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="ti ti-lock text-amber-500 text-3xl" aria-hidden="true" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Kikomo cha Wanachama</h2>
-            <p className="text-sm text-gray-500 mb-5">
-              Umefika kikomo cha wanachama wa timu kwenye mpango wako. Panda mpango ili kuongeza wanachama zaidi.
-            </p>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">{t('pr_team_limit_heading')}</h2>
+            <p className="text-sm text-gray-500 mb-5">{t('pr_team_limit_body')}</p>
             <a href="/property/usajili"
               className="block w-full py-3 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition mb-3">
-              Panda Mpango
+              {t('pr_team_upgrade_btn')}
             </a>
             <button onClick={() => setLimitHit(false)}
               className="text-sm text-gray-400 hover:text-gray-600">
-              Rudi nyuma
+              {t('pr_team_go_back')}
             </button>
           </div>
         </div>
@@ -257,8 +270,8 @@ export default function TeamPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Timu Yangu</h1>
-          <p className="text-sm text-gray-500">{members.length} mwanachama{members.length !== 1 ? '' : ''}</p>
+          <h1 className="text-xl font-bold text-gray-900">{t('pr_team_title')}</h1>
+          <p className="text-sm text-gray-500">{members.length} {t('pr_team_members_count')}</p>
         </div>
         {canManage && (
           <div className="flex gap-2">
@@ -268,7 +281,7 @@ export default function TeamPage() {
                 className="px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition hidden sm:flex items-center gap-1"
               >
                 <i className="ti ti-transfer" aria-hidden="true" />
-                <span>Hamisha</span>
+                <span>{t('pr_team_transfer_short')}</span>
               </button>
             )}
             <button
@@ -276,7 +289,7 @@ export default function TeamPage() {
               className="flex items-center gap-2 bg-primary-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
             >
               <i className="ti ti-user-plus" aria-hidden="true" />
-              <span>Alika</span>
+              <span>{t('pr_team_invite_btn2')}</span>
             </button>
           </div>
         )}
@@ -284,20 +297,20 @@ export default function TeamPage() {
 
       {showForm && (
         <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 shadow-sm">
-          <h2 className="font-semibold text-gray-900 mb-3">Ongeza Mwanachama</h2>
+          <h2 className="font-semibold text-gray-900 mb-3">{t('pr_team_add_heading')}</h2>
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Simu au Barua Pepe</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_team_phone_email_label')}</label>
               <input
                 type="text"
                 value={lookup}
                 onChange={e => setLookup(e.target.value)}
-                placeholder="+255 7XX XXX XXX au jina@barua.com"
+                placeholder={t('pr_team_lookup_ph2')}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Nafasi</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_team_position_label')}</label>
               <select
                 value={inviteRole}
                 onChange={e => setInviteRole(e.target.value as OrgRole)}
@@ -313,13 +326,13 @@ export default function TeamPage() {
                 disabled={saving || !lookup.trim()}
                 className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40"
               >
-                {saving ? 'Inaoeza...' : 'Ongeza'}
+                {saving ? t('pr_team_adding') : t('pr_team_add_btn')}
               </button>
               <button
                 onClick={() => { setShowForm(false); setError(null) }}
                 className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
               >
-                Ghairi
+                {t('pr_cancel')}
               </button>
             </div>
           </div>
@@ -333,8 +346,8 @@ export default function TeamPage() {
       ) : members.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
           <i className="ti ti-users text-5xl text-gray-200" aria-hidden="true" />
-          <p className="text-gray-500 font-medium mt-3">Hakuna wanachama wengine bado</p>
-          <p className="text-sm text-gray-400 mt-1">Alika wafanyakazi au washirika kwenye shirika lako.</p>
+          <p className="text-gray-500 font-medium mt-3">{t('pr_team_empty_title')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('pr_team_empty_desc')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -356,7 +369,7 @@ export default function TeamPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 text-sm">
                     {u?.full_name ?? '—'}
-                    {isMe && <span className="ml-1.5 text-xs text-gray-400">(Wewe)</span>}
+                    {isMe && <span className="ml-1.5 text-xs text-gray-400">({t('pr_team_you_label')})</span>}
                   </p>
                   <p className="text-xs text-gray-400 truncate">{u?.phone ?? u?.email ?? '—'}</p>
                 </div>
@@ -372,7 +385,7 @@ export default function TeamPage() {
                     <button
                       onClick={() => handleRemove(m.user_id)}
                       className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
-                      title="Ondoa mwanachama"
+                      title={t('pr_team_remove')}
                     >
                       <i className="ti ti-user-minus text-sm" aria-hidden="true" />
                     </button>
@@ -391,7 +404,7 @@ export default function TeamPage() {
             className="w-full py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition flex items-center justify-center gap-2"
           >
             <i className="ti ti-transfer" aria-hidden="true" />
-            Hamisha Umiliki wa Shirika
+            {t('pr_team_transfer_org_btn')}
           </button>
         </div>
       )}

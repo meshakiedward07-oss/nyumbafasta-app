@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 import {
   MAINTENANCE_CATEGORY_LABELS, MAINTENANCE_PRIORITY_LABELS, MAINTENANCE_STATUS_LABELS,
   PRIORITY_COLORS, STATUS_COLORS,
@@ -15,13 +16,16 @@ type RichRequest = MaintenanceRequest & {
   comment_count: Array<{ count: number }>
 }
 
-const STATUS_TABS: { value: MaintenanceStatus | 'all'; label: string }[] = [
-  { value: 'all',         label: 'Yote'            },
-  { value: 'open',        label: 'Wazi'            },
-  { value: 'in_progress', label: 'Inaendelea'      },
-  { value: 'resolved',    label: 'Imeshughulikiwa' },
-  { value: 'closed',      label: 'Imefungwa'       },
-]
+type MaintTab = 'all' | 'open' | 'in_progress' | 'resolved' | 'closed'
+const STATUS_TABS: MaintTab[] = ['all', 'open', 'in_progress', 'resolved', 'closed']
+
+const MAINT_TAB_KEYS = {
+  all:         'pr_maint_tab_all',
+  open:        'pr_maint_tab_open',
+  in_progress: 'pr_maint_tab_in_progress',
+  resolved:    'pr_maint_tab_resolved',
+  closed:      'pr_maint_tab_closed',
+} as const satisfies Record<MaintTab, string>
 
 const CATEGORIES: MaintenanceCategory[] = ['plumbing','electrical','structural','cleaning','security','appliance','other']
 const PRIORITIES: MaintenancePriority[] = ['urgent','high','medium','low']
@@ -38,12 +42,13 @@ function timeAgo(iso: string) {
 }
 
 export default function MaintenancePage() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [requests,   setRequests]   = useState<RichRequest[]>([])
   const [orgId,      setOrgId]      = useState<string | null>(null)
   const [units,      setUnits]      = useState<{ id: string; unit_number: string }[]>([])
   const [loading,    setLoading]    = useState(true)
-  const [tab,        setTab]        = useState<MaintenanceStatus | 'all'>('all')
+  const [tab,        setTab]        = useState<MaintTab>('all')
   const [showForm,   setShowForm]   = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError,  setFormError]  = useState<string | null>(null)
@@ -83,7 +88,7 @@ export default function MaintenancePage() {
   }, [])
 
   async function handleSubmit() {
-    if (!form.title.trim() || !orgId) { setFormError('Jaza kichwa cha ombi'); return }
+    if (!form.title.trim() || !orgId) { setFormError(t('pr_maint_err_title')); return }
     setSubmitting(true); setFormError(null)
     try {
       const res  = await fetch(`/api/v1/organizations/${orgId}/maintenance`, {
@@ -98,13 +103,13 @@ export default function MaintenancePage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setFormError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setFormError(data.error ?? t('pr_err_generic')); return }
       setShowForm(false)
       setForm({ title:'', description:'', category:'other', priority:'medium', unit_id:'',
                 estimated_cost:'', scheduled_at:'', notes:'', tenant_phone:'' })
       await load(orgId)
     } catch {
-      setFormError('Haikuweza kutuma. Jaribu tena.')
+      setFormError(t('pr_network_err'))
     } finally { setSubmitting(false) }
   }
 
@@ -124,15 +129,15 @@ export default function MaintenancePage() {
       <div className="p-4 lg:p-5 border-b border-gray-100 bg-white flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Matengenezo</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Maombi ya ukarabati na matengenezo</p>
+            <h1 className="text-xl font-bold text-gray-900">{t('pr_maint_title')}</h1>
+            <p className="text-xs text-gray-400 mt-0.5">{t('pr_maint_subtitle')}</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-2 bg-primary-500 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
           >
             <i className="ti ti-plus" aria-hidden="true" />
-            <span className="hidden sm:inline">Ombi Jipya</span>
+            <span className="hidden sm:inline">{t('pr_maint_add')}</span>
           </button>
         </div>
 
@@ -141,29 +146,29 @@ export default function MaintenancePage() {
           <div className="grid grid-cols-3 gap-2 mb-3">
             <div className="bg-blue-50 rounded-xl p-2.5 text-center">
               <p className="text-xl font-bold text-blue-600">{openCount}</p>
-              <p className="text-[10px] text-blue-500 font-medium">Wazi</p>
+              <p className="text-[10px] text-blue-500 font-medium">{t('pr_maint_summary_open')}</p>
             </div>
             <div className={`${urgentCount > 0 ? 'bg-red-50' : 'bg-gray-50'} rounded-xl p-2.5 text-center`}>
               <p className={`text-xl font-bold ${urgentCount > 0 ? 'text-red-600' : 'text-gray-400'}`}>{urgentCount}</p>
-              <p className={`text-[10px] font-medium ${urgentCount > 0 ? 'text-red-500' : 'text-gray-400'}`}>Dharura</p>
+              <p className={`text-[10px] font-medium ${urgentCount > 0 ? 'text-red-500' : 'text-gray-400'}`}>{t('pr_maint_summary_urgent')}</p>
             </div>
             <div className="bg-green-50 rounded-xl p-2.5 text-center">
               <p className="text-xl font-bold text-green-600">{resolvedMonth}</p>
-              <p className="text-[10px] text-green-500 font-medium">Mwezi huu</p>
+              <p className="text-[10px] text-green-500 font-medium">{t('pr_maint_summary_month')}</p>
             </div>
           </div>
         )}
 
         {/* Status tabs */}
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-          {STATUS_TABS.map(t => (
-            <button key={t.value} onClick={() => setTab(t.value)}
+          {STATUS_TABS.map(tabValue => (
+            <button key={tabValue} onClick={() => setTab(tabValue)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                tab === t.value ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                tab === tabValue ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}>
-              {t.label}
-              {t.value !== 'all' && (
-                <span className="ml-1 opacity-70">{requests.filter(r => r.status === t.value).length}</span>
+              {t(MAINT_TAB_KEYS[tabValue])}
+              {tabValue !== 'all' && (
+                <span className="ml-1 opacity-70">{requests.filter(r => r.status === tabValue).length}</span>
               )}
             </button>
           ))}
@@ -185,7 +190,7 @@ export default function MaintenancePage() {
             </div>
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-gray-900">Ombi Jipya la Matengenezo</h3>
+                <h3 className="font-bold text-gray-900">{t('pr_maint_form_title')}</h3>
                 <button
                   onClick={() => { setShowForm(false); setFormError(null) }}
                   className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
@@ -195,7 +200,7 @@ export default function MaintenancePage() {
                 </button>
               </div>
               <div className="space-y-3">
-                <input type="text" placeholder="Kichwa cha tatizo *"
+                <input type="text" placeholder={t('pr_maint_title_ph')}
                   value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
 
@@ -215,21 +220,21 @@ export default function MaintenancePage() {
                 {units.length > 0 && (
                   <select value={form.unit_id} onChange={e => setForm(p => ({ ...p, unit_id: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                    <option value="">Chagua kitengo (hiari)</option>
+                    <option value="">{t('pr_maint_unit_ph')}</option>
                     {units.map(u => <option key={u.id} value={u.id}>{u.unit_number}</option>)}
                   </select>
                 )}
 
-                <input type="tel" placeholder="Simu ya mpangaji (+255...) — hiari"
+                <input type="tel" placeholder={t('pr_maint_phone_opt_ph')}
                   value={form.tenant_phone} onChange={e => setForm(p => ({ ...p, tenant_phone: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
 
-                <textarea rows={3} placeholder="Maelezo ya tatizo..."
+                <textarea rows={3} placeholder={t('pr_maint_desc_ph')}
                   value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
 
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="number" placeholder="Gharama (Tsh)"
+                  <input type="number" placeholder={t('pr_maint_cost_ph')}
                     value={form.estimated_cost} onChange={e => setForm(p => ({ ...p, estimated_cost: e.target.value }))}
                     className="border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                   <input type="datetime-local"
@@ -245,11 +250,11 @@ export default function MaintenancePage() {
                 <div className="flex gap-2 pb-2">
                   <button onClick={() => { setShowForm(false); setFormError(null) }}
                     className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-3">
-                    Ghairi
+                    {t('pr_maint_cancel')}
                   </button>
                   <button onClick={handleSubmit} disabled={submitting}
                     className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-bold hover:bg-primary-600 transition disabled:opacity-40">
-                    {submitting ? 'Inatuma...' : 'Wasilisha Ombi'}
+                    {submitting ? t('pr_maint_submitting') : t('pr_maint_submit')}
                   </button>
                 </div>
               </div>
@@ -268,12 +273,12 @@ export default function MaintenancePage() {
           <div className="text-center py-16 px-6">
             <i className="ti ti-tool text-5xl text-gray-200" aria-hidden="true" />
             <p className="text-gray-500 font-medium mt-3">
-              {requests.length === 0 ? 'Hakuna maombi bado' : 'Hakuna matokeo'}
+              {requests.length === 0 ? t('pr_maint_empty_title') : t('pr_hati_no_results')}
             </p>
             <p className="text-sm text-gray-400 mt-1">
               {requests.length === 0
-                ? 'Bonyeza "Ombi Jipya" kuwasilisha tatizo la kwanza.'
-                : 'Badilisha kichujio.'}
+                ? t('pr_maint_empty_cta')
+                : t('pr_maint_filter_clear')}
             </p>
           </div>
         ) : (
@@ -319,7 +324,7 @@ export default function MaintenancePage() {
                         <p className="text-xs text-gray-400 truncate">
                           {req.description
                             ? req.description.slice(0, 60) + (req.description.length > 60 ? '…' : '')
-                            : 'Hakuna maelezo zaidi'}
+                            : t('pr_maint_no_desc')}
                         </p>
                         <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                           {req.assignee && (

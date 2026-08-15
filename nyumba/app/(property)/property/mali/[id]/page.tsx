@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 import { UNIT_TYPE_LABELS, UNIT_STATUS_LABELS } from '@/lib/types/property'
 import type { PropertyUnit, Lease } from '@/lib/types/property'
 
@@ -19,6 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function MaliDetailPage() {
+  const { t } = useLanguage()
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
 
@@ -114,7 +116,7 @@ export default function MaliDetailPage() {
 
   async function handleEditProperty() {
     if (!orgId || !listing || !propForm.title.trim() || !propForm.price_monthly) {
-      setPropError('Jaza sehemu zote zinazohitajika'); return
+      setPropError(t('pr_err_required')); return
     }
     setPropSaving(true); setPropError(null)
     try {
@@ -130,11 +132,11 @@ export default function MaliDetailPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setPropError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setPropError(data.error ?? t('pr_err_generic')); return }
       setListing(prev => prev ? { ...prev, ...data.listing } : prev)
       setShowEditProp(false)
     } catch {
-      setPropError('Haikuweza kuunganika. Jaribu tena.')
+      setPropError(t('pr_network_err'))
     } finally { setPropSaving(false) }
   }
 
@@ -148,10 +150,10 @@ export default function MaliDetailPage() {
         setFoundTenant(data.user)
         if (tenantUnit) setTRent(String(tenantUnit.monthly_rent))
       } else {
-        setTenantError('Mpangaji hajapatikana. Lazima awe na akaunti ya NyumbaFasta.')
+        setTenantError(t('pr_tenant_not_found'))
       }
     } catch {
-      setTenantError('Hitilafu ya mtandao. Jaribu tena.')
+      setTenantError(t('pr_network_err'))
     } finally { setLookingUp(false) }
   }
 
@@ -166,22 +168,22 @@ export default function MaliDetailPage() {
       })
       const data = await res.json()
       if (res.status === 409 && data.already_registered) {
-        setTenantError('Nambari hii tayari ina akaunti. Jaribu tena kupata mpangaji.')
+        setTenantError(t('pr_invite_already_exists'))
         setInviteMsg(null)
       } else if (!res.ok) {
-        setTenantError(data.error ?? 'Imeshindwa kutuma mwaliko.')
+        setTenantError(data.error ?? t('pr_invite_send_failed'))
         setInviteMsg(null)
       } else {
-        setInviteMsg(data.message ?? 'Mwaliko umetumwa kwa mafanikio.')
+        setInviteMsg(data.message ?? t('pr_invite_sent_ok'))
         setTenantError(null)
       }
     } catch {
-      setTenantError('Hitilafu ya mtandao. Jaribu tena.')
+      setTenantError(t('pr_network_err'))
     } finally { setInviting(false) }
   }
 
   async function handleAddUnit() {
-    if (!orgId || !uNumber.trim() || !uRent) { setUnitError('Jaza sehemu zote zinazohitajika'); return }
+    if (!orgId || !uNumber.trim() || !uRent) { setUnitError(t('pr_err_required')); return }
     setAddingUnit(true); setUnitError(null)
     try {
       const res  = await fetch(`/api/v1/organizations/${orgId}/units`, {
@@ -198,17 +200,17 @@ export default function MaliDetailPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setUnitError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setUnitError(data.error ?? t('pr_err_generic')); return }
       setUnits(prev => [data.unit, ...prev])
       setShowAddUnit(false); setUNumber(''); setUType('whole'); setURent(''); setUBedrooms(''); setUDesc('')
     } catch {
-      setUnitError('Haikuweza kuunganika. Jaribu tena.')
+      setUnitError(t('pr_network_err'))
     } finally { setAddingUnit(false) }
   }
 
   async function handleAddTenant() {
     if (!orgId || !tenantUnit || !foundTenant || !tRent || !tStartDate) {
-      setTenantError('Jaza sehemu zote zinazohitajika'); return
+      setTenantError(t('pr_err_required')); return
     }
     setAddingTenant(true); setTenantError(null)
     try {
@@ -228,7 +230,7 @@ export default function MaliDetailPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setTenantError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setTenantError(data.error ?? t('pr_err_generic')); return }
       // Update unit status locally
       setUnits(prev => prev.map(u =>
         u.id === tenantUnit.id ? { ...u, status: 'occupied', active_lease: data.lease } : u
@@ -236,7 +238,7 @@ export default function MaliDetailPage() {
       setTenantUnit(null); setTPhone(''); setFoundTenant(null); setTRent(''); setTDeposit('')
       setTStartDate(new Date().toISOString().split('T')[0]); setTEndDate(''); setTNotes(''); setTDepPaid(false); setTDocUrl('')
     } catch {
-      setTenantError('Haikuweza kuunganika. Jaribu tena.')
+      setTenantError(t('pr_network_err'))
     } finally { setAddingTenant(false) }
   }
 
@@ -255,7 +257,7 @@ export default function MaliDetailPage() {
 
   async function handleEditUnit() {
     if (!orgId || !editUnit || !editForm.unit_number.trim() || !editForm.monthly_rent) {
-      setEditError('Jaza sehemu zinazohitajika'); return
+      setEditError(t('pr_err_required')); return
     }
     setEditSaving(true); setEditError(null)
     try {
@@ -272,11 +274,11 @@ export default function MaliDetailPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setEditError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setEditError(data.error ?? t('pr_err_generic')); return }
       setUnits(prev => prev.map(u => u.id === editUnit.id ? { ...u, ...data.unit } : u))
       setEditUnit(null)
     } catch {
-      setEditError('Haikuweza kuunganika. Jaribu tena.')
+      setEditError(t('pr_network_err'))
     } finally { setEditSaving(false) }
   }
 
@@ -313,7 +315,7 @@ export default function MaliDetailPage() {
       {/* Back */}
       <button onClick={() => router.push('/property/mali')} className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-4">
         <i className="ti ti-arrow-left" aria-hidden="true" />
-        Mali Zangu
+        {t('pr_nav_mali')}
       </button>
 
       {/* Property header */}
@@ -336,18 +338,18 @@ export default function MaliDetailPage() {
                 <button onClick={openEditProperty}
                   className="flex-shrink-0 flex items-center gap-1 text-xs text-gray-500 hover:text-primary-600 border border-gray-200 hover:border-primary-300 rounded-lg px-2 py-1 transition">
                   <i className="ti ti-pencil text-sm" aria-hidden="true" />
-                  Hariri
+                  {t('pr_mali_edit')}
                 </button>
               )}
             </div>
             <p className="text-sm text-gray-500">{listing.district}, {listing.region}</p>
-            <p className="text-primary-600 font-bold mt-1">TZS {listing.price_monthly.toLocaleString()}/mwezi</p>
+            <p className="text-primary-600 font-bold mt-1">TZS {listing.price_monthly.toLocaleString()}{t('pr_per_month')}</p>
             <div className="flex gap-3 mt-2">
               <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                {occupiedCount} imepangishwa
+                {occupiedCount} {t('pr_mali_leased_count')}
               </span>
               <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
-                {vacantCount} iko wazi
+                {vacantCount} {t('pr_mali_vacant_count')}
               </span>
               {totalMonthlyIncome > 0 && (
                 <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full font-medium">
@@ -361,14 +363,14 @@ export default function MaliDetailPage() {
 
       {/* Units header */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-bold text-gray-900">Vitengo ({units.length})</h2>
+        <h2 className="font-bold text-gray-900">{t('pr_mali_units_heading')} ({units.length})</h2>
         {canManage && (
           <button
             onClick={() => setShowAddUnit(true)}
             className="flex items-center gap-2 bg-primary-500 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
           >
             <i className="ti ti-plus" aria-hidden="true" />
-            Ongeza Kitengo
+            {t('pr_mali_add_unit')}
           </button>
         )}
       </div>
@@ -377,41 +379,41 @@ export default function MaliDetailPage() {
       {showAddUnit && (
         <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-gray-900">Kitengo Kipya</h3>
+            <h3 className="font-semibold text-gray-900">{t('pr_mali_new_unit')}</h3>
             <button onClick={() => { setShowAddUnit(false); setUnitError(null) }} className="text-gray-400 hover:text-gray-600">
               <i className="ti ti-x" aria-hidden="true" />
             </button>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Nambari ya Kitengo *</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_number_label')}</label>
               <input value={uNumber} onChange={e => setUNumber(e.target.value)} placeholder="mfano: A1, Unit 3"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Aina</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_type_label')}</label>
               <select value={uType} onChange={e => setUType(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
                 {Object.entries(UNIT_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Kodi (TZS/mwezi) *</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_rent_label')}</label>
               <input type="number" value={uRent} onChange={e => setURent(e.target.value)} placeholder="0" min="0"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Vyumba vya Kulala</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_bedrooms_label')}</label>
               <input type="number" value={uBedrooms} onChange={e => setUBedrooms(e.target.value)} placeholder="—" min="0"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Amana (miezi)</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_deposit_months_label')}</label>
               <input type="number" value={uDepMonths} onChange={e => setUDepMonths(e.target.value)} placeholder="1" min="0"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Maelezo (hiari)</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_desc_label')}</label>
               <input value={uDesc} onChange={e => setUDesc(e.target.value)} placeholder="Maelezo ya ziada..."
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
@@ -420,11 +422,11 @@ export default function MaliDetailPage() {
           <div className="flex gap-2 mt-3">
             <button onClick={() => { setShowAddUnit(false); setUnitError(null) }}
               className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">
-              Ghairi
+              {t('pr_cancel')}
             </button>
             <button onClick={handleAddUnit} disabled={addingUnit}
               className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40">
-              {addingUnit ? 'Inaongeza...' : 'Ongeza Kitengo'}
+              {addingUnit ? t('pr_unit_adding') : t('pr_mali_add_unit')}
             </button>
           </div>
         </div>
@@ -434,8 +436,8 @@ export default function MaliDetailPage() {
       {units.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
           <i className="ti ti-door text-4xl text-gray-200" aria-hidden="true" />
-          <p className="text-gray-500 font-medium mt-3">Hakuna vitengo bado</p>
-          <p className="text-sm text-gray-400 mt-1">Ongeza vitengo vya kukodisha kwenye mali hii.</p>
+          <p className="text-gray-500 font-medium mt-3">{t('pr_units_empty_title')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('pr_units_empty_desc')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -461,10 +463,10 @@ export default function MaliDetailPage() {
                       <span className="text-xs text-gray-400">{UNIT_TYPE_LABELS[unit.unit_type]}</span>
                     </div>
                     <p className="text-sm font-bold text-primary-600 mt-0.5">
-                      TZS {unit.monthly_rent.toLocaleString()}/mwezi
+                      TZS {unit.monthly_rent.toLocaleString()}{t('pr_per_month')}
                       {unit.deposit_months > 0 && (
                         <span className="text-xs text-gray-400 font-normal ml-2">
-                          · Amana: miezi {unit.deposit_months}
+                          · {t('pr_deposit_months_hint')} {unit.deposit_months}
                         </span>
                       )}
                     </p>
@@ -482,8 +484,8 @@ export default function MaliDetailPage() {
                           </a>
                         )}
                         <div className="flex gap-3 mt-1 text-[10px] text-blue-500">
-                          <span>Kuanza: {new Date(lease.start_date).toLocaleDateString('sw-TZ')}</span>
-                          {lease.end_date && <span>Kumalizika: {new Date(lease.end_date).toLocaleDateString('sw-TZ')}</span>}
+                          <span>{t('pr_kuanza_prefix')} {new Date(lease.start_date).toLocaleDateString('sw-TZ')}</span>
+                          {lease.end_date && <span>{t('pr_kumalizika_prefix')} {new Date(lease.end_date).toLocaleDateString('sw-TZ')}</span>}
                         </div>
                       </div>
                     )}
@@ -496,7 +498,7 @@ export default function MaliDetailPage() {
                         onClick={() => openEditUnit(unit)}
                         className="text-xs border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
                       >
-                        <i className="ti ti-pencil mr-1" />Hariri
+                        <i className="ti ti-pencil mr-1" />{t('pr_mali_edit')}
                       </button>
                       {unit.status === 'vacant' ? (
                         <>
@@ -504,7 +506,7 @@ export default function MaliDetailPage() {
                             onClick={() => { setTenantUnit(unit); setTRent(String(unit.monthly_rent)); setTenantError(null) }}
                             className="text-xs bg-primary-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-primary-600 transition"
                           >
-                            + Mpangaji
+                            {t('pr_unit_add_tenant')}
                           </button>
                           <a
                             href={`/property/brokerage/new?unit_id=${unit.id}`}
@@ -519,7 +521,7 @@ export default function MaliDetailPage() {
                           onClick={() => handleEndLease(unit)}
                           className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg font-medium hover:bg-red-100 transition"
                         >
-                          Simamisha
+                          {t('pr_lease_end_btn')}
                         </button>
                       )}
                     </div>
@@ -536,7 +538,7 @@ export default function MaliDetailPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end lg:items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Hariri Kitengo: {editUnit.unit_number}</h3>
+              <h3 className="font-semibold text-gray-900">{t('pr_edit_unit_heading')}: {editUnit.unit_number}</h3>
               <button onClick={() => setEditUnit(null)} className="text-gray-400 hover:text-gray-600">
                 <i className="ti ti-x text-xl" />
               </button>
@@ -544,34 +546,34 @@ export default function MaliDetailPage() {
             <div className="p-4 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Nambari ya Kitengo *</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_number_label')}</label>
                   <input value={editForm.unit_number} onChange={e => setEditForm(f => ({ ...f, unit_number: e.target.value }))} placeholder="A1"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Aina</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_type_label')}</label>
                   <select value={editForm.unit_type} onChange={e => setEditForm(f => ({ ...f, unit_type: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
                     {Object.entries(UNIT_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Kodi (TZS/mwezi) *</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_rent_label')}</label>
                   <input type="number" value={editForm.monthly_rent} onChange={e => setEditForm(f => ({ ...f, monthly_rent: e.target.value }))} min="0"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Vyumba vya Kulala</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_bedrooms_label')}</label>
                   <input type="number" value={editForm.bedrooms} onChange={e => setEditForm(f => ({ ...f, bedrooms: e.target.value }))} placeholder="—" min="0"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Amana (miezi)</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_deposit_months_label')}</label>
                   <input type="number" value={editForm.deposit_months} onChange={e => setEditForm(f => ({ ...f, deposit_months: e.target.value }))} min="0"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Maelezo (hiari)</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_desc_label')}</label>
                   <input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} placeholder="..."
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
@@ -580,11 +582,11 @@ export default function MaliDetailPage() {
               <div className="flex gap-2 pt-1">
                 <button onClick={() => setEditUnit(null)}
                   className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">
-                  Ghairi
+                  {t('pr_cancel')}
                 </button>
                 <button onClick={handleEditUnit} disabled={editSaving}
                   className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40">
-                  {editSaving ? 'Inahifadhi...' : 'Hifadhi Mabadiliko'}
+                  {editSaving ? t('pr_saving') : t('pr_save_changes')}
                 </button>
               </div>
             </div>
@@ -599,7 +601,7 @@ export default function MaliDetailPage() {
             <div className="p-5">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h3 className="font-bold text-gray-900">Ongeza Mpangaji</h3>
+                  <h3 className="font-bold text-gray-900">{t('pr_wapangaji_add')}</h3>
                   <p className="text-xs text-gray-400">Kitengo: {tenantUnit.unit_number}</p>
                 </div>
                 <button onClick={() => { setTenantUnit(null); setFoundTenant(null); setTenantError(null); setInviteMsg(null) }}
@@ -611,7 +613,7 @@ export default function MaliDetailPage() {
               <div className="space-y-3">
                 {/* Phone lookup */}
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Nambari ya Simu ya Mpangaji *</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_tenant_phone_label')}</label>
                   <div className="flex gap-2">
                     <input
                       type="tel"
@@ -625,7 +627,7 @@ export default function MaliDetailPage() {
                       disabled={lookingUp || !tPhone.trim()}
                       className="px-3 bg-gray-100 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-200 transition disabled:opacity-40"
                     >
-                      {lookingUp ? '...' : 'Tafuta'}
+                      {lookingUp ? '...' : t('pr_search_btn')}
                     </button>
                   </div>
                   {foundTenant && (
@@ -647,7 +649,7 @@ export default function MaliDetailPage() {
                           className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg px-3 py-2 transition disabled:opacity-50"
                         >
                           <i className={`ti ti-${inviting ? 'loader-2 animate-spin' : 'brand-whatsapp'}`} aria-hidden="true" />
-                          {inviting ? 'Inatuma...' : `Mtumie ${tPhone} mwaliko wa kujisajili`}
+                          {inviting ? t('pr_team_sending') : `${tPhone} — ${t('pr_invite_cta')}`}
                         </button>
                       )}
                     </div>
@@ -655,29 +657,29 @@ export default function MaliDetailPage() {
                   {inviteMsg && (
                     <div className="mt-2 flex items-start gap-2 bg-green-50 border border-green-100 rounded-xl p-2.5">
                       <i className="ti ti-circle-check text-green-500 text-lg flex-shrink-0" aria-hidden="true" />
-                      <p className="text-xs text-green-700">{inviteMsg} Mpangaji atakapojisajili, unaweza kumuongeza hapa.</p>
+                      <p className="text-xs text-green-700">{inviteMsg} {t('pr_invite_follow_up')}</p>
                     </div>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Kodi ya Mwezi (TZS) *</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_tenant_rent_label')}</label>
                     <input type="number" value={tRent} onChange={e => setTRent(e.target.value)} placeholder="0" min="0"
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Amana (TZS)</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_tenant_deposit_label')}</label>
                     <input type="number" value={tDeposit} onChange={e => setTDeposit(e.target.value)} placeholder="0" min="0"
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Tarehe ya Kuanza *</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_lease_start_label')}</label>
                     <input type="date" value={tStartDate} onChange={e => setTStartDate(e.target.value)}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Tarehe ya Kumalizika</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_lease_end_label')}</label>
                     <input type="date" value={tEndDate} onChange={e => setTEndDate(e.target.value)}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                   </div>
@@ -685,17 +687,17 @@ export default function MaliDetailPage() {
 
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={tDepPaid} onChange={e => setTDepPaid(e.target.checked)} className="rounded" />
-                  <span className="text-sm text-gray-600">Amana imelipwa tayari</span>
+                  <span className="text-sm text-gray-600">{t('pr_deposit_paid_label')}</span>
                 </label>
 
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Maelezo ya ziada (hiari)</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_notes_label')}</label>
                   <textarea value={tNotes} onChange={e => setTNotes(e.target.value)} rows={2} placeholder="Maelezo..."
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Kiungo cha Mkataba (hiari)</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_doc_url_label')}</label>
                   <input type="url" value={tDocUrl} onChange={e => setTDocUrl(e.target.value)} placeholder="https://..."
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
@@ -703,14 +705,14 @@ export default function MaliDetailPage() {
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => { setTenantUnit(null); setFoundTenant(null); setTenantError(null); setInviteMsg(null) }}
                     className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">
-                    Ghairi
+                    {t('pr_cancel')}
                   </button>
                   <button
                     onClick={handleAddTenant}
                     disabled={addingTenant || !foundTenant || !tRent || !tStartDate}
                     className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40"
                   >
-                    {addingTenant ? 'Inaunda Mkataba...' : 'Unda Mkataba'}
+                    {addingTenant ? t('pr_creating_lease') : t('pr_create_lease')}
                   </button>
                 </div>
               </div>
@@ -725,7 +727,7 @@ export default function MaliDetailPage() {
           <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-5">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-gray-900">Hariri Mali</h3>
+                <h3 className="font-bold text-gray-900">{t('pr_mali_edit_heading')}</h3>
                 <button onClick={() => setShowEditProp(false)} className="text-gray-400 hover:text-gray-600">
                   <i className="ti ti-x text-xl" aria-hidden="true" />
                 </button>
@@ -733,12 +735,12 @@ export default function MaliDetailPage() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Jina la Mali *</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_mali_title_label')}</label>
                   <input value={propForm.title} onChange={e => setPropForm(f => ({ ...f, title: e.target.value }))} placeholder="Mfano: Nyumba ya Mikocheni A"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Aina</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_type_label')}</label>
                   <select value={propForm.type} onChange={e => setPropForm(f => ({ ...f, type: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
                     <option value="nyumba">Nyumba</option>
@@ -752,18 +754,18 @@ export default function MaliDetailPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Mkoa</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_region_label')}</label>
                     <input value={propForm.region} onChange={e => setPropForm(f => ({ ...f, region: e.target.value }))} placeholder="Dar es Salaam"
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Wilaya</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_district_label')}</label>
                     <input value={propForm.district} onChange={e => setPropForm(f => ({ ...f, district: e.target.value }))} placeholder="Kinondoni"
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Bei ya Mwezi (TZS) *</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_price_monthly_label')}</label>
                   <input type="number" value={propForm.price_monthly} onChange={e => setPropForm(f => ({ ...f, price_monthly: e.target.value }))} placeholder="0" min="0"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
@@ -774,11 +776,11 @@ export default function MaliDetailPage() {
               <div className="flex gap-2 pt-4">
                 <button onClick={() => setShowEditProp(false)}
                   className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">
-                  Ghairi
+                  {t('pr_cancel')}
                 </button>
                 <button onClick={handleEditProperty} disabled={propSaving}
                   className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40">
-                  {propSaving ? 'Inahifadhi...' : 'Hifadhi Mabadiliko'}
+                  {propSaving ? t('pr_saving') : t('pr_save_changes')}
                 </button>
               </div>
             </div>

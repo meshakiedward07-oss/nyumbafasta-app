@@ -17,7 +17,7 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
   const { t }  = useLanguage()
 
   const CTA_TYPES = [
-    { value: 'whatsapp', label: '💬 WhatsApp',                   placeholder: '255712345678' },
+    { value: 'whatsapp', label: `💬 ${t('adv_whatsapp')}`,         placeholder: '255712345678' },
     { value: 'call',     label: `📞 ${t('adv_cta_call')}`,        placeholder: '255712345678' },
     { value: 'website',  label: `🌐 ${t('adv_cta_website')}`,     placeholder: 'https://...' },
   ]

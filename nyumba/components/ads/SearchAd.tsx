@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { getOrCreateSessionId } from '@/lib/ads/session'
 import { waLink } from '@/lib/utils/phone'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Ad = {
   id: string; title: string; body_text: string | null; image_url: string | null
@@ -13,6 +14,7 @@ type Ad = {
 const FALLBACK_REGION = 'Dar es Salaam'
 
 export default function SearchAd({ region, category }: { region?: string; category?: string }) {
+  const { t } = useLanguage()
   const [ad, setAd] = useState<Ad | null>(null)
 
   useEffect(() => {
@@ -60,7 +62,7 @@ export default function SearchAd({ region, category }: { region?: string; catego
         />
       ) : (
         <div className="w-10 h-10 bg-amber-200 rounded-lg flex-shrink-0 flex items-center justify-center text-amber-600 font-bold text-sm">
-          Ad
+          {t('adv_ad_abbrev')}
         </div>
       )}
       <div className="flex-1 min-w-0">
@@ -73,17 +75,17 @@ export default function SearchAd({ region, category }: { region?: string; catego
       <div className="flex-shrink-0">
         {ad.cta_type === 'whatsapp' && (
           <span className="text-xs bg-green-100 text-green-700 font-bold px-2 py-1 rounded-lg">
-            WhatsApp
+            {t('adv_whatsapp')}
           </span>
         )}
         {ad.cta_type === 'call' && (
           <span className="text-xs bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded-lg">
-            Piga Simu
+            {t('adv_cta_call')}
           </span>
         )}
         {ad.cta_type === 'website' && (
           <span className="text-xs bg-purple-100 text-purple-700 font-bold px-2 py-1 rounded-lg">
-            Tovuti
+            {t('adv_cta_website')}
           </span>
         )}
       </div>

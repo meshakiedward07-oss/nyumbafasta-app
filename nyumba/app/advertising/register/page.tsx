@@ -5,17 +5,27 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useLanguage } from '@/lib/i18n/context'
 
-const CATEGORIES = [
-  'Nyumba na Mali', 'Hoteli na Lodges', 'Biashara ya Chakula', 'Afya na Dawa',
-  'Elimu', 'Usafiri', 'Fedha na Bima', 'Teknolojia', 'Nguo na Mitindo',
-  'Sanaa na Burudani', 'Kilimo', 'Ujenzi na Nyenzo', 'Mengineyo',
-]
-
 function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planId = searchParams.get('plan')
   const { t } = useLanguage()
+
+  const CATEGORIES: { value: string; label: string }[] = [
+    { value: 'Nyumba na Mali',       label: t('adv_cat_nyumba_mali')  },
+    { value: 'Hoteli na Lodges',     label: t('adv_cat_hoteli')       },
+    { value: 'Biashara ya Chakula',  label: t('adv_cat_chakula')      },
+    { value: 'Afya na Dawa',         label: t('adv_cat_afya')         },
+    { value: 'Elimu',                label: t('adv_cat_elimu')        },
+    { value: 'Usafiri',              label: t('adv_cat_usafiri')      },
+    { value: 'Fedha na Bima',        label: t('adv_cat_fedha')        },
+    { value: 'Teknolojia',           label: t('adv_cat_teknolojia')   },
+    { value: 'Nguo na Mitindo',      label: t('adv_cat_nguo')         },
+    { value: 'Sanaa na Burudani',    label: t('adv_cat_sanaa')        },
+    { value: 'Kilimo',               label: t('adv_cat_kilimo')       },
+    { value: 'Ujenzi na Nyenzo',     label: t('adv_cat_ujenzi')       },
+    { value: 'Mengineyo',            label: t('adv_cat_mengineyo')    },
+  ]
 
   const [step, setStep]       = useState(1)
   const [loading, setLoading] = useState(false)
@@ -127,7 +137,7 @@ function RegisterForm() {
                     className="input"
                   >
                     <option value="">{t('adv_select_category')}</option>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                 </Field>
 

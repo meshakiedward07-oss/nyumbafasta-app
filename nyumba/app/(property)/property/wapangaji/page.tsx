@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 import type { Lease } from '@/lib/types/property'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -11,12 +12,8 @@ const STATUS_COLORS: Record<string, string> = {
   renewed:    'bg-blue-50 text-blue-700',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Inaendelea', draft: 'Rasimu', expired: 'Imekwisha',
-  terminated: 'Imesimamishwa', renewed: 'Imefanywa Upya',
-}
-
 export default function WapangajiPage() {
+  const { t } = useLanguage()
   const [leases,  setLeases]  = useState<Lease[]>([])
   const [orgId,   setOrgId]   = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -63,18 +60,18 @@ export default function WapangajiPage() {
   return (
     <div className="p-4 lg:p-6 max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Wapangaji</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('pr_wapangaji_title')}</h1>
         <p className="text-sm text-gray-500">
-          {active} wapangaji hai · TZS {totalRent.toLocaleString()}/mwezi
+          {active} {t('pr_wapangaji_active_sub')} · TZS {totalRent.toLocaleString()}{t('pr_per_month')}
         </p>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
-          { label: 'Wapangaji Hai',     value: active,                       color: 'bg-green-50 text-green-600'  },
-          { label: 'Jumla Kodi/Mwezi',  value: `TZS ${(totalRent/1000).toFixed(0)}K`, color: 'bg-primary-50 text-primary-600' },
-          { label: 'Mikataba Yote',      value: leases.length,                color: 'bg-blue-50 text-blue-600'    },
+          { label: t('pr_wapangaji_stat_active'), value: active,                       color: 'bg-green-50 text-green-600'  },
+          { label: t('pr_wapangaji_stat_rent'),   value: `TZS ${(totalRent/1000).toFixed(0)}K`, color: 'bg-primary-50 text-primary-600' },
+          { label: t('pr_wapangaji_stat_total'),  value: leases.length,                color: 'bg-blue-50 text-blue-600'    },
         ].map(c => (
           <div key={c.label} className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
             <p className={`text-xl font-bold ${c.color.split(' ')[1]}`}>{c.value}</p>
@@ -94,7 +91,7 @@ export default function WapangajiPage() {
                 filter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              {f === 'active' ? 'Wanaoendelea' : f === 'all' ? 'Wote' : 'Waliokwisha'}
+              {f === 'active' ? t('pr_wapangaji_filter_active') : f === 'all' ? t('pr_wapangaji_filter_all') : t('pr_wapangaji_filter_ended')}
             </button>
           ))}
         </div>
@@ -102,7 +99,7 @@ export default function WapangajiPage() {
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Tafuta jina au simu..."
+          placeholder={t('pr_wapangaji_search_ph')}
           className="flex-1 min-w-[160px] border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
         />
       </div>
@@ -115,17 +112,17 @@ export default function WapangajiPage() {
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
           <i className="ti ti-users text-5xl text-gray-200" aria-hidden="true" />
           <p className="text-gray-500 font-medium mt-3">
-            {leases.length === 0 ? 'Huna wapangaji bado' : 'Hakuna matokeo'}
+            {leases.length === 0 ? t('pr_wapangaji_no_tenants') : t('pr_wapangaji_no_results')}
           </p>
           <p className="text-sm text-gray-400 mt-1">
             {leases.length === 0
-              ? 'Nenda kwenye mali yako na ongeza mpangaji katika kitengo tupu.'
-              : 'Badilisha vichujio ili kupata matokeo zaidi.'}
+              ? t('pr_wapangaji_go_mali_desc')
+              : t('pr_wapangaji_change_filter')}
           </p>
           {leases.length === 0 && (
             <Link href="/property/mali">
               <button className="mt-4 bg-primary-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
-                Angalia Mali Zangu
+                {t('pr_wapangaji_view_mali')}
               </button>
             </Link>
           )}
@@ -157,14 +154,18 @@ export default function WapangajiPage() {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="font-bold text-gray-900 text-sm">{tenant?.full_name ?? 'Mpangaji'}</p>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[lease.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                          {STATUS_LABELS[lease.status] ?? lease.status}
+                          {lease.status === 'active' ? t('pr_lease_status_active') :
+                           lease.status === 'draft' ? t('pr_lease_status_draft') :
+                           lease.status === 'expired' ? t('pr_lease_status_expired') :
+                           lease.status === 'terminated' ? t('pr_lease_status_terminated') :
+                           lease.status === 'renewed' ? t('pr_lease_status_renewed') : lease.status}
                         </span>
                         {lease.end_date && lease.status === 'active' && (() => {
                           const days = Math.ceil((new Date(lease.end_date).getTime() - Date.now()) / 86400000)
                           if (days > 30) return null
                           return (
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${days <= 7 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}`}>
-                              Siku {days}
+                              {days} {t('pr_lease_days_left')}
                             </span>
                           )
                         })()}
@@ -200,7 +201,7 @@ export default function WapangajiPage() {
                     <div className="flex items-center gap-2 flex-wrap justify-end">
                       {!lease.deposit_paid && lease.deposit_amount && (
                         <span className="text-[10px] bg-amber-50 text-amber-600 font-semibold px-2 py-0.5 rounded-full">
-                          Amana haijalipiwa
+                          {t('pr_wapangaji_deposit_unpaid')}
                         </span>
                       )}
                       <span className="text-[10px] text-gray-400">

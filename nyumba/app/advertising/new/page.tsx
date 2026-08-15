@@ -10,17 +10,21 @@ type Plan = {
   duration_days: number; slot_limit: number; description: string | null; features: string[]
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  banner: 'Banner Ad', search: 'Search Ad', nearby: 'Nearby Ad', video: 'Video Ad', featured: 'Featured Business',
-}
-
 function NewCampaignForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useLanguage()
 
+  const TYPE_LABELS: Record<string, string> = {
+    banner:   t('adv_type_banner'),
+    search:   t('adv_type_search'),
+    nearby:   t('adv_type_nearby'),
+    video:    t('adv_type_video'),
+    featured: t('adv_type_featured'),
+  }
+
   const CTA_TYPES = [
-    { value: 'whatsapp', label: '💬 WhatsApp',           placeholder: '255712345678' },
+    { value: 'whatsapp', label: `💬 ${t('adv_whatsapp')}`,   placeholder: '255712345678' },
     { value: 'call',     label: `📞 ${t('adv_cta_call')}`, placeholder: '255712345678' },
     { value: 'website',  label: `🌐 ${t('adv_cta_website')}`, placeholder: 'https://...' },
   ]

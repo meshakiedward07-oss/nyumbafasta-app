@@ -78,6 +78,7 @@ const T_fundiPages = {
   fp_kyc_submitting:           { sw: 'Inatuma...',                                en: 'Submitting...'                                         },
   fp_kyc_submit_btn:           { sw: 'Tuma Hati',                                 en: 'Submit Document'                                       },
   fp_kyc_url_required:         { sw: 'Kiungo cha hati kinahitajika',              en: 'Document link is required'                             },
+  fp_kyc_doc_name_placeholder: { sw: 'mfano: Leseni_2026.pdf',                   en: 'e.g.: License_2026.pdf'                                },
 
   // ── Messages page ─────────────────────────────────────────────────────────
   fp_msg_just_now:         { sw: 'Sasa hivi',                               en: 'Just now'                                 },
@@ -98,6 +99,8 @@ const T_fundiPages = {
   fp_msg_client:           { sw: 'Mteja',                                   en: 'Client'                                   },
   fp_msg_placeholder:      { sw: 'Andika jibu...',                          en: 'Write a reply...'                         },
   fp_msg_select_conv:      { sw: 'Chagua mazungumzo kushoto',               en: 'Select a conversation on the left'        },
+  fp_msg_fundi_name:       { sw: 'Fundi',                                   en: 'Fundi'                                    },
+  fp_msg_file:             { sw: 'Faili',                                   en: 'File'                                     },
 
   // ── Profile page ──────────────────────────────────────────────────────────
   fp_profile_heading:          { sw: 'Wasifu Wangu',                         en: 'My Profile'                                           },
@@ -121,6 +124,10 @@ const T_fundiPages = {
   fp_profile_save_error:       { sw: 'Haikuweza kuhifadhi. Jaribu tena.',   en: 'Could not save. Please try again.'                    },
   fp_profile_saving:           { sw: 'Inahifadhi...',                        en: 'Saving...'                                            },
   fp_profile_save_btn:         { sw: 'Hifadhi Mabadiliko',                  en: 'Save Changes'                                         },
+  fp_profile_biz_name_ph:      { sw: 'mfano: Juma Fundi Services',          en: 'e.g.: Juma Fundi Services'                            },
+  fp_profile_specialty_ph:     { sw: 'mfano: Bomba la maji, umeme wa jua, AC...', en: 'e.g.: Plumbing, solar power, AC...'           },
+  fp_profile_location_ph:      { sw: 'mfano: Kinondoni, DSM',               en: 'e.g.: Kinondoni, DSM'                                 },
+  fp_profile_bio_ph:           { sw: 'Elezea kazi unazofanya, uzoefu wako, bei, nk...', en: 'Describe your work, experience, rates, etc...' },
 
   // ── Subscription page ─────────────────────────────────────────────────────
   fp_sub_heading:          { sw: 'Usajili wa Fundi',                                  en: 'Fundi Subscription'                                            },

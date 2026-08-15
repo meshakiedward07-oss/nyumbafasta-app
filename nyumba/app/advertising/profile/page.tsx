@@ -117,7 +117,7 @@ export default function AdvertiserProfilePage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              WhatsApp <span className="text-red-500 font-bold">*</span>
+              {t('adv_whatsapp')} <span className="text-red-500 font-bold">*</span>
             </label>
             <input
               type="tel" value={form.whatsapp_number}

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, use } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 import type { Lease } from '@/lib/types/property'
 
 interface Payment {
@@ -17,13 +18,13 @@ interface Banking {
   mobile_money_provider: string | null; additional_instructions: string | null
 }
 
-const PAYMENT_STATUS: Record<string, { label: string; cls: string; icon: string }> = {
-  pending:        { label: 'Inasubiri Malipo',     cls: 'bg-amber-50 text-amber-700',   icon: 'clock'        },
-  proof_uploaded: { label: 'Ushahidi Umepakiwa',   cls: 'bg-blue-50 text-blue-700',     icon: 'upload'       },
-  paid:           { label: 'Imelipwa',              cls: 'bg-green-50 text-green-700',   icon: 'circle-check' },
-  partial:        { label: 'Ilipwa Kidogo',         cls: 'bg-orange-50 text-orange-700', icon: 'circle-half'  },
-  late:           { label: 'Imechelewa',            cls: 'bg-red-50 text-red-600',       icon: 'alert-circle' },
-  void:           { label: 'Imebatilishwa',         cls: 'bg-gray-100 text-gray-400',    icon: 'ban'          },
+const PAYMENT_STATUS_CLS: Record<string, { cls: string; icon: string }> = {
+  pending:        { cls: 'bg-amber-50 text-amber-700',   icon: 'clock'        },
+  proof_uploaded: { cls: 'bg-blue-50 text-blue-700',     icon: 'upload'       },
+  paid:           { cls: 'bg-green-50 text-green-700',   icon: 'circle-check' },
+  partial:        { cls: 'bg-orange-50 text-orange-700', icon: 'circle-half'  },
+  late:           { cls: 'bg-red-50 text-red-600',       icon: 'alert-circle' },
+  void:           { cls: 'bg-gray-100 text-gray-400',    icon: 'ban'          },
 }
 
 function fmt(n: number) { return `TZS ${n.toLocaleString()}` }
@@ -37,6 +38,16 @@ function isOverdue(payment: Payment) {
 
 export default function LeaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: leaseId } = use(params)
+  const { t } = useLanguage()
+
+  const PAYMENT_STATUS: Record<string, { label: string; cls: string; icon: string }> = {
+    pending:        { label: t('pr_pay_status_pending'), cls: PAYMENT_STATUS_CLS.pending.cls,        icon: PAYMENT_STATUS_CLS.pending.icon        },
+    proof_uploaded: { label: t('pr_pay_status_proof'),   cls: PAYMENT_STATUS_CLS.proof_uploaded.cls, icon: PAYMENT_STATUS_CLS.proof_uploaded.icon },
+    paid:           { label: t('pr_pay_status_paid'),    cls: PAYMENT_STATUS_CLS.paid.cls,           icon: PAYMENT_STATUS_CLS.paid.icon           },
+    partial:        { label: t('pr_pay_status_partial'), cls: PAYMENT_STATUS_CLS.partial.cls,        icon: PAYMENT_STATUS_CLS.partial.icon        },
+    late:           { label: t('pr_pay_status_late'),    cls: PAYMENT_STATUS_CLS.late.cls,           icon: PAYMENT_STATUS_CLS.late.icon           },
+    void:           { label: t('pr_pay_status_void'),    cls: PAYMENT_STATUS_CLS.void.cls,           icon: PAYMENT_STATUS_CLS.void.icon           },
+  }
 
   const [orgId,    setOrgId]    = useState<string | null>(null)
   const [lease,    setLease]    = useState<Lease | null>(null)
@@ -117,7 +128,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
 
   async function submitProof() {
     if (!proofFor || !orgId) return
-    if (!proofUrl.trim()) { setProofErr('Weka kiungo cha ushahidi'); return }
+    if (!proofUrl.trim()) { setProofErr(t('pr_proof_err_url')); return }
     setUploading(true); setProofErr(null)
     const res = await fetch(
       `/api/v1/organizations/${orgId}/leases/${leaseId}/payments/${proofFor.id}/proof`,
@@ -125,7 +136,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         body: JSON.stringify({ proof_url: proofUrl.trim(), proof_note: proofNote.trim() }) }
     )
     const data = await res.json()
-    if (!res.ok) { setProofErr(data.error ?? 'Kuna tatizo'); setUploading(false); return }
+    if (!res.ok) { setProofErr(data.error ?? t('pr_err_generic')); setUploading(false); return }
     setPayments(prev => prev.map(p => p.id === proofFor.id ? data.payment : p))
     setProofFor(null); setProofUrl(''); setProofNote(''); setUploading(false)
   }
@@ -139,7 +150,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         body: JSON.stringify({ notes: verifyNote.trim() }) }
     )
     const data = await res.json()
-    if (!res.ok) { setVerifyErr(data.error ?? 'Kuna tatizo'); setVerifying(false); return }
+    if (!res.ok) { setVerifyErr(data.error ?? t('pr_err_generic')); setVerifying(false); return }
     setPayments(prev => prev.map(p => p.id === verifyFor.id ? data.payment : p))
     setVerifyFor(null); setVerifyNote(''); setVerifying(false)
   }
@@ -165,7 +176,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
       const data = await res.json()
-      if (!res.ok) { setRecordErr(data.error ?? 'Kuna tatizo'); setRecording(false); return }
+      if (!res.ok) { setRecordErr(data.error ?? t('pr_err_generic')); setRecording(false); return }
       setPayments(prev => [data.payment, ...prev])
     } else if (recordFor) {
       // Mark an existing payment as paid
@@ -180,7 +191,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setRecordErr(data.error ?? 'Kuna tatizo'); setRecording(false); return }
+      if (!res.ok) { setRecordErr(data.error ?? t('pr_err_generic')); setRecording(false); return }
       setPayments(prev => prev.map(p => p.id === recordFor!.id ? data.payment : p))
     }
 
@@ -265,7 +276,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
     const data = await res.json()
-    if (!res.ok) { setRenewErr(data.error ?? 'Kuna tatizo'); setRenewing(false); return }
+    if (!res.ok) { setRenewErr(data.error ?? t('pr_err_generic')); setRenewing(false); return }
     setLease(data.lease)
     setRenewModal(false)
     setRenewForm({ new_end_date: '', new_monthly_rent: '', notes: '' })
@@ -281,7 +292,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
     const data = await res.json()
-    if (!res.ok) { setTerminateErr(data.error ?? 'Kuna tatizo'); setTerminating(false); return }
+    if (!res.ok) { setTerminateErr(data.error ?? t('pr_err_generic')); setTerminating(false); return }
     setLease(data.lease)
     setPayments(prev => prev.map(p => ['pending', 'partial', 'late', 'proof_uploaded'].includes(p.status) ? { ...p, status: 'void' } : p))
     setTerminateModal(false)
@@ -290,14 +301,14 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   async function handleDocUpload() {
-    if (!orgId || !docUrl.trim()) { setDocErr('Weka kiungo cha mkataba'); return }
+    if (!orgId || !docUrl.trim()) { setDocErr(t('pr_doc_err_url')); return }
     setDocSaving(true); setDocErr(null)
     const res = await fetch(`/api/v1/organizations/${orgId}/leases/${leaseId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ document_url: docUrl.trim() }),
     })
     const data = await res.json()
-    if (!res.ok) { setDocErr(data.error ?? 'Kuna tatizo'); setDocSaving(false); return }
+    if (!res.ok) { setDocErr(data.error ?? t('pr_err_generic')); setDocSaving(false); return }
     setLease(data.lease)
     setDocModal(false); setDocUrl(''); setDocSaving(false)
   }
@@ -311,8 +322,8 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
   if (!lease) return (
     <div className="p-4 lg:p-6 max-w-3xl mx-auto text-center py-16">
       <i className="ti ti-file-off text-5xl text-gray-200" aria-hidden="true" />
-      <p className="text-gray-500 mt-3 font-medium">Mkataba haupatikani</p>
-      <Link href="/property/wapangaji" className="mt-4 inline-block text-sm text-primary-600 hover:underline">Rudi</Link>
+      <p className="text-gray-500 mt-3 font-medium">{t('pr_lease_not_found')}</p>
+      <Link href="/property/wapangaji" className="mt-4 inline-block text-sm text-primary-600 hover:underline">{t('pr_back_btn')}</Link>
     </div>
   )
 
@@ -332,27 +343,27 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-gray-900">{lease.document_url ? 'Sasisha Hati ya Mkataba' : 'Pakia Hati ya Mkataba'}</h2>
+              <h2 className="text-lg font-bold text-gray-900">{lease.document_url ? t('pr_doc_update_title') : t('pr_doc_upload_title')}</h2>
               <button onClick={() => setDocModal(false)} className="text-gray-400 hover:text-gray-600">
                 <i className="ti ti-x text-xl" aria-hidden="true" />
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Kiungo cha Hati (PDF / Drive / Dropbox) *</label>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_doc_url_label_long')}</label>
                 <input type="url" value={docUrl} onChange={e => setDocUrl(e.target.value)}
                   placeholder="https://drive.google.com/..."
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-                <p className="text-[10px] text-gray-400 mt-1">Pakia hati kwenye Google Drive/Dropbox, kisha bandika kiungo hapa.</p>
+                <p className="text-[10px] text-gray-400 mt-1">{t('pr_doc_url_hint')}</p>
               </div>
               {docErr && <p className="text-sm text-red-600">{docErr}</p>}
               <div className="flex gap-2">
                 <button onClick={handleDocUpload} disabled={docSaving || !docUrl.trim()}
                   className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
-                  {docSaving ? 'Inahifadhi...' : 'Hifadhi'}
+                  {docSaving ? t('pr_doc_saving') : t('pr_doc_save')}
                 </button>
                 <button onClick={() => setDocModal(false)}
-                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">Ghairi</button>
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">{t('pr_cancel')}</button>
               </div>
             </div>
           </div>
@@ -363,25 +374,25 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       {proofFor && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Pakia Ushahidi wa Malipo</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">{t('pr_proof_upload_title')}</h2>
             <p className="text-sm text-gray-500 mb-4">Malipo ya <strong>{fmt(proofFor.amount_due)}</strong> — {dateFmt(proofFor.due_date)}</p>
             <div className="space-y-3">
               {banking && (
                 <div className="bg-primary-50 rounded-xl p-3 text-xs space-y-1">
-                  <p className="font-semibold text-primary-700">Ulituma wapi:</p>
+                  <p className="font-semibold text-primary-700">{t('pr_proof_where_sent')}</p>
                   <p className="text-primary-600">{banking.bank_name} — {banking.account_name} — {banking.account_number}</p>
                   {banking.mobile_money_number && <p className="text-primary-600">Mobile Money: {banking.mobile_money_number}</p>}
                 </div>
               )}
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Kiungo cha Picha ya Risiti / Bank Statement *</label>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_proof_url_label')}</label>
                 <input type="url" value={proofUrl} onChange={e => setProofUrl(e.target.value)}
                   placeholder="https://drive.google.com/... au https://cloudinary.com/..."
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
-                <p className="text-[10px] text-gray-400 mt-1">Pakia picha au PDF kwenye Google Drive/Cloudinary, kisha bandika kiungo.</p>
+                <p className="text-[10px] text-gray-400 mt-1">{t('pr_proof_url_hint')}</p>
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Namba ya Muamala (hiari)</label>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_proof_note_label')}</label>
                 <input value={proofNote} onChange={e => setProofNote(e.target.value)} placeholder="mfano: QJT123456"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
               </div>
@@ -389,10 +400,10 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
               <div className="flex gap-2">
                 <button onClick={submitProof} disabled={uploading || !proofUrl.trim()}
                   className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
-                  {uploading ? 'Inapakia...' : 'Tuma Ushahidi'}
+                  {uploading ? t('pr_proof_uploading') : t('pr_proof_submit')}
                 </button>
                 <button onClick={() => { setProofFor(null); setProofErr(null) }}
-                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">{t('pr_cancel')}</button>
               </div>
             </div>
           </div>
@@ -403,16 +414,16 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       {verifyFor && isOwner && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Thibitisha Malipo</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">{t('pr_verify_modal_title')}</h2>
             <p className="text-sm text-gray-500 mb-4">Malipo ya <strong>{fmt(verifyFor.amount_due)}</strong></p>
             {verifyFor.proof_url && (
               <a href={verifyFor.proof_url} target="_blank" rel="noopener noreferrer"
                 className="block mb-4 text-sm text-primary-600 hover:underline flex items-center gap-1">
-                <i className="ti ti-external-link" /> Angalia Ushahidi
+                <i className="ti ti-external-link" /> {t('pr_verify_view_proof')}
               </a>
             )}
             {verifyFor.proof_note && (
-              <p className="text-xs text-gray-500 mb-3">Namba ya muamala: <strong>{verifyFor.proof_note}</strong></p>
+              <p className="text-xs text-gray-500 mb-3">{t('pr_verify_tx_label')} <strong>{verifyFor.proof_note}</strong></p>
             )}
             <textarea value={verifyNote} onChange={e => setVerifyNote(e.target.value)} rows={2}
               placeholder="Maelezo ya ziada (hiari)..."
@@ -421,10 +432,10 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
             <div className="flex gap-2">
               <button onClick={submitVerify} disabled={verifying}
                 className="flex-1 bg-green-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-green-600 disabled:opacity-40 transition">
-                {verifying ? 'Inathibitisha...' : '✓ Thibitisha Malipo'}
+                {verifying ? t('pr_verifying') : t('pr_verify_btn')}
               </button>
               <button onClick={() => { setVerifyFor(null); setVerifyErr(null) }}
-                className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
+                className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">{t('pr_cancel')}</button>
             </div>
           </div>
         </div>
@@ -435,7 +446,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-gray-900 mb-1">
-              {recordNew ? 'Ongeza Rekodi ya Malipo' : 'Rekodi Malipo ya Fedha Taslimu'}
+              {recordNew ? t('pr_record_add_title') : t('pr_record_cash_title')}
             </h2>
             <p className="text-sm text-gray-500 mb-4">
               {recordFor
@@ -446,14 +457,14 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
               {recordNew && (
                 <>
                   <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">Kiasi (TZS) *</label>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_record_amount_label')}</label>
                     <input type="number" value={recordForm.amount_due}
                       onChange={e => setRecordForm(f => ({ ...f, amount_due: e.target.value }))}
                       placeholder={String(unit?.monthly_rent ?? '')}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" required />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">Tarehe ya Ankara</label>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_record_due_date_label')}</label>
                     <input type="date" value={recordForm.due_date}
                       onChange={e => setRecordForm(f => ({ ...f, due_date: e.target.value }))}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
@@ -461,18 +472,18 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                 </>
               )}
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Tarehe ya Malipo *</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_record_paid_date_label')}</label>
                 <input type="date" value={recordForm.paid_date}
                   onChange={e => setRecordForm(f => ({ ...f, paid_date: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" required />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Njia ya Malipo</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_record_method_label')}</label>
                 <select value={recordForm.payment_method}
                   onChange={e => setRecordForm(f => ({ ...f, payment_method: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
-                  <option value="bank">Benki</option>
-                  <option value="cash">Fedha Taslimu</option>
+                  <option value="bank">{t('pr_pay_method_bank')}</option>
+                  <option value="cash">{t('pr_pay_method_cash')}</option>
                   <option value="mpesa">M-Pesa</option>
                   <option value="airtel">Airtel Money</option>
                   <option value="tigo">Tigo Pesa</option>
@@ -480,14 +491,14 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Namba ya Muamala / Risiti</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_record_ref_label')}</label>
                 <input type="text" value={recordForm.reference}
                   onChange={e => setRecordForm(f => ({ ...f, reference: e.target.value }))}
                   placeholder="Namba ya risiti au muamala"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Maelezo</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_record_notes_label')}</label>
                 <input type="text" value={recordForm.notes}
                   onChange={e => setRecordForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="Maelezo ya ziada..."
@@ -497,10 +508,10 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
               <div className="flex gap-2 pt-1">
                 <button type="submit" disabled={recording}
                   className="flex-1 bg-green-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-green-600 disabled:opacity-50 transition">
-                  {recording ? 'Inarekodi...' : '✓ Rekodi Malipo'}
+                  {recording ? t('pr_recording') : t('pr_record_submit')}
                 </button>
                 <button type="button" onClick={() => { setRecordFor(null); setRecordNew(false); setRecordErr(null) }}
-                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">{t('pr_cancel')}</button>
               </div>
             </form>
           </div>
@@ -511,25 +522,25 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       {renewModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Fanya Upya Mkataba</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">{t('pr_renew_title')}</h2>
             <p className="text-sm text-gray-500 mb-4">{tenant?.full_name} · {unit?.unit_number}</p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Tarehe Mpya ya Kumalizika *</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_renew_end_date_label')}</label>
                 <input type="date" value={renewForm.new_end_date}
                   onChange={e => setRenewForm(f => ({ ...f, new_end_date: e.target.value }))}
                   min={new Date().toISOString().split('T')[0]}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Kodi Mpya (TZS) — hiari</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_renew_rent_label')}</label>
                 <input type="number" value={renewForm.new_monthly_rent}
                   onChange={e => setRenewForm(f => ({ ...f, new_monthly_rent: e.target.value }))}
                   placeholder={String(lease?.monthly_rent ?? '')}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Maelezo — hiari</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_renew_notes_label')}</label>
                 <input value={renewForm.notes}
                   onChange={e => setRenewForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="Mabadiliko yoyote ya mkataba..."
@@ -539,10 +550,10 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
               <div className="flex gap-2">
                 <button onClick={submitRenew} disabled={renewing || !renewForm.new_end_date}
                   className="flex-1 bg-blue-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-600 disabled:opacity-40 transition">
-                  {renewing ? 'Inasasisha...' : '🔄 Fanya Upya'}
+                  {renewing ? t('pr_renewing') : t('pr_renew_btn')}
                 </button>
                 <button onClick={() => { setRenewModal(false); setRenewErr(null) }}
-                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">{t('pr_cancel')}</button>
               </div>
             </div>
           </div>
@@ -553,43 +564,43 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       {terminateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Simamisha Mkataba</h2>
-            <p className="text-sm text-red-500 mb-4">Hatua hii itabatilisha malipo yote yanayosubiri na kuacha kitengo huru.</p>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">{t('pr_terminate_title')}</h2>
+            <p className="text-sm text-red-500 mb-4">{t('pr_terminate_warning')}</p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Sababu *</label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">{t('pr_terminate_reason_label')}</label>
                 <select value={terminateForm.termination_reason}
                   onChange={e => setTerminateForm(f => ({ ...f, termination_reason: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
-                  <option value="">— Chagua sababu —</option>
-                  <option value="tenant_request">Ombi la Mpangaji</option>
-                  <option value="landlord_request">Ombi la Mmiliki</option>
-                  <option value="non_payment">Kutolipa Kodi</option>
-                  <option value="lease_ended">Mkataba Umekwisha</option>
-                  <option value="property_sold">Mali Iliuzwa</option>
-                  <option value="other">Nyingine</option>
+                  <option value="">{t('pr_terminate_reason_ph')}</option>
+                  <option value="tenant_request">{t('pr_terminate_reason_tenant')}</option>
+                  <option value="landlord_request">{t('pr_terminate_reason_landlord')}</option>
+                  <option value="non_payment">{t('pr_terminate_reason_nonpay')}</option>
+                  <option value="lease_ended">{t('pr_terminate_reason_ended')}</option>
+                  <option value="property_sold">{t('pr_terminate_reason_sold')}</option>
+                  <option value="other">{t('pr_terminate_reason_other')}</option>
                 </select>
               </div>
               {lease?.deposit_paid && !lease?.deposit_refunded_at && (
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">
-                    Amana Inayorudishwa (TZS) — hiari
+                    {t('pr_terminate_deposit_label')}
                   </label>
                   <input type="number" value={terminateForm.deposit_refund_amount}
                     onChange={e => setTerminateForm(f => ({ ...f, deposit_refund_amount: e.target.value }))}
                     placeholder={String(lease?.deposit_amount ?? '')}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
-                  <p className="text-[10px] text-gray-400 mt-1">Acha tupu ili usirudishe amana sasa.</p>
+                  <p className="text-[10px] text-gray-400 mt-1">{t('pr_terminate_deposit_hint')}</p>
                 </div>
               )}
               {terminateErr && <p className="text-sm text-red-600">{terminateErr}</p>}
               <div className="flex gap-2">
                 <button onClick={submitTerminate} disabled={terminating || !terminateForm.termination_reason}
                   className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-red-600 disabled:opacity-40 transition">
-                  {terminating ? 'Inasimamisha...' : '⚠️ Simamisha Mkataba'}
+                  {terminating ? t('pr_terminating') : t('pr_terminate_btn')}
                 </button>
                 <button onClick={() => { setTerminateModal(false); setTerminateErr(null) }}
-                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
+                  className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">{t('pr_cancel')}</button>
               </div>
             </div>
           </div>
@@ -600,7 +611,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       <div>
         <Link href="/property/wapangaji"
           className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-3">
-          <i className="ti ti-arrow-left text-sm" /> Rudi Wapangaji
+          <i className="ti ti-arrow-left text-sm" /> {t('pr_lease_back')}
         </Link>
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -614,14 +625,14 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
               href={`/property/wapangaji/${leaseId}/statement`}
               className="text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center gap-1"
             >
-              <i className="ti ti-file-text text-sm" /> Taarifa
+              <i className="ti ti-file-text text-sm" /> {t('pr_lease_taarifa_btn')}
             </Link>
             <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
               lease.status === 'active'     ? 'bg-green-50 text-green-700' :
               lease.status === 'terminated' ? 'bg-red-50 text-red-600' :
               'bg-gray-100 text-gray-500'
             }`}>
-              {lease.status === 'active' ? 'Inaendelea' : lease.status === 'terminated' ? 'Imesimamishwa' : lease.status}
+              {lease.status === 'active' ? t('pr_lease_status_active') : lease.status === 'terminated' ? t('pr_lease_status_terminated') : lease.status}
             </span>
           </div>
         </div>
@@ -637,16 +648,16 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
             <i className={`ti ti-alert-triangle text-xl flex-shrink-0 ${urgent ? 'text-red-500' : 'text-amber-500'}`} aria-hidden="true" />
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-semibold ${urgent ? 'text-red-700' : 'text-amber-700'}`}>
-                Mkataba Unakwisha — Siku {daysLeft} Zilizobaki
+                {t('pr_lease_expiry_warning')} — {daysLeft} {t('pr_lease_days_left')}
               </p>
               <p className={`text-xs mt-0.5 ${urgent ? 'text-red-500' : 'text-amber-500'}`}>
-                Unaisha {dateFmt(lease.end_date)}
+                {t('pr_lease_expires')} {dateFmt(lease.end_date)}
               </p>
             </div>
             {isOwner && (
               <button onClick={() => setRenewModal(true)}
                 className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl transition ${urgent ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-amber-500 text-white hover:bg-amber-600'}`}>
-                Fanya Upya
+                {t('pr_lease_renew_btn')}
               </button>
             )}
           </div>
@@ -656,45 +667,45 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       {/* Lease details */}
       <div className="grid sm:grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-400 mb-3 font-medium">Maelezo ya Mkataba</p>
+          <p className="text-xs text-gray-400 mb-3 font-medium">{t('pr_lease_detail_heading')}</p>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-500">Kodi ya Kila Mwezi</span>
+              <span className="text-gray-500">{t('pr_lease_monthly_rent')}</span>
               <span className="font-bold text-primary-600">{fmt(lease.monthly_rent)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Deposit</span>
+              <span className="text-gray-500">{t('pr_lease_deposit')}</span>
               <span className="font-medium">
                 {lease.deposit_amount ? fmt(lease.deposit_amount) : '—'}
                 {lease.deposit_refunded_at
-                  ? <span className="ml-1 text-xs text-blue-600">(Imerudishwa)</span>
+                  ? <span className="ml-1 text-xs text-blue-600">{t('pr_lease_deposit_refunded')}</span>
                   : lease.deposit_paid
-                    ? <span className="ml-1 text-xs text-green-600">(Imelipwa)</span>
+                    ? <span className="ml-1 text-xs text-green-600">{t('pr_lease_deposit_paid_badge')}</span>
                     : null}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Ilianza</span>
+              <span className="text-gray-500">{t('pr_lease_started')}</span>
               <span className="font-medium">{dateFmt(lease.start_date)}</span>
             </div>
             {lease.end_date && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Inaisha</span>
+                <span className="text-gray-500">{t('pr_lease_ends')}</span>
                 <span className="font-medium">{dateFmt(lease.end_date)}</span>
               </div>
             )}
             {tenant?.phone && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Simu</span>
+                <span className="text-gray-500">{t('pr_lease_phone')}</span>
                 <a href={`tel:${tenant.phone}`} className="font-medium text-primary-600 hover:underline">{tenant.phone}</a>
               </div>
             )}
             <div className="flex justify-between items-center">
-              <span className="text-gray-500">Hati ya Mkataba</span>
+              <span className="text-gray-500">{t('pr_lease_document')}</span>
               {lease.document_url
                 ? <a href={lease.document_url} target="_blank" rel="noopener noreferrer"
                     className="text-xs text-primary-600 hover:underline flex items-center gap-1">
-                    <i className="ti ti-file-text text-sm" /> Angalia
+                    <i className="ti ti-file-text text-sm" /> {t('pr_lease_view_doc')}
                   </a>
                 : <span className="text-xs text-gray-400">—</span>
               }
@@ -704,12 +715,12 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Payment summary */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-400 mb-3 font-medium">Muhtasari wa Malipo</p>
+          <p className="text-xs text-gray-400 mb-3 font-medium">{t('pr_lease_payments_summary')}</p>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: 'Zililipwa',    value: paid,    cls: 'text-green-600' },
-              { label: 'Zinasubiri',   value: pending, cls: 'text-amber-600' },
-              { label: 'Zimechelewa', value: overdue, cls: 'text-red-600'   },
+              { label: t('pr_lease_paid_count'),    value: paid,    cls: 'text-green-600' },
+              { label: t('pr_lease_pending_count'), value: pending, cls: 'text-amber-600' },
+              { label: t('pr_lease_overdue_count'), value: overdue, cls: 'text-red-600'   },
             ].map(s => (
               <div key={s.label} className="text-center">
                 <p className={`text-2xl font-bold ${s.cls}`}>{s.value}</p>
@@ -719,7 +730,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
           </div>
           {banking && (
             <div className="mt-3 pt-3 border-t border-gray-50 text-xs">
-              <p className="text-gray-400 mb-1 font-medium">Benki ya Malipo</p>
+              <p className="text-gray-400 mb-1 font-medium">{t('pr_lease_banking_heading')}</p>
               <p className="font-semibold text-gray-800">{banking.bank_name}</p>
               <p className="text-gray-600">{banking.account_name} · {banking.account_number}</p>
               {banking.mobile_money_number && (
@@ -729,7 +740,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
           )}
           {!banking && isOwner && (
             <Link href="/property/kyc" className="mt-3 block text-xs text-amber-600 hover:underline">
-              <i className="ti ti-alert-circle" /> Weka maelezo ya benki kwenye KYC
+              <i className="ti ti-alert-circle" /> {t('pr_lease_kyc_link')}
             </Link>
           )}
         </div>
@@ -738,43 +749,43 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       {/* Lifecycle actions */}
       {isOwner && (
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-400 mb-3 font-medium">Vitendo vya Mkataba</p>
+          <p className="text-xs text-gray-400 mb-3 font-medium">{t('pr_lifecycle_heading')}</p>
           <div className="flex flex-wrap gap-2">
             {lease.status === 'active' && (
               <button onClick={() => setRenewModal(true)}
                 className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-blue-100 transition">
-                <i className="ti ti-refresh text-sm" aria-hidden="true" /> Fanya Upya
+                <i className="ti ti-refresh text-sm" aria-hidden="true" /> {t('pr_lease_renew_btn')}
               </button>
             )}
             {lease.status === 'active' && (
               <button onClick={() => setTerminateModal(true)}
                 className="flex items-center gap-1.5 bg-red-50 text-red-600 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-red-100 transition">
-                <i className="ti ti-x text-sm" aria-hidden="true" /> Simamisha
+                <i className="ti ti-x text-sm" aria-hidden="true" /> {t('pr_terminate_title')}
               </button>
             )}
             {!lease.deposit_paid && lease.deposit_amount && (
               <button onClick={handleDepositReceived} disabled={depositLoading}
                 className="flex items-center gap-1.5 bg-green-50 text-green-700 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-green-100 disabled:opacity-50 transition">
                 <i className="ti ti-coin text-sm" aria-hidden="true" />
-                {depositLoading ? 'Inarekodi...' : 'Amana Imelipwa'}
+                {depositLoading ? t('pr_deposit_recording') : t('pr_deposit_received_btn')}
               </button>
             )}
             {lease.deposit_paid && !lease.deposit_refunded_at && (
               <button onClick={handleDepositRefund} disabled={depositLoading}
                 className="flex items-center gap-1.5 bg-amber-50 text-amber-700 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-amber-100 disabled:opacity-50 transition">
                 <i className="ti ti-arrow-back-up text-sm" aria-hidden="true" />
-                {depositLoading ? 'Inarekodi...' : 'Rudisha Amana'}
+                {depositLoading ? t('pr_deposit_recording') : t('pr_deposit_refund_btn')}
               </button>
             )}
             <button
               onClick={() => { setDocUrl(lease.document_url ?? ''); setDocErr(null); setDocModal(true) }}
               className="flex items-center gap-1.5 bg-gray-50 text-gray-700 text-xs font-semibold px-3 py-2 rounded-xl hover:bg-gray-100 transition border border-gray-200">
               <i className="ti ti-file-upload text-sm" aria-hidden="true" />
-              {lease.document_url ? 'Sasisha Hati' : 'Pakia Hati'}
+              {lease.document_url ? t('pr_update_doc_btn') : t('pr_upload_doc_btn')}
             </button>
           </div>
           {lease.renewal_count > 0 && (
-            <p className="text-xs text-gray-400 mt-3">Imefanywa upya mara {lease.renewal_count}</p>
+            <p className="text-xs text-gray-400 mt-3">{t('pr_renewed_count')} {lease.renewal_count}</p>
           )}
         </div>
       )}
@@ -782,7 +793,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       {/* Payment records */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-gray-900">Historia ya Malipo ({payments.length})</h2>
+          <h2 className="text-sm font-bold text-gray-900">{t('pr_payment_history_heading')} ({payments.length})</h2>
           {isOwner && (
             <div className="flex gap-2">
               <button
@@ -793,7 +804,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                 className="flex items-center gap-1.5 bg-primary-500 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-primary-600 transition"
               >
                 <i className="ti ti-plus text-sm" />
-                Ongeza Rekodi
+                {t('pr_payment_add_record')}
               </button>
             </div>
           )}
@@ -802,7 +813,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         {payments.length === 0 ? (
           <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
             <i className="ti ti-receipt text-4xl text-gray-200" aria-hidden="true" />
-            <p className="text-gray-400 text-sm mt-2">Hakuna rekodi za malipo bado</p>
+            <p className="text-gray-400 text-sm mt-2">{t('pr_payment_no_records')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -816,10 +827,10 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${late ? 'bg-red-50 text-red-600' : st.cls}`}>
                           <i className={`ti ti-${late ? 'alert-circle' : st.icon} mr-1`} />
-                          {late ? 'Imechelewa' : st.label}
+                          {late ? t('pr_pay_status_late') : st.label}
                         </span>
                         {payment.invoice_sent_at && (
-                          <span className="text-[10px] text-gray-400">Ankara ilitumwa</span>
+                          <span className="text-[10px] text-gray-400">{t('pr_payment_invoice_sent')}</span>
                         )}
                         {payment.payment_method && payment.status === 'paid' && (
                           <span className="text-[10px] text-gray-400 capitalize">{payment.payment_method}</span>
@@ -827,15 +838,15 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                       </div>
                       <p className="text-lg font-bold text-gray-900">{fmt(payment.amount_due)}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Inastahili: {dateFmt(payment.due_date)}
-                        {payment.paid_date && ` · Ilipwa: ${dateFmt(payment.paid_date)}`}
-                        {payment.reference && ` · Ref: ${payment.reference}`}
-                        {payment.verified_at && ` · Ilithibitishwa: ${dateFmt(payment.verified_at)}`}
+                        {t('pr_payment_due_label')} {dateFmt(payment.due_date)}
+                        {payment.paid_date && ` · ${t('pr_payment_paid_on_label')} ${dateFmt(payment.paid_date)}`}
+                        {payment.reference && ` · ${t('pr_payment_ref_label')} ${payment.reference}`}
+                        {payment.verified_at && ` · ${t('pr_payment_verified_label')} ${dateFmt(payment.verified_at)}`}
                       </p>
                       {payment.proof_url && (
                         <a href={payment.proof_url} target="_blank" rel="noopener noreferrer"
                           className="text-xs text-blue-600 hover:underline mt-1 flex items-center gap-1">
-                          <i className="ti ti-file" /> Angalia Ushahidi
+                          <i className="ti ti-file" /> {t('pr_payment_view_proof')}
                           {payment.proof_note && ` — ${payment.proof_note}`}
                         </a>
                       )}
@@ -847,13 +858,13 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                         {payment.status === 'proof_uploaded' && (
                           <button onClick={() => { setVerifyFor(payment); setVerifyNote('') }}
                             className="text-xs px-3 py-1.5 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition">
-                            Thibitisha
+                            {t('pr_payment_verify_btn')}
                           </button>
                         )}
                         {payment.status === 'paid' && (
                           <a href={`/rent/receipt/${payment.id}`} target="_blank" rel="noopener noreferrer"
                             className="text-xs px-3 py-1.5 bg-green-50 text-green-700 rounded-xl font-medium hover:bg-green-100 transition flex items-center gap-1 whitespace-nowrap">
-                            <i className="ti ti-receipt text-xs" />Risiti
+                            <i className="ti ti-receipt text-xs" />{t('pr_payment_receipt_btn')}
                           </a>
                         )}
                         {['pending', 'partial', 'late'].includes(payment.status) && (
@@ -861,21 +872,21 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                             {!payment.invoice_sent_at && (
                               <button onClick={() => handleSendInvoice(payment)} disabled={sendingInvoice === payment.id}
                                 className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 rounded-xl font-medium hover:bg-blue-100 disabled:opacity-60 transition whitespace-nowrap">
-                                {sendingInvoice === payment.id ? '...' : 'Tuma Ankara'}
+                                {sendingInvoice === payment.id ? '...' : t('pr_kodi_send_invoice')}
                               </button>
                             )}
                             <button onClick={() => { setRecordFor(payment); setRecordNew(false) }}
                               className="text-xs px-3 py-1.5 bg-green-50 text-green-700 rounded-xl font-medium hover:bg-green-100 transition whitespace-nowrap">
-                              Imelipwa
+                              {t('pr_payment_paid_btn')}
                             </button>
                             <button onClick={() => { setProofFor(payment); setProofUrl(''); setProofNote('') }}
                               className="text-xs px-3 py-1.5 bg-primary-50 text-primary-700 rounded-xl font-medium hover:bg-primary-100 transition">
-                              {payment.proof_url ? 'Sasisha' : 'Pakia'}
+                              {payment.proof_url ? t('pr_payment_update_btn') : t('pr_payment_upload_btn')}
                             </button>
                             {(late || payment.status === 'late') && (
                               <button onClick={() => handleRemind(payment)} disabled={reminding === payment.id}
                                 className="text-xs px-3 py-1.5 bg-amber-50 text-amber-700 rounded-xl font-medium hover:bg-amber-100 disabled:opacity-60 transition">
-                                {reminding === payment.id ? '...' : 'Kumbusha'}
+                                {reminding === payment.id ? '...' : t('pr_payment_remind_btn')}
                               </button>
                             )}
                           </>
@@ -883,7 +894,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                         {payment.status !== 'paid' && payment.status !== 'void' && (
                           <button onClick={() => handleVoid(payment)} disabled={voiding === payment.id}
                             className="text-xs px-3 py-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition disabled:opacity-60">
-                            {voiding === payment.id ? '...' : 'Batilisha'}
+                            {voiding === payment.id ? '...' : t('pr_payment_void_btn')}
                           </button>
                         )}
                       </div>

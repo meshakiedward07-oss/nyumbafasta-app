@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { getOrCreateSessionId } from '@/lib/ads/session'
 import { waLink } from '@/lib/utils/phone'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Ad = {
   id: string; title: string; body_text: string | null
@@ -13,6 +14,7 @@ type Ad = {
 const FALLBACK_REGION = 'Dar es Salaam'
 
 export default function VideoAdCard({ region }: { region?: string }) {
+  const { t } = useLanguage()
   const [ad, setAd]   = useState<Ad | null>(null)
   const videoRef      = useRef<HTMLVideoElement>(null)
 
@@ -55,7 +57,7 @@ export default function VideoAdCard({ region }: { region?: string }) {
           autoPlay muted loop playsInline
         />
         <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
-          Tangazo
+          {t('adv_sponsored')}
         </div>
       </div>
       <div className="p-3 flex items-center gap-3">
@@ -67,8 +69,8 @@ export default function VideoAdCard({ region }: { region?: string }) {
           )}
         </div>
         <span className="flex-shrink-0 bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl whitespace-nowrap">
-          {waNumber ? '💬 Wasiliana' :
-           ad.cta_type === 'call' ? '📞 Piga Simu' : '🌐 Tovuti'}
+          {waNumber ? `💬 ${t('adv_cta_contact')}` :
+           ad.cta_type === 'call' ? `📞 ${t('adv_cta_call')}` : `🌐 ${t('adv_cta_website')}`}
         </span>
       </div>
     </a>

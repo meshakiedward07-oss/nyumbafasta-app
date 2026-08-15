@@ -4,10 +4,11 @@ import type {
   SubscriptionPlan, OrganizationSubscription, SubscriptionStatus,
   PlanFeatures, SubscriptionInvoice, InvoiceStatus,
 } from '@/lib/types/property'
+import { useLanguage } from '@/lib/i18n/context'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function fmt(n: number) { return n === 0 ? 'Bila Malipo' : `Tsh ${n.toLocaleString()}` }
+function fmt(n: number, freeLabel = 'Bila Malipo') { return n === 0 ? freeLabel : `Tsh ${n.toLocaleString()}` }
 
 function daysLeft(isoDate: string | null): number | null {
   if (!isoDate) return null
@@ -19,36 +20,29 @@ function dateFmt(iso: string | null) {
   return new Date(iso).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-function statusInfo(status: SubscriptionStatus, trialEndsAt: string | null, periodEnd: string | null) {
+function statusInfo(status: SubscriptionStatus, trialEndsAt: string | null, periodEnd: string | null, t: (k: string) => string): { label: string; color: string; icon: string; detail: string } {
   const td = daysLeft(trialEndsAt)
   const pd = daysLeft(periodEnd)
   switch (status) {
     case 'trial':
-      return { color: 'bg-blue-50 border-blue-200 text-blue-700', icon: 'ti-clock', label: 'Kipindi cha Majaribio',
-               detail: td != null && td >= 0 ? `Siku ${td} zimesalia` : 'Majaribio yamekwisha' }
+      return { color: 'bg-blue-50 border-blue-200 text-blue-700', icon: 'ti-clock', label: t('pr_usajili_status_trial'),
+               detail: td != null && td >= 0 ? `Siku ${td} ${t('pr_usajili_days_left')}` : t('pr_usajili_trial_ended') }
     case 'active':
-      return { color: 'bg-green-50 border-green-200 text-green-700', icon: 'ti-check-circle', label: 'Usajili Hai',
-               detail: pd != null ? `Inaisha ${dateFmt(periodEnd)}` : '' }
+      return { color: 'bg-green-50 border-green-200 text-green-700', icon: 'ti-check-circle', label: t('pr_usajili_status_active'),
+               detail: pd != null ? `${t('pr_usajili_expires_on')} ${dateFmt(periodEnd)}` : '' }
     case 'past_due':
-      return { color: 'bg-amber-50 border-amber-200 text-amber-700', icon: 'ti-alert-circle', label: 'Malipo Yamechelewa',
-               detail: 'Wasiliana na msaada kufanya malipo' }
+      return { color: 'bg-amber-50 border-amber-200 text-amber-700', icon: 'ti-alert-circle', label: t('pr_usajili_status_past_due'),
+               detail: t('pr_usajili_past_due_detail') }
     case 'grace_period':
-      return { color: 'bg-orange-50 border-orange-200 text-orange-700', icon: 'ti-hourglass', label: 'Muda wa Neema',
-               detail: 'Fanya malipo haraka kabla huduma hazijasimamishwa' }
+      return { color: 'bg-orange-50 border-orange-200 text-orange-700', icon: 'ti-hourglass', label: t('pr_usajili_status_grace'),
+               detail: t('pr_usajili_grace_detail') }
     case 'cancelled':
-      return { color: 'bg-gray-50 border-gray-200 text-gray-600', icon: 'ti-x-circle', label: 'Imesimamishwa',
-               detail: 'Shirika limefungwa. Wasiliana nasi kulifungua.' }
+      return { color: 'bg-gray-50 border-gray-200 text-gray-600', icon: 'ti-x-circle', label: t('pr_usajili_status_cancelled'),
+               detail: t('pr_usajili_cancelled_detail') }
     case 'expired':
-      return { color: 'bg-red-50 border-red-200 text-red-600', icon: 'ti-calendar-x', label: 'Imekwisha',
-               detail: 'Upya usajili ili kuendelea kutumia huduma zote' }
+      return { color: 'bg-red-50 border-red-200 text-red-600', icon: 'ti-calendar-x', label: t('pr_usajili_status_expired'),
+               detail: t('pr_usajili_expired_detail') }
   }
-}
-
-const INVOICE_STATUS: Record<InvoiceStatus, { label: string; cls: string }> = {
-  pending:        { label: 'Inasubiri Malipo',   cls: 'bg-amber-50 text-amber-700'  },
-  proof_uploaded: { label: 'Ushahidi Umepakiwa', cls: 'bg-blue-50 text-blue-700'    },
-  confirmed:      { label: 'Imethibitishwa',      cls: 'bg-green-50 text-green-700'  },
-  void:           { label: 'Imebatilishwa',       cls: 'bg-gray-100 text-gray-400'   },
 }
 
 const CYCLE_LABEL: Record<string, string> = {
@@ -74,10 +68,11 @@ function PlanCard({ plan, current, onSelect }: {
   current: boolean
   onSelect: (p: SubscriptionPlan) => void
 }) {
+  const { t } = useLanguage()
   const f = plan.features
   return (
     <div className={`bg-white rounded-2xl border-2 p-5 flex flex-col gap-4 transition ${current ? 'border-primary-500 shadow-md' : 'border-gray-100 hover:border-gray-200'}`}>
-      {current && <span className="text-xs bg-primary-500 text-white px-2.5 py-1 rounded-full font-semibold w-fit">Mpango Wako</span>}
+      {current && <span className="text-xs bg-primary-500 text-white px-2.5 py-1 rounded-full font-semibold w-fit">{t('pr_usajili_current_plan')}</span>}
       <div>
         <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
         {plan.description && <p className="text-sm text-gray-500 mt-0.5">{plan.description}</p>}
@@ -104,7 +99,7 @@ function PlanCard({ plan, current, onSelect }: {
       </ul>
       {!current && (
         <button onClick={() => onSelect(plan)} className="w-full py-2.5 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
-          {plan.price_tzs === 0 ? 'Chagua Mpango Huu' : 'Panda Mpango Huu'}
+          {plan.price_tzs === 0 ? t('pr_usajili_select_plan') : t('pr_usajili_upgrade_plan')}
         </button>
       )}
     </div>
@@ -121,10 +116,11 @@ function PaymentModal({ plan, orgId, onPaid, onClose }: {
   onPaid: (inv: SubscriptionInvoice) => void
   onClose: () => void
 }) {
+  const { t } = useLanguage()
   const cycles: { v: string; label: string; multiplier: number }[] = [
-    { v: 'monthly',   label: 'Kila Mwezi',              multiplier: 1  },
-    { v: 'quarterly', label: 'Kila Robo Mwaka',         multiplier: 3  },
-    { v: 'annual',    label: 'Kila Mwaka (10% punguzo)', multiplier: 10 },
+    { v: 'monthly',   label: t('pr_usajili_monthly'),              multiplier: 1  },
+    { v: 'quarterly', label: t('pr_usajili_quarterly'),            multiplier: 3  },
+    { v: 'annual',    label: `${t('pr_usajili_annual')} (10% punguzo)`, multiplier: 10 },
   ]
   const [cycle,     setCycle]     = useState('monthly')
   const [msisdn,    setMsisdn]    = useState('')
@@ -138,14 +134,14 @@ function PaymentModal({ plan, orgId, onPaid, onClose }: {
   const total = plan.price_tzs * multiplier
 
   async function submit() {
-    if (!msisdn.trim()) { setError('Weka namba ya simu'); return }
+    if (!msisdn.trim()) { setError(t('pr_usajili_phone_label')); return }
     setSaving(true); setError(null)
     const res  = await fetch(`/api/v1/organizations/${orgId}/subscription/pay`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ plan_id: plan.id, billing_cycle: cycle, msisdn: msisdn.trim() }),
     })
     const data = await res.json()
-    if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); setSaving(false); return }
+    if (!res.ok) { setError(data.error ?? t('pr_err_generic')); setSaving(false); return }
     setInvoiceId(data.invoice_id)
     setStep('pending')
     setSaving(false)
@@ -173,11 +169,11 @@ function PaymentModal({ plan, orgId, onPaid, onClose }: {
 
         {step === 'form' && (
           <>
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Lipa kwa Simu</h2>
-            <p className="text-sm text-gray-500 mb-4">Panda kwenda <strong>{plan.name}</strong></p>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">{t('pr_usajili_pay_heading')}</h2>
+            <p className="text-sm text-gray-500 mb-4">{t('pr_usajili_upgrade_to')} <strong>{plan.name}</strong></p>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Muda wa Usajili</label>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_usajili_cycle_duration')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {cycles.map(c => (
                     <button key={c.v} type="button" onClick={() => setCycle(c.v)}
@@ -194,15 +190,15 @@ function PaymentModal({ plan, orgId, onPaid, onClose }: {
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Namba ya Simu ya Malipo *</label>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_usajili_phone_label')} *</label>
                 <input
                   type="tel"
                   value={msisdn}
                   onChange={e => setMsisdn(e.target.value)}
-                  placeholder="07XXXXXXXX"
+                  placeholder={t('pr_usajili_phone_ph')}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
-                <p className="text-xs text-gray-400 mt-1">M-Pesa, Airtel Money, Tigo Pesa, au Halopesa</p>
+                <p className="text-xs text-gray-400 mt-1">{t('pr_usajili_mpesa_hint')}</p>
               </div>
 
               {error && <p className="text-sm text-red-600">{error}</p>}
@@ -210,13 +206,13 @@ function PaymentModal({ plan, orgId, onPaid, onClose }: {
               <div className="flex gap-2">
                 <button onClick={submit} disabled={saving}
                   className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
-                  {saving ? 'Inatuma...' : `Lipa ${fmt(total)}`}
+                  {saving ? t('pr_usajili_paying') : `${t('pr_usajili_pay')} ${fmt(total, t('pr_usajili_free'))}`}
                 </button>
-                <button onClick={onClose} className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ghairi</button>
+                <button onClick={onClose} className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">{t('pr_cancel')}</button>
               </div>
 
               <p className="text-[10px] text-gray-400 text-center">
-                Utapokea USSD popup kwenye simu yako. Thibitisha malipo kwa PIN yako.
+                {t('pr_usajili_ussd_popup')}
               </p>
             </div>
           </>
@@ -227,9 +223,9 @@ function PaymentModal({ plan, orgId, onPaid, onClose }: {
             <div className="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-4">
               <i className="ti ti-phone-calling text-primary-500 text-3xl animate-pulse" aria-hidden="true" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Subiri Idhini</h2>
-            <p className="text-sm text-gray-500 mb-1">Ombi la USSD limetumwa kwenye simu yako.</p>
-            <p className="text-sm text-gray-500 mb-6">Ingiza PIN yako ya Mobile Money kumaliza malipo.</p>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">{t('pr_usajili_pending_title')}</h2>
+            <p className="text-sm text-gray-500 mb-1">{t('pr_usajili_pending_desc1')}</p>
+            <p className="text-sm text-gray-500 mb-6">{t('pr_usajili_pending_desc2')}</p>
             <div className="flex justify-center gap-1 mb-6">
               {[0,1,2].map(i => (
                 <span key={i} className="w-2 h-2 bg-primary-400 rounded-full animate-bounce"
@@ -238,10 +234,10 @@ function PaymentModal({ plan, orgId, onPaid, onClose }: {
             </div>
             {pollCount >= 24 && (
               <div className="text-sm text-amber-600 bg-amber-50 rounded-xl p-3 mb-4">
-                Muda umeisha. Hakuna uthibitisho uliopokelewa. Tafadhali angalia akaunti yako ya mobile money na ujaribu tena.
+                {t('pr_usajili_timeout_msg')}
               </div>
             )}
-            <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600">Funga (malipo bado yanaweza kukamilika)</button>
+            <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600">{t('pr_usajili_close_note')}</button>
           </div>
         )}
 
@@ -250,11 +246,11 @@ function PaymentModal({ plan, orgId, onPaid, onClose }: {
             <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
               <i className="ti ti-check text-green-500 text-3xl" aria-hidden="true" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Malipo Yamepita!</h2>
-            <p className="text-sm text-gray-500 mb-6">Mpango wako wa <strong>{plan.name}</strong> umewashwa.</p>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">{t('pr_usajili_done_title')}</h2>
+            <p className="text-sm text-gray-500 mb-6">{t('pr_usajili_done_msg').replace('{plan}', plan.name)}</p>
             <button onClick={onClose}
               className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
-              Sawa, Niende Kwenye Dashibodi
+              {t('pr_usajili_ok_dashboard')}
             </button>
           </div>
         )}
@@ -271,6 +267,7 @@ function ProofModal({ invoice, orgId, onUpdated, onClose }: {
   onUpdated: (inv: SubscriptionInvoice) => void
   onClose: () => void
 }) {
+  const { t } = useLanguage()
   const [url,    setUrl]    = useState(invoice.proof_url ?? '')
   const [note,   setNote]   = useState(invoice.proof_note ?? '')
   const [saving, setSaving] = useState(false)
@@ -283,38 +280,38 @@ function ProofModal({ invoice, orgId, onUpdated, onClose }: {
       body: JSON.stringify({ proof_url: url.trim(), proof_note: note.trim() }),
     })
     const data = await res.json()
-    if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); setSaving(false); return }
+    if (!res.ok) { setError(data.error ?? t('pr_err_generic')); setSaving(false); return }
     onUpdated(data.invoice)
   }
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-        <h2 className="text-lg font-bold text-gray-900 mb-1">Pakia Ushahidi wa Malipo</h2>
+        <h2 className="text-lg font-bold text-gray-900 mb-1">{t('pr_usajili_proof_modal_title')}</h2>
         <p className="text-sm text-gray-500 mb-4">
-          Ankara ya <strong>{fmt((invoice.plan as SubscriptionPlan | null)?.price_tzs ? invoice.amount_tzs : 0) || fmt(invoice.amount_tzs)}</strong>
+          Ankara ya <strong>{fmt(invoice.amount_tzs, t('pr_usajili_free'))}</strong>
         </p>
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 block">Kiungo cha Picha ya Risiti *</label>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_usajili_proof_img_label')}</label>
             <input value={url} onChange={e => setUrl(e.target.value)} type="url"
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-              placeholder="https://... (piga picha risiti, ipakia Cloudinary/Drive, weka kiungo)" />
-            <p className="text-xs text-gray-400 mt-1">Piga picha ya uthibitisho wa M-Pesa/benki, upaki Google Drive au Cloudinary, kisha weka kiungo hapa.</p>
+              placeholder={t('pr_usajili_proof_img_ph')} />
+            <p className="text-xs text-gray-400 mt-1">{t('pr_usajili_proof_img_hint')}</p>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 block">Nambari ya Muamala (hiari)</label>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_usajili_txn_label')}</label>
             <input value={note} onChange={e => setNote(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-              placeholder="Mfano: QJT123456" />
+              placeholder={t('pr_usajili_txn_ph')} />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <button onClick={submit} disabled={saving || !url.trim()}
               className="flex-1 bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40">
-              {saving ? 'Inapakia...' : 'Tuma Ushahidi'}
+              {saving ? t('pr_usajili_uploading') : t('pr_usajili_submit_proof')}
             </button>
-            <button onClick={onClose} className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Funga</button>
+            <button onClick={onClose} className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">{t('pr_close')}</button>
           </div>
         </div>
       </div>
@@ -330,7 +327,15 @@ function InvoicesTab({ orgId, invoices, loading, onProofUploaded }: {
   loading: boolean
   onProofUploaded: (inv: SubscriptionInvoice) => void
 }) {
+  const { t } = useLanguage()
   const [proofFor, setProofFor] = useState<SubscriptionInvoice | null>(null)
+
+  const INVOICE_STATUS_LABELS: Record<InvoiceStatus, { label: string; cls: string }> = {
+    pending:        { label: t('pr_usajili_invoice_pending'),   cls: 'bg-amber-50 text-amber-700'  },
+    proof_uploaded: { label: t('pr_usajili_invoice_proof'),     cls: 'bg-blue-50 text-blue-700'    },
+    confirmed:      { label: t('pr_usajili_invoice_confirmed'), cls: 'bg-green-50 text-green-700'  },
+    void:           { label: t('pr_usajili_invoice_void'),      cls: 'bg-gray-100 text-gray-400'   },
+  }
 
   if (loading) return (
     <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-2xl" />)}</div>
@@ -339,8 +344,8 @@ function InvoicesTab({ orgId, invoices, loading, onProofUploaded }: {
   if (invoices.length === 0) return (
     <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
       <i className="ti ti-receipt text-5xl text-gray-200" aria-hidden="true" />
-      <p className="text-gray-500 font-medium mt-3">Hakuna ankara bado</p>
-      <p className="text-sm text-gray-400 mt-1">Ombi lako la kubadilisha mpango litaonekana hapa.</p>
+      <p className="text-gray-500 font-medium mt-3">{t('pr_usajili_invoice_empty')}</p>
+      <p className="text-sm text-gray-400 mt-1">{t('pr_usajili_inv_empty_desc2')}</p>
     </div>
   )
 
@@ -356,7 +361,7 @@ function InvoicesTab({ orgId, invoices, loading, onProofUploaded }: {
       )}
       <div className="space-y-3">
         {invoices.map(inv => {
-          const s = INVOICE_STATUS[inv.status]
+          const s = INVOICE_STATUS_LABELS[inv.status]
           const plan = inv.plan as SubscriptionPlan | null
           // AzamPay invoices have payment_reference set — no manual proof needed
           const isAzamPay  = !!inv.payment_reference
@@ -379,27 +384,27 @@ function InvoicesTab({ orgId, invoices, loading, onProofUploaded }: {
                   </p>
                   {isAzamPay && inv.status === 'pending' && (
                     <p className="text-xs text-blue-600 mt-1">
-                      <i className="ti ti-clock" /> Inasubiri uthibitisho wa malipo ya simu
+                      <i className="ti ti-clock" /> {t('pr_usajili_inv_awaiting')}
                     </p>
                   )}
                   {inv.proof_url && inv.status === 'proof_uploaded' && (
                     <p className="text-xs text-blue-600 mt-1">
-                      <i className="ti ti-check" /> Ushahidi umepakiwa — inasubiri uthibitisho
+                      <i className="ti ti-check" /> {t('pr_usajili_inv_proof_wait')}
                     </p>
                   )}
                   {inv.status === 'confirmed' && (
                     <p className="text-xs text-green-600 mt-1">
-                      <i className="ti ti-check-circle" /> Usajili umesasishwa · {dateFmt(inv.confirmed_at)}
+                      <i className="ti ti-check-circle" /> {t('pr_usajili_confirmed_on')} · {dateFmt(inv.confirmed_at)}
                     </p>
                   )}
                   {inv.status === 'void' && inv.void_reason && (
-                    <p className="text-xs text-gray-400 mt-1">Sababu: {inv.void_reason}</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('pr_usajili_inv_void_reason')}: {inv.void_reason}</p>
                   )}
                 </div>
                 {canUpload && (
                   <button onClick={() => setProofFor(inv)}
                     className="text-xs px-3 py-1.5 bg-primary-50 text-primary-700 rounded-xl font-medium hover:bg-primary-100 transition flex-shrink-0">
-                    {inv.proof_url ? 'Sasisha Ushahidi' : 'Pakia Ushahidi'}
+                    {inv.proof_url ? t('pr_usajili_update_proof') : t('pr_usajili_upload_proof_btn')}
                   </button>
                 )}
               </div>
@@ -446,6 +451,7 @@ type Tab = 'mpango' | 'ankara'
 type Usage = { properties: number; units: number; members: number }
 
 export default function UsajiliPage() {
+  const { t } = useLanguage()
   const [orgId,    setOrgId]    = useState<string | null>(null)
   const [sub,      setSub]      = useState<OrganizationSubscription | null>(null)
   const [plans,    setPlans]    = useState<SubscriptionPlan[]>([])
@@ -526,15 +532,15 @@ export default function UsajiliPage() {
     <div className="p-4 lg:p-6 max-w-4xl mx-auto">
       <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
         <i className="ti ti-building text-5xl text-gray-200" aria-hidden="true" />
-        <p className="text-gray-500 font-medium mt-3">Huna shirika bado</p>
+        <p className="text-gray-500 font-medium mt-3">{t('pr_usajili_no_org')}</p>
       </div>
     </div>
   )
 
   const status   = sub?.status
   const planObj  = sub?.plan as SubscriptionPlan | null
-  const planName = planObj?.name ?? 'Bila Mpango'
-  const statusI  = status ? statusInfo(status, sub?.trial_ends_at ?? null, sub?.current_period_end ?? null) : null
+  const planName = planObj?.name ?? t('pr_usajili_no_plan')
+  const statusI  = status ? statusInfo(status, sub?.trial_ends_at ?? null, sub?.current_period_end ?? null, t as (k: string) => string) : null
   const currentId = planObj?.id ?? null
 
   const pendingCount = invoices.filter(i => i.status === 'pending' || i.status === 'proof_uploaded').length
@@ -555,8 +561,8 @@ export default function UsajiliPage() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Usajili Wangu</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Mpango na malipo ya shirika lako</p>
+        <h1 className="text-xl font-bold text-gray-900">{t('pr_usajili_my_title')}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{t('pr_usajili_plan_subtitle')}</p>
       </div>
 
       {/* Status banner */}
@@ -571,7 +577,7 @@ export default function UsajiliPage() {
             <p className="text-sm mt-0.5 opacity-80">{statusI.detail}</p>
             {sub.pending_plan_id && (
               <p className="text-xs mt-1.5 opacity-70">
-                <i className="ti ti-clock" /> Mpango utabadilika {dateFmt(sub.pending_plan_starts_at)}
+                <i className="ti ti-clock" /> {t('pr_usajili_plan_pending')} {dateFmt(sub.pending_plan_starts_at)}
               </p>
             )}
           </div>
@@ -583,12 +589,12 @@ export default function UsajiliPage() {
         <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <i className="ti ti-chart-bar text-primary-500 text-lg" aria-hidden="true" />
-            <h2 className="font-semibold text-gray-900 text-sm">Matumizi ya Mpango</h2>
+            <h2 className="font-semibold text-gray-900 text-sm">{t('pr_usajili_usage_title')}</h2>
           </div>
           <div className="space-y-4">
-            <UsageBar label="Mali"              current={usage.properties} max={limits.max_properties} icon="building"  />
-            <UsageBar label="Vitengo"           current={usage.units}      max={limits.max_units}      icon="layout"    />
-            <UsageBar label="Wanachama wa Timu" current={usage.members}    max={limits.max_members}    icon="users"     />
+            <UsageBar label={t('pr_usajili_usage_mali')}    current={usage.properties} max={limits.max_properties} icon="building"  />
+            <UsageBar label={t('pr_usajili_usage_units')}   current={usage.units}      max={limits.max_units}      icon="layout"    />
+            <UsageBar label={t('pr_usajili_usage_members')} current={usage.members}    max={limits.max_members}    icon="users"     />
           </div>
         </div>
       )}
@@ -597,11 +603,11 @@ export default function UsajiliPage() {
       <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl mb-6 w-fit">
         <button onClick={() => setTab('mpango')}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition ${tab === 'mpango' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-          Mipango
+          {t('pr_usajili_tab_plans')}
         </button>
         <button onClick={() => { setTab('ankara'); loadInvoices() }}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition ${tab === 'ankara' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-          Ankara Zangu
+          {t('pr_usajili_tab_invoices')}
           {pendingCount > 0 && (
             <span className="bg-amber-400 text-white text-[10px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
               {pendingCount}
@@ -622,7 +628,7 @@ export default function UsajiliPage() {
       {tab === 'mpango' && plans.length === 0 && (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
           <i className="ti ti-package text-5xl text-gray-200" aria-hidden="true" />
-          <p className="text-gray-500 font-medium mt-3">Hakuna mipango ya umma bado</p>
+          <p className="text-gray-500 font-medium mt-3">{t('pr_usajili_no_plans')}</p>
         </div>
       )}
 
@@ -643,11 +649,11 @@ export default function UsajiliPage() {
             <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex items-start gap-3">
               <i className="ti ti-info-circle text-gray-400 text-lg flex-shrink-0 mt-0.5" aria-hidden="true" />
               <div>
-                <p className="text-sm font-semibold text-gray-700">Ughairi Umepangwa</p>
+                <p className="text-sm font-semibold text-gray-700">{t('pr_usajili_cancel_scheduled_chip')}</p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Usajili wako utakwisha {sub.current_period_end
+                  {t('pr_usajili_cancel_when')} {sub.current_period_end
                     ? new Date(sub.current_period_end).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
-                    : 'mwisho wa mzunguko'}. Unaweza kuanzisha mpango mpya wakati wowote.
+                    : t('pr_usajili_cancel_after_pd')}. {t('pr_usajili_cancel_renew')}
                 </p>
               </div>
             </div>
@@ -658,22 +664,22 @@ export default function UsajiliPage() {
                 className="flex items-center gap-2 text-sm text-gray-400 hover:text-red-500 transition"
               >
                 <i className="ti ti-chevron-right text-xs" style={{ transform: showCancel ? 'rotate(90deg)' : undefined }} aria-hidden="true" />
-                Ghairi Usajili
+                {t('pr_usajili_cancel_sub')}
               </button>
 
               {showCancel && (
                 <div className="mt-3 bg-red-50 border border-red-100 rounded-2xl p-4 space-y-3">
-                  <p className="text-sm text-red-700 font-medium">Una uhakika unataka kughairi?</p>
+                  <p className="text-sm text-red-700 font-medium">{t('pr_usajili_sure_cancel')}</p>
                   <p className="text-xs text-red-600">
                     {sub.status === 'trial'
-                      ? 'Usajili utakwisha mara moja na huwezi kurudisha kipindi cha majaribio.'
-                      : `Utaendelea kupata huduma kamili hadi ${sub.current_period_end ? new Date(sub.current_period_end).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long' }) : 'mwisho wa mzunguko'}, kisha mpango utashuka hadi toleo la bure.`}
+                      ? t('pr_usajili_cancel_confirm')
+                      : `${t('pr_usajili_cancel_scheduled_chip')} ${sub.current_period_end ? new Date(sub.current_period_end).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long' }) : t('pr_usajili_cancel_after_pd')}`}
                   </p>
                   <textarea
                     value={cancelReason}
                     onChange={e => setCancelReason(e.target.value)}
                     rows={2}
-                    placeholder="Sababu ya kughairi (hiari)..."
+                    placeholder={t('pr_usajili_cancel_reason_ph')}
                     className="w-full border border-red-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-300"
                   />
                   {cancelErr && <p className="text-xs text-red-600">{cancelErr}</p>}
@@ -688,7 +694,7 @@ export default function UsajiliPage() {
                           body: JSON.stringify({ reason: cancelReason.trim() || undefined }),
                         })
                         const data = await res.json()
-                        if (!res.ok) { setCancelErr(data.error ?? 'Hitilafu'); setCancelling(false); return }
+                        if (!res.ok) { setCancelErr(data.error ?? t('pr_err_generic')); setCancelling(false); return }
                         setSub(data.subscription)
                         setCancelMsg(data.message)
                         setShowCancel(false)
@@ -697,11 +703,11 @@ export default function UsajiliPage() {
                       disabled={cancelling}
                       className="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-600 disabled:opacity-40 transition"
                     >
-                      {cancelling ? 'Inaghairi...' : 'Thibitisha Ughairi'}
+                      {cancelling ? t('pr_usajili_cancelling') : t('pr_usajili_confirm_cancel')}
                     </button>
                     <button onClick={() => setShowCancel(false)}
                       className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-                      Rudi
+                      {t('pr_usajili_go_back')}
                     </button>
                   </div>
                 </div>

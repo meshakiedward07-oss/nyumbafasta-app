@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { getOrCreateSessionId } from '@/lib/ads/session'
 import { waLink } from '@/lib/utils/phone'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Ad = {
   id: string; title: string; body_text: string | null; image_url: string | null
@@ -11,6 +12,7 @@ type Ad = {
 }
 
 export default function NearbyAds({ region }: { region: string }) {
+  const { t } = useLanguage()
   const [ads, setAds] = useState<Ad[]>([])
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function NearbyAds({ region }: { region: string }) {
   return (
     <div className="mt-4">
       <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold px-4 mb-2">
-        Biashara Karibu Nawe
+        {t('adv_nearby_title')}
       </p>
       <div className="flex gap-3 overflow-x-auto px-4 pb-2 no-scrollbar">
         {ads.map(ad => {

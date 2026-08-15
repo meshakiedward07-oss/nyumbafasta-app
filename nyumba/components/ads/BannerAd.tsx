@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { getOrCreateSessionId } from '@/lib/ads/session'
 import { waLink } from '@/lib/utils/phone'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Ad = {
   id: string; title: string; body_text: string | null; image_url: string | null
@@ -13,6 +14,7 @@ type Ad = {
 const FALLBACK_REGION = 'Dar es Salaam'
 
 export default function BannerAd({ region }: { region?: string }) {
+  const { t } = useLanguage()
   const [ad, setAd] = useState<Ad | null>(null)
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function BannerAd({ region }: { region?: string }) {
           {ad.body_text && <div className="text-xs text-gray-500 truncate">{ad.body_text}</div>}
         </div>
         <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded flex-shrink-0">
-          Tangazo
+          {t('adv_sponsored')}
         </span>
       </div>
     </a>

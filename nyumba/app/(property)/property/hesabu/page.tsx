@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 const SWAHILI_MONTHS = [
   'Jan','Feb','Mac','Apr','Mei','Jun',
@@ -68,6 +69,7 @@ function GrowthChip({ pct, inverse }: { pct: number|null; inverse?: boolean }) {
 }
 
 export default function HesabuPage() {
+  const { t } = useLanguage()
   const router  = useRouter()
   const [orgId, setOrgId]   = useState<string | null>(null)
   const [data,  setData]    = useState<AccountingData | null>(null)
@@ -204,7 +206,7 @@ export default function HesabuPage() {
   async function handleSubmitIncome(e: React.FormEvent) {
     e.preventDefault()
     if (!orgId) return
-    if (!form.amount_tzs || Number(form.amount_tzs) <= 0) { setFormErr('Weka kiasi sahihi.'); return }
+    if (!form.amount_tzs || Number(form.amount_tzs) <= 0) { setFormErr(t('pr_hesabu_err_amount')); return }
     setFormLoading(true)
     setFormErr(null)
     try {
@@ -246,7 +248,7 @@ export default function HesabuPage() {
       <div className="flex flex-col items-center justify-center h-64 gap-3">
         <i className="ti ti-alert-circle text-4xl text-red-400" aria-hidden="true" />
         <p className="text-red-500 font-medium">{error}</p>
-        <button onClick={() => window.location.reload()} className="text-primary-600 text-sm underline">Jaribu tena</button>
+        <button onClick={() => window.location.reload()} className="text-primary-600 text-sm underline">{t('pr_try_again')}</button>
       </div>
     )
   }
@@ -261,13 +263,13 @@ export default function HesabuPage() {
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Hesabu</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Mwaka {year} · Imesasishwa sasa hivi</p>
+          <h1 className="text-xl font-bold text-gray-900">{t('pr_hesabu_title')}</h1>
+          <p className="text-xs text-gray-400 mt-0.5">{t('pr_hesabu_subtitle')} {year}</p>
         </div>
         <div className="flex items-center gap-2">
           {totalPending > 0 && (
             <span className="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-1 rounded-full">
-              {totalPending} zinasubiri
+              {totalPending} {t('pr_hesabu_zinasubiri')}
             </span>
           )}
           <button
@@ -275,7 +277,7 @@ export default function HesabuPage() {
             className="flex items-center gap-1.5 bg-primary-500 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-primary-600 transition"
           >
             <i className="ti ti-plus" aria-hidden="true" />
-            Ingiza Mapato
+            {t('pr_hesabu_ingiza')}
           </button>
         </div>
       </div>
@@ -285,7 +287,7 @@ export default function HesabuPage() {
         <div className="bg-white border border-amber-100 rounded-2xl overflow-hidden">
           <div className="px-4 py-3 bg-amber-50 flex items-center gap-2">
             <i className="ti ti-upload text-amber-600 text-lg" aria-hidden="true" />
-            <h2 className="font-semibold text-amber-800 text-sm">Ushahidi Unasubiri Uthibitisho</h2>
+            <h2 className="font-semibold text-amber-800 text-sm">{t('pr_hesabu_pending_proofs')}</h2>
             <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded-full">
               {pendingProofs.length}
             </span>
@@ -352,15 +354,15 @@ export default function HesabuPage() {
                       className="flex-1 bg-green-500 text-white text-xs font-semibold py-2 rounded-xl hover:bg-green-600 disabled:opacity-50 transition flex items-center justify-center gap-1"
                     >
                       <i className="ti ti-check" aria-hidden="true" />
-                      {verifying === p.id ? 'Inathibitisha...' : 'Idhibiti'}
+                      {verifying === p.id ? t('pr_kodi_verifying') : t('pr_hesabu_verify_proof')}
                     </button>
                     <a href={p.proof_url ?? '#'} target="_blank" rel="noopener noreferrer"
                       className="px-3 py-2 border border-gray-200 rounded-xl text-xs text-gray-600 hover:bg-gray-50 transition flex items-center gap-1">
-                      <i className="ti ti-eye" aria-hidden="true" />Angalia
+                      <i className="ti ti-eye" aria-hidden="true" />{t('pr_btn_view')}
                     </a>
                     <Link href={`/property/wapangaji/${p.lease_id}`}
                       className="px-3 py-2 border border-gray-200 rounded-xl text-xs text-gray-600 hover:bg-gray-50 transition flex items-center gap-1">
-                      <i className="ti ti-user" aria-hidden="true" />Rekodi
+                      <i className="ti ti-user" aria-hidden="true" />{t('pr_hesabu_view_record')}
                     </Link>
                   </div>
                 </div>
@@ -375,7 +377,7 @@ export default function HesabuPage() {
         <div className="bg-white border border-blue-100 rounded-2xl overflow-hidden">
           <div className="px-4 py-3 bg-blue-50 flex items-center gap-2">
             <i className="ti ti-cash text-blue-600 text-lg" aria-hidden="true" />
-            <h2 className="font-semibold text-blue-800 text-sm">Madai ya Malipo kutoka Wapangaji</h2>
+            <h2 className="font-semibold text-blue-800 text-sm">{t('pr_hesabu_income_claims')}</h2>
             <span className="ml-auto text-[10px] bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full">
               {pendingIncome.length}
             </span>
@@ -419,7 +421,7 @@ export default function HesabuPage() {
                       className="flex-1 bg-green-500 text-white text-xs font-semibold py-2 rounded-xl hover:bg-green-600 disabled:opacity-50 transition flex items-center justify-center gap-1"
                     >
                       <i className="ti ti-check" aria-hidden="true" />
-                      {reviewingEntry === e.id ? 'Inaidhibiti...' : 'Idhibiti'}
+                      {reviewingEntry === e.id ? t('pr_hesabu_approve_loading') : t('pr_hesabu_verify_proof')}
                     </button>
                     <button
                       onClick={() => {
@@ -429,12 +431,12 @@ export default function HesabuPage() {
                       disabled={reviewingEntry === e.id}
                       className="px-3 py-2 border border-red-200 text-red-500 rounded-xl text-xs hover:bg-red-50 disabled:opacity-50 transition"
                     >
-                      Kataa
+                      {t('pr_hesabu_reject_label')}
                     </button>
                     {e.receipt_url && (
                       <a href={e.receipt_url} target="_blank" rel="noopener noreferrer"
                         className="px-3 py-2 border border-gray-200 rounded-xl text-xs text-gray-600 hover:bg-gray-50 transition flex items-center gap-1">
-                        <i className="ti ti-eye" aria-hidden="true" />Risiti
+                        <i className="ti ti-eye" aria-hidden="true" />{t('pr_hesabu_receipt_label2')}
                       </a>
                     )}
                   </div>
@@ -448,24 +450,24 @@ export default function HesabuPage() {
       {/* ── YTD Summary Cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-white border border-gray-100 rounded-2xl p-3">
-          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Mapato YTD</p>
+          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">{t('pr_hesabu_ytd_revenue')}</p>
           <p className="text-lg font-bold text-gray-900 mt-1">Tsh {fmtMoney(ytd.revenue)}</p>
           <GrowthChip pct={growth.revenue_pct} />
-          <p className="text-[9px] text-gray-400 mt-0.5">mwezi uliopita</p>
+          <p className="text-[9px] text-gray-400 mt-0.5">{t('pr_hesabu_prior_month')}</p>
         </div>
         <div className="bg-white border border-gray-100 rounded-2xl p-3">
-          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Matumizi YTD</p>
+          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">{t('pr_hesabu_ytd_expenses')}</p>
           <p className="text-lg font-bold text-gray-900 mt-1">Tsh {fmtMoney(ytd.expenses)}</p>
           <GrowthChip pct={growth.expenses_pct} inverse />
-          <p className="text-[9px] text-gray-400 mt-0.5">mwezi uliopita</p>
+          <p className="text-[9px] text-gray-400 mt-0.5">{t('pr_hesabu_prior_month')}</p>
         </div>
         <div className={`border rounded-2xl p-3 ${ytd.net >= 0 ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Faida YTD</p>
+          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">{t('pr_hesabu_ytd_net')}</p>
           <p className={`text-lg font-bold mt-1 ${ytd.net >= 0 ? 'text-green-700' : 'text-red-600'}`}>
             {ytd.net < 0 ? '-' : ''}Tsh {fmtMoney(ytd.net)}
           </p>
           <GrowthChip pct={growth.net_pct} />
-          <p className="text-[9px] text-gray-400 mt-0.5">mwezi uliopita</p>
+          <p className="text-[9px] text-gray-400 mt-0.5">{t('pr_hesabu_prior_month')}</p>
         </div>
       </div>
 
@@ -473,13 +475,13 @@ export default function HesabuPage() {
       <div className="bg-white border border-gray-100 rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <i className="ti ti-calendar-stats text-primary-500 text-lg" aria-hidden="true" />
-          <h2 className="font-semibold text-gray-900 text-sm">Ulinganisho wa Mwezi Huu</h2>
+          <h2 className="font-semibold text-gray-900 text-sm">{t('pr_hesabu_compare_heading')}</h2>
         </div>
         <div className="space-y-3">
           {[
-            { label: 'Mapato', cur: cur.revenue, prev: prev.revenue, pct: growth.revenue_pct, color: 'bg-primary-400', inverse: false },
-            { label: 'Matumizi', cur: cur.expenses, prev: prev.expenses, pct: growth.expenses_pct, color: 'bg-red-400', inverse: true },
-            { label: 'Faida/Hasara', cur: cur.net, prev: prev.net, pct: growth.net_pct, color: cur.net >= 0 ? 'bg-green-400' : 'bg-red-500', inverse: false },
+            { label: t('pr_hesabu_row_revenue'), cur: cur.revenue, prev: prev.revenue, pct: growth.revenue_pct, color: 'bg-primary-400', inverse: false },
+            { label: t('pr_hesabu_row_expenses'), cur: cur.expenses, prev: prev.expenses, pct: growth.expenses_pct, color: 'bg-red-400', inverse: true },
+            { label: t('pr_hesabu_row_net'), cur: cur.net, prev: prev.net, pct: growth.net_pct, color: cur.net >= 0 ? 'bg-green-400' : 'bg-red-500', inverse: false },
           ].map(row => {
             const maxVal = Math.max(Math.abs(row.cur), Math.abs(row.prev), 1)
             const curW   = (Math.abs(row.cur) / maxVal) * 100
@@ -495,13 +497,13 @@ export default function HesabuPage() {
                 </div>
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] text-gray-400 w-12 text-right">Huu</span>
+                    <span className="text-[9px] text-gray-400 w-12 text-right">{t('pr_hesabu_chart_this')}</span>
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${row.color}`} style={{ width: `${curW}%` }} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] text-gray-400 w-12 text-right">Uliopita</span>
+                    <span className="text-[9px] text-gray-400 w-12 text-right">{t('pr_hesabu_chart_prev')}</span>
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full rounded-full bg-gray-300" style={{ width: `${prevW}%` }} />
                     </div>
@@ -517,21 +519,21 @@ export default function HesabuPage() {
       <div className="bg-white border border-gray-100 rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-4">
           <i className="ti ti-chart-bar text-primary-500 text-lg" aria-hidden="true" />
-          <h2 className="font-semibold text-gray-900 text-sm">Mwenendo wa Miezi 12</h2>
+          <h2 className="font-semibold text-gray-900 text-sm">{t('pr_hesabu_trend_heading')}</h2>
         </div>
         <div className="flex items-end gap-1 h-32">
-          {trend.map(t => {
-            const revH = chartMax > 0 ? (t.revenue / chartMax) * 100 : 0
-            const expH = chartMax > 0 ? (t.expenses / chartMax) * 100 : 0
-            const [, mo] = t.month.split('-').map(Number)
-            const isNow  = t.month === `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`
+          {trend.map(row => {
+            const revH = chartMax > 0 ? (row.revenue / chartMax) * 100 : 0
+            const expH = chartMax > 0 ? (row.expenses / chartMax) * 100 : 0
+            const [, mo] = row.month.split('-').map(Number)
+            const isNow  = row.month === `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`
             return (
-              <div key={t.month} className="flex-1 flex flex-col items-center gap-0.5">
+              <div key={row.month} className="flex-1 flex flex-col items-center gap-0.5">
                 <div className="w-full flex items-end justify-center gap-0.5 h-24">
                   <div className={`flex-1 rounded-t transition-all ${isNow ? 'bg-primary-500' : 'bg-primary-200'}`}
-                    style={{ height: `${revH}%`, minHeight: t.revenue > 0 ? '3px' : '0' }} />
+                    style={{ height: `${revH}%`, minHeight: row.revenue > 0 ? '3px' : '0' }} />
                   <div className={`flex-1 rounded-t transition-all ${isNow ? 'bg-red-400' : 'bg-red-200'}`}
-                    style={{ height: `${expH}%`, minHeight: t.expenses > 0 ? '3px' : '0' }} />
+                    style={{ height: `${expH}%`, minHeight: row.expenses > 0 ? '3px' : '0' }} />
                 </div>
                 <span className={`text-[8px] font-medium ${isNow ? 'text-primary-600' : 'text-gray-400'}`}>
                   {SWAHILI_MONTHS[mo-1]}
@@ -541,8 +543,8 @@ export default function HesabuPage() {
           })}
         </div>
         <div className="flex gap-4 mt-1 text-[10px] text-gray-400">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-primary-400 inline-block" />Mapato</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-300 inline-block" />Matumizi</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-primary-400 inline-block" />{t('pr_hesabu_row_revenue')}</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-300 inline-block" />{t('pr_hesabu_row_expenses')}</span>
         </div>
       </div>
 
@@ -550,36 +552,36 @@ export default function HesabuPage() {
       <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-50 flex items-center gap-2">
           <i className="ti ti-trending-up text-primary-500 text-lg" aria-hidden="true" />
-          <h2 className="font-semibold text-gray-900 text-sm">Faida/Hasara kwa Mwezi</h2>
+          <h2 className="font-semibold text-gray-900 text-sm">{t('pr_hesabu_pl_heading')}</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 text-gray-400 font-medium">
-                <th className="text-left px-4 py-2">Mwezi</th>
-                <th className="text-right px-3 py-2">Mapato</th>
-                <th className="text-right px-3 py-2">Matumizi</th>
-                <th className="text-right px-4 py-2">Faida</th>
+                <th className="text-left px-4 py-2">{t('pr_hesabu_pl_month_col')}</th>
+                <th className="text-right px-3 py-2">{t('pr_hesabu_row_revenue')}</th>
+                <th className="text-right px-3 py-2">{t('pr_hesabu_row_expenses')}</th>
+                <th className="text-right px-4 py-2">{t('pr_hesabu_pl_profit_col')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {[...trend].reverse().map(t => {
-                const [yr, mo] = t.month.split('-').map(Number)
-                const isNow = t.month === `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`
+              {[...trend].reverse().map(row => {
+                const [yr, mo] = row.month.split('-').map(Number)
+                const isNow = row.month === `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`
                 return (
-                  <tr key={t.month} className={isNow ? 'bg-primary-50/40' : ''}>
+                  <tr key={row.month} className={isNow ? 'bg-primary-50/40' : ''}>
                     <td className="px-4 py-2.5 font-medium text-gray-700">
                       {SWAHILI_MONTHS[mo-1]} {yr}
-                      {isNow && <span className="ml-1 text-[9px] bg-primary-100 text-primary-600 px-1 rounded-full">Sasa</span>}
+                      {isNow && <span className="ml-1 text-[9px] bg-primary-100 text-primary-600 px-1 rounded-full">{t('pr_hesabu_now')}</span>}
                     </td>
                     <td className="px-3 py-2.5 text-right text-gray-800 font-medium tabular-nums">
-                      {t.revenue > 0 ? `Tsh ${fmtMoney(t.revenue)}` : '—'}
+                      {row.revenue > 0 ? `Tsh ${fmtMoney(row.revenue)}` : '—'}
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums">
-                      {t.expenses > 0 ? <span className="text-red-500">Tsh {fmtMoney(t.expenses)}</span> : '—'}
+                      {row.expenses > 0 ? <span className="text-red-500">Tsh {fmtMoney(row.expenses)}</span> : '—'}
                     </td>
-                    <td className={`px-4 py-2.5 text-right font-bold tabular-nums ${t.net > 0 ? 'text-green-600' : t.net < 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                      {t.net !== 0 ? `${t.net < 0 ? '-' : ''}Tsh ${fmtMoney(t.net)}` : '—'}
+                    <td className={`px-4 py-2.5 text-right font-bold tabular-nums ${row.net > 0 ? 'text-green-600' : row.net < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                      {row.net !== 0 ? `${row.net < 0 ? '-' : ''}Tsh ${fmtMoney(row.net)}` : '—'}
                     </td>
                   </tr>
                 )
@@ -594,17 +596,17 @@ export default function HesabuPage() {
         <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <i className="ti ti-list-details text-primary-500 text-lg" aria-hidden="true" />
-            <h2 className="font-semibold text-gray-900 text-sm">Daftari la Miamala</h2>
+            <h2 className="font-semibold text-gray-900 text-sm">{t('pr_hesabu_ledger_heading')}</h2>
           </div>
           <div className="flex gap-3 text-[10px] text-gray-400">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary-400 inline-block" />Mapato</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" />Matumizi</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary-400 inline-block" />{t('pr_hesabu_row_revenue')}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" />{t('pr_hesabu_row_expenses')}</span>
           </div>
         </div>
         {transactions.length === 0 ? (
           <div className="py-12 text-center">
             <i className="ti ti-receipt-off text-3xl text-gray-200" aria-hidden="true" />
-            <p className="text-gray-400 text-sm mt-2">Hakuna miamala iliyorekodiwa bado</p>
+            <p className="text-gray-400 text-sm mt-2">{t('pr_hesabu_no_txns')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
@@ -631,10 +633,10 @@ export default function HesabuPage() {
         )}
         {transactions.length > 0 && (
           <div className="px-4 py-3 border-t border-gray-50 flex justify-between items-center">
-            <span className="text-[10px] text-gray-400">{transactions.length} miamala ya hivi karibuni</span>
+            <span className="text-[10px] text-gray-400">{transactions.length} {t('pr_hesabu_recent_txns')}</span>
             <div className="flex gap-2">
-              <Link href="/property/kodi" className="text-xs text-primary-600 font-medium hover:underline">Malipo →</Link>
-              <Link href="/property/matumizi" className="text-xs text-primary-600 font-medium hover:underline">Matumizi →</Link>
+              <Link href="/property/kodi" className="text-xs text-primary-600 font-medium hover:underline">{t('pr_nav_kodi')} →</Link>
+              <Link href="/property/matumizi" className="text-xs text-primary-600 font-medium hover:underline">{t('pr_nav_matumizi')} →</Link>
             </div>
           </div>
         )}
@@ -648,8 +650,8 @@ export default function HesabuPage() {
             <i className="ti ti-receipt text-red-500" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-800">Matumizi</p>
-            <p className="text-[10px] text-gray-400">Ingiza na simamia</p>
+            <p className="text-sm font-semibold text-gray-800">{t('pr_nav_matumizi')}</p>
+            <p className="text-[10px] text-gray-400">{t('pr_hesabu_expenses_link_desc')}</p>
           </div>
           <i className="ti ti-chevron-right text-gray-300 ml-auto flex-shrink-0" aria-hidden="true" />
         </Link>
@@ -659,8 +661,8 @@ export default function HesabuPage() {
             <i className="ti ti-file-analytics text-primary-500" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-800">Taarifa</p>
-            <p className="text-[10px] text-gray-400">Pakua ripoti kamili</p>
+            <p className="text-sm font-semibold text-gray-800">{t('pr_nav_taarifa')}</p>
+            <p className="text-[10px] text-gray-400">{t('pr_taarifa_subtitle')}</p>
           </div>
           <i className="ti ti-chevron-right text-gray-300 ml-auto flex-shrink-0" aria-hidden="true" />
         </Link>
@@ -672,7 +674,7 @@ export default function HesabuPage() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowForm(false)} />
           <div className="relative w-full max-w-lg bg-white rounded-t-3xl lg:rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-3xl">
-              <h2 className="font-bold text-gray-900">Ingiza Mapato ya Mkono</h2>
+              <h2 className="font-bold text-gray-900">{t('pr_hesabu_ingiza_mkono')}</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 p-1">
                 <i className="ti ti-x text-lg" aria-hidden="true" />
               </button>
@@ -682,7 +684,7 @@ export default function HesabuPage() {
               {/* Receipt upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pakia Risiti (Hiari)
+                  {t('pr_hesabu_receipt_label')}
                 </label>
                 <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleReceiptSelect} className="hidden" />
                 {receiptPreview ? (
@@ -692,13 +694,13 @@ export default function HesabuPage() {
                     {(parsing || uploadingReceipt) && (
                       <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-xl gap-2">
                         <i className="ti ti-loader-2 animate-spin text-primary-500 text-2xl" aria-hidden="true" />
-                        <span className="text-xs text-gray-500">{parsing ? 'Inasoma maandishi...' : 'Inapakia...'}</span>
+                        <span className="text-xs text-gray-500">{parsing ? t('pr_hesabu_scanning') : t('pr_hesabu_uploading')}</span>
                       </div>
                     )}
                     {!parsing && !uploadingReceipt && receiptPreview && (
                       <div className="absolute top-2 right-2 bg-green-50 rounded-lg px-2 py-1 flex items-center gap-1">
                         <i className="ti ti-scan text-green-600 text-xs" aria-hidden="true" />
-                        <span className="text-[10px] text-green-600 font-medium">Imesomwa</span>
+                        <span className="text-[10px] text-green-600 font-medium">{t('pr_hesabu_scan_done')}</span>
                       </div>
                     )}
                     <button type="button" onClick={() => { setReceiptFile(null); setReceiptPreview(null); setForm(prev => ({ ...prev, receipt_url: '' })) }}
@@ -710,18 +712,18 @@ export default function HesabuPage() {
                   <button type="button" onClick={() => fileRef.current?.click()}
                     className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-6 text-gray-400 hover:border-primary-300 hover:text-primary-500 transition text-sm">
                     <i className="ti ti-camera text-xl" aria-hidden="true" />
-                    Piga Picha / Chagua kutoka Galari
+                    {t('pr_hesabu_photo_btn')}
                   </button>
                 )}
                 {!receiptFile && (
-                  <p className="text-[10px] text-gray-400 mt-1">Pakia risiti — programu itasoma maandishi na kujaza taarifa kiotomatiki</p>
+                  <p className="text-[10px] text-gray-400 mt-1">{t('pr_hesabu_receipt_hint')}</p>
                 )}
               </div>
 
               {/* Amount */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Kiasi (TZS) <span className="text-red-400">*</span>
+                  {t('pr_hesabu_amount_label')} <span className="text-red-400">*</span>
                 </label>
                 <input type="number" value={form.amount_tzs} onChange={e => setForm(prev => ({ ...prev, amount_tzs: e.target.value }))}
                   placeholder="500000" required
@@ -731,13 +733,13 @@ export default function HesabuPage() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Date */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tarehe <span className="text-red-400">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('pr_hesabu_date_label')} <span className="text-red-400">*</span></label>
                   <input type="date" value={form.payment_date} onChange={e => setForm(prev => ({ ...prev, payment_date: e.target.value }))} required
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
                 </div>
                 {/* Method */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Njia ya Malipo</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('pr_hesabu_method_label')}</label>
                   <select value={form.payment_method} onChange={e => setForm(prev => ({ ...prev, payment_method: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
                     {Object.entries(METHOD_LABELS).map(([v,l]) => <option key={v} value={v}>{l}</option>)}
@@ -747,7 +749,7 @@ export default function HesabuPage() {
 
               {/* Reference */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nambari ya Muamala</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('pr_hesabu_ref_label')}</label>
                 <input type="text" value={form.reference_number} onChange={e => setForm(prev => ({ ...prev, reference_number: e.target.value }))}
                   placeholder="MPZ123456..."
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
@@ -755,7 +757,7 @@ export default function HesabuPage() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Maelezo</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('pr_hesabu_desc_label')}</label>
                 <input type="text" value={form.description} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Mfano: Kodi ya Agosti — Chumba 3"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
@@ -770,9 +772,9 @@ export default function HesabuPage() {
               <button type="submit" disabled={formLoading || uploadingReceipt || parsing}
                 className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-60 hover:bg-primary-600 transition flex items-center justify-center gap-2">
                 {formLoading ? (
-                  <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />Inasave...</>
+                  <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />{t('pr_hesabu_saving')}</>
                 ) : (
-                  <><i className="ti ti-check" aria-hidden="true" />Hifadhi Mapato</>
+                  <><i className="ti ti-check" aria-hidden="true" />{t('pr_hesabu_record_btn')}</>
                 )}
               </button>
             </form>

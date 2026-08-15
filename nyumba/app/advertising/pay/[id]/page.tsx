@@ -321,7 +321,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
             <div className="flex items-center gap-2 mb-4">
               <button
                 onClick={() => { setStep('select'); setError('') }}
-                aria-label="Rudi nyuma"
+                aria-label={t('adv_go_back')}
                 className="text-gray-400 text-lg p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
               >←</button>
               <div className="flex items-center gap-2">
@@ -363,7 +363,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
                     className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300"
                   />
                 </div>
-                {pInfo.hint && <p className="text-xs text-gray-400 mt-1">Mfano: {pInfo.hint}</p>}
+                {pInfo.hint && <p className="text-xs text-gray-400 mt-1">{t('adv_example_prefix')} {pInfo.hint}</p>}
               </div>
 
               <button
@@ -418,7 +418,7 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
                   <p className="text-sm text-gray-600 mt-0.5">
                     {t('adv_enter_pin_msg')}{' '}
                     <span className="font-bold text-gray-800">Tsh {amount.toLocaleString()}</span>{' '}
-                    kwenda <span className="text-primary-600 font-bold">NyumbaFasta</span>
+                    {t('adv_kwenda')} <span className="text-primary-600 font-bold">NyumbaFasta</span>
                   </p>
                 </div>
               </div>

@@ -292,7 +292,7 @@ export default function AdvertiserAnalyticsPage() {
                             </div>
                             <div className="bg-blue-50 rounded-xl p-2.5 text-center">
                               <p className="text-lg font-bold text-blue-700 tabular-nums leading-tight">{fmtNum(c.clicks)}</p>
-                              <p className="text-[10px] text-blue-500 mt-0.5">Clicks</p>
+                              <p className="text-[10px] text-blue-500 mt-0.5">{t('adv_col_clicks')}</p>
                             </div>
                             <div className={`rounded-xl p-2.5 text-center ${
                               c.ctr >= 3 ? 'bg-green-50' : c.ctr >= 1 ? 'bg-amber-50' : 'bg-gray-50'
@@ -302,7 +302,7 @@ export default function AdvertiserAnalyticsPage() {
                               }`}>{c.ctr}%</p>
                               <p className={`text-[10px] mt-0.5 ${
                                 c.ctr >= 3 ? 'text-green-500' : c.ctr >= 1 ? 'text-amber-500' : 'text-gray-400'
-                              }`}>CTR</p>
+                              }`}>{t('adv_col_ctr')}</p>
                             </div>
                           </div>
 

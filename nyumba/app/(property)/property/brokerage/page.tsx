@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface BrokerageRequest {
   id: string
@@ -32,25 +33,29 @@ function listingLayout(bedrooms: number | null | undefined, amenities: string[])
   return parts.join(' · ')
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  pending:     { label: 'Inasubiriwa',  color: 'bg-amber-50 text-amber-700 border-amber-200',  icon: 'clock' },
-  approved:    { label: 'Imeidhinishwa', color: 'bg-blue-50 text-blue-700 border-blue-200',    icon: 'circle-check' },
-  rejected:    { label: 'Imekataliwa',   color: 'bg-red-50 text-red-700 border-red-200',        icon: 'circle-x' },
-  listed:      { label: 'Imetangazwa',   color: 'bg-green-50 text-green-700 border-green-200',  icon: 'speakerphone' },
-  deal_closed: { label: 'Deal Imefungwa', color: 'bg-purple-50 text-purple-700 border-purple-200', icon: 'confetti' },
-  cancelled:   { label: 'Imefutwa',      color: 'bg-gray-50 text-gray-500 border-gray-200',     icon: 'ban' },
-}
-
-const COMMISSION_CONFIG: Record<string, { label: string; color: string }> = {
-  pending:  { label: 'Bado Haijaingia', color: 'text-amber-600' },
-  invoiced: { label: 'Ankara Imetumwa', color: 'text-blue-600' },
-  received: { label: 'Imepokelewa ✓',   color: 'text-green-600' },
-  waived:   { label: 'Imesamehewa',     color: 'text-gray-400' },
-}
+// STATUS_CONFIG and COMMISSION_CONFIG labels are now set inside the component via t()
 
 function fmt(n: number) { return `TZS ${n.toLocaleString()}` }
 
 export default function BrokeragePage() {
+  const { t } = useLanguage()
+
+  const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+    pending:     { label: t('pr_brokerage_status_pending'),    color: 'bg-amber-50 text-amber-700 border-amber-200',     icon: 'clock' },
+    approved:    { label: t('pr_brokerage_status_approved'),   color: 'bg-blue-50 text-blue-700 border-blue-200',       icon: 'circle-check' },
+    rejected:    { label: t('pr_brokerage_status_rejected'),   color: 'bg-red-50 text-red-700 border-red-200',          icon: 'circle-x' },
+    listed:      { label: t('pr_brokerage_status_listed'),     color: 'bg-green-50 text-green-700 border-green-200',    icon: 'speakerphone' },
+    deal_closed: { label: t('pr_brokerage_status_deal_closed'),color: 'bg-purple-50 text-purple-700 border-purple-200', icon: 'confetti' },
+    cancelled:   { label: t('pr_brokerage_status_cancelled'),  color: 'bg-gray-50 text-gray-500 border-gray-200',       icon: 'ban' },
+  }
+
+  const COMMISSION_CONFIG: Record<string, { label: string; color: string }> = {
+    pending:  { label: t('pr_brokerage_commission_pending'),  color: 'text-amber-600' },
+    invoiced: { label: t('pr_brokerage_commission_invoiced'), color: 'text-blue-600' },
+    received: { label: t('pr_brokerage_commission_received'), color: 'text-green-600' },
+    waived:   { label: t('pr_brokerage_commission_waived'),   color: 'text-gray-400' },
+  }
+
   const [requests,   setRequests]   = useState<BrokerageRequest[]>([])
   const [loading,    setLoading]    = useState(true)
   const [filter,     setFilter]     = useState('')
@@ -69,7 +74,7 @@ export default function BrokeragePage() {
   useEffect(() => { loadRequests() }, [])
 
   async function handleCancel(id: string) {
-    if (!confirm('Una uhakika wa kufuta ombi hili?')) return
+    if (!confirm(t('pr_brokerage_cancel_confirm'))) return
     setCancelling(id)
     try {
       const res = await fetch(`/api/v1/org/brokerage-requests/${id}`, {
@@ -99,15 +104,15 @@ export default function BrokeragePage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="font-bold text-gray-900 text-lg">Brokerage ya NyumbaFasta</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Ombi la kutafuta mpangaji kwa ajili yako</p>
+          <h1 className="font-bold text-gray-900 text-lg">{t('pr_brokerage_title')}</h1>
+          <p className="text-xs text-gray-400 mt-0.5">{t('pr_brokerage_subtitle')}</p>
         </div>
         <Link
           href="/property/brokerage/new"
           className="flex items-center gap-2 bg-primary-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
         >
           <i className="ti ti-plus" aria-hidden="true" />
-          Ombi Jipya
+          {t('pr_brokerage_ombi_jipya')}
         </Link>
       </div>
 
@@ -115,12 +120,12 @@ export default function BrokeragePage() {
       <div className="bg-primary-50 border border-primary-100 rounded-2xl p-4 mb-5 flex gap-3">
         <i className="ti ti-info-circle text-primary-500 text-xl flex-shrink-0 mt-0.5" aria-hidden="true" />
         <div className="text-sm text-primary-800">
-          <p className="font-semibold mb-0.5">Jinsi inavyofanya kazi</p>
+          <p className="font-semibold mb-0.5">{t('pr_brokerage_how_title')}</p>
           <ol className="text-xs text-primary-700 space-y-0.5 list-decimal list-inside">
-            <li>Wasilisha ombi na taarifa za nyumba yako</li>
-            <li>Staff wa NyumbaFasta watatangaza kwa niaba yako</li>
-            <li>Mpangaji ataposalimu, staff atakuwasilisha</li>
-            <li>Deal ikifungwa, lipa kamisheni ya mwezi 1 wa kodi</li>
+            <li>{t('pr_brokerage_how_step1')}</li>
+            <li>{t('pr_brokerage_how_step2')}</li>
+            <li>{t('pr_brokerage_how_step3')}</li>
+            <li>{t('pr_brokerage_how_step4')}</li>
           </ol>
         </div>
       </div>
@@ -136,7 +141,7 @@ export default function BrokeragePage() {
                 filter === s ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-600 border-gray-200'
               }`}
             >
-              {s === '' ? 'Yote' : STATUS_CONFIG[s]?.label ?? s}
+              {s === '' ? t('pr_brokerage_filter_all') : STATUS_CONFIG[s]?.label ?? s}
             </button>
           ))}
         </div>
@@ -146,16 +151,16 @@ export default function BrokeragePage() {
       {filtered.length === 0 && (
         <div className="text-center py-14 bg-white rounded-2xl border border-dashed border-gray-200">
           <i className="ti ti-building-store text-5xl text-gray-200" aria-hidden="true" />
-          <p className="text-gray-500 font-semibold mt-3">Hakuna maombi bado</p>
+          <p className="text-gray-500 font-semibold mt-3">{t('pr_brokerage_empty_no_req')}</p>
           <p className="text-sm text-gray-400 mt-1 max-w-xs mx-auto">
-            Una nyumba/kitengo wazi? Tuomba kutangaza kwa niaba yako na tupate mpangaji haraka.
+            {t('pr_brokerage_empty_desc2')}
           </p>
           <Link
             href="/property/brokerage/new"
             className="inline-flex items-center gap-2 mt-4 bg-primary-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
           >
             <i className="ti ti-plus" aria-hidden="true" />
-            Wasilisha Ombi la Kwanza
+            {t('pr_brokerage_first_request')}
           </Link>
         </div>
       )}
@@ -201,7 +206,7 @@ export default function BrokeragePage() {
                     <div className="flex items-center gap-3 mt-1.5">
                       <span className="text-sm font-bold text-primary-600">{fmt(req.price_monthly)}/mwezi</span>
                       <span className="text-xs text-gray-400">•</span>
-                      <span className="text-xs text-gray-400">Kamisheni: {fmt(req.commission_amount)}</span>
+                      <span className="text-xs text-gray-400">{t('pr_brokerage_commission_status')}: {fmt(req.commission_amount)}</span>
                     </div>
                   </div>
                 </div>
@@ -210,7 +215,7 @@ export default function BrokeragePage() {
                 {req.status === 'rejected' && req.rejection_reason && (
                   <div className="mt-3 bg-red-50 rounded-xl p-3 text-xs text-red-700">
                     <i className="ti ti-alert-circle mr-1" aria-hidden="true" />
-                    <span className="font-semibold">Sababu ya kukataliwa: </span>{req.rejection_reason}
+                    <span className="font-semibold">{t('pr_brokerage_rejection_note')} </span>{req.rejection_reason}
                   </div>
                 )}
 
@@ -219,8 +224,8 @@ export default function BrokeragePage() {
                   <div className="mt-3 flex items-center gap-2 bg-green-50 rounded-xl p-3">
                     <i className="ti ti-speakerphone text-green-600" aria-hidden="true" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-green-700 font-medium">Imetangazwa na NyumbaFasta</p>
-                      <p className="text-[10px] text-green-600">Wapangaji wanaona tangazo lako sasa hivi</p>
+                      <p className="text-xs text-green-700 font-medium">{t('pr_brokerage_listed_notice')}</p>
+                      <p className="text-[10px] text-green-600">{t('pr_brokerage_listed_desc')}</p>
                     </div>
                     <a
                       href={`/listing/${req.listing_id}`}
@@ -228,7 +233,7 @@ export default function BrokeragePage() {
                       rel="noopener noreferrer"
                       className="flex-shrink-0 text-xs bg-green-600 text-white px-2.5 py-1.5 rounded-lg font-medium hover:bg-green-700 transition"
                     >
-                      Tazama
+                      {t('pr_brokerage_view')}
                     </a>
                   </div>
                 )}
@@ -237,11 +242,11 @@ export default function BrokeragePage() {
                 {req.status === 'deal_closed' && (
                   <div className="mt-3 bg-purple-50 rounded-xl p-3 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold text-purple-800">Hali ya Kamisheni</p>
+                      <p className="text-xs font-semibold text-purple-800">{t('pr_brokerage_commission_hali')}</p>
                       <p className={`text-xs font-medium mt-0.5 ${cc.color}`}>{cc.label}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-purple-600">Kiasi</p>
+                      <p className="text-xs text-purple-600">{t('pr_brokerage_commission_amount')}</p>
                       <p className="text-sm font-bold text-purple-800">{fmt(req.commission_amount)}</p>
                     </div>
                   </div>
@@ -251,7 +256,7 @@ export default function BrokeragePage() {
               {/* Footer */}
               <div className="px-4 py-2.5 border-t border-gray-50 flex items-center justify-between">
                 <span className="text-[10px] text-gray-400">
-                  Imewasilishwa: {new Date(req.created_at).toLocaleDateString('sw-TZ')}
+                  {t('pr_brokerage_submitted_label')} {new Date(req.created_at).toLocaleDateString('sw-TZ')}
                 </span>
                 {req.status === 'pending' && (
                   <button
@@ -260,12 +265,12 @@ export default function BrokeragePage() {
                     className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-40 transition"
                   >
                     <i className="ti ti-x" aria-hidden="true" />
-                    {cancelling === req.id ? 'Inafuta...' : 'Futa Ombi'}
+                    {cancelling === req.id ? t('pr_brokerage_cancelling_btn') : t('pr_brokerage_cancel_btn')}
                   </button>
                 )}
                 {req.status === 'deal_closed' && req.deal_closed_at && (
                   <span className="text-[10px] text-purple-500">
-                    Imefungwa: {new Date(req.deal_closed_at).toLocaleDateString('sw-TZ')}
+                    {t('pr_brokerage_closed_label')} {new Date(req.deal_closed_at).toLocaleDateString('sw-TZ')}
                   </span>
                 )}
               </div>

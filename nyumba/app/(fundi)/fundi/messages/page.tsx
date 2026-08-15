@@ -83,7 +83,7 @@ export default function FundiMessagesPage() {
   const tUser = t('fp_msg_user')
   const tConv = t('fp_msg_conversation')
   const [uid, setUid] = useState<string | null>(null)
-  const [userName, setUserName] = useState('Fundi')
+  const [userName, setUserName] = useState(t('fp_msg_fundi_name'))
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selected, setSelected] = useState<Conversation | null>(null)
@@ -123,7 +123,7 @@ export default function FundiMessagesPage() {
       .then((r) => r.json())
       .then((j) => {
         setUid(j.user?.id ?? null)
-        setUserName(j.user?.full_name ?? 'Fundi')
+        setUserName(j.user?.full_name ?? t('fp_msg_fundi_name'))
         setUserAvatar(j.user?.avatar_url ?? null)
       })
     loadConversations()
@@ -178,7 +178,7 @@ export default function FundiMessagesPage() {
     const res = await fetch(`/api/v1/conversations/${selected.id}/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: body || (attachment ? attachment.file_name ?? 'Faili' : ''),
+        message: body || (attachment ? attachment.file_name ?? t('fp_msg_file') : ''),
         attachments: attachment ? [{ file_url: attachment.url, file_name: attachment.file_name, file_type: attachment.file_type, file_size: attachment.file_size }] : undefined,
       }),
     })

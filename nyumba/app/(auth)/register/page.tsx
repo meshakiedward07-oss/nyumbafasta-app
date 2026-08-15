@@ -54,7 +54,7 @@ function FieldInput({ label, icon, children }: { label: string; icon?: string; c
 const INPUT = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300'
 
 function RegisterForm() {
-  const { t, lang }  = useLanguage()
+  const { t }  = useLanguage()
   const supabase     = createClient()
   const router       = useRouter()
   const searchParams = useSearchParams()
@@ -62,11 +62,11 @@ function RegisterForm() {
   const initRole = (searchParams.get('role') as Role | null) ?? 'client'
 
   const ROLES: { key: Role; icon: string; label: string; sub: string; badge?: string }[] = [
-    { key: 'client',    icon: 'home-search',     label: t('role_client'),    sub: lang === 'en' ? 'Looking for a house or room to rent'      : 'Napenda kupata nyumba au chumba cha kupanga'    },
-    { key: 'dalali',    icon: 'building-store',  label: t('role_dalali'),    sub: lang === 'en' ? 'I rent or sell homes for clients'          : 'Napanga au nauza nyumba kwa wateja', badge: 'Dalali' },
-    { key: 'org_owner', icon: 'building-estate', label: t('role_org_owner'), sub: lang === 'en' ? 'I own a building — I need a management system' : 'Nina jengo/nyumba — nataka mfumo wa kusimamia' },
-    { key: 'tenant',    icon: 'key',             label: t('role_tenant'),    sub: lang === 'en' ? 'Already renting — I want to view my payments'  : 'Tayari nina nyumba — nataka kuona malipo yangu' },
-    { key: 'fundi',     icon: 'tools',           label: t('role_fundi'),     sub: lang === 'en' ? 'I do repair and maintenance work'             : 'Nafanya kazi za ukarabati na matengenezo nyumba' },
+    { key: 'client',    icon: 'home-search',     label: t('role_client'),    sub: t('auth_role_client_sub')    },
+    { key: 'dalali',    icon: 'building-store',  label: t('role_dalali'),    sub: t('auth_role_dalali_sub'), badge: 'Dalali' },
+    { key: 'org_owner', icon: 'building-estate', label: t('role_org_owner'), sub: t('auth_role_org_owner_sub') },
+    { key: 'tenant',    icon: 'key',             label: t('role_tenant'),    sub: t('auth_role_tenant_sub')    },
+    { key: 'fundi',     icon: 'tools',           label: t('role_fundi'),     sub: t('auth_role_fundi_sub')     },
   ]
 
   const [step,    setStep]    = useState<Step>('role')
@@ -110,28 +110,28 @@ function RegisterForm() {
   function mapError(msg: string) {
     return msg.includes('user already registered') || msg.includes('already been registered')
       ? `${t('auth_email_taken')}. ${t('auth_sign_in_instead')}.`
-      : msg.includes('invalid email')   ? 'Barua pepe si sahihi. Angalia tena.'
+      : msg.includes('invalid email')   ? t('auth_err_invalid_email')
       : msg.includes('password')        ? t('auth_password_min')
-      : msg.includes('too many')        ? 'Maombi mengi mfululizo. Subiri dakika chache.'
+      : msg.includes('too many')        ? t('auth_err_too_many')
       : t('common_error')
   }
 
   // ── Validate details step ────────────────────────────────────────────────
   function validate(): string | null {
-    if (!fullName.trim())  return 'Jina lako kamili linahitajika'
-    if (!email.trim())     return 'Barua pepe inahitajika'
-    if (password.length < 8) return 'Nenosiri lazima liwe na angalau herufi 8'
+    if (!fullName.trim())  return t('auth_err_name_required')
+    if (!email.trim())     return t('auth_err_email_required')
+    if (password.length < 8) return t('auth_err_password_length')
     if (role === 'dalali') {
       const d = whatsapp.replace(/\D/g, '').replace(/^0/, '')
-      if (!d || d.length !== 9) return 'Nambari ya WhatsApp sahihi inahitajika (tarakimu 9)'
+      if (!d || d.length !== 9) return t('auth_err_whatsapp')
     }
     if (role === 'org_owner') {
-      if (!phone.trim())   return 'Nambari ya simu inahitajika'
-      if (!orgName.trim()) return 'Jina la shirika linahitajika'
-      if (!city.trim())    return 'Mji au mkoa unahitajika'
+      if (!phone.trim())   return t('auth_err_phone_required')
+      if (!orgName.trim()) return t('auth_err_org_name_required')
+      if (!city.trim())    return t('auth_err_city_required')
     }
     if (role === 'tenant') {
-      if (!phone.trim())   return 'Nambari ya simu inahitajika'
+      if (!phone.trim())   return t('auth_err_phone_required')
     }
     return null
   }
@@ -181,7 +181,7 @@ function RegisterForm() {
   // ── Marketplace → tenant account conversion ──────────────────────────────
   async function handleMarketplaceConvert() {
     if (!convertEmail.trim() || convertPassword.length < 6) {
-      setConvertError('Jaza barua pepe na nenosiri sahihi.')
+      setConvertError(t('auth_err_fill_credentials'))
       return
     }
     setConverting(true); setConvertError('')
@@ -192,7 +192,7 @@ function RegisterForm() {
         password: convertPassword,
       })
       if (authErr || !data.user) {
-        setConvertError('Barua pepe au nenosiri si sahihi. Jaribu tena.')
+        setConvertError(t('auth_err_invalid_creds'))
         setConverting(false); return
       }
       // Convert account via API
@@ -203,14 +203,14 @@ function RegisterForm() {
       })
       const j = await res.json()
       if (!res.ok) {
-        setConvertError(j.error ?? 'Imeshindwa kubadilisha akaunti.')
+        setConvertError(j.error ?? t('auth_err_convert_account'))
         await supabase.auth.signOut()
         setConverting(false); return
       }
       // Success — go to tenant dashboard
       window.location.href = '/tenant'
     } catch {
-      setConvertError('Hitilafu ya mtandao. Jaribu tena.')
+      setConvertError(t('auth_err_network'))
       setConverting(false)
     }
   }
@@ -257,12 +257,12 @@ function RegisterForm() {
             <i className="ti ti-mail text-4xl text-primary-500" aria-hidden="true" />
           </div>
           <h2 className="font-bold text-xl text-gray-800 mb-2">{t('auth_check_email')}!</h2>
-          <p className="text-gray-500 text-sm mb-1">Tumetuma email ya uthibitisho kwa:</p>
+          <p className="text-gray-500 text-sm mb-1">{t('auth_verification_sent')}</p>
           <p className="font-semibold text-gray-800 mb-5">{regEmail}</p>
           <div className="bg-primary-50 rounded-xl p-4 mb-5 text-left">
-            <p className="text-primary-800 text-sm font-medium mb-3">Hatua za kufuata:</p>
+            <p className="text-primary-800 text-sm font-medium mb-3">{t('auth_next_steps')}</p>
             <div className="space-y-2.5">
-              {['Fungua Gmail au email yako', 'Tafuta email kutoka NyumbaFasta', 'Bonyeza "Thibitisha Akaunti Yangu"'].map((stepText, i) => (
+              {[t('auth_step_open_email'), t('auth_step_find_nyumba'), t('auth_step_click_verify')].map((stepText, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <span className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{i+1}</span>
                   <p className="text-primary-800 text-xs">{stepText}</p>
@@ -271,7 +271,7 @@ function RegisterForm() {
             </div>
           </div>
           <ResendEmailButton email={regEmail} />
-          <p className="text-gray-400 text-xs mt-4">Angalia spam/junk folder kama email haionekani</p>
+          <p className="text-gray-400 text-xs mt-4">{t('auth_check_spam')}</p>
           <button onClick={() => router.push('/login')} className="mt-4 min-h-[44px] px-4 text-primary-500 text-sm underline flex items-center mx-auto">
             {t('auth_login_title')} →
           </button>
@@ -301,9 +301,9 @@ function RegisterForm() {
                 <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3">
                   <i className="ti ti-home-search text-3xl text-amber-500" aria-hidden="true" />
                 </div>
-                <h2 className="font-bold text-gray-900 text-lg">Swali Moja Kwanza</h2>
+                <h2 className="font-bold text-gray-900 text-lg">{t('auth_one_question')}</h2>
                 <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-                  Je, umewahi kufungua akaunti ya NyumbaFasta ili <strong>kutafuta nyumba</strong> kwenye soko letu?
+                  {t('auth_marketplace_question')}
                 </p>
               </div>
 
@@ -316,7 +316,7 @@ function RegisterForm() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-primary-800 text-sm">{t('auth_yes_have_account')}</p>
-                  <p className="text-xs text-primary-600 mt-0.5">Badilisha akaunti yangu ya kutafuta nyumba hadi mpangaji</p>
+                  <p className="text-xs text-primary-600 mt-0.5">{t('auth_convert_account_sub')}</p>
                 </div>
                 <i className="ti ti-arrow-right text-primary-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
               </button>
@@ -330,7 +330,7 @@ function RegisterForm() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-700 text-sm">{t('auth_no_create_new')}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Sijawahi kutumia NyumbaFasta kutafuta nyumba</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{t('auth_no_mkt_account_sub')}</p>
                 </div>
                 <i className="ti ti-arrow-right text-gray-300 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
               </button>
@@ -364,7 +364,7 @@ function RegisterForm() {
             <div className="p-5 space-y-4">
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
                 <i className="ti ti-info-circle mt-0.5 flex-shrink-0" aria-hidden="true" />
-                <p>Tumia barua pepe na nenosiri uliokuwa ukitumia kutafuta nyumba kwenye NyumbaFasta. Akaunti yako itabadilishwa moja kwa moja.</p>
+                <p>{t('auth_convert_instructions')}</p>
               </div>
 
               {convertError && (
@@ -402,7 +402,7 @@ function RegisterForm() {
                   value={convertPhone} onChange={e => setConvertPhone(e.target.value)}
                   className={INPUT}
                 />
-                <p className="text-xs text-gray-400 mt-1">Inasaidia mmiliki wako kukutafuta kwenye mfumo</p>
+                <p className="text-xs text-gray-400 mt-1">{t('auth_phone_help_text')}</p>
               </FieldInput>
 
               <button
@@ -412,7 +412,8 @@ function RegisterForm() {
               >
                 {converting
                   ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />{t('common_loading')}</>
-                  : <><i className="ti ti-key" aria-hidden="true" />Badilisha Akaunti Yangu &amp; Ingia</>
+                  : <><i className="ti ti-key" aria-hidden="true" />{t('auth_convert_btn')}</>
+
                 }
               </button>
 
@@ -471,25 +472,25 @@ function RegisterForm() {
             <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-50">
               <button onClick={() => { setStep('details'); setError('') }} aria-label={t('common_back')}
                 className="text-gray-400 text-lg min-h-[44px] min-w-[44px] flex items-center justify-center">←</button>
-              <p className="text-sm font-semibold text-gray-800">Masharti — {roleLabel}</p>
+              <p className="text-sm font-semibold text-gray-800">{t('auth_terms_for')} {roleLabel}</p>
             </div>
             <div className="p-5 space-y-4">
               <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600 space-y-2 leading-relaxed">
-                <p>Kwa kutumia mfumo wa NyumbaFasta wa usimamizi wa mali, unakubaliana na masharti yetu yafuatayo:</p>
+                <p>{t('auth_portal_terms_intro')}</p>
                 <ul className="list-disc list-inside space-y-1 text-xs text-gray-500">
-                  <li>Utatoa taarifa sahihi na za kweli kwenye mfumo</li>
-                  <li>Hutafanya vitendo visivyoruhusiwa au vinavyodhuru wengine</li>
-                  <li>Unakubaliana na sera yetu ya faragha na matumizi ya data</li>
-                  <li>Mfumo unaweza kusimamishwa kama masharti yatavunjwa</li>
+                  <li>{t('auth_portal_term_1')}</li>
+                  <li>{t('auth_portal_term_2')}</li>
+                  <li>{t('auth_portal_term_3')}</li>
+                  <li>{t('auth_portal_term_4')}</li>
                 </ul>
                 {role === 'org_owner' && (
                   <p className="text-xs text-primary-700 font-medium mt-2 p-2 bg-primary-50 rounded-lg">
-                    Kama mmiliki/msimamizi wa shirika, unawajibika kwa taarifa za wapangaji wako wote kwenye mfumo.
+                    {t('auth_org_owner_responsibility')}
                   </p>
                 )}
                 {role === 'tenant' && (
                   <p className="text-xs text-amber-700 font-medium mt-2 p-2 bg-amber-50 rounded-lg">
-                    Kama mpangaji, baada ya kujisajili mwambie mmiliki wako barua pepe yako ili akuunganishe na mfumo wao.
+                    {t('auth_tenant_after_signup')}
                   </p>
                 )}
               </div>
@@ -511,7 +512,7 @@ function RegisterForm() {
                 {loading ? t('auth_creating_account') : `${t('auth_create_account_for')} ${roleLabel} →`}
               </button>
               <p className="text-xs text-gray-400 text-center">
-                Baada ya kusajili utapelekwa kwenye{' '}
+                {t('auth_after_signup_redirect')}{' '}
                 <span className="font-medium text-gray-600">{dest}</span>
               </p>
             </div>
@@ -536,7 +537,7 @@ function RegisterForm() {
         {step === 'role' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <h2 className="text-base font-bold text-gray-900 text-center mb-0.5">{t('auth_choose_role')}</h2>
-            <p className="text-xs text-gray-400 text-center mb-5">Chagua aina ya akaunti inayokufaa</p>
+            <p className="text-xs text-gray-400 text-center mb-5">{t('auth_choose_role_sub')}</p>
 
             <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 mb-5">
               {ROLES.map(r => (
@@ -577,19 +578,19 @@ function RegisterForm() {
             {role === 'dalali' && (
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-4 text-xs text-amber-700">
                 <i className="ti ti-bulb mr-1" aria-hidden="true" />
-                Kama dalali, utahitaji subscription ya kila mwezi (Basic Tsh 10,000 au Premium Tsh 25,000)
+                {t('auth_dalali_info')}
               </div>
             )}
             {role === 'org_owner' && (
               <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 mb-4 text-xs text-purple-700">
                 <i className="ti ti-info-circle mr-1" aria-hidden="true" />
-                Utaweza kusimamia wapangaji, malipo ya kodi, na matengenezo ya mali yako yote mahali pamoja.
+                {t('auth_org_owner_info')}
               </div>
             )}
             {role === 'tenant' && (
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-4 text-xs text-amber-700">
                 <i className="ti ti-info-circle mr-1" aria-hidden="true" />
-                Baada ya kusajili, mwambie mmiliki wako barua pepe yako ili akuunganishe na mfumo wao.
+                {t('auth_tenant_info')}
               </div>
             )}
 
@@ -669,7 +670,7 @@ function RegisterForm() {
                         +255{whatsapp.replace(/\D/g,'').replace(/^0/,'')}
                       </p>
                     )}
-                    <p className="text-xs text-gray-400 mt-1">Wateja watalipa Tsh 2,000 kupata nambari hii</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('auth_whatsapp_info')}</p>
                   </FieldInput>
                 )}
 
@@ -685,13 +686,13 @@ function RegisterForm() {
                 {role === 'org_owner' && (
                   <>
                     <div className="pt-1 border-t border-gray-50">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Taarifa za Shirika</p>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('auth_org_info_label')}</p>
                     </div>
-                    <FieldInput label="Jina la Shirika / Jengo *" icon="building-estate">
+                    <FieldInput label={t('auth_org_name_label')} icon="building-estate">
                       <input type="text" required placeholder="mfano: Mapumziko Apartments"
                         value={orgName} onChange={e => setOrgName(e.target.value)} className={INPUT} />
                     </FieldInput>
-                    <FieldInput label="Mji / Mkoa *" icon="map-pin">
+                    <FieldInput label={t('auth_org_city_label')} icon="map-pin">
                       <input type="text" required placeholder="mfano: Dar es Salaam, Kinondoni"
                         value={city} onChange={e => setCity(e.target.value)} className={INPUT} />
                     </FieldInput>
@@ -702,7 +703,7 @@ function RegisterForm() {
                 {(role === 'client' || role === 'dalali') && (
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
                     <i className="ti ti-clipboard-list mr-1" aria-hidden="true" />
-                    Hatua inayofuata: Utahitaji kusoma na kukubaliana na masharti ya matumizi.
+                    {t('auth_pre_agreement_notice')}
                   </div>
                 )}
 
@@ -720,7 +721,7 @@ function RegisterForm() {
                       <div className="flex-1 h-px bg-gray-100" />
                     </div>
                     <button type="button"
-                      onClick={() => { if (!fullName.trim()) { setError('Weka jina lako kwanza'); return } proceedToAgreement('google') }}
+                      onClick={() => { if (!fullName.trim()) { setError(t('auth_err_name_first')); return } proceedToAgreement('google') }}
                       disabled={loading || !fullName.trim()}
                       className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3.5 min-h-[48px] text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 active:scale-[0.98]">
                       <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
@@ -729,7 +730,7 @@ function RegisterForm() {
                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                       </svg>
-                      {!fullName.trim() ? 'Weka jina kwanza' : t('auth_google')}
+                      {!fullName.trim() ? t('auth_err_name_first') : t('auth_google')}
                     </button>
                   </>
                 )}

@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 
 export function LogoutButton() {
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -22,7 +24,7 @@ export function LogoutButton() {
       disabled={loading}
       className="text-sm text-gray-500 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition font-medium disabled:opacity-50"
     >
-      {loading ? '...' : 'Toka'}
+      {loading ? '...' : t('adv_logout')}
     </button>
   )
 }

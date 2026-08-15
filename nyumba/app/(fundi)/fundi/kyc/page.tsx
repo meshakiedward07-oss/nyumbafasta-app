@@ -139,7 +139,7 @@ export default function FundiKycPage() {
         <div>
           <label className="text-xs font-medium text-gray-600 block mb-1">{t('fp_kyc_doc_name_label')}</label>
           <input value={form.document_name} onChange={e => setForm(f => ({ ...f, document_name: e.target.value }))}
-            placeholder="mfano: Leseni_2026.pdf"
+            placeholder={t('fp_kyc_doc_name_placeholder')}
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
         </div>
         {formErr && <p className="text-sm text-red-600">{formErr}</p>}

@@ -130,7 +130,7 @@ export default function FundiProfilePage() {
         <div>
           <label className="text-xs font-medium text-gray-600 block mb-1">{t('fp_profile_biz_name')}</label>
           <input value={form.business_name} onChange={e => setForm(f => ({ ...f, business_name: e.target.value }))}
-            placeholder="mfano: Juma Fundi Services"
+            placeholder={t('fp_profile_biz_name_ph')}
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
         </div>
 
@@ -147,7 +147,7 @@ export default function FundiProfilePage() {
         <div>
           <label className="text-xs font-medium text-gray-600 block mb-1">{t('fp_profile_specialty')}</label>
           <input value={form.specialty} onChange={e => setForm(f => ({ ...f, specialty: e.target.value }))}
-            placeholder="mfano: Bomba la maji, umeme wa jua, AC..."
+            placeholder={t('fp_profile_specialty_ph')}
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
         </div>
 
@@ -155,7 +155,7 @@ export default function FundiProfilePage() {
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1">{t('fp_profile_location')}</label>
             <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-              placeholder="mfano: Kinondoni, DSM"
+              placeholder={t('fp_profile_location_ph')}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
           </div>
           <div>
@@ -169,7 +169,7 @@ export default function FundiProfilePage() {
         <div>
           <label className="text-xs font-medium text-gray-600 block mb-1">{t('fp_profile_bio')}</label>
           <textarea rows={3} value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
-            placeholder="Elezea kazi unazofanya, uzoefu wako, bei, nk..."
+            placeholder={t('fp_profile_bio_ph')}
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
         </div>
 

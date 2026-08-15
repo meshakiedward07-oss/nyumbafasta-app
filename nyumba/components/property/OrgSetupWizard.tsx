@@ -2,32 +2,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { REGION_NAMES as REGIONS } from '@/lib/data/tanzania-locations'
+import { useLanguage } from '@/lib/i18n/context'
 
 type Step = 1 | 2 | 3
 
-const ORG_TYPES = [
-  {
-    value: 'landlord',
-    icon: 'home',
-    title: 'Mmiliki wa Nyumba',
-    desc: 'Ninasimamia mali zangu mwenyewe. Nina nyumba moja au chache.',
-  },
-  {
-    value: 'property_manager',
-    icon: 'briefcase',
-    title: 'Msimamizi wa Mali',
-    desc: 'Ninasimamia mali za wengine kwa niaba yao chini ya mkataba.',
-  },
-  {
-    value: 'firm',
-    icon: 'building-skyscraper',
-    title: 'Kampuni ya Mali',
-    desc: 'Kampuni yenye timu kubwa inayosimamia majengo mengi.',
-  },
-] as const
-
 export default function OrgSetupWizard() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [step,    setStep]    = useState<Step>(1)
   const [saving,  setSaving]  = useState(false)
   const [error,   setError]   = useState<string | null>(null)
@@ -39,8 +20,34 @@ export default function OrgSetupWizard() {
   const [region,   setRegion]   = useState('')
   const [desc,     setDesc]     = useState('')
 
+  const ORG_TYPES = [
+    {
+      value: 'landlord',
+      icon: 'home',
+      title: t('pr_setup_type_landlord_title'),
+      desc: t('pr_setup_type_landlord_desc'),
+    },
+    {
+      value: 'property_manager',
+      icon: 'briefcase',
+      title: t('pr_setup_type_manager_title'),
+      desc: t('pr_setup_type_manager_desc'),
+    },
+    {
+      value: 'firm',
+      icon: 'building-skyscraper',
+      title: t('pr_setup_type_firm_title'),
+      desc: t('pr_setup_type_firm_desc'),
+    },
+  ]
+
+  const namePlaceholder =
+    orgType === 'landlord' ? t('pr_setup_name_ph_landlord') :
+    orgType === 'firm'     ? t('pr_setup_name_ph_firm') :
+                             t('pr_setup_name_ph_manager')
+
   async function handleSubmit() {
-    if (!name.trim()) { setError('Jina la shirika linahitajika'); return }
+    if (!name.trim()) { setError(t('pr_setup_err_name')); return }
     setSaving(true); setError(null)
     try {
       const res = await fetch('/api/v1/organizations', {
@@ -49,11 +56,11 @@ export default function OrgSetupWizard() {
         body: JSON.stringify({ name: name.trim(), org_type: orgType, description: desc.trim() || undefined, phone: phone.trim() || undefined, email: email.trim() || undefined, region: region || undefined }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Kuna tatizo. Jaribu tena.'); return }
+      if (!res.ok) { setError(data.error ?? t('pr_err_generic')); return }
       setStep(3)
       setTimeout(() => router.push('/property/dashboard'), 1500)
     } catch {
-      setError('Haikuweza kuunganika. Angalia mtandao na ujaribu tena.')
+      setError(t('pr_setup_err_network'))
     } finally {
       setSaving(false)
     }
@@ -76,9 +83,9 @@ export default function OrgSetupWizard() {
           ))}
         </div>
         <div className="flex justify-between mt-1.5 text-xs text-gray-400">
-          <span>Aina</span>
-          <span>Maelezo</span>
-          <span>Imekamilika</span>
+          <span>{t('pr_setup_step_type')}</span>
+          <span>{t('pr_setup_step_details')}</span>
+          <span>{t('pr_setup_step_done')}</span>
         </div>
       </div>
 
@@ -86,8 +93,8 @@ export default function OrgSetupWizard() {
         {/* Step 1: org type */}
         {step === 1 && (
           <div>
-            <h1 className="text-xl font-bold text-gray-900 mb-1">Karibu kwenye Usimamizi wa Mali</h1>
-            <p className="text-sm text-gray-500 mb-6">Chagua aina ya shirika lako ili tuandae uzoefu sahihi kwako.</p>
+            <h1 className="text-xl font-bold text-gray-900 mb-1">{t('pr_setup_welcome_heading')}</h1>
+            <p className="text-sm text-gray-500 mb-6">{t('pr_setup_welcome_sub')}</p>
             <div className="space-y-3">
               {ORG_TYPES.map(type => (
                 <button
@@ -121,7 +128,7 @@ export default function OrgSetupWizard() {
               disabled={!orgType}
               className="w-full mt-6 bg-primary-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-primary-600 transition disabled:opacity-40"
             >
-              Endelea
+              {t('pr_setup_next')}
             </button>
           </div>
         )}
@@ -130,27 +137,27 @@ export default function OrgSetupWizard() {
         {step === 2 && (
           <div>
             <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4">
-              <i className="ti ti-arrow-left" /> Rudi
+              <i className="ti ti-arrow-left" /> {t('pr_setup_back')}
             </button>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Maelezo ya Shirika</h2>
-            <p className="text-sm text-gray-500 mb-5">Tujaza maelezo ya msingi. Unaweza kubadilisha baadaye.</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">{t('pr_setup_details_heading')}</h2>
+            <p className="text-sm text-gray-500 mb-5">{t('pr_setup_details_sub')}</p>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Jina la Shirika <span className="text-red-500">*</span>
+                  {t('pr_setup_name_label')}
                 </label>
                 <input
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder={orgType === 'landlord' ? 'mfano: Nyumba za Juma' : orgType === 'firm' ? 'mfano: Karibu Properties Ltd' : 'mfano: John Property Management'}
+                  placeholder={namePlaceholder}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nambari ya Simu</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('pr_setup_phone_label')}</label>
                 <input
                   type="tel"
                   value={phone}
@@ -161,7 +168,7 @@ export default function OrgSetupWizard() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Barua Pepe</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('pr_setup_email_label')}</label>
                 <input
                   type="email"
                   value={email}
@@ -172,23 +179,23 @@ export default function OrgSetupWizard() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mkoa</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('pr_setup_region_label')}</label>
                 <select
                   value={region}
                   onChange={e => setRegion(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                 >
-                  <option value="">Chagua mkoa...</option>
+                  <option value="">{t('pr_setup_region_ph')}</option>
                   {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Maelezo Mafupi (si lazima)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('pr_setup_desc_label')}</label>
                 <textarea
                   value={desc}
                   onChange={e => setDesc(e.target.value)}
-                  placeholder="Elezea huduma unazotoa..."
+                  placeholder={t('pr_setup_desc_ph')}
                   rows={3}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
                 />
@@ -203,7 +210,7 @@ export default function OrgSetupWizard() {
                 disabled={saving || !name.trim()}
                 className="w-full bg-primary-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-primary-600 transition disabled:opacity-40"
               >
-                {saving ? 'Inaunda...' : 'Unda Shirika'}
+                {saving ? t('pr_setup_creating') : t('pr_setup_create_btn')}
               </button>
             </div>
           </div>
@@ -215,8 +222,8 @@ export default function OrgSetupWizard() {
             <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="ti ti-check text-primary-500 text-3xl" aria-hidden="true" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Shirika Limeundwa!</h2>
-            <p className="text-sm text-gray-500">Unakwenda kwenye dashibodi yako...</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{t('pr_setup_success_title')}</h2>
+            <p className="text-sm text-gray-500">{t('pr_setup_success_sub')}</p>
             <div className="mt-4 h-1 bg-gray-100 rounded-full overflow-hidden">
               <div className="h-full bg-primary-500 rounded-full animate-pulse w-3/4" />
             </div>
@@ -225,10 +232,10 @@ export default function OrgSetupWizard() {
       </div>
 
       <p className="text-xs text-gray-400 mt-6 text-center max-w-sm">
-        Kwa kuendelea unakubali{' '}
-        <a href="/terms" className="text-primary-600 underline">Masharti ya Matumizi</a>{' '}
+        {t('pr_setup_terms_note')}{' '}
+        <a href="/terms" className="text-primary-600 underline">{t('pr_setup_terms_label')}</a>{' '}
         na{' '}
-        <a href="/privacy" className="text-primary-600 underline">Sera ya Faragha</a>{' '}
+        <a href="/privacy" className="text-primary-600 underline">{t('pr_setup_privacy_label')}</a>{' '}
         ya NyumbaFasta.
       </p>
     </div>

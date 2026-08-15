@@ -45,18 +45,18 @@ function MFAForm() {
     setError('')
     try {
       const { data: challenge, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId })
-      if (challengeErr || !challenge) throw new Error(challengeErr?.message ?? 'Imeshindwa kuanzisha uthibitisho')
+      if (challengeErr || !challenge) throw new Error(challengeErr?.message ?? t('auth_mfa_challenge_err'))
 
       const { error: verifyErr } = await supabase.auth.mfa.verify({
         factorId,
         challengeId: challenge.id,
         code: code.trim(),
       })
-      if (verifyErr) throw new Error('Nambari si sahihi. Angalia app yako na ujaribu tena.')
+      if (verifyErr) throw new Error(t('auth_mfa_invalid_code'))
 
       router.replace(redirectTo)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
+      setError(err instanceof Error ? err.message : t('auth_mfa_generic_err'))
     } finally {
       setLoading(false)
     }

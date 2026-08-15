@@ -74,7 +74,7 @@ function LoginForm() {
 
     if (profileData?.is_active === false) {
       await supabase.auth.signOut()
-      setError('Akaunti yako imesimamishwa. Wasiliana na support: wa.me/255615261147')
+      setError(t('auth_suspended_support'))
       setLoading(false)
       return
     }
@@ -82,7 +82,7 @@ function LoginForm() {
     // Staff deactivated by admin
     if (profileData?.role === 'staff' && profileData?.staff_active === false) {
       await supabase.auth.signOut()
-      setError('Akaunti yako ya staff imezimwa. Wasiliana na admin wako.')
+      setError(t('auth_staff_deactivated'))
       setLoading(false)
       return
     }
@@ -163,11 +163,11 @@ function LoginForm() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message.toLowerCase() : ''
       const kiswahili =
-        msg.includes('invalid login credentials') || msg.includes('invalid email or password') ? 'Barua pepe au nenosiri si sahihi. Tumia "Umesahau nenosiri?" kupata kiungo cha kuingia.' :
-        msg.includes('too many requests')         ? 'Maombi mengi mfululizo. Subiri dakika chache.' :
-        msg.includes('user not found')            ? 'Akaunti haipo. Jisajili kwanza.' :
-        msg.includes('network')                   ? 'Hakuna mtandao. Angalia internet yako.' :
-        'Imeshindwa kuingia. Tumia "Umesahau nenosiri?" au wasiliana na msaada.'
+        msg.includes('invalid login credentials') || msg.includes('invalid email or password') ? t('auth_err_invalid_creds') :
+        msg.includes('too many requests')         ? t('auth_err_too_many') :
+        msg.includes('user not found')            ? t('auth_err_user_not_found') :
+        msg.includes('network')                   ? t('auth_err_network') :
+        t('auth_err_login_generic')
       setError(kiswahili)
       setLoading(false)
     }
@@ -189,7 +189,7 @@ function LoginForm() {
       })
       if (error) throw error
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Imeshindwa kuingia na Google.')
+      setError(err instanceof Error ? err.message : t('auth_err_google'))
       setLoading(false)
     }
   }
@@ -210,11 +210,11 @@ function LoginForm() {
       })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
-        throw new Error((d as { error?: string }).error || 'Imeshindwa kutuma barua pepe.')
+        throw new Error((d as { error?: string }).error || t('auth_err_send_email'))
       }
       setResetSent(true)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Imeshindwa kutuma barua pepe.')
+      setError(err instanceof Error ? err.message : t('auth_err_send_email'))
     } finally {
       setLoading(false)
     }
@@ -240,7 +240,7 @@ function LoginForm() {
             sizes="224px"
           />
         </div>
-        <p className="text-white/75 text-xs mt-2 font-medium tracking-wide">Nyumba yako, haraka zaidi</p>
+        <p className="text-white/75 text-xs mt-2 font-medium tracking-wide">{t('auth_tagline')}</p>
       </div>
 
       <div className="flex-1 px-4 -mt-5 pb-8">
@@ -252,9 +252,9 @@ function LoginForm() {
             <div className="bg-red-50 border-b border-red-100 px-4 py-3 flex items-start gap-2">
               <i className="ti ti-ban text-lg flex-shrink-0" aria-hidden="true" />
               <div>
-                <p className="text-sm font-semibold text-red-700">Akaunti Imesimamishwa</p>
+                <p className="text-sm font-semibold text-red-700">{t('auth_suspended')}</p>
                 <p className="text-xs text-red-500 mt-0.5">
-                  Wasiliana nasi kupitia WhatsApp ili ujue sababu.
+                  {t('auth_suspended_contact')}
                 </p>
               </div>
             </div>
@@ -265,9 +265,9 @@ function LoginForm() {
             <div className="bg-amber-50 border-b border-amber-100 px-4 py-3 flex items-start gap-2">
               <i className="ti ti-alert-triangle text-lg text-amber-500 flex-shrink-0" aria-hidden="true" />
               <div>
-                <p className="text-sm font-semibold text-amber-700">Kiungo Kimeshindwa</p>
+                <p className="text-sm font-semibold text-amber-700">{t('auth_link_failed_title')}</p>
                 <p className="text-xs text-amber-600 mt-0.5">
-                  Kiungo cha kuingia kimekwisha muda au hakikufanya kazi. Jaribu tena.
+                  {t('auth_link_failed_body')}
                 </p>
               </div>
             </div>
@@ -286,10 +286,10 @@ function LoginForm() {
             {showUnverified && (
               <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                 <p className="font-semibold text-yellow-800 text-sm mb-1">
-                  <i className="ti ti-mail" aria-hidden="true" /> Thibitisha Barua Pepe Yako Kwanza
+                  <i className="ti ti-mail" aria-hidden="true" /> {t('auth_unverified_title')}
                 </p>
                 <p className="text-yellow-600 text-xs mb-3">
-                  Tumetuma email ya uthibitisho kwa {unverifiedEmail}. Angalia inbox yako.
+                  {t('auth_unverified_body').replace('{email}', unverifiedEmail)}
                 </p>
                 <ResendEmailButton email={unverifiedEmail} />
               </div>
@@ -300,29 +300,28 @@ function LoginForm() {
               resetSent ? (
                 <div className="text-center py-4">
                   <div className="text-5xl mb-4 flex justify-center"><i className="ti ti-mail text-primary-500" aria-hidden="true" /></div>
-                  <h3 className="text-base font-bold text-gray-900 mb-2">Barua pepe imetumwa!</h3>
+                  <h3 className="text-base font-bold text-gray-900 mb-2">{t('auth_reset_sent_title')}</h3>
                   <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-                    Angalia inbox yako na ubonyeze kiungo cha kubadilisha nenosiri.
-                    Angalia pia folda ya Spam.
+                    {t('auth_reset_link_sent_body')}
                   </p>
                   <button
                     onClick={() => { setForgotMode(false); setResetSent(false); setResetEmail('') }}
                     className="w-full bg-primary-500 text-white py-3.5 rounded-xl text-sm font-semibold"
                   >
-                    ← Rudi Kuingia
+                    {t('auth_back_to_login')}
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleForgotPassword} className="space-y-4">
                   <div className="text-center mb-2">
                     <div className="text-3xl mb-2 flex justify-center"><i className="ti ti-key text-gray-400" aria-hidden="true" /></div>
-                    <h3 className="text-base font-bold text-gray-900">Badilisha Nenosiri</h3>
+                    <h3 className="text-base font-bold text-gray-900">{t('auth_reset_password')}</h3>
                     <p className="text-xs text-gray-400 mt-1">
-                      Tutakutumia kiungo cha kubadilisha nenosiri
+                      {t('auth_reset_link_hint')}
                     </p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 mb-1.5 block">Barua pepe yako</label>
+                    <label className="text-xs text-gray-500 mb-1.5 block">{t('auth_email_placeholder_staff')}</label>
                     <input
                       type="email"
                       required
@@ -341,14 +340,14 @@ function LoginForm() {
                     className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-xl text-sm
                                font-semibold disabled:opacity-50 hover:bg-primary-600 transition-colors"
                   >
-                    {loading ? 'Inatuma...' : 'Tuma Kiungo'}
+                    {loading ? t('auth_sending') : t('auth_send_link')}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setForgotMode(false); setError('') }}
                     className="w-full text-sm text-gray-400 py-3 min-h-[44px]"
                   >
-                    ← Rudi
+                    {t('auth_back')}
                   </button>
                 </form>
               )
@@ -423,7 +422,7 @@ function LoginForm() {
                 {/* Divider */}
                 <div className="flex items-center gap-3 my-5">
                   <div className="flex-1 h-px bg-gray-100" />
-                  <span className="text-xs text-gray-400">{t('common_or')} endelea na</span>
+                  <span className="text-xs text-gray-400">{t('auth_or_continue')}</span>
                   <div className="flex-1 h-px bg-gray-100" />
                 </div>
 
@@ -448,7 +447,7 @@ function LoginForm() {
 
                 {/* Hint */}
                 <p className="text-center text-xs text-gray-400 mt-4">
-                  <i className="ti ti-bulb" aria-hidden="true" /> Ingia kwa urahisi na akaunti ya Google au barua pepe
+                  <i className="ti ti-bulb" aria-hidden="true" /> {t('auth_login_hint')}
                 </p>
               </>
             )}
@@ -480,7 +479,7 @@ function LoginForm() {
               className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors py-2 px-3 rounded-full border border-gray-200 hover:border-gray-300"
             >
               <i className="ti ti-shield-lock text-xs" aria-hidden="true" />
-              Wafanyakazi &amp; Wasimamizi
+              {t('auth_staff_managers')}
             </Link>
           </div>
         )}

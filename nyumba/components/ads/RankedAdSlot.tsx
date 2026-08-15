@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { getOrCreateSessionId } from '@/lib/ads/session'
 import { waLink } from '@/lib/utils/phone'
+import { useLanguage } from '@/lib/i18n/context'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ type RankedAd = {
 // ── Individual card ────────────────────────────────────────────────────────────
 
 function AdCard({ ad }: { ad: RankedAd }) {
+  const { t } = useLanguage()
   const waNumber = (ad.cta_type === 'whatsapp' && ad.cta_value)
     ? ad.cta_value
     : ad.advertiser?.whatsapp_number
@@ -44,8 +46,8 @@ function AdCard({ ad }: { ad: RankedAd }) {
     }).catch(() => {})
   }
 
-  const ctaLabel = waNumber ? '💬 WhatsApp' :
-    ad.cta_type === 'call' ? '📞 Simu' : '🌐 Tovuti'
+  const ctaLabel = waNumber ? `💬 ${t('adv_whatsapp')}` :
+    ad.cta_type === 'call' ? `📞 ${t('adv_cta_call_short')}` : `🌐 ${t('adv_cta_website')}`
 
   const ctaCls = waNumber ? 'bg-green-500 hover:bg-green-600' :
     ad.cta_type === 'call' ? 'bg-blue-500 hover:bg-blue-600' :
@@ -145,10 +147,12 @@ export default function RankedAdSlot({
   adType,
   placement,
   limit = 5,
-  title = 'Biashara Zinazopendekeza',
+  title,
   allUrl,
   className = '',
 }: Props) {
+  const { t } = useLanguage()
+  const displayTitle = title ?? t('adv_recommended')
   const [ads, setAds]       = useState<RankedAd[]>([])
   const [total, setTotal]   = useState(0)
   const [loading, setLoading] = useState(true)
@@ -185,7 +189,7 @@ export default function RankedAdSlot({
       {/* Header */}
       <div className="flex items-center justify-between mb-2 px-0.5">
         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-          {title}
+          {displayTitle}
         </h3>
         {showViewAll && (
           <Link
@@ -209,7 +213,7 @@ export default function RankedAdSlot({
       {/* "Sponsored" watermark */}
       {!loading && ads.length > 0 && (
         <p className="text-[10px] text-gray-300 text-right mt-1 pr-0.5">
-          Matangazo · NyumbaFasta
+          {t('adv_watermark')}
         </p>
       )}
     </div>

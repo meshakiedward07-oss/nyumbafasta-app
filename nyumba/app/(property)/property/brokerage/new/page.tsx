@@ -4,22 +4,24 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { TANZANIA_REGIONS, getDistricts } from '@/lib/data/tanzania-locations'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
 import { VideoUpload } from '@/components/listings/VideoUpload'
-
-const LISTING_TYPE_LABELS: Record<string, string> = {
-  chumba:    'Chumba',
-  apartment: 'Apartment',
-  nyumba:    'Nyumba',
-  studio:    'Studio',
-  duka:      'Duka',
-}
-
-const FURNISHED_LABELS: Record<string, string> = {
-  empty:     'Tupu (hayana samani)',
-  semi:      'Semi-furnished',
-  furnished: 'Imejazwa samani',
-}
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function BrokerageNewPage() {
+  const { t } = useLanguage()
+
+  const LISTING_TYPE_LABELS: Record<string, string> = {
+    chumba:    t('pr_brokerage_type_chumba'),
+    apartment: t('pr_brokerage_type_apartment'),
+    nyumba:    t('pr_brokerage_type_nyumba'),
+    studio:    t('pr_brokerage_type_studio'),
+    duka:      t('pr_brokerage_type_duka'),
+  }
+
+  const FURNISHED_LABELS: Record<string, string> = {
+    empty:     t('pr_brokerage_furnished_empty'),
+    semi:      t('pr_brokerage_furnished_semi'),
+    furnished: t('pr_brokerage_furnished_full'),
+  }
   const router = useRouter()
   const searchParams = useSearchParams()
   const unitId = searchParams.get('unit_id')
@@ -129,10 +131,10 @@ export default function BrokerageNewPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Kuna tatizo. Jaribu tena.'); return }
+      if (!res.ok) { setError(data.error ?? t('pr_err_generic')); return }
       setDone(true)
     } catch {
-      setError('Hitilafu ya mtandao. Jaribu tena.')
+      setError(t('pr_err_network'))
     } finally {
       setSubmitting(false)
     }
@@ -152,23 +154,22 @@ export default function BrokerageNewPage() {
         <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
           <i className="ti ti-circle-check text-5xl text-green-500" aria-hidden="true" />
         </div>
-        <h1 className="font-bold text-gray-900 text-xl mb-2">Ombi Limewasilishwa!</h1>
+        <h1 className="font-bold text-gray-900 text-xl mb-2">{t('pr_brokerage_done_title')}</h1>
         <p className="text-gray-500 text-sm max-w-xs mx-auto">
-          Staff wa NyumbaFasta watapitia ombi lako na kukuwasiliana kupitia nambari yako.
-          Kawaida inachukua saa 24-48.
+          {t('pr_brokerage_done_sub')}
         </p>
         <div className="mt-6 space-y-2">
           <button
             onClick={() => router.push('/property/brokerage')}
             className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary-600 transition"
           >
-            Angalia Hali ya Maombi
+            {t('pr_brokerage_view_requests')}
           </button>
           <button
             onClick={() => router.push('/property/dashboard')}
             className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold text-sm hover:bg-gray-200 transition"
           >
-            Rudi Dashibodini
+            {t('pr_brokerage_back_dash')}
           </button>
         </div>
       </div>
@@ -183,15 +184,15 @@ export default function BrokerageNewPage() {
         className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-5 min-h-[44px] -ml-1 px-1 rounded-xl active:bg-gray-100 transition"
       >
         <i className="ti ti-arrow-left text-base" aria-hidden="true" />
-        {step > 1 ? 'Nyuma' : 'Brokerage'}
+        {step > 1 ? t('pr_back_btn') : t('pr_brokerage_back')}
       </button>
 
-      <h1 className="font-bold text-gray-900 text-xl">Ombi la Kutafuta Mpangaji</h1>
-      <p className="text-sm text-gray-400 mt-0.5 mb-5">NyumbaFasta itatangaza na kukupata mpangaji</p>
+      <h1 className="font-bold text-gray-900 text-xl">{t('pr_brokerage_new_title')}</h1>
+      <p className="text-sm text-gray-400 mt-0.5 mb-5">{t('pr_brokerage_new_sub')}</p>
 
       {/* Step bar */}
       <div className="flex items-center gap-2 mb-6">
-        {[{ n: 1, label: 'Mali' }, { n: 2, label: 'Mawasiliano' }, { n: 3, label: 'Kukubaliana' }].map(({ n, label }, idx) => (
+        {[{ n: 1, label: t('pr_brokerage_step1_label') }, { n: 2, label: t('pr_brokerage_step2_label') }, { n: 3, label: t('pr_brokerage_step3_label') }].map(({ n, label }, idx) => (
           <div key={n} className="flex items-center gap-2 flex-1">
             <div className="flex flex-col items-center flex-1">
               <div className={`w-full h-2 rounded-full transition-all ${n <= step ? 'bg-primary-500' : 'bg-gray-200'}`} />
@@ -206,16 +207,16 @@ export default function BrokerageNewPage() {
       {step === 1 && (
         <div className="space-y-5">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Hatua 1 ya 3 — Taarifa za Mali
+            {t('pr_brokerage_step_mali')}
           </p>
 
           {/* Title */}
           <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Jina la Tangazo *</label>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_listing_title_label')} *</label>
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="mfano: Apartment 2BR Masaki, karibu na bahari"
+              placeholder={t('pr_brokerage_title_ph')}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
             />
           </div>
@@ -223,7 +224,7 @@ export default function BrokerageNewPage() {
           {/* Type + Furnished */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Aina ya Mali *</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_listing_type_label')} *</label>
               <select value={listingType} onChange={e => setListingType(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
                 {Object.entries(LISTING_TYPE_LABELS).map(([v, l]) => (
@@ -232,7 +233,7 @@ export default function BrokerageNewPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Samani</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_furnished_label')}</label>
               <select value={furnished} onChange={e => setFurnished(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
                 {Object.entries(FURNISHED_LABELS).map(([v, l]) => (
@@ -244,7 +245,7 @@ export default function BrokerageNewPage() {
 
           {/* Price */}
           <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Bei/Mwezi (TZS) *</label>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_price_label')} *</label>
             <input type="number" value={priceMonthly} onChange={e => setPriceMonthly(e.target.value)}
               placeholder="0" min="0"
               className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
@@ -253,13 +254,13 @@ export default function BrokerageNewPage() {
           {/* Bedrooms + Deposit */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Vyumba vya Kulala</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_bedrooms_label')}</label>
               <input type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)}
                 placeholder="—" min="0"
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Amana (miezi)</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_deposit_label')}</label>
               <input type="number" value={depositMonths} onChange={e => setDepositMonths(e.target.value)}
                 placeholder="1" min="0"
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
@@ -269,18 +270,18 @@ export default function BrokerageNewPage() {
           {/* Region + District */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Mkoa *</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_region_label')} *</label>
               <select value={region} onChange={e => { setRegion(e.target.value); setDistrict('') }}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                <option value="">Chagua mkoa</option>
+                <option value="">{t('pr_select_region')}</option>
                 {regionNames.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Wilaya *</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_district_label')} *</label>
               <select value={district} onChange={e => setDistrict(e.target.value)} disabled={!region}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white disabled:opacity-50">
-                <option value="">Chagua wilaya</option>
+                <option value="">{t('pr_brokerage_district_ph')}</option>
                 {districts.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
@@ -289,12 +290,12 @@ export default function BrokerageNewPage() {
           {/* Ward + Mtaa */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Kata (hiari)</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_ward_label')}</label>
               <input value={ward} onChange={e => setWard(e.target.value)} placeholder="Kata"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Mtaa (hiari)</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_mtaa_label')}</label>
               <input value={mtaa} onChange={e => setMtaa(e.target.value)} placeholder="Mtaa/Barabara"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             </div>
@@ -302,19 +303,19 @@ export default function BrokerageNewPage() {
 
           {/* Description */}
           <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Maelezo (hiari)</label>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_desc_lbl')}</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
-              placeholder="Elezea zaidi kuhusu nyumba/kitengo hiki..."
+              placeholder={t('pr_brokerage_desc_ph')}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
           </div>
 
           {/* Amenities */}
           <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Muundo na Huduma</label>
-            <p className="text-[11px] text-gray-400 mb-2">Chagua vyumba na huduma zilizopo — zitatumika kwenye muhtasari wa tangazo</p>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_struct_lbl')}</label>
+            <p className="text-[11px] text-gray-400 mb-2">{t('pr_brokerage_amenity_sub')}</p>
             <div className="space-y-2.5">
               <div>
-                <span className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1.5 block">Vyumba</span>
+                <span className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1.5 block">{t('pr_brokerage_rooms_lbl')}</span>
                 <div className="flex flex-wrap gap-2">
                   {['Sebule', 'Jikoni', 'Choo Ndani'].map(a => (
                     <button key={a} type="button" onClick={() => toggleAmenity(a)}
@@ -325,7 +326,7 @@ export default function BrokerageNewPage() {
                 </div>
               </div>
               <div>
-                <span className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1.5 block">Huduma</span>
+                <span className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1.5 block">{t('pr_brokerage_services_lbl')}</span>
                 <div className="flex flex-wrap gap-2">
                   {['WiFi', 'Umeme wa TANESCO', 'Maji ya bomba', 'Generator', 'Parking', 'Usalama 24/7', 'CCTV', 'Bwawa la kuogelea', 'Gym', 'Lifti', 'Balcony', 'AC', 'Mazingira ya watoto'].map(a => (
                     <button key={a} type="button" onClick={() => toggleAmenity(a)}
@@ -348,10 +349,10 @@ export default function BrokerageNewPage() {
                 }
               </div>
               <label className="text-sm font-semibold text-gray-800">
-                Picha za Mali <span className="text-red-500">*</span>
+                {t('pr_brokerage_photo_req_label')} <span className="text-red-500">*</span>
               </label>
               {images.length >= 1 && (
-                <span className="ml-auto text-xs text-primary-600 font-medium">{images.length} picha ✓</span>
+                <span className="ml-auto text-xs text-primary-600 font-medium">{t('pr_brokerage_photos_check').replace('{n}', String(images.length))}</span>
               )}
             </div>
             <BulkPhotoUpload
@@ -364,7 +365,7 @@ export default function BrokerageNewPage() {
             {images.length === 0 && !photosUploading && (
               <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                 <i className="ti ti-alert-triangle" aria-hidden="true" />
-                Lazima upake angalau picha 1 kabla ya kuendelea
+                {t('pr_brokerage_photo_min1_warn')}
               </p>
             )}
           </div>
@@ -379,10 +380,10 @@ export default function BrokerageNewPage() {
                 }
               </div>
               <label className="text-sm font-semibold text-gray-800">
-                Video ya Mali <span className="text-red-500">*</span>
+                {t('pr_brokerage_video_req_label')} <span className="text-red-500">*</span>
               </label>
               {videoUrl && (
-                <span className="ml-auto text-xs text-primary-600 font-medium">Video iko ✓</span>
+                <span className="ml-auto text-xs text-primary-600 font-medium">{t('pr_brokerage_video_ok_label')}</span>
               )}
             </div>
             <VideoUpload
@@ -394,7 +395,7 @@ export default function BrokerageNewPage() {
             {!videoUrl && !videoUploading && (
               <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                 <i className="ti ti-alert-triangle" aria-hidden="true" />
-                Lazima upake video kabla ya kuendelea — inasaidia wateja kuona nyumba vizuri
+                {t('pr_brokerage_video_req_warn')}
               </p>
             )}
           </div>
@@ -405,13 +406,13 @@ export default function BrokerageNewPage() {
             disabled={!step1Valid}
             className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary-600 transition disabled:opacity-40 mt-2"
           >
-            {photosUploading || videoUploading ? 'Subiri upakiaji ukamilike...' : 'Endelea →'}
+            {photosUploading || videoUploading ? t('pr_brokerage_uploading_wait') : `${t('pr_btn_continue')} →`}
           </button>
 
           {detailsValid && !mediaValid && !photosUploading && !videoUploading && (
             <p className="text-center text-xs text-gray-400">
-              {images.length === 0 && !videoUrl ? 'Picha na video zinahitajika' :
-               images.length === 0 ? 'Picha inahitajika' : 'Video inahitajika'}
+              {images.length === 0 && !videoUrl ? t('pr_brokerage_media_both_req') :
+               images.length === 0 ? t('pr_brokerage_media_photo_req') : t('pr_brokerage_media_video_req')}
             </p>
           )}
         </div>
@@ -421,29 +422,26 @@ export default function BrokerageNewPage() {
       {step === 2 && (
         <div className="space-y-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Hatua 2 ya 3 — Mawasiliano
+            {t('pr_brokerage_step_contact')}
           </p>
 
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-800 flex gap-2">
             <i className="ti ti-info-circle text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
-            <span>
-              Nambari hii ndiyo itakayopelekwa kwa dalali wa NyumbaFasta. Mpangaji atakapopata mawasiliano,
-              dalali atawasiliana nawe moja kwa moja.
-            </span>
+            <span>{t('pr_brokerage_contact_notice2')}</span>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Jina la Mawasiliano</label>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_contact_name')}</label>
             <input
               value={orgContactName}
               onChange={e => setOrgContactName(e.target.value)}
-              placeholder={orgName || 'Jina la mwasiliani'}
+              placeholder={orgName || t('pr_brokerage_contact_name_ph')}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Nambari ya Simu / WhatsApp *</label>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">{t('pr_brokerage_contact_wa_lbl')} *</label>
             <input
               type="tel"
               value={orgContactPhone}
@@ -452,31 +450,31 @@ export default function BrokerageNewPage() {
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
             />
             <p className="text-xs text-gray-400 mt-1">
-              Imejazwa kutoka kwenye profaili ya shirika lako: {orgPhone || '—'}
+              {t('pr_brokerage_prefill_phone')} {orgPhone || '—'}
             </p>
           </div>
 
           {/* Summary */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-            <p className="text-xs font-semibold text-gray-700 mb-2">Muhtasari wa Ombi</p>
+            <p className="text-xs font-semibold text-gray-700 mb-2">{t('pr_brokerage_summary_heading')}</p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-              <span className="text-gray-400">Mali:</span>
+              <span className="text-gray-400">{t('pr_brokerage_sum_property')}</span>
               <span className="text-gray-700 font-medium truncate">{title}</span>
-              <span className="text-gray-400">Aina:</span>
+              <span className="text-gray-400">{t('pr_brokerage_sum_type')}</span>
               <span className="text-gray-700">{LISTING_TYPE_LABELS[listingType]}</span>
-              <span className="text-gray-400">Bei:</span>
+              <span className="text-gray-400">{t('pr_brokerage_sum_price')}</span>
               <span className="text-gray-700 font-semibold text-primary-600">
                 TZS {Number(priceMonthly).toLocaleString()}/mwezi
               </span>
-              <span className="text-gray-400">Eneo:</span>
+              <span className="text-gray-400">{t('pr_brokerage_sum_location')}</span>
               <span className="text-gray-700">{district}, {region}</span>
-              <span className="text-gray-400">Picha:</span>
-              <span className="text-gray-700">{images.length} zimepakiwa</span>
-              <span className="text-gray-400">Video:</span>
+              <span className="text-gray-400">{t('pr_brokerage_sum_photos_lbl')}</span>
+              <span className="text-gray-700">{t('pr_brokerage_uploaded_n').replace('{n}', String(images.length))}</span>
+              <span className="text-gray-400">{t('pr_brokerage_sum_video_lbl')}</span>
               <span className={videoUrl ? 'text-primary-600 font-medium' : 'text-gray-400'}>
-                {videoUrl ? '✓ Ipo' : '—'}
+                {videoUrl ? t('pr_brokerage_sum_present') : '—'}
               </span>
-              <span className="text-gray-400">Kamisheni:</span>
+              <span className="text-gray-400">{t('pr_brokerage_sum_commission_lbl')}</span>
               <span className="text-gray-700 font-semibold">
                 TZS {Number(priceMonthly).toLocaleString()} (mwezi 1)
               </span>
@@ -488,7 +486,7 @@ export default function BrokerageNewPage() {
             disabled={!step2Valid}
             className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary-600 transition disabled:opacity-40"
           >
-            Endelea →
+            {t('pr_btn_continue')} →
           </button>
         </div>
       )}
@@ -497,7 +495,7 @@ export default function BrokerageNewPage() {
       {step === 3 && (
         <div className="space-y-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Hatua 3 ya 3 — Makubaliano
+            {t('pr_brokerage_step_agree')}
           </p>
 
           <label className="flex gap-3 bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-primary-300 transition">
@@ -506,11 +504,8 @@ export default function BrokerageNewPage() {
                 className="w-4 h-4 accent-primary-500" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Nakubaliana na NyumbaFasta kutangaza kwa niaba yangu</p>
-              <p className="text-xs text-gray-500 mt-1">
-                NyumbaFasta itashughulikia utangazaji, mawasiliano ya awali na mpangaji,
-                na kupanga miadi. Mamlaka ya biashara bado iko kwangu.
-              </p>
+              <p className="text-sm font-semibold text-gray-900">{t('pr_brokerage_agree_broker_text')}</p>
+              <p className="text-xs text-gray-500 mt-1">{t('pr_brokerage_agree_broker_body')}</p>
             </div>
           </label>
 
@@ -520,25 +515,24 @@ export default function BrokerageNewPage() {
                 className="w-4 h-4 accent-primary-500" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Nakubaliana na masharti ya kamisheni</p>
+              <p className="text-sm font-semibold text-gray-900">{t('pr_brokerage_agree_commission_text')}</p>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Kamisheni ya{' '}
+                {t('pr_brokerage_commission_intro')}{' '}
                 <span className="font-bold text-primary-600">
                   TZS {Number(priceMonthly || 0).toLocaleString()}
                 </span>{' '}
-                (sawa na kodi ya mwezi mmoja) italipwa na <strong className="text-gray-700">mpangaji atakayeletwa na NyumbaFasta</strong> kwa shirika letu.
-                Shirika letu litasaidia kukusanya kamisheni hiyo na kuiwasilisha kwa NyumbaFasta mara mkataba utakapofungwa.
+                {t('pr_brokerage_commission_suffix')}
               </p>
             </div>
           </label>
 
           <div className="bg-primary-50 rounded-xl p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-primary-600 font-medium">Kamisheni itakayodaiwa</p>
+              <p className="text-xs text-primary-600 font-medium">{t('pr_brokerage_commission_box_title')}</p>
               <p className="text-2xl font-bold text-primary-700 mt-0.5">
                 TZS {Number(priceMonthly || 0).toLocaleString()}
               </p>
-              <p className="text-xs text-primary-500">= Kodi ya mwezi 1 — inalipwa baada ya deal kufungwa</p>
+              <p className="text-xs text-primary-500">{t('pr_brokerage_commission_box_hint')}</p>
             </div>
             <i className="ti ti-coin text-4xl text-primary-300" aria-hidden="true" />
           </div>
@@ -556,9 +550,10 @@ export default function BrokerageNewPage() {
             className="w-full bg-primary-500 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-primary-600 transition disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {submitting ? (
-              <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />Inawasilisha...</>
+              <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" />{t('pr_brokerage_submitting')}</>
             ) : (
-              <><i className="ti ti-send" aria-hidden="true" />Wasilisha Ombi kwa NyumbaFasta</>
+              <><i className="ti ti-send" aria-hidden="true" />{t('pr_brokerage_submit')}</>
+
             )}
           </button>
         </div>

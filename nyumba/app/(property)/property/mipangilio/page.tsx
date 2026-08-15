@@ -2,12 +2,7 @@
 import { useEffect, useState } from 'react'
 import { TANZANIA_REGIONS } from '@/lib/data/tanzania-locations'
 import type { Organization, OrgType } from '@/lib/types/property'
-
-const ORG_TYPE_OPTIONS: { value: OrgType; label: string; desc: string }[] = [
-  { value: 'landlord',         label: 'Mmiliki wa Nyumba',   desc: 'Mmiliki mmoja anayesimamia mali yake mwenyewe' },
-  { value: 'property_manager', label: 'Msimamizi wa Mali',   desc: 'Timu ndogo inayosimamia mali za wengine' },
-  { value: 'firm',             label: 'Kampuni ya Mali',      desc: 'Kampuni rasmi ya usimamizi wa mali' },
-]
+import { useLanguage } from '@/lib/i18n/context'
 
 type Tab = 'profile' | 'billing' | 'reminders' | 'danger'
 
@@ -31,6 +26,21 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inputCls = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300'
 
 export default function MipangilioPage() {
+  const { t } = useLanguage()
+
+  const ORG_TYPE_OPTIONS: { value: OrgType; label: string; desc: string }[] = [
+    { value: 'landlord',         label: t('pr_settings_org_type_landlord'), desc: t('pr_settings_type_landlord_desc') },
+    { value: 'property_manager', label: t('pr_settings_org_type_manager'),  desc: t('pr_settings_type_manager_desc')  },
+    { value: 'firm',             label: t('pr_settings_org_type_firm'),     desc: t('pr_settings_type_firm_desc')     },
+  ]
+
+  const TABS: { id: Tab; label: string; icon: string }[] = [
+    { id: 'profile',   label: t('pr_settings_tab_profile_label'), icon: 'building'       },
+    { id: 'billing',   label: t('pr_settings_tab_billing_label'),  icon: 'receipt'        },
+    { id: 'reminders', label: t('pr_settings_tab_reminders_label'),icon: 'bell'           },
+    { id: 'danger',    label: t('pr_settings_tab_danger_label'),   icon: 'alert-triangle' },
+  ]
+
   const [org,     setOrg]     = useState<Organization | null>(null)
   const [orgId,   setOrgId]   = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -116,7 +126,7 @@ export default function MipangilioPage() {
       body: JSON.stringify({ name: name.trim(), org_type: orgType, phone: phone.trim() || null, email: email.trim() || null, region: region || null, district: district || null }),
     })
     const data = await res.json()
-    if (!res.ok) { setSaveErr(data.error ?? 'Kuna tatizo'); setSaving(false); return }
+    if (!res.ok) { setSaveErr(data.error ?? t('pr_err_generic')); setSaving(false); return }
     setOrg(data.organization)
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
@@ -138,7 +148,7 @@ export default function MipangilioPage() {
       }),
     })
     const data = await res.json()
-    if (!res.ok) { setBillErr(data.error ?? 'Kuna tatizo'); setBillSaving(false); return }
+    if (!res.ok) { setBillErr(data.error ?? t('pr_err_generic')); setBillSaving(false); return }
     setOrg(data.organization)
     setBillSaved(true)
     setTimeout(() => setBillSaved(false), 3000)
@@ -147,7 +157,7 @@ export default function MipangilioPage() {
 
   async function deactivate() {
     if (!orgId) return
-    if (!confirm('Una uhakika? Shirika litafungwa. Data yako iko salama na unaweza kuwasiliana nasi kulifungua tena.')) return
+    if (!confirm(t('pr_settings_confirm_close'))) return
     setDeactivating(true); setDeactErr(null)
     const res  = await fetch(`/api/v1/organizations/${orgId}/deactivate`, {
       method: 'POST',
@@ -155,7 +165,7 @@ export default function MipangilioPage() {
       body: JSON.stringify({ reason: reason.trim() || undefined }),
     })
     const data = await res.json()
-    if (!res.ok) { setDeactErr(data.error ?? 'Kuna tatizo'); setDeactivating(false); return }
+    if (!res.ok) { setDeactErr(data.error ?? t('pr_err_generic')); setDeactivating(false); return }
     window.location.href = '/property/dashboard'
   }
 
@@ -172,19 +182,12 @@ export default function MipangilioPage() {
       }),
     })
     const data = await res.json()
-    if (!res.ok) { setReminderErr(data.error ?? 'Kuna tatizo'); setReminderSaving(false); return }
+    if (!res.ok) { setReminderErr(data.error ?? t('pr_err_generic')); setReminderSaving(false); return }
     setOrg(data.organization)
     setReminderSaved(true)
     setTimeout(() => setReminderSaved(false), 3000)
     setReminderSaving(false)
   }
-
-  const TABS: { id: Tab; label: string; icon: string }[] = [
-    { id: 'profile',   label: 'Taarifa za Shirika', icon: 'building'       },
-    { id: 'billing',   label: 'Maelezo ya Malipo',  icon: 'receipt'        },
-    { id: 'reminders', label: 'Vikumbusho',          icon: 'bell'           },
-    { id: 'danger',    label: 'Hatua za Hatari',     icon: 'alert-triangle' },
-  ]
 
   if (loading) {
     return (
@@ -199,8 +202,8 @@ export default function MipangilioPage() {
       <div className="p-4 lg:p-6 max-w-2xl mx-auto">
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
           <i className="ti ti-building text-5xl text-gray-200" aria-hidden="true" />
-          <p className="text-gray-500 font-medium mt-3">Huna shirika bado</p>
-          <p className="text-sm text-gray-400 mt-1">Unda shirika kwanza ili uweze kubadilisha mipangilio.</p>
+          <p className="text-gray-500 font-medium mt-3">{t('pr_settings_no_org')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('pr_settings_no_org_desc')}</p>
         </div>
       </div>
     )
@@ -209,22 +212,22 @@ export default function MipangilioPage() {
   return (
     <div className="p-4 lg:p-6 max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Mipangilio ya Shirika</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('pr_settings_org_title')}</h1>
         <p className="text-sm text-gray-500 mt-0.5">{org.name}</p>
       </div>
 
       {/* Tab nav */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl mb-6 overflow-x-auto">
-        {TABS.map(t => (
+        {TABS.map(tabItem => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+            key={tabItem.id}
+            onClick={() => setTab(tabItem.id)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition flex-1 justify-center ${
-              tab === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            } ${t.id === 'danger' && tab !== 'danger' ? 'hover:text-red-500' : ''}`}
+              tab === tabItem.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            } ${tabItem.id === 'danger' && tab !== 'danger' ? 'hover:text-red-500' : ''}`}
           >
-            <i className={`ti ti-${t.icon} text-base ${t.id === 'danger' ? 'text-red-400' : ''}`} aria-hidden="true" />
-            <span className="hidden sm:inline">{t.label}</span>
+            <i className={`ti ti-${tabItem.icon} text-base ${tabItem.id === 'danger' ? 'text-red-400' : ''}`} aria-hidden="true" />
+            <span className="hidden sm:inline">{tabItem.label}</span>
           </button>
         ))}
       </div>
@@ -232,13 +235,13 @@ export default function MipangilioPage() {
       {/* Profile tab */}
       {tab === 'profile' && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-          <h2 className="font-semibold text-gray-900 mb-4">Taarifa za Shirika</h2>
+          <h2 className="font-semibold text-gray-900 mb-4">{t('pr_settings_profile_tab_h')}</h2>
           <div className="space-y-4">
-            <Field label="Jina la Shirika *">
-              <input value={name} onChange={e => setName(e.target.value)} className={inputCls} placeholder="Jina la shirika lako" />
+            <Field label={t('pr_settings_org_name')}>
+              <input value={name} onChange={e => setName(e.target.value)} className={inputCls} placeholder={t('pr_settings_org_name_ph')} />
             </Field>
 
-            <Field label="Aina ya Shirika">
+            <Field label={t('pr_settings_org_type')}>
               <select value={orgType} onChange={e => setOrgType(e.target.value as OrgType)} className={`${inputCls} bg-white`}>
                 {ORG_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -246,33 +249,33 @@ export default function MipangilioPage() {
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Simu">
+              <Field label={t('pr_settings_phone')}>
                 <input value={phone} onChange={e => setPhone(e.target.value)} className={inputCls} placeholder="+255 7XX XXX XXX" type="tel" />
               </Field>
-              <Field label="Barua Pepe">
+              <Field label={t('pr_settings_email')}>
                 <input value={email} onChange={e => setEmail(e.target.value)} className={inputCls} placeholder="barua@shirika.com" type="email" />
               </Field>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Mkoa">
+              <Field label={t('pr_settings_region')}>
                 <select
                   value={region}
                   onChange={e => { setRegion(e.target.value); setDistrict('') }}
                   className={`${inputCls} bg-white`}
                 >
-                  <option value="">Chagua mkoa</option>
+                  <option value="">{t('pr_settings_region_opt')}</option>
                   {TANZANIA_REGIONS.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
                 </select>
               </Field>
-              <Field label="Wilaya">
+              <Field label={t('pr_settings_district')}>
                 <select
                   value={district}
                   onChange={e => setDistrict(e.target.value)}
                   disabled={!region}
                   className={`${inputCls} bg-white disabled:opacity-50`}
                 >
-                  <option value="">Chagua wilaya</option>
+                  <option value="">{t('pr_settings_district_opt')}</option>
                   {districts.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </Field>
@@ -286,10 +289,10 @@ export default function MipangilioPage() {
               className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {saving ? (
-                <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inaokolewa...</>
+                <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> {t('pr_settings_saving_state')}</>
               ) : saved ? (
-                <><i className="ti ti-check" aria-hidden="true" /> Imeokolewa!</>
-              ) : 'Hifadhi Mabadiliko'}
+                <><i className="ti ti-check" aria-hidden="true" /> {t('pr_settings_saved_state')}</>
+              ) : t('pr_settings_save')}
             </button>
           </div>
         </div>
@@ -298,34 +301,34 @@ export default function MipangilioPage() {
       {/* Billing tab */}
       {tab === 'billing' && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-          <h2 className="font-semibold text-gray-900 mb-1">Maelezo ya Malipo</h2>
-          <p className="text-sm text-gray-400 mb-4">Taarifa hizi zitatumika kwenye ankara za malipo ya usajili.</p>
+          <h2 className="font-semibold text-gray-900 mb-1">{t('pr_settings_billing_tab_h')}</h2>
+          <p className="text-sm text-gray-400 mb-4">{t('pr_settings_billing_desc')}</p>
           <div className="space-y-4">
-            <Field label="Jina la Malipo">
-              <input value={billingName} onChange={e => setBillingName(e.target.value)} className={inputCls} placeholder="Jina kamili au la kampuni" />
+            <Field label={t('pr_settings_billing_name')}>
+              <input value={billingName} onChange={e => setBillingName(e.target.value)} className={inputCls} placeholder={t('pr_settings_billing_name_ph')} />
             </Field>
 
-            <Field label="Anwani">
+            <Field label={t('pr_settings_billing_address')}>
               <textarea
                 value={billingAddress}
                 onChange={e => setBillingAddress(e.target.value)}
                 rows={2}
                 className={inputCls}
-                placeholder="Anwani ya kufikia (mtaa, mji)"
+                placeholder={t('pr_settings_billing_addr_ph')}
               />
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Simu ya Malipo">
+              <Field label={t('pr_settings_billing_phone')}>
                 <input value={billingPhone} onChange={e => setBillingPhone(e.target.value)} className={inputCls} placeholder="+255 7XX XXX XXX" type="tel" />
               </Field>
-              <Field label="Barua Pepe ya Malipo">
+              <Field label={t('pr_settings_billing_email')}>
                 <input value={billingEmail} onChange={e => setBillingEmail(e.target.value)} className={inputCls} placeholder="malipo@shirika.com" type="email" />
               </Field>
             </div>
 
-            <Field label="Nambari ya Kodi (TIN/VAT)">
-              <input value={taxId} onChange={e => setTaxId(e.target.value)} className={inputCls} placeholder="000-000-000" />
+            <Field label={t('pr_settings_tax_id')}>
+              <input value={taxId} onChange={e => setTaxId(e.target.value)} className={inputCls} placeholder={t('pr_settings_tin_ph')} />
             </Field>
 
             {billErr && <p className="text-sm text-red-600">{billErr}</p>}
@@ -336,10 +339,10 @@ export default function MipangilioPage() {
               className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {billSaving ? (
-                <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inaokolewa...</>
+                <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> {t('pr_settings_saving_state')}</>
               ) : billSaved ? (
-                <><i className="ti ti-check" aria-hidden="true" /> Imeokolewa!</>
-              ) : 'Hifadhi Taarifa za Malipo'}
+                <><i className="ti ti-check" aria-hidden="true" /> {t('pr_settings_saved_state')}</>
+              ) : t('pr_settings_billing_save')}
             </button>
           </div>
         </div>
@@ -349,14 +352,14 @@ export default function MipangilioPage() {
       {tab === 'reminders' && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm space-y-5">
           <div>
-            <h2 className="font-semibold text-gray-900 mb-1">Mipangilio ya Vikumbusho</h2>
-            <p className="text-sm text-gray-400">Vikumbusho vya WhatsApp vitumwe kiotomatiki kwa wapangaji.</p>
+            <h2 className="font-semibold text-gray-900 mb-1">{t('pr_settings_reminder_heading')}</h2>
+            <p className="text-sm text-gray-400">{t('pr_settings_reminder_desc')}</p>
           </div>
 
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
             <div>
-              <p className="text-sm font-medium text-gray-900">Vikumbusho vya WhatsApp</p>
-              <p className="text-xs text-gray-500 mt-0.5">Tuma arifa kwa wapangaji kupitia WhatsApp</p>
+              <p className="text-sm font-medium text-gray-900">{t('pr_settings_whatsapp_toggle')}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t('pr_settings_whatsapp_desc')}</p>
             </div>
             <button
               onClick={() => setReminders(r => ({ ...r, enableWhatsApp: !r.enableWhatsApp }))}
@@ -366,7 +369,7 @@ export default function MipangilioPage() {
             </button>
           </div>
 
-          <Field label="Tuma Kikumbusho Kabla ya Siku Ngapi za Kulipa Kodi">
+          <Field label={t('pr_settings_remind_before_label')}>
             <div className="flex items-center gap-3">
               <input
                 type="number"
@@ -376,12 +379,12 @@ export default function MipangilioPage() {
                 onChange={e => setReminders(r => ({ ...r, remindDaysBefore: Number(e.target.value) }))}
                 className={`${inputCls} w-24`}
               />
-              <span className="text-sm text-gray-500">siku kabla ya tarehe ya kulipa</span>
+              <span className="text-sm text-gray-500">{t('pr_settings_days_before_due')}</span>
             </div>
-            <p className="text-xs text-gray-400 mt-1">0 = siku hiyo hiyo ya kulipa. Kikumbusho kitumwe saa 9 asubuhi.</p>
+            <p className="text-xs text-gray-400 mt-1">{t('pr_settings_same_day')}</p>
           </Field>
 
-          <Field label="Tuma Onyo Baada ya Siku Ngapi za Kuchelewa">
+          <Field label={t('pr_settings_remind_overdue_label')}>
             <div className="flex items-center gap-3">
               <input
                 type="number"
@@ -391,16 +394,16 @@ export default function MipangilioPage() {
                 onChange={e => setReminders(r => ({ ...r, remindDaysOverdue: Number(e.target.value) }))}
                 className={`${inputCls} w-24`}
               />
-              <span className="text-sm text-gray-500">siku baada ya kuchelewa</span>
+              <span className="text-sm text-gray-500">{t('pr_settings_days_after_due')}</span>
             </div>
-            <p className="text-xs text-gray-400 mt-1">Onyo litumwe kwa wapangaji ambao hawajalipa baada ya siku hizi.</p>
+            <p className="text-xs text-gray-400 mt-1">{t('pr_settings_overdue_hint2')}</p>
           </Field>
 
           <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-xs text-amber-700 space-y-1">
-            <p className="font-semibold">Muhtasari wa Mipangilio ya Sasa:</p>
-            <p>• Kikumbusho siku {reminders.remindDaysBefore} kabla ya tarehe ya malipo</p>
-            <p>• Onyo siku {reminders.remindDaysOverdue} baada ya kuchelewa</p>
-            <p>• WhatsApp: {reminders.enableWhatsApp ? 'Imewezeshwa ✓' : 'Imezimwa ✗'}</p>
+            <p className="font-semibold">{t('pr_settings_summary_label')}</p>
+            <p>• {t('pr_settings_remind_day_count')} {reminders.remindDaysBefore} {t('pr_settings_before_payment')}</p>
+            <p>• {t('pr_settings_warn_after')} {reminders.remindDaysOverdue} {t('pr_settings_after_late')}</p>
+            <p>• WhatsApp: {reminders.enableWhatsApp ? t('pr_settings_whatsapp_on') : t('pr_settings_whatsapp_off')}</p>
           </div>
 
           {reminderErr && <p className="text-sm text-red-600">{reminderErr}</p>}
@@ -410,10 +413,10 @@ export default function MipangilioPage() {
             className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition flex items-center justify-center gap-2"
           >
             {reminderSaving ? (
-              <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inahifadhi...</>
+              <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> {t('pr_settings_saving_state')}</>
             ) : reminderSaved ? (
-              <><i className="ti ti-check" aria-hidden="true" /> Imeokolewa!</>
-            ) : 'Hifadhi Mipangilio ya Vikumbusho'}
+              <><i className="ti ti-check" aria-hidden="true" /> {t('pr_settings_saved_state')}</>
+            ) : t('pr_settings_reminder_save')}
           </button>
         </div>
       )}
@@ -423,23 +426,20 @@ export default function MipangilioPage() {
         <div className="bg-white rounded-2xl border border-red-100 p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <i className="ti ti-alert-triangle text-red-500 text-lg" aria-hidden="true" />
-            <h2 className="font-semibold text-red-700">Eneo la Hatari</h2>
+            <h2 className="font-semibold text-red-700">{t('pr_settings_danger_zone')}</h2>
           </div>
-          <p className="text-sm text-gray-500 mb-6">Vitendo hapa ni vya kudumu au vinavyohitaji tahadhari kubwa.</p>
+          <p className="text-sm text-gray-500 mb-6">{t('pr_settings_danger_caution')}</p>
 
           <div className="border border-red-100 rounded-2xl p-4 bg-red-50/50">
-            <h3 className="font-semibold text-gray-900 text-sm mb-1">Funga Shirika</h3>
-            <p className="text-xs text-gray-500 mb-3">
-              Shirika litafungwa na usajili utasimamishwa. Data yako — mali, wapangaji, mikataba — iko salama.
-              Wasiliana nasi ili ufungue tena wakati wowote.
-            </p>
-            <Field label="Sababu (hiari)">
+            <h3 className="font-semibold text-gray-900 text-sm mb-1">{t('pr_settings_close_org_title')}</h3>
+            <p className="text-xs text-gray-500 mb-3">{t('pr_settings_close_org_body')}</p>
+            <Field label={t('pr_settings_close_reason_label')}>
               <textarea
                 value={reason}
                 onChange={e => setReason(e.target.value)}
                 rows={2}
                 className={inputCls}
-                placeholder="Eleza kwa nini unafunga shirika (hiari)"
+                placeholder={t('pr_settings_close_reason_ph2')}
               />
             </Field>
             {deactErr && <p className="text-sm text-red-600 mt-2">{deactErr}</p>}
@@ -449,9 +449,9 @@ export default function MipangilioPage() {
               className="mt-3 w-full bg-red-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-red-600 transition disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {deactivating ? (
-                <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inafunga...</>
+                <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> {t('pr_settings_closing_btn')}</>
               ) : (
-                <><i className="ti ti-lock" aria-hidden="true" /> Funga Shirika</>
+                <><i className="ti ti-lock" aria-hidden="true" /> {t('pr_settings_close_action')}</>
               )}
             </button>
           </div>

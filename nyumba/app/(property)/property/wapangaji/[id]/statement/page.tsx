@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, use } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 const MONTHS = ['Januari','Februari','Machi','Aprili','Mei','Juni','Julai','Agosti','Septemba','Oktoba','Novemba','Desemba']
 
@@ -9,15 +10,6 @@ function dateFmt(iso: string | null) {
   if (!iso) return '—'
   const d = new Date(iso)
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
-}
-
-const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  pending:        { label: 'Inasubiri',      cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  proof_uploaded: { label: 'Ushahidi',       cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-  paid:           { label: 'Imelipwa',       cls: 'bg-green-50 text-green-700 border-green-200' },
-  partial:        { label: 'Sehemu',         cls: 'bg-orange-50 text-orange-700 border-orange-200' },
-  late:           { label: 'Imechelewa',     cls: 'bg-red-50 text-red-700 border-red-200' },
-  void:           { label: 'Imebatilishwa',  cls: 'bg-gray-100 text-gray-400 border-gray-200' },
 }
 
 interface Payment {
@@ -36,6 +28,17 @@ interface Lease {
 
 export default function TenantStatementPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: leaseId } = use(params)
+  const { t } = useLanguage()
+
+  const STATUS_MAP: Record<string, { label: string; cls: string }> = {
+    pending:        { label: t('pr_stmt_status_pending'), cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+    proof_uploaded: { label: t('pr_stmt_status_proof'),   cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+    paid:           { label: t('pr_stmt_status_paid'),    cls: 'bg-green-50 text-green-700 border-green-200' },
+    partial:        { label: t('pr_stmt_status_partial'), cls: 'bg-orange-50 text-orange-700 border-orange-200' },
+    late:           { label: t('pr_stmt_status_late'),    cls: 'bg-red-50 text-red-700 border-red-200' },
+    void:           { label: t('pr_stmt_status_void'),    cls: 'bg-gray-100 text-gray-400 border-gray-200' },
+  }
+
   const [lease,     setLease]     = useState<Lease | null>(null)
   const [payments,  setPayments]  = useState<Payment[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -48,7 +51,7 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
         const orgData = await orgRes.json()
         const orgs    = orgData.organizations ?? []
         const primary = orgs.find((o: { role: string }) => o.role === 'owner') ?? orgs[0]
-        if (!primary) { setError('Shirika halipatikani'); setLoading(false); return }
+        if (!primary) { setError(t('pr_stmt_err_org')); setLoading(false); return }
         const id = primary.organization.id
 
         const [leaseRes, paymentsRes] = await Promise.all([
@@ -56,7 +59,7 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
           fetch(`/api/v1/organizations/${id}/leases/${leaseId}/payments?limit=100`),
         ])
 
-        if (!leaseRes.ok) { setError('Mkataba haukupatikana'); setLoading(false); return }
+        if (!leaseRes.ok) { setError(t('pr_stmt_err_lease')); setLoading(false); return }
 
         const leaseJson    = await leaseRes.json()
         const paymentsJson = await paymentsRes.json()
@@ -64,12 +67,13 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
         setLease(leaseJson.lease ?? leaseJson)
         setPayments(paymentsJson.payments ?? [])
       } catch {
-        setError('Haikuweza kupakia taarifa.')
+        setError(t('pr_stmt_err_load'))
       } finally {
         setLoading(false)
       }
     }
     load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leaseId])
 
   const totalDue      = payments.filter(p => p.status !== 'void').reduce((s, p) => s + (p.amount_due ?? 0), 0)
@@ -88,14 +92,14 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
             <i className="ti ti-arrow-left text-xl" aria-hidden="true" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-gray-900">Taarifa ya Malipo</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t('pr_stmt_title')}</h1>
             <p className="text-xs text-gray-400 mt-0.5">{lease?.tenant?.full_name ?? '...'}</p>
           </div>
           <button
             onClick={() => window.print()}
             className="flex items-center gap-1.5 border border-gray-200 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
           >
-            <i className="ti ti-printer text-base" aria-hidden="true" /> Chapisha
+            <i className="ti ti-printer text-base" aria-hidden="true" /> {t('pr_stmt_print')}
           </button>
         </div>
       </div>
@@ -108,8 +112,8 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
             <p className="text-sm text-gray-500 mt-1">nyumbafasta.co</p>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-gray-900">Taarifa ya Malipo ya Kodi</p>
-            <p className="text-sm text-gray-500">Ilizalishwa: {new Date().toLocaleDateString('sw-TZ')}</p>
+            <p className="text-lg font-bold text-gray-900">{t('pr_stmt_print_title')}</p>
+            <p className="text-sm text-gray-500">{t('pr_stmt_generated')} {new Date().toLocaleDateString('sw-TZ')}</p>
           </div>
         </div>
       </div>
@@ -125,43 +129,43 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
           <>
             {/* Tenant & Lease Info */}
             <div className="bg-white border border-gray-100 rounded-2xl p-4 print:border-gray-300">
-              <h2 className="font-semibold text-gray-900 text-sm mb-3">Maelezo ya Mkataba</h2>
+              <h2 className="font-semibold text-gray-900 text-sm mb-3">{t('pr_stmt_lease_heading')}</h2>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div>
-                  <p className="text-xs text-gray-400">Mpangaji</p>
+                  <p className="text-xs text-gray-400">{t('pr_stmt_tenant_label')}</p>
                   <p className="font-medium text-gray-900">{lease.tenant?.full_name ?? '—'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Simu</p>
+                  <p className="text-xs text-gray-400">{t('pr_stmt_phone_label')}</p>
                   <p className="font-medium text-gray-900">{lease.tenant?.phone ?? '—'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Kitengo</p>
+                  <p className="text-xs text-gray-400">{t('pr_stmt_unit_label')}</p>
                   <p className="font-medium text-gray-900">
                     {lease.unit?.unit_number ?? '—'}
-                    {lease.unit?.floor_number != null ? ` · Ghorofa ${lease.unit.floor_number}` : ''}
+                    {lease.unit?.floor_number != null ? ` · ${t('pr_stmt_floor_label')} ${lease.unit.floor_number}` : ''}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Kodi ya Kila Mwezi</p>
+                  <p className="text-xs text-gray-400">{t('pr_stmt_monthly_rent_label')}</p>
                   <p className="font-medium text-gray-900">{fmt(lease.monthly_rent)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Mkataba Ulianza</p>
+                  <p className="text-xs text-gray-400">{t('pr_stmt_start_label')}</p>
                   <p className="font-medium text-gray-900">{dateFmt(lease.start_date)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Mkataba Unaisha</p>
+                  <p className="text-xs text-gray-400">{t('pr_stmt_end_label')}</p>
                   <p className="font-medium text-gray-900">{dateFmt(lease.end_date)}</p>
                 </div>
                 {lease.deposit_amount != null && (
                   <div>
-                    <p className="text-xs text-gray-400">Amana</p>
+                    <p className="text-xs text-gray-400">{t('pr_stmt_deposit_label')}</p>
                     <p className="font-medium text-gray-900">
                       {fmt(lease.deposit_amount)}
                       {' '}
                       <span className={`text-xs px-1.5 py-0.5 rounded-full ${lease.deposit_paid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {lease.deposit_paid ? 'Imelipwa' : 'Haijalipiwa'}
+                        {lease.deposit_paid ? t('pr_stmt_deposit_paid') : t('pr_stmt_deposit_unpaid')}
                       </span>
                     </p>
                   </div>
@@ -172,43 +176,43 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
             {/* Summary tiles */}
             <div className="grid grid-cols-3 gap-3 print:grid-cols-3">
               <div className="bg-green-50 rounded-2xl p-3 text-center border border-green-100">
-                <p className="text-[10px] text-gray-500 mb-1">Kimelipwa</p>
+                <p className="text-[10px] text-gray-500 mb-1">{t('pr_stmt_paid_tile')}</p>
                 <p className="text-base font-bold text-green-700">{fmt(totalPaid)}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">{paidCount} malipo</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">{paidCount} {t('pr_stmt_payments_count')}</p>
               </div>
               <div className={`rounded-2xl p-3 text-center border ${balance > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
-                <p className="text-[10px] text-gray-500 mb-1">Salio</p>
+                <p className="text-[10px] text-gray-500 mb-1">{t('pr_stmt_balance_tile')}</p>
                 <p className={`text-base font-bold ${balance > 0 ? 'text-red-700' : 'text-gray-700'}`}>{fmt(balance)}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">{overdueCount} zilizochelewa</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">{overdueCount} {t('pr_stmt_overdue_count')}</p>
               </div>
               <div className="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
-                <p className="text-[10px] text-gray-500 mb-1">Jumla Inayostahili</p>
+                <p className="text-[10px] text-gray-500 mb-1">{t('pr_stmt_due_tile')}</p>
                 <p className="text-base font-bold text-gray-900">{fmt(totalDue)}</p>
-                {totalLateFees > 0 && <p className="text-[10px] text-red-500 mt-0.5">+{fmt(totalLateFees)} adhabu</p>}
+                {totalLateFees > 0 && <p className="text-[10px] text-red-500 mt-0.5">+{fmt(totalLateFees)} {t('pr_stmt_latefee_label')}</p>}
               </div>
             </div>
 
             {/* Payment history table */}
             <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden print:border-gray-300">
               <div className="p-4 border-b border-gray-50">
-                <h2 className="font-semibold text-gray-900 text-sm">Historia ya Malipo ({payments.length})</h2>
+                <h2 className="font-semibold text-gray-900 text-sm">{t('pr_stmt_history_heading')} ({payments.length})</h2>
               </div>
 
               {payments.length === 0 ? (
                 <div className="text-center py-10 text-gray-400">
-                  <p>Hakuna historia ya malipo bado.</p>
+                  <p>{t('pr_stmt_empty')}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
                       <tr>
-                        <th className="px-4 py-3 text-left">Mwezi</th>
-                        <th className="px-4 py-3 text-right">Inayostahili</th>
-                        <th className="px-4 py-3 text-right">Kimelipwa</th>
-                        <th className="px-4 py-3 text-right">Adhabu</th>
-                        <th className="px-4 py-3 text-center">Hali</th>
-                        <th className="px-4 py-3 text-left print:hidden">Njia</th>
+                        <th className="px-4 py-3 text-left">{t('pr_stmt_col_month')}</th>
+                        <th className="px-4 py-3 text-right">{t('pr_stmt_col_due')}</th>
+                        <th className="px-4 py-3 text-right">{t('pr_stmt_col_paid')}</th>
+                        <th className="px-4 py-3 text-right">{t('pr_stmt_col_latefee')}</th>
+                        <th className="px-4 py-3 text-center">{t('pr_stmt_col_status')}</th>
+                        <th className="px-4 py-3 text-left print:hidden">{t('pr_stmt_col_method')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -219,7 +223,7 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
                             <td className="px-4 py-3">
                               <p className="font-medium text-gray-900">{dateFmt(p.due_date)}</p>
                               {p.paid_date && (
-                                <p className="text-[11px] text-gray-400">Lilipwa: {dateFmt(p.paid_date)}</p>
+                                <p className="text-[11px] text-gray-400">{t('pr_stmt_paid_date')} {dateFmt(p.paid_date)}</p>
                               )}
                             </td>
                             <td className="px-4 py-3 text-right tabular-nums">{fmt(p.amount_due)}</td>
@@ -244,7 +248,7 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
                     </tbody>
                     <tfoot className="bg-gray-50 font-semibold">
                       <tr>
-                        <td className="px-4 py-3 text-sm">JUMLA</td>
+                        <td className="px-4 py-3 text-sm">{t('pr_stmt_total')}</td>
                         <td className="px-4 py-3 text-right tabular-nums">{fmt(totalDue)}</td>
                         <td className="px-4 py-3 text-right tabular-nums text-green-700">{fmt(totalPaid)}</td>
                         <td className="px-4 py-3 text-right tabular-nums text-red-500 text-xs">{totalLateFees ? fmt(totalLateFees) : '—'}</td>
@@ -260,7 +264,7 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
             {balance !== 0 && (
               <div className={`rounded-2xl p-4 border ${balance > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                 <p className="text-sm font-semibold text-gray-700 mb-1">
-                  {balance > 0 ? '⚠️ Bado inadaiwa:' : '✅ Hakuna deni:'}
+                  {balance > 0 ? t('pr_stmt_balance_owed') : t('pr_stmt_balance_clear')}
                 </p>
                 <p className={`text-2xl font-bold ${balance > 0 ? 'text-red-700' : 'text-green-700'}`}>
                   {fmt(Math.abs(balance))}
@@ -270,7 +274,7 @@ export default function TenantStatementPage({ params }: { params: Promise<{ id: 
 
             {/* Print footer */}
             <div className="hidden print:block pt-6 mt-6 border-t border-gray-200 text-center text-xs text-gray-400">
-              <p>Taarifa hii imezalishwa na mfumo wa NyumbaFasta</p>
+              <p>{t('pr_stmt_footer')}</p>
               <p>© {new Date().getFullYear()} NyumbaFasta Tanzania — nyumbafasta.co</p>
             </div>
           </>

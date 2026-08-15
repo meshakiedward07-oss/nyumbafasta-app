@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useLanguage } from '@/lib/i18n/context'
 
 export interface PendingAttachment {
   url: string
@@ -26,6 +27,7 @@ function humanSize(bytes: number): string {
 
 export default function AttachmentCompose({ onAttach, onRemove, attachment }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const { t } = useLanguage()
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,7 +36,7 @@ export default function AttachmentCompose({ onAttach, onRemove, attachment }: Pr
 
     // Client-side size guard (100 MB max)
     if (file.size > 100 * 1024 * 1024) {
-      setError('Faili kubwa sana (max 100 MB)')
+      setError(t('pr_attach_too_large'))
       return
     }
 
@@ -56,12 +58,12 @@ export default function AttachmentCompose({ onAttach, onRemove, attachment }: Pr
       const json = await res.json()
 
       if (!res.ok || !json.url) {
-        setError(json.error ?? 'Haikuweza kupakia faili')
+        setError(json.error ?? t('pr_attach_err_upload'))
         return
       }
       onAttach({ ...json, preview })
     } catch {
-      setError('Hitilafu ya mtandao — jaribu tena')
+      setError(t('pr_attach_err_network'))
     } finally {
       setUploading(false)
     }
@@ -114,7 +116,7 @@ export default function AttachmentCompose({ onAttach, onRemove, attachment }: Pr
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        title="Ambatanisha faili"
+        title={t('pr_attach_title')}
         className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-primary-500 hover:border-primary-300 transition-colors disabled:opacity-40 flex-shrink-0"
       >
         {uploading ? (

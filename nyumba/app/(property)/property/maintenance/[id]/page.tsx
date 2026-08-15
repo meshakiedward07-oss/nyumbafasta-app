@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, use } from 'react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 import {
   MAINTENANCE_CATEGORY_LABELS, MAINTENANCE_PRIORITY_LABELS, MAINTENANCE_STATUS_LABELS,
   MAINTENANCE_STATUS_NEXT, PRIORITY_COLORS, STATUS_COLORS,
@@ -45,6 +46,7 @@ function formatCost(n: number | null) {
 
 export default function MaintenanceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const { t } = useLanguage()
   const [orgId,   setOrgId]   = useState<string | null>(null)
   const [request, setRequest] = useState<RichRequest | null>(null)
   const [comments, setComments] = useState<RichComment[]>([])
@@ -71,7 +73,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
       fetch(`/api/v1/organizations/${oid}/maintenance/${id}`),
       fetch(`/api/v1/organizations/${oid}/vendors?verified_only=true`),
     ])
-    if (!res.ok) { setError('Ombi halipatikani.'); return }
+    if (!res.ok) { setError(t('pr_maint_not_found')); return }
     const data       = await res.json()
     const vendorData = await vendorRes.json()
     setRequest(data.request)
@@ -97,7 +99,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
         const oid = primary.organization.id
         setOrgId(oid)
         await load(oid)
-      } catch { setError('Hitilafu ya mtandao.') }
+      } catch { setError(t('pr_maint_err_network')) }
       finally { setLoading(false) }
     }
     init()
@@ -114,10 +116,10 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
         body: JSON.stringify({ status: newStatus }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setError(data.error ?? t('pr_err_generic')); return }
       setRequest(data.request)
       await load(orgId)
-    } catch { setError('Haikuweza kuhifadhi.') }
+    } catch { setError(t('pr_maint_err_save')) }
     finally { setSaving(false) }
   }
 
@@ -138,11 +140,11 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
         body: JSON.stringify(body),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setError(data.error ?? t('pr_err_generic')); return }
       setRequest(data.request)
       setShowEditPanel(false)
       await load(orgId)
-    } catch { setError('Haikuweza kuhifadhi.') }
+    } catch { setError(t('pr_maint_err_save')) }
     finally { setSaving(false) }
   }
 
@@ -194,8 +196,8 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
   if (error || !request) {
     return (
       <div className="p-6 text-center">
-        <p className="text-red-500 font-medium">{error ?? 'Ombi halipatikani'}</p>
-        <Link href="/property/maintenance" className="text-primary-600 text-sm mt-2 inline-block">← Rudi</Link>
+        <p className="text-red-500 font-medium">{error ?? t('pr_maint_not_found')}</p>
+        <Link href="/property/maintenance" className="text-primary-600 text-sm mt-2 inline-block">← {t('pr_back_btn')}</Link>
       </div>
     )
   }
@@ -240,7 +242,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
         {/* Description */}
         {request.description && (
           <div className="bg-gray-50 rounded-2xl p-4">
-            <p className="text-xs font-semibold text-gray-500 mb-1">Maelezo</p>
+            <p className="text-xs font-semibold text-gray-500 mb-1">{t('pr_maint_notes_display')}</p>
             <p className="text-sm text-gray-700 leading-relaxed">{request.description}</p>
           </div>
         )}
@@ -248,7 +250,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
         {/* Status actions */}
         {nextStatuses.length > 0 && (
           <div className="bg-white border border-gray-100 rounded-2xl p-4">
-            <p className="text-xs font-semibold text-gray-500 mb-3">Badilisha Hali</p>
+            <p className="text-xs font-semibold text-gray-500 mb-3">{t('pr_maint_change_status')}</p>
             <div className="flex flex-wrap gap-2">
               {nextStatuses.map(s => (
                 <button key={s} onClick={() => handleStatusChange(s)} disabled={saving}
@@ -263,20 +265,20 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
         {/* Details panel */}
         <div className="bg-white border border-gray-100 rounded-2xl p-4">
           <div className="flex justify-between items-center mb-3">
-            <p className="text-xs font-semibold text-gray-500">Maelezo ya Kina</p>
+            <p className="text-xs font-semibold text-gray-500">{t('pr_maint_details_heading')}</p>
             <button onClick={() => setShowEditPanel(p => !p)}
               className="text-xs text-primary-600 hover:text-primary-700 font-medium">
-              {showEditPanel ? 'Ghairi' : 'Hariri'}
+              {showEditPanel ? t('pr_maint_detail_cancel_edit') : t('pr_maint_detail_edit')}
             </button>
           </div>
 
           {showEditPanel ? (
             <div className="space-y-2.5">
               <div>
-                <label className="text-[10px] text-gray-400 font-medium block mb-1">Mpewa (wafanyakazi)</label>
+                <label className="text-[10px] text-gray-400 font-medium block mb-1">{t('pr_maint_assignee_label')}</label>
                 <select value={editAssignee} onChange={e => setEditAssignee(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                  <option value="">Haijapewa</option>
+                  <option value="">{t('pr_maint_no_assignee')}</option>
                   {members.map(m => (
                     <option key={m.user_id} value={m.user_id}>
                       {(m.user as unknown as { full_name: string | null } | null)?.full_name ?? m.user_id}
@@ -286,10 +288,10 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
               </div>
               {vendors.length > 0 && (
                 <div>
-                  <label className="text-[10px] text-gray-400 font-medium block mb-1">Fundi (kutoka orodha)</label>
+                  <label className="text-[10px] text-gray-400 font-medium block mb-1">{t('pr_maint_vendor_label')}</label>
                   <select value={editVendorId} onChange={e => setEditVendorId(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white">
-                    <option value="">Hakuna fundi</option>
+                    <option value="">{t('pr_maint_no_vendor_short')}</option>
                     {vendors.map(v => (
                       <option key={v.id} value={v.id}>{v.name}{v.phone ? ` — ${v.phone}` : ''}</option>
                     ))}
@@ -297,37 +299,37 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
                 </div>
               )}
               <div>
-                <label className="text-[10px] text-gray-400 font-medium block mb-1">Gharama halisi (Tsh)</label>
+                <label className="text-[10px] text-gray-400 font-medium block mb-1">{t('pr_maint_actual_cost')}</label>
                 <input type="number" value={editCost} onChange={e => setEditCost(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400 font-medium block mb-1">Ratiba</label>
+                <label className="text-[10px] text-gray-400 font-medium block mb-1">{t('pr_maint_schedule_label')}</label>
                 <input type="datetime-local" value={editScheduled} onChange={e => setEditScheduled(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400 font-medium block mb-1">Maelezo ya ziada</label>
+                <label className="text-[10px] text-gray-400 font-medium block mb-1">{t('pr_maint_extra_notes')}</label>
                 <textarea rows={2} value={editNotes} onChange={e => setEditNotes(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
               </div>
               <button onClick={handleSaveDetails} disabled={saving}
                 className="w-full bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
-                {saving ? 'Inahifadhi...' : 'Hifadhi Mabadiliko'}
+                {saving ? t('pr_saving') : t('pr_save_changes')}
               </button>
             </div>
           ) : (
             <dl className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
               <div>
-                <dt className="text-[10px] text-gray-400 font-medium">Mripoti</dt>
+                <dt className="text-[10px] text-gray-400 font-medium">{t('pr_maint_reporter')}</dt>
                 <dd className="text-gray-800 font-medium truncate">
-                  {request.reporter?.full_name ?? 'Haijulikani'}
+                  {request.reporter?.full_name ?? t('pr_maint_unknown')}
                 </dd>
               </div>
               <div>
-                <dt className="text-[10px] text-gray-400 font-medium">Mpewa</dt>
+                <dt className="text-[10px] text-gray-400 font-medium">{t('pr_maint_assignee_display')}</dt>
                 <dd className="text-gray-800 font-medium truncate">
-                  {request.assignee?.full_name ?? <span className="text-gray-400 font-normal">Haijapewa</span>}
+                  {request.assignee?.full_name ?? <span className="text-gray-400 font-normal">{t('pr_maint_no_assignee')}</span>}
                 </dd>
               </div>
               {(() => {
@@ -335,7 +337,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
                 if (!v) return null
                 return (
                   <div className="col-span-2">
-                    <dt className="text-[10px] text-gray-400 font-medium">Fundi</dt>
+                    <dt className="text-[10px] text-gray-400 font-medium">{t('pr_maint_vendor_display')}</dt>
                     <dd className="text-gray-800 font-medium flex items-center gap-2">
                       <i className="ti ti-address-book text-primary-400 text-sm" />
                       {v.name}
@@ -347,24 +349,24 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
                 )
               })()}
               <div>
-                <dt className="text-[10px] text-gray-400 font-medium">Gharama ya kadirio</dt>
+                <dt className="text-[10px] text-gray-400 font-medium">{t('pr_maint_est_cost')}</dt>
                 <dd className="text-gray-800">{formatCost(request.estimated_cost)}</dd>
               </div>
               <div>
-                <dt className="text-[10px] text-gray-400 font-medium">Gharama halisi</dt>
+                <dt className="text-[10px] text-gray-400 font-medium">{t('pr_maint_actual_cost_display')}</dt>
                 <dd className="text-gray-800">{formatCost(request.actual_cost)}</dd>
               </div>
               <div>
-                <dt className="text-[10px] text-gray-400 font-medium">Ratiba</dt>
+                <dt className="text-[10px] text-gray-400 font-medium">{t('pr_maint_schedule_display')}</dt>
                 <dd className="text-gray-800">{formatDate(request.scheduled_at)}</dd>
               </div>
               <div>
-                <dt className="text-[10px] text-gray-400 font-medium">Imeshughulikiwa</dt>
+                <dt className="text-[10px] text-gray-400 font-medium">{t('pr_maint_resolved_display')}</dt>
                 <dd className="text-gray-800">{formatDate(request.resolved_at)}</dd>
               </div>
               {request.notes && (
                 <div className="col-span-2">
-                  <dt className="text-[10px] text-gray-400 font-medium">Maelezo ya ziada</dt>
+                  <dt className="text-[10px] text-gray-400 font-medium">{t('pr_maint_extra_notes')}</dt>
                   <dd className="text-gray-700 text-xs mt-0.5 leading-relaxed">{request.notes}</dd>
                 </div>
               )}
@@ -378,30 +380,30 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
             <div>
               <p className="text-sm font-semibold text-amber-800">
                 <i className="ti ti-receipt mr-1" />
-                Gharama Halisi: Tsh {request.actual_cost.toLocaleString()}
+                {t('pr_maint_actual_cost_label')}: Tsh {request.actual_cost.toLocaleString()}
               </p>
-              <p className="text-xs text-amber-600 mt-0.5">Unda rekodi ya matumizi kutoka kwa gharama hii</p>
+              <p className="text-xs text-amber-600 mt-0.5">{t('pr_maint_expense_create_desc')}</p>
             </div>
             <button
               onClick={handleCreateExpense}
               disabled={creatingExpense}
               className="flex-shrink-0 text-xs font-semibold bg-amber-500 text-white px-3 py-2 rounded-xl hover:bg-amber-600 transition disabled:opacity-50"
             >
-              {creatingExpense ? '...' : '+ Matumizi'}
+              {creatingExpense ? '...' : t('pr_maint_add_exp_short')}
             </button>
           </div>
         )}
         {expenseCreated && (
           <div className="bg-green-50 border border-green-100 rounded-2xl p-3 text-sm text-green-700 flex items-center gap-2">
             <i className="ti ti-circle-check" />
-            Rekodi ya matumizi imeundwa. <a href="/property/matumizi" className="underline font-medium">Angalia →</a>
+            {t('pr_maint_expense_done')} <a href="/property/matumizi" className="underline font-medium">{t('pr_maint_expense_view_link')}</a>
           </div>
         )}
 
         {/* Tenant / Unit info */}
         {(request.unit || request.lease?.tenant) && (
           <div className="bg-white border border-gray-100 rounded-2xl p-4">
-            <p className="text-xs font-semibold text-gray-500 mb-3">Kitengo na Mpangaji</p>
+            <p className="text-xs font-semibold text-gray-500 mb-3">{t('pr_maint_unit_tenant')}</p>
             {request.unit && (
               <div className="flex items-center gap-2 mb-2">
                 <i className="ti ti-door text-gray-400" aria-hidden="true" />
@@ -429,8 +431,8 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
             className="flex items-center gap-3 bg-primary-50 border border-primary-100 rounded-2xl p-3.5 hover:bg-primary-100 transition">
             <i className="ti ti-message-circle text-primary-500 text-xl flex-shrink-0" aria-hidden="true" />
             <div>
-              <p className="text-sm font-semibold text-primary-700">Fungua Mazungumzo</p>
-              <p className="text-xs text-primary-500">Wasiliana moja kwa moja kuhusu tatizo hili</p>
+              <p className="text-sm font-semibold text-primary-700">{t('pr_maint_conv_link')}</p>
+              <p className="text-xs text-primary-500">{t('pr_maint_conv_desc')}</p>
             </div>
             <i className="ti ti-chevron-right text-primary-400 ml-auto" aria-hidden="true" />
           </Link>
@@ -438,10 +440,10 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
 
         {/* Comments / Timeline */}
         <div className="bg-white border border-gray-100 rounded-2xl p-4">
-          <p className="text-xs font-semibold text-gray-500 mb-3">Historia na Maoni</p>
+          <p className="text-xs font-semibold text-gray-500 mb-3">{t('pr_maint_timeline')}</p>
 
           {comments.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-2">Hakuna maoni bado.</p>
+            <p className="text-xs text-gray-400 text-center py-2">{t('pr_maint_no_comments')}</p>
           ) : (
             <div className="space-y-3">
               {comments.map(c => {
@@ -456,7 +458,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
                     <div className="flex-1">
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="text-xs font-semibold text-gray-700">
-                          {author?.full_name ?? 'Mtumiaji'}
+                          {author?.full_name ?? t('pr_mazungumzo_user_fallback')}
                         </span>
                         {c.status_change && (
                           <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
@@ -478,7 +480,7 @@ export default function MaintenanceDetailPage({ params }: { params: Promise<{ id
           {/* Add comment */}
           <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
             <textarea value={comment} onChange={e => setComment(e.target.value)} rows={1}
-              placeholder="Ongeza maoni au habari..."
+              placeholder={t('pr_maint_comment_ph2')}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment() } }}
               className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
             <button onClick={handleAddComment} disabled={!comment.trim() || addingComment}

@@ -277,6 +277,53 @@ const T_advert = {
   adv_timeout_hint:              { sw: 'Imechukua muda mrefu sana. Jaribu faili ndogo zaidi au muunganiko bora.', en: 'Took too long. Try a smaller file or a better connection.' },
   adv_network_check:             { sw: 'Haikuweza kuunganika. Angalia mtandao na ujaribu tena.', en: "Couldn't connect. Check your network and try again." },
 
+  // ── Register categories ────────────────────────────────────────────────────
+  adv_cat_nyumba_mali:    { sw: 'Nyumba na Mali',        en: 'Real Estate'               },
+  adv_cat_hoteli:         { sw: 'Hoteli na Lodges',       en: 'Hotels & Lodges'           },
+  adv_cat_chakula:        { sw: 'Biashara ya Chakula',    en: 'Food Business'             },
+  adv_cat_afya:           { sw: 'Afya na Dawa',           en: 'Health & Medicine'         },
+  adv_cat_elimu:          { sw: 'Elimu',                  en: 'Education'                 },
+  adv_cat_usafiri:        { sw: 'Usafiri',                en: 'Transport'                 },
+  adv_cat_fedha:          { sw: 'Fedha na Bima',          en: 'Finance & Insurance'       },
+  adv_cat_teknolojia:     { sw: 'Teknolojia',             en: 'Technology'                },
+  adv_cat_nguo:           { sw: 'Nguo na Mitindo',        en: 'Clothing & Fashion'        },
+  adv_cat_sanaa:          { sw: 'Sanaa na Burudani',      en: 'Arts & Entertainment'      },
+  adv_cat_kilimo:         { sw: 'Kilimo',                 en: 'Agriculture'               },
+  adv_cat_ujenzi:         { sw: 'Ujenzi na Nyenzo',       en: 'Construction & Materials'  },
+  adv_cat_mengineyo:      { sw: 'Mengineyo',              en: 'Other'                     },
+
+  // ── Ad type labels (new campaign section headers) ─────────────────────────
+  adv_type_banner:        { sw: 'Banner Ad',              en: 'Banner Ad'                 },
+  adv_type_search:        { sw: 'Search Ad',              en: 'Search Ad'                 },
+  adv_type_nearby:        { sw: 'Nearby Ad',              en: 'Nearby Ad'                 },
+  adv_type_video:         { sw: 'Video Ad',               en: 'Video Ad'                  },
+  adv_type_featured:      { sw: 'Featured Business',      en: 'Featured Business'         },
+
+  // ── Analytics column labels ────────────────────────────────────────────────
+  adv_col_clicks:         { sw: 'Clicks',                 en: 'Clicks'                    },
+  adv_col_ctr:            { sw: 'CTR',                    en: 'CTR'                       },
+
+  // ── Creative page — auto-generated format list ────────────────────────────
+  adv_format_banner:      { sw: 'Banner — 1200×400 (ukurasa mkuu)',                   en: 'Banner — 1200×400 (main page)'              },
+  adv_format_search:      { sw: 'Search — 600×200 (matokeo ya utafutaji)',             en: 'Search — 600×200 (search results)'          },
+  adv_format_nearby:      { sw: 'Nearby — 300×200 (biashara karibu)',                  en: 'Nearby — 300×200 (nearby businesses)'       },
+  adv_format_featured:    { sw: 'Featured — 800×450 (saraka ya biashara)',             en: 'Featured — 800×450 (business directory)'    },
+  adv_format_thumb:       { sw: 'Thumbnail — 640×360 (video au ukurasa wa dalali)',    en: 'Thumbnail — 640×360 (video or dalali page)' },
+
+  // ── Messages — default first message ─────────────────────────────────────
+  adv_default_first_msg:  { sw: 'Habari, biashara yangu inahitaji msaada',            en: 'Hello, my business needs help'              },
+
+  // ── Pay page — misc inline strings ────────────────────────────────────────
+  adv_go_back:            { sw: 'Rudi nyuma',             en: 'Go back'                   },
+  adv_example_prefix:     { sw: 'Mfano:',                 en: 'Example:'                  },
+  adv_kwenda:             { sw: 'kwenda',                 en: 'to'                        },
+
+  // ── SearchAd — 'Ad' logo-fallback abbreviation ────────────────────────────
+  adv_ad_abbrev:          { sw: 'Ad',                     en: 'Ad'                        },
+
+  // ── UploadCreative — per-file upload error ────────────────────────────────
+  adv_upload_file_error:  { sw: 'Upakiaji wa faili {n} umeshindwa ({s})',              en: 'Upload of file {n} failed ({s})'            },
+
   // ── Extra keys for wired pages ────────────────────────────────────────────
   adv_email_label:               { sw: 'Barua pepe',                           en: 'Email'                                        },
   adv_password_label:            { sw: 'Nywila',                               en: 'Password'                                     },

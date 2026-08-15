@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface Listing {
   id: string
@@ -35,6 +36,7 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 export default function MaliPage() {
+  const { t } = useLanguage()
   const [listings, setListings] = useState<Listing[]>([])
   const [orgRole,  setOrgRole]  = useState<string | null>(null)
   const [loading,  setLoading]  = useState(true)
@@ -73,14 +75,14 @@ export default function MaliPage() {
     <div className="p-4 lg:p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Mali Zangu</h1>
-          <p className="text-sm text-gray-500">{total} mali zilizosajiliwa</p>
+          <h1 className="text-xl font-bold text-gray-900">{t('pr_mali_title')}</h1>
+          <p className="text-sm text-gray-500">{total} {t('pr_mali_registered')}</p>
         </div>
         {canAdd && (
           <Link href="/property/mali/ongeza">
             <button className="flex items-center gap-2 bg-primary-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
               <i className="ti ti-building-plus" aria-hidden="true" />
-              <span>Ongeza Mali</span>
+              <span>{t('pr_mali_add')}</span>
             </button>
           </Link>
         )}
@@ -93,12 +95,12 @@ export default function MaliPage() {
       ) : listings.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
           <i className="ti ti-building text-5xl text-gray-200" aria-hidden="true" />
-          <p className="text-gray-500 font-medium mt-3">Huna mali zilizosajiliwa bado</p>
-          <p className="text-sm text-gray-400 mt-1">Ongeza mali yako ya kwanza ili uanze kusimamia.</p>
+          <p className="text-gray-500 font-medium mt-3">{t('pr_mali_no_props_yet')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('pr_mali_empty_cta_desc')}</p>
           {canAdd && (
             <Link href="/property/mali/ongeza">
               <button className="mt-4 bg-primary-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
-                Ongeza Mali ya Kwanza
+                {t('pr_mali_add_first')}
               </button>
             </Link>
           )}
@@ -131,8 +133,8 @@ export default function MaliPage() {
                         l.lifecycle_status === 'leased_managed' ? 'bg-blue-50 text-blue-700' :
                         'bg-gray-100 text-gray-500'
                       }`}>
-                        {l.lifecycle_status === 'listed' ? 'Inatangazwa' :
-                         l.lifecycle_status === 'leased_managed' ? 'Imepangishwa' : l.lifecycle_status}
+                        {l.lifecycle_status === 'listed' ? t('pr_mali_status_listed') :
+                         l.lifecycle_status === 'leased_managed' ? t('pr_mali_status_leased') : l.lifecycle_status}
                       </span>
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">
@@ -142,13 +144,13 @@ export default function MaliPage() {
                       <p className="text-xs text-gray-500 font-medium mt-0.5">{layout}</p>
                     ) : null })()}
                     <p className="text-sm font-bold text-primary-600 mt-1">
-                      TZS {(l.price_monthly ?? 0).toLocaleString()}/mwezi
+                      TZS {(l.price_monthly ?? 0).toLocaleString()}{t('pr_per_month')}
                     </p>
 
                     {l.unit_count > 0 ? (
                       <div className="mt-2">
                         <div className="flex justify-between items-center mb-0.5">
-                          <span className="text-xs text-gray-400">Vitengo vilivyopangishwa</span>
+                          <span className="text-xs text-gray-400">{t('pr_mali_units_rented')}</span>
                           <span className={`text-xs font-bold ${occupancyColor(l.occupied_count, l.unit_count)}`}>
                             {occupancy}
                           </span>
@@ -163,7 +165,7 @@ export default function MaliPage() {
                     ) : (
                       <p className="text-xs text-amber-500 mt-1 flex items-center gap-1">
                         <i className="ti ti-alert-circle" aria-hidden="true" />
-                        Hakuna vitengo vilivyoongezwa bado
+                        {t('pr_mali_no_units_yet')}
                       </p>
                     )}
                   </div>

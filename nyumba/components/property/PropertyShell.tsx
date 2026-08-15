@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/context'
 import type { Organization } from '@/lib/types/property'
 import NotificationBell from '@/components/shared/NotificationBell'
 function UnreadBadge({ count }: { count: number }) {
@@ -25,29 +26,29 @@ function UnreadBadgeBottom({ count }: { count: number }) {
 
 
 const NAV_ITEMS = [
-  { href: '/property/dashboard',    icon: 'layout-dashboard', label: 'Muhtasari',      exact: true  },
-  { href: '/property/mali',         icon: 'building',          label: 'Mali Zangu',     exact: false },
-  { href: '/property/wapangaji',    icon: 'users',             label: 'Wapangaji',      exact: false },
-  { href: '/property/kodi',         icon: 'cash',              label: 'Malipo ya Kodi', exact: false },
-  { href: '/property/mazungumzo',   icon: 'message-circle',    label: 'Mazungumzo',     exact: false },
-  { href: '/property/maintenance',  icon: 'tool',              label: 'Matengenezo',    exact: false },
-  { href: '/property/vendors',      icon: 'address-book',      label: 'Mafundi',        exact: false },
-  { href: '/property/brokerage',    icon: 'building-store',    label: 'NF Brokerage',   exact: false },
-  { href: '/property/agreements',   icon: 'file-text',         label: 'Makubaliano',    exact: false },
-  { href: '/property/team',         icon: 'user-plus',         label: 'Timu Yangu',     exact: false },
-  { href: '/property/usajili',      icon: 'credit-card',       label: 'Usajili',        exact: false },
-  { href: '/property/matumizi',     icon: 'receipt',           label: 'Matumizi',       exact: false },
-  { href: '/property/hesabu',       icon: 'calculator',        label: 'Hesabu',         exact: false },
-  { href: '/property/hati',         icon: 'folder',            label: 'Hati',           exact: false },
-  { href: '/property/taarifa',      icon: 'chart-bar',         label: 'Taarifa',        exact: false },
-  { href: '/property/kyc',          icon: 'id-badge',          label: 'KYC & Benki',    exact: false },
+  { href: '/property/dashboard',    icon: 'layout-dashboard', labelKey: 'pr_nav_dashboard',   exact: true  },
+  { href: '/property/mali',         icon: 'building',          labelKey: 'pr_nav_mali',        exact: false },
+  { href: '/property/wapangaji',    icon: 'users',             labelKey: 'pr_nav_wapangaji',   exact: false },
+  { href: '/property/kodi',         icon: 'cash',              labelKey: 'pr_nav_kodi',        exact: false },
+  { href: '/property/mazungumzo',   icon: 'message-circle',    labelKey: 'pr_nav_mazungumzo',  exact: false },
+  { href: '/property/maintenance',  icon: 'tool',              labelKey: 'pr_nav_maintenance', exact: false },
+  { href: '/property/vendors',      icon: 'address-book',      labelKey: 'pr_nav_vendors',     exact: false },
+  { href: '/property/brokerage',    icon: 'building-store',    labelKey: 'pr_nav_brokerage',   exact: false },
+  { href: '/property/agreements',   icon: 'file-text',         labelKey: 'pr_nav_agreements',  exact: false },
+  { href: '/property/team',         icon: 'user-plus',         labelKey: 'pr_nav_team',        exact: false },
+  { href: '/property/usajili',      icon: 'credit-card',       labelKey: 'pr_nav_usajili',     exact: false },
+  { href: '/property/matumizi',     icon: 'receipt',           labelKey: 'pr_nav_matumizi',    exact: false },
+  { href: '/property/hesabu',       icon: 'calculator',        labelKey: 'pr_nav_hesabu',      exact: false },
+  { href: '/property/hati',         icon: 'folder',            labelKey: 'pr_nav_hati',        exact: false },
+  { href: '/property/taarifa',      icon: 'chart-bar',         labelKey: 'pr_nav_taarifa',     exact: false },
+  { href: '/property/kyc',          icon: 'id-badge',          labelKey: 'pr_nav_kyc',         exact: false },
 ]
 
 const BOTTOM_NAV = [
-  { href: '/property/dashboard',   icon: 'layout-dashboard', label: 'Muhtasari',  exact: true  },
-  { href: '/property/mali',        icon: 'building',          label: 'Mali',       exact: false },
-  { href: '/property/wapangaji',   icon: 'users',             label: 'Wapangaji',  exact: false },
-  { href: '/property/mazungumzo',  icon: 'message-circle',    label: 'Ujumbe',     exact: false },
+  { href: '/property/dashboard',   icon: 'layout-dashboard', labelKey: 'pr_nav_dashboard',    exact: true  },
+  { href: '/property/mali',        icon: 'building',          labelKey: 'pr_nav_bottom_mali',  exact: false },
+  { href: '/property/wapangaji',   icon: 'users',             labelKey: 'pr_nav_wapangaji',    exact: false },
+  { href: '/property/mazungumzo',  icon: 'message-circle',    labelKey: 'pr_nav_bottom_ujumbe',exact: false },
 ]
 
 type Props = {
@@ -59,6 +60,7 @@ type Props = {
 export default function PropertyShell({ children, org, orgRole }: Props) {
   const pathname = usePathname()
   const router   = useRouter()
+  const { t }    = useLanguage()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
 
@@ -111,10 +113,10 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
               </div>
               <div className="min-w-0">
                 <p className="font-bold text-gray-900 text-sm truncate">
-                  {org?.name ?? 'Usimamizi wa Mali'}
+                  {org?.name ?? t('pr_shell_org_default')}
                 </p>
                 <p className="text-xs text-gray-400 truncate">
-                  {org ? (orgRole === 'owner' ? 'Mwenye Shirika' : orgRole ?? '') : 'NyumbaFasta'}
+                  {org ? (orgRole === 'owner' ? t('pr_shell_owner_role') : orgRole ?? '') : 'NyumbaFasta'}
                 </p>
               </div>
             </div>
@@ -123,7 +125,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
-            Menyu Kuu
+            {t('pr_shell_main_menu')}
           </p>
           <div className="space-y-0.5">
             {visibleNav.map(item => (
@@ -134,7 +136,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}>
                   <i className={`ti ti-${item.icon} text-base w-5 text-center flex-shrink-0`} aria-hidden="true" />
-                  <span>{item.label}</span>
+                  <span>{t(item.labelKey as Parameters<typeof t>[0])}</span>
                   {item.href === '/property/mazungumzo' && !isActive(item.href, item.exact)
                     ? <UnreadBadge count={unreadCount} />
                     : isActive(item.href, item.exact) && (
@@ -151,14 +153,14 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
           <Link href="/" onClick={onClose}>
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 text-sm">
               <i className="ti ti-world" aria-hidden="true" />
-              <span>Rudi Kwenye App</span>
+              <span>{t('pr_shell_back_app')}</span>
             </div>
           </Link>
           <div className="flex items-center gap-1">
             <Link href="/property/mipangilio" onClick={onClose} className="flex-1">
               <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 text-sm">
                 <i className="ti ti-settings" aria-hidden="true" />
-                <span>Mipangilio ya Shirika</span>
+                <span>{t('pr_shell_settings')}</span>
               </div>
             </Link>
             <NotificationBell href="/notifications" className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500" />
@@ -166,13 +168,13 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
           <button onClick={handleLogout} className="w-full text-left">
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
               <i className="ti ti-door-exit" aria-hidden="true" />
-              <span>Toka</span>
+              <span>{t('pr_shell_logout')}</span>
             </div>
           </button>
         </div>
       </div>
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [org, orgRole, unreadCount, pathname])
+  ), [org, orgRole, unreadCount, pathname, t])
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -198,7 +200,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
             <button
               onClick={() => setDrawerOpen(true)}
               className="p-2 rounded-xl bg-gray-100"
-              aria-label="Fungua menyu"
+              aria-label={t('pr_shell_open_menu')}
             >
               <div className="space-y-1">
                 <div className="w-5 h-0.5 bg-gray-600 rounded" />
@@ -229,7 +231,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
                   {item.href === '/property/mazungumzo' && !active && <UnreadBadgeBottom count={unreadCount} />}
                 </div>
                 <span className={`text-[10px] font-semibold ${active ? 'text-primary-500' : 'text-gray-400'}`}>
-                  {item.label}
+                  {t(item.labelKey as Parameters<typeof t>[0])}
                 </span>
               </Link>
             )

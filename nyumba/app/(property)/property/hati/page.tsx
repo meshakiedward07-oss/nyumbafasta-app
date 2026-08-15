@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/context'
 
 // Documents are aggregated from existing records that have document_url fields:
 // leases.document_url, management_agreements.document_url, kyc_submissions.*_url
@@ -17,12 +18,6 @@ interface HatiItem {
   related:   string | null  // e.g. tenant name or listing title
 }
 
-const SOURCE_LABELS: Record<HatiSource, string> = {
-  mkataba:    'Mkataba wa Upangaji',
-  makubaliano:'Makubaliano ya Usimamizi',
-  kyc:        'Hati ya Utambulisho',
-}
-
 const SOURCE_ICONS: Record<HatiSource, string> = {
   mkataba:    'file-text',
   makubaliano:'file-check',
@@ -35,13 +30,6 @@ const SOURCE_COLORS: Record<HatiSource, string> = {
   kyc:        'bg-purple-50 text-purple-600',
 }
 
-const FILTERS: { value: HatiSource | 'all'; label: string }[] = [
-  { value: 'all',         label: 'Zote'         },
-  { value: 'mkataba',     label: 'Mikataba'     },
-  { value: 'makubaliano', label: 'Makubaliano'  },
-  { value: 'kyc',         label: 'KYC/Utambulisho' },
-]
-
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: 'numeric' })
 }
@@ -52,11 +40,24 @@ function fileExtension(url: string) {
 }
 
 export default function HatiPage() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [hati,     setHati]    = useState<HatiItem[]>([])
   const [loading,  setLoading] = useState(true)
   const [filter,   setFilter]  = useState<HatiSource | 'all'>('all')
   const [search,   setSearch]  = useState('')
+
+  const SOURCE_LABELS: Record<HatiSource, string> = {
+    mkataba:    t('pr_hati_source_lease'),
+    makubaliano:t('pr_hati_source_mgmt'),
+    kyc:        t('pr_hati_source_id'),
+  }
+  const FILTERS: { value: HatiSource | 'all'; label: string }[] = [
+    { value: 'all',         label: t('pr_hati_filter_all')    },
+    { value: 'mkataba',     label: t('pr_hati_filter_mkataba') },
+    { value: 'makubaliano', label: t('pr_hati_filter_agree')  },
+    { value: 'kyc',         label: t('pr_hati_filter_kyc')    },
+  ]
 
   useEffect(() => {
     async function load() {
@@ -85,10 +86,10 @@ export default function HatiPage() {
         // Leases with documents
         for (const l of leasesData.leases ?? []) {
           if (l.document_url) {
-            const tenant = (l.tenant as { full_name: string | null } | null)?.full_name ?? 'Mpangaji'
+            const tenant = (l.tenant as { full_name: string | null } | null)?.full_name ?? t('pr_hati_default_tenant')
             items.push({
               id:      `lease-${l.id}`,
-              title:   `Mkataba — ${tenant}`,
+              title:   `${t('pr_hati_lease_prefix')} ${tenant}`,
               type:    'mkataba',
               url:     l.document_url,
               date:    l.created_at,
@@ -102,7 +103,7 @@ export default function HatiPage() {
           if (a.document_url) {
             items.push({
               id:      `agree-${a.id}`,
-              title:   `Makubaliano ya Usimamizi`,
+              title:   t('pr_hati_source_mgmt'),
               type:    'makubaliano',
               url:     a.document_url,
               date:    a.created_at,
@@ -114,9 +115,9 @@ export default function HatiPage() {
         // KYC submissions
         const kyc = kycData.submission as { id: string; submitted_at: string; id_document_url?: string; title_deed_url?: string; tax_cert_url?: string } | null
         if (kyc) {
-          if (kyc.id_document_url) items.push({ id: `kyc-id-${kyc.id}`, title: 'Kitambulisho cha Taifa (NIN)', type: 'kyc', url: kyc.id_document_url, date: kyc.submitted_at, related: 'KYC' })
-          if (kyc.title_deed_url)  items.push({ id: `kyc-deed-${kyc.id}`, title: 'Hati ya Umiliki (Title Deed)', type: 'kyc', url: kyc.title_deed_url, date: kyc.submitted_at, related: 'KYC' })
-          if (kyc.tax_cert_url)    items.push({ id: `kyc-tax-${kyc.id}`, title: 'Cheti cha Kodi (TIN)', type: 'kyc', url: kyc.tax_cert_url, date: kyc.submitted_at, related: 'KYC' })
+          if (kyc.id_document_url) items.push({ id: `kyc-id-${kyc.id}`, title: t('pr_hati_kyc_id_title'), type: 'kyc', url: kyc.id_document_url, date: kyc.submitted_at, related: 'KYC' })
+          if (kyc.title_deed_url)  items.push({ id: `kyc-deed-${kyc.id}`, title: t('pr_hati_kyc_deed_title'), type: 'kyc', url: kyc.title_deed_url, date: kyc.submitted_at, related: 'KYC' })
+          if (kyc.tax_cert_url)    items.push({ id: `kyc-tax-${kyc.id}`, title: t('pr_hati_kyc_tax_title'), type: 'kyc', url: kyc.tax_cert_url, date: kyc.submitted_at, related: 'KYC' })
         }
 
         // Sort by date descending
@@ -143,16 +144,16 @@ export default function HatiPage() {
       <div className="p-4 lg:p-5 border-b border-gray-100 bg-white flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Hati na Nyaraka</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t('pr_hati_title')}</h1>
             <p className="text-xs text-gray-400 mt-0.5">
-              {loading ? '...' : `Nyaraka ${hati.length} zilizopatikana`}
+              {loading ? '...' : `${hati.length} ${t('pr_hati_count')} ${t('pr_hati_found')}`}
             </p>
           </div>
         </div>
 
         <input
           type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Tafuta hati..."
+          placeholder={t('pr_hati_search_ph')}
           className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 mb-2"
         />
 
@@ -176,21 +177,18 @@ export default function HatiPage() {
           <div className="text-center py-16 px-6">
             <i className="ti ti-folder text-5xl text-gray-200" aria-hidden="true" />
             <p className="text-gray-500 font-medium mt-3">
-              {hati.length === 0 ? 'Hakuna hati bado' : 'Hakuna matokeo'}
+              {hati.length === 0 ? t('pr_hati_empty_title') : t('pr_hati_no_results')}
             </p>
             <p className="text-sm text-gray-400 mt-1">
-              {hati.length === 0
-                ? 'Hati za mikataba na makubaliano zitaonekana hapa.'
-                : 'Badilisha utafutaji au kichujio.'}
+              {hati.length === 0 ? t('pr_hati_empty_desc') : t('pr_hati_no_results_desc')}
             </p>
             {hati.length === 0 && (
               <div className="mt-4 space-y-2">
-                <p className="text-xs text-gray-400 font-semibold">Ongeza hati kwa:</p>
                 <Link href="/property/wapangaji" className="block text-sm text-primary-600 hover:underline">
-                  → Mikataba ya wapangaji
+                  {t('pr_hati_add_via_leases')}
                 </Link>
                 <Link href="/property/agreements" className="block text-sm text-primary-600 hover:underline">
-                  → Makubaliano ya usimamizi
+                  {t('pr_hati_add_via_agree')}
                 </Link>
               </div>
             )}

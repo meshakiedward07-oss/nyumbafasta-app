@@ -61,7 +61,7 @@ export default function RegisterCompletePage() {
 
         if (!res.ok) {
           const data = await res.json()
-          throw new Error(data.error || 'Imeshindwa kuunda akaunti')
+          throw new Error(data.error || t('auth_err_create_account'))
         }
 
         clearPendingStorage()
@@ -72,7 +72,7 @@ export default function RegisterCompletePage() {
           router.replace('/?welcome=true')
         }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Hitilafu imetokea')
+        setError(err instanceof Error ? err.message : t('auth_mfa_generic_err'))
       }
     }
 

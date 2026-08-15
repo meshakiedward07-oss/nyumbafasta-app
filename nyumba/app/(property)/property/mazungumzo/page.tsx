@@ -4,14 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CONV_TYPE_LABELS, CONV_TYPE_ICONS } from '@/lib/types/property'
 import type { Conversation, ConvType } from '@/lib/types/property'
-
-const FILTERS: { value: ConvType | 'all'; label: string }[] = [
-  { value: 'all',             label: 'Yote'        },
-  { value: 'lease',           label: 'Upangaji'    },
-  { value: 'service_request', label: 'Huduma'      },
-  { value: 'maintenance',     label: 'Matengenezo' },
-  { value: 'general',         label: 'Kawaida'     },
-]
+import { useLanguage } from '@/lib/i18n/context'
 
 function timeAgo(iso: string | null) {
   if (!iso) return ''
@@ -26,6 +19,7 @@ function timeAgo(iso: string | null) {
 }
 
 export default function MazungumzoPage() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [orgId,         setOrgId]         = useState<string | null>(null)
@@ -71,14 +65,14 @@ export default function MazungumzoPage() {
     }
     load()
     // Poll every 20s for new messages — uses ref so the interval always has current orgId
-    const t = setInterval(() => {
+    const poll = setInterval(() => {
       if (!orgIdRef.current) return
       fetch(`/api/v1/conversations?org_id=${orgIdRef.current}`)
         .then(r => r.json())
         .then(d => setConversations(d.conversations ?? []))
         .catch(() => {})
     }, 20_000)
-    return () => clearInterval(t)
+    return () => clearInterval(poll)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -95,10 +89,10 @@ export default function MazungumzoPage() {
 
   async function handleNewConversation() {
     if (!newMsg.trim() || !orgId) {
-      setCreateError('Jaza sehemu zote'); return
+      setCreateError(t('pr_err_required')); return
     }
     if (!selectedContact && !newPhone.trim()) {
-      setCreateError('Chagua mtumishi au weka nambari ya simu'); return
+      setCreateError(t('pr_mazungumzo_err_contact')); return
     }
     setCreating(true); setCreateError(null)
     try {
@@ -109,7 +103,7 @@ export default function MazungumzoPage() {
         const lookupRes  = await fetch(`/api/v1/users/search?phone=${encodeURIComponent(newPhone.trim())}`)
         const lookupData = await lookupRes.json()
         if (!lookupData.user) {
-          setCreateError('Mtumiaji hajapatikana kwa nambari hiyo ya simu.'); setCreating(false); return
+          setCreateError(t('pr_mazungumzo_user_not_found')); setCreating(false); return
         }
         participantId = lookupData.user.id
       }
@@ -125,11 +119,11 @@ export default function MazungumzoPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setCreateError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setCreateError(data.error ?? t('pr_err_generic')); return }
       setShowNew(false); setNewPhone(''); setNewMsg(''); setNewTitle(''); setSelectedContact(null)
       router.push(`/property/mazungumzo/${data.conversation.id}`)
     } catch {
-      setCreateError('Haikuweza kuunganika. Jaribu tena.')
+      setCreateError(t('pr_network_err'))
     } finally { setCreating(false) }
   }
 
@@ -144,15 +138,23 @@ export default function MazungumzoPage() {
 
   const totalUnread = conversations.reduce((s, c) => s + (c.unread_count ?? 0), 0)
 
+  const FILTERS: { value: ConvType | 'all'; label: string }[] = [
+    { value: 'all',             label: t('pr_mazungumzo_filter_all')         },
+    { value: 'lease',           label: t('pr_mazungumzo_filter_lease')       },
+    { value: 'service_request', label: t('pr_mazungumzo_filter_service')     },
+    { value: 'maintenance',     label: t('pr_mazungumzo_filter_maintenance') },
+    { value: 'general',         label: t('pr_mazungumzo_filter_general')     },
+  ]
+
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto">
       {/* Header */}
       <div className="p-4 lg:p-5 border-b border-gray-100 bg-white">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Mazungumzo</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t('pr_mazungumzo_title')}</h1>
             {totalUnread > 0 && (
-              <p className="text-xs text-red-500 font-medium">{totalUnread} ujumbe mpya</p>
+              <p className="text-xs text-red-500 font-medium">{totalUnread} {t('pr_mazungumzo_unread')}</p>
             )}
           </div>
           <button
@@ -160,7 +162,7 @@ export default function MazungumzoPage() {
             className="flex items-center gap-2 bg-primary-500 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:bg-primary-600 transition"
           >
             <i className="ti ti-pencil" aria-hidden="true" />
-            <span className="hidden sm:inline">Ujumbe Mpya</span>
+            <span className="hidden sm:inline">{t('pr_mazungumzo_new_btn')}</span>
           </button>
         </div>
 
@@ -169,7 +171,7 @@ export default function MazungumzoPage() {
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Tafuta mazungumzo..."
+          placeholder={t('pr_mazungumzo_search_ph')}
           className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 mb-2"
         />
 
@@ -195,14 +197,14 @@ export default function MazungumzoPage() {
       {showNew && (
         <div className="mx-4 mt-3 bg-white rounded-2xl border border-gray-100 p-4">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="font-semibold text-gray-900">Ujumbe Mpya</h3>
+            <h3 className="font-semibold text-gray-900">{t('pr_mazungumzo_new_btn')}</h3>
             <button onClick={() => { setShowNew(false); setCreateError(null); setSelectedContact(null) }} className="text-gray-400 hover:text-gray-600">
               <i className="ti ti-x" aria-hidden="true" />
             </button>
           </div>
           <div className="space-y-2.5">
             <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)}
-              placeholder="Kichwa cha mazungumzo (hiari)"
+              placeholder={t('pr_mazungumzo_title_ph')}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
 
             {/* Staff contact picker */}
@@ -211,7 +213,7 @@ export default function MazungumzoPage() {
             ) : staffContacts.length > 0 && (
               <div>
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                  Watumishi wa NyumbaFasta
+                  {t('pr_mazungumzo_staff_label')}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {staffContacts.map(c => (
@@ -240,7 +242,7 @@ export default function MazungumzoPage() {
             {!selectedContact && (
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-px bg-gray-100" />
-                <span className="text-[11px] text-gray-400">au nambari ya simu</span>
+                <span className="text-[11px] text-gray-400">{t('pr_mazungumzo_or_phone')}</span>
                 <div className="flex-1 h-px bg-gray-100" />
               </div>
             )}
@@ -248,22 +250,22 @@ export default function MazungumzoPage() {
             {/* Phone field — hidden when a staff contact is selected */}
             {!selectedContact && (
               <input type="tel" value={newPhone} onChange={e => setNewPhone(e.target.value)}
-                placeholder="Nambari ya simu (+255...)"
+                placeholder={t('pr_mazungumzo_phone_ph')}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300" />
             )}
 
             <textarea value={newMsg} onChange={e => setNewMsg(e.target.value)} rows={2}
-              placeholder="Andika ujumbe wako wa kwanza..."
+              placeholder={t('pr_mazungumzo_first_msg_ph')}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
             {createError && <p className="text-xs text-red-600">{createError}</p>}
             <div className="flex gap-2">
               <button onClick={() => { setShowNew(false); setCreateError(null); setSelectedContact(null) }}
                 className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-2.5">
-                Ghairi
+                {t('pr_cancel')}
               </button>
               <button onClick={handleNewConversation} disabled={creating}
                 className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40">
-                {creating ? 'Inatuma...' : 'Tuma'}
+                {creating ? t('pr_kodi_sending') : t('pr_mazungumzo_send')}
               </button>
             </div>
           </div>
@@ -280,12 +282,10 @@ export default function MazungumzoPage() {
           <div className="text-center py-16 px-6">
             <i className="ti ti-message-circle text-5xl text-gray-200" aria-hidden="true" />
             <p className="text-gray-500 font-medium mt-3">
-              {conversations.length === 0 ? 'Hakuna mazungumzo bado' : 'Hakuna matokeo'}
+              {conversations.length === 0 ? t('pr_mazungumzo_empty_title') : t('pr_hati_no_results')}
             </p>
             <p className="text-sm text-gray-400 mt-1">
-              {conversations.length === 0
-                ? 'Mazungumzo yataanzishwa kiotomatiki unapoongeza mpangaji.'
-                : 'Badilisha vichujio.'}
+              {conversations.length === 0 ? t('pr_mazungumzo_empty_desc') : t('pr_mazungumzo_no_results_desc')}
             </p>
           </div>
         ) : (
@@ -335,7 +335,7 @@ export default function MazungumzoPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <p className={`text-xs truncate ${unread ? 'text-gray-700' : 'text-gray-400'}`}>
-                          {lastMsg?.body ?? 'Bonyeza kuanza mazungumzo'}
+                          {lastMsg?.body ?? t('pr_mazungumzo_no_msg')}
                         </p>
                         {(conv.unread_count ?? 0) > 0 && (
                           <span className="flex-shrink-0 min-w-[18px] h-[18px] bg-primary-500 text-white text-[10px] font-bold rounded-full px-1 flex items-center justify-center">

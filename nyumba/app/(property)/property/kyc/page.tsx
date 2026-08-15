@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 
 type KycStatus = 'pending' | 'approved' | 'rejected' | 'needs_more_info'
 
@@ -11,6 +12,7 @@ interface Banking {
 }
 
 function BankingSection({ orgId }: { orgId: string }) {
+  const { t } = useLanguage()
   const [banking,  setBanking]  = useState<Banking | null>(null)
   const [editing,  setEditing]  = useState(false)
   const [saving,   setSaving]   = useState(false)
@@ -37,14 +39,14 @@ function BankingSection({ orgId }: { orgId: string }) {
 
   async function save() {
     if (!form.bank_name.trim() || !form.account_name.trim() || !form.account_number.trim()) {
-      setError('Benki, jina la akaunti, na namba ya akaunti zinahitajika'); return
+      setError(t('pr_kyc_bank_req_fields')); return
     }
     setSaving(true); setError(null)
     const res  = await fetch(`/api/v1/organizations/${orgId}/banking`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
     })
     const data = await res.json()
-    if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); setSaving(false); return }
+    if (!res.ok) { setError(data.error ?? t('pr_err_generic')); setSaving(false); return }
     setBanking(data.banking); setEditing(false); setSuccess(true)
     setSaving(false); setTimeout(() => setSuccess(false), 3000)
   }
@@ -55,12 +57,12 @@ function BankingSection({ orgId }: { orgId: string }) {
         <div className="flex items-center gap-2">
           <i className="ti ti-building-bank text-primary-500 text-lg" aria-hidden="true" />
           <div>
-            <h2 className="text-sm font-bold text-gray-900">Maelezo ya Benki / Malipo</h2>
-            <p className="text-xs text-gray-400">Wapangaji watatumia habari hii kulipa kodi</p>
+            <h2 className="text-sm font-bold text-gray-900">{t('pr_kyc_bank_title')}</h2>
+            <p className="text-xs text-gray-400">{t('pr_kyc_bank_desc')}</p>
           </div>
         </div>
         {banking && !editing && (
-          <button onClick={() => setEditing(true)} className="text-xs text-primary-600 hover:underline">Badilisha</button>
+          <button onClick={() => setEditing(true)} className="text-xs text-primary-600 hover:underline">{t('pr_kyc_bank_edit')}</button>
         )}
       </div>
 
@@ -68,30 +70,30 @@ function BankingSection({ orgId }: { orgId: string }) {
         {!editing && banking ? (
           <div className="space-y-2">
             {[
-              { label: 'Benki',          value: banking.bank_name },
-              { label: 'Jina la Akaunti', value: banking.account_name },
-              { label: 'Namba ya Akaunti', value: banking.account_number },
-              { label: 'Tawi',           value: banking.branch },
-              { label: 'Mobile Money',   value: banking.mobile_money_number ? `${banking.mobile_money_number} (${banking.mobile_money_provider ?? ''})` : null },
-              { label: 'Maelezo Zaidi',  value: banking.additional_instructions },
+              { label: t('pr_kyc_bank_label'),       value: banking.bank_name },
+              { label: t('pr_kyc_bank_acct_name'),   value: banking.account_name },
+              { label: t('pr_kyc_bank_acct_number'), value: banking.account_number },
+              { label: t('pr_kyc_bank_branch_label'),value: banking.branch },
+              { label: t('pr_kyc_mobile_money_label'),value: banking.mobile_money_number ? `${banking.mobile_money_number} (${banking.mobile_money_provider ?? ''})` : null },
+              { label: t('pr_kyc_bank_extra_label'), value: banking.additional_instructions },
             ].filter(r => r.value).map(r => (
               <div key={r.label} className="flex gap-2 text-sm">
                 <span className="text-gray-400 w-32 flex-shrink-0">{r.label}</span>
                 <span className="font-medium text-gray-900">{r.value}</span>
               </div>
             ))}
-            {success && <p className="text-xs text-green-600 mt-2"><i className="ti ti-check" /> Imehifadhiwa</p>}
+            {success && <p className="text-xs text-green-600 mt-2"><i className="ti ti-check" /> {t('pr_kyc_bank_saved')}</p>}
           </div>
         ) : (
           <div className="space-y-3">
             {[
-              { key: 'bank_name',     label: 'Jina la Benki *',          ph: 'mfano: CRDB Bank, NMB Bank' },
-              { key: 'account_name',  label: 'Jina la Akaunti *',         ph: 'Jina kama linavyoonekana benki' },
-              { key: 'account_number',label: 'Namba ya Akaunti *',        ph: 'mfano: 0150123456789' },
-              { key: 'branch',        label: 'Tawi (hiari)',              ph: 'mfano: Kariakoo Branch' },
-              { key: 'mobile_money_number', label: 'Namba ya Mobile Money (hiari)', ph: 'mfano: 0755123456' },
-              { key: 'mobile_money_provider', label: 'Mtoa Huduma wa MM (hiari)', ph: 'mpesa / airtel / tigo / halopesa' },
-              { key: 'additional_instructions', label: 'Maelezo ya Ziada (hiari)', ph: 'mfano: Tuma kisha tuma picha ya receipt' },
+              { key: 'bank_name',     label: t('pr_kyc_bank_name_req'),      ph: 'mfano: CRDB Bank, NMB Bank' },
+              { key: 'account_name',  label: t('pr_kyc_bank_acct_name_req'), ph: 'Jina kama linavyoonekana benki' },
+              { key: 'account_number',label: t('pr_kyc_bank_acct_num_req'),  ph: 'mfano: 0150123456789' },
+              { key: 'branch',        label: t('pr_kyc_bank_branch_opt'),    ph: 'mfano: Kariakoo Branch' },
+              { key: 'mobile_money_number', label: t('pr_kyc_bank_mobile_opt'),   ph: 'mfano: 0755123456' },
+              { key: 'mobile_money_provider', label: t('pr_kyc_bank_provider_opt'), ph: 'mpesa / airtel / tigo / halopesa' },
+              { key: 'additional_instructions', label: t('pr_kyc_bank_extra_opt'), ph: 'mfano: Tuma kisha tuma picha ya receipt' },
             ].map(f => (
               <div key={f.key}>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">{f.label}</label>
@@ -107,12 +109,12 @@ function BankingSection({ orgId }: { orgId: string }) {
             <div className="flex gap-2">
               <button onClick={save} disabled={saving}
                 className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-40 transition">
-                {saving ? 'Inahifadhi...' : 'Hifadhi Maelezo ya Benki'}
+                {saving ? t('pr_kyc_bank_saving') : t('pr_kyc_bank_save')}
               </button>
               {banking && (
                 <button onClick={() => { setEditing(false); setError(null) }}
                   className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-                  Ghairi
+                  {t('pr_kyc_bank_cancel')}
                 </button>
               )}
             </div>
@@ -135,15 +137,19 @@ interface Submission {
   tax_cert_url:     string | null
 }
 
-const STATUS_INFO: Record<KycStatus, { label: string; color: string; icon: string; desc: string }> = {
-  pending:        { label: 'Inasubiri Ukaguzi', color: 'bg-amber-50 border-amber-200 text-amber-700', icon: 'clock',         desc: 'Maombi yako yamefika. Tutakagua ndani ya saa 24–48.' },
-  approved:       { label: 'Imeidhinishwa',     color: 'bg-green-50 border-green-200 text-green-700', icon: 'circle-check',  desc: 'Hongera! Akaunti yako imethibitishwa.' },
-  rejected:       { label: 'Imekataliwa',       color: 'bg-red-50   border-red-200   text-red-700',   icon: 'circle-x',      desc: 'Maombi yako yamekataliwa. Angalia sababu hapa chini.' },
-  needs_more_info:{ label: 'Inahitaji Zaidi',   color: 'bg-blue-50  border-blue-200  text-blue-700',  icon: 'info-circle',   desc: 'Admin anahitaji nyaraka zaidi. Tafadhali tuma zilizokosekana.' },
-}
+// STATUS_INFO is built inside the component to support i18n
 
 export default function KycSubmitPage() {
+  const { t } = useLanguage()
   const router = useRouter()
+
+  const STATUS_INFO: Record<KycStatus, { label: string; color: string; icon: string; desc: string }> = {
+    pending:        { label: t('pr_kyc_status_pending'),   color: 'bg-amber-50 border-amber-200 text-amber-700', icon: 'clock',        desc: t('pr_kyc_status_banner_pending') },
+    approved:       { label: t('pr_kyc_status_approved'),  color: 'bg-green-50 border-green-200 text-green-700', icon: 'circle-check', desc: t('pr_kyc_status_banner_approved') },
+    rejected:       { label: t('pr_kyc_status_rejected'),  color: 'bg-red-50   border-red-200   text-red-700',   icon: 'circle-x',     desc: t('pr_kyc_status_banner_rejected') },
+    needs_more_info:{ label: t('pr_kyc_status_more_info'), color: 'bg-blue-50  border-blue-200  text-blue-700',  icon: 'info-circle',  desc: t('pr_kyc_status_banner_more') },
+  }
+
   const [submission,  setSubmission]  = useState<Submission | null>(null)
   const [loading,     setLoading]     = useState(true)
   const [submitting,  setSubmitting]  = useState(false)
@@ -186,7 +192,7 @@ export default function KycSubmitPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.id_document_url.trim()) { setError('Picha ya kitambulisho inahitajika'); return }
+    if (!form.id_document_url.trim()) { setError(t('pr_kyc_err_id')); return }
     setSubmitting(true); setError(null)
     try {
       const res  = await fetch('/api/v1/kyc', {
@@ -195,10 +201,10 @@ export default function KycSubmitPage() {
         body: JSON.stringify(form),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setError(data.error ?? t('pr_err_generic')); return }
       setSuccess(true)
       setTimeout(() => router.push('/property/dashboard'), 2000)
-    } catch { setError('Haikuweza kutuma. Jaribu tena.') }
+    } catch { setError(t('pr_err_network')) }
     finally  { setSubmitting(false) }
   }
 
@@ -219,8 +225,8 @@ export default function KycSubmitPage() {
           <i className="ti ti-arrow-left text-lg" aria-hidden="true" />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Uthibitisho wa KYC</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Thibitisha umiliki wa mali na utambulisho wako</p>
+          <h1 className="text-xl font-bold text-gray-900">{t('pr_kyc_title')}</h1>
+          <p className="text-xs text-gray-400 mt-0.5">{t('pr_kyc_subtitle')}</p>
         </div>
       </div>
 
@@ -234,13 +240,13 @@ export default function KycSubmitPage() {
           <p className="text-xs opacity-80">{statusInfo.desc}</p>
           {submission.rejection_reason && (
             <div className="mt-2 pt-2 border-t border-current border-opacity-20">
-              <p className="text-xs font-semibold">Sababu ya kukataa:</p>
+              <p className="text-xs font-semibold">{t('pr_kyc_rejection_label')}</p>
               <p className="text-xs mt-0.5">{submission.rejection_reason}</p>
             </div>
           )}
           {submission.notes && submission.status === 'needs_more_info' && (
             <div className="mt-2 pt-2 border-t border-current border-opacity-20">
-              <p className="text-xs font-semibold">Maelezo ya admin:</p>
+              <p className="text-xs font-semibold">{t('pr_kyc_admin_notes')}</p>
               <p className="text-xs mt-0.5">{submission.notes}</p>
             </div>
           )}
@@ -253,50 +259,48 @@ export default function KycSubmitPage() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <i className="ti ti-rosette-discount-check text-4xl text-green-500" aria-hidden="true" />
           </div>
-          <p className="font-semibold text-gray-900">Akaunti Imethibitishwa</p>
-          <p className="text-sm text-gray-400 mt-1">Huna zaidi ya kufanya. Unaweza kutumia huduma zote.</p>
+          <p className="font-semibold text-gray-900">{t('pr_kyc_approved_title')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('pr_kyc_approved_desc')}</p>
           <button onClick={() => router.push('/property/dashboard')}
             className="mt-4 px-6 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition">
-            Rudi Dashibodini
+            {t('pr_kyc_back_dash')}
           </button>
         </div>
       ) : (
         <>
           {/* What we need */}
           <div className="bg-gray-50 rounded-2xl p-4 mb-5">
-            <p className="text-xs font-semibold text-gray-600 mb-3">Unahitaji nini</p>
+            <p className="text-xs font-semibold text-gray-600 mb-3">{t('pr_kyc_needs_intro')}</p>
             <div className="space-y-2">
               {[
-                { icon: 'id',               label: 'Kitambulisho cha Taifa au Pasipoti',  required: true  },
-                { icon: 'file-certificate', label: 'Hati ya Umiliki wa Mali (Title Deed)', required: false },
-                { icon: 'receipt',          label: 'Cheti cha Kodi cha TRA',              required: false },
+                { icon: 'id',               label: t('pr_kyc_doc_id'),   required: true  },
+                { icon: 'file-certificate', label: t('pr_kyc_doc_deed'), required: false },
+                { icon: 'receipt',          label: t('pr_kyc_doc_tra'),  required: false },
               ].map(d => (
                 <div key={d.icon} className="flex items-center gap-2 text-xs">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${d.required ? 'bg-primary-100 text-primary-600' : 'bg-gray-200 text-gray-500'}`}>
                     <i className={`ti ti-${d.icon} text-xs`} aria-hidden="true" />
                   </div>
                   <span className="text-gray-600">{d.label}</span>
-                  {d.required && <span className="text-red-500 text-[10px] font-bold">LAZIMA</span>}
+                  {d.required && <span className="text-red-500 text-[10px] font-bold">{t('pr_kyc_required_badge')}</span>}
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-gray-400 mt-3">
-              Pakia hati kwenye Cloudinary, Google Drive, au huduma nyingine ya faili, kisha bandika kiungo hapa chini.
-            </p>
+            <p className="text-[10px] text-gray-400 mt-3">{t('pr_kyc_hint')}</p>
           </div>
 
           {/* Success */}
           {success ? (
             <div className="text-center py-8">
               <i className="ti ti-circle-check text-5xl text-green-500" aria-hidden="true" />
-              <p className="font-semibold text-gray-900 mt-2">Imetumwa!</p>
-              <p className="text-sm text-gray-400 mt-1">Tunakupeleka dashibodini...</p>
+              <p className="font-semibold text-gray-900 mt-2">{t('pr_kyc_sent_short')}</p>
+              <p className="text-sm text-gray-400 mt-1">{t('pr_kyc_redirecting')}</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Kiungo cha Kitambulisho (ID/Pasipoti) <span className="text-red-500">*</span>
+                  {t('pr_kyc_id_link_label')} <span className="text-red-500">*</span>
                 </label>
                 <input type="url" value={form.id_document_url}
                   onChange={e => setForm(p => ({ ...p, id_document_url: e.target.value }))}
@@ -305,7 +309,7 @@ export default function KycSubmitPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Kiungo cha Hati ya Umiliki (Title Deed)</label>
+                <label className="text-xs font-semibold text-gray-700 block mb-1">{t('pr_kyc_deed_link_label')}</label>
                 <input type="url" value={form.title_deed_url}
                   onChange={e => setForm(p => ({ ...p, title_deed_url: e.target.value }))}
                   placeholder="https://... (hiari)"
@@ -313,7 +317,7 @@ export default function KycSubmitPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Kiungo cha Cheti cha Kodi (TRA)</label>
+                <label className="text-xs font-semibold text-gray-700 block mb-1">{t('pr_kyc_tax_link_label')}</label>
                 <input type="url" value={form.tax_cert_url}
                   onChange={e => setForm(p => ({ ...p, tax_cert_url: e.target.value }))}
                   placeholder="https://... (hiari)"
@@ -321,10 +325,10 @@ export default function KycSubmitPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Maelezo ya ziada (hiari)</label>
+                <label className="text-xs font-semibold text-gray-700 block mb-1">{t('pr_kyc_notes_label')}</label>
                 <textarea rows={2} value={form.notes}
                   onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                  placeholder="Maelezo yoyote unayotaka kutujulisha..."
+                  placeholder={t('pr_kyc_notes_ph')}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
               </div>
 
@@ -332,11 +336,11 @@ export default function KycSubmitPage() {
 
               <button type="submit" disabled={submitting || !canSubmit}
                 className="w-full bg-primary-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40">
-                {submitting ? 'Inatuma...' : submission?.status === 'needs_more_info' ? 'Tuma Nyaraka Zaidi' : 'Wasilisha Ombi la KYC'}
+                {submitting ? t('pr_kyc_waiting') : submission?.status === 'needs_more_info' ? t('pr_kyc_submit_more') : t('pr_kyc_submit_btn')}
               </button>
 
               {!canSubmit && (
-                <p className="text-xs text-gray-400 text-center">Ombi lako liko chini ya ukaguzi. Subiri jibu.</p>
+                <p className="text-xs text-gray-400 text-center">{t('pr_kyc_awaiting_review')}</p>
               )}
             </form>
           )}

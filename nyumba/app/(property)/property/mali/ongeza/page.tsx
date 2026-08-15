@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/context'
 import { REGION_NAMES } from '@/lib/data/tanzania-locations'
 
 const PROPERTY_TYPES = [
@@ -18,6 +19,7 @@ const FURNISHED = [
 ]
 
 export default function OngezaMaliPage() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [step,      setStep]      = useState(1)
   const [saving,    setSaving]    = useState(false)
@@ -50,11 +52,11 @@ export default function OngezaMaliPage() {
   }
 
   async function handleSubmit() {
-    if (!orgId) { setError('Shirika halipatikani. Rudi nyuma ujaribu tena.'); return }
-    if (!title.trim())   { setError('Jina la mali linahitajika'); return }
-    if (!region)         { setError('Chagua mkoa'); return }
-    if (!district.trim()) { setError('Wilaya inahitajika'); return }
-    if (!price_monthly || Number(price_monthly) <= 0) { setError('Bei ya kodi inahitajika'); return }
+    if (!orgId) { setError(t('pr_ongeza_err_org')); return }
+    if (!title.trim())   { setError(t('pr_ongeza_err_name')); return }
+    if (!region)         { setError(t('pr_ongeza_err_region')); return }
+    if (!district.trim()) { setError(t('pr_ongeza_err_district')); return }
+    if (!price_monthly || Number(price_monthly) <= 0) { setError(t('pr_ongeza_err_price')); return }
 
     setSaving(true); setError(null)
     try {
@@ -79,7 +81,7 @@ export default function OngezaMaliPage() {
       }
       router.push(`/property/mali/${data.listing.id}`)
     } catch {
-      setError('Haikuweza kuunganika. Jaribu tena.')
+      setError(t('pr_network_err'))
     } finally {
       setSaving(false)
     }
@@ -94,17 +96,17 @@ export default function OngezaMaliPage() {
             <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="ti ti-lock text-amber-500 text-3xl" aria-hidden="true" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Kikomo cha Mpango</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">{t('pr_ongeza_limit_title')}</h2>
             <p className="text-sm text-gray-500 mb-5">
-              Umefika kikomo cha mali kwenye mpango wako wa sasa. Panda mpango ili kuongeza mali zaidi.
+              {t('pr_ongeza_limit_desc')}
             </p>
             <a href="/property/usajili"
               className="block w-full py-3 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition mb-3">
-              Panda Mpango
+              {t('pr_ongeza_upgrade')}
             </a>
             <button onClick={() => setLimitHit(false)}
               className="text-sm text-gray-400 hover:text-gray-600">
-              Rudi nyuma
+              {t('pr_ongeza_back')}
             </button>
           </div>
         </div>
@@ -113,10 +115,10 @@ export default function OngezaMaliPage() {
       <div className="mb-6">
         <button onClick={() => router.back()} className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-3">
           <i className="ti ti-arrow-left" aria-hidden="true" />
-          Rudi nyuma
+          {t('pr_ongeza_back')}
         </button>
-        <h1 className="text-xl font-bold text-gray-900">Ongeza Mali Mpya</h1>
-        <p className="text-sm text-gray-500">Mali hii itasimamiwa na shirika lako</p>
+        <h1 className="text-xl font-bold text-gray-900">{t('pr_mali_ongeza_title')}</h1>
+        <p className="text-sm text-gray-500">{t('pr_ongeza_sub')}</p>
       </div>
 
       {/* Progress */}
@@ -136,7 +138,7 @@ export default function OngezaMaliPage() {
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
         {step === 1 && (
           <div className="space-y-4">
-            <h2 className="font-semibold text-gray-900">Aina ya Mali</h2>
+            <h2 className="font-semibold text-gray-900">{t('pr_ongeza_step_type')}</h2>
             <div className="grid grid-cols-3 gap-2">
               {PROPERTY_TYPES.map(t => (
                 <button
@@ -155,7 +157,7 @@ export default function OngezaMaliPage() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Jina la Mali *</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_mali_title_label')}</label>
               <input
                 type="text"
                 value={title}
@@ -167,18 +169,18 @@ export default function OngezaMaliPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Mkoa *</label>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_ongeza_region_label')}</label>
                 <select
                   value={region}
                   onChange={e => setRegion(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                 >
-                  <option value="">Chagua mkoa...</option>
+                  <option value="">{t('pr_ongeza_region_ph')}</option>
                   {REGION_NAMES.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Wilaya / Mtaa *</label>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_ongeza_district_label')}</label>
                 <input
                   type="text"
                   value={district}
@@ -191,22 +193,22 @@ export default function OngezaMaliPage() {
 
             <button
               onClick={() => {
-                if (!title.trim() || !region || !district.trim()) { setError('Jaza sehemu zote zinazohitajika'); return }
+                if (!title.trim() || !region || !district.trim()) { setError(t('pr_err_required')); return }
                 setError(null); setStep(2)
               }}
               className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold hover:bg-primary-600 transition"
             >
-              Endelea
+              {t('pr_continue')}
             </button>
           </div>
         )}
 
         {step === 2 && (
           <div className="space-y-4">
-            <h2 className="font-semibold text-gray-900">Maelezo ya Bei</h2>
+            <h2 className="font-semibold text-gray-900">{t('pr_ongeza_step_details')}</h2>
 
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Bei ya Kodi (TZS/mwezi) *</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_ongeza_rent_label')}</label>
               <input
                 type="number"
                 value={price_monthly}
@@ -219,7 +221,7 @@ export default function OngezaMaliPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Idadi ya Vyumba</label>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_ongeza_bedrooms_label')}</label>
                 <input
                   type="number"
                   value={bedrooms}
@@ -230,7 +232,7 @@ export default function OngezaMaliPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">Samani</label>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_ongeza_furnished_label')}</label>
                 <select
                   value={furnished}
                   onChange={e => setFurnished(e.target.value)}
@@ -242,7 +244,7 @@ export default function OngezaMaliPage() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Maelezo (hiari)</label>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">{t('pr_unit_desc_label')}</label>
               <textarea
                 value={description}
                 onChange={e => setDescription(e.target.value)}
@@ -259,14 +261,14 @@ export default function OngezaMaliPage() {
                 onClick={() => setStep(1)}
                 className="px-4 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 py-3"
               >
-                Rudi
+                {t('pr_back_btn')}
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving}
                 className="flex-1 bg-primary-500 text-white py-3 rounded-xl font-semibold hover:bg-primary-600 transition disabled:opacity-40"
               >
-                {saving ? 'Inahifadhi...' : 'Hifadhi Mali'}
+                {saving ? t('pr_saving') : t('pr_ongeza_submit')}
               </button>
             </div>
           </div>

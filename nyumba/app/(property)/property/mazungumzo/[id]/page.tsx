@@ -5,6 +5,7 @@ import { CONV_TYPE_LABELS } from '@/lib/types/property'
 import type { Conversation, Message } from '@/lib/types/property'
 import AttachmentCompose, { type PendingAttachment } from '@/components/messages/AttachmentCompose'
 import AttachmentDisplay from '@/components/messages/AttachmentDisplay'
+import { useLanguage } from '@/lib/i18n/context'
 
 interface MsgAttachment {
   id?: string; file_url: string; file_name: string | null; file_type: string | null; file_size: number | null
@@ -39,6 +40,7 @@ function Avatar({ name, url, size = 8 }: { name: string | null; url: string | nu
 
 export default function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const { t } = useLanguage()
   const [conv,     setConv]    = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<RawMsg[]>([])
   const [userId,   setUserId]  = useState<string | null>(null)
@@ -86,14 +88,14 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     fetchThread()
-      .catch(() => setError('Haikuweza kupakia mazungumzo.'))
+      .catch(() => setError(t('pr_mazungumzo_err_load')))
       .finally(() => setLoading(false))
 
     // Poll every 5s for new messages
-    const t = setInterval(() => {
+    const poll = setInterval(() => {
       fetchThread(false).catch(() => {})
     }, 5_000)
-    return () => clearInterval(t)
+    return () => clearInterval(poll)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
@@ -127,11 +129,11 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Kuna tatizo'); return }
+      if (!res.ok) { setError(data.error ?? t('pr_mazungumzo_err_msg')); return }
       setMessages(prev => [...prev, data.message as RawMsg])
       scrollToBottom()
     } catch {
-      setError('Haikuweza kutuma. Jaribu tena.')
+      setError(t('pr_mazungumzo_err_send'))
     } finally {
       setSending(false)
       inputRef.current?.focus()
@@ -175,16 +177,16 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
 
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm text-gray-900 truncate">
-                {conv?.title ?? others.map(p => p.user?.full_name ?? 'Mtumiaji').join(', ')}
+                {conv?.title ?? others.map(p => p.user?.full_name ?? t('pr_mazungumzo_user_fallback')).join(', ')}
               </p>
               <p className="text-xs text-gray-400">
-                {CONV_TYPE_LABELS[conv?.conv_type ?? 'general']} · {participants.length} washiriki
+                {CONV_TYPE_LABELS[conv?.conv_type ?? 'general']} · {participants.length} {t('pr_mazungumzo_participants')}
               </p>
             </div>
 
             {/* Status chip */}
             {conv?.status === 'closed' && (
-              <span className="flex-shrink-0 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">Imefungwa</span>
+              <span className="flex-shrink-0 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">{t('pr_mazungumzo_closed_status')}</span>
             )}
           </>
         )}
@@ -204,7 +206,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
         ) : messages.length === 0 ? (
           <div className="text-center py-12">
             <i className="ti ti-message text-4xl text-gray-200" aria-hidden="true" />
-            <p className="text-sm text-gray-400 mt-2">Hakuna ujumbe bado. Anza mazungumzo!</p>
+            <p className="text-sm text-gray-400 mt-2">{t('pr_mazungumzo_no_messages')}</p>
           </div>
         ) : (
           messages.map((msg, idx) => {
@@ -233,7 +235,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
 
                 <div className={`max-w-[75%] ${isMe ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
                   {showAvatar && !isMe && (
-                    <span className="text-[10px] text-gray-400 ml-0.5">{sender?.full_name ?? 'Mtumiaji'}</span>
+                    <span className="text-[10px] text-gray-400 ml-0.5">{sender?.full_name ?? t('pr_mazungumzo_user_fallback')}</span>
                   )}
                   <div
                     className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
@@ -246,7 +248,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
                   >
                     {msg.is_internal && (
                       <span className="block text-[10px] font-semibold text-amber-600 mb-1">
-                        <i className="ti ti-lock mr-1" aria-hidden="true" />Kumbukumbu ya ndani
+                        <i className="ti ti-lock mr-1" aria-hidden="true" />{t('pr_mazungumzo_internal_note')}
                       </span>
                     )}
                     {msg.body && <p>{msg.body}</p>}
@@ -281,7 +283,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
                 }`}
               >
                 <i className={`ti ti-lock${isNote ? '' : '-open'}`} aria-hidden="true" />
-                {isNote ? 'Kumbukumbu ya ndani' : 'Ujumbe wa kawaida'}
+                {isNote ? t('pr_mazungumzo_internal_toggle') : t('pr_mazungumzo_normal_toggle')}
               </button>
             </div>
           )}
@@ -308,7 +310,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               rows={1}
-              placeholder={isNote ? 'Andika kumbukumbu ya ndani...' : 'Andika ujumbe...'}
+              placeholder={isNote ? t('pr_mazungumzo_note_ph') : t('pr_mazungumzo_type_ph2')}
               className={`flex-1 resize-none border rounded-2xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 max-h-32 leading-relaxed ${
                 isNote
                   ? 'border-amber-300 bg-amber-50 text-amber-900 focus:ring-amber-200 placeholder:text-amber-400'
@@ -328,11 +330,11 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
               }
             </button>
           </div>
-          <p className="text-[10px] text-gray-400 mt-1 ml-1">Enter kutuma · Shift+Enter kwa mstari mpya</p>
+          <p className="text-[10px] text-gray-400 mt-1 ml-1">{t('pr_mazungumzo_enter_hint')}</p>
         </div>
       ) : (
         <div className="flex-shrink-0 border-t border-gray-100 bg-gray-50 px-4 py-3 text-center">
-          <p className="text-sm text-gray-500">Mazungumzo haya yamefungwa.</p>
+          <p className="text-sm text-gray-500">{t('pr_mazungumzo_closed_msg')}</p>
         </div>
       )}
     </div>

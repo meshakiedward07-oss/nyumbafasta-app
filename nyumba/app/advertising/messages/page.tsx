@@ -229,7 +229,7 @@ export default function AdvertiserMessagesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         participant_ids: [pickedStaff.id],
-        first_message: newMsg.trim() || `Habari, biashara yangu inahitaji msaada`,
+        first_message: newMsg.trim() || t('adv_default_first_msg'),
       }),
     })
     if (res.ok) {
