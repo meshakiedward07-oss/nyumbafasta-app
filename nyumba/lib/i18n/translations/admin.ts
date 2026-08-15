@@ -31,7 +31,7 @@ const T_admin = {
   admin_nav_users:             { sw: 'Watumiaji',              en: 'Users'                 },
   admin_nav_listings:          { sw: 'Matangazo',              en: 'Listings'              },
   admin_nav_verifications:     { sw: 'Uthibitisho',            en: 'Verifications'         },
-  admin_nav_accounting:        { sw: 'Usajili / Hesabu',       en: 'Registrations / Accounts' },
+  admin_nav_accounting:        { sw: 'Accountancy Management', en: 'Accountancy Management'  },
   admin_nav_campaigns:         { sw: 'Kampeni',                en: 'Campaigns'             },
   admin_nav_plans:             { sw: 'Mipango',                en: 'Plans'                 },
   admin_nav_legal_agreements:  { sw: 'Makubaliano & Malalamiko', en: 'Agreements & Complaints' },

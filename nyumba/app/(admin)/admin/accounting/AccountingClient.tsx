@@ -793,86 +793,111 @@ ON CONFLICT DO NOTHING;`}</pre>
       {mobileNavOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileNavOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl flex flex-col overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <i className="ti ti-coins text-primary-500" aria-hidden="true" />
-                <span className="font-bold text-gray-900 text-sm">Hesabu</span>
+          <div className="absolute left-0 top-0 bottom-0 w-64 flex flex-col shadow-2xl" style={{ background: '#1a1a18' }}>
+            <div className="px-4 py-4 border-b flex-shrink-0 flex items-center justify-between" style={{ borderColor: '#2a2a28' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#1D9E75' }}>
+                  <i className="ti ti-coins text-white text-xs" aria-hidden="true" />
+                </div>
+                <p className="text-sm font-bold text-white">Hesabu</p>
               </div>
-              <button onClick={() => setMobileNavOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+              <button onClick={() => setMobileNavOpen(false)} className="p-1.5 rounded-lg" style={{ color: '#999992' }}>
                 <i className="ti ti-x" aria-hidden="true" />
               </button>
             </div>
-            {/* Month selector in drawer */}
-            <div className="p-4 border-b border-gray-100 flex-shrink-0">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Mwezi</p>
+            {/* Month selector */}
+            <div className="px-3 py-3 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
+              <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#666660' }}>Mwezi</p>
               <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-primary-400 font-medium text-gray-700 bg-white">
+                className="w-full text-xs px-2.5 py-2 rounded-lg font-medium focus:outline-none"
+                style={{ background: '#2a2a28', color: '#e0e0d8', border: '1px solid #3a3a38' }}
+              >
                 {monthOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}{opt.value === getCurrentMonth() ? ' ★' : ''}</option>)}
               </select>
             </div>
-            {/* KPI Summary in drawer */}
-            <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-gray-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-400" />Mapato</span>
-                <span className="text-sm font-bold text-green-600">{fmtTsh(income?.total ?? 0)}</span>
-              </div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-gray-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-400" />Matumizi</span>
-                <span className="text-sm font-bold text-red-500">{fmtTsh(expenses?.total ?? 0)}</span>
-              </div>
-              <div className="flex items-center justify-between pt-1.5 border-t border-gray-100">
-                <span className="text-xs text-gray-500 flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${profit >= 0 ? 'bg-blue-400' : 'bg-orange-400'}`} />{profit >= 0 ? 'Faida' : 'Hasara'}</span>
-                <span className={`text-sm font-bold ${profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>{profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}</span>
+            {/* KPI mini */}
+            <div className="px-3 py-3 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}><span className="w-1.5 h-1.5 rounded-full bg-green-400" />Mapato</span>
+                  <span className="text-[11px] font-bold text-green-400">{fmtTsh(income?.total ?? 0)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}><span className="w-1.5 h-1.5 rounded-full bg-red-400" />Matumizi</span>
+                  <span className="text-[11px] font-bold text-red-400">{fmtTsh(expenses?.total ?? 0)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}><span className={`w-1.5 h-1.5 rounded-full ${profit >= 0 ? 'bg-blue-400' : 'bg-orange-400'}`} />{profit >= 0 ? 'Faida' : 'Hasara'}</span>
+                  <span className={`text-[11px] font-bold ${profit >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>{profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}</span>
+                </div>
               </div>
             </div>
-            {/* Drawer tabs nav */}
-            <nav className="flex-1 overflow-y-auto py-2">
-              <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Msingi</p>
-              {([
-                { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
-                { key: 'takwimu',   label: 'Takwimu',   icon: 'chart-dots' },
-                { key: 'mapato',    label: 'Mapato',    icon: 'trending-up' },
-                { key: 'matumizi',  label: 'Matumizi',  icon: 'trending-down' },
-                { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
-              ] as { key: TabKey; label: string; icon: string }[]).map(t => (
-                <button key={t.key} onClick={() => { setTab(t.key); setMobileNavOpen(false) }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${tab === t.key ? 'bg-primary-50 text-primary-600 font-medium' : 'text-gray-500 hover:bg-gray-50'}`}>
-                  <i className={`ti ti-${t.icon} text-base flex-shrink-0`} aria-hidden="true" />{t.label}
-                  {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500" />}
+            {/* Nav */}
+            <nav className="flex-1 overflow-y-auto px-2 py-3">
+              <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Msingi</p>
+              <div className="space-y-0.5 mb-4">
+                {([
+                  { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
+                  { key: 'takwimu',   label: 'Takwimu',   icon: 'chart-dots' },
+                  { key: 'mapato',    label: 'Mapato',    icon: 'trending-up' },
+                  { key: 'matumizi',  label: 'Matumizi',  icon: 'trending-down' },
+                  { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
+                ] as { key: TabKey; label: string; icon: string }[]).map(t => (
+                  <button key={t.key} onClick={() => { setTab(t.key); setMobileNavOpen(false) }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left"
+                    style={tab === t.key ? { background: '#1D9E75', color: '#fff' } : { color: '#b0b0aa' }}>
+                    <i className={`ti ti-${t.icon} text-base w-4 flex-shrink-0 text-center`} aria-hidden="true" />
+                    <span>{t.label}</span>
+                    {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60" />}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Mapato</p>
+              <div className="space-y-0.5 mb-4">
+                {([
+                  { key: 'usajiri',       label: 'Usajiri',      icon: 'id-badge' },
+                  { key: 'mawasiliano',   label: 'Mawasiliano',  icon: 'lock-open' },
+                  { key: 'matangazo',     label: 'Matangazo',    icon: 'rocket' },
+                  { key: 'org_sub',       label: 'Org Sub',      icon: 'building' },
+                  { key: 'fundi_sub',     label: 'Fundi Sub',    icon: 'tool' },
+                  { key: 'ad_campaign',   label: 'Ad Campaign',  icon: 'speakerphone' },
+                  { key: 'extra_listing', label: 'Orodha Ziada', icon: 'list-plus' },
+                ] as { key: TabKey; label: string; icon: string }[]).map(t => (
+                  <button key={t.key} onClick={() => { setTab(t.key); setMobileNavOpen(false) }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left"
+                    style={tab === t.key ? { background: '#1D9E75', color: '#fff' } : { color: '#b0b0aa' }}>
+                    <i className={`ti ti-${t.icon} text-base w-4 flex-shrink-0 text-center`} aria-hidden="true" />
+                    <span>{t.label}</span>
+                    {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60" />}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Mipangilio</p>
+              <div className="space-y-0.5">
+                <button onClick={() => { setTab('bei'); setMobileNavOpen(false) }}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left"
+                  style={tab === 'bei' ? { background: '#1D9E75', color: '#fff' } : { color: '#b0b0aa' }}>
+                  <i className="ti ti-tag text-base w-4 flex-shrink-0 text-center" aria-hidden="true" />
+                  <span>Bei</span>
+                  {tab === 'bei' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60" />}
                 </button>
-              ))}
-              <p className="px-4 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mapato</p>
-              {([
-                { key: 'usajiri',       label: 'Usajiri',      icon: 'id-badge' },
-                { key: 'mawasiliano',   label: 'Mawasiliano',  icon: 'lock-open' },
-                { key: 'matangazo',     label: 'Matangazo',    icon: 'rocket' },
-                { key: 'org_sub',       label: 'Org Sub',      icon: 'building' },
-                { key: 'fundi_sub',     label: 'Fundi Sub',    icon: 'tool' },
-                { key: 'ad_campaign',   label: 'Ad Campaign',  icon: 'speakerphone' },
-                { key: 'extra_listing', label: 'Orodha Ziada', icon: 'list-plus' },
-              ] as { key: TabKey; label: string; icon: string }[]).map(t => (
-                <button key={t.key} onClick={() => { setTab(t.key); setMobileNavOpen(false) }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${tab === t.key ? 'bg-primary-50 text-primary-600 font-medium' : 'text-gray-500 hover:bg-gray-50'}`}>
-                  <i className={`ti ti-${t.icon} text-base flex-shrink-0`} aria-hidden="true" />{t.label}
-                  {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500" />}
-                </button>
-              ))}
-              <p className="px-4 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mipangilio</p>
-              <button onClick={() => { setTab('bei'); setMobileNavOpen(false) }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${tab === 'bei' ? 'bg-primary-50 text-primary-600 font-medium' : 'text-gray-500 hover:bg-gray-50'}`}>
-                <i className="ti ti-tag text-base flex-shrink-0" aria-hidden="true" />Bei
-                {tab === 'bei' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500" />}
-              </button>
+              </div>
             </nav>
-            <div className="p-4 border-t border-gray-100 flex-shrink-0 space-y-2">
+            <div className="px-3 py-3 border-t flex-shrink-0 space-y-1.5" style={{ borderColor: '#2a2a28' }}>
               <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
-                className="w-full flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-medium disabled:opacity-50">
-                <i className="ti ti-download" aria-hidden="true" />Pakua PDF
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium disabled:opacity-50"
+                style={{ background: '#2a2a28', color: '#f87171' }}>
+                <i className="ti ti-download text-xs" aria-hidden="true" />PDF
               </button>
               <button onClick={() => handleDownload('excel')} disabled={!!downloading}
-                className="w-full flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-medium disabled:opacity-50">
-                <i className="ti ti-table" aria-hidden="true" />Pakua Excel
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium disabled:opacity-50"
+                style={{ background: '#2a2a28', color: '#4ade80' }}>
+                <i className="ti ti-table text-xs" aria-hidden="true" />Excel
+              </button>
+              <button onClick={handleSync}
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium"
+                style={{ background: '#2a2a28', color: '#60a5fa' }}>
+                <i className="ti ti-refresh text-xs" aria-hidden="true" />Sync
               </button>
             </div>
           </div>
@@ -906,20 +931,37 @@ ON CONFLICT DO NOTHING;`}</pre>
       {/* ── Body: Sidebar + Content ── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* ── Left Sidebar (desktop only) ── */}
-        <div className="hidden lg:flex flex-col w-64 xl:w-72 bg-white border-r border-gray-100 flex-shrink-0 overflow-hidden">
-          <div className="flex flex-col h-full overflow-hidden">
+        {/* ── Desktop Sidebar ── */}
+        <aside className="hidden lg:flex flex-col w-[210px] xl:w-[230px] flex-shrink-0 h-full overflow-y-auto" style={{ background: '#1a1a18' }}>
+
+          {/* Brand header */}
+          <div className="px-4 py-4 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#1D9E75' }}>
+                <i className="ti ti-coins text-white text-sm" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white leading-tight">Hesabu</p>
+                <p className="text-[10px] leading-tight" style={{ color: '#999992' }}>NyumbaFasta</p>
+              </div>
+            </div>
+            <Link href="/admin"
+              className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-1.5 rounded-lg transition-all hover:bg-white/10"
+              style={{ color: '#999992' }}
+            >
+              <i className="ti ti-arrow-left text-xs" aria-hidden="true" />
+              Admin Panel
+            </Link>
+          </div>
 
           {/* Month selector */}
-          <div className="p-4 border-b border-gray-100">
-            <div className="flex items-center gap-1.5 mb-2">
-              <i className="ti ti-calendar text-gray-400 text-sm" aria-hidden="true" />
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mwezi</span>
-            </div>
+          <div className="px-3 py-3 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#666660' }}>Mwezi</p>
             <select
               value={selectedMonth}
               onChange={e => setSelectedMonth(e.target.value)}
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-primary-400 font-medium text-gray-700 bg-white"
+              className="w-full text-xs px-2.5 py-2 rounded-lg font-medium focus:outline-none"
+              style={{ background: '#2a2a28', color: '#e0e0d8', border: '1px solid #3a3a38' }}
             >
               {monthOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -929,149 +971,158 @@ ON CONFLICT DO NOTHING;`}</pre>
             </select>
             {(() => {
               const isCurrentMonth = selectedMonth === getCurrentMonth()
-              const currentLabel   = monthOptions.find(m => m.value === selectedMonth)?.label ?? selectedMonth
-              const today          = new Date().getDate()
-              const totalDays      = daysInMonth(selectedMonth)
-              return (
-                <div className={`mt-2 px-3 py-1.5 rounded-lg flex items-center justify-between text-xs ${
-                  isCurrentMonth ? 'bg-green-600 text-white' : 'bg-gray-700 text-white'
-                }`}>
-                  <span className="font-semibold truncate">{currentLabel}</span>
-                  {isCurrentMonth
-                    ? <span className="opacity-80 ml-2 flex-shrink-0">Siku {today}/{totalDays}</span>
-                    : <span className="opacity-80 ml-2 flex-shrink-0">Imekamilika</span>
-                  }
-                </div>
+              const today = new Date().getDate()
+              const totalDays = daysInMonth(selectedMonth)
+              return isCurrentMonth ? (
+                <p className="text-[10px] mt-1.5 px-1" style={{ color: '#666660' }}>
+                  Siku {today}/{totalDays} za mwezi
+                </p>
+              ) : (
+                <p className="text-[10px] mt-1.5 px-1" style={{ color: '#666660' }}>Imekamilika</p>
               )
             })()}
           </div>
 
-          {/* KPI Summary */}
-          <div className="p-4 border-b border-gray-100">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Muhtasari wa Mwezi</p>
+          {/* KPI mini-summary */}
+          <div className="px-3 py-3 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#666660' }}>Muhtasari</p>
             {loading ? (
-              <div className="space-y-2.5 animate-pulse">
-                {[1,2,3].map(i => <div key={i} className="h-5 bg-gray-100 rounded" />)}
+              <div className="space-y-2 animate-pulse">
+                {[1,2,3].map(i => <div key={i} className="h-3 rounded" style={{ background: '#2a2a28' }} />)}
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />Mapato
+                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />Mapato
                   </span>
-                  <span className="text-sm font-bold text-green-600">{fmtTsh(income?.total ?? 0)}</span>
+                  <span className="text-[11px] font-bold text-green-400">{fmtTsh(income?.total ?? 0)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />Matumizi
+                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />Matumizi
                   </span>
-                  <span className="text-sm font-bold text-red-500">{fmtTsh(expenses?.total ?? 0)}</span>
+                  <span className="text-[11px] font-bold text-red-400">{fmtTsh(expenses?.total ?? 0)}</span>
                 </div>
-                <div className="flex items-center justify-between pt-2 mt-1 border-t border-gray-100">
-                  <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-blue-400' : 'bg-orange-400'}`} />
+                <div className="flex items-center justify-between pt-1.5" style={{ borderTop: '1px solid #2a2a28' }}>
+                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}>
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-blue-400' : 'bg-orange-400'}`} />
                     {profit >= 0 ? 'Faida' : 'Hasara'}
                   </span>
-                  <span className={`text-sm font-bold ${profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                  <span className={`text-[11px] font-bold ${profit >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
                     {profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}
                   </span>
                 </div>
                 {(summary?.profitMargin ?? 0) !== 0 && (
-                  <p className="text-[10px] text-gray-400 text-right">{summary?.profitMargin}% margin</p>
+                  <p className="text-[10px] text-right" style={{ color: '#666660' }}>{summary?.profitMargin}% margin</p>
                 )}
                 {(income?.platformFees ?? 0) > 0 && (
-                  <div className="bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-2 mt-2">
-                    <p className="text-[10px] text-amber-700 flex items-center gap-1">
-                      <i className="ti ti-credit-card text-amber-500 flex-shrink-0" aria-hidden="true" />
-                      AzamPay 1%: <strong>{fmtTsh(income?.platformFees ?? 0)}</strong>
+                  <div className="rounded-lg px-2 py-1.5 mt-1" style={{ background: '#2a2a18', border: '1px solid #3a3a18' }}>
+                    <p className="text-[10px] flex items-center gap-1" style={{ color: '#c9a94e' }}>
+                      <i className="ti ti-credit-card flex-shrink-0" aria-hidden="true" />
+                      AzamPay: <strong>{fmtTsh(income?.platformFees ?? 0)}</strong>
                     </p>
-                    <p className="text-[10px] text-amber-600 mt-0.5">Halisi: {fmtTsh(income?.netIncome ?? 0)}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: '#999960' }}>Halisi: {fmtTsh(income?.netIncome ?? 0)}</p>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Action buttons */}
-          <div className="p-4 border-b border-gray-100 space-y-2">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Vitendo</p>
+          {/* Nav groups */}
+          <nav className="flex-1 overflow-y-auto px-2 py-3">
+            <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Msingi</p>
+            <div className="space-y-0.5 mb-4">
+              {([
+                { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
+                { key: 'takwimu',   label: 'Takwimu',   icon: 'chart-dots' },
+                { key: 'mapato',    label: 'Mapato',    icon: 'trending-up' },
+                { key: 'matumizi',  label: 'Matumizi',  icon: 'trending-down' },
+                { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
+              ] as { key: TabKey; label: string; icon: string }[]).map(t => (
+                <button key={t.key} onClick={() => setTab(t.key)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-left text-xs font-medium"
+                  style={tab === t.key
+                    ? { background: '#1D9E75', color: '#ffffff' }
+                    : { color: '#b0b0aa' }}
+                >
+                  <i className={`ti ti-${t.icon} text-sm w-4 flex-shrink-0 text-center`} aria-hidden="true" />
+                  <span className="truncate">{t.label}</span>
+                  {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Mapato</p>
+            <div className="space-y-0.5 mb-4">
+              {([
+                { key: 'usajiri',       label: 'Usajiri',      icon: 'id-badge' },
+                { key: 'mawasiliano',   label: 'Mawasiliano',  icon: 'lock-open' },
+                { key: 'matangazo',     label: 'Matangazo',    icon: 'rocket' },
+                { key: 'org_sub',       label: 'Org Sub',      icon: 'building' },
+                { key: 'fundi_sub',     label: 'Fundi Sub',    icon: 'tool' },
+                { key: 'ad_campaign',   label: 'Ad Campaign',  icon: 'speakerphone' },
+                { key: 'extra_listing', label: 'Orodha Ziada', icon: 'list-plus' },
+              ] as { key: TabKey; label: string; icon: string }[]).map(t => (
+                <button key={t.key} onClick={() => setTab(t.key)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-left text-xs font-medium"
+                  style={tab === t.key
+                    ? { background: '#1D9E75', color: '#ffffff' }
+                    : { color: '#b0b0aa' }}
+                >
+                  <i className={`ti ti-${t.icon} text-sm w-4 flex-shrink-0 text-center`} aria-hidden="true" />
+                  <span className="truncate">{t.label}</span>
+                  {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Mipangilio</p>
+            <div className="space-y-0.5">
+              <button onClick={() => setTab('bei')}
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-left text-xs font-medium"
+                style={tab === 'bei'
+                  ? { background: '#1D9E75', color: '#ffffff' }
+                  : { color: '#b0b0aa' }}
+              >
+                <i className="ti ti-tag text-sm w-4 flex-shrink-0 text-center" aria-hidden="true" />
+                <span>Bei</span>
+                {tab === 'bei' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />}
+              </button>
+            </div>
+          </nav>
+
+          {/* Actions footer */}
+          <div className="px-3 py-3 border-t flex-shrink-0 space-y-1.5" style={{ borderColor: '#2a2a28' }}>
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#666660' }}>Ripoti</p>
             <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
-              className="w-full flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-medium disabled:opacity-50 hover:bg-red-100 transition-colors">
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all disabled:opacity-50"
+              style={{ background: '#2a2a28', color: '#f87171' }}
+            >
               {downloading === 'pdf'
-                ? <span className="w-3 h-3 border-2 border-red-300 border-t-red-600 rounded-full animate-spin flex-shrink-0" />
-                : <i className="ti ti-download flex-shrink-0" aria-hidden="true" />
-              }
+                ? <span className="w-3 h-3 border-2 rounded-full animate-spin flex-shrink-0" style={{ borderColor: '#f87171', borderTopColor: 'transparent' }} />
+                : <i className="ti ti-download text-xs flex-shrink-0" aria-hidden="true" />}
               <span>Pakua PDF</span>
             </button>
             <button onClick={() => handleDownload('excel')} disabled={!!downloading}
-              className="w-full flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-medium disabled:opacity-50 hover:bg-emerald-100 transition-colors">
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all disabled:opacity-50"
+              style={{ background: '#2a2a28', color: '#4ade80' }}
+            >
               {downloading === 'excel'
-                ? <span className="w-3 h-3 border-2 border-emerald-300 border-t-emerald-700 rounded-full animate-spin flex-shrink-0" />
-                : <i className="ti ti-table flex-shrink-0" aria-hidden="true" />
-              }
+                ? <span className="w-3 h-3 border-2 rounded-full animate-spin flex-shrink-0" style={{ borderColor: '#4ade80', borderTopColor: 'transparent' }} />
+                : <i className="ti ti-table text-xs flex-shrink-0" aria-hidden="true" />}
               <span>Pakua Excel</span>
             </button>
             <button onClick={handleSync}
-              className="w-full flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium hover:bg-blue-100 transition-colors">
-              <i className="ti ti-refresh flex-shrink-0" aria-hidden="true" />
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all"
+              style={{ background: '#2a2a28', color: '#60a5fa' }}
+            >
+              <i className="ti ti-refresh text-xs flex-shrink-0" aria-hidden="true" />
               <span>Sync Mapato</span>
             </button>
-            {syncMsg && <p className="text-[11px] text-gray-500 text-center">{syncMsg}</p>}
+            {syncMsg && <p className="text-[10px] text-center mt-1" style={{ color: '#999992' }}>{syncMsg}</p>}
           </div>
-
-          {/* Vertical Tab Navigation */}
-          <nav className="flex-1 overflow-y-auto py-2">
-            <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Msingi</p>
-            {([
-              { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
-              { key: 'takwimu',   label: 'Takwimu',   icon: 'chart-dots' },
-              { key: 'mapato',    label: 'Mapato',    icon: 'trending-up' },
-              { key: 'matumizi',  label: 'Matumizi',  icon: 'trending-down' },
-              { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
-            ] as { key: TabKey; label: string; icon: string }[]).map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-r-2 ${
-                  tab === t.key
-                    ? 'bg-primary-50 text-primary-600 border-primary-500 font-medium'
-                    : 'text-gray-500 hover:bg-gray-50 border-transparent hover:text-gray-700'
-                }`}>
-                <i className={`ti ti-${t.icon} text-base flex-shrink-0`} aria-hidden="true" />
-                <span>{t.label}</span>
-              </button>
-            ))}
-            <p className="px-4 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mapato</p>
-            {([
-              { key: 'usajiri',       label: 'Usajiri',      icon: 'id-badge' },
-              { key: 'mawasiliano',   label: 'Mawasiliano',  icon: 'lock-open' },
-              { key: 'matangazo',     label: 'Matangazo',    icon: 'rocket' },
-              { key: 'org_sub',       label: 'Org Sub',      icon: 'building' },
-              { key: 'fundi_sub',     label: 'Fundi Sub',    icon: 'tool' },
-              { key: 'ad_campaign',   label: 'Ad Campaign',  icon: 'speakerphone' },
-              { key: 'extra_listing', label: 'Orodha Ziada', icon: 'list-plus' },
-            ] as { key: TabKey; label: string; icon: string }[]).map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-r-2 ${
-                  tab === t.key
-                    ? 'bg-primary-50 text-primary-600 border-primary-500 font-medium'
-                    : 'text-gray-500 hover:bg-gray-50 border-transparent hover:text-gray-700'
-                }`}>
-                <i className={`ti ti-${t.icon} text-base flex-shrink-0`} aria-hidden="true" />
-                <span>{t.label}</span>
-              </button>
-            ))}
-            <p className="px-4 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mipangilio</p>
-            <button onClick={() => setTab('bei')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-r-2 ${
-                tab === 'bei'
-                  ? 'bg-primary-50 text-primary-600 border-primary-500 font-medium'
-                  : 'text-gray-500 hover:bg-gray-50 border-transparent hover:text-gray-700'
-              }`}>
-              <i className="ti ti-tag text-base flex-shrink-0" aria-hidden="true" />
-              <span>Bei</span>
-            </button>
-          </nav>
-          </div>{/* end inner flex-col */}
-        </div>
+        </aside>
 
         {/* ── Right Panel ── */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
