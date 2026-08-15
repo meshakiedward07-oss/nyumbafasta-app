@@ -374,6 +374,7 @@ export default function AccountingClient() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth())
   const [monthOptions,  setMonthOptions]  = useState<{ value: string; label: string }[]>([])
   const [tab,       setTab]       = useState<TabKey>('overview')
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [analytics, setAnalytics] = useState<any>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
@@ -629,7 +630,7 @@ export default function AccountingClient() {
 
   if (dbMissing) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="h-full bg-gray-50 overflow-y-auto pb-20">
         <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
           <Link href="/admin" className="p-2 rounded-full hover:bg-gray-100">
             <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -780,7 +781,7 @@ ON CONFLICT DO NOTHING;`}</pre>
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
       {/* ── Toast ── */}
       {toast && (
         <div className="fixed top-4 left-4 right-4 z-50 bg-gray-900 text-white text-sm px-4 py-3 rounded-2xl shadow-xl text-center">
@@ -788,15 +789,112 @@ ON CONFLICT DO NOTHING;`}</pre>
         </div>
       )}
 
+      {/* Mobile nav drawer */}
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileNavOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl flex flex-col overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <i className="ti ti-coins text-primary-500" aria-hidden="true" />
+                <span className="font-bold text-gray-900 text-sm">Hesabu</span>
+              </div>
+              <button onClick={() => setMobileNavOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+                <i className="ti ti-x" aria-hidden="true" />
+              </button>
+            </div>
+            {/* Month selector in drawer */}
+            <div className="p-4 border-b border-gray-100 flex-shrink-0">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Mwezi</p>
+              <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-primary-400 font-medium text-gray-700 bg-white">
+                {monthOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}{opt.value === getCurrentMonth() ? ' ★' : ''}</option>)}
+              </select>
+            </div>
+            {/* KPI Summary in drawer */}
+            <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-gray-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-400" />Mapato</span>
+                <span className="text-sm font-bold text-green-600">{fmtTsh(income?.total ?? 0)}</span>
+              </div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-gray-500 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-400" />Matumizi</span>
+                <span className="text-sm font-bold text-red-500">{fmtTsh(expenses?.total ?? 0)}</span>
+              </div>
+              <div className="flex items-center justify-between pt-1.5 border-t border-gray-100">
+                <span className="text-xs text-gray-500 flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${profit >= 0 ? 'bg-blue-400' : 'bg-orange-400'}`} />{profit >= 0 ? 'Faida' : 'Hasara'}</span>
+                <span className={`text-sm font-bold ${profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>{profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}</span>
+              </div>
+            </div>
+            {/* Drawer tabs nav */}
+            <nav className="flex-1 overflow-y-auto py-2">
+              <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Msingi</p>
+              {([
+                { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
+                { key: 'takwimu',   label: 'Takwimu',   icon: 'chart-dots' },
+                { key: 'mapato',    label: 'Mapato',    icon: 'trending-up' },
+                { key: 'matumizi',  label: 'Matumizi',  icon: 'trending-down' },
+                { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
+              ] as { key: TabKey; label: string; icon: string }[]).map(t => (
+                <button key={t.key} onClick={() => { setTab(t.key); setMobileNavOpen(false) }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${tab === t.key ? 'bg-primary-50 text-primary-600 font-medium' : 'text-gray-500 hover:bg-gray-50'}`}>
+                  <i className={`ti ti-${t.icon} text-base flex-shrink-0`} aria-hidden="true" />{t.label}
+                  {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500" />}
+                </button>
+              ))}
+              <p className="px-4 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mapato</p>
+              {([
+                { key: 'usajiri',       label: 'Usajiri',      icon: 'id-badge' },
+                { key: 'mawasiliano',   label: 'Mawasiliano',  icon: 'lock-open' },
+                { key: 'matangazo',     label: 'Matangazo',    icon: 'rocket' },
+                { key: 'org_sub',       label: 'Org Sub',      icon: 'building' },
+                { key: 'fundi_sub',     label: 'Fundi Sub',    icon: 'tool' },
+                { key: 'ad_campaign',   label: 'Ad Campaign',  icon: 'speakerphone' },
+                { key: 'extra_listing', label: 'Orodha Ziada', icon: 'list-plus' },
+              ] as { key: TabKey; label: string; icon: string }[]).map(t => (
+                <button key={t.key} onClick={() => { setTab(t.key); setMobileNavOpen(false) }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${tab === t.key ? 'bg-primary-50 text-primary-600 font-medium' : 'text-gray-500 hover:bg-gray-50'}`}>
+                  <i className={`ti ti-${t.icon} text-base flex-shrink-0`} aria-hidden="true" />{t.label}
+                  {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500" />}
+                </button>
+              ))}
+              <p className="px-4 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mipangilio</p>
+              <button onClick={() => { setTab('bei'); setMobileNavOpen(false) }}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${tab === 'bei' ? 'bg-primary-50 text-primary-600 font-medium' : 'text-gray-500 hover:bg-gray-50'}`}>
+                <i className="ti ti-tag text-base flex-shrink-0" aria-hidden="true" />Bei
+                {tab === 'bei' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500" />}
+              </button>
+            </nav>
+            <div className="p-4 border-t border-gray-100 flex-shrink-0 space-y-2">
+              <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
+                className="w-full flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-medium disabled:opacity-50">
+                <i className="ti ti-download" aria-hidden="true" />Pakua PDF
+              </button>
+              <button onClick={() => handleDownload('excel')} disabled={!!downloading}
+                className="w-full flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-medium disabled:opacity-50">
+                <i className="ti ti-table" aria-hidden="true" />Pakua Excel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 flex-shrink-0 sticky top-0 z-20">
-        <Link href="/admin" className="p-2 rounded-full hover:bg-gray-100">
-          <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 flex-shrink-0 z-20">
+        <Link href="/admin" className="p-2 rounded-xl hover:bg-gray-100 flex-shrink-0" aria-label="Rudi Admin">
+          <i className="ti ti-arrow-left text-gray-600 text-lg" aria-hidden="true" />
         </Link>
-        <div className="flex-1">
-          <h1 className="text-base font-bold text-gray-900 flex items-center gap-2"><i className="ti ti-coins" aria-hidden="true" />Hesabu za NyumbaFasta</h1>
+        {/* Mobile: hamburger to open sidebar drawer */}
+        <button onClick={() => setMobileNavOpen(true)}
+          className="lg:hidden p-2 rounded-xl bg-gray-100 flex-shrink-0"
+          aria-label="Fungua menyu">
+          <i className="ti ti-layout-sidebar text-gray-600" aria-hidden="true" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base font-bold text-gray-900 flex items-center gap-2 truncate">
+            <i className="ti ti-coins text-primary-500 flex-shrink-0" aria-hidden="true" />
+            <span className="truncate">Hesabu za NyumbaFasta</span>
+          </h1>
           <p className="text-xs text-gray-400">Mapato, Matumizi, Faida</p>
         </div>
         <button onClick={() => setShowAddExp(true)}
@@ -806,10 +904,11 @@ ON CONFLICT DO NOTHING;`}</pre>
       </div>
 
       {/* ── Body: Sidebar + Content ── */}
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* ── Left Sidebar (desktop only) ── */}
-        <div className="hidden lg:flex flex-col w-64 xl:w-72 bg-white border-r border-gray-100 flex-shrink-0 overflow-y-auto">
+        <div className="hidden lg:flex flex-col w-64 xl:w-72 bg-white border-r border-gray-100 flex-shrink-0 overflow-hidden">
+          <div className="flex flex-col h-full overflow-hidden">
 
           {/* Month selector */}
           <div className="p-4 border-b border-gray-100">
@@ -921,7 +1020,7 @@ ON CONFLICT DO NOTHING;`}</pre>
           </div>
 
           {/* Vertical Tab Navigation */}
-          <nav className="flex-1 py-2">
+          <nav className="flex-1 overflow-y-auto py-2">
             <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Msingi</p>
             {([
               { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
@@ -971,13 +1070,13 @@ ON CONFLICT DO NOTHING;`}</pre>
               <span>Bei</span>
             </button>
           </nav>
+          </div>{/* end inner flex-col */}
         </div>
 
         {/* ── Right Panel ── */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-          {/* Mobile: horizontal tab bar */}
-          <div className="lg:hidden bg-white border-b border-gray-100 flex overflow-x-auto scrollbar-none flex-shrink-0">
+          <div className="lg:hidden bg-white border-b border-gray-100 flex overflow-x-auto flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
             {([
               { key: 'overview',      label: 'Muhtasari',   icon: 'chart-bar' },
               { key: 'takwimu',       label: 'Takwimu',     icon: 'chart-dots' },

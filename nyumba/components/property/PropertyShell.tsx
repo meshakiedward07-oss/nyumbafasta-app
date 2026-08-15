@@ -179,7 +179,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:w-64 flex-shrink-0 flex-col bg-white border-r border-gray-200 h-full">
+      <aside className="hidden lg:flex lg:w-64 flex-shrink-0 flex-col bg-white border-r border-gray-200 h-full overflow-hidden">
         <SidebarContent onClose={() => {}} />
       </aside>
 
@@ -243,7 +243,7 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
       {drawerOpen && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50" onClick={() => setDrawerOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl overflow-y-auto">
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl flex flex-col overflow-hidden">
             <SidebarContent onClose={() => setDrawerOpen(false)} />
           </div>
         </div>

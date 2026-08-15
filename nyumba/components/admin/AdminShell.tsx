@@ -105,10 +105,10 @@ const NAV_SECTIONS: NavSection[] = [
 type BottomNavItem = { href: string; icon: string; labelKey: TKey; exact: boolean }
 
 const BOTTOM_NAV: BottomNavItem[] = [
-  { href: '/admin',                icon: 'chart-bar', labelKey: 'admin_nav_home',     exact: true  },
-  { href: '/admin/communications', icon: 'messages',  labelKey: 'admin_nav_sec_comms', exact: false },
-  { href: '/admin/social',         icon: 'camera',    labelKey: 'admin_nav_social_overview', exact: false },
-  { href: '/admin/leads',          icon: 'users',     labelKey: 'admin_nav_leads_mgmt', exact: false },
+  { href: '/admin',                icon: 'chart-bar', labelKey: 'admin_nav_home',            exact: true  },
+  { href: '/admin/communications', icon: 'messages',  labelKey: 'admin_nav_sec_comms',        exact: false },
+  { href: '/admin/social',         icon: 'camera',    labelKey: 'admin_nav_social_overview',  exact: false },
+  { href: '/admin/accounting',     icon: 'coins',     labelKey: 'admin_nav_accounting',       exact: false },
 ]
 
 type StaffNavItem = { href: string; icon: string; labelKey: TKey; exact: boolean; permission: 'leads' | null }
@@ -488,7 +488,13 @@ export default function AdminShell({
   const isStaff = userRole === 'staff'
 
   // Full-viewport overlays — hides sidebar, footer, body scroll
-  if (pathname.startsWith('/admin/social') || pathname === '/admin/property-management' || pathname.startsWith('/admin/messages') || pathname.startsWith('/admin/communications')) {
+  if (
+    pathname.startsWith('/admin/social') ||
+    pathname === '/admin/property-management' ||
+    pathname.startsWith('/admin/messages') ||
+    pathname.startsWith('/admin/communications') ||
+    pathname.startsWith('/admin/accounting')
+  ) {
     return <div className="fixed inset-0 overflow-hidden bg-[#f4f4f0] z-10">{children}</div>
   }
 
@@ -496,7 +502,7 @@ export default function AdminShell({
     <BadgesCtx.Provider value={badges}>
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* ── Desktop sidebar (lg+) ── */}
-      <aside className="hidden lg:flex lg:w-64 flex-shrink-0 flex-col bg-white border-r border-gray-200 h-full overflow-y-auto">
+      <aside className="hidden lg:flex lg:w-64 flex-shrink-0 flex-col bg-white border-r border-gray-200 h-full overflow-hidden">
         {isStaff ? (
           <StaffSidebar pathname={pathname} onLinkClick={() => {}} onLogout={handleLogout} />
         ) : (
@@ -565,43 +571,50 @@ export default function AdminShell({
               )
             })
           ) : (
-            BOTTOM_NAV.map(item => {
-              const active = isActive(item.href, item.exact)
-              return (
-                <Link
-                  key={item.href + item.labelKey}
-                  href={item.href}
-                  className="flex-1 flex flex-col items-center justify-center gap-0.5 relative group"
-                >
-                  {active && (
-                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" />
-                  )}
-                  <div className="relative">
-                    {item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
-                      ? (
-                        <span className={`transition-opacity ${active ? 'opacity-100' : 'opacity-40 group-hover:opacity-60'}`}>
-                          <PlatformLogo platform={item.icon.replace('brand-', '')} size={22} />
-                        </span>
-                      )
-                      : (
-                        <i className={`ti ti-${item.icon} text-[22px] transition-colors ${
-                          active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
-                        }`} aria-hidden="true" />
-                      )}
-                    {item.href === '/admin/whatsapp' && (
-                      <span className="absolute -top-1 -right-2 scale-75 origin-top-right">
-                        <PendingBadge />
-                      </span>
+            <>
+              {BOTTOM_NAV.map(item => {
+                const active = isActive(item.href, item.exact)
+                return (
+                  <Link
+                    key={item.href + item.labelKey}
+                    href={item.href}
+                    className="flex-1 flex flex-col items-center justify-center gap-0.5 relative group"
+                  >
+                    {active && (
+                      <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-500 rounded-b-full" />
                     )}
-                  </div>
-                  <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
-                    active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
-                  }`}>
-                    {t(item.labelKey)}
-                  </span>
-                </Link>
-              )
-            })
+                    <div className="relative">
+                      {item.icon.startsWith('brand-') && BRAND_PLATFORMS.has(item.icon.replace('brand-', ''))
+                        ? (
+                          <span className={`transition-opacity ${active ? 'opacity-100' : 'opacity-40 group-hover:opacity-60'}`}>
+                            <PlatformLogo platform={item.icon.replace('brand-', '')} size={22} />
+                          </span>
+                        )
+                        : (
+                          <i className={`ti ti-${item.icon} text-[22px] transition-colors ${
+                            active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
+                          }`} aria-hidden="true" />
+                        )}
+                    </div>
+                    <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
+                      active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'
+                    }`}>
+                      {t(item.labelKey)}
+                    </span>
+                  </Link>
+                )
+              })}
+              {/* "More" button opens the full drawer */}
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="flex-1 flex flex-col items-center justify-center gap-0.5 group"
+              >
+                <i className="ti ti-menu-2 text-[22px] text-gray-400 group-hover:text-gray-600 transition-colors" aria-hidden="true" />
+                <span className="text-[10px] font-semibold tracking-wide text-gray-400 group-hover:text-gray-600 transition-colors">
+                  Zaidi
+                </span>
+              </button>
+            </>
           )}
         </div>
       </nav>
@@ -613,7 +626,7 @@ export default function AdminShell({
             className="absolute inset-0 bg-black/50"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl overflow-y-auto">
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl flex flex-col overflow-hidden">
             {isStaff ? (
               <StaffSidebar pathname={pathname} onLinkClick={() => setDrawerOpen(false)} onLogout={handleLogout} />
             ) : (

@@ -150,6 +150,7 @@ const ALL_NAV_ITEMS = SIDEBAR_GROUPS.flatMap(g => g.items)
 
 export default function SocialDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('yote')
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [stats, setStats]         = useState<SocialStats | null>(null)
   const [posts, setPosts]         = useState<SocialPost[]>([])
   const [comments, setComments]   = useState<Comment[]>([])
@@ -348,12 +349,58 @@ export default function SocialDashboard() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen flex overflow-hidden" style={{ background: '#f4f4f0' }}>
+    <div className="h-full flex overflow-hidden" style={{ background: '#f4f4f0' }}>
 
       {/* Toast */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl text-sm max-w-xs">
           {toast}
+        </div>
+      )}
+
+      {/* Mobile sidebar drawer */}
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileNavOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-64 flex flex-col shadow-2xl" style={{ background: '#1a1a18' }}>
+            <div className="px-4 py-4 border-b flex-shrink-0 flex items-center justify-between" style={{ borderColor: '#2a2a28' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#1D9E75' }}>
+                  <span className="text-white text-xs font-bold">SM</span>
+                </div>
+                <p className="text-sm font-bold text-white">Social Media</p>
+              </div>
+              <button onClick={() => setMobileNavOpen(false)} className="p-1.5 rounded-lg" style={{ color: '#999992' }}>
+                <i className="ti ti-x" aria-hidden="true" />
+              </button>
+            </div>
+            <nav className="flex-1 overflow-y-auto px-2 py-3">
+              {SIDEBAR_GROUPS.map(group => (
+                <div key={group.title} className="mb-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>{group.title}</p>
+                  <div className="space-y-0.5">
+                    {group.items.map(item => (
+                      <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false) }}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left"
+                        style={activeTab === item.id ? { background: '#1D9E75', color: '#ffffff' } : { color: '#b0b0aa' }}>
+                        {item.id === 'tiktok'
+                          ? <PlatformLogo platform="tiktok" size={14} className="flex-shrink-0" />
+                          : <i className={`ti ti-${item.icon} text-base w-4 flex-shrink-0 text-center`} aria-hidden="true" />}
+                        <span>{item.label}</span>
+                        {activeTab === item.id && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
+            <div className="px-3 py-3 border-t flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
+              <a href="/admin" className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm" style={{ color: '#b0b0aa' }}>
+                <i className="ti ti-arrow-left text-sm" aria-hidden="true" />
+                <span>Admin Panel</span>
+              </a>
+            </div>
+          </div>
         </div>
       )}
 
@@ -449,8 +496,16 @@ export default function SocialDashboard() {
           className="bg-white border-b px-4 lg:px-6 py-3 lg:py-4 flex items-center gap-3 justify-between flex-shrink-0"
           style={{ borderColor: '#e5e5e0' }}
         >
-          {/* Mobile: back link + title */}
+          {/* Mobile: menu + back + title */}
           <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={() => setMobileNavOpen(true)}
+              className="lg:hidden flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg"
+              style={{ background: '#f4f4f0', color: '#666660' }}
+              aria-label="Fungua menyu"
+            >
+              <i className="ti ti-layout-sidebar" aria-hidden="true" />
+            </button>
             <a
               href="/admin"
               className="lg:hidden flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100"
