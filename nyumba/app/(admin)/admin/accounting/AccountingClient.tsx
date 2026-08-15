@@ -259,7 +259,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             <button key={c}
               onClick={() => setForm(f => ({ ...f, category: c }))}
               className={`p-2 rounded-xl border-2 text-center text-xs transition-all ${
-                form.category === c ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-100 text-gray-500'
+                form.category === c ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-100 text-gray-500'
               }`}
             >
               <div><i className={`ti ti-${catIcon(c)}`} aria-hidden="true" /></div>
@@ -273,7 +273,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
           <span className="text-xs text-gray-500">Maalum (optional)</span>
           <input value={form.subcategory} onChange={e => setForm(f => ({ ...f, subcategory: e.target.value }))}
             placeholder="vercel, anthropic, meta_ads..."
-            className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+            className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-500" />
         </label>
 
         {/* Description */}
@@ -281,7 +281,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
           <span className="text-xs text-gray-500">Maelezo *</span>
           <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
             placeholder="Vercel Pro — Juni 2026"
-            className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+            className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-500" />
         </label>
 
         {/* Vendor */}
@@ -289,7 +289,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
           <span className="text-xs text-gray-500">Muuzaji</span>
           <input value={form.vendor} onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))}
             placeholder="Vercel, Anthropic, Meta..."
-            className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+            className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-500" />
         </label>
 
         {/* Amounts */}
@@ -298,13 +298,13 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             <span className="text-xs text-gray-500">Kiasi (TZS) *</span>
             <input type="number" value={form.amountTzs} onChange={e => setForm(f => ({ ...f, amountTzs: e.target.value }))}
               placeholder="52000"
-              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-500" />
           </label>
           <label className="block">
             <span className="text-xs text-gray-500">Kiasi (USD)</span>
             <input type="number" value={form.amountUsd} onChange={e => setForm(f => ({ ...f, amountUsd: e.target.value }))}
               placeholder="20"
-              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-500" />
           </label>
         </div>
 
@@ -313,12 +313,12 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
           <label className="block">
             <span className="text-xs text-gray-500">Tarehe *</span>
             <input type="date" value={form.expenseDate} onChange={e => setForm(f => ({ ...f, expenseDate: e.target.value }))}
-              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400" />
+              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-500" />
           </label>
           <label className="block">
             <span className="text-xs text-gray-500">Njia ya Malipo</span>
             <select value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))}
-              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400">
+              className="w-full mt-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-teal-500">
               <option value="card">Kadi</option>
               <option value="bank_transfer">Benki</option>
               <option value="mpesa">M-Pesa</option>
@@ -331,11 +331,11 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
         <button
           onClick={() => setForm(f => ({ ...f, isRecurring: !f.isRecurring }))}
           className={`w-full flex items-center justify-between p-3 rounded-xl border-2 mb-4 transition-all ${
-            form.isRecurring ? 'border-primary-300 bg-primary-50' : 'border-gray-100'
+            form.isRecurring ? 'border-teal-300 bg-teal-50' : 'border-gray-100'
           }`}
         >
           <span className="text-sm text-gray-700 flex items-center gap-1"><i className="ti ti-refresh" aria-hidden="true" />Ni matumizi ya mara kwa mara?</span>
-          <div className={`w-10 h-5 rounded-full transition-colors ${form.isRecurring ? 'bg-primary-500' : 'bg-gray-200'}`}>
+          <div className={`w-10 h-5 rounded-full transition-colors ${form.isRecurring ? 'bg-teal-600' : 'bg-gray-200'}`}>
             <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${form.isRecurring ? 'translate-x-5' : ''}`} />
           </div>
         </button>
@@ -345,7 +345,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
               <button key={p}
                 onClick={() => setForm(f => ({ ...f, recurringPeriod: p }))}
                 className={`py-2 rounded-xl border-2 text-xs font-medium transition-all ${
-                  form.recurringPeriod === p ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-100 text-gray-500'
+                  form.recurringPeriod === p ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-100 text-gray-500'
                 }`}
               >
                 {p === 'weekly' ? 'Wiki' : p === 'monthly' ? 'Mwezi' : 'Mwaka'}
@@ -360,7 +360,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             Ghairi
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex-1 py-3 bg-primary-500 text-white rounded-2xl text-sm font-semibold disabled:opacity-50">
+            className="flex-1 py-3 bg-teal-700 text-white rounded-2xl text-sm font-semibold disabled:opacity-50">
             {saving ? 'Inahifadhi...' : 'Hifadhi'}
           </button>
         </div>
@@ -771,7 +771,7 @@ ON CONFLICT DO NOTHING;`}</pre>
           </div>
           <button
             onClick={loadData}
-            className="w-full py-3 bg-primary-500 text-white rounded-2xl font-semibold text-sm"
+            className="w-full py-3 bg-teal-700 text-white rounded-2xl font-semibold text-sm"
           >
             <i className="ti ti-refresh" aria-hidden="true" /> Jaribu Tena (Baada ya Kurun SQL)
           </button>
@@ -793,48 +793,47 @@ ON CONFLICT DO NOTHING;`}</pre>
       {mobileNavOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileNavOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-64 flex flex-col shadow-2xl" style={{ background: '#1a1a18' }}>
-            <div className="px-4 py-4 border-b flex-shrink-0 flex items-center justify-between" style={{ borderColor: '#2a2a28' }}>
+          <div className="absolute left-0 top-0 bottom-0 w-64 flex flex-col shadow-2xl bg-slate-900">
+            <div className="px-4 py-4 border-b border-slate-800 flex-shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#1D9E75' }}>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-teal-700">
                   <i className="ti ti-coins text-white text-xs" aria-hidden="true" />
                 </div>
                 <p className="text-sm font-bold text-white">Hesabu</p>
               </div>
-              <button onClick={() => setMobileNavOpen(false)} className="p-1.5 rounded-lg" style={{ color: '#999992' }}>
+              <button onClick={() => setMobileNavOpen(false)} className="p-1.5 rounded-lg text-slate-400">
                 <i className="ti ti-x" aria-hidden="true" />
               </button>
             </div>
             {/* Month selector */}
-            <div className="px-3 py-3 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
-              <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#666660' }}>Mwezi</p>
+            <div className="px-3 py-3 border-b border-slate-800 flex-shrink-0">
+              <p className="text-[9px] font-bold uppercase tracking-widest mb-2 text-slate-500">Mwezi</p>
               <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
-                className="w-full text-xs px-2.5 py-2 rounded-lg font-medium focus:outline-none"
-                style={{ background: '#2a2a28', color: '#e0e0d8', border: '1px solid #3a3a38' }}
+                className="w-full text-xs px-2.5 py-2 rounded-lg font-medium focus:outline-none focus:ring-1 focus:ring-teal-600 bg-slate-800 text-slate-200 border border-slate-700"
               >
                 {monthOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}{opt.value === getCurrentMonth() ? ' ★' : ''}</option>)}
               </select>
             </div>
             {/* KPI mini */}
-            <div className="px-3 py-3 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
+            <div className="px-3 py-3 border-b border-slate-800 flex-shrink-0">
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}><span className="w-1.5 h-1.5 rounded-full bg-green-400" />Mapato</span>
-                  <span className="text-[11px] font-bold text-green-400">{fmtTsh(income?.total ?? 0)}</span>
+                  <span className="flex items-center gap-1.5 text-[11px] text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Mapato</span>
+                  <span className="text-[11px] font-bold text-emerald-400">{fmtTsh(income?.total ?? 0)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}><span className="w-1.5 h-1.5 rounded-full bg-red-400" />Matumizi</span>
+                  <span className="flex items-center gap-1.5 text-[11px] text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-red-400" />Matumizi</span>
                   <span className="text-[11px] font-bold text-red-400">{fmtTsh(expenses?.total ?? 0)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}><span className={`w-1.5 h-1.5 rounded-full ${profit >= 0 ? 'bg-blue-400' : 'bg-orange-400'}`} />{profit >= 0 ? 'Faida' : 'Hasara'}</span>
-                  <span className={`text-[11px] font-bold ${profit >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>{profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}</span>
+                  <span className="flex items-center gap-1.5 text-[11px] text-slate-400"><span className={`w-1.5 h-1.5 rounded-full ${profit >= 0 ? 'bg-teal-500' : 'bg-amber-400'}`} />{profit >= 0 ? 'Faida' : 'Hasara'}</span>
+                  <span className={`text-[11px] font-bold ${profit >= 0 ? 'text-teal-400' : 'text-amber-400'}`}>{profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}</span>
                 </div>
               </div>
             </div>
             {/* Nav */}
             <nav className="flex-1 overflow-y-auto px-2 py-3">
-              <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Msingi</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5 text-slate-500">Msingi</p>
               <div className="space-y-0.5 mb-4">
                 {([
                   { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
@@ -844,15 +843,16 @@ ON CONFLICT DO NOTHING;`}</pre>
                   { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
                 ] as { key: TabKey; label: string; icon: string }[]).map(t => (
                   <button key={t.key} onClick={() => { setTab(t.key); setMobileNavOpen(false) }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left"
-                    style={tab === t.key ? { background: '#1D9E75', color: '#fff' } : { color: '#b0b0aa' }}>
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
+                      tab === t.key ? 'bg-teal-700 text-white' : 'text-slate-400 hover:text-slate-200'
+                    }`}>
                     <i className={`ti ti-${t.icon} text-base w-4 flex-shrink-0 text-center`} aria-hidden="true" />
                     <span>{t.label}</span>
                     {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60" />}
                   </button>
                 ))}
               </div>
-              <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Mapato</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5 text-slate-500">Mapato</p>
               <div className="space-y-0.5 mb-4">
                 {([
                   { key: 'usajiri',       label: 'Usajiri',      icon: 'id-badge' },
@@ -864,39 +864,38 @@ ON CONFLICT DO NOTHING;`}</pre>
                   { key: 'extra_listing', label: 'Orodha Ziada', icon: 'list-plus' },
                 ] as { key: TabKey; label: string; icon: string }[]).map(t => (
                   <button key={t.key} onClick={() => { setTab(t.key); setMobileNavOpen(false) }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left"
-                    style={tab === t.key ? { background: '#1D9E75', color: '#fff' } : { color: '#b0b0aa' }}>
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
+                      tab === t.key ? 'bg-teal-700 text-white' : 'text-slate-400 hover:text-slate-200'
+                    }`}>
                     <i className={`ti ti-${t.icon} text-base w-4 flex-shrink-0 text-center`} aria-hidden="true" />
                     <span>{t.label}</span>
                     {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60" />}
                   </button>
                 ))}
               </div>
-              <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Mipangilio</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5 text-slate-500">Mipangilio</p>
               <div className="space-y-0.5">
                 <button onClick={() => { setTab('bei'); setMobileNavOpen(false) }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left"
-                  style={tab === 'bei' ? { background: '#1D9E75', color: '#fff' } : { color: '#b0b0aa' }}>
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
+                    tab === 'bei' ? 'bg-teal-700 text-white' : 'text-slate-400 hover:text-slate-200'
+                  }`}>
                   <i className="ti ti-tag text-base w-4 flex-shrink-0 text-center" aria-hidden="true" />
                   <span>Bei</span>
                   {tab === 'bei' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60" />}
                 </button>
               </div>
             </nav>
-            <div className="px-3 py-3 border-t flex-shrink-0 space-y-1.5" style={{ borderColor: '#2a2a28' }}>
+            <div className="px-3 py-3 border-t border-slate-800 flex-shrink-0 space-y-1.5">
               <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium disabled:opacity-50"
-                style={{ background: '#2a2a28', color: '#f87171' }}>
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium disabled:opacity-50 bg-slate-800 text-rose-400 hover:bg-slate-700">
                 <i className="ti ti-download text-xs" aria-hidden="true" />PDF
               </button>
               <button onClick={() => handleDownload('excel')} disabled={!!downloading}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium disabled:opacity-50"
-                style={{ background: '#2a2a28', color: '#4ade80' }}>
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium disabled:opacity-50 bg-slate-800 text-emerald-400 hover:bg-slate-700">
                 <i className="ti ti-table text-xs" aria-hidden="true" />Excel
               </button>
               <button onClick={handleSync}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium"
-                style={{ background: '#2a2a28', color: '#60a5fa' }}>
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium bg-slate-800 text-sky-400 hover:bg-slate-700">
                 <i className="ti ti-refresh text-xs" aria-hidden="true" />Sync
               </button>
             </div>
@@ -917,13 +916,13 @@ ON CONFLICT DO NOTHING;`}</pre>
         </button>
         <div className="flex-1 min-w-0">
           <h1 className="text-base font-bold text-gray-900 flex items-center gap-2 truncate">
-            <i className="ti ti-coins text-primary-500 flex-shrink-0" aria-hidden="true" />
+            <i className="ti ti-coins text-teal-600 flex-shrink-0" aria-hidden="true" />
             <span className="truncate">Hesabu za NyumbaFasta</span>
           </h1>
           <p className="text-xs text-gray-400">Mapato, Matumizi, Faida</p>
         </div>
         <button onClick={() => setShowAddExp(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-xl text-xs font-semibold">
+          className="flex items-center gap-1.5 px-3 py-2 bg-teal-700 text-white rounded-xl text-xs font-semibold">
           <i className="ti ti-plus" aria-hidden="true" /><span>Gharama</span>
         </button>
       </div>
@@ -932,22 +931,21 @@ ON CONFLICT DO NOTHING;`}</pre>
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* ── Desktop Sidebar ── */}
-        <aside className="hidden lg:flex flex-col w-[210px] xl:w-[230px] flex-shrink-0 h-full overflow-y-auto" style={{ background: '#1a1a18' }}>
+        <aside className="hidden lg:flex flex-col w-[210px] xl:w-[230px] flex-shrink-0 h-full overflow-y-auto bg-slate-900">
 
           {/* Brand header */}
-          <div className="px-4 py-4 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
+          <div className="px-4 py-4 border-b border-slate-800 flex-shrink-0">
             <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#1D9E75' }}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-teal-700">
                 <i className="ti ti-coins text-white text-sm" aria-hidden="true" />
               </div>
               <div>
                 <p className="text-sm font-bold text-white leading-tight">Hesabu</p>
-                <p className="text-[10px] leading-tight" style={{ color: '#999992' }}>NyumbaFasta</p>
+                <p className="text-[10px] leading-tight text-slate-400">NyumbaFasta</p>
               </div>
             </div>
             <Link href="/admin"
-              className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-1.5 rounded-lg transition-all hover:bg-white/10"
-              style={{ color: '#999992' }}
+              className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-1.5 rounded-lg transition-all hover:bg-white/10 text-slate-400"
             >
               <i className="ti ti-arrow-left text-xs" aria-hidden="true" />
               Admin Panel
@@ -955,13 +953,12 @@ ON CONFLICT DO NOTHING;`}</pre>
           </div>
 
           {/* Month selector */}
-          <div className="px-3 py-3 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
-            <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#666660' }}>Mwezi</p>
+          <div className="px-3 py-3 border-b border-slate-800 flex-shrink-0">
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-2 text-slate-500">Mwezi</p>
             <select
               value={selectedMonth}
               onChange={e => setSelectedMonth(e.target.value)}
-              className="w-full text-xs px-2.5 py-2 rounded-lg font-medium focus:outline-none"
-              style={{ background: '#2a2a28', color: '#e0e0d8', border: '1px solid #3a3a38' }}
+              className="w-full text-xs px-2.5 py-2 rounded-lg font-medium focus:outline-none focus:ring-1 focus:ring-teal-600 bg-slate-800 text-slate-200 border border-slate-700"
             >
               {monthOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -974,55 +971,55 @@ ON CONFLICT DO NOTHING;`}</pre>
               const today = new Date().getDate()
               const totalDays = daysInMonth(selectedMonth)
               return isCurrentMonth ? (
-                <p className="text-[10px] mt-1.5 px-1" style={{ color: '#666660' }}>
+                <p className="text-[10px] mt-1.5 px-1 text-slate-500">
                   Siku {today}/{totalDays} za mwezi
                 </p>
               ) : (
-                <p className="text-[10px] mt-1.5 px-1" style={{ color: '#666660' }}>Imekamilika</p>
+                <p className="text-[10px] mt-1.5 px-1 text-slate-500">Imekamilika</p>
               )
             })()}
           </div>
 
           {/* KPI mini-summary */}
-          <div className="px-3 py-3 border-b flex-shrink-0" style={{ borderColor: '#2a2a28' }}>
-            <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#666660' }}>Muhtasari</p>
+          <div className="px-3 py-3 border-b border-slate-800 flex-shrink-0">
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-2 text-slate-500">Muhtasari</p>
             {loading ? (
               <div className="space-y-2 animate-pulse">
-                {[1,2,3].map(i => <div key={i} className="h-3 rounded" style={{ background: '#2a2a28' }} />)}
+                {[1,2,3].map(i => <div key={i} className="h-3 rounded bg-slate-800" />)}
               </div>
             ) : (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />Mapato
+                  <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />Mapato
                   </span>
-                  <span className="text-[11px] font-bold text-green-400">{fmtTsh(income?.total ?? 0)}</span>
+                  <span className="text-[11px] font-bold text-emerald-400">{fmtTsh(income?.total ?? 0)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}>
+                  <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />Matumizi
                   </span>
                   <span className="text-[11px] font-bold text-red-400">{fmtTsh(expenses?.total ?? 0)}</span>
                 </div>
-                <div className="flex items-center justify-between pt-1.5" style={{ borderTop: '1px solid #2a2a28' }}>
-                  <span className="flex items-center gap-1.5 text-[11px]" style={{ color: '#b0b0aa' }}>
-                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-blue-400' : 'bg-orange-400'}`} />
+                <div className="flex items-center justify-between pt-1.5 border-t border-slate-800">
+                  <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-teal-500' : 'bg-amber-400'}`} />
                     {profit >= 0 ? 'Faida' : 'Hasara'}
                   </span>
-                  <span className={`text-[11px] font-bold ${profit >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
+                  <span className={`text-[11px] font-bold ${profit >= 0 ? 'text-teal-400' : 'text-amber-400'}`}>
                     {profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}
                   </span>
                 </div>
                 {(summary?.profitMargin ?? 0) !== 0 && (
-                  <p className="text-[10px] text-right" style={{ color: '#666660' }}>{summary?.profitMargin}% margin</p>
+                  <p className="text-[10px] text-right text-slate-500">{summary?.profitMargin}% margin</p>
                 )}
                 {(income?.platformFees ?? 0) > 0 && (
-                  <div className="rounded-lg px-2 py-1.5 mt-1" style={{ background: '#2a2a18', border: '1px solid #3a3a18' }}>
-                    <p className="text-[10px] flex items-center gap-1" style={{ color: '#c9a94e' }}>
+                  <div className="rounded-lg px-2 py-1.5 mt-1 bg-slate-800 border border-slate-700">
+                    <p className="text-[10px] flex items-center gap-1 text-amber-400">
                       <i className="ti ti-credit-card flex-shrink-0" aria-hidden="true" />
                       AzamPay: <strong>{fmtTsh(income?.platformFees ?? 0)}</strong>
                     </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: '#999960' }}>Halisi: {fmtTsh(income?.netIncome ?? 0)}</p>
+                    <p className="text-[10px] mt-0.5 text-slate-500">Halisi: {fmtTsh(income?.netIncome ?? 0)}</p>
                   </div>
                 )}
               </div>
@@ -1031,7 +1028,7 @@ ON CONFLICT DO NOTHING;`}</pre>
 
           {/* Nav groups */}
           <nav className="flex-1 overflow-y-auto px-2 py-3">
-            <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Msingi</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5 text-slate-500">Msingi</p>
             <div className="space-y-0.5 mb-4">
               {([
                 { key: 'overview',  label: 'Muhtasari', icon: 'chart-bar' },
@@ -1041,19 +1038,18 @@ ON CONFLICT DO NOTHING;`}</pre>
                 { key: 'miamala',   label: 'Miamala',   icon: 'clipboard-list' },
               ] as { key: TabKey; label: string; icon: string }[]).map(t => (
                 <button key={t.key} onClick={() => setTab(t.key)}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-left text-xs font-medium"
-                  style={tab === t.key
-                    ? { background: '#1D9E75', color: '#ffffff' }
-                    : { color: '#b0b0aa' }}
+                  className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-left text-xs font-medium ${
+                    tab === t.key ? 'bg-teal-50 text-teal-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
                 >
                   <i className={`ti ti-${t.icon} text-sm w-4 flex-shrink-0 text-center`} aria-hidden="true" />
                   <span className="truncate">{t.label}</span>
-                  {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />}
+                  {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-500 flex-shrink-0" />}
                 </button>
               ))}
             </div>
 
-            <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Mapato</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5 text-slate-500">Mapato</p>
             <div className="space-y-0.5 mb-4">
               {([
                 { key: 'usajiri',       label: 'Usajiri',      icon: 'id-badge' },
@@ -1065,62 +1061,57 @@ ON CONFLICT DO NOTHING;`}</pre>
                 { key: 'extra_listing', label: 'Orodha Ziada', icon: 'list-plus' },
               ] as { key: TabKey; label: string; icon: string }[]).map(t => (
                 <button key={t.key} onClick={() => setTab(t.key)}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-left text-xs font-medium"
-                  style={tab === t.key
-                    ? { background: '#1D9E75', color: '#ffffff' }
-                    : { color: '#b0b0aa' }}
+                  className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-left text-xs font-medium ${
+                    tab === t.key ? 'bg-teal-50 text-teal-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
                 >
                   <i className={`ti ti-${t.icon} text-sm w-4 flex-shrink-0 text-center`} aria-hidden="true" />
                   <span className="truncate">{t.label}</span>
-                  {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />}
+                  {tab === t.key && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-500 flex-shrink-0" />}
                 </button>
               ))}
             </div>
 
-            <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5" style={{ color: '#666660' }}>Mipangilio</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest px-2.5 mb-1.5 text-slate-500">Mipangilio</p>
             <div className="space-y-0.5">
               <button onClick={() => setTab('bei')}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-left text-xs font-medium"
-                style={tab === 'bei'
-                  ? { background: '#1D9E75', color: '#ffffff' }
-                  : { color: '#b0b0aa' }}
+                className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-left text-xs font-medium ${
+                  tab === 'bei' ? 'bg-teal-50 text-teal-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
               >
                 <i className="ti ti-tag text-sm w-4 flex-shrink-0 text-center" aria-hidden="true" />
                 <span>Bei</span>
-                {tab === 'bei' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />}
+                {tab === 'bei' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-500 flex-shrink-0" />}
               </button>
             </div>
           </nav>
 
           {/* Actions footer */}
-          <div className="px-3 py-3 border-t flex-shrink-0 space-y-1.5" style={{ borderColor: '#2a2a28' }}>
-            <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: '#666660' }}>Ripoti</p>
+          <div className="px-3 py-3 border-t border-slate-800 flex-shrink-0 space-y-1.5">
+            <p className="text-[9px] font-bold uppercase tracking-widest mb-2 text-slate-500">Ripoti</p>
             <button onClick={() => handleDownload('pdf')} disabled={!!downloading}
-              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all disabled:opacity-50"
-              style={{ background: '#2a2a28', color: '#f87171' }}
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all disabled:opacity-50 bg-slate-800 text-rose-400 hover:bg-slate-700"
             >
               {downloading === 'pdf'
-                ? <span className="w-3 h-3 border-2 rounded-full animate-spin flex-shrink-0" style={{ borderColor: '#f87171', borderTopColor: 'transparent' }} />
+                ? <span className="w-3 h-3 border-2 border-rose-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                 : <i className="ti ti-download text-xs flex-shrink-0" aria-hidden="true" />}
               <span>Pakua PDF</span>
             </button>
             <button onClick={() => handleDownload('excel')} disabled={!!downloading}
-              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all disabled:opacity-50"
-              style={{ background: '#2a2a28', color: '#4ade80' }}
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all disabled:opacity-50 bg-slate-800 text-emerald-400 hover:bg-slate-700"
             >
               {downloading === 'excel'
-                ? <span className="w-3 h-3 border-2 rounded-full animate-spin flex-shrink-0" style={{ borderColor: '#4ade80', borderTopColor: 'transparent' }} />
+                ? <span className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                 : <i className="ti ti-table text-xs flex-shrink-0" aria-hidden="true" />}
               <span>Pakua Excel</span>
             </button>
             <button onClick={handleSync}
-              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all"
-              style={{ background: '#2a2a28', color: '#60a5fa' }}
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all bg-slate-800 text-sky-400 hover:bg-slate-700"
             >
               <i className="ti ti-refresh text-xs flex-shrink-0" aria-hidden="true" />
               <span>Sync Mapato</span>
             </button>
-            {syncMsg && <p className="text-[10px] text-center mt-1" style={{ color: '#999992' }}>{syncMsg}</p>}
+            {syncMsg && <p className="text-[10px] text-center mt-1 text-slate-400">{syncMsg}</p>}
           </div>
         </aside>
 
@@ -1145,7 +1136,7 @@ ON CONFLICT DO NOTHING;`}</pre>
             ] as { key: TabKey; label: string; icon: string }[]).map(t => (
               <button key={t.key} onClick={() => setTab(t.key)}
                 className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
-                  tab === t.key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400'
+                  tab === t.key ? 'border-teal-600 text-teal-700' : 'border-transparent text-gray-400'
                 }`}
               >
                 <i className={`ti ti-${t.icon}`} aria-hidden="true" /><span>{t.label}</span>
@@ -1160,7 +1151,7 @@ ON CONFLICT DO NOTHING;`}</pre>
               <select
                 value={selectedMonth}
                 onChange={e => setSelectedMonth(e.target.value)}
-                className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-primary-400 font-medium text-gray-700 bg-white"
+                className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-teal-500 font-medium text-gray-700 bg-white"
               >
                 {monthOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>
@@ -1178,7 +1169,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 } PDF
               </button>
               <button onClick={() => handleDownload('excel')} disabled={!!downloading}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-xl text-xs font-medium disabled:opacity-50">
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-medium disabled:opacity-50">
                 {downloading === 'excel'
                   ? <span className="w-3 h-3 border-2 border-green-300 border-t-green-700 rounded-full animate-spin" />
                   : <i className="ti ti-download" aria-hidden="true" />
@@ -1197,7 +1188,7 @@ ON CONFLICT DO NOTHING;`}</pre>
               const totalDays      = daysInMonth(selectedMonth)
               return (
                 <div className={`px-3 py-1.5 rounded-lg flex items-center justify-between text-xs ${
-                  isCurrentMonth ? 'bg-green-600 text-white' : 'bg-gray-700 text-white'
+                  isCurrentMonth ? 'bg-teal-700 text-white' : 'bg-slate-200 text-slate-600'
                 }`}>
                   <span className="font-semibold">{currentLabel}</span>
                   {isCurrentMonth
@@ -1249,7 +1240,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
                     <p className="text-xs text-gray-400 mb-1">Mapato</p>
-                    <p className="text-base font-bold text-green-600">{fmtTsh(income?.total ?? 0)}</p>
+                    <p className="text-base font-bold text-emerald-700">{fmtTsh(income?.total ?? 0)}</p>
                     <p className="text-[10px] text-gray-400 mt-0.5">{income?.transactionCount ?? 0} malipo</p>
                   </div>
                   <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
@@ -1257,9 +1248,9 @@ ON CONFLICT DO NOTHING;`}</pre>
                     <p className="text-base font-bold text-red-500">{fmtTsh(expenses?.total ?? 0)}</p>
                     <p className="text-[10px] text-gray-400 mt-0.5">{expenses?.expenseCount ?? 0} malipo</p>
                   </div>
-                  <div className={`rounded-2xl border p-3 shadow-sm text-center ${profit >= 0 ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                  <div className={`rounded-2xl border p-3 shadow-sm text-center ${profit >= 0 ? 'bg-teal-50 border-teal-100' : 'bg-amber-50 border-amber-100'}`}>
                     <p className="text-xs text-gray-400 mb-1">{profit >= 0 ? 'Faida' : 'Hasara'}</p>
-                    <p className={`text-base font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`text-base font-bold ${profit >= 0 ? 'text-teal-700' : 'text-amber-600'}`}>
                       {profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}
                     </p>
                     <p className="text-[10px] text-gray-400 mt-0.5">{summary?.profitMargin ?? 0}%</p>
@@ -1292,7 +1283,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                                 <span>{fmtFull(amt)} ({sharePct}%)</span>
                               </div>
                               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-green-400 rounded-full transition-all"
+                                <div className="h-full bg-emerald-500 rounded-full transition-all"
                                   style={{ width: `${pct}%` }} />
                               </div>
                             </div>
@@ -1352,7 +1343,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                     <p className="text-sm font-medium text-gray-600">Hakuna data kipindi hiki</p>
                     <p className="text-xs text-gray-400 mt-1">Sync mapato au ongeza matumizi</p>
                     <button onClick={handleSync}
-                      className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-xl text-xs font-semibold">
+                      className="mt-4 px-4 py-2 bg-teal-700 text-white rounded-xl text-xs font-semibold">
                       <i className="ti ti-refresh" aria-hidden="true" /> Sync Mapato Sasa
                     </button>
                   </div>
@@ -1371,7 +1362,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                   {incRecords.length === 0 ? (
                     <div className="px-4 py-8 text-center">
                       <p className="text-sm text-gray-400">Hakuna mapato — fanya sync kwanza</p>
-                      <button onClick={handleSync} className="mt-3 text-xs text-primary-500 font-semibold">
+                      <button onClick={handleSync} className="mt-3 text-xs text-teal-600 font-semibold">
                         <i className="ti ti-refresh" aria-hidden="true" /> Sync sasa
                       </button>
                     </div>
@@ -1379,7 +1370,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                     <div className="divide-y divide-gray-50">
                       {incRecords.map(r => (
                         <div key={r.id} className="px-4 py-3 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-sm flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-sm flex-shrink-0">
                             {r.source === 'subscription' ? <i className="ti ti-package" aria-hidden="true" /> : r.source === 'contact_unlock' ? <i className="ti ti-lock-open" aria-hidden="true" /> : <i className="ti ti-rocket" aria-hidden="true" />}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1390,7 +1381,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                               {r.transaction_date} · {r.payment_method?.toUpperCase() ?? '—'}
                             </p>
                           </div>
-                          <p className="text-sm font-semibold text-green-600 flex-shrink-0">
+                          <p className="text-sm font-semibold text-emerald-700 flex-shrink-0">
                             +{fmtFull(Number(r.amount_tzs))}
                           </p>
                         </div>
@@ -1405,7 +1396,7 @@ ON CONFLICT DO NOTHING;`}</pre>
             {tab === 'matumizi' && (
               <>
                 <button onClick={() => setShowAddExp(true)}
-                  className="w-full py-3 bg-primary-500 text-white rounded-2xl text-sm font-semibold">
+                  className="w-full py-3 bg-teal-700 text-white rounded-2xl text-sm font-semibold">
                   <i className="ti ti-plus" aria-hidden="true" /> Ongeza Matumizi Mapya
                 </button>
 
@@ -1470,17 +1461,17 @@ ON CONFLICT DO NOTHING;`}</pre>
               <>
                 {/* Summary row */}
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-green-50 rounded-xl p-3 text-center">
+                  <div className="bg-emerald-50 rounded-xl p-3 text-center">
                     <p className="text-xs text-gray-500 mb-0.5">Mapato</p>
-                    <p className="text-sm font-bold text-green-600">{fmtTsh(income?.total ?? 0)}</p>
+                    <p className="text-sm font-bold text-emerald-700">{fmtTsh(income?.total ?? 0)}</p>
                   </div>
                   <div className="bg-red-50 rounded-xl p-3 text-center">
                     <p className="text-xs text-gray-500 mb-0.5">Matumizi</p>
                     <p className="text-sm font-bold text-red-500">{fmtTsh(expenses?.total ?? 0)}</p>
                   </div>
-                  <div className={`rounded-xl p-3 text-center ${profit >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
+                  <div className={`rounded-xl p-3 text-center ${profit >= 0 ? 'bg-teal-50' : 'bg-amber-50'}`}>
                     <p className="text-xs text-gray-500 mb-0.5">{profit >= 0 ? 'Faida' : 'Hasara'}</p>
-                    <p className={`text-sm font-bold ${profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                    <p className={`text-sm font-bold ${profit >= 0 ? 'text-teal-700' : 'text-amber-600'}`}>
                       {profit >= 0 ? '+' : '-'}{fmtTsh(Math.abs(profit))}
                     </p>
                   </div>
@@ -1492,7 +1483,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                     <h3 className="text-sm font-bold text-gray-800">Miamala Yote</h3>
                     <div className="flex gap-3 text-xs text-gray-400">
                       <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 bg-green-400 rounded-full" />Mapato {incRecords.length}
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full" />Mapato {incRecords.length}
                       </span>
                       <span className="flex items-center gap-1">
                         <span className="w-2 h-2 bg-red-400 rounded-full" />Matumizi {expRecords.length}
@@ -1513,7 +1504,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                         .map((item, i) => (
                           <div key={i} className="px-4 py-3 flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 font-bold ${
-                              item._type === 'income' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-400'
+                              item._type === 'income' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-400'
                             }`}>
                               {item._type === 'income' ? '↑' : '↓'}
                             </div>
@@ -1534,7 +1525,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                               </p>
                             </div>
                             <p className={`text-sm font-semibold flex-shrink-0 ${
-                              item._type === 'income' ? 'text-green-600' : 'text-red-500'
+                              item._type === 'income' ? 'text-emerald-700' : 'text-red-500'
                             }`}>
                               {item._type === 'income' ? '+' : '-'}
                               {fmtFull(Number((item as IncomeRecord).amount_tzs ?? (item as ExpenseRecord).amount_tzs))}
@@ -1588,12 +1579,12 @@ ON CONFLICT DO NOTHING;`}</pre>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm text-center">
                   <p className="text-xs text-gray-400 mb-1">MRR (Mapato/Mwezi)</p>
-                  <p className="text-lg font-bold text-primary-600">{fmtTsh(subMetrics?.mrr ?? 0)}</p>
+                  <p className="text-lg font-bold text-teal-700">{fmtTsh(subMetrics?.mrr ?? 0)}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">ARR: {fmtTsh(subMetrics?.arr ?? 0)}</p>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm text-center">
                   <p className="text-xs text-gray-400 mb-1">Mapato Jumla</p>
-                  <p className="text-lg font-bold text-green-600">{fmtTsh(subMetrics?.total_revenue ?? 0)}</p>
+                  <p className="text-lg font-bold text-emerald-700">{fmtTsh(subMetrics?.total_revenue ?? 0)}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">{subMetrics?.pending_invoices ?? 0} invois zinazongoja</p>
                 </div>
               </div>
@@ -1604,7 +1595,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                   <h3 className="text-sm font-bold text-gray-800 mb-3">Hali ya Usajiri</h3>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(subMetrics.status_counts).sort(([,a],[,b]) => b-a).map(([st, cnt]) => {
-                      const cls = st === 'active' ? 'bg-green-50 text-green-700 border-green-100'
+                      const cls = st === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                 : st === 'trial'  ? 'bg-blue-50 text-blue-700 border-blue-100'
                                 : st === 'expired' || st === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100'
                                 : 'bg-gray-50 text-gray-600 border-gray-100'
@@ -1637,7 +1628,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                             <span>{p.count} wanachama · {fmtFull(p.mrr)}/mwezi ({pct}%)</span>
                           </div>
                           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-primary-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                            <div className="h-full bg-teal-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                           </div>
                         </div>
                       )
@@ -1659,7 +1650,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                         return (
                           <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
                             <div className="w-full bg-gray-100 rounded-t-lg overflow-hidden flex items-end" style={{ height: '80px' }}>
-                              <div className="w-full bg-primary-400 rounded-t-lg transition-all" style={{ height: `${pct}%` }} />
+                              <div className="w-full bg-teal-500 rounded-t-lg transition-all" style={{ height: `${pct}%` }} />
                             </div>
                             <p className="text-[10px] text-gray-400">{lbl}</p>
                           </div>
@@ -1695,7 +1686,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-gray-800 flex-shrink-0">Orodha ya Wanachama</h3>
                   <input
-                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 max-w-[160px]"
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-teal-500 max-w-[160px]"
                     placeholder="Tafuta dalali..."
                     value={subSearch}
                     onChange={e => setSubSearch(e.target.value)}
@@ -1715,12 +1706,12 @@ ON CONFLICT DO NOTHING;`}</pre>
                         const d = s.dalali
                         const expDate = s.expires_at ? new Date(s.expires_at) : null
                         const isExpired = expDate ? expDate < new Date() : false
-                        const statusCls = s.status === 'active' ? 'bg-green-100 text-green-700'
-                          : s.status === 'trial' ? 'bg-blue-100 text-blue-700'
+                        const statusCls = s.status === 'active' ? 'bg-emerald-50 text-emerald-700'
+                          : s.status === 'trial' ? 'bg-sky-50 text-sky-700'
                           : 'bg-red-100 text-red-600'
                         return (
                           <div key={s.id} className="px-4 py-3 flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-sm flex-shrink-0 font-bold text-primary-600">
+                            <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-sm flex-shrink-0 font-bold text-teal-700">
                               {initials(d?.full_name ?? null)}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -1758,7 +1749,7 @@ ON CONFLICT DO NOTHING;`}</pre>
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
                   <p className="text-xs text-gray-400 mb-1">Mapato Jumla</p>
-                  <p className="text-sm font-bold text-green-600">{fmtTsh(unlockSummary?.total_revenue ?? 0)}</p>
+                  <p className="text-sm font-bold text-emerald-700">{fmtTsh(unlockSummary?.total_revenue ?? 0)}</p>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
                   <p className="text-xs text-gray-400 mb-1">Jumla</p>
@@ -1766,7 +1757,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
                   <p className="text-xs text-gray-400 mb-1">Leo</p>
-                  <p className="text-sm font-bold text-primary-600">{unlockSummary?.today_count ?? 0}</p>
+                  <p className="text-sm font-bold text-teal-700">{unlockSummary?.today_count ?? 0}</p>
                 </div>
               </div>
 
@@ -1775,7 +1766,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-gray-800 flex-shrink-0">Miamala ya Mawasiliano</h3>
                   <input
-                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 max-w-[160px]"
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-teal-500 max-w-[160px]"
                     placeholder="Tafuta..."
                     value={unlockSearch}
                     onChange={e => setUnlockSearch(e.target.value)}
@@ -1807,7 +1798,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                               {u.listing?.title ?? '—'} · {u.listing?.district ?? ''} · {new Date(u.created_at).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short' })}
                             </p>
                           </div>
-                          <p className="text-sm font-semibold text-green-600 flex-shrink-0">
+                          <p className="text-sm font-semibold text-emerald-700 flex-shrink-0">
                             +{fmtFull(u.amount_paid)}
                           </p>
                         </div>
@@ -1832,7 +1823,7 @@ ON CONFLICT DO NOTHING;`}</pre>
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
                   <p className="text-xs text-gray-400 mb-1">Mapato Jumla</p>
-                  <p className="text-sm font-bold text-green-600">{fmtTsh(boostSummary?.total_revenue ?? 0)}</p>
+                  <p className="text-sm font-bold text-emerald-700">{fmtTsh(boostSummary?.total_revenue ?? 0)}</p>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
                   <p className="text-xs text-gray-400 mb-1">Zinazofanya Kazi</p>
@@ -1840,7 +1831,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
                   <p className="text-xs text-gray-400 mb-1">Matangazo Boost</p>
-                  <p className="text-sm font-bold text-primary-600">{boostSummary?.boosted_listings ?? 0}</p>
+                  <p className="text-sm font-bold text-teal-700">{boostSummary?.boosted_listings ?? 0}</p>
                 </div>
               </div>
 
@@ -1849,7 +1840,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-gray-800 flex-shrink-0">Matangazo Yaliyolipwa</h3>
                   <input
-                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 max-w-[160px]"
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-teal-500 max-w-[160px]"
                     placeholder="Tafuta..."
                     value={boostSearch}
                     onChange={e => setBoostSearch(e.target.value)}
@@ -1885,7 +1876,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                               </p>
                             </div>
                             <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                              <p className="text-sm font-semibold text-green-600">+{fmtFull(b.amount)}</p>
+                              <p className="text-sm font-semibold text-emerald-700">+{fmtFull(b.amount)}</p>
                               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
                                 {b.status}
                               </span>
@@ -1959,7 +1950,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
                   <p className="text-xs text-gray-400 mb-1">Mwezi Huu</p>
-                  <p className="text-sm font-bold text-green-600">{fmtTsh(thisMonth)}</p>
+                  <p className="text-sm font-bold text-emerald-700">{fmtTsh(thisMonth)}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">{new Date().toLocaleDateString('sw-TZ', { month: 'short', year: '2-digit' })}</p>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm text-center">
@@ -1974,7 +1965,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-gray-800 flex-shrink-0">{c.label}</h3>
                   <input
-                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 max-w-[160px]"
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-teal-500 max-w-[160px]"
                     placeholder="Tafuta..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
@@ -1983,7 +1974,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 {allRecs.length === 0 ? (
                   <div className="px-4 py-10 text-center">
                     <p className="text-sm text-gray-400">{c.emptyMsg}</p>
-                    <button onClick={handleSync} className="mt-3 text-xs text-primary-500 font-semibold">
+                    <button onClick={handleSync} className="mt-3 text-xs text-teal-600 font-semibold">
                       <i className="ti ti-refresh" aria-hidden="true" /> Sync mapato
                     </button>
                   </div>
@@ -2006,7 +1997,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                             {r.reference_number ? ` · ${r.reference_number}` : ''}
                           </p>
                         </div>
-                        <p className="text-sm font-semibold text-green-600 flex-shrink-0">
+                        <p className="text-sm font-semibold text-emerald-700 flex-shrink-0">
                           +{fmtFull(Number(r.amount_tzs))}
                         </p>
                       </div>
@@ -2025,7 +2016,7 @@ ON CONFLICT DO NOTHING;`}</pre>
               <p className="text-sm text-red-600">Imeshindwa kupakia takwimu.</p>
               <button
                 onClick={() => setAnalyticsError(false)}
-                className="text-xs bg-primary-500 text-white px-4 py-2 rounded-lg font-medium"
+                className="text-xs bg-teal-700 text-white px-4 py-2 rounded-lg font-medium"
               >
                 Jaribu Tena
               </button>

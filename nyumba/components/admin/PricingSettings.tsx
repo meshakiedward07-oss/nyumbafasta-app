@@ -204,21 +204,21 @@ export default function PricingSettings() {
   const hasChanges = JSON.stringify(draft) !== JSON.stringify(pricing)
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+      <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between gap-3">
         <div>
-          <p className="font-bold text-gray-800 text-sm flex items-center gap-2">
-            <i className="ti ti-tag text-primary-500 text-base" aria-hidden="true" />
+          <p className="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i className="ti ti-tag text-teal-600 text-base" aria-hidden="true" />
             Mipangilio ya Bei na Viwango
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">Bei unayobadilisha itatumika mara moja kwenye malipo yote mapya</p>
+          <p className="text-xs text-slate-400 mt-0.5">Bei unayobadilisha itatumika mara moja kwenye malipo yote mapya</p>
         </div>
         {!editing && !loading && (
           <button
             onClick={() => setEditing(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 transition-colors"
           >
             <i className="ti ti-pencil" aria-hidden="true" />Badilisha
           </button>
@@ -234,16 +234,16 @@ export default function PricingSettings() {
 
       {loading ? (
         <div className="px-5 py-8 text-center">
-          <i className="ti ti-loader-2 animate-spin text-primary-500 text-xl" aria-hidden="true" />
-          <p className="text-xs text-gray-400 mt-2">Inapakia mipangilio ya sasa...</p>
+          <i className="ti ti-loader-2 animate-spin text-teal-600 text-xl" aria-hidden="true" />
+          <p className="text-xs text-slate-400 mt-2">Inapakia mipangilio ya sasa...</p>
         </div>
       ) : (
         <>
           {/* Price fields */}
           <div className="px-5 pt-4 pb-1">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bei za Huduma</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bei za Huduma</p>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-slate-100">
             {PRICE_FIELDS.map(field => {
               const current = field.get(pricing)
               const value   = field.get(draft)
@@ -252,17 +252,17 @@ export default function PricingSettings() {
               return (
                 <div key={field.key} className="px-5 py-3.5 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-800">{field.label}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{field.hint}</p>
+                    <p className="text-xs font-semibold text-slate-800">{field.label}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{field.hint}</p>
                   </div>
 
                   {editing ? (
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {changed && (
-                        <span className="text-[10px] text-gray-400 line-through">{fmtTsh(current)}</span>
+                        <span className="text-[10px] text-slate-400 line-through">{fmtTsh(current)}</span>
                       )}
                       <div className="relative">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">Tsh</span>
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">Tsh</span>
                         <input
                           type="number"
                           inputMode="numeric"
@@ -270,14 +270,14 @@ export default function PricingSettings() {
                           step="100"
                           value={value}
                           onChange={e => handlePriceChange(field, e.target.value)}
-                          className={`w-28 pl-9 pr-2 py-1.5 rounded-lg border text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-primary-400 ${
-                            changed ? 'border-primary-400 bg-primary-50' : 'border-gray-200 bg-white'
+                          className={`w-28 pl-9 pr-2 py-1.5 rounded-lg border text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500 ${
+                            changed ? 'border-teal-400 bg-teal-50' : 'border-slate-200 bg-white'
                           }`}
                         />
                       </div>
                     </div>
                   ) : (
-                    <span className="text-sm font-bold text-primary-600 flex-shrink-0">{fmtTsh(current)}</span>
+                    <span className="text-sm font-bold text-teal-700 flex-shrink-0">{fmtTsh(current)}</span>
                   )}
                 </div>
               )
@@ -285,16 +285,16 @@ export default function PricingSettings() {
           </div>
 
           {/* Listing limit fields */}
-          <div className="px-5 pt-5 pb-1 border-t border-gray-100">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="px-5 pt-5 pb-1 border-t border-slate-200">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <i className="ti ti-list-numbers text-xs" aria-hidden="true" />
               Idadi ya Listings kwa Kila Plan
             </p>
-            <p className="text-[10px] text-gray-400 mt-0.5">
+            <p className="text-[10px] text-slate-400 mt-0.5">
               Admin anaweza kupanga idadi ya listings inayoruhusiwa kwa kila aina ya subscription
             </p>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-slate-100">
             {LIMIT_FIELDS.map(field => {
               const current = field.get(pricing)
               const value   = field.get(draft)
@@ -303,14 +303,14 @@ export default function PricingSettings() {
               return (
                 <div key={field.key} className="px-5 py-3.5 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-800">{field.label}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{field.hint}</p>
+                    <p className="text-xs font-semibold text-slate-800">{field.label}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{field.hint}</p>
                   </div>
 
                   {editing ? (
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {changed && (
-                        <span className="text-[10px] text-gray-400 line-through">{current} listings</span>
+                        <span className="text-[10px] text-slate-400 line-through">{current} listings</span>
                       )}
                       <div className="relative">
                         <input
@@ -320,15 +320,15 @@ export default function PricingSettings() {
                           step="1"
                           value={value}
                           onChange={e => handleLimitChange(field, e.target.value)}
-                          className={`w-24 px-3 py-1.5 rounded-lg border text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-primary-400 ${
-                            changed ? 'border-primary-400 bg-primary-50' : 'border-gray-200 bg-white'
+                          className={`w-24 px-3 py-1.5 rounded-lg border text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500 ${
+                            changed ? 'border-teal-400 bg-teal-50' : 'border-slate-200 bg-white'
                           }`}
                         />
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">ls</span>
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none">ls</span>
                       </div>
                     </div>
                   ) : (
-                    <span className="text-sm font-bold text-primary-600 flex-shrink-0">{current} listings</span>
+                    <span className="text-sm font-bold text-teal-700 flex-shrink-0">{current} listings</span>
                   )}
                 </div>
               )
@@ -339,11 +339,11 @@ export default function PricingSettings() {
 
       {/* Edit actions */}
       {editing && (
-        <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+        <div className="px-5 py-4 border-t border-slate-200 flex gap-2">
           <button
             onClick={handleSave}
             disabled={saving || !hasChanges}
-            className="flex-1 py-3 rounded-xl text-sm font-bold bg-primary-600 text-white disabled:opacity-40 active:scale-[0.98] transition-all"
+            className="flex-1 py-3 rounded-xl text-sm font-bold bg-teal-700 text-white disabled:opacity-40 active:scale-[0.98] transition-all"
           >
             {saving ? (
               <><i className="ti ti-loader-2 animate-spin mr-1" aria-hidden="true" />Inahifadhi...</>
@@ -354,7 +354,7 @@ export default function PricingSettings() {
           <button
             onClick={handleCancel}
             disabled={saving}
-            className="px-4 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 disabled:opacity-40"
+            className="px-4 py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-600 disabled:opacity-40"
           >
             Ghairi
           </button>
@@ -371,7 +371,7 @@ export default function PricingSettings() {
 
       {/* Impact notice */}
       {!editing && !loading && (
-        <div className="px-5 py-3 border-t border-gray-50 bg-amber-50">
+        <div className="px-5 py-3 border-t border-slate-100 bg-amber-50">
           <p className="text-[10px] text-amber-700 flex items-start gap-1.5">
             <i className="ti ti-info-circle flex-shrink-0 mt-0.5" aria-hidden="true" />
             Kubadilisha bei kunaathiri malipo mapya tu. Kubadilisha idadi ya listings kunaathiri uploads mpya — dalali walio na listings zaidi ya kikomo kipya hawataathirika retroactively.
