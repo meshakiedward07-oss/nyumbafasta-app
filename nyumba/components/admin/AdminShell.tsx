@@ -39,9 +39,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: 'admin_nav_sec_social',
     items: [
-      { href: '/admin/social',             labelKey: 'admin_nav_social_overview', icon: 'chart-bar',    exact: true  },
-      { href: '/admin/social?tab=postnow', labelKey: 'admin_nav_publish',         icon: 'pencil',       exact: false },
-      { href: '/admin/social-inbox',       labelKey: 'admin_nav_social_inbox',    icon: 'message-dots', exact: false, badge: 'social' as const },
+      { href: '/admin/social', labelKey: 'admin_nav_social_overview', icon: 'camera', exact: false },
     ],
   },
   {

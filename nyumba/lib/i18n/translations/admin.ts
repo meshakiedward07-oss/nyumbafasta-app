@@ -19,7 +19,7 @@ const T_admin = {
   admin_nav_scorecards:        { sw: 'Kadi za Idara',          en: 'Dept Scorecards'       },
   admin_nav_conversations:     { sw: 'Mazungumzo',             en: 'Conversations'         },
   admin_nav_broadcast:         { sw: 'Tuma Ujumbe',            en: 'Broadcast'             },
-  admin_nav_social_overview:   { sw: 'Muhtasari',              en: 'Overview'              },
+  admin_nav_social_overview:   { sw: 'Social Media Management', en: 'Social Media Management' },
   admin_nav_social_inbox:      { sw: 'DM za Kijamii',          en: 'Social DMs'            },
   admin_nav_messages:          { sw: 'Ujumbe wa Ndani',        en: 'Internal Messages'     },
   admin_nav_publish:           { sw: 'Chapisha',               en: 'Publish'               },
