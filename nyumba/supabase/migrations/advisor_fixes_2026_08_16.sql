@@ -81,18 +81,19 @@ CREATE POLICY "rv_own_all" ON recently_viewed
   WITH CHECK (user_id = (SELECT auth.uid()));
 
 -- ── tiktok_connections ────────────────────────────────────────────────────────
+-- tiktok_connections has no dalali_id/user_id; access is admin-only via is_admin()
+-- Drop the old broken policy (never successfully created — no dalali_id column)
 DROP POLICY IF EXISTS "tiktok_conn_own" ON tiktok_connections;
-CREATE POLICY "tiktok_conn_own" ON tiktok_connections
-  FOR ALL
-  USING     (dalali_id = (SELECT auth.uid()))
-  WITH CHECK (dalali_id = (SELECT auth.uid()));
+DROP POLICY IF EXISTS "admin_tiktok_connections" ON tiktok_connections;
+CREATE POLICY "admin_tiktok_connections" ON tiktok_connections
+  FOR ALL USING (public.is_admin());
 
 -- ── tiktok_posts ──────────────────────────────────────────────────────────────
+-- tiktok_posts has no dalali_id/user_id; access is admin-only via is_admin()
 DROP POLICY IF EXISTS "tiktok_posts_own" ON tiktok_posts;
-CREATE POLICY "tiktok_posts_own" ON tiktok_posts
-  FOR ALL
-  USING     (dalali_id = (SELECT auth.uid()))
-  WITH CHECK (dalali_id = (SELECT auth.uid()));
+DROP POLICY IF EXISTS "admin_tiktok_posts" ON tiktok_posts;
+CREATE POLICY "admin_tiktok_posts" ON tiktok_posts
+  FOR ALL USING (public.is_admin());
 
 -- ── followup_schedules ────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "followup_dalali_own" ON followup_schedules;
@@ -530,7 +531,7 @@ DROP POLICY IF EXISTS "org_view_own_brokerage_requests" ON brokerage_requests;
 CREATE POLICY "org_view_own_brokerage_requests" ON brokerage_requests
   FOR SELECT
   USING (org_id IN (
-    SELECT org_id FROM organization_members WHERE user_id = (SELECT auth.uid())
+    SELECT organization_id FROM organization_members WHERE user_id = (SELECT auth.uid())
   ));
 
 DROP POLICY IF EXISTS "org_insert_brokerage_requests" ON brokerage_requests;
@@ -538,7 +539,7 @@ CREATE POLICY "org_insert_brokerage_requests" ON brokerage_requests
   FOR INSERT
   WITH CHECK (
     org_id IN (
-      SELECT org_id FROM organization_members
+      SELECT organization_id FROM organization_members
       WHERE user_id = (SELECT auth.uid())
         AND role IN ('owner', 'branch_manager', 'agent')
     )
@@ -552,7 +553,7 @@ CREATE POLICY "org_cancel_own_requests" ON brokerage_requests
   FOR UPDATE
   USING (
     org_id IN (
-      SELECT org_id FROM organization_members
+      SELECT organization_id FROM organization_members
       WHERE user_id = (SELECT auth.uid())
         AND role IN ('owner', 'branch_manager')
     )
