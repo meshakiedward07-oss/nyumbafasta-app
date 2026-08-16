@@ -6,6 +6,7 @@ import {
   notifyAdvertiserApproved,
   notifyAdvertiserRejected,
 } from '@/lib/ads/adNotifications'
+import { triggerListingStage } from '@/lib/influencer/payoutTriggers'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,6 +78,12 @@ export async function POST(req: NextRequest) {
       ])
     }
     await logStaffActivity({ staffId: user.id, actionType: 'approve_listing', resourceType: 'listing', resourceId: id, description: `Ulidhinisha listing #${id.slice(0, 8)}` })
+    // Non-blocking: check if this dalali is referred and has hit 3 approved listings
+    if (listing) {
+      triggerListingStage(listing.dalali_id, admin).catch(e =>
+        console.error('[Payout] triggerListingStage failed (non-fatal):', e)
+      )
+    }
     return NextResponse.json({ ok: true, message: 'Listing imeidhinishwa' })
   }
 

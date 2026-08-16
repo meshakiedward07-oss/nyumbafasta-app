@@ -8,6 +8,7 @@ import {
 import { getPricing } from '@/lib/config/pricing'
 import { sendMail } from '@/lib/email/resend'
 import { subscriptionActivatedEmail } from '@/lib/email/templates'
+import { triggerSubscriptionStage } from '@/lib/influencer/payoutTriggers'
 
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
@@ -131,6 +132,11 @@ export async function POST(req: NextRequest) {
     import('@/lib/accounting/incomeTracker')
       .then(m => m.recordIncomeFromSubscription(subscription.id))
       .catch(e => console.error('[Accounting] recordIncomeFromSubscription failed:', e))
+
+    // Influencer payout: real paid subscription triggers Stage 2 or Stage 3 (non-blocking)
+    triggerSubscriptionStage(subscription.dalali_id, admin).catch(e =>
+      console.error('[Payout] triggerSubscriptionStage failed (non-fatal):', e)
+    )
 
     const planName = subscription.plan === 'premium' ? 'Premium ⭐'
       : subscription.plan === 'enterprise' ? 'Enterprise 🏆' : 'Basic'
