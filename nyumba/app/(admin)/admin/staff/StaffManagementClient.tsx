@@ -4,7 +4,7 @@ import PermissionManagerModal from '@/components/admin/PermissionManagerModal'
 import { STAFF_PERMISSIONS } from '@/lib/staff/permissions'
 import type { PermissionKey } from '@/lib/staff/permissions'
 
-type RoleFilter = 'staff' | 'performance' | 'dalali_activity'
+type RoleFilter = 'staff' | 'performance' | 'dalali_activity' | 'influencers'
 
 type DalaliRow = {
   id: string
@@ -207,9 +207,10 @@ export default function StaffManagementClient() {
       {/* Tab switcher */}
       <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3">
         {([
-          { key: 'staff',           label: 'Wafanyakazi',   icon: 'users' },
-          { key: 'performance',     label: 'Ubora wa Timu', icon: 'chart-bar' },
+          { key: 'staff',           label: 'Wafanyakazi',      icon: 'users' },
+          { key: 'performance',     label: 'Ubora wa Timu',    icon: 'chart-bar' },
           { key: 'dalali_activity', label: 'Hatari (Madalali)', icon: 'alert-triangle' },
+          { key: 'influencers',     label: 'Influencers',       icon: 'users-group' },
         ] as { key: RoleFilter; label: string; icon: string }[]).map(tab => (
           <button
             key={tab.key}
@@ -225,6 +226,9 @@ export default function StaffManagementClient() {
           </button>
         ))}
       </div>
+
+      {/* Influencer management view */}
+      {roleFilter === 'influencers' && <InfluencerAdminView />}
 
       {/* Dalali activity view */}
       {roleFilter === 'dalali_activity' && <DalaliActivityView />}
@@ -2195,6 +2199,245 @@ function StaffLegalModal({
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Influencer Admin View ─────────────────────────────────────────────────────
+
+type InfluencerRow = {
+  id: string
+  userId: string
+  fullName: string | null
+  staffTitle: string | null
+  email: string | null
+  referralCode: string
+  isActive: boolean
+  socialHandle: string | null
+  platform: string | null
+  createdAt: string
+  referrals: number
+  totalEarned: number
+  totalPaid: number
+  totalHold: number
+  balance: number
+}
+
+type PayoutStageAdmin = {
+  id: string
+  referredUserId: string
+  referredName: string | null
+  stage: number
+  amountTzs: number
+  status: 'hold' | 'earned' | 'paid'
+  holdUntil: string | null
+  triggeredAt: string
+  paidAt: string | null
+  adminNote: string | null
+}
+
+const STATUS_PILL: Record<string, string> = {
+  hold:   'bg-amber-50 text-amber-700 border-amber-200',
+  earned: 'bg-green-50 text-green-700 border-green-200',
+  paid:   'bg-blue-50 text-blue-700 border-blue-200',
+}
+
+function fmtTzs(n: number) { return `Tsh ${n.toLocaleString('sw-TZ')}` }
+
+function InfluencerAdminView() {
+  const [influencers, setInfluencers] = useState<InfluencerRow[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [selected,    setSelected]    = useState<InfluencerRow | null>(null)
+  const [stages,      setStages]      = useState<PayoutStageAdmin[]>([])
+  const [stageLoading, setStageLoading] = useState(false)
+  const [paying,      setPaying]      = useState<string | null>(null)
+  const [toast,       setToast]       = useState<{ msg: string; ok: boolean } | null>(null)
+
+  function showToast(msg: string, ok = true) {
+    setToast({ msg, ok }); setTimeout(() => setToast(null), 3500)
+  }
+
+  useEffect(() => {
+    fetch('/api/v1/admin/influencers')
+      .then(r => r.json())
+      .then(j => setInfluencers(j.influencers ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function openDetail(inf: InfluencerRow) {
+    setSelected(inf); setStageLoading(true); setStages([])
+    try {
+      const j = await fetch(`/api/v1/admin/influencers/${inf.id}`).then(r => r.json())
+      setStages(j.stages ?? [])
+    } catch { /* silent */ }
+    finally { setStageLoading(false) }
+  }
+
+  async function markPaid(stageId: string) {
+    setPaying(stageId)
+    try {
+      const res = await fetch('/api/v1/admin/influencers', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'mark_paid', stageId }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error)
+      setStages(prev => prev.map(s => s.id === stageId ? { ...s, status: 'paid', paidAt: new Date().toISOString() } : s))
+      // Update balance in parent list
+      const stage = stages.find(s => s.id === stageId)
+      if (stage && selected) {
+        const newPaid = selected.totalPaid + stage.amountTzs
+        setSelected({ ...selected, totalPaid: newPaid, balance: selected.totalEarned - newPaid })
+        setInfluencers(prev => prev.map(i =>
+          i.id === selected.id ? { ...i, totalPaid: newPaid, balance: i.totalEarned - newPaid } : i
+        ))
+      }
+      showToast('Malipo imethibitishwa')
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Imeshindwa', false)
+    } finally { setPaying(null) }
+  }
+
+  async function toggleActive(inf: InfluencerRow) {
+    try {
+      const res = await fetch('/api/v1/admin/influencers', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle_active', influencerId: inf.id, isActive: !inf.isActive }),
+      })
+      if (!res.ok) { showToast('Imeshindwa kubadilisha hali', false); return }
+      setInfluencers(prev => prev.map(i => i.id === inf.id ? { ...i, isActive: !i.isActive } : i))
+      if (selected?.id === inf.id) setSelected({ ...selected, isActive: !selected.isActive })
+      showToast(inf.isActive ? 'Influencer imezimwa' : 'Influencer imewashwa')
+    } catch { showToast('Hitilafu imetokea', false) }
+  }
+
+  if (loading) return <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" /></div>
+
+  return (
+    <div className="space-y-4">
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl shadow-lg text-sm font-medium ${toast.ok ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Detail drawer */}
+      {selected && (
+        <div className="fixed inset-0 z-40 bg-black/40 flex justify-end" onClick={() => setSelected(null)}>
+          <div className="w-full max-w-sm bg-white h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+              <div>
+                <p className="font-semibold text-gray-800">{selected.fullName ?? 'Influencer'}</p>
+                <p className="text-xs text-gray-400 font-mono">{selected.referralCode}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => toggleActive(selected)}
+                  className={`text-xs px-3 py-1 rounded-full border font-medium ${selected.isActive ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-green-600 border-green-200'}`}
+                >
+                  {selected.isActive ? 'Zima' : 'Washa'}
+                </button>
+                <button onClick={() => setSelected(null)} className="p-1 text-gray-400"><i className="ti ti-x" /></button>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-2 gap-2 p-4 border-b border-gray-50">
+              {[
+                { label: 'Wasajili', value: selected.referrals },
+                { label: 'Salio', value: fmtTzs(selected.balance) },
+                { label: 'Imepatikana', value: fmtTzs(selected.totalEarned) },
+                { label: 'Imelipwa', value: fmtTzs(selected.totalPaid) },
+              ].map((s, i) => (
+                <div key={i} className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">{s.label}</p>
+                  <p className="font-semibold text-gray-800">{s.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Payout stages */}
+            <div className="p-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Malipo Yote</p>
+              {stageLoading && <div className="flex justify-center py-6"><div className="w-5 h-5 border-2 border-pink-400 border-t-transparent rounded-full animate-spin" /></div>}
+              {!stageLoading && stages.length === 0 && <p className="text-xs text-gray-400 text-center py-6">Hakuna malipo bado</p>}
+              {!stageLoading && stages.map(s => (
+                <div key={s.id} className="bg-white border border-gray-100 rounded-2xl p-3 mb-2 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-medium text-gray-700">Stage {s.stage} · {fmtTzs(s.amountTzs)}</p>
+                      <p className="text-xs text-gray-400">{s.referredName ?? s.referredUserId.slice(0, 8)}</p>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium flex-shrink-0 ${STATUS_PILL[s.status]}`}>
+                      {s.status === 'hold' ? 'Hold' : s.status === 'earned' ? 'Imepatikana' : 'Imelipwa'}
+                    </span>
+                  </div>
+                  {s.status === 'hold' && s.holdUntil && (
+                    <p className="text-[10px] text-amber-600 mt-1">Hold hadi: {new Date(s.holdUntil).toLocaleDateString('sw-TZ')}</p>
+                  )}
+                  {s.status === 'earned' && (
+                    <button
+                      onClick={() => markPaid(s.id)}
+                      disabled={paying === s.id}
+                      className="mt-2 w-full py-1.5 bg-primary-500 text-white text-xs rounded-xl font-medium disabled:opacity-50"
+                    >
+                      {paying === s.id ? '...' : `Thibitisha Malipo — ${fmtTzs(s.amountTzs)}`}
+                    </button>
+                  )}
+                  {s.status === 'paid' && s.paidAt && (
+                    <p className="text-[10px] text-blue-500 mt-1">Imelipwa: {new Date(s.paidAt).toLocaleDateString('sw-TZ')}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-700">Brand Ambassadors ({influencers.length})</p>
+          <p className="text-xs text-gray-400">Thibitisha malipo ya influencer kutoka hapa</p>
+        </div>
+      </div>
+
+      {influencers.length === 0 && (
+        <div className="text-center py-12 text-gray-400 text-sm">
+          Bado hakuna influencer. Ongeza mfanyakazi mpya ukichagua "Influencer" kama aina ya kazi.
+        </div>
+      )}
+
+      {influencers.map(inf => (
+        <div
+          key={inf.id}
+          onClick={() => openDetail(inf)}
+          className={`bg-white border rounded-2xl p-4 shadow-sm cursor-pointer hover:border-pink-200 transition-colors ${inf.isActive ? 'border-gray-100' : 'border-gray-200 opacity-60'}`}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-gray-800 truncate">{inf.fullName ?? '—'}</p>
+                {!inf.isActive && <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">Imezimwa</span>}
+              </div>
+              <p className="text-xs text-gray-400 font-mono">{inf.referralCode}</p>
+              {inf.socialHandle && <p className="text-xs text-gray-400">{inf.platform} · {inf.socialHandle}</p>}
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-xs text-gray-400">{inf.referrals} wasajili</p>
+              {inf.balance > 0 && <p className="text-sm font-semibold text-green-600">{fmtTzs(inf.balance)}</p>}
+            </div>
+          </div>
+          {(inf.totalEarned > 0 || inf.totalHold > 0) && (
+            <div className="flex gap-2 mt-2 pt-2 border-t border-gray-50">
+              {inf.totalEarned > 0 && <span className="text-[10px] px-2 py-0.5 bg-green-50 text-green-700 border border-green-100 rounded-full">Earned {fmtTzs(inf.totalEarned)}</span>}
+              {inf.totalHold > 0  && <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded-full">Hold {fmtTzs(inf.totalHold)}</span>}
+              {inf.totalPaid > 0  && <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full">Paid {fmtTzs(inf.totalPaid)}</span>}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   )
 }
