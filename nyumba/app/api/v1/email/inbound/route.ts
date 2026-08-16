@@ -13,7 +13,7 @@ export async function GET() {
 
 function verifySvix(rawBody: string, req: NextRequest): boolean {
   const secret = process.env.RESEND_WEBHOOK_SECRET
-  if (!secret) return true // skip verification when secret not configured
+  if (!secret) return false // fail-closed: reject when secret is not configured
 
   const svixId        = req.headers.get('svix-id') ?? ''
   const svixTimestamp = req.headers.get('svix-timestamp') ?? ''

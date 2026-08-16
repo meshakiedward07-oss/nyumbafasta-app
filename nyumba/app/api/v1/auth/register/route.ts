@@ -37,13 +37,32 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient()
 
+    // Check if user already has a profile — never overwrite their existing role.
+    // A dalali re-calling /register must not lose their dalali status (or gain a free trial).
+    const { data: existingUser } = await admin
+      .from('users')
+      .select('id, role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const isNewUser = !existingUser
+
+    // Block role switching for existing accounts
+    if (!isNewUser && existingUser?.role !== role) {
+      return NextResponse.json(
+        { error: 'Akaunti yako tayari ipo. Tafadhali ingia tu.' },
+        { status: 409 }
+      )
+    }
+
     // Step 1: Guarantee public.users row exists before any FK references.
+    // Only set `role` for brand-new users — never overwrite an existing role.
     const { error: userError } = await admin.from('users').upsert(
       {
         id:        user.id,
         phone:     user.phone || null,
         full_name,
-        role,
+        ...(isNewUser ? { role } : {}),
         avatar_url: user.user_metadata?.avatar_url ?? null,
         agreement_accepted:    !!agreement,
         agreement_accepted_at: agreement ? new Date().toISOString() : null,
@@ -58,7 +77,6 @@ export async function POST(req: NextRequest) {
 
     // Step 2: Save agreement record if provided
     if (agreement) {
-      // Look up the version record
       const { data: versionRow } = await admin
         .from('agreement_versions')
         .select('id')
@@ -92,37 +110,46 @@ export async function POST(req: NextRequest) {
       userAgent: req.headers.get('user-agent') ?? undefined,
     })
 
-    // Step 3: Create dalali_profiles — safe now that parent row is guaranteed.
+    // Step 3: Dalali-specific setup — only for new dalali accounts
     if (role === 'dalali') {
-      const { error: profileError } = await admin.from('dalali_profiles').upsert(
-        {
-          user_id:             user.id,
-          whatsapp_number:     whatsapp_number ?? '',
+      const dalaliUpsert: Record<string, unknown> = {
+        user_id:         user.id,
+        whatsapp_number: whatsapp_number ?? '',
+      }
+
+      if (isNewUser) {
+        // Only set these on first registration — don't reset trial_used for re-registrations
+        Object.assign(dalaliUpsert, {
           bio:                 null,
           rating_avg:          0,
           rating_count:        0,
           is_premium_verified: false,
           trial_used:          false,
-        },
+        })
+      }
+
+      const { error: profileError } = await admin.from('dalali_profiles').upsert(
+        dalaliUpsert,
         { onConflict: 'user_id' }
       )
       if (profileError) {
         return NextResponse.json({ error: profileError.message }, { status: 500 })
       }
 
-      // Step 4: Anzisha trial ya siku 14 kwa dalali mpya
-      // Non-fatal: if RPC missing, the fix_dalali_onboarding migration back-fills subscriptions.
-      const { error: trialErr } = await admin.rpc('start_dalali_trial', { dalali_user_id: user.id })
-      if (trialErr) console.error('[Register] start_dalali_trial failed (non-fatal):', trialErr.message)
+      if (isNewUser) {
+        // Step 4: Start 14-day trial for new dalali only
+        const { error: trialErr } = await admin.rpc('start_dalali_trial', { dalali_user_id: user.id })
+        if (trialErr) console.error('[Register] start_dalali_trial failed (non-fatal):', trialErr.message)
 
-      // Step 5: Welcome notification
-      await admin.from('notifications').insert({
-        user_id: user.id,
-        type:    'trial_started',
-        title:   '🎉 Karibu NyumbaFasta!',
-        body:    'Umepata siku 14 za BURE! Anza kuongeza listings sasa na upate wateja wako wa kwanza.',
-        is_read: false,
-      })
+        // Step 5: Welcome notification
+        await admin.from('notifications').insert({
+          user_id: user.id,
+          type:    'trial_started',
+          title:   '🎉 Karibu NyumbaFasta!',
+          body:    'Umepata siku 14 za BURE! Anza kuongeza listings sasa na upate wateja wako wa kwanza.',
+          is_read: false,
+        })
+      }
     }
 
     return NextResponse.json({ success: true, role })

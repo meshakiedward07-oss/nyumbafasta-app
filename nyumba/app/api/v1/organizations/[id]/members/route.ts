@@ -13,13 +13,20 @@ export async function GET(_req: NextRequest, { params }: Params) {
     if (!user) return NextResponse.json({ error: 'Haujaingia' }, { status: 401 })
 
     const admin = createAdminClient()
-    const { data: m } = await admin.from('organization_members').select('id').eq('organization_id', id).eq('user_id', user.id).maybeSingle()
+    const { data: m } = await admin.from('organization_members').select('id, role').eq('organization_id', id).eq('user_id', user.id).maybeSingle()
     const { data: u } = await admin.from('users').select('role').eq('id', user.id).single()
-    if (!m && !['admin', 'staff'].includes(u?.role ?? '')) return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
+    const isAdminStaff = ['admin', 'staff'].includes(u?.role ?? '')
+    if (!m && !isAdminStaff) return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
+
+    // Only org owners and platform admins/staff receive sensitive contact fields
+    const isPrivileged = m?.role === 'owner' || isAdminStaff
+    const userSelect = isPrivileged
+      ? 'id, full_name, email, phone, avatar_url'
+      : 'id, full_name, avatar_url'
 
     const { data, error } = await admin
       .from('organization_members')
-      .select('id, role, joined_at, user:users(id, full_name, email, phone, avatar_url)')
+      .select(`id, role, joined_at, user:users(${userSelect})`)
       .eq('organization_id', id)
       .order('joined_at', { ascending: true })
 
