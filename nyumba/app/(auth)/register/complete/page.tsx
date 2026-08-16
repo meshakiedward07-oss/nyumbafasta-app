@@ -70,6 +70,12 @@ export default function RegisterCompletePage() {
 
         clearPendingStorage()
 
+        // Set install gate for all non-admin roles (dalali, staff, client/tenant)
+        // ForceInstallGate will show a blocking modal on the next page
+        if (role !== 'admin') {
+          try { localStorage.setItem('nyumba_install_gate', role) } catch {}
+        }
+
         if (role === 'dalali') {
           router.replace('/dashboard?welcome=true')
         } else {

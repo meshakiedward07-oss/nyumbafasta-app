@@ -1,11 +1,18 @@
 {
+  "id": "/",
   "name": "NyumbaFasta",
   "short_name": "NyumbaFasta",
   "description": "Pata nyumba yako haraka Tanzania kwa uhakika",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#ffffff",
   "theme_color": "#1D9E75",
+  "lang": "sw",
+  "dir": "ltr",
+  "categories": ["lifestyle", "navigation"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -17,13 +24,29 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icon-1024.png",
-      "sizes": "1024x1024",
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tafuta Nyumba",
+      "short_name": "Tafuta",
+      "description": "Tafuta nyumba na vyumba Tanzania",
+      "url": "/?source=shortcut",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard Yangu",
+      "short_name": "Dashboard",
+      "description": "Angalia listings na mapato yako",
+      "url": "/dalali/dashboard?source=shortcut",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

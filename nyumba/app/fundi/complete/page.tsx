@@ -43,6 +43,7 @@ export default function FundiCompletePage() {
           throw new Error(d.error || t('fp_complete_reg_error'))
         }
         try { localStorage.removeItem('pending_fundi_register') } catch { /* ignore */ }
+        try { localStorage.setItem('nyumba_install_gate', 'fundi') } catch {}
         router.replace('/fundi/dashboard')
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : t('common_error_occurred'))

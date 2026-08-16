@@ -63,6 +63,7 @@ function RegisterForm() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? t('common_error')); return }
+      try { localStorage.setItem('nyumba_install_gate', 'advertiser') } catch {}
       router.push(planId ? `/advertising/new?plan=${planId}` : '/advertising/dashboard')
     } catch {
       setError(t('adv_connection_error'))

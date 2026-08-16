@@ -91,6 +91,19 @@ function StaffLoginForm() {
       : role === 'admin' ? '/admin'
       : '/admin/staff-dashboard'
 
+    // Show install gate for staff on their first login on this device.
+    // Admin accounts are excluded. Check dismissed + standalone flags first
+    // so returning users who already decided don't see it again.
+    if (role === 'staff') {
+      try {
+        const alreadyDismissed = !!localStorage.getItem('nyumba_install_dismissed')
+        const isInstalled = window.matchMedia('(display-mode: standalone)').matches
+        if (!alreadyDismissed && !isInstalled) {
+          localStorage.setItem('nyumba_install_gate', 'staff')
+        }
+      } catch {}
+    }
+
     window.location.href = dest
   }
 

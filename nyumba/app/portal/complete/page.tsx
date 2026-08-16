@@ -31,6 +31,7 @@ export default function PortalCompletePage() {
       const dest = d.portal_type === 'org_owner' ? '/property/dashboard'
                  : d.portal_type === 'tenant'    ? '/tenant'
                  : '/'
+      try { localStorage.setItem('nyumba_install_gate', d.portal_type ?? 'registered') } catch {}
       router.replace(dest)
     } catch {
       setMsg(t('portal_network_error'))

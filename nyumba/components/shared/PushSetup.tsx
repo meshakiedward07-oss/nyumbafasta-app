@@ -15,7 +15,7 @@ export default function PushSetup() {
   useEffect(() => {
     // Register SW immediately, silently
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {})
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {})
     }
 
     if (!isPushSupported()) return
