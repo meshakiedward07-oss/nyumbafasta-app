@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/ads/LogoutButton'
+import AdvertisingLangToggle from '@/components/ads/AdvertisingLangToggle'
 
 export const metadata = { title: 'NyumbaFasta · Matangazo ya Biashara' }
 
@@ -20,6 +21,9 @@ export default async function AdvertisingLayout({ children }: { children: ReactN
         </Link>
 
         <div className="ml-auto flex items-center gap-2">
+          <div className="w-24 flex-shrink-0">
+            <AdvertisingLangToggle />
+          </div>
           {user ? (
             <>
               <Link

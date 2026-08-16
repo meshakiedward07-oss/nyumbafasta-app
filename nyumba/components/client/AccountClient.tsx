@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import BottomNav from '@/components/shared/BottomNav'
+import LangToggle from '@/components/shared/LangToggle'
 import { useLanguage } from '@/lib/i18n/context'
 
 type Props = {
@@ -19,7 +20,7 @@ type Props = {
 
 export default function AccountClient({ fullName, email, phone, role, joinedAt, savedCount, unlocksCount = 0, totalSpent = 0 }: Props) {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const supabase = createClient()
 
   const [editing, setEditing] = useState(false)
@@ -156,6 +157,33 @@ export default function AccountClient({ fullName, email, phone, role, joinedAt, 
             {error}
           </div>
         )}
+
+        {/* ── Language preference ── */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-gray-50">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+              {lang === 'en' ? 'Language' : 'Lugha'}
+            </p>
+          </div>
+          <div className="px-4 py-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-primary-50 rounded-full flex items-center justify-center flex-shrink-0">
+                <i className="ti ti-language text-primary-600 text-sm" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-800">
+                  {lang === 'en' ? 'App Language' : 'Lugha ya App'}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {lang === 'en' ? 'Kiswahili or English' : 'Kiswahili au Kingereza'}
+                </p>
+              </div>
+            </div>
+            <div className="w-32 flex-shrink-0">
+              <LangToggle />
+            </div>
+          </div>
+        </div>
 
         {/* ── NAVIGATION cards — admin/dalali only ── */}
         {isAdmin && (

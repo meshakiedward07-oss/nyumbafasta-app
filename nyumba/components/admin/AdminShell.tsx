@@ -8,6 +8,7 @@ import type { PermissionKey } from '@/lib/staff/permissions'
 import { PlatformLogo } from '@/components/shared/PlatformLogo'
 import { useLanguage } from '@/lib/i18n/context'
 import type { TKey } from '@/lib/i18n/translations'
+import LangToggle from '@/components/shared/LangToggle'
 
 const BRAND_PLATFORMS = new Set(['whatsapp', 'instagram', 'facebook', 'tiktok'])
 
@@ -117,22 +118,6 @@ const STAFF_BOTTOM_NAV_BASE: StaffNavItem[] = [
   { href: '/admin/staff-leads',     icon: 'target',           labelKey: 'admin_nav_leads_mgmt', exact: false, permission: 'leads' as const },
 ]
 
-function LangToggle() {
-  const { lang, setLang } = useLanguage()
-  return (
-    <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs">
-      {(['sw', 'en'] as const).map(l => (
-        <button
-          key={l}
-          onClick={() => setLang(l)}
-          className={`flex-1 py-1.5 font-semibold transition-colors ${lang === l ? 'bg-primary-500 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-        >
-          {l === 'sw' ? '🇹🇿 SW' : '🇬🇧 EN'}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 type BadgeCounts = { pending: number; social: number; messages: number }
 const BadgesCtx = createContext<BadgeCounts>({ pending: 0, social: 0, messages: 0 })
@@ -511,7 +496,7 @@ export default function AdminShell({
       {/* ── Right column: mobile header + content ── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Mobile top header */}
-        <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 z-40 flex items-center justify-between flex-shrink-0">
+        <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 z-40 flex items-center justify-between gap-3 flex-shrink-0">
           <Link href={isStaff ? '/admin/staff-dashboard' : '/admin'}>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
@@ -520,6 +505,9 @@ export default function AdminShell({
               <span className="font-bold text-gray-900 text-sm">{isStaff ? 'Dashboard' : 'Admin'}</span>
             </div>
           </Link>
+          <div className="w-24 flex-shrink-0">
+            <LangToggle size="sm" />
+          </div>
           <button
             onClick={() => setDrawerOpen(true)}
             className="p-2 rounded-xl bg-gray-100"

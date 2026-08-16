@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/i18n/context'
 import type { TKey } from '@/lib/i18n/translations'
+import LangToggle from '@/components/shared/LangToggle'
 
 const NAV_ITEM_DEFS: Array<{ href: string; icon: string; labelKey: TKey }> = [
   { href: '/fundi/dashboard',    icon: 'layout-dashboard', labelKey: 'fp_nav_my_jobs'      },
@@ -86,7 +87,8 @@ export default function FundiShell({ children, fundiName }: Props) {
           })}
         </nav>
         {/* Bottom */}
-        <div className="px-3 pb-4 border-t border-gray-100 pt-3">
+        <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-1.5">
+          <LangToggle />
           <button onClick={handleLogout} className="w-full text-left">
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
               <i className="ti ti-door-exit" aria-hidden="true" />
@@ -135,6 +137,9 @@ export default function FundiShell({ children, fundiName }: Props) {
                 </Link>
               )
             })}
+            <div className="px-1 py-1">
+              <LangToggle />
+            </div>
             <button onClick={handleLogout} className="w-full text-left">
               <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 text-sm">
                 <i className="ti ti-door-exit" aria-hidden="true" /> {t('fp_logout')}

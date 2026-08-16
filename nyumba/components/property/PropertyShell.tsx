@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/i18n/context'
 import type { Organization } from '@/lib/types/property'
 import NotificationBell from '@/components/shared/NotificationBell'
+import LangToggle from '@/components/shared/LangToggle'
 function UnreadBadge({ count }: { count: number }) {
   if (count === 0) return null
   return (
@@ -149,7 +150,8 @@ export default function PropertyShell({ children, org, orgRole }: Props) {
           </div>
         </nav>
 
-        <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-0.5">
+        <div className="px-3 pb-4 border-t border-gray-100 pt-3 space-y-1.5">
+          <LangToggle />
           <Link href="/" onClick={onClose}>
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 text-sm">
               <i className="ti ti-world" aria-hidden="true" />
