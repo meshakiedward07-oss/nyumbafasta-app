@@ -17,12 +17,13 @@ export const dynamic     = 'force-dynamic'
 // Body: { platforms, captionIg, captionFb, scheduledAt? }
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const videoId = params.id
+  const videoId = id
 
   const body = await req.json() as {
     platforms:    string[]

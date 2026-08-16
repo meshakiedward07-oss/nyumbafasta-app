@@ -5,8 +5,9 @@ import { requireAdminAuth } from '@/lib/security/adminAuth'
 // GET — recent activity for a staff member (last 50 actions)
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const auth = await requireAdminAuth()
     if (!auth.ok) return auth.response
@@ -16,7 +17,7 @@ export async function GET(
     const { data: activities, error } = await admin
       .from('staff_activity_log')
       .select('id, action_type, resource_type, resource_id, description, created_at')
-      .eq('staff_id', params.id)
+      .eq('staff_id', id)
       .order('created_at', { ascending: false })
       .limit(50)
 

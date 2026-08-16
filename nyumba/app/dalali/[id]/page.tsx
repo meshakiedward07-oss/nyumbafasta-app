@@ -50,9 +50,10 @@ const getDalali = cache(async function getDalali(id: string): Promise<DalaliRow 
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }): Promise<Metadata> {
-  const dalali = await getDalali(params.id)
+  const { id } = await params
+  const dalali = await getDalali(id)
   if (!dalali || dalali.role !== 'dalali' || !dalali.is_active) {
     return { title: 'Dalali | NyumbaFasta' }
   }
@@ -79,9 +80,10 @@ export async function generateMetadata({
 export default async function DalaliProfilePage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
-  const dalali = await getDalali(params.id)
+  const { id } = await params
+  const dalali = await getDalali(id)
   if (!dalali || dalali.role !== 'dalali' || !dalali.is_active) notFound()
 
   const profile = pickProfile(dalali.dalali_profiles)

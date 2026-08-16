@@ -7,14 +7,15 @@ import { requireStaffAuth } from '@/lib/security/adminAuth'
 // Body: { note?: string }   — optional instruction for Amina
 export async function POST(
   req: NextRequest,
-  { params }: { params: { phone: string } },
+  { params }: { params: Promise<{ phone: string }> },
 ) {
+  const { phone: rawPhone } = await params
   try {
     const auth = await requireStaffAuth()
     if (!auth.ok) return auth.response
     const admin = { id: auth.userId, full_name: auth.fullName }
 
-    const phone = decodeURIComponent(params.phone)
+    const phone = decodeURIComponent(rawPhone)
     const { note } = await req.json().catch(() => ({ note: undefined })) as { note?: string }
 
     await updateWASession(phone, {

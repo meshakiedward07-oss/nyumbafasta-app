@@ -3,7 +3,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { updateOccupancy, resetOccupancy } from '@/lib/listings/occupancy'
 
 // PATCH — update occupancy count
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -16,7 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const { data: listing } = await admin
       .from('listings')
       .select('id, dalali_id, listing_unit_type, total_capacity, current_occupancy')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (!listing) return NextResponse.json({ error: 'Listing haikupatikana' }, { status: 404 })
@@ -29,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const result = await updateOccupancy({
-      listingId: params.id,
+      listingId: id,
       newOccupancy: body.occupancy,
       changedBy: user.id,
     })
@@ -50,7 +51,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // POST — reset occupancy (tenant moved out, reactivate listing)
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -63,14 +65,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const { data: listing } = await admin
       .from('listings')
       .select('id, dalali_id, listing_unit_type')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (!listing) return NextResponse.json({ error: 'Listing haikupatikana' }, { status: 404 })
     if (role !== 'admin' && listing.dalali_id !== user.id) return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
     if (listing.listing_unit_type !== 'multi') return NextResponse.json({ error: 'Listing hii si ya aina ya multi-unit' }, { status: 400 })
 
-    await resetOccupancy(params.id, user.id, true)
+    await resetOccupancy(id, user.id, true)
 
     return NextResponse.json({ success: true, message: 'Listing imefunguliwa tena — wapangaji 0' })
 

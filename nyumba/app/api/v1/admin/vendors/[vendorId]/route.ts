@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
-type Params = { params: { vendorId: string } }
+type Params = { params: Promise<{ vendorId: string }> }
 
 // PATCH /api/v1/admin/vendors/:vendorId — verify or reject vendor
 export async function PATCH(req: NextRequest, { params }: Params) {

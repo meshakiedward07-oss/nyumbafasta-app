@@ -158,8 +158,9 @@ async function getAgentData(username: string): Promise<{
   }
 }
 
-export async function generateMetadata({ params }: { params: { username: string } }): Promise<Metadata> {
-  const result = await getAgentData(params.username.toLowerCase())
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const { username } = await params
+  const result = await getAgentData(username.toLowerCase())
   if (!result) return { title: 'Dalali Hapatikani | NyumbaFasta' }
 
   // Unverified: tell crawlers not to index the pending page
@@ -192,8 +193,9 @@ export async function generateMetadata({ params }: { params: { username: string 
   }
 }
 
-export default async function AgentProfilePage({ params }: { params: { username: string } }) {
-  const username = params.username.toLowerCase()
+export default async function AgentProfilePage({ params }: { params: Promise<{ username: string }> }) {
+  const { username: usernameRaw } = await params
+  const username = usernameRaw.toLowerCase()
   const result = await getAgentData(username)
   if (!result) notFound()
 

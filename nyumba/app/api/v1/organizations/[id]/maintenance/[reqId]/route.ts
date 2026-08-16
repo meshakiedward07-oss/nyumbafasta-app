@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
-type Params = { params: { id: string; reqId: string } }
+type Params = { params: Promise<{ id: string; reqId: string }> }
 
 // GET /api/v1/organizations/:id/maintenance/:reqId
 export async function GET(_req: NextRequest, { params }: Params) {

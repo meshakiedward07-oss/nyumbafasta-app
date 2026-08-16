@@ -7,8 +7,9 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 // 2. Any completed unlock for the same dalali within the last 24 hours.
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -19,7 +20,7 @@ export async function GET(
     const { data: listing } = await admin
       .from('listings')
       .select('dalali_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (!listing) return NextResponse.json({ error: 'Listing haipatikani' }, { status: 404 })
@@ -31,7 +32,7 @@ export async function GET(
         .from('contact_unlocks')
         .select('id')
         .eq('client_id', user.id)
-        .eq('listing_id', params.id)
+        .eq('listing_id', id)
         .eq('status', 'completed')
         .maybeSingle(),
 

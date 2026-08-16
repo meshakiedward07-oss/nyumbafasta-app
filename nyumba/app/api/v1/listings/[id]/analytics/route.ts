@@ -6,8 +6,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -20,7 +21,7 @@ export async function GET(
     const { data: listing } = await admin
       .from('listings')
       .select('dalali_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .maybeSingle()
 
     if (!listing) {
@@ -39,7 +40,7 @@ export async function GET(
       return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
     }
 
-    const data = await getListingAnalytics(params.id)
+    const data = await getListingAnalytics(id)
     return NextResponse.json(data)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Hitilafu ya seva'

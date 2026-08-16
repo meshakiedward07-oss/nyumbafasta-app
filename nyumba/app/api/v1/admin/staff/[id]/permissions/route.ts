@@ -7,8 +7,9 @@ import type { PermissionKey, RoleTemplate } from '@/lib/staff/permissions'
 // ─── GET — current permissions for a staff member ────────────────────────────
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
@@ -17,7 +18,7 @@ export async function GET(
   const { data: rows } = await admin
     .from('staff_permissions')
     .select('permission_key, granted_at')
-    .eq('staff_id', params.id)
+    .eq('staff_id', id)
 
   return NextResponse.json({
     granted: (rows ?? []).map(r => r.permission_key),
@@ -28,8 +29,9 @@ export async function GET(
 // ─── PUT — replace all permissions for a staff member ────────────────────────
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
@@ -55,7 +57,7 @@ export async function PUT(
   const { data: target } = await admin
     .from('users')
     .select('role')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!target || target.role !== 'staff') {
@@ -65,7 +67,7 @@ export async function PUT(
   if (body.permissions.length > 0) {
     // Atomic: upsert new set first (safe — no change if this fails)
     const { error: upsertError } = await admin.from('staff_permissions').upsert(
-      body.permissions.map(key => ({ staff_id: params.id, permission_key: key })),
+      body.permissions.map(key => ({ staff_id: id, permission_key: key })),
       { onConflict: 'staff_id,permission_key', ignoreDuplicates: true }
     )
     if (upsertError) {
@@ -75,13 +77,13 @@ export async function PUT(
     // Values must be quoted in the PostgREST IN filter for TEXT columns.
     const { error: deleteError } = await admin.from('staff_permissions')
       .delete()
-      .eq('staff_id', params.id)
+      .eq('staff_id', id)
       .not('permission_key', 'in', `("${body.permissions.join('","')}")`)
     if (deleteError) {
       console.error('[Permissions] Cleanup delete failed (non-fatal):', deleteError.message)
     }
   } else {
-    await admin.from('staff_permissions').delete().eq('staff_id', params.id)
+    await admin.from('staff_permissions').delete().eq('staff_id', id)
   }
 
   return NextResponse.json({ success: true, message: 'Ruhusa zimesasishwa' })
@@ -90,8 +92,9 @@ export async function PUT(
 // ─── PATCH — add or remove a single permission ───────────────────────────────
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
@@ -108,7 +111,7 @@ export async function PATCH(
   }
 
   const admin = createAdminClient()
-  const { data: target } = await admin.from('users').select('role').eq('id', params.id).single()
+  const { data: target } = await admin.from('users').select('role').eq('id', id).single()
   if (!target || target.role !== 'staff') {
     return NextResponse.json({ error: 'Staff mwanachama haupatikani' }, { status: 404 })
   }
@@ -116,11 +119,11 @@ export async function PATCH(
   if (action === 'add') {
     // Insert only if not already present (ignore conflict)
     const { error } = await admin.from('staff_permissions')
-      .upsert({ staff_id: params.id, permission_key: permission }, { onConflict: 'staff_id,permission_key', ignoreDuplicates: true })
+      .upsert({ staff_id: id, permission_key: permission }, { onConflict: 'staff_id,permission_key', ignoreDuplicates: true })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   } else {
     const { error } = await admin.from('staff_permissions')
-      .delete().eq('staff_id', params.id).eq('permission_key', permission)
+      .delete().eq('staff_id', id).eq('permission_key', permission)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -130,8 +133,9 @@ export async function PATCH(
 // ─── POST — apply a role template ────────────────────────────────────────────
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
@@ -153,7 +157,7 @@ export async function POST(
   const { data: target } = await admin
     .from('users')
     .select('role')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!target || target.role !== 'staff') {
@@ -162,7 +166,7 @@ export async function POST(
 
   // Atomic: upsert template permissions first, then prune extras
   const { error: upsertError } = await admin.from('staff_permissions').upsert(
-    template.permissions.map(key => ({ staff_id: params.id, permission_key: key })),
+    template.permissions.map(key => ({ staff_id: id, permission_key: key })),
     { onConflict: 'staff_id,permission_key', ignoreDuplicates: true }
   )
   if (upsertError) {
@@ -170,7 +174,7 @@ export async function POST(
   }
   const { error: deleteError } = await admin.from('staff_permissions')
     .delete()
-    .eq('staff_id', params.id)
+    .eq('staff_id', id)
     .not('permission_key', 'in', `("${template.permissions.join('","')}")`)
   if (deleteError) {
     console.error('[Permissions] Template cleanup failed (non-fatal):', deleteError.message)
@@ -179,7 +183,7 @@ export async function POST(
   const { error: updateError } = await admin
     .from('users')
     .update({ role_template: body.template })
-    .eq('id', params.id)
+    .eq('id', id)
 
   if (updateError) {
     console.error('[Permissions] role_template update failed:', updateError.message)

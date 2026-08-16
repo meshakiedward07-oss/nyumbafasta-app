@@ -6,7 +6,8 @@ import { requireAdminUser } from '@/lib/security/adminAuth'
 import { isSuperadmin } from '@/lib/security/superadmin'
 
 // GET — fetch single user profile for admin
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   try {
     const admin = await requireAdminUser()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -19,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         staff_title, staff_active, max_leads_capacity,
         dalali_profiles ( whatsapp_number, bio, is_premium_verified, rating_avg )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -32,7 +33,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 // PATCH — suspend au activate user
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   try {
     const admin = await requireAdminUser()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -45,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const adminClient = createAdminClient()
 
     // Superadmin account is permanently protected — cannot be suspended, banned, or altered
-    const { data: targetAuth } = await adminClient.auth.admin.getUserById(params.id)
+    const { data: targetAuth } = await adminClient.auth.admin.getUserById(id)
     if (isSuperadmin(targetAuth?.user?.email)) {
       return NextResponse.json({ error: 'Akaunti hii inalindwa na haiwezi kubadilishwa' }, { status: 403 })
     }
@@ -57,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const { error } = await adminClient
       .from('users')
       .update({ is_active: action === 'activate', account_status: accountStatus })
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -68,7 +70,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await auditLog({
       action: auditAction,
       user_id: admin.id,
-      target_id: params.id,
+      target_id: id,
       target_type: 'user',
       ip_address: getClientIp(req),
       severity: action === 'activate' ? 'info' : 'warning',
@@ -81,19 +83,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE — futa user kabisa kwa admin
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   try {
     const admin = await requireAdminUser()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    if (params.id === admin.id) {
+    if (id === admin.id) {
       return NextResponse.json({ error: 'Huwezi kufuta akaunti yako mwenyewe' }, { status: 400 })
     }
 
     const adminClient = createAdminClient()
 
     // Superadmin account cannot be deleted via any admin UI path
-    const { data: delTargetAuth } = await adminClient.auth.admin.getUserById(params.id)
+    const { data: delTargetAuth } = await adminClient.auth.admin.getUserById(id)
     if (isSuperadmin(delTargetAuth?.user?.email)) {
       return NextResponse.json({ error: 'Akaunti hii inalindwa na haiwezi kufutwa' }, { status: 403 })
     }
@@ -110,19 +113,19 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const { data: targetUser } = await adminClient
       .from('users')
       .select('full_name')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     const { data: dalaliProfile } = await adminClient
       .from('dalali_profiles')
       .select('whatsapp_number')
-      .eq('user_id', params.id)
+      .eq('user_id', id)
       .maybeSingle()
 
     // Send notification BEFORE deletion (so the row still exists)
     if (notify && reason) {
       await adminClient.from('notifications').insert({
-        user_id:  params.id,
+        user_id:  id,
         title:    '🚫 Akaunti Yako Imefutwa',
         body:     `Akaunti yako kwenye NyumbaFasta imefutwa na admin. Sababu: ${reason}`,
         type:     'account_deleted',
@@ -133,7 +136,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     // Call RPC to delete everything
     const { error: rpcError } = await adminClient.rpc('delete_user_account', {
-      target_user_id: params.id,
+      target_user_id: id,
       reason:         reason ?? 'Admin deletion',
       deleted_by_id:  admin.id,
     })
@@ -147,7 +150,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       const { data: userListings } = await adminClient
         .from('listings')
         .select('id')
-        .eq('dalali_id', params.id)
+        .eq('dalali_id', id)
       const listingIds = (userListings ?? []).map((l: { id: string }) => l.id)
 
       // Step 2 — delete records keyed on those listing IDs (from any user)
@@ -165,7 +168,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       const { data: userAdvertisers } = await adminClient
         .from('advertisers')
         .select('id')
-        .eq('user_id', params.id)
+        .eq('user_id', id)
       const advertiserIds = (userAdvertisers ?? []).map((a: { id: string }) => a.id)
       if (advertiserIds.length > 0) {
         await adminClient.from('ad_campaigns').delete().in('advertiser_id', advertiserIds)
@@ -173,43 +176,43 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
       // Step 4 — delete records keyed directly on the user's id
       await Promise.all([
-        adminClient.from('subscriptions').delete().eq('dalali_id', params.id),
-        adminClient.from('saved_listings').delete().eq('client_id', params.id),
-        adminClient.from('notifications').delete().eq('user_id', params.id),
-        adminClient.from('push_subscriptions').delete().eq('user_id', params.id),
-        adminClient.from('user_agreements').delete().eq('user_id', params.id),
-        adminClient.from('profile_views').delete().eq('dalali_id', params.id),
-        adminClient.from('boost_payments').delete().eq('dalali_id', params.id),
-        adminClient.from('dalali_commissions').delete().eq('dalali_id', params.id),
-        adminClient.from('advertisers').delete().eq('user_id', params.id),
+        adminClient.from('subscriptions').delete().eq('dalali_id', id),
+        adminClient.from('saved_listings').delete().eq('client_id', id),
+        adminClient.from('notifications').delete().eq('user_id', id),
+        adminClient.from('push_subscriptions').delete().eq('user_id', id),
+        adminClient.from('user_agreements').delete().eq('user_id', id),
+        adminClient.from('profile_views').delete().eq('dalali_id', id),
+        adminClient.from('boost_payments').delete().eq('dalali_id', id),
+        adminClient.from('dalali_commissions').delete().eq('dalali_id', id),
+        adminClient.from('advertisers').delete().eq('user_id', id),
         // Reports filed BY or AGAINST this user
-        adminClient.from('reports').delete().eq('reporter_id', params.id),
-        adminClient.from('reports').delete().eq('reported_dalali_id', params.id),
+        adminClient.from('reports').delete().eq('reporter_id', id),
+        adminClient.from('reports').delete().eq('reported_dalali_id', id),
         // Legal violations
-        adminClient.from('agreement_violations').delete().eq('reporter_id', params.id),
-        adminClient.from('agreement_violations').delete().eq('reported_user_id', params.id),
+        adminClient.from('agreement_violations').delete().eq('reporter_id', id),
+        adminClient.from('agreement_violations').delete().eq('reported_user_id', id),
         // Agent leads
-        adminClient.from('agent_leads').delete().eq('assigned_to', params.id),
-        adminClient.from('agent_leads').delete().eq('created_by', params.id),
+        adminClient.from('agent_leads').delete().eq('assigned_to', id),
+        adminClient.from('agent_leads').delete().eq('created_by', id),
         // Staff-specific tables
-        adminClient.from('staff_permissions').delete().eq('staff_id', params.id),
-        adminClient.from('staff_activity_log').delete().eq('staff_id', params.id),
+        adminClient.from('staff_permissions').delete().eq('staff_id', id),
+        adminClient.from('staff_activity_log').delete().eq('staff_id', id),
       ])
-      await adminClient.from('contact_unlocks').delete().or(`dalali_id.eq.${params.id},client_id.eq.${params.id}`)
-      await adminClient.from('reviews').delete().or(`dalali_id.eq.${params.id},reviewer_id.eq.${params.id}`)
-      await adminClient.from('listings').delete().eq('dalali_id', params.id)
-      await adminClient.from('dalali_profiles').delete().eq('user_id', params.id)
+      await adminClient.from('contact_unlocks').delete().or(`dalali_id.eq.${id},client_id.eq.${id}`)
+      await adminClient.from('reviews').delete().or(`dalali_id.eq.${id},reviewer_id.eq.${id}`)
+      await adminClient.from('listings').delete().eq('dalali_id', id)
+      await adminClient.from('dalali_profiles').delete().eq('user_id', id)
 
-      const { error: dbError } = await adminClient.from('users').delete().eq('id', params.id)
+      const { error: dbError } = await adminClient.from('users').delete().eq('id', id)
       if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
-      await adminClient.auth.admin.deleteUser(params.id)
+      await adminClient.auth.admin.deleteUser(id)
     }
 
     // Log admin action
     await adminClient.from('admin_logs').insert({
       admin_id:  admin.id,
       action:    'delete_user',
-      target_id: params.id,
+      target_id: id,
       reason:    reason ?? null,
       details: {
         full_name:       targetUser?.full_name,

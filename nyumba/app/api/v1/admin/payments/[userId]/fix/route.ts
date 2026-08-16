@@ -7,7 +7,8 @@ type FixAction =
   | 'complete_unlock'
   | 'fail_payment'
 
-export async function POST(req: NextRequest, { params }: { params: { userId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+  const { userId } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
@@ -16,7 +17,6 @@ export async function POST(req: NextRequest, { params }: { params: { userId: str
   if (me?.role !== 'admin') return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
 
   const admin  = createAdminClient()
-  const userId = params.userId
 
   const body = await req.json()
   const { action, record_type, record_id } = body as {

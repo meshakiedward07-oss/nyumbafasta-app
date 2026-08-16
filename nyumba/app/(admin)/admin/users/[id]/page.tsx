@@ -30,7 +30,8 @@ export type DalaliDetail = {
   total_views: number
 }
 
-export default async function DalaliDetailPage({ params }: { params: { id: string } }) {
+export default async function DalaliDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login?redirect=/admin')
@@ -49,22 +50,22 @@ export default async function DalaliDetailPage({ params }: { params: { id: strin
         dalali_profiles ( whatsapp_number, bio, rating_avg, rating_count, is_premium_verified, verification_status, verification_rejected_reason ),
         subscriptions ( plan, status, expires_at, amount_paid )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('role', 'dalali')
       .single(),
 
     admin
       .from('listings')
       .select('id, view_count', { count: 'exact' })
-      .eq('dalali_id', params.id),
+      .eq('dalali_id', id),
 
     admin
       .from('contact_unlocks')
       .select('id', { count: 'exact', head: true })
-      .eq('dalali_id', params.id)
+      .eq('dalali_id', id)
       .eq('status', 'completed'),
 
-    admin.auth.admin.getUserById(params.id).catch(() => ({ data: { user: null }, error: null })),
+    admin.auth.admin.getUserById(id).catch(() => ({ data: { user: null }, error: null })),
   ])
 
   if (!userRes.data) notFound()

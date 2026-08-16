@@ -4,15 +4,16 @@ import { createAdminClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const adminUser = await requireAdminUser()
   if (!adminUser) return NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 })
 
   const admin = createAdminClient()
   const [legalResult, docsResult, payrollResult] = await Promise.all([
-    admin.from('staff_legal_info').select('*').eq('staff_id', params.id).maybeSingle(),
-    admin.from('staff_documents').select('*').eq('staff_id', params.id).order('uploaded_at', { ascending: false }),
-    admin.from('staff_payroll').select('*').eq('staff_id', params.id).maybeSingle(),
+    admin.from('staff_legal_info').select('*').eq('staff_id', id).maybeSingle(),
+    admin.from('staff_documents').select('*').eq('staff_id', id).order('uploaded_at', { ascending: false }),
+    admin.from('staff_payroll').select('*').eq('staff_id', id).maybeSingle(),
   ])
 
   return NextResponse.json({
@@ -22,7 +23,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   })
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const adminUser = await requireAdminUser()
   if (!adminUser) return NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 })
 
@@ -45,10 +47,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       verified_at: new Date().toISOString(),
       admin_notes: adminNotes ?? null,
       rejection_reason: null,
-    }).eq('staff_id', params.id)
+    }).eq('staff_id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     void Promise.resolve(admin.from('notifications').insert({
-      user_id: params.id,
+      user_id: id,
       type: 'legal_verified',
       title: 'Taarifa Zako Zimethihibitiwa ✅',
       body: 'Taarifa zako za kisheria zimekaguliwa na kuthibitiwa na admin wa NyumbaFasta.',
@@ -63,10 +65,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       verified_at: new Date().toISOString(),
       rejection_reason: rejectionReason ?? null,
       admin_notes: adminNotes ?? null,
-    }).eq('staff_id', params.id)
+    }).eq('staff_id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     void Promise.resolve(admin.from('notifications').insert({
-      user_id: params.id,
+      user_id: id,
       type: 'legal_rejected',
       title: 'Taarifa Zako Zimekataliwa',
       body: rejectionReason
@@ -82,7 +84,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       verified_by: adminUser.id,
       verified_at: new Date().toISOString(),
       admin_notes: adminNotes ?? null,
-    }).eq('id', docId).eq('staff_id', params.id)
+    }).eq('id', docId).eq('staff_id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true, message: 'Hati imethihibitiwa' })
   }
@@ -90,7 +92,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (action === 'unverify_doc' && docId) {
     const { error } = await admin.from('staff_documents').update({
       is_verified: false, verified_by: null, verified_at: null,
-    }).eq('id', docId).eq('staff_id', params.id)
+    }).eq('id', docId).eq('staff_id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true })
   }

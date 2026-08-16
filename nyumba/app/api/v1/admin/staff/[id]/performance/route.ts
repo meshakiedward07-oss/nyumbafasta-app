@@ -17,14 +17,15 @@ const STAGE_LABELS: Record<string, string> = {
 // GET /api/v1/admin/staff/[id]/performance?period=7|30|90
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const auth = await requireAdminAuth()
     if (!auth.ok) return auth.response
 
     const db = createAdminClient()
-    const staffId = params.id
+    const staffId = id
     const rawPeriod = parseInt(new URL(req.url).searchParams.get('period') || '30', 10)
     const days = [7, 30, 90].includes(rawPeriod) ? rawPeriod : 30
     const periodStart = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()

@@ -9,6 +9,16 @@ function safeUrl(url: string | null | undefined): string | undefined {
   return t.startsWith('http') ? t : `https://${t}`
 }
 
+function downloadCsv(rows: Record<string, unknown>[], filename: string) {
+  if (!rows.length) return
+  const headers = Object.keys(rows[0])
+  const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const csv = [headers.map(escape).join(','), ...rows.map(r => headers.map(h => escape(r[h])).join(','))].join('\n')
+  const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }))
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename })
+  a.click(); URL.revokeObjectURL(url)
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 type Lead = {
   id: string; full_name: string; phone: string | null; phone_2: string | null
@@ -588,9 +598,7 @@ export default function LeadsClient() {
   async function handleExport() {
     const p = new URLSearchParams({ limit: '5000', duplicates: String(showDups), dead: String(showDead), ...(search && { search }), ...(qualityFilter && { quality: qualityFilter }), ...(typeFilter && { type: typeFilter }), ...(statusFilter && { status: statusFilter }), ...(socialFilter && { social: socialFilter }) })
     const data = await fetch(`/api/v1/leads?${p}`).then(r => r.json())
-    const XLSX = await import('xlsx')
-    const ws = XLSX.utils.json_to_sheet((data.leads || []).map((l: Lead) => ({ 'Jina': l.full_name, 'Simu': l.phone, 'Simu 2': l.phone_2, 'Email': l.email, 'Ward': l.ward, 'Wilaya': l.district, 'Mkoa': l.region, 'Aina': l.lead_type, 'Ubora': l.contact_quality, 'Status': l.status, 'Imeteuliwa': l.assigned_to ?? '', 'Facebook': l.facebook_url, 'Instagram': l.instagram_url, 'TikTok': l.tiktok_url, 'WhatsApp': l.whatsapp_number, 'Social Score': l.social_score, 'Duplicate': l.is_duplicate ? 'Ndiyo' : 'Hapana', 'Dead': l.is_dead_lead ? 'Ndiyo' : 'Hapana', 'Maelezo': l.notes, 'Tarehe': l.created_at })))
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Leads'); XLSX.writeFile(wb, `leads-${new Date().toISOString().slice(0,10)}.xlsx`)
+    downloadCsv((data.leads || []).map((l: Lead) => ({ 'Jina': l.full_name, 'Simu': l.phone, 'Simu 2': l.phone_2, 'Email': l.email, 'Ward': l.ward, 'Wilaya': l.district, 'Mkoa': l.region, 'Aina': l.lead_type, 'Ubora': l.contact_quality, 'Status': l.status, 'Imeteuliwa': l.assigned_to ?? '', 'Facebook': l.facebook_url, 'Instagram': l.instagram_url, 'TikTok': l.tiktok_url, 'WhatsApp': l.whatsapp_number, 'Social Score': l.social_score, 'Duplicate': l.is_duplicate ? 'Ndiyo' : 'Hapana', 'Dead': l.is_dead_lead ? 'Ndiyo' : 'Hapana', 'Maelezo': l.notes, 'Tarehe': l.created_at })), `leads-${new Date().toISOString().slice(0,10)}.csv`)
   }
 
   async function handleSaveEdit() {
@@ -1441,27 +1449,22 @@ export default function LeadsClient() {
               </div>
               <button onClick={() => {
                 if (!reportStats) return
-                import('xlsx').then(XLSX => {
-                  const ws = XLSX.utils.json_to_sheet([{
-                    'Kipindi': reportPeriod === 'today' ? 'Leo' : reportPeriod === 'week' ? 'Wiki hii' : 'Mwezi huu',
-                    'Leads Zote':    reportStats.total,
-                    'Ubora Juu':     reportStats.high,
-                    'Assigned':      reportStats.assigned,
-                    'WhatsApp':      reportStats.has_whatsapp,
-                    'Mpya':          reportStats.status_new,
-                    'Amewasiliana':  reportStats.status_contacted,
-                    'Ana nia':       reportStats.status_interested,
-                    'Amesajili':     reportStats.status_registered,
-                    'Dead':          reportStats.dead,
-                    'Duplicates':    reportStats.duplicates,
-                  }])
-                  const wb = XLSX.utils.book_new()
-                  XLSX.utils.book_append_sheet(wb, ws, 'Ripoti')
-                  XLSX.writeFile(wb, `ripoti-${reportPeriod}-${new Date().toISOString().slice(0,10)}.xlsx`)
-                })
+                downloadCsv([{
+                  'Kipindi': reportPeriod === 'today' ? 'Leo' : reportPeriod === 'week' ? 'Wiki hii' : 'Mwezi huu',
+                  'Leads Zote':    reportStats.total,
+                  'Ubora Juu':     reportStats.high,
+                  'Assigned':      reportStats.assigned,
+                  'WhatsApp':      reportStats.has_whatsapp,
+                  'Mpya':          reportStats.status_new,
+                  'Amewasiliana':  reportStats.status_contacted,
+                  'Ana nia':       reportStats.status_interested,
+                  'Amesajili':     reportStats.status_registered,
+                  'Dead':          reportStats.dead,
+                  'Duplicates':    reportStats.duplicates,
+                }], `ripoti-${reportPeriod}-${new Date().toISOString().slice(0,10)}.csv`)
               }} disabled={!reportStats}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-primary-500 text-white text-xs font-bold rounded-xl hover:bg-primary-600 disabled:opacity-40">
-                <i className="ti ti-download" /> Export Excel
+                <i className="ti ti-download" /> Export CSV
               </button>
             </div>
 

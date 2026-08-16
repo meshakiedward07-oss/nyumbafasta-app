@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
-type Params = { params: { id: string; leaseId: string; paymentId: string } }
+type Params = { params: Promise<{ id: string; leaseId: string; paymentId: string }> }
 
 // PATCH /api/v1/organizations/:id/leases/:leaseId/payments/:paymentId
 // Actions:

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 
-type Params = { params: { senderId: string } }
+type Params = { params: Promise<{ senderId: string }> }
 
 // GET /api/v1/social/sessions/[senderId]?platform=instagram|facebook
 export async function GET(req: NextRequest, { params }: Params) {
@@ -10,7 +10,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     const auth = await requireStaffAuth()
     if (!auth.ok) return auth.response
 
-    const senderId = decodeURIComponent(params.senderId)
+    const { senderId: rawSenderId } = await params
+    const senderId = decodeURIComponent(rawSenderId)
     const platform = req.nextUrl.searchParams.get('platform') ?? 'instagram'
 
     const { data: session } = await supabaseAdmin

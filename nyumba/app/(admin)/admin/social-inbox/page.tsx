@@ -1,8 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import dynamic from 'next/dynamic'
-
-const SocialInboxPanel = dynamic(() => import('./SocialInboxPanel'), { ssr: false })
+import SocialInboxLoader from './SocialInboxLoader'
 
 export default async function SocialInboxPage() {
   const supabase = await createClient()
@@ -30,5 +28,5 @@ export default async function SocialInboxPage() {
     if (!perm) redirect('/admin/no-access')
   }
 
-  return <SocialInboxPanel />
+  return <SocialInboxLoader />
 }

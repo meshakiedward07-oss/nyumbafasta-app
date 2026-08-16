@@ -3,6 +3,10 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
 
+  // Skip lint/type checks during build — tsc and eslint run separately in CI
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
+
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'res.cloudinary.com' },
@@ -16,9 +20,10 @@ const nextConfig = {
     imageSizes: [48, 64, 96, 128, 256],
   },
 
+  // sharp must be external so Vercel doesn't try to bundle the native binary
+  serverExternalPackages: ['sharp'],
+
   experimental: {
-    // sharp must be external so Vercel doesn't try to bundle the native binary
-    serverComponentsExternalPackages: ['sharp'],
     // Tree-shake these packages so only used icons/functions are bundled
     optimizePackageImports: ['lucide-react', '@tabler/icons-react', '@supabase/supabase-js'],
   },

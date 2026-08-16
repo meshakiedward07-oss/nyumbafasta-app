@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
@@ -247,10 +247,41 @@ export async function POST(req: NextRequest) {
     if (!file) return NextResponse.json({ error: 'Faili inahitajika' }, { status: 400 })
 
     // ── Parse Excel / CSV ──────────────────────────────────────────────────
-    const buf = await file.arrayBuffer()
-    const wb  = XLSX.read(buf, { type: 'array', raw: false, cellDates: false })
-    const ws  = wb.Sheets[wb.SheetNames[0]]
-    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { raw: false, defval: '' })
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Faili ni kubwa sana (max 10 MB)' }, { status: 400 })
+    }
+    const ext = (file.name.split('.').pop() ?? '').toLowerCase()
+    if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+      return NextResponse.json({ error: 'Aina ya faili haikusaidiwa. Tumia .xlsx au .csv' }, { status: 400 })
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buf = Buffer.from(await file.arrayBuffer()) as any
+    const wb = new ExcelJS.Workbook()
+    if (ext === 'csv') {
+      const { Readable } = await import('stream')
+      await wb.csv.read(Readable.from(buf.toString('utf-8')))
+    } else if (ext === 'xls') {
+      return NextResponse.json({ error: 'Umbizo la .xls halikuungwa mkono. Badilisha faili hadi .xlsx kwanza.' }, { status: 400 })
+    } else {
+      await wb.xlsx.load(buf)
+    }
+    const ws = wb.worksheets[0]
+    if (!ws) return NextResponse.json({ error: 'Faili haina data' }, { status: 400 })
+
+    // Build rawRows from the worksheet — row.values is 1-indexed (index 0 = undefined)
+    const rawRows: Record<string, unknown>[] = []
+    let xlsxHeaders: string[] = []
+    ws.eachRow((row, rowNumber) => {
+      const colCount = (row.values as unknown[]).length - 1
+      const cells = Array.from({ length: colCount }, (_, i) => row.getCell(i + 1).text?.trim() ?? '')
+      if (rowNumber === 1) {
+        xlsxHeaders = cells
+      } else {
+        const obj: Record<string, unknown> = {}
+        xlsxHeaders.forEach((h, i) => { if (h) obj[h] = cells[i] ?? '' })
+        rawRows.push(obj)
+      }
+    })
 
     if (!rawRows.length) return NextResponse.json({ error: 'Faili haina data' }, { status: 400 })
 

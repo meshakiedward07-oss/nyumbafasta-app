@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendPushToUser } from '@/lib/notifications/send'
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 // POST /api/v1/conversations/:id/messages
 export async function POST(req: NextRequest, { params }: Params) {

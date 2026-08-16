@@ -4,8 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 // PATCH — hifadhi client_notes kwa contact_unlock
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -17,7 +18,7 @@ export async function PATCH(
     const { error } = await supabase
       .from('contact_unlocks')
       .update({ client_notes: client_notes ?? null })
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('client_id', user.id)
       .eq('status', 'completed')
 

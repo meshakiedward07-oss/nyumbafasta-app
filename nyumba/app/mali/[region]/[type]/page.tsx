@@ -39,15 +39,16 @@ export const revalidate = 3600
 export async function generateMetadata({
   params,
 }: {
-  params: { region: string; type: string }
+  params: Promise<{ region: string; type: string }>
 }): Promise<Metadata> {
-  const region = slugToRegion(params.region)
-  if (!region || !isValidType(params.type)) return { title: 'Mali | NyumbaFasta' }
+  const { region: regionSlug, type } = await params
+  const region = slugToRegion(regionSlug)
+  if (!region || !isValidType(type)) return { title: 'Mali | NyumbaFasta' }
 
-  const plural = TYPE_PLURAL[params.type]
+  const plural = TYPE_PLURAL[type]
   const title = `${plural} za Kupanga ${region} | NyumbaFasta`
   const description = `Tafuta ${plural.toLowerCase()} za kupanga ${region}, Tanzania. Bei nzuri, picha halisi, zungumza na dalali moja kwa moja kupitia NyumbaFasta.`
-  const url = `${APP_URL}/mali/${regionToSlug(region)}/${params.type}`
+  const url = `${APP_URL}/mali/${regionToSlug(region)}/${type}`
 
   return {
     title,
@@ -79,12 +80,12 @@ async function fetchListings(region: string, type: string): Promise<SeoListing[]
 export default async function RegionTypePage({
   params,
 }: {
-  params: { region: string; type: string }
+  params: Promise<{ region: string; type: string }>
 }) {
-  const region = slugToRegion(params.region)
-  if (!region || !isValidType(params.type)) notFound()
+  const { region: regionSlug, type } = await params
+  const region = slugToRegion(regionSlug)
+  if (!region || !isValidType(type)) notFound()
 
-  const type = params.type
   const plural = TYPE_PLURAL[type]
   const slug = regionToSlug(region)
   const listings = await fetchListings(region, type)

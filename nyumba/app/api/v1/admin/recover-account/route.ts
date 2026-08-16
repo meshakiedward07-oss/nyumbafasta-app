@@ -10,10 +10,9 @@ import { createAdminClient } from '@/lib/supabase/server'
 //     -H "Content-Type: application/json" \
 //     -d '{"email":"admin@example.com","secret":"<CRON_SECRET>"}'
 export async function POST(req: NextRequest) {
-  // Accept either CRON_SECRET or SUPABASE_SERVICE_ROLE_KEY as the recovery secret
+  // Only CRON_SECRET is accepted — never the service_role key (would be usable if key leaks)
   const validSecrets = [
     process.env.CRON_SECRET,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
   ].filter(Boolean)
 
   if (validSecrets.length === 0) {

@@ -317,7 +317,7 @@ export async function middleware(request: NextRequest) {
 
   // ── Security headers on every response ───────────────────────────────────
   // Applied here once so every route gets them without per-route boilerplate.
-  supabaseResponse.headers.set('X-Frame-Options', 'SAMEORIGIN')
+  supabaseResponse.headers.set('X-Frame-Options', 'DENY')
   supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff')
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')

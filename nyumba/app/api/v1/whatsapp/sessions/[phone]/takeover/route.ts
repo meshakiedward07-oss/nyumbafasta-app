@@ -6,14 +6,15 @@ import { logStaffActivity } from '@/lib/staff/checkPermission'
 // POST /api/v1/whatsapp/sessions/[phone]/takeover
 export async function POST(
   _req: NextRequest,
-  { params }: { params: { phone: string } },
+  { params }: { params: Promise<{ phone: string }> },
 ) {
+  const { phone: rawPhone } = await params
   try {
     const auth = await requireStaffAuth()
     if (!auth.ok) return auth.response
     const actor = { id: auth.userId, full_name: auth.fullName }
 
-    const phone = decodeURIComponent(params.phone)
+    const phone = decodeURIComponent(rawPhone)
 
     await getOrCreateWASession(phone)
     await updateWASession(phone, {

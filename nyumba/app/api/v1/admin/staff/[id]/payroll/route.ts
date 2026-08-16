@@ -12,16 +12,18 @@ const ALLOWED = [
   'effective_from', 'payment_method', 'notes',
 ]
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const adminUser = await requireAdminUser()
   if (!adminUser) return NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 })
 
   const admin = createAdminClient()
-  const { data } = await admin.from('staff_payroll').select('*').eq('staff_id', params.id).maybeSingle()
+  const { data } = await admin.from('staff_payroll').select('*').eq('staff_id', id).maybeSingle()
   return NextResponse.json({ payroll: data ?? null })
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const adminUser = await requireAdminUser()
   if (!adminUser) return NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 })
 
@@ -30,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
 
   const payload: Record<string, unknown> = {
-    staff_id:   params.id,
+    staff_id:   id,
     set_by:     adminUser.id,
     updated_at: new Date().toISOString(),
   }
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // Notify staff of payroll update
   void Promise.resolve(admin.from('notifications').insert({
-    user_id: params.id,
+    user_id: id,
     type:    'payroll_updated',
     title:   'Mshahara Wako Umesasishwa',
     body:    'Admin amesasisha muundo wa mshahara wako. Angalia sehemu ya Taarifa Zangu.',

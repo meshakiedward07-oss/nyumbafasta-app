@@ -12,8 +12,9 @@ export const maxDuration = 120
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const adminUser = await requireAdminUser()
     if (!adminUser) return NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 })
@@ -30,7 +31,7 @@ export async function PATCH(
     const { error: updateError } = await admin
       .from('listings')
       .update({ status: newStatus })
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('status', 'pending')
 
     if (updateError) {
@@ -40,7 +41,7 @@ export async function PATCH(
     await auditLog({
       action: action === 'approve' ? 'listing_approved' : 'listing_rejected',
       user_id: user.id,
-      target_id: params.id,
+      target_id: id,
       target_type: 'listing',
       ip_address: getClientIp(req),
       severity: 'info',
@@ -50,7 +51,7 @@ export async function PATCH(
     const { data: listing } = await admin
       .from('listings')
       .select('dalali_id, type, district')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (listing) {
@@ -85,7 +86,7 @@ export async function PATCH(
           if (dp?.whatsapp_number) {
             const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
             const msg = action === 'approve'
-              ? `✅ *Listing Yako Imeidhibitiwa!*\n\n${listingLabel} inaonekana kwa wateja sasa!\n\n👉 ${APP_URL}/listings/${params.id}`
+              ? `✅ *Listing Yako Imeidhibitiwa!*\n\n${listingLabel} inaonekana kwa wateja sasa!\n\n👉 ${APP_URL}/listings/${id}`
               : `❌ *Listing Yako Ilikataliwa*\n\n${listingLabel} haikuidhinishwa. Rekebisha na utume tena.\n\n👉 ${APP_URL}/dashboard/listings`
             await sendTextMessage(formatPhoneNumber(dp.whatsapp_number), msg).catch(() => {})
           }
@@ -99,7 +100,7 @@ export async function PATCH(
             ])
             if (dalaliEmail) {
               if (action === 'approve') {
-                const listingUrl = `${APP_URL}/listings/${params.id}`
+                const listingUrl = `${APP_URL}/listings/${id}`
                 const { subject, html } = listingApprovedEmail(dalaliNameRes, listingLabel, listingUrl)
                 await sendMail({ to: dalaliEmail, subject, html })
               } else {
@@ -121,7 +122,7 @@ export async function PATCH(
           const { data: fullListing } = await admin
             .from('listings')
             .select('*')
-            .eq('id', params.id)
+            .eq('id', id)
             .single()
 
           if (!fullListing) return
@@ -136,7 +137,7 @@ export async function PATCH(
           const connectedPlatforms = await getConnectedPlatforms()
           if (connectedPlatforms.length > 0) {
             const uResult = await postListingToAllPlatforms({
-              listingId: params.id,
+              listingId: id,
               platforms: connectedPlatforms,
               createdBy: user.id,
             })
@@ -182,8 +183,9 @@ export async function PATCH(
 // DELETE — admin hard-deletes a listing (removes row from DB)
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const adminUser = await requireAdminUser()
     if (!adminUser) return NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 })
@@ -193,7 +195,7 @@ export async function DELETE(
     const { data: listing } = await admin
       .from('listings')
       .select('id, dalali_id, title, type, district')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (!listing) return NextResponse.json({ error: 'Listing haipatikani' }, { status: 404 })
@@ -203,7 +205,7 @@ export async function DELETE(
       const { data: ml } = await admin
         .from('marketplace_listings')
         .select('retailer_id')
-        .eq('listing_id', params.id)
+        .eq('listing_id', id)
         .eq('status', 'active')
         .maybeSingle()
       if (ml?.retailer_id) {
@@ -214,23 +216,23 @@ export async function DELETE(
 
     // Cascade-delete FK-constrained child records before hard-deleting the listing row
     await Promise.all([
-      admin.from('saved_listings').delete().eq('listing_id', params.id),
-      admin.from('contact_unlocks').delete().eq('listing_id', params.id),
-      admin.from('marketplace_listings').delete().eq('listing_id', params.id),
-      admin.from('social_posts').delete().eq('listing_id', params.id),
+      admin.from('saved_listings').delete().eq('listing_id', id),
+      admin.from('contact_unlocks').delete().eq('listing_id', id),
+      admin.from('marketplace_listings').delete().eq('listing_id', id),
+      admin.from('social_posts').delete().eq('listing_id', id),
     ])
 
     const { error } = await admin
       .from('listings')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     await auditLog({
       action: 'listing_deleted',
       user_id: adminUser.id,
-      target_id: params.id,
+      target_id: id,
       target_type: 'listing',
       ip_address: getClientIp(req),
       severity: 'warning',

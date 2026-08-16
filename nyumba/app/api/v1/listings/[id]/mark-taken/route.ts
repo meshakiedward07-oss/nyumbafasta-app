@@ -5,8 +5,9 @@ import { verifyMarkTakenToken, markListingAsTakenByToken } from '@/lib/listings/
 // No session required; security comes from HMAC token signed with CRON_SECRET.
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const { searchParams } = new URL(request.url)
     const unlockId = searchParams.get('unlock') ?? ''
@@ -16,11 +17,11 @@ export async function GET(
       return html('error', 'Kiungo si sahihi au kimekwisha.')
     }
 
-    if (!verifyMarkTakenToken(params.id, unlockId, token)) {
+    if (!verifyMarkTakenToken(id, unlockId, token)) {
       return html('error', 'Kiungo si sahihi au kimekwisha.')
     }
 
-    const result = await markListingAsTakenByToken(params.id, unlockId)
+    const result = await markListingAsTakenByToken(id, unlockId)
 
     if (result.alreadyTaken) {
       return html('already', 'Listing hii tayari imefungwa.')

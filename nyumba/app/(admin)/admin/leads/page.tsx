@@ -1,9 +1,6 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/server'
-import dynamic from 'next/dynamic'
-
-const LeadsClient = dynamic(() => import('./LeadsClient'), { ssr: false })
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import LeadsLoader from './LeadsLoader'
 
 export default async function LeadsPage() {
   const supabase = await createClient()
@@ -21,5 +18,5 @@ export default async function LeadsPage() {
   if (profile.is_active === false) redirect('/staff-login')
   if (profile.role === 'staff' && !profile.staff_active) redirect('/staff-login')
 
-  return <LeadsClient />
+  return <LeadsLoader />
 }

@@ -1,9 +1,6 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/server'
-import dynamic from 'next/dynamic'
-
-const WhatsAppPanel = dynamic(() => import('./WhatsAppPanel'), { ssr: false })
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import WhatsAppLoader from './WhatsAppLoader'
 
 export default async function AdminWhatsAppPage() {
   const supabase = await createClient()
@@ -21,7 +18,6 @@ export default async function AdminWhatsAppPage() {
   if (profile.is_active === false) redirect('/staff-login')
   if (profile.role === 'staff' && !profile.staff_active) redirect('/staff-login')
 
-  // Staff need whatsapp_support permission; admins always pass
   if (profile.role === 'staff') {
     const { data: perm } = await admin
       .from('staff_permissions')
@@ -33,5 +29,5 @@ export default async function AdminWhatsAppPage() {
     if (!perm) redirect('/admin/no-access')
   }
 
-  return <WhatsAppPanel />
+  return <WhatsAppLoader />
 }

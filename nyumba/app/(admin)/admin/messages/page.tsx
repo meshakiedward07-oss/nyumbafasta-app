@@ -1,8 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import dynamic from 'next/dynamic'
-
-const MessagesPanel = dynamic(() => import('./MessagesPanel'), { ssr: false })
+import MessagesLoader from './MessagesLoader'
 
 export default async function MessagesPage() {
   const supabase = await createClient()
@@ -21,7 +19,7 @@ export default async function MessagesPage() {
   if (profile.role === 'staff' && !profile.staff_active) redirect('/staff-login')
 
   return (
-    <MessagesPanel
+    <MessagesLoader
       currentUserId={user.id}
       currentUserName={profile.full_name ?? 'Mtumiaji'}
       currentUserAvatar={profile.avatar_url ?? null}

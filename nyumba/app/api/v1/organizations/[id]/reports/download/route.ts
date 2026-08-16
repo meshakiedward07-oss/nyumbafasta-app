@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getOrgFeatures, checkFeature } from '@/lib/subscription/featureGate'
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 // GET /api/v1/organizations/:id/reports/download?month=YYYY-MM
 export async function GET(req: NextRequest, { params }: Params) {

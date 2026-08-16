@@ -30,9 +30,10 @@ export const revalidate = 3600
 export async function generateMetadata({
   params,
 }: {
-  params: { region: string }
+  params: Promise<{ region: string }>
 }): Promise<Metadata> {
-  const region = slugToRegion(params.region)
+  const { region: regionSlug } = await params
+  const region = slugToRegion(regionSlug)
   if (!region) return { title: 'Mali | NyumbaFasta' }
 
   const title = `Nyumba za Kupanga ${region} | NyumbaFasta`
@@ -80,13 +81,13 @@ export default async function RegionPage({
   params,
   searchParams,
 }: {
-  params: { region: string }
-  searchParams: { district?: string }
+  params: Promise<{ region: string }>
+  searchParams: Promise<{ district?: string }>
 }) {
-  const region = slugToRegion(params.region)
+  const { region: regionSlug } = await params
+  const { district } = await searchParams
+  const region = slugToRegion(regionSlug)
   if (!region) notFound()
-
-  const district = searchParams.district
   const listings = await fetchRegionListings(region, district)
   const districts = getDistricts(region)
   const slug = regionToSlug(region)

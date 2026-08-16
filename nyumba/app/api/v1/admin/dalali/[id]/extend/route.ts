@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { data: user } = await admin
     .from('users')
     .select('listing_deadline_days, role')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!user || user.role !== 'dalali') {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       listing_deadline_days: newDeadline,
       deletion_reason: reason ? `Muda umepanuliwa siku ${days}: ${reason}` : null,
     })
-    .eq('id', params.id)
+    .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

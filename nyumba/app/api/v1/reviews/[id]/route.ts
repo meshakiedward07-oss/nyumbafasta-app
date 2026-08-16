@@ -3,8 +3,9 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const body = await req.json()
     const { action } = body
@@ -19,7 +20,7 @@ export async function PATCH(
       const { data: review } = await admin
         .from('reviews')
         .select('helpful_count')
-        .eq('id', params.id)
+        .eq('id', id)
         .single()
 
       if (!review) return NextResponse.json({ error: 'Review haipatikani' }, { status: 404 })
@@ -27,7 +28,7 @@ export async function PATCH(
       await admin
         .from('reviews')
         .update({ helpful_count: (review.helpful_count ?? 0) + 1 })
-        .eq('id', params.id)
+        .eq('id', id)
 
       return NextResponse.json({ ok: true })
     }
@@ -47,7 +48,7 @@ export async function PATCH(
       const { data: review } = await admin
         .from('reviews')
         .select('id, dalali_id, reviewer_id')
-        .eq('id', params.id)
+        .eq('id', id)
         .single()
 
       if (!review) return NextResponse.json({ error: 'Review haipatikani' }, { status: 404 })
@@ -58,7 +59,7 @@ export async function PATCH(
       await admin
         .from('reviews')
         .update({ response: response.trim(), response_at: new Date().toISOString() })
-        .eq('id', params.id)
+        .eq('id', id)
 
       // Notify the reviewer
       await admin.from('notifications').insert({
@@ -81,8 +82,9 @@ export async function PATCH(
 // DELETE — admin can delete a review
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -92,7 +94,7 @@ export async function DELETE(
     if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const admin = createAdminClient()
-    await admin.from('reviews').delete().eq('id', params.id)
+    await admin.from('reviews').delete().eq('id', id)
 
     return NextResponse.json({ ok: true })
   } catch {

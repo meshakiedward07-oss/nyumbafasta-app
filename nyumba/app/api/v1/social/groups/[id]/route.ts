@@ -5,15 +5,16 @@ import { requireAdminUser } from '@/lib/security/adminAuth'
 // PATCH /api/v1/social/groups/[id] — toggle active/inactive
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { isActive } = await req.json() as { isActive: boolean }
 
   try {
-    await toggleGroup(params.id, isActive)
+    await toggleGroup(id, isActive)
     return NextResponse.json({ ok: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Hitilafu isiyojulikana'
@@ -24,13 +25,14 @@ export async function PATCH(
 // DELETE /api/v1/social/groups/[id] — remove group
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
-    await deleteGroup(params.id)
+    await deleteGroup(id)
     return NextResponse.json({ ok: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Hitilafu isiyojulikana'

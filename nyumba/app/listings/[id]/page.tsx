@@ -52,9 +52,10 @@ const getListingMeta = cache(async (id: string) => {
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }): Promise<Metadata> {
-  const listing = await getListingMeta(params.id)
+  const { id } = await params
+  const listing = await getListingMeta(id)
   if (!listing) return { title: 'Listing | NyumbaFasta' }
 
   const typeLabel = TYPE_LABELS[listing.type] ?? listing.type
@@ -101,8 +102,9 @@ export async function generateMetadata({
 export default async function ListingDetailPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id } = await params
   const supabase = await createClient()
 
   // Run auth + main listing fetch in parallel — saves ~150ms vs sequential
@@ -128,7 +130,7 @@ export default async function ListingDetailPage({
           )
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single(),
   ])
 
@@ -137,7 +139,7 @@ export default async function ListingDetailPage({
   // Fire-and-forget side effects — don't block page render
   // PostgrestBuilder is PromiseLike (not Promise), so wrap in Promise.resolve for .catch()
   Promise.resolve(
-    supabase.rpc('increment_view_count', { listing_id: params.id }).maybeSingle()
+    supabase.rpc('increment_view_count', { listing_id: id }).maybeSingle()
   ).catch(() => {})
 
   if (user) {
@@ -145,7 +147,7 @@ export default async function ListingDetailPage({
       await supabase
         .from('recently_viewed')
         .upsert(
-          { user_id: user.id, listing_id: params.id, viewed_at: new Date().toISOString() },
+          { user_id: user.id, listing_id: id, viewed_at: new Date().toISOString() },
           { onConflict: 'user_id,listing_id' }
         )
       const { data: old } = await supabase
@@ -177,7 +179,7 @@ export default async function ListingDetailPage({
         .from('contact_unlocks')
         .select('id, created_at')
         .eq('client_id', user.id)
-        .eq('listing_id', params.id)
+        .eq('listing_id', id)
         .eq('status', 'completed')
         .maybeSingle(),
 

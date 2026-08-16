@@ -10,8 +10,9 @@ function isHttpUrl(v: string) {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -25,7 +26,7 @@ export async function PATCH(
     const { data: listing } = await admin
       .from('listings')
       .select('id, dalali_id, status')
-      .eq('id', params.id)
+      .eq('id', id)
       .maybeSingle()
 
     if (!listing) return NextResponse.json({ error: 'Listing haikupatikana' }, { status: 404 })
@@ -67,7 +68,7 @@ export async function PATCH(
     const { error: updateError } = await admin
       .from('listings')
       .update(update)
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })

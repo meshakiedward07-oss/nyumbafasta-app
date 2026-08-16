@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
-type Params = { params: { fundiId: string; kycId: string } }
+type Params = { params: Promise<{ fundiId: string; kycId: string }> }
 
 // PATCH /api/v1/admin/fundi/:fundiId/kyc/:kycId
 export async function PATCH(req: NextRequest, { params }: Params) {

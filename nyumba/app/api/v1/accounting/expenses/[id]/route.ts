@@ -14,14 +14,15 @@ async function requireAdmin() {
 // PATCH /api/v1/accounting/expenses/[id]
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   try {
     const admin = await requireAdmin()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
     const updates = await req.json()
-    const result  = await updateExpense(params.id, updates)
+    const result  = await updateExpense(id, updates)
     if (!result.success) return NextResponse.json({ error: result.error }, { status: 500 })
     return NextResponse.json({ success: true })
   } catch (err) {
@@ -32,13 +33,14 @@ export async function PATCH(
 // DELETE /api/v1/accounting/expenses/[id]
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   try {
     const admin = await requireAdmin()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    const result = await deleteExpense(params.id)
+    const result = await deleteExpense(id)
     if (!result.success) return NextResponse.json({ error: result.error }, { status: 500 })
     return NextResponse.json({ success: true })
   } catch (err) {

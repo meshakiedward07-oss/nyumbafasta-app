@@ -1,9 +1,6 @@
-import dynamic from 'next/dynamic'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/server'
-
-const SocialDashboard = dynamic(() => import('./SocialDashboard'), { ssr: false })
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import SocialLoader from './SocialLoader'
 
 export const metadata = { title: 'Social Media — NyumbaFasta Admin' }
 
@@ -23,7 +20,6 @@ export default async function SocialPage() {
   if (profile.is_active === false) redirect('/staff-login')
   if (profile.role === 'staff' && !profile.staff_active) redirect('/staff-login')
 
-  // Staff need social_media OR spam_moderation permission; admins always pass
   if (profile.role === 'staff') {
     const { data: perms } = await admin
       .from('staff_permissions')
@@ -34,5 +30,5 @@ export default async function SocialPage() {
     if (!perms || perms.length === 0) redirect('/admin/no-access')
   }
 
-  return <SocialDashboard />
+  return <SocialLoader />
 }

@@ -1,8 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import dynamic from 'next/dynamic'
-
-const StaffLeadsClient = dynamic(() => import('./StaffLeadsClient'), { ssr: false })
+import StaffLeadsLoader from './StaffLeadsLoader'
 
 export default async function StaffLeadsPage() {
   const supabase = await createClient()
@@ -20,5 +18,5 @@ export default async function StaffLeadsPage() {
   if (profile?.role === 'staff' && !profile?.staff_active) redirect('/staff-login?suspended=1')
   if (profile?.role === 'staff' && profile?.must_change_password) redirect('/account/change-password')
 
-  return <StaffLeadsClient currentUserId={user.id} isAdmin={profile?.role === 'admin'} />
+  return <StaffLeadsLoader currentUserId={user.id} isAdmin={profile?.role === 'admin'} />
 }

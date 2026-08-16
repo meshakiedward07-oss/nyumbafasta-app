@@ -7,14 +7,15 @@ import { requireStaffAuth } from '@/lib/security/adminAuth'
 // Body: { message: string }
 export async function POST(
   req: NextRequest,
-  { params }: { params: { phone: string } },
+  { params }: { params: Promise<{ phone: string }> },
 ) {
+  const { phone: rawPhone } = await params
   try {
     const auth = await requireStaffAuth()
     if (!auth.ok) return auth.response
     const actor = { id: auth.userId, full_name: auth.fullName }
 
-    const phone = decodeURIComponent(params.phone)
+    const phone = decodeURIComponent(rawPhone)
 
     // Enforce: only send when admin has taken over — prevents double-replies from Amina
     const session = await getWASession(phone)

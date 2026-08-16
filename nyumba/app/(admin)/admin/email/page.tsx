@@ -1,8 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import dynamic from 'next/dynamic'
-
-const EmailClient = dynamic(() => import('./EmailClient'), { ssr: false })
+import EmailLoader from './EmailLoader'
 
 export default async function EmailPage() {
   const supabase = await createClient()
@@ -17,5 +15,5 @@ export default async function EmailPage() {
 
   if (!['admin', 'staff'].includes(profile?.role ?? '')) redirect('/')
 
-  return <EmailClient senderName={profile?.full_name ?? 'Timu ya NyumbaFasta'} />
+  return <EmailLoader senderName={profile?.full_name ?? 'Timu ya NyumbaFasta'} />
 }

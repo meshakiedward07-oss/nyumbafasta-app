@@ -49,6 +49,7 @@ export default function GlobalError({
               >
                 Jaribu tena
               </button>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- global-error renders its own <html> outside the router context; <Link> is unavailable */}
               <a
                 href="/"
                 style={{

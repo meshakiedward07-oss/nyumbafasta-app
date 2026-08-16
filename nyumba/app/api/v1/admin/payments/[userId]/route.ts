@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
-export async function GET(_req: NextRequest, { params }: { params: { userId: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+  const { userId } = await params
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -11,7 +12,6 @@ export async function GET(_req: NextRequest, { params }: { params: { userId: str
     if (me?.role !== 'admin') return NextResponse.json({ error: 'Huna ruhusa' }, { status: 403 })
 
     const admin  = createAdminClient()
-    const userId = params.userId
 
     const [subsRes, unlocksRes, boostRes] = await Promise.all([
       admin

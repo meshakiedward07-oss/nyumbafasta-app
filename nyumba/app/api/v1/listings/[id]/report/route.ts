@@ -14,8 +14,9 @@ const AUTO_SUSPEND_THRESHOLD = 3
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -34,7 +35,7 @@ export async function POST(
     const { data: listing } = await admin
       .from('listings')
       .select('id, dalali_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (!listing) {
@@ -51,7 +52,7 @@ export async function POST(
       .from('reports')
       .select('id')
       .eq('reporter_id', user.id)
-      .eq('listing_id', params.id)
+      .eq('listing_id', id)
       .maybeSingle()
 
     if (existing) {
@@ -62,7 +63,7 @@ export async function POST(
     const { error: insertError } = await admin.from('reports').insert({
       reporter_id:        user.id,
       reported_dalali_id: listing.dalali_id,
-      listing_id:         params.id,
+      listing_id:         id,
       reason,
       details:            details?.slice(0, 500) ?? null,
       status:             'pending',

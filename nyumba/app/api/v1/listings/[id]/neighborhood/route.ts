@@ -4,15 +4,16 @@ import { getNeighborhoodInfo } from '@/lib/listings/neighborhoodInfo'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   try {
     const supabase = await createClient()
 
     const { data: listing, error } = await supabase
       .from('listings')
       .select('region, district, ward, latitude, longitude')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('status', 'active')
       .maybeSingle()
 
@@ -25,7 +26,7 @@ export async function GET(
     }
 
     const data = await getNeighborhoodInfo({
-      listingId: params.id,
+      listingId: id,
       region:    listing.region,
       district:  listing.district,
       ward:      listing.ward   ?? null,

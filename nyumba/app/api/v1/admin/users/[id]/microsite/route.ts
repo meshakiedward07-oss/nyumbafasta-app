@@ -4,12 +4,13 @@ import { requireAdminUser } from '@/lib/security/adminAuth'
 
 export const maxDuration = 20
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   try {
     const admin = await requireAdminUser()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    const dalaliId = params.id
+    const dalaliId = id
     const db = createAdminClient()
 
     const now        = new Date()

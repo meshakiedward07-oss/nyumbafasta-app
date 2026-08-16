@@ -10,8 +10,9 @@ import {
 // PATCH /api/v1/social/marketplace/[id] — update marketplace item
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   try {
     const admin = await requireAdminUser()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -21,7 +22,7 @@ export async function PATCH(
     const { data: ml } = await supabaseAdmin
       .from('marketplace_listings')
       .select('retailer_id')
-      .eq('listing_id', params.id)
+      .eq('listing_id', id)
       .eq('status', 'active')
       .maybeSingle()
 
@@ -36,7 +37,7 @@ export async function PATCH(
         await supabaseAdmin
           .from('marketplace_listings')
           .update({ availability: 'OUT_OF_STOCK', status: 'sold', updated_at: new Date().toISOString() })
-          .eq('listing_id', params.id)
+          .eq('listing_id', id)
       }
     } else if (body.availability === 'IN_STOCK') {
       result = await updateMarketplaceItem(ml.retailer_id, { availability: 'IN_STOCK' })
@@ -44,7 +45,7 @@ export async function PATCH(
         await supabaseAdmin
           .from('marketplace_listings')
           .update({ availability: 'IN_STOCK', status: 'active', updated_at: new Date().toISOString() })
-          .eq('listing_id', params.id)
+          .eq('listing_id', id)
       }
     } else {
       return NextResponse.json({ error: 'availability lazima iwe IN_STOCK au OUT_OF_STOCK' }, { status: 400 })
@@ -62,8 +63,9 @@ export async function PATCH(
 // DELETE /api/v1/social/marketplace/[id] — remove from marketplace
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   try {
     const admin = await requireAdminUser()
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -71,7 +73,7 @@ export async function DELETE(
     const { data: ml } = await supabaseAdmin
       .from('marketplace_listings')
       .select('retailer_id')
-      .eq('listing_id', params.id)
+      .eq('listing_id', id)
       .maybeSingle()
 
     if (!ml?.retailer_id) {
@@ -84,11 +86,11 @@ export async function DELETE(
       await supabaseAdmin
         .from('marketplace_listings')
         .update({ status: 'deleted', availability: 'OUT_OF_STOCK', updated_at: new Date().toISOString() })
-        .eq('listing_id', params.id)
+        .eq('listing_id', id)
       await supabaseAdmin
         .from('listings')
         .update({ marketplace_posted: false, marketplace_item_id: null })
-        .eq('id', params.id)
+        .eq('id', id)
     }
 
     return NextResponse.json({ ok: result.success, error: result.error })

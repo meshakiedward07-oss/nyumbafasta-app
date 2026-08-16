@@ -18,14 +18,15 @@ async function getOwned(id: string, userId: string) {
 // ── PATCH — edit listing fields OR change status ───────────────
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
 
-    const { listing, admin, error: ownerErr } = await getOwned(params.id, user.id)
+    const { listing, admin, error: ownerErr } = await getOwned(id, user.id)
     if (ownerErr || !listing) return NextResponse.json({ error: ownerErr }, { status: 404 })
 
     const body = await req.json()
@@ -37,7 +38,7 @@ export async function PATCH(
         return NextResponse.json({ error: 'Status si sahihi' }, { status: 400 })
       }
 
-      const { error: statusErr } = await admin.from('listings').update({ status }).eq('id', params.id)
+      const { error: statusErr } = await admin.from('listings').update({ status }).eq('id', id)
       if (statusErr) return NextResponse.json({ error: statusErr.message }, { status: 500 })
 
       // Sync Marketplace availability when listing is taken
@@ -47,7 +48,7 @@ export async function PATCH(
             const { data: ml } = await admin
               .from('marketplace_listings')
               .select('retailer_id')
-              .eq('listing_id', params.id)
+              .eq('listing_id', id)
               .eq('status', 'active')
               .maybeSingle()
             if (ml?.retailer_id) {
@@ -56,7 +57,7 @@ export async function PATCH(
               await admin
                 .from('marketplace_listings')
                 .update({ status: 'sold', availability: 'OUT_OF_STOCK', updated_at: new Date().toISOString() })
-                .eq('listing_id', params.id)
+                .eq('listing_id', id)
             }
           } catch (err) {
             console.error('[Listing] Marketplace taken sync failed (non-fatal):', err)
@@ -69,7 +70,7 @@ export async function PATCH(
         const { data: saved } = await admin
           .from('saved_listings')
           .select('client_id')
-          .eq('listing_id', params.id)
+          .eq('listing_id', id)
 
         if (saved?.length) {
           await admin.from('notifications').insert(
@@ -137,7 +138,7 @@ export async function PATCH(
         : null
     }
 
-    const { error } = await admin.from('listings').update(updatePayload).eq('id', params.id)
+    const { error } = await admin.from('listings').update(updatePayload).eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     return NextResponse.json({ success: true })
@@ -149,21 +150,22 @@ export async function PATCH(
 // ── DELETE — soft delete (status = expired) ────────────────────
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
 
-    const { listing, admin, error: ownerErr } = await getOwned(params.id, user.id)
+    const { listing, admin, error: ownerErr } = await getOwned(id, user.id)
     if (ownerErr || !listing) return NextResponse.json({ error: ownerErr }, { status: 404 })
 
     // Soft delete — 'deleted' is not in the DB enum; use 'expired' to hide from all public views
     const { error: deleteErr } = await admin
       .from('listings')
       .update({ status: 'expired' })
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (deleteErr) {
       console.error('[Listing DELETE] update failed:', deleteErr)
@@ -176,7 +178,7 @@ export async function DELETE(
         const { data: ml } = await admin
           .from('marketplace_listings')
           .select('retailer_id')
-          .eq('listing_id', params.id)
+          .eq('listing_id', id)
           .eq('status', 'active')
           .maybeSingle()
         if (ml?.retailer_id) {
@@ -185,7 +187,7 @@ export async function DELETE(
           await admin
             .from('marketplace_listings')
             .update({ status: 'deleted', availability: 'OUT_OF_STOCK', updated_at: new Date().toISOString() })
-            .eq('listing_id', params.id)
+            .eq('listing_id', id)
         }
       } catch (err) {
         console.error('[Listing] Marketplace delete sync failed (non-fatal):', err)

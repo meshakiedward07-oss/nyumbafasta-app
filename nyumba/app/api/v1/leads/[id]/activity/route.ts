@@ -7,12 +7,12 @@ export const dynamic = 'force-dynamic'
 // GET /api/v1/leads/[id]/activity — fetch activity log for a lead
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
 
-  const { id } = params
+  const { id } = await params
   if (!id) return NextResponse.json({ error: 'ID inahitajika' }, { status: 400 })
 
   try {

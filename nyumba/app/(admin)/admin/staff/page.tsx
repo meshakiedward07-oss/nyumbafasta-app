@@ -1,8 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import dynamic from 'next/dynamic'
-
-const StaffManagementClient = dynamic(() => import('./StaffManagementClient'), { ssr: false })
+import StaffManagementLoader from './StaffManagementLoader'
 
 export default async function StaffManagementPage() {
   const supabase = await createClient()
@@ -17,5 +15,5 @@ export default async function StaffManagementPage() {
 
   if (profile?.role !== 'admin') redirect('/admin')
 
-  return <StaffManagementClient />
+  return <StaffManagementLoader />
 }

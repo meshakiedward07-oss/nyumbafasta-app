@@ -7,8 +7,9 @@ import { staffPasswordResetEmail } from '@/lib/email/templates'
 // ─── PATCH — update staff details or deactivate ───────────────────────────────
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
@@ -30,7 +31,7 @@ export async function PATCH(
   const { data: target } = await admin
     .from('users')
     .select('role, staff_active')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!target || target.role !== 'staff') {
@@ -43,22 +44,22 @@ export async function PATCH(
 
     // Also confirm email so staff can actually sign in (newer GoTrue returns
     // "invalid login credentials" for unconfirmed emails)
-    const { error: passError } = await admin.auth.admin.updateUserById(params.id, {
+    const { error: passError } = await admin.auth.admin.updateUserById(id, {
       password: tempPassword,
       email_confirm: true,
     })
     if (passError) return NextResponse.json({ error: passError.message }, { status: 500 })
 
-    await admin.from('users').update({ must_change_password: true }).eq('id', params.id)
+    await admin.from('users').update({ must_change_password: true }).eq('id', id)
 
     // Fetch email from auth.admin — public.users.email may not be populated
-    const { data: authInfo } = await admin.auth.admin.getUserById(params.id)
+    const { data: authInfo } = await admin.auth.admin.getUserById(id)
     const staffEmail = authInfo?.user?.email ?? null
 
     const { data: staffInfo } = await admin
       .from('users')
       .select('full_name')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (staffEmail) {
@@ -66,7 +67,7 @@ export async function PATCH(
         console.error('[Staff] Reset email failed:', e)
       )
     } else {
-      console.warn('[Staff] No email found for staff', params.id, '— reset email not sent')
+      console.warn('[Staff] No email found for staff', id, '— reset email not sent')
     }
 
     return NextResponse.json({
@@ -89,7 +90,7 @@ export async function PATCH(
   const { data, error } = await admin
     .from('users')
     .update(updates)
-    .eq('id', params.id)
+    .eq('id', id)
     .select('id, full_name, email, phone, staff_title, staff_active, max_leads_capacity')
     .single()
 
@@ -97,7 +98,7 @@ export async function PATCH(
 
   // When deactivating, unassign their open leads so they can be reassigned
   if (body.staffActive === false && target.staff_active === true) {
-    await unassignStaffLeads(params.id)
+    await unassignStaffLeads(id)
   }
 
   return NextResponse.json({ success: true, staff: data })
@@ -106,8 +107,9 @@ export async function PATCH(
 // ─── DELETE — remove staff account ───────────────────────────────────────────
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const auth = await requireAdminAuth()
   if (!auth.ok) return auth.response
 
@@ -117,7 +119,7 @@ export async function DELETE(
   const { data: target } = await admin
     .from('users')
     .select('role, full_name')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!target || target.role !== 'staff') {
@@ -125,10 +127,10 @@ export async function DELETE(
   }
 
   // Unassign open leads first
-  await unassignStaffLeads(params.id)
+  await unassignStaffLeads(id)
 
   // Deleting auth user cascades to users row via FK ON DELETE CASCADE
-  const { error: deleteError } = await admin.auth.admin.deleteUser(params.id)
+  const { error: deleteError } = await admin.auth.admin.deleteUser(id)
   if (deleteError) {
     console.error('[Staff] Delete auth user failed:', deleteError.message)
     return NextResponse.json({ error: 'Imeshindwa kufuta akaunti' }, { status: 500 })

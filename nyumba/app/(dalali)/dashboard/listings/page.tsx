@@ -7,8 +7,9 @@ export const dynamic = 'force-dynamic'
 export default async function MyListingsPage({
   searchParams,
 }: {
-  searchParams: { renew?: string }
+  searchParams: Promise<{ renew?: string }>
 }) {
+  const { renew } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -39,7 +40,7 @@ export default async function MyListingsPage({
   return (
     <MyListingsClient
       listings={listings}
-      autoRenewId={searchParams.renew}
+      autoRenewId={renew}
     />
   )
 }
