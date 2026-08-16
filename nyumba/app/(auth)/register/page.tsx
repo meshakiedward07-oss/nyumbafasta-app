@@ -59,7 +59,8 @@ function RegisterForm() {
   const router       = useRouter()
   const searchParams = useSearchParams()
 
-  const initRole = (searchParams.get('role') as Role | null) ?? 'client'
+  const initRole  = (searchParams.get('role') as Role | null) ?? 'client'
+  const refCode   = searchParams.get('ref') ?? ''
 
   const ROLES: { key: Role; icon: string; label: string; sub: string; badge?: string }[] = [
     { key: 'client',    icon: 'home-search',     label: t('role_client'),    sub: t('auth_role_client_sub')    },
@@ -144,6 +145,7 @@ function RegisterForm() {
       : null
     localStorage.setItem('pending_register',  JSON.stringify({ full_name: fullName, role, whatsapp_number: normalized }))
     localStorage.setItem('pending_agreement', JSON.stringify(agreementData))
+    if (refCode) localStorage.setItem('pending_referral_code', refCode)
     try {
       if (method === 'google') {
         const { error: e } = await supabase.auth.signInWithOAuth({

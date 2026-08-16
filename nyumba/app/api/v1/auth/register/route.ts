@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { full_name, role, whatsapp_number } = body
     const agreement: AgreementPayload | null = body.agreement ?? null
+    const referralCode: string | null = typeof body.referral_code === 'string' ? body.referral_code.trim().toUpperCase() : null
 
     if (!full_name || !role) {
       return NextResponse.json({ error: 'full_name na role vinahitajika' }, { status: 400 })
@@ -149,6 +150,28 @@ export async function POST(req: NextRequest) {
           body:    'Umepata siku 14 za BURE! Anza kuongeza listings sasa na upate wateja wako wa kwanza.',
           is_read: false,
         })
+
+        // Step 6: Referral attribution (non-fatal — never blocks registration)
+        if (referralCode) {
+          try {
+            const { data: influencerProfile } = await admin
+              .from('influencer_profiles')
+              .select('id')
+              .eq('referral_code', referralCode)
+              .eq('is_active', true)
+              .maybeSingle()
+            if (influencerProfile) {
+              await admin.from('referral_attributions').insert({
+                influencer_id:    influencerProfile.id,
+                referred_user_id: user.id,
+                referral_code:    referralCode,
+                signed_up_at:     new Date().toISOString(),
+              })
+            }
+          } catch (refErr) {
+            console.error('[Register] Referral attribution failed (non-fatal):', refErr)
+          }
+        }
       }
     }
 

@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/i18n/context'
 function clearPendingStorage() {
   try { localStorage.removeItem('pending_register') } catch {}
   try { localStorage.removeItem('pending_agreement') } catch {}
+  try { localStorage.removeItem('pending_referral_code') } catch {}
 }
 
 export default function RegisterCompletePage() {
@@ -52,11 +53,14 @@ export default function RegisterCompletePage() {
         try { localStorage.removeItem('pending_agreement') } catch {}
       }
 
+      let referralCode: string | null = null
+      try { referralCode = localStorage.getItem('pending_referral_code') } catch {}
+
       try {
         const res = await fetch('/api/v1/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ full_name, role, whatsapp_number, agreement }),
+          body: JSON.stringify({ full_name, role, whatsapp_number, agreement, referral_code: referralCode || undefined }),
         })
 
         if (!res.ok) {
