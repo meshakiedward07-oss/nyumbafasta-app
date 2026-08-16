@@ -1,7 +1,7 @@
-// v4 — caching strategies + push notifications + offline fallback
+// v5 — bump to force re-fetch of black-background app icons
 
-const CACHE_STATIC = 'nyumbafasta-static-v4'
-const CACHE_PAGES  = 'nyumbafasta-pages-v4'
+const CACHE_STATIC = 'nyumbafasta-static-v5'
+const CACHE_PAGES  = 'nyumbafasta-pages-v5'
 const OFFLINE_URL  = '/offline.html'
 
 const PRECACHE_URLS = [
