@@ -602,16 +602,6 @@ export default function AdminShell({
                   </Link>
                 )
               })}
-              {/* "More" button opens the full drawer */}
-              <button
-                onClick={() => setDrawerOpen(true)}
-                className="flex-1 flex flex-col items-center justify-center gap-0.5 group"
-              >
-                <i className="ti ti-menu-2 text-[22px] text-gray-400 group-hover:text-gray-600 transition-colors" aria-hidden="true" />
-                <span className="text-[10px] font-semibold tracking-wide text-gray-400 group-hover:text-gray-600 transition-colors">
-                  Zaidi
-                </span>
-              </button>
             </>
           )}
         </div>

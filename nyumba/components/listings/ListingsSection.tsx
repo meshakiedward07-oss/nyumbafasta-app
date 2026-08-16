@@ -278,7 +278,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
             </Link>
           </nav>
 
-          <NotificationBell asLink className="text-white/90 hover:text-white" />
+          <NotificationBell asLink className="text-white/90 hover:text-white ml-auto lg:ml-0" />
         </div>
 
         {/* Mobile-only search row */}
