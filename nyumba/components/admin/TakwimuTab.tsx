@@ -147,7 +147,7 @@ export default function TakwimuTab({ analytics, loading }: { analytics: Analytic
         <Kpi icon="chart-line" label="Mapato Mwezi Huu"
           value={fmtFull(thisMonthIncome)}
           sub={`${growthPositive ? '↑' : '↓'} ${Math.abs(growth).toFixed(1)}% mwezi uliopita`}
-          accent={growthPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'} />
+          accent={growthPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'} />
         <Kpi icon="currency" label="MRR (Mapato ya Kila Mwezi)"
           value={fmtFull(mrr)}
           sub={`${subscriptions.active} subs active`}
@@ -155,11 +155,11 @@ export default function TakwimuTab({ analytics, loading }: { analytics: Analytic
         <Kpi icon="users" label="Retention Rate"
           value={`${subscriptions.retentionRate}%`}
           sub={`${subscriptions.totalUnique} madalali waliowahi kulipa`}
-          accent="bg-purple-100 text-purple-600" />
+          accent="bg-violet-50 text-violet-600" />
         <Kpi icon="lock-open" label="Unlocks Mwezi Huu"
           value={String(unlocks.thisMonth)}
           sub={`Jumla: ${unlocks.total} zote`}
-          accent="bg-blue-100 text-blue-600" />
+          accent="bg-sky-50 text-sky-600" />
       </div>
 
       {/* ── P&L this month ── */}

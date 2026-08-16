@@ -360,7 +360,7 @@ function AddExpenseModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             Ghairi
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex-1 py-3 bg-teal-700 text-white rounded-2xl text-sm font-semibold disabled:opacity-50">
+            className="flex-1 py-3 bg-teal-600 text-white rounded-2xl text-sm font-semibold disabled:opacity-50">
             {saving ? 'Inahifadhi...' : 'Hifadhi'}
           </button>
         </div>
@@ -771,7 +771,7 @@ ON CONFLICT DO NOTHING;`}</pre>
           </div>
           <button
             onClick={loadData}
-            className="w-full py-3 bg-teal-700 text-white rounded-2xl font-semibold text-sm"
+            className="w-full py-3 bg-teal-600 text-white rounded-2xl font-semibold text-sm"
           >
             <i className="ti ti-refresh" aria-hidden="true" /> Jaribu Tena (Baada ya Kurun SQL)
           </button>
@@ -796,7 +796,7 @@ ON CONFLICT DO NOTHING;`}</pre>
           <div className="absolute left-0 top-0 bottom-0 w-64 flex flex-col shadow-2xl bg-slate-900">
             <div className="px-4 py-4 border-b border-slate-800 flex-shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-teal-700">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-teal-600">
                   <i className="ti ti-coins text-white text-xs" aria-hidden="true" />
                 </div>
                 <p className="text-sm font-bold text-white">Hesabu</p>
@@ -844,7 +844,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 ] as { key: TabKey; label: string; icon: string }[]).map(t => (
                   <button key={t.key} onClick={() => { setTab(t.key); setMobileNavOpen(false) }}
                     className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
-                      tab === t.key ? 'bg-teal-700 text-white' : 'text-slate-400 hover:text-slate-200'
+                      tab === t.key ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-slate-200'
                     }`}>
                     <i className={`ti ti-${t.icon} text-base w-4 flex-shrink-0 text-center`} aria-hidden="true" />
                     <span>{t.label}</span>
@@ -865,7 +865,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                 ] as { key: TabKey; label: string; icon: string }[]).map(t => (
                   <button key={t.key} onClick={() => { setTab(t.key); setMobileNavOpen(false) }}
                     className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
-                      tab === t.key ? 'bg-teal-700 text-white' : 'text-slate-400 hover:text-slate-200'
+                      tab === t.key ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-slate-200'
                     }`}>
                     <i className={`ti ti-${t.icon} text-base w-4 flex-shrink-0 text-center`} aria-hidden="true" />
                     <span>{t.label}</span>
@@ -877,7 +877,7 @@ ON CONFLICT DO NOTHING;`}</pre>
               <div className="space-y-0.5">
                 <button onClick={() => { setTab('bei'); setMobileNavOpen(false) }}
                   className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
-                    tab === 'bei' ? 'bg-teal-700 text-white' : 'text-slate-400 hover:text-slate-200'
+                    tab === 'bei' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-slate-200'
                   }`}>
                   <i className="ti ti-tag text-base w-4 flex-shrink-0 text-center" aria-hidden="true" />
                   <span>Bei</span>
@@ -922,7 +922,7 @@ ON CONFLICT DO NOTHING;`}</pre>
           <p className="text-xs text-gray-400">Mapato, Matumizi, Faida</p>
         </div>
         <button onClick={() => setShowAddExp(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-teal-700 text-white rounded-xl text-xs font-semibold">
+          className="flex items-center gap-1.5 px-3 py-2 bg-teal-600 text-white rounded-xl text-xs font-semibold">
           <i className="ti ti-plus" aria-hidden="true" /><span>Gharama</span>
         </button>
       </div>
@@ -936,7 +936,7 @@ ON CONFLICT DO NOTHING;`}</pre>
           {/* Brand header */}
           <div className="px-4 py-4 border-b border-slate-800 flex-shrink-0">
             <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-teal-700">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-teal-600">
                 <i className="ti ti-coins text-white text-sm" aria-hidden="true" />
               </div>
               <div>
@@ -1188,7 +1188,7 @@ ON CONFLICT DO NOTHING;`}</pre>
               const totalDays      = daysInMonth(selectedMonth)
               return (
                 <div className={`px-3 py-1.5 rounded-lg flex items-center justify-between text-xs ${
-                  isCurrentMonth ? 'bg-teal-700 text-white' : 'bg-slate-200 text-slate-600'
+                  isCurrentMonth ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-600'
                 }`}>
                   <span className="font-semibold">{currentLabel}</span>
                   {isCurrentMonth
@@ -1343,7 +1343,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                     <p className="text-sm font-medium text-gray-600">Hakuna data kipindi hiki</p>
                     <p className="text-xs text-gray-400 mt-1">Sync mapato au ongeza matumizi</p>
                     <button onClick={handleSync}
-                      className="mt-4 px-4 py-2 bg-teal-700 text-white rounded-xl text-xs font-semibold">
+                      className="mt-4 px-4 py-2 bg-teal-600 text-white rounded-xl text-xs font-semibold">
                       <i className="ti ti-refresh" aria-hidden="true" /> Sync Mapato Sasa
                     </button>
                   </div>
@@ -1396,7 +1396,7 @@ ON CONFLICT DO NOTHING;`}</pre>
             {tab === 'matumizi' && (
               <>
                 <button onClick={() => setShowAddExp(true)}
-                  className="w-full py-3 bg-teal-700 text-white rounded-2xl text-sm font-semibold">
+                  className="w-full py-3 bg-teal-600 text-white rounded-2xl text-sm font-semibold">
                   <i className="ti ti-plus" aria-hidden="true" /> Ongeza Matumizi Mapya
                 </button>
 
@@ -1708,7 +1708,7 @@ ON CONFLICT DO NOTHING;`}</pre>
                         const isExpired = expDate ? expDate < new Date() : false
                         const statusCls = s.status === 'active' ? 'bg-emerald-50 text-emerald-700'
                           : s.status === 'trial' ? 'bg-sky-50 text-sky-700'
-                          : 'bg-red-100 text-red-600'
+                          : 'bg-red-50 text-red-600'
                         return (
                           <div key={s.id} className="px-4 py-3 flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-sm flex-shrink-0 font-bold text-teal-700">
@@ -2016,7 +2016,7 @@ ON CONFLICT DO NOTHING;`}</pre>
               <p className="text-sm text-red-600">Imeshindwa kupakia takwimu.</p>
               <button
                 onClick={() => setAnalyticsError(false)}
-                className="text-xs bg-teal-700 text-white px-4 py-2 rounded-lg font-medium"
+                className="text-xs bg-teal-600 text-white px-4 py-2 rounded-lg font-medium"
               >
                 Jaribu Tena
               </button>

@@ -343,7 +343,7 @@ export default function PricingSettings() {
           <button
             onClick={handleSave}
             disabled={saving || !hasChanges}
-            className="flex-1 py-3 rounded-xl text-sm font-bold bg-teal-700 text-white disabled:opacity-40 active:scale-[0.98] transition-all"
+            className="flex-1 py-3 rounded-xl text-sm font-bold bg-teal-600 text-white disabled:opacity-40 active:scale-[0.98] transition-all"
           >
             {saving ? (
               <><i className="ti ti-loader-2 animate-spin mr-1" aria-hidden="true" />Inahifadhi...</>
