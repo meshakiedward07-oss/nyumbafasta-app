@@ -121,8 +121,11 @@ export async function PATCH(
       longitude: data.longitude,
       address_full: data.address_full,
       place_id: data.place_id,
+      listing_unit_type: data.listing_unit_type,
+      total_capacity: data.total_capacity,
+      auto_deactivate_on_full: data.auto_deactivate_on_full,
     }
-    if (data.bedrooms !== null) updatePayload.bedrooms = data.bedrooms
+    updatePayload.bedrooms = data.bedrooms ?? null
 
     // Commission fields — optional; null clears them
     const VALID_COMMISSION_TYPES = ['one_month', 'percentage', 'fixed', 'negotiable']

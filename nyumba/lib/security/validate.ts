@@ -102,7 +102,7 @@ export function validateListing(body: unknown): ValidationResult<ListingInput> {
   if (body.images != null) {
     if (
       !Array.isArray(body.images) ||
-      body.images.length > 10 ||
+      body.images.length > 15 ||
       !body.images.every((u) => typeof u === 'string' && isHttpUrl(u))
     ) {
       errors.push('Picha si sahihi')

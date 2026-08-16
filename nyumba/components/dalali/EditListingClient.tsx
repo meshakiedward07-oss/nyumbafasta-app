@@ -36,6 +36,9 @@ type ListingData = {
   commission_type: string | null
   commission_value: number | null
   commission_notes: string | null
+  listing_unit_type: 'single' | 'multi' | null
+  total_capacity: number | null
+  auto_deactivate_on_full: boolean | null
 }
 
 const LISTING_TYPES = [
@@ -104,6 +107,9 @@ export default function EditListingClient({ listing }: { listing: ListingData })
       ? { enabled: true, type, value: String(listing.commission_value ?? ''), notes: listing.commission_notes ?? '' }
       : { enabled: false, type: null, value: '', notes: '' }
   })
+  const [unitType, setUnitType] = useState<'single' | 'multi'>(listing.listing_unit_type === 'multi' ? 'multi' : 'single')
+  const [totalCapacity, setTotalCapacity] = useState(String(listing.total_capacity ?? '1'))
+  const [autoDeactivate, setAutoDeactivate] = useState(listing.auto_deactivate_on_full !== false)
 
   const draftKey = useMemo(() => `edit_listing_draft_${listing.id}`, [listing.id])
 
@@ -122,6 +128,9 @@ export default function EditListingClient({ listing }: { listing: ListingData })
       if (d.district)    setDistrict(d.district)
       if (d.amenities)   setAmenities(d.amenities)
       if (d._commission) setCommission(d._commission)
+      if (d.unitType)    setUnitType(d.unitType)
+      if (d.totalCapacity !== undefined) setTotalCapacity(d.totalCapacity)
+      if (d.autoDeactivate !== undefined) setAutoDeactivate(d.autoDeactivate)
     } catch {}
   }, [draftKey])
 
@@ -129,11 +138,11 @@ export default function EditListingClient({ listing }: { listing: ListingData })
   useEffect(() => {
     const t = setTimeout(() => {
       try {
-        localStorage.setItem(draftKey, JSON.stringify({ type, price, bedrooms, furnished, description, region, district, amenities, _commission: commission }))
+        localStorage.setItem(draftKey, JSON.stringify({ type, price, bedrooms, furnished, description, region, district, amenities, _commission: commission, unitType, totalCapacity, autoDeactivate }))
       } catch {}
     }, 500)
     return () => clearTimeout(t)
-  }, [type, price, bedrooms, furnished, description, region, district, amenities, commission, draftKey])
+  }, [type, price, bedrooms, furnished, description, region, district, amenities, commission, unitType, totalCapacity, autoDeactivate, draftKey])
 
   function handleLocationChange(loc: LocationData) {
     setLatitude(loc.latitude)
@@ -163,6 +172,9 @@ export default function EditListingClient({ listing }: { listing: ListingData })
           commission_type: commission.enabled && commission.type ? commission.type : null,
           commission_value: commission.enabled && commission.type && commission.value ? parseFloat(commission.value) : null,
           commission_notes: commission.enabled && commission.notes.trim() ? commission.notes.trim() : null,
+          listing_unit_type: unitType,
+          total_capacity: unitType === 'multi' ? (parseInt(totalCapacity) || 1) : 1,
+          auto_deactivate_on_full: autoDeactivate,
         }),
       })
       const data = await res.json()
@@ -267,6 +279,50 @@ export default function EditListingClient({ listing }: { listing: ListingData })
 
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <CommissionField value={commission} onChange={setCommission} />
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                Aina ya Upatikanaji
+              </label>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button onClick={() => setUnitType('single')}
+                  className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                    unitType === 'single' ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'
+                  }`}>
+                  <i className="ti ti-home text-xl" aria-hidden="true" />
+                  <span className={`text-sm font-medium ${unitType === 'single' ? 'text-primary-700' : 'text-gray-700'}`}>Moja tu</span>
+                  {unitType === 'single' && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
+                </button>
+                <button onClick={() => setUnitType('multi')}
+                  className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                    unitType === 'multi' ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'
+                  }`}>
+                  <i className="ti ti-building text-xl" aria-hidden="true" />
+                  <span className={`text-sm font-medium ${unitType === 'multi' ? 'text-primary-700' : 'text-gray-700'}`}>Nyingi</span>
+                  {unitType === 'multi' && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
+                </button>
+              </div>
+              {unitType === 'multi' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
+                      Idadi ya Vyumba/Vitengo
+                    </label>
+                    <input type="number" inputMode="numeric" min="1" max="500"
+                      value={totalCapacity} onChange={e => setTotalCapacity(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button role="switch" aria-checked={autoDeactivate}
+                      onClick={() => setAutoDeactivate(v => !v)}
+                      className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 ${autoDeactivate ? 'bg-primary-500' : 'bg-gray-200'}`}>
+                      <span className={`block w-4 h-4 rounded-full bg-white shadow-sm transition-transform mx-1 ${autoDeactivate ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                    <span className="text-xs text-gray-600">Zima listing moja kwa moja ikijaa</span>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}
