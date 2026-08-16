@@ -6,7 +6,7 @@
  *
  * Strategy:
  *   1. Crop a 840×840 square centered on the content (≈10% padding each side)
- *   2. Composite that crop onto a green (#1D9E75) canvas at the right fill %
+ *   2. Composite that crop onto a black (#000000) canvas at the right fill %
  *   3. For maskable: fill only 60% so the logo stays inside the safe-zone circle
  *      For general (any):   fill 80% for good visibility
  */
@@ -18,7 +18,7 @@ import path from 'path'
 const __dir = path.dirname(fileURLToPath(import.meta.url))
 const PUBLIC = path.join(__dir, '../public')
 
-const GREEN = { r: 29, g: 158, b: 117 }      // #1D9E75
+const BLACK = { r: 0, g: 0, b: 0 }            // #000000
 const SOURCE = path.join(PUBLIC, 'transparent_logo_nyumbafasta.png')
 
 // Step 1 – tight crop around the logo content
@@ -51,10 +51,10 @@ async function makeIcon(outputPath, canvasSize, fillPct) {
     })
     .toBuffer()
 
-  // Build green canvas via SVG rect
+  // Build black canvas via SVG rect
   const bg = Buffer.from(
     `<svg width="${canvasSize}" height="${canvasSize}">` +
-    `<rect width="${canvasSize}" height="${canvasSize}" fill="rgb(${GREEN.r},${GREEN.g},${GREEN.b})"/>` +
+    `<rect width="${canvasSize}" height="${canvasSize}" fill="rgb(${BLACK.r},${BLACK.g},${BLACK.b})"/>` +
     `</svg>`
   )
 
