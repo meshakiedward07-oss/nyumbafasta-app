@@ -46,6 +46,7 @@ const TITLES = [
   'Quality Control Specialist',
   'Customer Success',
   'Team Lead',
+  'Brand Ambassador',
   'Nyingine…',
 ]
 
@@ -701,6 +702,9 @@ function AddStaffModal({
                 <option value="quality_control">Quality Control — Spam + Violations + Analytics</option>
               </optgroup>
               <option value="team_lead">Team Lead — Vyote (Full Access)</option>
+              <optgroup label="— Influencer —">
+                <option value="influencer">Influencer / Brand Ambassador — Dashboard ya Influencer tu</option>
+              </optgroup>
             </select>
           </div>
 
@@ -1316,10 +1320,11 @@ function TeamPerformanceView({ staff, onSelect }: { staff: StaffMember[]; onSele
 
 // ─── Activity Chips — inline permission display + quick add/remove ────────────
 const CATEGORY_STYLE: Record<string, { bg: string; text: string; border: string }> = {
-  support:  { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200'  },
-  content:  { bg: 'bg-purple-50',  text: 'text-purple-700',  border: 'border-purple-200' },
-  admin:    { bg: 'bg-primary-50', text: 'text-primary-700', border: 'border-primary-200'},
-  property: { bg: 'bg-teal-50',    text: 'text-teal-700',    border: 'border-teal-200'   },
+  support:    { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200'  },
+  content:    { bg: 'bg-purple-50',  text: 'text-purple-700',  border: 'border-purple-200' },
+  admin:      { bg: 'bg-primary-50', text: 'text-primary-700', border: 'border-primary-200'},
+  property:   { bg: 'bg-teal-50',    text: 'text-teal-700',    border: 'border-teal-200'   },
+  influencer: { bg: 'bg-pink-50',    text: 'text-pink-700',    border: 'border-pink-200'   },
 }
 
 function ActivityChips({

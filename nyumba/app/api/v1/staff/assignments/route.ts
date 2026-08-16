@@ -15,6 +15,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Influencer accounts use /api/v1/influencer/* routes
+  if (profile?.role === 'staff') {
+    const { data: influencerCheck } = await admin.from('influencer_profiles')
+      .select('id').eq('user_id', user.id).maybeSingle()
+    if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
+  }
+
   const { searchParams } = new URL(req.url)
   const staffId = searchParams.get('staff_id')
   const status  = searchParams.get('status') // pending|in_progress|completed|all
@@ -112,6 +119,13 @@ export async function PATCH(req: NextRequest) {
   }
   if (profile?.role === 'staff' && profile?.staff_active === false) {
     return NextResponse.json({ error: 'Akaunti ya staff imezimwa' }, { status: 403 })
+  }
+
+  // Influencer accounts use /api/v1/influencer/* routes
+  if (profile?.role === 'staff') {
+    const { data: influencerCheck } = await admin.from('influencer_profiles')
+      .select('id').eq('user_id', user.id).maybeSingle()
+    if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
   }
 
   let body: { id: string; status: string; notes?: string }

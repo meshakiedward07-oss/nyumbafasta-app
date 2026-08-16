@@ -25,6 +25,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Akaunti imezimwa' }, { status: 403 })
   }
 
+  // Influencer accounts use /api/v1/influencer/* routes
+  if (profile?.role === 'staff') {
+    const { data: influencerCheck } = await supabaseAdmin.from('influencer_profiles')
+      .select('id').eq('user_id', user.id).maybeSingle()
+    if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
+  }
+
   const isAdmin = profile?.role === 'admin'
 
   try {
@@ -147,6 +154,13 @@ export async function PATCH(req: NextRequest) {
   }
   if (profile?.role === 'staff' && profile?.staff_active === false) {
     return NextResponse.json({ error: 'Akaunti imezimwa' }, { status: 403 })
+  }
+
+  // Influencer accounts use /api/v1/influencer/* routes
+  if (profile?.role === 'staff') {
+    const { data: influencerCheck } = await supabase.from('influencer_profiles')
+      .select('id').eq('user_id', user.id).maybeSingle()
+    if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
   }
 
   try {

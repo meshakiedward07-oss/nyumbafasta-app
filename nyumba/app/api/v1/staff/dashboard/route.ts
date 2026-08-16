@@ -26,6 +26,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Account imezimwa' }, { status: 403 })
     }
 
+    // Influencer accounts use /api/v1/influencer/* — deny the staff dashboard
+    if (profile?.role === 'staff') {
+      const { data: influencerCheck } = await admin.from('influencer_profiles')
+        .select('id').eq('user_id', user.id).maybeSingle()
+      if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
+    }
+
     // Get permissions
     let permissions: PermissionKey[] = []
     if (profile?.role === 'admin') {

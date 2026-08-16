@@ -37,6 +37,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Akaunti ya staff imezimwa' }, { status: 403 })
   }
 
+  // Influencer accounts use /api/v1/influencer/* — deny all staff action routes
+  if (profile?.role === 'staff') {
+    const { data: influencerCheck } = await admin.from('influencer_profiles')
+      .select('id').eq('user_id', user.id).maybeSingle()
+    if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
+  }
+
   const isAdmin = profile?.role === 'admin'
 
   let body: { type: ActionType; id: string; reason?: string; days?: number }

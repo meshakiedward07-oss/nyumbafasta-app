@@ -204,6 +204,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // For influencer accounts: create the influencer_profiles row with a unique referral code
+  let referralCode: string | null = null
+  if (roleTemplate === 'influencer') {
+    try {
+      referralCode = await generateUniqueReferralCode(name, admin)
+      await admin.from('influencer_profiles').insert({
+        user_id:     userId,
+        referral_code: referralCode,
+        is_active:   true,
+      })
+    } catch (err) {
+      console.error('[Staff] Influencer profile creation failed:', err)
+      // Non-fatal — admin can fix via DB; account still created
+    }
+  }
+
   // Send credentials via email (non-blocking)
   sendStaffCredentialsEmail(email, name, tempPassword).catch(err =>
     console.error('[Staff] Email send failed:', err)
@@ -212,12 +228,32 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     success: true,
     staff: profile,
+    referralCode,
     message: `Akaunti ya ${name} imeundwa. Maelezo ya kuingia yametumwa kwa email ${email}.`,
     ...(roleTemplate && !templateApplied ? { warning: 'Ruhusa za mwanzo hazikuwekwa — weka kwa mkono kupitia Ruhusa.' } : {}),
   })
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Builds a referral code like "AMINA2F8K" — first 5 uppercase letters of the name + 4 random chars
+async function generateUniqueReferralCode(
+  fullName: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: SupabaseClient<any>,
+): Promise<string> {
+  const prefix = fullName.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5).padEnd(3, 'X')
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const suffix = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+      .map(b => chars[b % chars.length]).join('')
+    const code = `${prefix}${suffix}`
+    const { data } = await admin.from('influencer_profiles').select('id').eq('referral_code', code).maybeSingle()
+    if (!data) return code
+  }
+  throw new Error('Imeshindwa kupata referral code ya kipekee baada ya majaribio 10')
+}
 
 function generateTempPassword(): string {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'

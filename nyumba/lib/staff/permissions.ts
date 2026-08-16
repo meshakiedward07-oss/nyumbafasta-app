@@ -143,6 +143,17 @@ export const STAFF_PERMISSIONS = {
     icon: 'speakerphone',
     category: 'admin' as const,
   },
+  // ── Influencer-only ─────────────────────────────────────────────────────────
+  // This is the ONLY permission influencer accounts may ever hold.
+  // It grants no access to any staff data — only the influencer's own page.
+  view_influencer_dashboard: {
+    key: 'view_influencer_dashboard',
+    label: 'Dashibodi ya Influencer',
+    description: 'Angalia link yako ya rufaa, madalali uliowashirikisha, na hali ya kamisheni yako',
+    adminPath: '/admin/staff-dashboard',
+    icon: 'users-group',
+    category: 'influencer' as const,
+  },
 } as const
 
 export type PermissionKey = keyof typeof STAFF_PERMISSIONS
@@ -201,6 +212,12 @@ export const STAFF_ROLE_TEMPLATES = {
   broker: {
     label: 'NF Broker',
     permissions: ['brokerage'] as PermissionKey[],
+  },
+  // Influencers are external partners, not employees.
+  // This template grants ONLY the influencer dashboard permission — nothing else.
+  influencer: {
+    label: 'Influencer / Brand Ambassador',
+    permissions: ['view_influencer_dashboard'] as PermissionKey[],
   },
   team_lead: {
     label: 'Team Lead (Full Access)',

@@ -26,6 +26,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Akaunti ya staff imezimwa' }, { status: 403 })
     }
 
+    // Influencer accounts use /api/v1/influencer/* routes
+    if (profile?.role === 'staff') {
+      const { data: influencerCheck } = await supabase.from('influencer_profiles')
+        .select('id').eq('user_id', user.id).maybeSingle()
+      if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
+    }
+
     const granted = await getStaffPermissions(user.id)
 
     return NextResponse.json({ granted, role: profile?.role })

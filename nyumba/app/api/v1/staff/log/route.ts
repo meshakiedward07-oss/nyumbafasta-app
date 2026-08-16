@@ -17,6 +17,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Akaunti ya staff imezimwa' }, { status: 403 })
     }
 
+    // Influencer accounts use /api/v1/influencer/* routes
+    if (me?.role === 'staff') {
+      const { data: influencerCheck } = await supabase.from('influencer_profiles')
+        .select('id').eq('user_id', user.id).maybeSingle()
+      if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
+    }
+
     const { actionType, resourceType, resourceId, description } = await req.json() as {
       actionType:    string
       resourceType?: string

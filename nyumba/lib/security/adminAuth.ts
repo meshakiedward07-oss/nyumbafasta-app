@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 type AuthResult = { ok: true; role: string; userId: string; fullName: string | null } | { ok: false; response: NextResponse }
+
+// Internal helper — queries influencer_profiles to decide if a staff user is an influencer.
+// Uses the authenticated client so the RLS "read own profile" policy covers it.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function checkIsInfluencer(userId: string, supabase: SupabaseClient<any>): Promise<boolean> {
+  const { data } = await supabase
+    .from('influencer_profiles')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle()
+  return !!data
+}
 
 export type AdminUser = { id: string; full_name: string | null }
 
@@ -89,7 +102,59 @@ export async function requireStaffAuth(): Promise<AuthResult> {
     }
   }
 
+  // Influencer accounts (role='staff' + influencer_profiles row) must use
+  // /api/v1/influencer/* routes — they are denied all staff routes.
+  if (profile?.role === 'staff' && await checkIsInfluencer(user.id, supabase)) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'influencer_account' }, { status: 403 }),
+    }
+  }
+
   return { ok: true, role: profile?.role ?? 'staff', userId: user.id, fullName: (profile?.full_name as string | null) ?? null }
+}
+
+/**
+ * Guards routes that only influencer accounts may call.
+ * Regular staff and admin are denied — influencer-specific routes only.
+ */
+export async function requireInfluencerAuth(): Promise<AuthResult> {
+  const supabase = await createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+
+  if (error || !user) {
+    return { ok: false, response: NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 }) }
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role, staff_active, full_name')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'staff') {
+    return { ok: false, response: NextResponse.json({ error: 'Akaunti ya influencer inahitajika' }, { status: 403 }) }
+  }
+
+  if (profile?.staff_active === false) {
+    return { ok: false, response: NextResponse.json({ error: 'Akaunti imezimwa' }, { status: 403 }) }
+  }
+
+  const { data: influencerProfile } = await supabase
+    .from('influencer_profiles')
+    .select('id, referral_code, is_active')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!influencerProfile) {
+    return { ok: false, response: NextResponse.json({ error: 'Akaunti ya influencer haipatikani' }, { status: 403 }) }
+  }
+
+  if (!influencerProfile.is_active) {
+    return { ok: false, response: NextResponse.json({ error: 'Akaunti ya influencer imezimwa' }, { status: 403 }) }
+  }
+
+  return { ok: true, role: 'influencer', userId: user.id, fullName: (profile?.full_name as string | null) ?? null }
 }
 
 /**

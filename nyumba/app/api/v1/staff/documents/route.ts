@@ -21,6 +21,18 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const admin = createAdminClient()
+  const { data: profile } = await admin.from('users').select('role').eq('id', user.id).single()
+  if (!['admin', 'staff'].includes(profile?.role ?? '')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Influencer accounts use /api/v1/influencer/* routes
+  if (profile?.role === 'staff') {
+    const { data: influencerCheck } = await admin.from('influencer_profiles')
+      .select('id').eq('user_id', user.id).maybeSingle()
+    if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
+  }
+
   const { data } = await admin.from('staff_documents').select('*').eq('staff_id', user.id).order('uploaded_at', { ascending: false })
   return NextResponse.json({ documents: data ?? [] })
 }
@@ -34,6 +46,13 @@ export async function POST(req: NextRequest) {
   const { data: profile } = await admin.from('users').select('role').eq('id', user.id).single()
   if (!['admin', 'staff'].includes(profile?.role ?? '')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Influencer accounts use /api/v1/influencer/* routes
+  if (profile?.role === 'staff') {
+    const { data: influencerCheck } = await admin.from('influencer_profiles')
+      .select('id').eq('user_id', user.id).maybeSingle()
+    if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
   }
 
   let form: FormData

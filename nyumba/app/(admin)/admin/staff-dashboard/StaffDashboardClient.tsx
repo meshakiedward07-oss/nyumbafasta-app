@@ -222,6 +222,7 @@ export default function StaffDashboardClient() {
   const router = useRouter()
   const [data,        setData]        = useState<DashboardData | null>(null)
   const [loading,     setLoading]     = useState(true)
+  const [isInfluencer, setIsInfluencer] = useState(false)
   const [tab,         setTab]         = useState<Tab>('overview')
   const [actionLoading, setActLoading]= useState<string | null>(null)
   const [toast,       setToast]       = useState<{ msg: string; ok: boolean } | null>(null)
@@ -239,6 +240,10 @@ export default function StaffDashboardClient() {
     try {
       const res  = await fetch('/api/v1/staff/dashboard')
       const json = await res.json()
+      if (res.status === 403 && json.error === 'influencer_account') {
+        setIsInfluencer(true)
+        return
+      }
       if (res.ok) setData(json)
     } catch { /* silent */ }
     finally { setLoading(false) }
@@ -284,6 +289,8 @@ export default function StaffDashboardClient() {
   }
 
   if (loading) return <LoadingSkeleton />
+
+  if (isInfluencer) return <InfluencerPlaceholder />
 
   if (!data) {
     return (
@@ -1820,6 +1827,22 @@ function ProfileTab({
         </div>
       )}
 
+    </div>
+  )
+}
+
+// ── Influencer Placeholder ─────────────────────────────────────────────────
+function InfluencerPlaceholder() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+      <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center mb-4">
+        <i className="ti ti-users-group text-3xl text-pink-500" />
+      </div>
+      <h2 className="text-lg font-semibold text-gray-800 mb-1">Dashboard ya Influencer</h2>
+      <p className="text-sm text-gray-500 max-w-xs">
+        Akaunti yako ni ya Brand Ambassador. Dashboard yako maalum itapatikana hivi karibuni.
+        Wasiliana na admin kwa maswali.
+      </p>
     </div>
   )
 }
