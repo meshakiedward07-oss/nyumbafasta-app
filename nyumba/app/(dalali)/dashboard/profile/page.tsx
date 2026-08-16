@@ -7,7 +7,7 @@ export default async function DashboardProfilePage() {
   const admin = createAdminClient()
 
   const [userRes, profileRes] = await Promise.all([
-    supabase.from('users').select('full_name, phone, avatar_url, username').eq('id', user!.id).single(),
+    admin.from('users').select('full_name, phone, avatar_url, username').eq('id', user!.id).single(),
     admin.from('dalali_profiles')
       .select('whatsapp_number, bio, rating_avg, rating_count, is_premium_verified')
       .eq('user_id', user!.id)
