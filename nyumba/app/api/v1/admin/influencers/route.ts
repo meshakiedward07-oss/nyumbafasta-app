@@ -113,6 +113,23 @@ export async function PATCH(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     if (!data) return NextResponse.json({ error: 'Stage haipatikani au haiko katika hali ya earned' }, { status: 404 })
 
+    // Notify the influencer
+    const { data: influencerProfile } = await admin
+      .from('influencer_profiles')
+      .select('user_id')
+      .eq('id', data.influencer_id)
+      .single()
+
+    if (influencerProfile) {
+      await admin.from('notifications').insert({
+        user_id: influencerProfile.user_id,
+        type:    'influencer_payout_paid',
+        title:   '✅ Malipo Yametumwa',
+        body:    `Malipo ya Tsh ${data.amount_tzs.toLocaleString()} (Stage ${data.stage}) yametumwa kwako.`,
+        is_read: false,
+      })
+    }
+
     return NextResponse.json({ ok: true, stage: data })
   }
 

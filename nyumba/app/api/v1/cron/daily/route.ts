@@ -154,6 +154,40 @@ async function runDailyTasks() {
     errors.push(`❌ Trial listing suspension: ${String(e)}`)
   }
 
+  // ── 1c. Release influencer payout holds (hold → earned after fraud window) ──
+  try {
+    const { data: released } = await admin
+      .from('influencer_payout_stages')
+      .update({ status: 'earned' })
+      .eq('status', 'hold')
+      .lt('hold_until', now)
+      .select('id, influencer_id, amount_tzs')
+
+    if (released?.length) {
+      // Notify each influencer once per release batch
+      const influencerIds = [...new Set(released.map(r => r.influencer_id))]
+      const { data: profiles } = await admin
+        .from('influencer_profiles')
+        .select('id, user_id')
+        .in('id', influencerIds)
+
+      if (profiles?.length) {
+        await admin.from('notifications').insert(
+          profiles.map(p => ({
+            user_id: p.user_id,
+            type:    'influencer_payout_released',
+            title:   '💰 Malipo Yako Yako Tayari',
+            body:    'Malipo yako ya kwanza ya influencer yamewekwa huru. Admin atayathibitisha hivi karibuni.',
+            is_read: false,
+          }))
+        )
+      }
+    }
+    results.push(`✅ Influencer holds released: ${released?.length ?? 0}`)
+  } catch (e) {
+    errors.push(`❌ Influencer hold release: ${String(e)}`)
+  }
+
   // ── 2. Expire active boosts whose boosted_until has passed ──
   try {
     const { data: expiredBoosts } = await admin
