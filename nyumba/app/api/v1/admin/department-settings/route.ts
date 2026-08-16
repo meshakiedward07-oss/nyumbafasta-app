@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 const CACHE_KEY = 'admin:dept-settings'
 
-const VALID_ROLES = new Set(['admin', 'staff', 'sales', 'finance', 'marketing'])
+const BUILTIN_ROLES = new Set(['admin', 'staff', 'sales', 'finance', 'marketing'])
 
 export async function GET() {
   try {
@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const { owner_role } = body
-    if (!owner_role || !VALID_ROLES.has(owner_role)) {
+    if (!owner_role || typeof owner_role !== 'string' || !/^[a-z0-9_-]{1,40}$/.test(owner_role)) {
       return NextResponse.json({ error: 'owner_role batili' }, { status: 400 })
     }
 
@@ -82,6 +82,29 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ setting: data })
   } catch (err) {
     console.error('[PATCH /admin/department-settings]', err)
+    return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const auth = await requireAdminAuth()
+    if (!auth.ok) return auth.response
+
+    const { searchParams } = new URL(req.url)
+    const role = searchParams.get('role')
+    if (!role || BUILTIN_ROLES.has(role)) {
+      return NextResponse.json({ error: 'Haiwezekani kufuta idara ya mfumo' }, { status: 400 })
+    }
+
+    const admin = createAdminClient()
+    const { error } = await admin.from('department_settings').delete().eq('owner_role', role)
+    if (error) throw error
+
+    cache.delete(CACHE_KEY)
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('[DELETE /admin/department-settings]', err)
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
 }

@@ -34,7 +34,7 @@ DROP POLICY IF EXISTS "Admin staff manage dept settings" ON department_settings;
 CREATE POLICY "Admin staff manage dept settings"
   ON department_settings FOR ALL
   USING (
-    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff'))
+    EXISTS (SELECT 1 FROM users WHERE id = (SELECT auth.uid()) AND role IN ('admin','staff'))
   );
 
 -- Seed default rows for each department

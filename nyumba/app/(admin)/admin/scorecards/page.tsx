@@ -183,6 +183,69 @@ function ScoreRing({ score, status }: { score: number; status: DeptStatus }) {
   )
 }
 
+// ── Custom Dept Card (no auto-scoring) ───────────────────────────────────────
+
+function CustomDeptCard({
+  setting, onEdit, onDelete,
+}: {
+  setting:  DeptSetting
+  onEdit:   (role: string) => void
+  onDelete: (role: string) => void
+}) {
+  const customKpis = setting.kpi_targets ?? []
+  return (
+    <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 p-4 flex flex-col">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
+          <i className="ti ti-building text-lg" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+            {setting.owner_name ?? setting.owner_role}
+          </h3>
+          {setting.owner_name && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+              <i className="ti ti-tag mr-0.5" />{setting.owner_role}
+            </p>
+          )}
+          <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-medium mt-1 inline-block">
+            Idara Maalum
+          </span>
+        </div>
+        <div className="flex flex-col items-end gap-1.5">
+          <button onClick={() => onEdit(setting.owner_role)}
+            className="text-xs text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 flex items-center gap-0.5 transition-colors">
+            <i className="ti ti-settings text-xs" /> Hariri
+          </button>
+          <button onClick={() => onDelete(setting.owner_role)}
+            className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-0.5 transition-colors">
+            <i className="ti ti-trash text-xs" /> Futa
+          </button>
+        </div>
+      </div>
+
+      {customKpis.length > 0 ? (
+        <div className="flex-1">
+          <p className="text-[10px] uppercase tracking-wide text-blue-500 dark:text-blue-400 mb-1.5 font-semibold flex items-center gap-1">
+            <i className="ti ti-target" /> Malengo ya KPI
+          </p>
+          {customKpis.map((item, i) => <KpiTargetRow key={i} item={item} />)}
+        </div>
+      ) : (
+        <p className="flex-1 text-xs text-gray-400 italic">Hakuna KPI bado. Bonyeza Hariri kuongeza.</p>
+      )}
+
+      {setting.goal_notes && (
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 italic leading-snug line-clamp-2">
+          {setting.goal_notes}
+        </p>
+      )}
+
+      <SOPBadge sop={null} setting={setting} />
+    </div>
+  )
+}
+
 // ── Dept Card ─────────────────────────────────────────────────────────────────
 
 function DeptCard({
@@ -274,21 +337,25 @@ function DeptCard({
 
 // ── Edit Drawer ───────────────────────────────────────────────────────────────
 
+const BUILTIN_ROLES = new Set(['admin', 'staff', 'sales', 'finance', 'marketing'])
+
 const DEPT_LABELS: Record<string, string> = {
   admin: 'Uthibitisho', staff: 'Msaada', sales: 'Mauzo',
   finance: 'Fedha', marketing: 'Masoko',
 }
 
 function EditDrawer({
-  role, initial, onClose, onSaved,
+  role, initial, isNew, onClose, onSaved,
 }: {
   role:    string
   initial: DeptSetting | null
+  isNew?:  boolean
   onClose: () => void
   onSaved: (s: DeptSetting) => void
 }) {
   const blank: KpiTarget = { label: '', target: '', unit: '', notes: '' }
 
+  const [customRole,    setCustomRole]    = useState(role === '__new__' ? '' : role)
   const [ownerName,     setOwnerName]     = useState(initial?.owner_name          ?? '')
   const [sopTitle,      setSopTitle]      = useState(initial?.sop_title           ?? '')
   const [sopUrl,        setSopUrl]        = useState(initial?.sop_url             ?? '')
@@ -299,12 +366,15 @@ function EditDrawer({
   const [saving,        setSaving]        = useState(false)
   const [err,           setErr]           = useState<string | null>(null)
 
+  const effectiveRole = isNew ? customRole.trim().toLowerCase().replace(/\s+/g, '_') : role
+
   const addKpi    = () => setKpiTargets(prev => [...prev, { ...blank }])
   const removeKpi = (i: number) => setKpiTargets(prev => prev.filter((_, j) => j !== i))
   const updateKpi = (i: number, field: keyof KpiTarget, val: string) =>
     setKpiTargets(prev => prev.map((k, j) => j === i ? { ...k, [field]: val } : k))
 
   const save = async () => {
+    if (isNew && !effectiveRole) { setErr('Jina la idara linahitajika'); return }
     setSaving(true)
     setErr(null)
     try {
@@ -312,7 +382,7 @@ function EditDrawer({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          owner_role:           role,
+          owner_role:           effectiveRole,
           owner_name:           ownerName.trim()    || null,
           sop_title:            sopTitle.trim()     || null,
           sop_url:              sopUrl.trim()       || null,
@@ -339,8 +409,8 @@ function EditDrawer({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
           <div>
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Hariri Idara</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{DEPT_LABELS[role] ?? role}</p>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">{isNew ? 'Unda Idara Mpya' : 'Hariri Idara'}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{isNew ? 'Idara maalum' : (DEPT_LABELS[role] ?? role)}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
             <i className="ti ti-x" />
@@ -351,6 +421,15 @@ function EditDrawer({
           {/* General */}
           <section>
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Habari za Idara</h3>
+            {isNew && (
+              <label className="block mb-3">
+                <span className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">Jina la Idara (linalotumika kama ID)</span>
+                <input value={customRole} onChange={e => setCustomRole(e.target.value)}
+                  placeholder="mfano: tehama, ujenzi, kisheria"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-400" />
+                <span className="text-xs text-gray-400 mt-0.5 block">Herufi ndogo, nambari, au _ pekee</span>
+              </label>
+            )}
             <label className="block mb-3">
               <span className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">Msimamizi / Mwenye Jukumu</span>
               <input value={ownerName} onChange={e => setOwnerName(e.target.value)}
@@ -500,6 +579,7 @@ export default function ScorecardPage() {
   const [refreshing,setRefreshing]= useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [editRole,  setEditRole]  = useState<string | null>(null)
+  const [isNewCard, setIsNewCard] = useState(false)
 
   const load = useCallback(async (force = false) => {
     if (force) setRefreshing(true)
@@ -536,9 +616,19 @@ export default function ScorecardPage() {
   const handleSaved = (saved: DeptSetting) => {
     setSettings(prev => ({ ...prev, [saved.owner_role]: saved }))
     setEditRole(null)
+    setIsNewCard(false)
   }
 
+  const handleDelete = async (role: string) => {
+    if (!confirm(`Futa idara "${role}"?`)) return
+    await fetch(`/api/v1/admin/department-settings?role=${encodeURIComponent(role)}`, { method: 'DELETE' })
+    setSettings(prev => { const next = { ...prev }; delete next[role]; return next })
+  }
+
+  const BUILTIN_SET = new Set(['admin', 'staff', 'sales', 'finance', 'marketing'])
   const departments = report?.departments ?? []
+  const customSettings = Object.values(settings).filter(s => !BUILTIN_SET.has(s.owner_role))
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
@@ -555,6 +645,13 @@ export default function ScorecardPage() {
               {new Date(report.generated_at).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
+          <button
+            onClick={() => { setIsNewCard(true); setEditRole('__new__') }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-primary-300 text-primary-700 dark:border-primary-700 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/30 transition-colors"
+          >
+            <i className="ti ti-plus text-base" />
+            Kadi Mpya
+          </button>
           <button
             onClick={() => load(true)}
             disabled={loading || refreshing}
@@ -607,12 +704,32 @@ export default function ScorecardPage() {
         </div>
       ) : null}
 
+      {/* Custom department cards */}
+      {customSettings.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+            <i className="ti ti-building" /> Idara Maalum
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {customSettings.map(s => (
+              <CustomDeptCard
+                key={s.owner_role}
+                setting={s}
+                onEdit={r => { setIsNewCard(false); setEditRole(r) }}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Edit drawer */}
       {editRole && (
         <EditDrawer
           role={editRole}
-          initial={settings[editRole] ?? null}
-          onClose={() => setEditRole(null)}
+          initial={isNewCard ? null : (settings[editRole] ?? null)}
+          isNew={isNewCard}
+          onClose={() => { setEditRole(null); setIsNewCard(false) }}
           onSaved={handleSaved}
         />
       )}
