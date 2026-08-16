@@ -149,8 +149,8 @@ DROP POLICY IF EXISTS "system_insert_occupancy_log" ON listing_occupancy_log;
 CREATE POLICY "system_insert_occupancy_log" ON listing_occupancy_log
   FOR INSERT
   WITH CHECK (
-    -- Trigger fires as the session user; changers are admins or the dalali
-    -- who owns the listing being updated.
+    -- service_role bypasses RLS entirely, so no need for a null-uid clause.
+    -- Authenticated: admin/staff can insert, or the dalali who owns the listing.
     EXISTS (
       SELECT 1 FROM users WHERE id = (SELECT auth.uid()) AND role IN ('admin', 'staff')
     )
@@ -159,7 +159,6 @@ CREATE POLICY "system_insert_occupancy_log" ON listing_occupancy_log
       WHERE id = listing_occupancy_log.listing_id
         AND dalali_id = (SELECT auth.uid())
     )
-    OR (SELECT auth.uid()) IS NULL  -- service role (supabaseAdmin) triggers
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────

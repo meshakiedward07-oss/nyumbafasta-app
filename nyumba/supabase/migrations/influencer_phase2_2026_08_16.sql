@@ -31,10 +31,10 @@ ALTER TABLE influencer_profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Influencers read own profile" ON influencer_profiles;
 CREATE POLICY "Influencers read own profile"
   ON influencer_profiles FOR SELECT
-  USING (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()));
 
 -- Admin full access (service_role bypasses RLS anyway)
 DROP POLICY IF EXISTS "Admin manages influencer profiles" ON influencer_profiles;
 CREATE POLICY "Admin manages influencer profiles"
   ON influencer_profiles FOR ALL
-  USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'));
+  USING (EXISTS (SELECT 1 FROM users WHERE id = (SELECT auth.uid()) AND role = 'admin'));

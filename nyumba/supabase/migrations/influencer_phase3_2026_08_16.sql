@@ -30,7 +30,7 @@ CREATE POLICY "Influencers read own referrals"
   ON referral_attributions FOR SELECT
   USING (
     influencer_id IN (
-      SELECT id FROM influencer_profiles WHERE user_id = auth.uid()
+      SELECT id FROM influencer_profiles WHERE user_id = (SELECT auth.uid())
     )
   );
 
@@ -38,4 +38,4 @@ CREATE POLICY "Influencers read own referrals"
 DROP POLICY IF EXISTS "Admin manages referral attributions" ON referral_attributions;
 CREATE POLICY "Admin manages referral attributions"
   ON referral_attributions FOR ALL
-  USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'));
+  USING (EXISTS (SELECT 1 FROM users WHERE id = (SELECT auth.uid()) AND role = 'admin'));

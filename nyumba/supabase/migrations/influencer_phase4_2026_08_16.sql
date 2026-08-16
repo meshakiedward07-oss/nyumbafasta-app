@@ -40,7 +40,7 @@ CREATE POLICY "Influencers read own payout stages"
   ON influencer_payout_stages FOR SELECT
   USING (
     influencer_id IN (
-      SELECT id FROM influencer_profiles WHERE user_id = auth.uid()
+      SELECT id FROM influencer_profiles WHERE user_id = (SELECT auth.uid())
     )
   );
 
@@ -48,4 +48,4 @@ CREATE POLICY "Influencers read own payout stages"
 DROP POLICY IF EXISTS "Admin manages payout stages" ON influencer_payout_stages;
 CREATE POLICY "Admin manages payout stages"
   ON influencer_payout_stages FOR ALL
-  USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'));
+  USING (EXISTS (SELECT 1 FROM users WHERE id = (SELECT auth.uid()) AND role = 'admin'));

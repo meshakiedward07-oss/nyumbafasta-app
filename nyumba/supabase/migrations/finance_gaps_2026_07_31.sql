@@ -32,10 +32,10 @@ CREATE POLICY "Org members can manage org expenses"
     EXISTS (
       SELECT 1 FROM organization_members
       WHERE organization_members.organization_id = org_expenses.organization_id
-        AND organization_members.user_id = auth.uid()
+        AND organization_members.user_id = (SELECT auth.uid())
     )
     OR EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')
+      SELECT 1 FROM users WHERE id = (SELECT auth.uid()) AND role IN ('admin','staff')
     )
   );
 
@@ -91,21 +91,21 @@ DROP POLICY IF EXISTS "Admin can view all invoice items"     ON dalali_invoice_i
 
 CREATE POLICY "Dalali can manage own invoices"
   ON dalali_invoices FOR ALL
-  USING (dalali_id = auth.uid());
+  USING (dalali_id = (SELECT auth.uid()));
 
 CREATE POLICY "Admin can view all dalali invoices"
   ON dalali_invoices FOR SELECT
-  USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')));
+  USING (EXISTS (SELECT 1 FROM users WHERE id = (SELECT auth.uid()) AND role IN ('admin','staff')));
 
 CREATE POLICY "Dalali can manage own invoice items"
   ON dalali_invoice_items FOR ALL
   USING (
-    EXISTS (SELECT 1 FROM dalali_invoices WHERE id = dalali_invoice_items.invoice_id AND dalali_id = auth.uid())
+    EXISTS (SELECT 1 FROM dalali_invoices WHERE id = dalali_invoice_items.invoice_id AND dalali_id = (SELECT auth.uid()))
   );
 
 CREATE POLICY "Admin can view all invoice items"
   ON dalali_invoice_items FOR SELECT
-  USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin','staff')));
+  USING (EXISTS (SELECT 1 FROM users WHERE id = (SELECT auth.uid()) AND role IN ('admin','staff')));
 
 -- Helper: next sequential invoice number per dalali
 CREATE OR REPLACE FUNCTION next_dalali_invoice_number(p_dalali_id UUID)
