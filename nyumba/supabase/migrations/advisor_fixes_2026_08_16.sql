@@ -101,15 +101,6 @@ CREATE POLICY "followup_dalali_own" ON followup_schedules
   USING     (created_by = (SELECT auth.uid()))
   WITH CHECK (created_by = (SELECT auth.uid()));
 
--- ── commissions ───────────────────────────────────────────────────────────────
-DROP POLICY IF EXISTS "commissions_dalali_write" ON commissions;
-CREATE POLICY "commissions_dalali_write" ON commissions
-  FOR INSERT WITH CHECK (dalali_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS "commissions_dalali_update" ON commissions;
-CREATE POLICY "commissions_dalali_update" ON commissions
-  FOR UPDATE USING (dalali_id = (SELECT auth.uid()));
-
 -- ── push_subscriptions ────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Users manage own push subscriptions" ON push_subscriptions;
 CREATE POLICY "Users manage own push subscriptions" ON push_subscriptions
