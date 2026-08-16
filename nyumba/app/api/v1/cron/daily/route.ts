@@ -81,6 +81,79 @@ async function runDailyTasks() {
     errors.push(`❌ Trial reminders: ${String(e)}`)
   }
 
+  // ── 1b. Pause listings beyond 2-active limit for expired trials ──────────
+  // For each dalali whose trial just expired: keep the 2 most recently created
+  // active listings as-is; set is_sub_suspended=true on the rest so the dalali
+  // can restore them immediately on subscribing (no admin re-approval needed).
+  try {
+    const { data: expiredTrialDalalis } = await admin
+      .from('subscriptions')
+      .select('dalali_id')
+      .eq('is_trial', true)
+      .eq('status', 'trial_expired')
+
+    const FREE_PLAN_LIMIT = 2
+
+    if (expiredTrialDalalis?.length) {
+      for (const { dalali_id } of expiredTrialDalalis) {
+        // Get all active unsuspended listings for this dalali, newest first
+        const { data: activeLisings } = await admin
+          .from('listings')
+          .select('id')
+          .eq('dalali_id', dalali_id)
+          .eq('status', 'active')
+          .eq('is_sub_suspended', false)
+          .order('created_at', { ascending: false })
+
+        if (!activeLisings || activeLisings.length <= FREE_PLAN_LIMIT) continue
+
+        const toSuspend = activeLisings.slice(FREE_PLAN_LIMIT).map(l => l.id)
+        await admin
+          .from('listings')
+          .update({ is_sub_suspended: true })
+          .in('id', toSuspend)
+      }
+
+      // Send upsell emails to all newly expired trial dalalis (once — guarded by email_sent)
+      const { data: upsellTargets } = await admin
+        .from('notifications')
+        .select('user_id')
+        .eq('type', 'trial_expired')
+        .gte('created_at', new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()) // last 25h
+
+      if (upsellTargets?.length) {
+        const userIds = [...new Set(upsellTargets.map(t => t.user_id))]
+        const emailMap = await batchGetEmails(admin, userIds)
+        const { data: userRows } = await admin
+          .from('users')
+          .select('id, full_name')
+          .in('id', userIds)
+        const nameMap = new Map((userRows ?? []).map(u => [u.id, u.full_name as string]))
+
+        for (const uid of userIds) {
+          const email = emailMap.get(uid)
+          const name  = nameMap.get(uid) ?? 'Dalali'
+          if (!email) continue
+          const html = emailBase(`
+              <p style="font-size:16px;color:#1a1a1a;margin:0 0 12px">Habari ${name},</p>
+              <p style="color:#444;margin:0 0 12px">Siku zako 30 za <strong>Growth Plan Trial</strong> zimekwisha. Asante kwa kujaribu NyumbaFasta!</p>
+              <p style="color:#444;margin:0 0 8px">Listings zaidi ya 2 zimesimamishwa kwa muda. Chagua plan unayoipenda ili zirejee mara moja:</p>
+              <ul style="color:#444;margin:0 0 16px;padding-left:20px">
+                <li><strong>Basic</strong> — Tsh 10,000/mwezi (listings 5)</li>
+                <li><strong>Premium</strong> — Tsh 25,000/mwezi (listings 20 + boost + verified badge)</li>
+                <li><strong>Enterprise</strong> — Tsh 50,000/mwezi (listings zisizo na kikomo)</li>
+              </ul>
+              <p><a href="https://www.nyumbafasta.co/subscription" style="background:#1D9E75;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Chagua Plan Sasa</a></p>
+          `, 'Trial yako ya siku 30 imekwisha — endelea na NyumbaFasta')
+          await sendEmail(email, '⚠️ Trial Yako Imekwisha — Endelea na NyumbaFasta', html).catch(() => {})
+        }
+      }
+    }
+    results.push(`✅ Trial expiry: listings za ${expiredTrialDalalis?.length ?? 0} dalali zimeshughulikiwa`)
+  } catch (e) {
+    errors.push(`❌ Trial listing suspension: ${String(e)}`)
+  }
+
   // ── 2. Expire active boosts whose boosted_until has passed ──
   try {
     const { data: expiredBoosts } = await admin
