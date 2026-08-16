@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import type { PermissionKey } from '@/lib/staff/permissions'
+import InfluencerDashboardClient from './InfluencerDashboardClient'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -290,7 +291,7 @@ export default function StaffDashboardClient() {
 
   if (loading) return <LoadingSkeleton />
 
-  if (isInfluencer) return <InfluencerPlaceholder />
+  if (isInfluencer) return <InfluencerDashboardClient />
 
   if (!data) {
     return (
@@ -1831,18 +1832,3 @@ function ProfileTab({
   )
 }
 
-// ── Influencer Placeholder ─────────────────────────────────────────────────
-function InfluencerPlaceholder() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
-      <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center mb-4">
-        <i className="ti ti-users-group text-3xl text-pink-500" />
-      </div>
-      <h2 className="text-lg font-semibold text-gray-800 mb-1">Dashboard ya Influencer</h2>
-      <p className="text-sm text-gray-500 max-w-xs">
-        Akaunti yako ni ya Brand Ambassador. Dashboard yako maalum itapatikana hivi karibuni.
-        Wasiliana na admin kwa maswali.
-      </p>
-    </div>
-  )
-}
