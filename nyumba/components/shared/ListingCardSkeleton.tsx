@@ -1,8 +1,8 @@
 export default function ListingCardSkeleton() {
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-      {/* Image placeholder */}
-      <div className="h-44 skeleton" />
+      {/* Image placeholder — matches card's aspect-[16/10] to prevent layout shift */}
+      <div className="aspect-[16/10] skeleton" />
 
       <div className="p-3">
         {/* Title + price row */}

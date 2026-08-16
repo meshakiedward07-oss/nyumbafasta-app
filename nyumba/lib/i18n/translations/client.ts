@@ -366,6 +366,9 @@ const T_client = {
   cl_footer_help:           { sw: 'Msaada',                      en: 'Help'               },
   cl_footer_contact:        { sw: 'Wasiliana Nasi',              en: 'Contact Us'         },
   cl_footer_rights:         { sw: 'Haki zote zimehifadhiwa',     en: 'All rights reserved' },
+  cl_footer_terms:          { sw: 'Masharti ya Matumizi',        en: 'Terms of Service'   },
+  cl_footer_privacy:        { sw: 'Sera ya Faragha',             en: 'Privacy Policy'     },
+  cl_footer_data_deletion:  { sw: 'Futa Data Yangu',             en: 'Data Deletion'      },
 
 } as const
 

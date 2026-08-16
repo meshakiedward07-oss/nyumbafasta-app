@@ -188,9 +188,11 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
 
   return (
     <div
-      className="block animate-fadeIn cursor-pointer"
+      className="block animate-fadeIn cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-2xl"
       onClick={() => router.push(`/listings/${listing.id}`)}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/listings/${listing.id}`) } }}
       role="article"
+      tabIndex={0}
     >
       <div
         className={`group bg-white rounded-2xl overflow-hidden transition-all duration-300 active:scale-[0.98]
@@ -260,7 +262,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
               </div>
             )}
             {isNew && (
-              <div className="flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+              <div className="flex items-center gap-1 bg-primary-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
                 <i className="ti ti-sparkles text-[9px]" aria-hidden="true" />
                 {t('lst_new')}
               </div>
@@ -282,7 +284,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
             <div className="flex-1 min-w-0">
               <p className="text-primary-600 text-base font-extrabold leading-none tabular-nums">
                 {formatPrice(listing.price_monthly)}
-                <span className="text-[11px] font-medium text-gray-400 ml-0.5">{t('lst_per_month')}</span>
+                <span className="text-xs font-medium text-gray-400 ml-0.5">{t('lst_per_month')}</span>
               </p>
             </div>
             <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${typeStyle.pillBg} ${typeStyle.pillText}`}>
@@ -292,7 +294,7 @@ export default function ListingCard({ listing, hasUnlocked = false, priority = f
           </div>
 
           {/* Title */}
-          <p className="font-bold text-gray-900 text-[14px] leading-snug mb-1.5 line-clamp-2">
+          <p className="font-bold text-gray-900 text-sm leading-snug mb-1.5 line-clamp-2">
             {listing.title || `${typeStyle.label} – ${listing.district}`}
           </p>
 

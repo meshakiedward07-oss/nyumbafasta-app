@@ -51,7 +51,6 @@ function FieldInput({ label, icon, children }: { label: string; icon?: string; c
   )
 }
 
-const INPUT = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-300'
 
 function RegisterForm() {
   const { t }  = useLanguage()
@@ -379,7 +378,7 @@ function RegisterForm() {
                 <input
                   type="email" required autoComplete="email" placeholder="jina@gmail.com"
                   value={convertEmail} onChange={e => setConvertEmail(e.target.value)}
-                  className={INPUT}
+                  className="input"
                 />
               </FieldInput>
 
@@ -388,7 +387,7 @@ function RegisterForm() {
                   <input
                     type={convertShowPass ? 'text' : 'password'} required autoComplete="current-password"
                     placeholder="••••••••" value={convertPassword} onChange={e => setConvertPassword(e.target.value)}
-                    className={`${INPUT} pr-11`}
+                    className="input pr-11"
                   />
                   <button type="button" onClick={() => setConvertShowPass(p => !p)}
                     aria-label={convertShowPass ? t('auth_hide_pass') : t('auth_show_pass')}
@@ -402,7 +401,7 @@ function RegisterForm() {
                 <input
                   type="tel" autoComplete="tel" placeholder="+255 7XX XXX XXX"
                   value={convertPhone} onChange={e => setConvertPhone(e.target.value)}
-                  className={INPUT}
+                  className="input"
                 />
                 <p className="text-xs text-gray-400 mt-1">{t('auth_phone_help_text')}</p>
               </FieldInput>
@@ -636,19 +635,19 @@ function RegisterForm() {
                 {/* Common fields */}
                 <FieldInput label={t('auth_fullname')} icon="user">
                   <input type="text" required autoComplete="name" placeholder="Jina Bingwa"
-                    value={fullName} onChange={e => setFullName(e.target.value)} className={INPUT} />
+                    value={fullName} onChange={e => setFullName(e.target.value)} className="input" />
                 </FieldInput>
 
                 <FieldInput label={t('auth_email')} icon="mail">
                   <input type="email" required autoComplete="email" placeholder="jina@gmail.com"
-                    value={email} onChange={e => setEmail(e.target.value)} className={INPUT} />
+                    value={email} onChange={e => setEmail(e.target.value)} className="input" />
                 </FieldInput>
 
                 <FieldInput label={t('auth_password')} icon="lock">
                   <div className="relative">
                     <input type={showPass ? 'text' : 'password'} required minLength={8} autoComplete="new-password"
                       placeholder="Angalau herufi 8" value={password} onChange={e => setPassword(e.target.value)}
-                      className={`${INPUT} pr-11`} />
+                      className="input pr-11" />
                     <button type="button" onClick={() => setShowPass(p => !p)}
                       aria-label={showPass ? t('auth_hide_pass') : t('auth_show_pass')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
@@ -680,7 +679,7 @@ function RegisterForm() {
                 {(role === 'org_owner' || role === 'tenant') && (
                   <FieldInput label={`${t('auth_phone')} *`} icon="phone">
                     <input type="tel" required autoComplete="tel" placeholder="+255 7XX XXX XXX"
-                      value={phone} onChange={e => setPhone(e.target.value)} className={INPUT} />
+                      value={phone} onChange={e => setPhone(e.target.value)} className="input" />
                   </FieldInput>
                 )}
 
@@ -692,11 +691,11 @@ function RegisterForm() {
                     </div>
                     <FieldInput label={t('auth_org_name_label')} icon="building-estate">
                       <input type="text" required placeholder="mfano: Mapumziko Apartments"
-                        value={orgName} onChange={e => setOrgName(e.target.value)} className={INPUT} />
+                        value={orgName} onChange={e => setOrgName(e.target.value)} className="input" />
                     </FieldInput>
                     <FieldInput label={t('auth_org_city_label')} icon="map-pin">
                       <input type="text" required placeholder="mfano: Dar es Salaam, Kinondoni"
-                        value={city} onChange={e => setCity(e.target.value)} className={INPUT} />
+                        value={city} onChange={e => setCity(e.target.value)} className="input" />
                     </FieldInput>
                   </>
                 )}

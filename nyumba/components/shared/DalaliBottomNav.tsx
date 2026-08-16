@@ -74,7 +74,7 @@ export default function DalaliBottomNav() {
                   border-4 border-white transition-transform duration-150">
                   <i className="ti ti-plus text-2xl text-white font-bold" aria-hidden="true" />
                 </div>
-                <span className="text-[10px] font-semibold text-primary-600 leading-none">{t(labelKey)}</span>
+                <span className="text-[11px] font-semibold text-primary-600 leading-none">{t(labelKey)}</span>
               </Link>
             )
           }
@@ -106,7 +106,7 @@ export default function DalaliBottomNav() {
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] leading-none transition-colors duration-150 ${
+              <span className={`text-[11px] leading-none transition-colors duration-150 ${
                 active ? 'text-primary-600 font-semibold' : 'text-gray-400 font-medium'
               }`}>
                 {t(labelKey)}

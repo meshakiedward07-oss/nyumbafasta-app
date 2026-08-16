@@ -31,7 +31,7 @@ export default function WhatsAppSupportButton() {
       onPointerLeave={() => setPressed(false)}
       className={`
         fixed bottom-20 right-3 z-50
-        w-10 h-10 rounded-full
+        w-11 h-11 rounded-full
         flex items-center justify-center
         bg-[#1D9E75] shadow-md shadow-black/20
         transition-transform duration-150

@@ -316,7 +316,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           <select
             value={PRIORITY_REGIONS.includes(filters?.region ?? '') ? '' : (filters?.region ?? '')}
             onChange={e => { if (e.target.value) applyFilter('region', e.target.value) }}
-            className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold focus:outline-none cursor-pointer
+            className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 cursor-pointer
               ${!PRIORITY_REGIONS.includes(filters?.region ?? '') && filters?.region
                 ? 'bg-primary-500 text-white border-primary-500'
                 : 'bg-white text-gray-500 border-gray-200'}`}
@@ -333,7 +333,7 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
           <select
             value={filters?.type ?? ''}
             onChange={e => applyFilter('type', e.target.value)}
-            className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold focus:outline-none cursor-pointer transition-all duration-200
+            className={`flex-shrink-0 text-xs border rounded-full px-4 py-2 font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 cursor-pointer transition-all duration-200
               ${filters?.type ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-gray-500 border-gray-200'}`}
           >
             {TYPES.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}

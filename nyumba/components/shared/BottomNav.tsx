@@ -72,7 +72,7 @@ export default function BottomNav({ role = 'client' }: { role?: Role }) {
               </div>
 
               {/* Label */}
-              <span className={`text-[10px] leading-none transition-colors duration-150 ${
+              <span className={`text-[11px] leading-none transition-colors duration-150 ${
                 active ? 'text-primary-600 font-semibold' : 'text-gray-400 font-medium'
               }`}>
                 {label}

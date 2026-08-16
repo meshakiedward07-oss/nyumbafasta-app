@@ -224,8 +224,7 @@ function LoginForm() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
 
       {/* Header */}
-      <div className="relative overflow-hidden px-4 pt-12 pb-10 flex flex-col justify-center items-center"
-        style={{ background: 'linear-gradient(160deg, #27AE72 0%, #1D9E75 55%, #117652 100%)' }}>
+      <div className="gradient-primary relative overflow-hidden px-4 pt-12 pb-10 flex flex-col justify-center items-center">
         {/* Decorative circles */}
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5 pointer-events-none" />
         <div className="absolute -bottom-6 -left-6 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
@@ -408,12 +407,7 @@ function LoginForm() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full text-white py-3.5 min-h-[48px] rounded-xl text-sm
-                               font-semibold disabled:opacity-50 transition-all active:scale-[0.98]"
-                    style={{
-                      background: 'linear-gradient(135deg, #27AE72 0%, #1D9E75 55%, #178A63 100%)',
-                      boxShadow: loading ? 'none' : '0 4px 14px rgba(29,158,117,0.40), 0 1px 3px rgba(29,158,117,0.20)',
-                    }}
+                    className="btn-primary w-full min-h-[48px]"
                   >
                     {loading ? t('auth_signing_in') : t('auth_login_button')}
                   </button>
