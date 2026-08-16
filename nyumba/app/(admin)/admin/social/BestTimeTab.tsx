@@ -35,8 +35,8 @@ function HourBadge({ hour, type }: { hour: number; type: 'best' | 'worst' }) {
   return (
     <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
       type === 'best'
-        ? 'bg-green-100 text-green-700'
-        : 'bg-red-100 text-red-700'
+        ? 'bg-emerald-50 text-emerald-700'
+        : 'bg-red-50 text-red-700'
     }`}>
       {fmt12(hour)}
     </span>
@@ -47,8 +47,8 @@ function DayBadge({ day, type }: { day: number; type: 'best' | 'worst' }) {
   return (
     <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
       type === 'best'
-        ? 'bg-blue-100 text-blue-700'
-        : 'bg-orange-100 text-orange-700'
+        ? 'bg-sky-50 text-sky-700'
+        : 'bg-amber-50 text-amber-700'
     }`}>
       {DAY_NAMES[day] ?? day}
     </span>
@@ -62,10 +62,10 @@ function HeatmapGrid({ data }: { data: number[][] }) {
   function cellColor(val: number): string {
     if (val === 0) return 'bg-gray-100'
     const ratio = val / maxVal
-    if (ratio > 0.8) return 'bg-green-600'
-    if (ratio > 0.6) return 'bg-green-400'
-    if (ratio > 0.4) return 'bg-green-200'
-    if (ratio > 0.2) return 'bg-yellow-100'
+    if (ratio > 0.8) return 'bg-teal-600'
+    if (ratio > 0.6) return 'bg-teal-400'
+    if (ratio > 0.4) return 'bg-teal-200'
+    if (ratio > 0.2) return 'bg-teal-100'
     return 'bg-gray-100'
   }
 
@@ -101,7 +101,7 @@ function HeatmapGrid({ data }: { data: number[][] }) {
         {/* Legend */}
         <div className="flex items-center gap-2 mt-3 text-[10px] text-gray-500">
           <span>Chini</span>
-          {['bg-gray-100','bg-yellow-100','bg-green-200','bg-green-400','bg-green-600'].map(c => (
+          {['bg-gray-100','bg-teal-100','bg-teal-200','bg-teal-400','bg-teal-600'].map(c => (
             <div key={c} className={`w-5 h-3 rounded-sm ${c}`} />
           ))}
           <span>Juu</span>
@@ -197,7 +197,7 @@ export default function BestTimeTab() {
         <button
           onClick={handleAnalyze}
           disabled={analyzing}
-          className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 disabled:opacity-50 flex items-center gap-2"
         >
           {analyzing ? (
             <>
@@ -211,7 +211,7 @@ export default function BestTimeTab() {
       </div>
 
       {analyzing && (
-        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-5 text-sm text-purple-800">
+        <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-5 text-sm text-teal-800">
           Inakusanya data ya posts na kuchanganua kwa AI... Dakika 1-2. Usifunge dirisha.
         </div>
       )}

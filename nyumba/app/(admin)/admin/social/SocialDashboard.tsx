@@ -363,7 +363,7 @@ export default function SocialDashboard() {
           <div className="absolute left-0 top-0 bottom-0 w-64 flex flex-col shadow-2xl bg-slate-900">
             <div className="px-4 py-4 border-b border-slate-800 flex-shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-teal-700">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-teal-600">
                   <span className="text-white text-xs font-bold">SM</span>
                 </div>
                 <p className="text-sm font-bold text-white">Social Media</p>
@@ -380,7 +380,7 @@ export default function SocialDashboard() {
                     {group.items.map(item => (
                       <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false) }}
                         className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
-                          activeTab === item.id ? 'bg-teal-700 text-white' : 'text-slate-400'
+                          activeTab === item.id ? 'bg-teal-600 text-white' : 'text-slate-400'
                         }`}>
                         {item.id === 'tiktok'
                           ? <PlatformLogo platform="tiktok" size={14} className="flex-shrink-0" />
@@ -517,7 +517,7 @@ export default function SocialDashboard() {
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
-                  activeTab === item.id ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-600'
+                  activeTab === item.id ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'
                 }`}
               >
                 {item.id === 'tiktok'
@@ -686,7 +686,7 @@ export default function SocialDashboard() {
                     <button
                       onClick={handlePostAll}
                       disabled={postAllLoading || !postAllListing}
-                      className="px-5 py-2.5 bg-teal-700 text-white text-sm font-semibold rounded-xl hover:bg-teal-800 disabled:opacity-50 transition-all whitespace-nowrap"
+                      className="px-5 py-2.5 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 disabled:opacity-50 transition-all whitespace-nowrap"
                     >
                       {postAllLoading ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha...</> : <><i className="ti ti-rocket" aria-hidden="true" /> Chapisha Yote</>}
                     </button>
@@ -766,7 +766,7 @@ export default function SocialDashboard() {
               <div className="mt-5 flex gap-3">
                 <button
                   onClick={() => setActiveTab('upload')}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-teal-700 text-white text-sm font-medium rounded-xl hover:bg-teal-800 transition-all"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-xl hover:bg-teal-700 transition-all"
                 >
                   <i className="ti ti-video" aria-hidden="true" /> Pakia Video Mpya
                 </button>
@@ -804,7 +804,7 @@ export default function SocialDashboard() {
                 <button
                   onClick={handleRefreshMetrics}
                   disabled={loading}
-                  className="px-3 py-1.5 bg-teal-700 text-white text-sm rounded-lg hover:bg-teal-800 disabled:opacity-50"
+                  className="px-3 py-1.5 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 disabled:opacity-50"
                 >
                   {loading ? '...' : <><i className="ti ti-refresh" aria-hidden="true" /> Sasisha Metrics</>}
                 </button>
@@ -1068,11 +1068,11 @@ export default function SocialDashboard() {
 
                           {selectedDm.reply_text ? (
                             <div className="flex items-end gap-2 flex-row-reverse">
-                              <div className="w-8 h-8 rounded-full bg-teal-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                                 A
                               </div>
                               <div className="max-w-[75%]">
-                                <div className="px-4 py-2.5 rounded-2xl rounded-br-none text-sm shadow-sm text-white bg-teal-700">
+                                <div className="px-4 py-2.5 rounded-2xl rounded-br-none text-sm shadow-sm text-white bg-teal-600">
                                   {selectedDm.reply_text}
                                 </div>
                                 <p className="text-[10px] mt-1 mr-1 text-right text-slate-400">Amina AI · auto-reply</p>

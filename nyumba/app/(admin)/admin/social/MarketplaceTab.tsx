@@ -40,12 +40,12 @@ type Inquiry = {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    active:  'bg-green-100 text-green-700',
-    pending: 'bg-yellow-100 text-yellow-700',
-    failed:  'bg-red-100 text-red-700',
+    active:  'bg-emerald-50 text-emerald-700',
+    pending: 'bg-amber-50 text-amber-700',
+    failed:  'bg-red-50 text-red-700',
     sold:    'bg-gray-100 text-gray-500',
     deleted: 'bg-gray-100 text-gray-400',
-    expired: 'bg-orange-100 text-orange-600',
+    expired: 'bg-amber-50 text-amber-600',
   }
   const labels: Record<string, string> = {
     active: 'Active', pending: 'Inasubiri', failed: 'Imeshindwa',
@@ -238,7 +238,7 @@ export default function MarketplaceTab() {
             <button
               onClick={handleSync}
               disabled={syncing || !stats?.catalogConfigured}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 disabled:opacity-50 flex items-center gap-2"
             >
               {syncing ? (
                 <>

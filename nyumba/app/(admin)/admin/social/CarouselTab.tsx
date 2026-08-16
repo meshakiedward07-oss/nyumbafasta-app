@@ -101,9 +101,9 @@ export default function CarouselTab() {
   }
 
   const statusColor: Record<string, string> = {
-    posted:  'bg-green-100 text-green-700',
-    pending: 'bg-yellow-100 text-yellow-700',
-    failed:  'bg-red-100 text-red-700',
+    posted:  'bg-emerald-50 text-emerald-700',
+    pending: 'bg-amber-50 text-amber-700',
+    failed:  'bg-red-50 text-red-700',
   }
 
   return (

@@ -61,7 +61,7 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }>
   pending:    { bg: 'bg-gray-100',   text: 'text-gray-600',   label: 'Inasubiri'       },
   uploading:  { bg: 'bg-blue-50',    text: 'text-blue-600',   label: 'Inapakia'         },
   processing: { bg: 'bg-amber-50',   text: 'text-amber-600',  label: 'Inashughulikia'  },
-  published:  { bg: 'bg-green-50',   text: 'text-green-600',  label: 'Imechapishwa'     },
+  published:  { bg: 'bg-emerald-50', text: 'text-emerald-600', label: 'Imechapishwa'    },
   failed:     { bg: 'bg-red-50',     text: 'text-red-600',    label: 'Imeshindwa'        },
   cancelled:  { bg: 'bg-gray-100',   text: 'text-gray-500',   label: 'Imesimamishwa'    },
 }
@@ -349,7 +349,7 @@ export default function TikTokTab({ showToast }: { showToast: (msg: string) => v
                       </>
                     ) : (
                       <>
-                        <span className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse flex-shrink-0" />
+                        <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
                         <p className="font-bold text-white text-lg">Imeunganishwa</p>
                       </>
                     )}

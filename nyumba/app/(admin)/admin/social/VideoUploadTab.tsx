@@ -88,11 +88,11 @@ async function downloadVideo(url: string, filename: string) {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    posted:    'bg-green-100 text-green-700',
-    posting:   'bg-blue-100 text-blue-700',
-    scheduled: 'bg-yellow-100 text-yellow-700',
+    posted:    'bg-emerald-50 text-emerald-700',
+    posting:   'bg-sky-50 text-sky-700',
+    scheduled: 'bg-amber-50 text-amber-700',
     draft:     'bg-gray-100 text-gray-600',
-    failed:    'bg-red-100 text-red-700',
+    failed:    'bg-red-50 text-red-700',
   }
   const labels: Record<string, string> = {
     posted: 'Imechapishwa', posting: 'Inachapisha',
@@ -509,7 +509,7 @@ export default function VideoUploadTab() {
         {connResult ? (
           <div className="space-y-2">
             {(['instagram', 'facebook'] as const).map(p => (
-              <div key={p} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${connResult[p].ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-700'}`}>
+              <div key={p} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${connResult[p].ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
                 <PlatformLogo platform={p} size={14} />
                 <div className="flex-1">
                   <span className="font-semibold capitalize">{p}</span>
@@ -517,7 +517,7 @@ export default function VideoUploadTab() {
                     ? <span> — {connResult[p].name} ✓ Muunganiko unafanya kazi</span>
                     : <span> — {connResult[p].error}</span>}
                 </div>
-                <i className={`ti ${connResult[p].ok ? 'ti-circle-check text-green-600' : 'ti-circle-x text-red-500'} text-base flex-shrink-0`} />
+                <i className={`ti ${connResult[p].ok ? 'ti-circle-check text-emerald-600' : 'ti-circle-x text-red-500'} text-base flex-shrink-0`} />
               </div>
             ))}
             {!connResult.ok && (
@@ -556,7 +556,7 @@ export default function VideoUploadTab() {
                   <div className="text-3xl"><i className="ti ti-player-skip-forward animate-pulse text-primary-500" /></div>
                   <p className="font-semibold text-gray-700">Inapunguza ukubwa wa video…</p>
                   <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className="bg-purple-500 h-3 rounded-full transition-all duration-300" style={{ width: `${compressProgress}%` }} />
+                    <div className="bg-teal-400 h-3 rounded-full transition-all duration-300" style={{ width: `${compressProgress}%` }} />
                   </div>
                   <p className="text-sm text-gray-500">{compressProgress}% — video itachukua muda kidogo</p>
                 </div>
@@ -565,7 +565,7 @@ export default function VideoUploadTab() {
                   <div className="text-3xl"><i className="ti ti-loader-2 animate-spin text-primary-500" /></div>
                   <p className="font-semibold text-gray-700">Inapakia kwenye Cloudinary…</p>
                   {compressInfo && (
-                    <p className="text-xs text-green-600">
+                    <p className="text-xs text-emerald-600">
                       Imepunguzwa: {compressInfo.originalMB.toFixed(1)} MB → {compressInfo.compressedMB.toFixed(1)} MB
                     </p>
                   )}
@@ -581,10 +581,10 @@ export default function VideoUploadTab() {
                   <p className="text-sm text-gray-500">
                     {formatBytes(file.size)}{duration !== null && ` • ${duration}s`}
                     {hasAudio === false && <span className="ml-2 text-amber-600">⚠ Hakuna sauti</span>}
-                    {hasAudio === true  && <span className="ml-2 text-green-600">🔊 Ina sauti</span>}
+                    {hasAudio === true  && <span className="ml-2 text-emerald-600">🔊 Ina sauti</span>}
                   </p>
                   {file.size > COMPRESS_THRESHOLD && canCompress() && (
-                    <p className="text-xs text-purple-600 flex items-center justify-center gap-1">
+                    <p className="text-xs text-teal-600 flex items-center justify-center gap-1">
                       <i className="ti ti-bolt" /> Video itapunguzwa kabla ya kupakia
                     </p>
                   )}

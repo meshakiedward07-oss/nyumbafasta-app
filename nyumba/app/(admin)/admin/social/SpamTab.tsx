@@ -36,9 +36,9 @@ type Tab = 'stats' | 'keywords'
 
 function ActionBadge({ action }: { action: string }) {
   const map: Record<string, string> = {
-    deleted: 'bg-red-100 text-red-700',
-    hidden:  'bg-orange-100 text-orange-700',
-    flagged: 'bg-yellow-100 text-yellow-700',
+    deleted: 'bg-red-50 text-red-700',
+    hidden:  'bg-amber-50 text-amber-700',
+    flagged: 'bg-amber-100 text-amber-700',
     ignored: 'bg-gray-100 text-gray-500',
   }
   const labels: Record<string, string> = {
@@ -213,10 +213,10 @@ export default function SpamTab() {
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {[
                   { label: 'Imefutwa',       value: stats.totalDeleted,   icon: 'trash',          color: 'text-red-600'    },
-                  { label: 'Imefichwa',      value: stats.totalHidden,    icon: 'eye-off',        color: 'text-orange-600' },
-                  { label: 'Imewekwa Alama', value: stats.totalFlagged,   icon: 'flag',           color: 'text-yellow-600' },
-                  { label: 'Leo',            value: stats.spamToday,      icon: 'calendar',       color: 'text-blue-600'   },
-                  { label: 'Wiki Hii',       value: stats.spamThisWeek,   icon: 'calendar-week',  color: 'text-purple-600' },
+                  { label: 'Imefichwa',      value: stats.totalHidden,    icon: 'eye-off',        color: 'text-amber-600'  },
+                  { label: 'Imewekwa Alama', value: stats.totalFlagged,   icon: 'flag',           color: 'text-amber-600'  },
+                  { label: 'Leo',            value: stats.spamToday,      icon: 'calendar',       color: 'text-teal-600'   },
+                  { label: 'Wiki Hii',       value: stats.spamThisWeek,   icon: 'calendar-week',  color: 'text-violet-600' },
                   { label: 'Spam Yote',      value: stats.totalDeleted + stats.totalHidden + stats.totalFlagged, icon: 'alert-triangle', color: 'text-gray-700' },
                 ].map(card => (
                   <div key={card.label} className="bg-white rounded-xl border border-gray-200 p-4">

@@ -68,7 +68,7 @@ function PlatformBadge({ platform, posted, date }: { platform: string; posted: b
   return (
     <span title={posted ? `Mwisho: ${timeAgo(date)}` : `Haijachapishwa`}
       className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium border ${
-        posted ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'
+        posted ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-400 border-gray-200'
       }`}>
       <PlatformLogo platform={platform} size={11} />
       {posted ? timeAgo(date) : '—'}
@@ -120,7 +120,7 @@ function BatchModal({
           {items.map(item => (
             <div key={item.listing.id} className="flex items-center gap-3">
               <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center">
-                {item.status === 'done'    && <i className="ti ti-circle-check text-green-500 text-lg" aria-hidden="true" />}
+                {item.status === 'done'    && <i className="ti ti-circle-check text-emerald-500 text-lg" aria-hidden="true" />}
                 {item.status === 'failed'  && <i className="ti ti-circle-x text-red-400 text-lg" aria-hidden="true" />}
                 {item.status === 'posting' && <i className="ti ti-loader-2 animate-spin text-primary-500 text-lg" aria-hidden="true" />}
                 {item.status === 'pending' && <i className="ti ti-circle-dashed text-gray-300 text-lg" aria-hidden="true" />}

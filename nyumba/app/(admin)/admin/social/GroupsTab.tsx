@@ -263,7 +263,7 @@ export default function GroupsTab() {
         <button
           onClick={handlePostAll}
           disabled={postingAll || !selectedListing || activeGroups.length === 0}
-          className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
+          className="px-5 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-xl hover:bg-teal-700 disabled:opacity-50 whitespace-nowrap"
         >
 {postingAll ? <><i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> Inachapisha...</> : <><i className="ti ti-rocket" aria-hidden="true" /> Post kwenye Makundi Yote ({activeGroups.length})</>}
         </button>
@@ -293,7 +293,7 @@ export default function GroupsTab() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${group.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${group.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
                     <p className="font-semibold text-gray-900 truncate">{group.group_name}</p>
                   </div>
                   <div className="flex flex-wrap gap-3 text-xs text-gray-400">
@@ -311,7 +311,7 @@ export default function GroupsTab() {
                     onClick={() => handleToggle(group)}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
                       group.is_active
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        ? 'bg-teal-50 text-teal-700 hover:bg-teal-100'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
@@ -320,13 +320,13 @@ export default function GroupsTab() {
                   <button
                     onClick={() => handlePostToGroup(group)}
                     disabled={posting === group.group_id || !selectedListing || !group.is_active}
-                    className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 disabled:opacity-40"
+                    className="px-3 py-1.5 bg-sky-50 text-sky-700 text-xs font-medium rounded-lg hover:bg-sky-100 disabled:opacity-40"
                   >
 {posting === group.group_id ? <i className="ti ti-loader-2 animate-spin" aria-hidden="true" /> : <><i className="ti ti-send" aria-hidden="true" /> Post</>}
                   </button>
                   <button
                     onClick={() => handleDelete(group)}
-                    className="px-3 py-1.5 bg-red-100 text-red-600 text-xs font-medium rounded-lg hover:bg-red-200"
+                    className="px-3 py-1.5 bg-red-50 text-red-600 text-xs font-medium rounded-lg hover:bg-red-100"
                   >
 <i className="ti ti-trash" aria-hidden="true" />
                   </button>
