@@ -656,55 +656,68 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
 
                 {/* Quick action row */}
                 {(listing.status === 'active' || listing.status === 'taken') && (
-                  <div className="flex border-t border-gray-100">
-                    {listing.status === 'active' ? (
+                  <>
+                    <div className="flex border-t border-gray-100">
+                      {listing.status === 'active' ? (
+                        <button
+                          onClick={() => setDialog({ type: 'taken', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })}
+                          disabled={isLoading}
+                          className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-amber-700 active:bg-amber-50 transition-colors"
+                        >
+                          <i className="ti ti-circle-dot text-base" aria-hidden="true" />
+                          {t('my_btn_taken')}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setDialog({ type: 'available', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })}
+                          disabled={isLoading}
+                          className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-primary-600 active:bg-primary-50 transition-colors"
+                        >
+                          <i className="ti ti-circle-check text-base" aria-hidden="true" />
+                          {t('my_btn_available')}
+                        </button>
+                      )}
+                      <div className="w-px bg-gray-100" />
                       <button
-                        onClick={() => setDialog({ type: 'taken', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })}
-                        disabled={isLoading}
-                        className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-amber-700 active:bg-amber-50 transition-colors"
+                        onClick={() => setBoostListing(listing)}
+                        className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-yellow-600 active:bg-yellow-50 transition-colors"
                       >
-                        <i className="ti ti-circle-dot text-base" aria-hidden="true" />
-                        {t('my_btn_taken')}
+                        <i className="ti ti-rocket text-base" aria-hidden="true" />
+                        Boost
                       </button>
-                    ) : (
+                      <div className="w-px bg-gray-100" />
                       <button
-                        onClick={() => setDialog({ type: 'available', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })}
-                        disabled={isLoading}
-                        className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-primary-600 active:bg-primary-50 transition-colors"
+                        onClick={() => setExpandedAnalytics(expandedAnalytics === listing.id ? null : listing.id)}
+                        className={`flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
+                          expandedAnalytics === listing.id
+                            ? 'text-primary-600 bg-primary-50'
+                            : 'text-gray-500 active:bg-gray-50'
+                        }`}
                       >
-                        <i className="ti ti-circle-check text-base" aria-hidden="true" />
-                        {t('my_btn_available')}
+                        <i className="ti ti-chart-bar text-base" aria-hidden="true" />
+                        {t('my_btn_analytics')}
                       </button>
-                    )}
-                    <div className="w-px bg-gray-100" />
-                    <button
-                      onClick={() => setBoostListing(listing)}
-                      className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-yellow-600 active:bg-yellow-50 transition-colors"
-                    >
-                      <i className="ti ti-rocket text-base" aria-hidden="true" />
-                      Boost
-                    </button>
-                    <div className="w-px bg-gray-100" />
-                    <button
-                      onClick={() => setExpandedAnalytics(expandedAnalytics === listing.id ? null : listing.id)}
-                      className={`flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
-                        expandedAnalytics === listing.id
-                          ? 'text-primary-600 bg-primary-50'
-                          : 'text-gray-500 active:bg-gray-50'
-                      }`}
-                    >
-                      <i className="ti ti-chart-bar text-base" aria-hidden="true" />
-                      {t('my_btn_analytics')}
-                    </button>
-                    <div className="w-px bg-gray-100" />
-                    <button
-                      onClick={() => setEditListing(listing)}
-                      className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-primary-700 active:bg-primary-50 transition-colors"
-                    >
-                      <i className="ti ti-bolt text-base" aria-hidden="true" />
-                      {t('my_btn_update')}
-                    </button>
-                  </div>
+                      <div className="w-px bg-gray-100" />
+                      <button
+                        onClick={() => setEditListing(listing)}
+                        className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-primary-700 active:bg-primary-50 transition-colors"
+                      >
+                        <i className="ti ti-bolt text-base" aria-hidden="true" />
+                        {t('my_btn_update')}
+                      </button>
+                    </div>
+                    {/* Delete row */}
+                    <div className="border-t border-gray-100">
+                      <button
+                        onClick={() => setDialog({ type: 'delete', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })}
+                        disabled={isLoading}
+                        className="w-full min-h-[40px] flex items-center justify-center gap-1.5 text-[11px] font-medium text-red-400 active:bg-red-50 transition-colors"
+                      >
+                        <i className="ti ti-trash text-sm" aria-hidden="true" />
+                        {t('my_menu_delete')}
+                      </button>
+                    </div>
+                  </>
                 )}
 
                 {/* Analytics expand */}
@@ -712,10 +725,19 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                   <ListingAnalyticsCard listingId={listing.id} />
                 )}
 
-                {/* Expired — full-width renew CTA */}
+                {/* Expired — renew + delete actions */}
                 {isExpired && (
-                  <div className="px-3 pb-3">
-                    <RenewButton listing={listing} onRenewed={refreshListings} />
+                  <div className="px-3 pb-3 flex items-center gap-2">
+                    <div className="flex-1">
+                      <RenewButton listing={listing} onRenewed={refreshListings} />
+                    </div>
+                    <button
+                      onClick={() => setDialog({ type: 'delete', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })}
+                      disabled={isLoading}
+                      className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium text-red-500 border border-red-200 bg-red-50 active:bg-red-100 transition-colors flex-shrink-0"
+                    >
+                      <i className="ti ti-trash" aria-hidden="true" /> {t('my_menu_delete')}
+                    </button>
                   </div>
                 )}
               </div>
