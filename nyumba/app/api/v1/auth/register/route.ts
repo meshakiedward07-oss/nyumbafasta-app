@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (isNewUser) {
-        // Step 4: Start 14-day trial for new dalali only
+        // Step 4: Start 30-day Growth Plan trial for new dalali (same for both self-registered and influencer-referred)
         const { error: trialErr } = await admin.rpc('start_dalali_trial', { dalali_user_id: user.id })
         if (trialErr) console.error('[Register] start_dalali_trial failed (non-fatal):', trialErr.message)
 

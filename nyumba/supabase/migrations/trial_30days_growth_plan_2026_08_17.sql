@@ -3,9 +3,18 @@
 -- Date: 2026-08-17
 -- Run in Supabase SQL Editor.  Safe to re-run: idempotent throughout.
 --
+-- SUPERSEDES: influencer_phase6_2026_08_16.sql
+--   Phase6 had two bugs: (1) used plan='enterprise' instead of 'premium',
+--   (2) set status='trial_expired' which is NOT in the sub_status enum.
+--   DO NOT run phase6 — run this file instead.
+--
+-- Both self-registered AND influencer-referred dalali go through the same
+-- register/route.ts → start_dalali_trial path. This ensures they get
+-- identical Growth Plan bundles (premium, 30 days).
+--
 -- Changes:
---   1. Upgrade start_dalali_trial: 14 → 30 days, plan 'basic' → 'premium'
---   2. Update send_trial_reminders: reminder windows + message texts (30 days)
+--   1. start_dalali_trial: 14 → 30 days, plan 'basic' → 'premium' (listings 20)
+--   2. send_trial_reminders: updated messages + correct expiry handling
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- ── 1. start_dalali_trial — 30-day Premium trial ─────────────────────────────
