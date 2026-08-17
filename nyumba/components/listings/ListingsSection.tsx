@@ -181,7 +181,9 @@ export default function ListingsSection({ initialListings, initialTotal }: Props
     setFilters(prev => ({ ...prev, [key]: value ?? '' }))
   }
 
+  const searchMounted = useRef(false)
   useEffect(() => {
+    if (!searchMounted.current) { searchMounted.current = true; return }
     const timer = setTimeout(() => applyFilter('search', searchInput), 300)
     return () => clearTimeout(timer)
   }, [searchInput]) // eslint-disable-line react-hooks/exhaustive-deps
