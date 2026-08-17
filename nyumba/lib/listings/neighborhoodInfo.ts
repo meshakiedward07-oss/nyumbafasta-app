@@ -212,19 +212,18 @@ export async function getNeighborhoodInfo(params: {
   lng?:      number | null
 }): Promise<NeighborhoodData> {
   const { listingId, region, district, ward, lat, lng } = params
-  const admin    = createAdminClient()
-  const cacheKey = [district, ward].filter(Boolean).join('-')
+  const admin = createAdminClient()
+  const cbd   = REGION_CBD[region] ?? DEFAULT_CBD
 
-  // 1. Check listing-level cache (30-day TTL)
+  // 1. Listing-level cache (30-day TTL)
   const { data: cached } = await admin
     .from('neighborhood_cache')
-    .select('*')
+    .select('schools, hospitals, markets, transport, banks, cbd_distance_km, cbd_duration_min, cbd_label')
     .eq('listing_id', listingId)
     .gte('expires_at', new Date().toISOString())
     .maybeSingle()
 
   if (cached) {
-    const cbd = REGION_CBD[region] ?? DEFAULT_CBD
     return {
       schools:        cached.schools        ?? [],
       hospitals:      cached.hospitals      ?? [],
@@ -237,50 +236,12 @@ export async function getNeighborhoodInfo(params: {
     }
   }
 
-  // 2. Check district-level cache (reuse data for same district/ward)
-  const { data: distCached } = await admin
-    .from('neighborhood_cache')
-    .select('*')
-    .eq('cache_key', cacheKey)
-    .gte('expires_at', new Date().toISOString())
-    .maybeSingle()
+  // 2. Resolve coordinates: use listing GPS if available, else geocode via Nominatim
+  // Use explicit null check (not falsy) — lat/lng of 0 is valid (off-coast, but shouldn't break)
+  let resolvedLat: number | null = (lat != null && lng != null) ? lat : null
+  let resolvedLng: number | null = (lat != null && lng != null) ? lng : null
 
-  if (distCached) {
-    const cbd = REGION_CBD[region] ?? DEFAULT_CBD
-    // Write listing-level entry pointing at same data
-    void admin.from('neighborhood_cache').upsert({
-      listing_id:       listingId,
-      cache_key:        cacheKey,
-      latitude:         lat ?? null,
-      longitude:        lng ?? null,
-      schools:          distCached.schools,
-      hospitals:        distCached.hospitals,
-      markets:          distCached.markets,
-      transport:        distCached.transport,
-      banks:            distCached.banks,
-      cbd_distance_km:  distCached.cbd_distance_km,
-      cbd_duration_min: distCached.cbd_duration_min,
-      cbd_label:        distCached.cbd_label ?? cbd.label,
-      fetched_at:  new Date().toISOString(),
-      expires_at:  new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    }, { onConflict: 'listing_id' })
-    return {
-      schools:        distCached.schools        ?? [],
-      hospitals:      distCached.hospitals      ?? [],
-      markets:        distCached.markets        ?? [],
-      transport:      distCached.transport      ?? [],
-      banks:          distCached.banks          ?? [],
-      cbdDistanceKm:  distCached.cbd_distance_km  ?? 0,
-      cbdDurationMin: distCached.cbd_duration_min ?? 0,
-      cbdLabel:       distCached.cbd_label ?? (REGION_CBD[region] ?? DEFAULT_CBD).label,
-    }
-  }
-
-  // 3. Resolve coordinates: use listing GPS if available, else geocode via Nominatim
-  let resolvedLat = lat && lng ? lat : null
-  let resolvedLng = lat && lng ? lng : null
-
-  if (!resolvedLat || !resolvedLng) {
+  if (resolvedLat == null || resolvedLng == null) {
     const geo = await geocodeLocation(district, region, ward)
     if (geo) {
       resolvedLat = geo.lat
@@ -288,14 +249,12 @@ export async function getNeighborhoodInfo(params: {
     }
   }
 
-  // 4. Fetch POIs from Overpass using resolved coordinates
-  const cbd = REGION_CBD[region] ?? DEFAULT_CBD
+  // 3. Fetch POIs from Overpass
   let result: NeighborhoodData
 
-  if (resolvedLat && resolvedLng) {
+  if (resolvedLat != null && resolvedLng != null) {
     result = await fetchFromOverpass(resolvedLat, resolvedLng, region)
   } else {
-    // Coords unavailable even after geocoding — return CBD distance only
     result = {
       schools: [], hospitals: [], markets: [], transport: [], banks: [],
       cbdDistanceKm:  0,
@@ -304,29 +263,25 @@ export async function getNeighborhoodInfo(params: {
     }
   }
 
-  // 5. Cache result (30 days) at both listing and district level
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-  const row = {
-    cache_key:        cacheKey,
-    latitude:         resolvedLat ?? null,
-    longitude:        resolvedLng ?? null,
-    schools:          result.schools,
-    hospitals:        result.hospitals,
-    markets:          result.markets,
-    transport:        result.transport,
-    banks:            result.banks,
-    cbd_distance_km:  result.cbdDistanceKm,
-    cbd_duration_min: result.cbdDurationMin,
-    cbd_label:        result.cbdLabel,
-    fetched_at:  new Date().toISOString(),
-    expires_at:  expiresAt,
-  }
+  // 4. Cache result at listing level (30 days, fire-and-forget)
   void admin.from('neighborhood_cache').upsert(
-    { listing_id: listingId, ...row }, { onConflict: 'listing_id' }
-  )
-  // Also write district-level entry so future listings in same area skip API calls
-  void admin.from('neighborhood_cache').upsert(
-    { listing_id: `district:${cacheKey}`, ...row }, { onConflict: 'listing_id' }
+    {
+      listing_id:       listingId,
+      cache_key:        [district, ward].filter(Boolean).join('-'),
+      latitude:         resolvedLat,
+      longitude:        resolvedLng,
+      schools:          result.schools,
+      hospitals:        result.hospitals,
+      markets:          result.markets,
+      transport:        result.transport,
+      banks:            result.banks,
+      cbd_distance_km:  result.cbdDistanceKm,
+      cbd_duration_min: result.cbdDurationMin,
+      cbd_label:        result.cbdLabel,
+      fetched_at:       new Date().toISOString(),
+      expires_at:       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    { onConflict: 'listing_id' }
   )
 
   return result

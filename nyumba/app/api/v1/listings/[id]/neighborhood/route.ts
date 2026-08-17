@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getNeighborhoodInfo } from '@/lib/listings/neighborhoodInfo'
 
+// Nominatim (6s) + Overpass with fallbacks (up to 24s) — allow headroom
+export const maxDuration = 45
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
