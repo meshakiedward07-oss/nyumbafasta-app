@@ -647,7 +647,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
               </button>
               {/* Badge */}
               <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                <i className="ti ti-crown text-yellow-300" aria-hidden="true" /> PREMIUM PLAN
+                <i className="ti ti-crown text-yellow-300" aria-hidden="true" /> ENTERPRISE PLAN
               </div>
               <h2 className="font-bold text-2xl text-white leading-tight">{t('dash_welcome_modal_title')}</h2>
               <p className="text-primary-100 text-sm mt-1">{t('dash_welcome_modal_sub')}</p>
@@ -671,13 +671,14 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
               <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Unachopata sasa hivi</p>
               <div className="space-y-2">
                 {[
-                  { icon: 'ti-home-2',      text: 'Listings hadi 20 active' },
-                  { icon: 'ti-photo',       text: 'Picha 10 kwa kila listing' },
+                  { icon: 'ti-home-2',      text: 'Listings hadi 50 active' },
+                  { icon: 'ti-photo',       text: 'Picha 20 kwa kila listing' },
                   { icon: 'ti-video',       text: 'Video za listings' },
                   { icon: 'ti-rocket',      text: 'Boost listing — ionekane juu zaidi' },
                   { icon: 'ti-rosette-discount-check', text: 'Verified badge — wateja wanakuamini' },
-                  { icon: 'ti-chart-bar',   text: 'Analytics kamili ya listings zako' },
+                  { icon: 'ti-chart-bar',   text: 'Analytics kamili + export data' },
                   { icon: 'ti-brand-whatsapp', text: 'WhatsApp yako inaonekana kwa wateja' },
+                  { icon: 'ti-headset',     text: 'Priority support 24/7' },
                 ].map(f => (
                   <div key={f.icon} className="flex items-center gap-2.5">
                     <div className="w-6 h-6 bg-primary-50 rounded-lg flex items-center justify-center flex-shrink-0">

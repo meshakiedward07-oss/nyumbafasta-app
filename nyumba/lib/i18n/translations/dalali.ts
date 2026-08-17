@@ -82,7 +82,7 @@ const T_dalali = {
   dash_logout_no:         { sw: 'Hapana',              en: 'No'                           },
   dash_logout_yes:        { sw: 'Ndiyo, toka',         en: 'Yes, sign out'                },
   dash_welcome_modal_title: { sw: '🎉 Growth Plan ya BURE!', en: '🎉 Free Growth Plan!'   },
-  dash_welcome_modal_sub: { sw: 'Umepewa siku 30 za Premium bila malipo', en: '30 days of Premium — completely free' },
+  dash_welcome_modal_sub: { sw: 'Umepewa siku 30 za Enterprise bila malipo', en: '30 days of Enterprise — completely free' },
   dash_welcome_modal_body: { sw: 'Uko tayari kuongeza listings zako na kupata wateja wako wa kwanza.', en: 'You are ready to add your listings and get your first clients.' },
   dash_welcome_modal_btn: { sw: 'Anza Kutumia →',      en: 'Get Started →'                },
   dash_welcome_modal_after: { sw: 'Baada ya siku 30: chagua plan inayokufaa (kuanzia Tsh 10,000/mwezi)', en: 'After 30 days: choose your plan (from Tsh 10,000/month)' },

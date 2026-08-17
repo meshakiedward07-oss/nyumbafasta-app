@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
           user_id: user.id,
           type:    'trial_started',
           title:   '🎉 Growth Plan ya BURE — Siku 30!',
-          body:    'Hongera! Umepata Growth Plan (Premium) ya BURE kwa siku 30. Unaweza kuongeza listings hadi 20, picha 10 kwa kila listing, boost, na zaidi. Baada ya siku 30 chagua plan inayokufaa ili uendelee.',
+          body:    'Hongera! Umepata Growth Plan (Enterprise) ya BURE kwa siku 30. Unaweza kuongeza listings hadi 50, picha 20 kwa kila listing, boost, verified badge, analytics kamili, na zaidi. Baada ya siku 30 chagua plan inayokufaa ili uendelee.',
           is_read: false,
         })
 

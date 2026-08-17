@@ -1,23 +1,19 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- NyumbaFasta — Growth Plan Trial: 30 days + Premium features
--- Date: 2026-08-17
+-- NyumbaFasta — Growth Plan Trial: 30 days ENTERPRISE (listings 50)
+-- Date: 2026-08-17  (updated to enterprise)
 -- Run in Supabase SQL Editor.  Safe to re-run: idempotent throughout.
 --
 -- SUPERSEDES: influencer_phase6_2026_08_16.sql
---   Phase6 had two bugs: (1) used plan='enterprise' instead of 'premium',
---   (2) set status='trial_expired' which is NOT in the sub_status enum.
+--   Phase6 used status='trial_expired' which is NOT in the sub_status enum.
 --   DO NOT run phase6 — run this file instead.
 --
 -- Both self-registered AND influencer-referred dalali go through the same
--- register/route.ts → start_dalali_trial path. This ensures they get
--- identical Growth Plan bundles (premium, 30 days).
---
--- Changes:
---   1. start_dalali_trial: 14 → 30 days, plan 'basic' → 'premium' (listings 20)
---   2. send_trial_reminders: updated messages + correct expiry handling
+-- register/route.ts → start_dalali_trial path. They get IDENTICAL bundles:
+--   plan = 'enterprise'  (listings 50, photos 20, all features)
+--   duration = 30 days
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- ── 1. start_dalali_trial — 30-day Premium trial ─────────────────────────────
+-- ── 1. start_dalali_trial — 30-day Enterprise Growth Plan ────────────────────
 CREATE OR REPLACE FUNCTION public.start_dalali_trial(dalali_user_id UUID)
 RETURNS void
 LANGUAGE plpgsql
@@ -27,9 +23,8 @@ AS $$
 DECLARE
   v_trial_days INT := 30;
 BEGIN
-  -- Insert a 30-day Growth Plan (premium) trial subscription.
-  -- ON CONFLICT: if the dalali already has a subscription, do nothing
-  -- (prevents double-trial on retry or re-registration).
+  -- Insert a 30-day Growth Plan (enterprise) trial subscription.
+  -- ON CONFLICT DO NOTHING prevents double-trial on retry or re-registration.
   INSERT INTO subscriptions (
     dalali_id,
     plan,
@@ -45,7 +40,7 @@ BEGIN
   )
   VALUES (
     dalali_user_id,
-    'premium',
+    'enterprise',
     'active',
     TRUE,
     NOW(),
@@ -61,8 +56,9 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.start_dalali_trial(UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION public.start_dalali_trial(UUID) TO authenticated;
 
--- ── 2. send_trial_reminders — updated windows + messages for 30-day trial ────
+-- ── 2. send_trial_reminders — 30-day enterprise messages ─────────────────────
 CREATE OR REPLACE FUNCTION public.send_trial_reminders()
 RETURNS void
 LANGUAGE plpgsql
@@ -71,13 +67,13 @@ SET search_path = public
 AS $$
 BEGIN
 
-  -- ── Reminder: 7 days left ──────────────────────────────────────────────────
+  -- ── Reminder: 7 days left ─────────────────────────────────────────────────
   INSERT INTO notifications (user_id, type, title, body, is_read, metadata)
   SELECT
     s.dalali_id,
     'trial_reminder_7days',
     '⏰ Growth Plan yako inaisha siku 7',
-    'Siku 7 zimebaki kwenye Growth Plan yako ya bure. Chagua plan (Basic au Premium) ili usipoteze listings zako.',
+    'Siku 7 zimebaki kwenye Growth Plan (Enterprise) yako ya bure. Chagua plan inayokufaa ili usipoteze listings zako zote 50.',
     FALSE,
     jsonb_build_object('trial_ends_at', s.trial_ends_at)
   FROM subscriptions s
@@ -89,13 +85,13 @@ BEGIN
       WHERE n.user_id = s.dalali_id AND n.type = 'trial_reminder_7days'
     );
 
-  -- ── Reminder: 3 days left ──────────────────────────────────────────────────
+  -- ── Reminder: 3 days left ─────────────────────────────────────────────────
   INSERT INTO notifications (user_id, type, title, body, is_read, metadata)
   SELECT
     s.dalali_id,
     'trial_reminder_3days',
-    '🚨 Siku 3 zimebaki — Lipa Sasa!',
-    'Growth Plan yako inaisha siku 3! Baada ya hapo utarudi kwenye Free Plan (listings 2 tu). Lipa sasa uendelee na Premium.',
+    '🚨 Siku 3 zimebaki — Chagua Plan Sasa!',
+    'Growth Plan yako inaisha siku 3! Baada ya hapo utarudi kwenye Free Plan (listings 2 tu). Lipa sasa uendelee na huduma kamili.',
     FALSE,
     jsonb_build_object('trial_ends_at', s.trial_ends_at)
   FROM subscriptions s
@@ -107,13 +103,13 @@ BEGIN
       WHERE n.user_id = s.dalali_id AND n.type = 'trial_reminder_3days'
     );
 
-  -- ── Reminder: last day ────────────────────────────────────────────────────
+  -- ── Reminder: last day ───────────────────────────────────────────────────
   INSERT INTO notifications (user_id, type, title, body, is_read, metadata)
   SELECT
     s.dalali_id,
     'trial_reminder_last_day',
-    '🔴 Leo ni siku ya mwisho!',
-    'Growth Plan yako ya BURE inaisha LEO! Lipa kabla usiku ili listings zako ziendelee kuonekana.',
+    '🔴 Leo ni siku ya mwisho ya Growth Plan!',
+    'Growth Plan yako ya BURE inaisha LEO! Lipa kabla usiku ili listings zako ziendelee kuonekana kwa wateja.',
     FALSE,
     jsonb_build_object('trial_ends_at', s.trial_ends_at)
   FROM subscriptions s
@@ -126,6 +122,7 @@ BEGIN
     );
 
   -- ── Expire trials whose 30-day window has passed ──────────────────────────
+  -- NOTE: 'trial_expired' is NOT in the sub_status enum — use is_trial=FALSE + plan='free'
   UPDATE subscriptions
   SET
     is_trial      = FALSE,
@@ -136,13 +133,13 @@ BEGIN
     AND status      = 'active'
     AND trial_ends_at < NOW();
 
-  -- ── Notify dalali that trial ended, now on free plan ──────────────────────
+  -- ── Notify dalali that trial ended, now on free plan ─────────────────────
   INSERT INTO notifications (user_id, type, title, body, is_read)
   SELECT
     s.dalali_id,
     'trial_ended_free_plan',
     '📋 Growth Plan ya bure imekwisha',
-    'Siku 30 za Growth Plan zimekwisha. Sasa uko kwenye Free Plan (listings 2). Chagua Basic au Premium ili upate listings zaidi na wateja zaidi.',
+    'Siku 30 za Growth Plan (Enterprise) zimekwisha. Sasa uko kwenye Free Plan (listings 2). Chagua Basic, Premium au Enterprise ili uendelee kupata wateja wengi zaidi.',
     FALSE
   FROM subscriptions s
   WHERE s.is_trial       = FALSE
@@ -160,5 +157,5 @@ $$;
 GRANT EXECUTE ON FUNCTION public.send_trial_reminders() TO service_role;
 
 DO $$ BEGIN
-  RAISE NOTICE 'trial_30days_growth_plan_2026_08_17.sql complete — start_dalali_trial now gives 30-day premium trial';
+  RAISE NOTICE 'trial_30days_growth_plan_2026_08_17.sql complete — enterprise plan, 30 days, all dalali get same bundle';
 END $$;
