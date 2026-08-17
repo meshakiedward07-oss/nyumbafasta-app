@@ -3,6 +3,23 @@ import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 import { runFraudChecks } from '@/lib/fraud/detector'
 
+// Shared with /api/v1/profile/username/auto-generate — must stay in sync
+function nameToSlug(fullName: string): string {
+  return fullName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .slice(0, 16)
+    || 'dalali'
+}
+function randomSuffix(): string {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789'
+  return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
 interface AgreementPayload {
   version: string
   full_name_signed: string
@@ -63,7 +80,7 @@ export async function POST(req: NextRequest) {
         id:        user.id,
         phone:     user.phone || null,
         full_name,
-        ...(isNewUser ? { role } : {}),
+        ...(isNewUser ? { role, is_active: true } : {}),
         avatar_url: user.user_metadata?.avatar_url ?? null,
         agreement_accepted:    !!agreement,
         agreement_accepted_at: agreement ? new Date().toISOString() : null,
@@ -112,6 +129,7 @@ export async function POST(req: NextRequest) {
     })
 
     // Step 3: Dalali-specific setup — only for new dalali accounts
+    let generatedUsername: string | null = null
     if (role === 'dalali') {
       const dalaliUpsert: Record<string, unknown> = {
         user_id:         user.id,
@@ -151,7 +169,36 @@ export async function POST(req: NextRequest) {
           is_read: false,
         })
 
-        // Step 6: Referral attribution (non-fatal — never blocks registration)
+        // Step 6: Auto-generate username so /agent/[username] microsite exists from day one (non-fatal)
+        try {
+          const base = nameToSlug(full_name)
+          const { data: reserved } = await admin.from('reserved_usernames').select('username')
+          const reservedSet = new Set((reserved ?? []).map((r: { username: string }) => r.username))
+
+          for (let attempt = 0; attempt < 10; attempt++) {
+            const candidate = `${base}_${randomSuffix()}`
+            if (reservedSet.has(candidate)) continue
+
+            const { data: taken } = await admin
+              .from('users')
+              .select('id')
+              .eq('username', candidate)
+              .maybeSingle()
+            if (taken) continue
+
+            const { error: usernameErr } = await admin
+              .from('users')
+              .update({ username: candidate, username_changed_at: new Date().toISOString() })
+              .eq('id', user.id)
+
+            if (!usernameErr) { generatedUsername = candidate; break }
+            if (usernameErr.code === '23505') continue
+          }
+        } catch (usernameGenErr) {
+          console.error('[Register] Username auto-generation failed (non-fatal):', usernameGenErr)
+        }
+
+        // Step 8: Referral attribution (non-fatal — never blocks registration)
         if (referralCode) {
           try {
             const { data: influencerProfile } = await admin
@@ -175,7 +222,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, role })
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
+    return NextResponse.json({
+      success: true,
+      role,
+      ...(generatedUsername
+        ? { username: generatedUsername, profileUrl: `${APP_URL}/agent/${generatedUsername}` }
+        : {}),
+    })
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
