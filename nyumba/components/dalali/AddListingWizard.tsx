@@ -136,7 +136,7 @@ export default function AddListingWizard() {
         supabase.from('listings')
           .select('id', { count: 'exact', head: true })
           .eq('dalali_id', user.id)
-          .neq('status', 'deleted'),
+          .in('status', ['pending', 'active', 'taken', 'expired']),
       ])
 
       const baseLim = sub ? getListingLimit(sub.plan) : 0

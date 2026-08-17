@@ -22,9 +22,10 @@ export const revalidate = 60
 
 const LISTING_FIELDS = `
   id, title, type, status, price_monthly,
-  district, region, furnished, amenities,
+  district, region, ward, furnished, amenities,
   images, is_boosted, boosted_until,
   view_count, lead_count, share_count, latitude, longitude,
+  created_at, commission_type,
   dalali_id,
   dalali:dalali_id (
     id, full_name, avatar_url,

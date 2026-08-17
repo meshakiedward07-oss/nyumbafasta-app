@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
         .eq('user_id', user.id)
         .maybeSingle()
 
-      if (dalaliProfile?.verification_status !== 'verified') {
+      if (!['verified', 'approved'].includes(dalaliProfile?.verification_status ?? '')) {
         return NextResponse.json(
           {
             error: 'Uthibitisho wa kitambulisho unahitajika kabla ya kuongeza listings. Nenda Dashibodi → Thibitisha Akaunti.',

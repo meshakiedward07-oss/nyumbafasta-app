@@ -81,7 +81,7 @@ export async function PATCH(
           const { data: dp } = await admin
             .from('dalali_profiles')
             .select('whatsapp_number')
-            .eq('id', listing.dalali_id)
+            .eq('user_id', listing.dalali_id)
             .maybeSingle()
           if (dp?.whatsapp_number) {
             const { formatPhoneNumber, sendTextMessage } = await import('@/lib/whatsapp/client')
