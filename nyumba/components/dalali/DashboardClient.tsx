@@ -220,7 +220,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
             const trialDaysLeft = mounted && subscription.trial_ends_at
               ? Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / 86_400_000))
               : 0
-            const trialPct = Math.max(0, Math.min(100, (trialDaysLeft / 14) * 100))
+            const trialPct = Math.max(0, Math.min(100, (trialDaysLeft / 30) * 100))
 
             return (
               <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-2xl p-4">
@@ -629,37 +629,88 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
         </div>
       )}
 
-      {/* Welcome Modal — inaonekana baada ya kuthibitisha email */}
+      {/* Welcome Modal — Growth Plan popup baada ya registration */}
       {showWelcome && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Karibu NyumbaFasta"
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
+          aria-label="Growth Plan ya Bure"
+          className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0"
           onClick={dismissWelcome}
         >
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
-            <div className="bg-primary-500 px-6 pt-5 pb-4 flex flex-col items-center text-center">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-gradient-to-br from-primary-500 to-primary-700 px-6 pt-6 pb-5 text-center relative">
               <button onClick={dismissWelcome} aria-label="Funga"
                 className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white text-sm">
                 <i className="ti ti-x" aria-hidden="true" />
               </button>
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
-                <i className="ti ti-rosette-discount-check text-white text-3xl" aria-hidden="true" />
+              {/* Badge */}
+              <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">
+                <i className="ti ti-crown text-yellow-300" aria-hidden="true" /> PREMIUM PLAN
               </div>
-              <h2 className="font-bold text-lg text-white">{t('dash_welcome_modal_title')}</h2>
-              <p className="text-primary-100 text-sm mt-0.5">{t('dash_welcome_modal_sub')}</p>
+              <h2 className="font-bold text-2xl text-white leading-tight">{t('dash_welcome_modal_title')}</h2>
+              <p className="text-primary-100 text-sm mt-1">{t('dash_welcome_modal_sub')}</p>
+              {/* Days countdown */}
+              <div className="mt-4 inline-flex items-center gap-3 bg-white/10 rounded-2xl px-5 py-3">
+                <div className="text-center">
+                  <div className="text-4xl font-black text-white">30</div>
+                  <div className="text-primary-200 text-[10px] uppercase tracking-wider">Siku Bure</div>
+                </div>
+                <div className="w-px h-10 bg-white/20" />
+                <div className="text-left">
+                  <div className="text-white text-xs font-semibold">Inaanza leo</div>
+                  <div className="text-primary-200 text-[10px] mt-0.5">Bila kadi ya benki</div>
+                  <div className="text-primary-200 text-[10px]">Bila malipo yoyote</div>
+                </div>
+              </div>
             </div>
-            <div className="px-6 py-5 text-center">
-              <p className="text-gray-600 text-sm leading-relaxed">
-                {t('dash_welcome_modal_body')}
-              </p>
+
+            {/* Features */}
+            <div className="px-5 pt-4 pb-2">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Unachopata sasa hivi</p>
+              <div className="space-y-2">
+                {[
+                  { icon: 'ti-home-2',      text: 'Listings hadi 20 active' },
+                  { icon: 'ti-photo',       text: 'Picha 10 kwa kila listing' },
+                  { icon: 'ti-video',       text: 'Video za listings' },
+                  { icon: 'ti-rocket',      text: 'Boost listing — ionekane juu zaidi' },
+                  { icon: 'ti-rosette-discount-check', text: 'Verified badge — wateja wanakuamini' },
+                  { icon: 'ti-chart-bar',   text: 'Analytics kamili ya listings zako' },
+                  { icon: 'ti-brand-whatsapp', text: 'WhatsApp yako inaonekana kwa wateja' },
+                ].map(f => (
+                  <div key={f.icon} className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 bg-primary-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <i className={`ti ${f.icon} text-primary-600 text-xs`} aria-hidden="true" />
+                    </div>
+                    <span className="text-sm text-gray-700">{f.text}</span>
+                    <i className="ti ti-check text-green-500 text-sm ml-auto" aria-hidden="true" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* After trial info */}
+            <div className="mx-5 mt-3 mb-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
+              <i className="ti ti-info-circle text-amber-500 text-base flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-xs text-amber-700 leading-snug">{t('dash_welcome_modal_after')}</p>
+            </div>
+
+            {/* CTA */}
+            <div className="px-5 pb-5 flex flex-col gap-2">
               <button
                 onClick={dismissWelcome}
-                className="mt-4 w-full bg-primary-500 text-white py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
+                className="w-full bg-primary-500 text-white py-3.5 rounded-2xl font-bold text-sm active:scale-95 transition-transform"
               >
                 {t('dash_welcome_modal_btn')}
               </button>
+              <Link
+                href="/dashboard/subscription"
+                onClick={dismissWelcome}
+                className="w-full text-center text-xs text-gray-400 py-1.5 hover:text-gray-600"
+              >
+                Angalia plans zote →
+              </Link>
             </div>
           </div>
         </div>
