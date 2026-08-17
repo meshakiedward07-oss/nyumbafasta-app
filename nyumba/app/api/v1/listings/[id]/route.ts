@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { validateListing, checkListingQuality } from '@/lib/security/validate'
+import { getPlan } from '@/lib/config/subscription-plans'
 
 // ── Shared: verify ownership ───────────────────────────────────
 async function getOwned(id: string, userId: string) {
@@ -99,6 +100,22 @@ export async function PATCH(
     }
     const data = parsed.data
 
+    // Enforce plan-based photo and video limits on edit (same as creation)
+    const { data: subscription } = await admin
+      .from('subscriptions')
+      .select('plan')
+      .eq('dalali_id', user.id)
+      .in('status', ['active', 'grace_period'])
+      .order('expires_at', { ascending: false })
+      .maybeSingle()
+    const planConfig = getPlan(subscription?.plan)
+    if (data.images.length > planConfig.limits.photos) {
+      data.images = data.images.slice(0, planConfig.limits.photos)
+    }
+    if (!planConfig.limits.videos) {
+      data.video_url = null
+    }
+
     // Re-run quality gate, but never override owner-set statuses ('taken')
     const quality = checkListingQuality(data)
     const newStatus = listing.status === 'taken' ? 'taken' : (quality.passed ? 'active' : 'pending')
@@ -115,6 +132,7 @@ export async function PATCH(
       mtaa: data.mtaa ?? null,
       amenities: data.amenities,
       images: data.images,
+      video_url: data.video_url ?? null,
       status: newStatus,
       street: '',
       latitude: data.latitude,
@@ -125,7 +143,10 @@ export async function PATCH(
       total_capacity: data.total_capacity,
       auto_deactivate_on_full: data.auto_deactivate_on_full,
     }
-    updatePayload.bedrooms = data.bedrooms ?? null
+    updatePayload.bedrooms        = data.bedrooms ?? null
+    updatePayload.shop_size_sqm   = data.shop_size_sqm ?? null
+    updatePayload.floor_level     = data.floor_level ?? null
+    updatePayload.commercial_use  = data.commercial_use ?? null
 
     // Commission fields — optional; null clears them
     const VALID_COMMISSION_TYPES = ['one_month', 'percentage', 'fixed', 'negotiable']
@@ -164,10 +185,11 @@ export async function DELETE(
     const { listing, admin, error: ownerErr } = await getOwned(id, user.id)
     if (ownerErr || !listing) return NextResponse.json({ error: ownerErr }, { status: 404 })
 
-    // Soft delete — 'deleted' is not in the DB enum; use 'expired' to hide from all public views
+    // Soft delete — 'deleted' is not in the DB enum; use 'expired' to hide from public views.
+    // Set expires_at to epoch (past) so subscription renewal never accidentally restores this listing.
     const { error: deleteErr } = await admin
       .from('listings')
-      .update({ status: 'expired' })
+      .update({ status: 'expired', expires_at: new Date(0).toISOString() })
       .eq('id', id)
 
     if (deleteErr) {

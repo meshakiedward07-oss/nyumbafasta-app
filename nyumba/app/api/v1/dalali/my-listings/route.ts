@@ -29,12 +29,10 @@ export async function GET() {
       if (fallbackErr) {
         return NextResponse.json({ error: fallbackErr.message }, { status: 500 })
       }
-      // 'deleted' is not in the DB enum — filter in JS
-      return NextResponse.json((fallback ?? []).filter((l: {status: string}) => l.status !== 'deleted'))
+      return NextResponse.json(fallback ?? [])
     }
 
-    // 'deleted' is not in the DB enum — filter in JS rather than .neq() which would throw
-    return NextResponse.json((data ?? []).filter((l: {status: string}) => l.status !== 'deleted'))
+    return NextResponse.json(data ?? [])
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }

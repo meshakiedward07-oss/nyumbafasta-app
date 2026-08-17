@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getNeighborhoodInfo } from '@/lib/listings/neighborhoodInfo'
+import { rateLimit } from '@/lib/security/rateLimit'
 
 // Nominatim (6s) + Overpass with fallbacks (up to 24s) — allow headroom
 export const maxDuration = 45
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
   try {
+    // Rate limit: 30 requests per minute per IP — each cache miss triggers external API calls
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'anon'
+    const rl = await rateLimit(`neighborhood:${ip}`, 30, 60_000)
+    if (!rl.allowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
     const supabase = await createClient()
 
     const { data: listing, error } = await supabase

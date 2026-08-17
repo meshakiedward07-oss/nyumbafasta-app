@@ -29,10 +29,10 @@ export async function requireAdminUser(): Promise<AdminUser | null> {
   if (!user) return null
   const { data } = await supabase
     .from('users')
-    .select('role, full_name')
+    .select('role, full_name, is_active')
     .eq('id', user.id)
     .single()
-  if (data?.role !== 'admin') return null
+  if (data?.role !== 'admin' || data?.is_active === false) return null
   return { id: user.id, full_name: (data?.full_name as string | null) ?? null }
 }
 
@@ -53,11 +53,11 @@ export async function requireAdminAuth(): Promise<AuthResult> {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('role')
+    .select('role, is_active')
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') {
+  if (profile?.role !== 'admin' || profile?.is_active === false) {
     return {
       ok: false,
       response: NextResponse.json({ error: 'Ruhusa ya admin inahitajika' }, { status: 403 }),

@@ -80,12 +80,11 @@ export async function POST(req: NextRequest) {
         id:        user.id,
         phone:     user.phone || null,
         full_name,
-        ...(isNewUser ? { role, is_active: true } : {}),
+        ...(isNewUser ? { role, is_active: true, account_status: 'active' } : {}),
         avatar_url: user.user_metadata?.avatar_url ?? null,
         agreement_accepted:    !!agreement,
         agreement_accepted_at: agreement ? new Date().toISOString() : null,
         agreement_version:     agreement?.version ?? null,
-        account_status:        'active',
       },
       { onConflict: 'id' }
     )

@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
     // Search: name, phone, username (all in public.users) + email IDs from auth
     // q is sanitized before interpolation to prevent PostgREST filter injection via comma-separated branches
     if (q) {
-      const safeQ = q.replace(/[,()]/g, '').slice(0, 200)
+      const safeQ = q.replace(/[,()]/g, '').replace(/[%_\\]/g, '\\$&').slice(0, 200)
       const orParts = [
         `full_name.ilike.%${safeQ}%`,
         `phone.ilike.%${safeQ}%`,

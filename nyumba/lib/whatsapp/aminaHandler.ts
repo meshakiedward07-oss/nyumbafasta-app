@@ -154,16 +154,24 @@ async function escalateToAdmin(
     `Mazungumzo yameandikishwa kwa msaada wa mtu. Sababu: ${reason}`,
   )
 
-  // Notify admin via notifications table
-  void Promise.resolve(
-    supabaseAdmin.from('notifications').insert({
-      user_id: '00000000-0000-0000-0000-000000000000',
-      title:   'WhatsApp: Mteja anahitaji msaada wa mtu',
-      body:    `Nambari: ${phone.slice(0, 5)}****${nameLabel}. Sababu: "${reason}"`,
-      type:    'support_request',
-      is_read: false,
-    }),
-  )
+  // Notify all admins via notifications table
+  void (async () => {
+    const { data: admins } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('role', 'admin')
+      .eq('is_active', true)
+    if (!admins?.length) return
+    await supabaseAdmin.from('notifications').insert(
+      admins.map(a => ({
+        user_id: a.id,
+        title:   'WhatsApp: Mteja anahitaji msaada wa mtu',
+        body:    `Nambari: ${phone.slice(0, 5)}****${nameLabel}. Sababu: "${reason}"`,
+        type:    'support_request',
+        is_read: false,
+      }))
+    )
+  })()
 }
 
 // ── Main handler (called from webhook for 'amina' status sessions) ────────────

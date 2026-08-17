@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
 
         // Grant premium badge for premium/enterprise
         if (toPlan === 'premium' || toPlan === 'enterprise') {
-          admin.from('dalali_profiles').update({ is_premium_verified: true }).eq('id', pmnt.dalali_id).then(() => {})
+          admin.from('dalali_profiles').update({ is_premium_verified: true }).eq('user_id', pmnt.dalali_id).then(() => {})
         }
 
         // Income accounting (non-blocking)

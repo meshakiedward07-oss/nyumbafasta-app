@@ -109,10 +109,15 @@ export async function POST(req: NextRequest) {
       newExpires.setDate(newExpires.getDate() + 30)
 
       await admin.from('subscriptions').update({
-        plan:         to_plan,
-        expires_at:   newExpires.toISOString(),
-        is_premium_verified: ['premium', 'enterprise'].includes(to_plan),
+        plan:       to_plan,
+        expires_at: newExpires.toISOString(),
       }).eq('id', currentSub.id)
+
+      if (['premium', 'enterprise'].includes(to_plan)) {
+        await admin.from('dalali_profiles')
+          .update({ is_premium_verified: true })
+          .eq('user_id', user.id)
+      }
 
       await admin.from('notifications').insert({
         user_id:  user.id,

@@ -32,7 +32,7 @@ export async function GET() {
         .from('subscriptions')
         .select('plan, extra_listings, status, expires_at')
         .eq('dalali_id', user.id)
-        .eq('status', 'active')
+        .in('status', ['active', 'grace_period'])
         .order('expires_at', { ascending: false })
         .maybeSingle(),
       // Do NOT use .neq('status', 'deleted') — 'deleted' is not in the DB enum
@@ -47,7 +47,8 @@ export async function GET() {
     const sub    = subRes.data
     const count  = countRes.count ?? 0
     const limits = pricing.listingLimits
-    const base   = sub ? (limits[sub.plan as keyof typeof limits] ?? 0) : 0
+    // No active subscription → use free-tier limit (not 0)
+    const base   = sub ? (limits[sub.plan as keyof typeof limits] ?? limits.free) : limits.free
     const limit  = base + (sub?.extra_listings ?? 0)
 
     return NextResponse.json({

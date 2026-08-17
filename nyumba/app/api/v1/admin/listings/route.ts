@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (status)  query = query.eq('status', status)
-    else         query = query.neq('status', 'deleted')
+    else         query = query.in('status', ['pending', 'active', 'taken', 'expired', 'rejected'])
     if (region)  query = query.eq('region', region)
     if (type)    query = query.eq('type', type)
     if (search) {

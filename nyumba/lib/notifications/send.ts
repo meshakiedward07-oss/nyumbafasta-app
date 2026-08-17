@@ -30,27 +30,32 @@ export async function sendPushToUser(
     }
 
     const admin = createAdminClient()
-    const { data } = await admin
+    const { data: subs } = await admin
       .from('push_subscriptions')
-      .select('subscription')
+      .select('id, subscription')
       .eq('user_id', userId)
-      .single()
 
-    if (!data?.subscription) return
+    if (!subs?.length) return
 
-    await webpush.sendNotification(
-      data.subscription as webpush.PushSubscription,
-      JSON.stringify({ title, body, url })
+    const payload = JSON.stringify({ title, body, url })
+    const staleIds: string[] = []
+
+    await Promise.allSettled(
+      subs.map(async row => {
+        try {
+          await webpush.sendNotification(row.subscription as webpush.PushSubscription, payload)
+        } catch (e: unknown) {
+          const status = (e as { statusCode?: number }).statusCode
+          if (status === 410 || status === 404) staleIds.push(row.id)
+        }
+      })
     )
-  } catch (e: unknown) {
-    const status = (e as { statusCode?: number }).statusCode
-    // 410 Gone / 404 = subscription expired → clean up
-    if (status === 410 || status === 404) {
-      try {
-        const admin = createAdminClient()
-        await admin.from('push_subscriptions').delete().eq('user_id', userId)
-      } catch {}
+
+    // Remove stale subscriptions (expired or unsubscribed)
+    if (staleIds.length) {
+      void admin.from('push_subscriptions').delete().in('id', staleIds)
     }
+  } catch {
     // Never throw — push failure must not break the main request
   }
 }

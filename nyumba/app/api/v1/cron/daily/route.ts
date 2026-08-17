@@ -321,7 +321,7 @@ async function runDailyTasks() {
           .in('plan', ['premium', 'enterprise'])
           .eq('status', 'active')
         if (count === 0) {
-          await admin.from('dalali_profiles').update({ is_premium_verified: false }).eq('id', dalaliId)
+          await admin.from('dalali_profiles').update({ is_premium_verified: false }).eq('user_id', dalaliId)
         }
       }
 
@@ -404,8 +404,16 @@ async function runDailyTasks() {
         counts[r.reported_dalali_id] = (counts[r.reported_dalali_id] ?? 0) + 1
       })
 
+      // Protect superadmin from automated suspension
+      const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL ?? 'meshakiedward07@gmail.com'
+      let superadminId: string | null = null
+      try {
+        const { data: saData } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+        superadminId = saData?.users.find(u => u.email === SUPERADMIN_EMAIL)?.id ?? null
+      } catch { /* non-fatal */ }
+
       const toSuspend = Object.entries(counts)
-        .filter(([, n]) => n >= 3)
+        .filter(([id, n]) => n >= 3 && id !== superadminId)
         .map(([id]) => id)
 
       if (toSuspend.length) {
@@ -572,7 +580,7 @@ async function runDailyTasks() {
     }
     results.push(`✅ Expiry reminders 7 days: ${expiring7?.length ?? 0}`)
 
-    // 1-day reminder
+    // 1-day reminder — deduplicated: skip listings already notified in last 24h
     const { data: expiring1 } = await admin
       .from('listings')
       .select('id, title, dalali_id')
@@ -581,18 +589,30 @@ async function runDailyTasks() {
       .lte('expires_at', new Date(nowDate.getTime() + 24 * 60 * 60 * 1000).toISOString())
 
     if (expiring1?.length) {
-      await admin.from('notifications').insert(
-        expiring1.map(listing => ({
-          user_id: listing.dalali_id,
-          type: 'listing_expiring_today',
-          title: '⚠️ Leo ni Siku ya Mwisho!',
-          body: `Listing yako "${listing.title}" itaisha LEO. Huisha sasa hivi!`,
-          is_read: false,
-          ref_id: listing.id,
-        }))
-      )
+      const since24h = new Date(nowDate.getTime() - 24 * 60 * 60 * 1000).toISOString()
+      const { data: alreadySent } = await admin
+        .from('notifications')
+        .select('ref_id')
+        .eq('type', 'listing_expiring_today')
+        .gte('created_at', since24h)
+      const alreadySentIds = new Set((alreadySent ?? []).map(n => n.ref_id))
+      const needsReminder1 = expiring1.filter(l => !alreadySentIds.has(l.id))
+      if (needsReminder1.length) {
+        await admin.from('notifications').insert(
+          needsReminder1.map(listing => ({
+            user_id: listing.dalali_id,
+            type: 'listing_expiring_today',
+            title: '⚠️ Leo ni Siku ya Mwisho!',
+            body: `Listing yako "${listing.title}" itaisha LEO. Huisha sasa hivi!`,
+            is_read: false,
+            ref_id: listing.id,
+          }))
+        )
+      }
+      results.push(`✅ Expiry reminders today: ${needsReminder1.length}`)
+    } else {
+      results.push('✅ Expiry reminders today: hakuna')
     }
-    results.push(`✅ Expiry reminders today: ${expiring1?.length ?? 0}`)
   } catch (e) {
     errors.push(`❌ Listing expiry reminders: ${String(e)}`)
   }
