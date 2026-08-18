@@ -252,7 +252,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
   const isLastStep = step === totalSteps - 1
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-28">
+    <div className="min-h-screen bg-gray-50 pb-36 lg:pb-28">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
         <div className="flex items-center gap-3 px-4 py-3">
@@ -460,8 +460,8 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
         )}
       </div>
 
-      {/* CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 px-4 pt-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      {/* CTA — sits above DalaliBottomNav (z-40, ~64px tall on mobile) */}
+      <div className="fixed bottom-16 lg:bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 px-4 pt-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
         {!isLastStep ? (
           <button
             onClick={() => setStep(s => s + 1)}
