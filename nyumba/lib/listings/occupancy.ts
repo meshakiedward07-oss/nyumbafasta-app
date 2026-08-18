@@ -16,7 +16,7 @@ export async function updateOccupancy(params: OccupancyUpdate): Promise<{
 
   const { data: listing } = await admin
     .from('listings')
-    .select('current_occupancy, total_capacity, status, auto_deactivate_on_full')
+    .select('current_occupancy, total_capacity, status, auto_deactivate_on_full, dalali_id')
     .eq('id', params.listingId)
     .single()
 
@@ -49,19 +49,40 @@ export async function updateOccupancy(params: OccupancyUpdate): Promise<{
   const autoDeactivated = wasActive && willBeFull && listing.auto_deactivate_on_full
 
   if (autoDeactivated) {
-    try {
-      const { markMarketplaceItemTaken } = await import('@/lib/social/facebookMarketplace')
-      const { data: mlisting } = await admin
-        .from('marketplace_listings')
-        .select('retailer_id')
-        .eq('listing_id', params.listingId)
-        .single()
-      if (mlisting?.retailer_id) {
-        await markMarketplaceItemTaken(mlisting.retailer_id)
-      }
-    } catch (err) {
-      console.error('[Occupancy] Marketplace sync failed:', err)
+    // Mark listing as taken and record when it was auto-closed
+    await admin
+      .from('listings')
+      .update({ status: 'taken', auto_deactivated_at: new Date().toISOString() })
+      .eq('id', params.listingId)
+
+    // Notify dalali (non-blocking)
+    if (listing.dalali_id) {
+      void admin.from('notifications').insert({
+        user_id: listing.dalali_id,
+        title: '🏠 Listing Imejaa!',
+        body: 'Wapangaji wote wanaohitajika wamepata — listing yako imefungwa otomatiki. Unaweza kuifungua tena ukihitaji.',
+        type: 'listing_full',
+        is_read: false,
+        ref_id: params.listingId,
+      })
     }
+
+    // Facebook Marketplace sync (non-blocking)
+    void (async () => {
+      try {
+        const { markMarketplaceItemTaken } = await import('@/lib/social/facebookMarketplace')
+        const { data: mlisting } = await admin
+          .from('marketplace_listings')
+          .select('retailer_id')
+          .eq('listing_id', params.listingId)
+          .single()
+        if (mlisting?.retailer_id) {
+          await markMarketplaceItemTaken(mlisting.retailer_id)
+        }
+      } catch (err) {
+        console.error('[Occupancy] Marketplace sync failed:', err)
+      }
+    })()
   }
 
   return { success: true, autoDeactivated }

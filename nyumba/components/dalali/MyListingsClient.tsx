@@ -211,7 +211,7 @@ function RenewButton({ listing, onRenewed, autoOpen }: { listing: Listing; onRen
 }
 
 // ── Dialog type ───────────────────────────────────────────
-type Dialog = { type: 'taken' | 'available' | 'delete'; listingId: string; title: string }
+type Dialog = { type: 'taken' | 'available' | 'delete'; listingId: string; title: string; isMulti?: boolean; totalCapacity?: number }
 type Tab = 'all' | 'active' | 'expired'
 
 // ── Main component ────────────────────────────────────────
@@ -232,6 +232,7 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
   const [editListing, setEditListing] = useState<Listing | null>(null)
   const [expandedAnalytics, setExpandedAnalytics] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('all')
+  const [remainingNeeded, setRemainingNeeded] = useState('1')
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -298,6 +299,28 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
         return
       }
       setListings(prev => prev.map(l => l.id === id ? { ...l, status } : l))
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  async function reactivateMulti(id: string, remaining: number) {
+    setLoading(id)
+    setDialog(null)
+    try {
+      const res = await fetch(`/api/v1/listings/${id}/occupancy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remaining_needed: remaining }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        alert(d.error ?? t('my_err_status'))
+        return
+      }
+      setListings(prev => prev.map(l =>
+        l.id === id ? { ...l, status: 'active', current_occupancy: 0, total_capacity: remaining } : l
+      ))
     } finally {
       setLoading(null)
     }
@@ -602,7 +625,8 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                               <button
                                 onClick={() => {
                                   setOpenMenu(null)
-                                  setDialog({ type: 'available', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })
+                                  setRemainingNeeded('1')
+                                  setDialog({ type: 'available', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}`, isMulti: listing.listing_unit_type === 'multi', totalCapacity: listing.total_capacity })
                                 }}
                                 className="flex items-center gap-3 px-4 py-3.5 text-sm text-primary-700 hover:bg-primary-50 active:bg-primary-50 w-full text-left"
                               >
@@ -644,6 +668,31 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                       )}
                     </div>
 
+                    {/* Occupancy progress bar for multi-unit listings */}
+                    {listing.listing_unit_type === 'multi' && listing.total_capacity > 0 && (
+                      <div className="mt-1.5">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[10px] text-gray-400">
+                            <i className="ti ti-users" aria-hidden="true" /> {t('my_occupancy_label')}
+                          </span>
+                          <span className={`text-[10px] font-semibold ${
+                            listing.current_occupancy >= listing.total_capacity ? 'text-red-500' : 'text-gray-500'
+                          }`}>
+                            {listing.current_occupancy ?? 0} / {listing.total_capacity}
+                            {listing.current_occupancy >= listing.total_capacity && ` — ${t('my_occupancy_full')}`}
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              listing.current_occupancy >= listing.total_capacity ? 'bg-red-400' : 'bg-primary-400'
+                            }`}
+                            style={{ width: `${Math.min(100, ((listing.current_occupancy ?? 0) / listing.total_capacity) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Expiry badge + renew button */}
                     {!isExpired && (
                       <div className="flex items-center justify-between mt-2">
@@ -669,7 +718,10 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
                         </button>
                       ) : (
                         <button
-                          onClick={() => setDialog({ type: 'available', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}` })}
+                          onClick={() => {
+                            setRemainingNeeded('1')
+                            setDialog({ type: 'available', listingId: listing.id, title: `${getTypeName(listing.type, t)} — ${listing.district}`, isMulti: listing.listing_unit_type === 'multi', totalCapacity: listing.total_capacity })
+                          }}
                           disabled={isLoading}
                           className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-primary-600 active:bg-primary-50 transition-colors"
                         >
@@ -790,19 +842,54 @@ export default function MyListingsClient({ listings: initial, autoRenewId }: { l
               <>
                 <div className="text-center mb-4">
                   <div className="text-4xl mb-2"><i className="ti ti-circle-check text-4xl text-primary-500" aria-hidden="true" /></div>
-                  <h3 className="text-base font-bold text-gray-900">{t('my_dialog_avail_title')}</h3>
+                  <h3 className="text-base font-bold text-gray-900">
+                    {dialog.isMulti ? t('my_reactivate_title') : t('my_dialog_avail_title')}
+                  </h3>
                   <p className="text-sm text-gray-500 mt-1">
-                    <strong>{dialog.title}</strong><br />
-                    {t('my_dialog_avail_desc')}
+                    <strong>{dialog.title}</strong>
                   </p>
                 </div>
+
+                {dialog.isMulti ? (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-500 mb-3">{t('my_reactivate_desc')}</p>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      max="500"
+                      value={remainingNeeded}
+                      onChange={e => setRemainingNeeded(e.target.value)}
+                      placeholder="e.g. 3"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    />
+                    <p className="text-xs text-gray-400 text-center mt-1.5">{t('my_reactivate_input')}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center mb-4">{t('my_dialog_avail_desc')}</p>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => setDialog(null)} className="py-3 rounded-2xl bg-gray-100 text-gray-700 text-sm font-semibold">
                     {t('my_dialog_no')}
                   </button>
-                  <button onClick={() => setStatus(dialog.listingId, 'active')} className="py-3 rounded-2xl bg-primary-500 text-white text-sm font-semibold active:scale-95">
-                    {t('my_dialog_yes_avail')}
-                  </button>
+                  {dialog.isMulti ? (
+                    <button
+                      onClick={() => {
+                        const n = parseInt(remainingNeeded)
+                        if (!n || n < 1) return
+                        reactivateMulti(dialog.listingId, n)
+                      }}
+                      disabled={!parseInt(remainingNeeded) || parseInt(remainingNeeded) < 1}
+                      className="py-3 rounded-2xl bg-primary-500 text-white text-sm font-semibold active:scale-95 disabled:opacity-50"
+                    >
+                      {t('my_reactivate_btn')}
+                    </button>
+                  ) : (
+                    <button onClick={() => setStatus(dialog.listingId, 'active')} className="py-3 rounded-2xl bg-primary-500 text-white text-sm font-semibold active:scale-95">
+                      {t('my_dialog_yes_avail')}
+                    </button>
+                  )}
                 </div>
               </>
             )}

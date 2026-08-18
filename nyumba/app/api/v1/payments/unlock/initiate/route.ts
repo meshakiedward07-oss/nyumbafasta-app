@@ -144,6 +144,11 @@ export async function POST(req: NextRequest) {
 
       await admin.rpc('increment_lead_count', { listing_id }).maybeSingle()
 
+      // Increment occupancy (non-blocking)
+      import('@/lib/listings/occupancy')
+        .then(m => m.incrementOccupancy(listing_id, 'system'))
+        .catch(e => console.error('[Occupancy] incrementOccupancy mock failed:', e))
+
       const dalaliName   = (listing as typeof listing & { dalali?: { full_name?: string } | null }).dalali?.full_name ?? 'dalali'
       const listingLabel = `${listing.type} – ${listing.district}`
       const leadBody     = `Mteja amepata nambari yako kupitia listing ya ${listingLabel}.`

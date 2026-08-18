@@ -254,6 +254,13 @@ export default function AddListingWizard() {
     setError('')
     setSubmitting(true)
     try {
+      // Validate multi-unit capacity
+      if (form.listing_unit_type === 'multi' && (!form.total_capacity || parseInt(form.total_capacity) < 1)) {
+        setError(t('wiz_capacity_required'))
+        setSubmitting(false)
+        return
+      }
+
       // Check limit before posting
       const info = await loadLimit()
       if (info && !info.canAdd) {
@@ -663,7 +670,7 @@ export default function AddListingWizard() {
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                      {t('wiz_capacity_label')}
+                      {t('wiz_capacity_label')} <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="number"
@@ -676,6 +683,10 @@ export default function AddListingWizard() {
                       className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base
                                  focus:outline-none focus:ring-2 focus:ring-primary-300"
                     />
+                    <p className="text-xs text-gray-400 mt-1.5 leading-snug">
+                      <i className="ti ti-info-circle mr-1" aria-hidden="true" />
+                      {t('wiz_capacity_hint')}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <button

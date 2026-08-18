@@ -209,6 +209,11 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
       .then(() => {})
 
+    // Increment occupancy — each unlock = 1 tenant; auto-marks listing as 'taken' when full (non-blocking)
+    import('@/lib/listings/occupancy')
+      .then(m => m.incrementOccupancy(unlock.listing_id, 'system'))
+      .catch(e => console.error('[Occupancy] incrementOccupancy failed:', e))
+
     const { data: listing } = await admin
       .from('listings')
       .select('type, district, dalali:dalali_id(full_name)')
