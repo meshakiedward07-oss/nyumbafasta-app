@@ -24,6 +24,7 @@ const AGREEMENT_EXEMPT = [
   '/api/',
   '/login',
   '/register',
+  '/register/complete',
 ]
 
 // Helper: redirect while preserving Supabase-refreshed session cookies.
