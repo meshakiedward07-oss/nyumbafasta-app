@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
 
     // Generate a fresh confirmation link. If the email doesn't exist or is
     // already confirmed, Supabase returns an error — we silently ignore it.
-    // Mirror the redirect signUp() used so confirmation lands user at /register/complete
-    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?redirect=/register/complete`
+    // auth/callback finalises registration server-side — no /register/complete redirect needed
+    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
     // magiclink also confirms the email when clicked — safer than 'signup'
     // because it doesn't require a password and won't overwrite an existing one.
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({

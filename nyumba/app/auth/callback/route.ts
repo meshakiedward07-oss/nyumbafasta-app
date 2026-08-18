@@ -205,11 +205,50 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // If a client or dalali hasn't completed registration (agreement not accepted),
-      // route them through /register/complete even if the ?redirect= parameter was
-      // stripped from the email link by Supabase's redirect URL allowlist.
+      // New user (agreement not yet recorded) — finalise registration here, server-side.
+      // agreement data was embedded in user_metadata at signUp() time so it is always
+      // available, even on a different device. No /register/complete round-trip needed.
       if ((role === 'client' || role === 'dalali') && profile?.agreement_accepted !== true) {
-        return NextResponse.redirect(`${origin}/register/complete`)
+        const meta    = data.user.user_metadata as Record<string, string | undefined>
+        const finRole = role as string
+        const adminFin = createAdminClient()
+
+        // 1. Mark agreement accepted + fill in profile details from metadata
+        await adminFin.from('users').update({
+          full_name:             meta?.full_name    ?? profile?.full_name ?? null,
+          agreement_accepted:    true,
+          agreement_accepted_at: new Date().toISOString(),
+          agreement_version:     meta?.agr_v        ?? null,
+          ...(finRole === 'dalali' && meta?.whatsapp_number
+            ? {} // whatsapp_number lives in dalali_profiles, handled below
+            : {}),
+        }).eq('id', data.user.id)
+
+        // 2. Save audit record to user_agreements if we have signature details
+        if (meta?.agr_v && meta?.agr_name && meta?.agr_phone) {
+          const { data: versionRow } = await adminFin
+            .from('agreement_versions')
+            .select('id')
+            .eq('role', finRole)
+            .eq('version', meta.agr_v)
+            .eq('is_current', true)
+            .maybeSingle()
+          if (versionRow) {
+            await adminFin.from('user_agreements').upsert(
+              {
+                user_id:           data.user.id,
+                version_id:        versionRow.id,
+                accepted_at:       new Date().toISOString(),
+                full_name_signed:  meta.agr_name,
+                phone_signed:      meta.agr_phone,
+                ip_address:        null,
+                user_agent:        null,
+                checkboxes_checked: {},
+              },
+              { onConflict: 'user_id,version_id' }
+            )
+          }
+        }
       }
 
       if (role === 'admin')  return NextResponse.redirect(`${origin}/admin`)

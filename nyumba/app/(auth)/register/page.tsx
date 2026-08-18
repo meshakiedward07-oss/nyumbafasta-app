@@ -157,8 +157,19 @@ function RegisterForm() {
       const { error: e } = await supabase.auth.signUp({
         email, password,
         options: {
-          data: { full_name: fullName, role, whatsapp_number: whatsapp },
-          emailRedirectTo: `${window.location.origin}/auth/callback?redirect=/register/complete`,
+          // Store agreement data in user_metadata so auth/callback can finalise
+          // registration without needing /register/complete (which required localStorage
+          // and was fragile across devices / Supabase redirect-URL stripping).
+          data: {
+            full_name:       fullName,
+            role,
+            whatsapp_number: whatsapp,
+            agr_v:           agreementData.version,
+            agr_name:        agreementData.full_name_signed,
+            agr_phone:       agreementData.phone_signed,
+          },
+          // No ?redirect= param — auth/callback finalises everything server-side
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
       if (e) throw e
