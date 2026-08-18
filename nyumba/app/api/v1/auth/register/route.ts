@@ -75,6 +75,9 @@ export async function POST(req: NextRequest) {
 
     // Step 1: Guarantee public.users row exists before any FK references.
     // Only set `role` for brand-new users — never overwrite an existing role.
+    // Always mark agreement_accepted=true: /register/complete is only reached after the user
+    // accepted the AgreementModal on the device they registered on. Cross-device confirmations
+    // (empty localStorage) are safe to mark true — the acceptance already happened.
     const { error: userError } = await admin.from('users').upsert(
       {
         id:        user.id,
@@ -82,14 +85,9 @@ export async function POST(req: NextRequest) {
         full_name,
         ...(isNewUser ? { role, is_active: true, account_status: 'active' } : {}),
         avatar_url: user.user_metadata?.avatar_url ?? null,
-        // New users always accepted during the registration AgreementModal step — mark as accepted
-        // even on cross-device confirmation where localStorage agreement data is unavailable.
-        // Existing users: only update if agreement data was actually provided (never reset to false).
-        ...(isNewUser || agreement ? {
-          agreement_accepted:    true,
-          agreement_accepted_at: new Date().toISOString(),
-          agreement_version:     agreement?.version ?? null,
-        } : {}),
+        agreement_accepted:    true,
+        agreement_accepted_at: new Date().toISOString(),
+        agreement_version:     agreement?.version ?? null,
       },
       { onConflict: 'id' }
     )

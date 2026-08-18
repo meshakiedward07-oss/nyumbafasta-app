@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       // Get role from users table (trigger already created it on signUp)
       const { data: profile } = await supabase
         .from('users')
-        .select('role, full_name, email, must_change_password')
+        .select('role, full_name, email, must_change_password, agreement_accepted')
         .eq('id', data.user.id)
         .single()
 
@@ -203,6 +203,13 @@ export async function GET(request: NextRequest) {
             } catch (e) { console.error('[Auth Callback] Staff/admin alert email failed:', e) }
           })()
         }
+      }
+
+      // If a client or dalali hasn't completed registration (agreement not accepted),
+      // route them through /register/complete even if the ?redirect= parameter was
+      // stripped from the email link by Supabase's redirect URL allowlist.
+      if ((role === 'client' || role === 'dalali') && profile?.agreement_accepted !== true) {
+        return NextResponse.redirect(`${origin}/register/complete`)
       }
 
       if (role === 'admin')  return NextResponse.redirect(`${origin}/admin`)

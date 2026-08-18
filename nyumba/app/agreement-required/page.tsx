@@ -20,6 +20,7 @@ export default function AgreementRequiredPage() {
   const router   = useRouter()
   const [role, setRole] = useState<Role | null>(null)
   const [userName, setUserName] = useState('')
+  const [userPhone, setUserPhone] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -40,7 +41,7 @@ export default function AgreementRequiredPage() {
 
       const { data } = await supabase
         .from('users')
-        .select('role, full_name, agreement_accepted')
+        .select('role, full_name, phone, agreement_accepted')
         .eq('id', user.id)
         .single()
 
@@ -53,6 +54,7 @@ export default function AgreementRequiredPage() {
 
       setRole((data?.role as Role) ?? 'client')
       setUserName(data?.full_name ?? '')
+      setUserPhone(data?.phone ?? '')
       setLoading(false)
     }
     loadUser()
@@ -111,6 +113,7 @@ export default function AgreementRequiredPage() {
         <AgreementModal
           role={role}
           prefillName={userName}
+          prefillPhone={userPhone}
           onAccept={handleAccept}
           fullPage
         />
