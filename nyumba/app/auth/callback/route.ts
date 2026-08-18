@@ -42,11 +42,13 @@ export async function GET(request: NextRequest) {
         if (redirect.startsWith('/register/complete')) {
           const { data: existingUser } = await supabase
             .from('users')
-            .select('role')
+            .select('role, agreement_accepted')
             .eq('id', data.user.id)
             .maybeSingle()
-          if (existingUser?.role) {
-            // Already registered — send them home, not back to the register flow
+          // Only skip /register/complete if the user has ALREADY accepted the agreement —
+          // new users have agreement_accepted=false even though their row exists (trigger creates
+          // the row on signUp before email confirmation, so role alone is not a reliable signal).
+          if (existingUser?.role && existingUser?.agreement_accepted === true) {
             const dest = existingUser.role === 'admin'  ? `${origin}/admin`
                        : existingUser.role === 'staff'  ? `${origin}/admin/staff-dashboard`
                        : existingUser.role === 'dalali' ? `${origin}/dashboard`
