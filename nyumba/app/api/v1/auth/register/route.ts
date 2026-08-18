@@ -82,9 +82,14 @@ export async function POST(req: NextRequest) {
         full_name,
         ...(isNewUser ? { role, is_active: true, account_status: 'active' } : {}),
         avatar_url: user.user_metadata?.avatar_url ?? null,
-        agreement_accepted:    !!agreement,
-        agreement_accepted_at: agreement ? new Date().toISOString() : null,
-        agreement_version:     agreement?.version ?? null,
+        // New users always accepted during the registration AgreementModal step — mark as accepted
+        // even on cross-device confirmation where localStorage agreement data is unavailable.
+        // Existing users: only update if agreement data was actually provided (never reset to false).
+        ...(isNewUser || agreement ? {
+          agreement_accepted:    true,
+          agreement_accepted_at: new Date().toISOString(),
+          agreement_version:     agreement?.version ?? null,
+        } : {}),
       },
       { onConflict: 'id' }
     )
