@@ -43,16 +43,15 @@ export const PAYMENT_METHODS: Array<{
     iconAlt: 'Airtel Money',
   },
   {
-    id:          'Halopesa',
-    name:        'HaloPesa',
-    company:     'TTCL',
-    color:       '#F15A22',
-    bgColor:     '#FFF5F0',
-    type:        'mobile',
-    hint:        '062 XXX XXXX',
-    iconSrc:     '/payment_icons/halopesa.png',
-    iconAlt:     'HaloPesa',
-    unavailable: true,
+    id:      'Halopesa',
+    name:    'HaloPesa',
+    company: 'TTCL',
+    color:   '#F15A22',
+    bgColor: '#FFF5F0',
+    type:    'mobile',
+    hint:    '062 XXX XXXX',
+    iconSrc: '/payment_icons/halopesa.png',
+    iconAlt: 'HaloPesa',
   },
   {
     id:          'Mpesa',
@@ -177,7 +176,7 @@ export default function PaymentMethodSelector({ selected, onSelect, amount, onPa
             <i className="ti ti-device-mobile" aria-hidden="true" /> Mobile Money
           </p>
           <span className="text-[9px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-full">
-            Tigo &amp; Airtel zinapatikana
+            Tigo, Airtel &amp; HaloPesa
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
