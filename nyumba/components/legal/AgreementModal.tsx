@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState } from 'react'
 import { useLanguage } from '@/lib/i18n/context'
 import {
   CLIENT_AGREEMENT_CONTENT_SW,
@@ -41,12 +41,10 @@ export default function AgreementModal({
 }: AgreementModalProps) {
   const { t } = useLanguage()
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [hasScrolled, setHasScrolled] = useState(false)
   const [lang, setLang] = useState<'sw' | 'en'>('sw')
   const [checkboxes, setCheckboxes] = useState<Record<string, boolean>>({})
   const [fullName, setFullName] = useState(prefillName)
   const [phone, setPhone] = useState(prefillPhone)
-  const [scrollPct, setScrollPct] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -57,35 +55,8 @@ export default function AgreementModal({
 
   const content = lang === 'sw' ? contentSW : contentEN
 
-  // Track scroll progress
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const scrollable = el.scrollHeight - el.clientHeight
-    // Guard: if content fits without scrolling, treat as fully read
-    const pct = scrollable > 0 ? (el.scrollTop / scrollable) * 100 : 100
-    setScrollPct(Math.round(pct))
-    if (pct >= 95) setHasScrolled(true)
-  }, [])
-
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    el.addEventListener('scroll', handleScroll, { passive: true })
-    // Check on mount in case content already fits (no scrolling needed)
-    handleScroll()
-    return () => el.removeEventListener('scroll', handleScroll)
-  }, [handleScroll])
-
-  // Reset scroll when language changes
-  useEffect(() => {
-    setHasScrolled(false)
-    setScrollPct(0)
-    if (scrollRef.current) scrollRef.current.scrollTop = 0
-  }, [lang])
-
   const allChecked = boxes.every(b => checkboxes[b.id])
-  const canAccept  = hasScrolled && allChecked && fullName.trim().length >= 3 && phone.trim().length >= 9
+  const canAccept  = allChecked && fullName.trim().length >= 3 && phone.trim().length >= 9
 
   function toggleCheckbox(id: string) {
     setCheckboxes(prev => ({ ...prev, [id]: !prev[id] }))
@@ -158,14 +129,6 @@ export default function AgreementModal({
         </div>
       </div>
 
-      {/* Scroll progress bar */}
-      <div className="h-1 bg-gray-200 flex-shrink-0">
-        <div
-          className="h-full bg-primary-500 transition-all duration-200"
-          style={{ width: `${scrollPct}%` }}
-        />
-      </div>
-
       {/* Commitments preview — shown upfront so user knows what they'll agree to */}
       <div className="bg-primary-50 border-b border-primary-100 px-4 py-3 flex-shrink-0">
         <p className="text-xs font-semibold text-primary-800 mb-2 max-w-lg mx-auto">
@@ -180,18 +143,6 @@ export default function AgreementModal({
           ))}
         </ul>
       </div>
-
-      {/* Scroll-to-read notice */}
-      {!hasScrolled && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex-shrink-0">
-          <p className="text-amber-700 text-xs text-center font-medium max-w-lg mx-auto">
-            <i className="ti ti-alert-triangle" aria-hidden="true" /> {lang === 'sw'
-              ? `Soma hadi mwisho ili uweze kukubali (${scrollPct}% imesomwa)`
-              : `Read to the bottom to accept (${scrollPct}% read)`
-            }
-          </p>
-        </div>
-      )}
 
       {/* Agreement text */}
       <div
@@ -218,13 +169,6 @@ export default function AgreementModal({
             )
           })}
         </div>
-        {hasScrolled && (
-          <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-            <span className="text-green-600 text-xs font-medium">
-              <i className="ti ti-circle-check" aria-hidden="true" /> {lang === 'sw' ? 'Umesoma makubaliano yote' : 'You have read the full agreement'}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Acceptance form */}
@@ -235,7 +179,7 @@ export default function AgreementModal({
           {boxes.map(box => (
             <label
               key={box.id}
-              className={`flex items-start gap-3 cursor-pointer ${!hasScrolled ? 'opacity-40 pointer-events-none' : ''}`}
+              className="flex items-start gap-3 cursor-pointer"
             >
               <div
                 className={`w-5 h-5 rounded border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
@@ -243,7 +187,7 @@ export default function AgreementModal({
                     ? 'bg-primary-500 border-primary-500'
                     : 'border-gray-300 bg-white'
                 }`}
-                onClick={() => hasScrolled && toggleCheckbox(box.id)}
+                onClick={() => toggleCheckbox(box.id)}
               >
                 {checkboxes[box.id] && (
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -259,7 +203,7 @@ export default function AgreementModal({
         </div>
 
         {/* Signature fields */}
-        {hasScrolled && allChecked && (
+        {allChecked && (
           <div className="space-y-3 pt-1">
             <div className="bg-gray-50 rounded-xl p-3">
               <p className="text-xs font-semibold text-gray-700 mb-2">
@@ -307,16 +251,13 @@ export default function AgreementModal({
         {/* Why disabled */}
         {!canAccept && (
           <div className="text-xs text-gray-400 space-y-0.5">
-            {!hasScrolled && (
-              <p>⬇️ {lang === 'sw' ? 'Soma hadi mwisho wa makubaliano' : 'Scroll to the bottom of the agreement'}</p>
-            )}
-            {hasScrolled && !allChecked && (
+            {!allChecked && (
               <p><i className="ti ti-checkbox" aria-hidden="true" /> {lang === 'sw' ? 'Tia alama kwenye visanduku vyote' : 'Check all checkboxes above'}</p>
             )}
-            {hasScrolled && allChecked && fullName.trim().length < 3 && (
+            {allChecked && fullName.trim().length < 3 && (
               <p><i className="ti ti-signature" aria-hidden="true" /> {lang === 'sw' ? 'Andika jina lako kamili' : 'Enter your full name'}</p>
             )}
-            {hasScrolled && allChecked && fullName.trim().length >= 3 && phone.trim().length < 9 && (
+            {allChecked && fullName.trim().length >= 3 && phone.trim().length < 9 && (
               <p><i className="ti ti-device-mobile" aria-hidden="true" /> {lang === 'sw' ? 'Weka nambari ya simu sahihi' : 'Enter a valid phone number'}</p>
             )}
           </div>
