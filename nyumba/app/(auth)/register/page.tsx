@@ -447,7 +447,7 @@ function RegisterForm() {
   // ── AGREEMENT — marketplace roles ────────────────────────────────────────
   if (step === 'agreement' && (role === 'client' || role === 'dalali')) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="h-[100dvh] bg-gray-50 flex flex-col overflow-hidden">
         <AgreementModal
           role={role as MktRole}
           prefillName={fullName}
