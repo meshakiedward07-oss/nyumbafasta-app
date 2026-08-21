@@ -195,8 +195,8 @@ export async function postListingToSocialMedia(
   // ── Facebook ──────────────────────────────────────────────────────────────
   if ((platform === 'facebook' || platform === 'both') && !skipPlatforms.has('facebook')) {
     try {
-      if (!process.env.FACEBOOK_PAGE_ID || (!process.env.INSTAGRAM_ACCESS_TOKEN && !process.env.FACEBOOK_PAGE_ACCESS_TOKEN && !process.env.FACEBOOK_ACCESS_TOKEN)) {
-        throw new Error('FACEBOOK_PAGE_ID au token hazijakonfigurwa (INSTAGRAM_ACCESS_TOKEN / FACEBOOK_PAGE_ACCESS_TOKEN)')
+      if (!process.env.FACEBOOK_PAGE_ID || (!process.env.FACEBOOK_PAGE_ACCESS_TOKEN && !process.env.INSTAGRAM_ACCESS_TOKEN && !process.env.FACEBOOK_ACCESS_TOKEN)) {
+        throw new Error('FACEBOOK_PAGE_ID au token hazijakonfigurwa (FACEBOOK_PAGE_ACCESS_TOKEN au INSTAGRAM_ACCESS_TOKEN)')
       }
 
       // Use override if provided; otherwise generate FB-specific caption (can be longer)
