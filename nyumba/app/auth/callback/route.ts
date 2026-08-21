@@ -129,8 +129,8 @@ export async function GET(request: NextRequest) {
             await admin.from('notifications').insert({
               user_id: data.user.id,
               type: 'trial_started',
-              title: 'Karibu NyumbaFasta!',
-              body: 'Umepata siku 14 za BURE! Anza kuongeza listings sasa na upate wateja wako wa kwanza.',
+              title: '🎉 Growth Plan ya BURE — Siku 30!',
+              body: 'Hongera! Umepata Growth Plan (Enterprise) ya BURE kwa siku 30. Unaweza kuongeza listings hadi 50, picha 20 kwa kila listing, boost, verified badge, analytics kamili, na zaidi. Baada ya siku 30 chagua plan inayokufaa ili uendelee.',
               is_read: false,
             })
           }
