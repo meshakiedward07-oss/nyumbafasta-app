@@ -5,14 +5,14 @@ import { requireAdminUser } from '@/lib/security/adminAuth'
 export const dynamic = 'force-dynamic'
 
 // Cloudinary eager transformation chain:
-//   1. Quality + format optimization (f_auto,q_auto,vc_auto): serve VP9/H.265 to supported browsers
-//   2. Watermark overlay in two segments (required by Cloudinary video overlay API):
-//      segment A: layer definition (text, color, background, radius)
-//      segment B: fl_layer_apply + gravity + y-offset
-// NOTE: pa_ (padding) is not valid for video overlays — image-only qualifier.
+//   1. Quality + format optimization (f_auto,q_auto,vc_auto)
+//   2. Watermark text overlay (two segments required by Cloudinary video overlay API)
+// IMPORTANT: In Cloudinary transformation syntax, spaces in text must be underscores (_),
+// NOT %20 or literal spaces — Cloudinary decodes %20 before signature verification,
+// causing a mismatch if we sign the %20 form. Use _ for spaces, avoid % encoding in eager.
 const OVERLAY =
   'f_auto,q_auto,vc_auto' +
-  '/l_text:Arial_38_bold:NyumbaFasta%20%E2%80%A2%20nyumbafasta.co,co_white,b_rgb:000000B3,r_20' +
+  '/l_text:Arial_38_bold:NyumbaFasta_-_nyumbafasta.co,co_white,b_rgb:000000B3,r_20' +
   '/fl_layer_apply,g_south,y_50'
 
 // GET /api/v1/social/video/upload-sign
