@@ -4,7 +4,7 @@ import { handleIncomingMessage, Platform } from '@/lib/chat/aiAgent'
 
 export const dynamic = 'force-dynamic'
 
-const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN ?? process.env.META_WEBHOOK_VERIFY_TOKEN
+const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN
 const HOUSE_RE = /nyumba|chumba|apartment|inapangishwa|rent|bei|location|mtaa/i
 
 function verifySignature(rawBody: Buffer, sigHeader: string): boolean {

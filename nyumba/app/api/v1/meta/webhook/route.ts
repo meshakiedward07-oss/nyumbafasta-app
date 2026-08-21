@@ -11,7 +11,7 @@ const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN
 // ── Webhook verification (GET) ─────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
+  const { searchParams, origin } = new URL(req.url)
   const mode      = searchParams.get('hub.mode')
   const token     = searchParams.get('hub.verify_token')
   const challenge = searchParams.get('hub.challenge')
@@ -19,6 +19,32 @@ export async function GET(req: NextRequest) {
   if (!VERIFY_TOKEN) {
     console.error('[MetaWebhook] META_WEBHOOK_VERIFY_TOKEN haijawekwa')
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+
+  // Self-test: admin calls /api/v1/meta/webhook?self_test=1 to verify the token works
+  // Tests the endpoint exactly as Meta would during webhook verification
+  if (searchParams.get('self_test') === '1') {
+    const { requireAdminUser } = await import('@/lib/security/adminAuth')
+    const admin = await requireAdminUser()
+    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+    const testChallenge = 'nyumba_self_test_' + Date.now()
+    const testUrl = `${origin}/api/v1/meta/webhook?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(VERIFY_TOKEN)}&hub.challenge=${testChallenge}`
+    try {
+      const res  = await fetch(testUrl)
+      const body = await res.text()
+      const passed = res.status === 200 && body === testChallenge
+      return NextResponse.json({
+        ok:              passed,
+        http_status:     res.status,
+        challenge_match: body === testChallenge,
+        token_set:       true,
+        token_length:    VERIFY_TOKEN.length,
+        message:         passed ? 'Webhook verification inafanya kazi ✅' : 'Webhook verification imeshindwa ❌',
+      })
+    } catch (e) {
+      return NextResponse.json({ ok: false, error: String(e) }, { status: 500 })
+    }
   }
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
