@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
 
     const timestamp = Math.round(Date.now() / 1000)
     const folder    = 'nyumba/business-licenses'
-    const paramsToSign: Record<string, string | number> = { folder, resource_type: 'raw', timestamp }
+    // resource_type is excluded from Cloudinary signature per their signing spec
+    const paramsToSign: Record<string, string | number> = { folder, timestamp }
     const paramString = Object.keys(paramsToSign).sort()
       .map(k => `${k}=${paramsToSign[k]}`).join('&')
     const signature = createHash('sha256').update(paramString + API_SECRET).digest('hex')
