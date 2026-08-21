@@ -21,13 +21,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 
-  // Self-test: admin calls /api/v1/meta/webhook?self_test=1 to verify the token works
-  // Tests the endpoint exactly as Meta would during webhook verification
+  // Self-test: visit /api/v1/meta/webhook?self_test=1 to verify the token works.
+  // Simulates exactly what Meta sends during webhook verification.
+  // Safe to leave public — response never exposes the token value.
   if (searchParams.get('self_test') === '1') {
-    const { requireAdminUser } = await import('@/lib/security/adminAuth')
-    const admin = await requireAdminUser()
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
     const testChallenge = 'nyumba_self_test_' + Date.now()
     const testUrl = `${origin}/api/v1/meta/webhook?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(VERIFY_TOKEN)}&hub.challenge=${testChallenge}`
     try {
