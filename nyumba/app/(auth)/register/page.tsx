@@ -101,10 +101,42 @@ function RegisterForm() {
   const [converting,      setConverting]      = useState(false)
   const [convertError,    setConvertError]    = useState('')
 
+  // check_email step: button + auto-detect state
+  const [sessionChecking, setSessionChecking] = useState(false)
+  const [sessionError,    setSessionError]    = useState('')
+
   // If URL has ?role=fundi, redirect immediately
   useEffect(() => {
     if (initRole === 'fundi') router.replace('/fundi/register')
   }, [initRole, router])
+
+  // Auto-detect when user confirms email in another tab/window → redirect immediately
+  useEffect(() => {
+    if (step !== 'check_email') return
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') finaliseAndRedirect()
+    })
+    return () => subscription.unsubscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step])
+
+  // ── Finalise registration after session exists and redirect to dashboard ──
+  async function finaliseAndRedirect() {
+    const normalized = role === 'dalali' && whatsapp
+      ? `+255${whatsapp.replace(/\D/g, '').replace(/^0/, '')}`
+      : undefined
+    // Best-effort: ensure public.users row has agreement_accepted=true.
+    // auth/callback also does this, but calling here handles the case where
+    // the user was already in check_email when they confirmed in another tab.
+    try {
+      await fetch('/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName, role, whatsapp_number: normalized }),
+      })
+    } catch { /* non-fatal — auth/callback is the safety net */ }
+    router.replace(role === 'dalali' ? '/dashboard?welcome=true' : '/?welcome=true')
+  }
 
   // ── Error mapper ─────────────────────────────────────────────────────────
   function mapError(msg: string) {
@@ -154,7 +186,7 @@ function RegisterForm() {
         if (e) throw e
         return
       }
-      const { error: e } = await supabase.auth.signUp({
+      const { error: e, data: signUpData } = await supabase.auth.signUp({
         email, password,
         options: {
           // Store agreement data in user_metadata so auth/callback can finalise
@@ -173,6 +205,14 @@ function RegisterForm() {
         },
       })
       if (e) throw e
+
+      // If Supabase returned a session immediately (email confirmation disabled in project),
+      // finalise registration now and skip the check_email waiting page entirely.
+      if (signUpData?.session) {
+        await finaliseAndRedirect()
+        return
+      }
+
       fetch('/api/v1/auth/resend-verification', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
       }).catch(() => {})
@@ -282,6 +322,27 @@ function RegisterForm() {
               ))}
             </div>
           </div>
+          {/* Primary CTA — appears after email is confirmed */}
+          <button
+            onClick={async () => {
+              setSessionChecking(true); setSessionError('')
+              const { data: { session } } = await supabase.auth.getSession()
+              if (session) { await finaliseAndRedirect(); return }
+              setSessionError('Bonyeza link kwenye email kwanza, kisha rudi hapa ubonyeze Endelea.')
+              setSessionChecking(false)
+            }}
+            disabled={sessionChecking}
+            className="w-full bg-primary-500 text-white py-3.5 min-h-[48px] rounded-xl text-sm font-semibold
+                       disabled:opacity-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            {sessionChecking
+              ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Inaangalia...</>
+              : 'Nimekonfirma Email — Endelea →'}
+          </button>
+          {sessionError && (
+            <p className="text-amber-600 text-xs text-center mt-1">{sessionError}</p>
+          )}
+
           <ResendEmailButton email={regEmail} />
           <p className="text-gray-400 text-xs mt-4">{t('auth_check_spam')}</p>
           <button onClick={() => router.push('/login')} className="mt-4 min-h-[44px] px-4 text-primary-500 text-sm underline flex items-center mx-auto">
