@@ -37,9 +37,11 @@ export async function GET() {
 
     // Params to sign (sorted alphabetically, excluding api_key/file/resource_type/cloud_name)
     // eager: pre-generate the watermarked version immediately after upload
+    // signature_algorithm MUST be included when using sha256 — required by Cloudinary signing spec
     const paramsToSign: Record<string, string | number> = {
-      eager:     OVERLAY,
+      eager:               OVERLAY,
       folder,
+      signature_algorithm: 'sha256',
       timestamp,
     }
 
