@@ -35,13 +35,13 @@ export async function GET() {
     const timestamp = Math.round(Date.now() / 1000)
     const folder    = 'nyumba/social-videos'
 
-    // Params to sign (sorted alphabetically, excluding api_key/file/resource_type/cloud_name)
-    // eager: pre-generate the watermarked version immediately after upload
-    // signature_algorithm MUST be included when using sha256 — required by Cloudinary signing spec
+    // Params to sign (sorted alphabetically, excluding api_key/file/resource_type/cloud_name/signature_algorithm)
+    // signature_algorithm is passed to the hash function, NOT included in the signed params string.
+    // The client sends signature_algorithm=sha256 in FormData so Cloudinary knows which algorithm
+    // to use for verification — but it is never part of the string that gets hashed.
     const paramsToSign: Record<string, string | number> = {
-      eager:               OVERLAY,
+      eager: OVERLAY,
       folder,
-      signature_algorithm: 'sha256',
       timestamp,
     }
 
