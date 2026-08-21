@@ -10,12 +10,19 @@ export async function GET() {
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const pageId = process.env.FACEBOOK_PAGE_ID
-  const token  = process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN
+  // Must match the fallback chain in metaClient.ts fbToken() exactly
+  const token  = process.env.INSTAGRAM_ACCESS_TOKEN ?? process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? process.env.FACEBOOK_ACCESS_TOKEN
+  const tokenSource = process.env.INSTAGRAM_ACCESS_TOKEN ? 'INSTAGRAM_ACCESS_TOKEN'
+    : process.env.FACEBOOK_PAGE_ACCESS_TOKEN ? 'FACEBOOK_PAGE_ACCESS_TOKEN'
+    : process.env.FACEBOOK_ACCESS_TOKEN ? 'FACEBOOK_ACCESS_TOKEN'
+    : null
 
   const result: Record<string, unknown> = {
     env: {
-      FACEBOOK_PAGE_ID:          pageId ? `${pageId.slice(0, 6)}…` : '❌ HAIJAWEKWA',
-      FACEBOOK_PAGE_ACCESS_TOKEN: token  ? `${token.slice(0, 12)}… (len=${token.length})` : '❌ HAIJAWEKWA',
+      FACEBOOK_PAGE_ID:  pageId ? `${pageId.slice(0, 6)}…` : '❌ HAIJAWEKWA',
+      INSTAGRAM_USER_ID: process.env.INSTAGRAM_USER_ID ? `${process.env.INSTAGRAM_USER_ID.slice(0, 6)}…` : '❌ HAIJAWEKWA',
+      token_source:      tokenSource ?? '❌ HAKUNA TOKEN',
+      token_preview:     token ? `${token.slice(0, 12)}… (len=${token.length})` : '❌ HAIJAWEKWA',
     },
   }
 

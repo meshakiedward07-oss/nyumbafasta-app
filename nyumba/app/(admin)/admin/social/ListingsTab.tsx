@@ -129,7 +129,7 @@ function BatchModal({
                 <p className={`text-sm truncate ${item.status === 'pending' ? 'text-gray-400' : 'text-gray-800'}`}>
                   {item.listing.title}
                 </p>
-                {item.error && <p className="text-[11px] text-red-400 truncate">{item.error}</p>}
+                {item.error && <p className="text-[11px] text-red-400 break-words whitespace-pre-wrap">{item.error}</p>}
               </div>
               <span className="text-[10px] text-gray-400 flex-shrink-0">
                 {item.listing.district}

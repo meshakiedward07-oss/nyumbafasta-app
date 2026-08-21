@@ -317,7 +317,7 @@ export default function PostEditorDrawer({ listing, defaultPlatform, onClose, on
         // Total failure — both platforms failed
         const hint = data.error.includes('pages_manage_posts')
           ? 'FB token haina ruhusa — Angalia Test Connection, regenerate token kwenye Meta Business Suite'
-          : data.error.slice(0, 120)
+          : data.error
         showToast(`Imeshindwa: ${hint}`)
       } else {
         showToast('Imeshindwa kuchapisha — jaribu tena')
