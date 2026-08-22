@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useLanguage } from '@/lib/i18n/context'
 import {
   CLIENT_AGREEMENT_CONTENT_SW,
@@ -40,7 +40,6 @@ export default function AgreementModal({
   fullPage = false,
 }: AgreementModalProps) {
   const { t } = useLanguage()
-  const scrollRef = useRef<HTMLDivElement>(null)
   const [lang, setLang] = useState<'sw' | 'en'>('sw')
   const [checkboxes, setCheckboxes] = useState<Record<string, boolean>>({})
   const [fullName, setFullName] = useState(prefillName)
@@ -129,164 +128,174 @@ export default function AgreementModal({
         </div>
       </div>
 
-      {/* Commitments preview — shown upfront so user knows what they'll agree to */}
-      <div className="bg-primary-50 border-b border-primary-100 px-4 py-3 flex-shrink-0">
-        <p className="text-xs font-semibold text-primary-800 mb-2 max-w-lg mx-auto">
-          {lang === 'sw' ? 'Utakubali yafuatayo:' : 'You will agree to the following:'}
-        </p>
-        <ul className="space-y-1 max-w-lg mx-auto">
-          {boxes.map(b => (
-            <li key={b.id} className="flex items-start gap-2 text-xs text-primary-700">
-              <i className="ti ti-circle text-primary-400 flex-shrink-0 mt-0.5 text-xs" aria-hidden="true" />
-              {lang === 'sw' ? b.sw : b.en}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {/*
+        Everything below the header scrolls together in ONE container.
+        Previously the commitments-preview and acceptance-form were pinned
+        (flex-shrink-0) around a scrollable middle section — on shorter
+        desktop windows and on mobile, their combined height (preview list +
+        checkboxes + signature fields + button) could exceed the viewport,
+        and since the page wrapper uses overflow-hidden, the Accept button
+        got silently clipped with no way to reach it. Scrolling the whole
+        thing guarantees the button is always reachable.
+      */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
 
-      {/* Agreement text */}
-      <div
-        ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full"
-      >
-        <div className="space-y-1">
-          {content.split('\n').map((line, i) => {
-            if (!line.trim()) return <div key={i} className="h-2" />
-            if (line.startsWith('**') && line.endsWith('**')) {
+        {/* Commitments preview — shown upfront so user knows what they'll agree to */}
+        <div className="bg-primary-50 border-b border-primary-100 px-4 py-3">
+          <p className="text-xs font-semibold text-primary-800 mb-2 max-w-lg mx-auto">
+            {lang === 'sw' ? 'Utakubali yafuatayo:' : 'You will agree to the following:'}
+          </p>
+          <ul className="space-y-1 max-w-lg mx-auto">
+            {boxes.map(b => (
+              <li key={b.id} className="flex items-start gap-2 text-xs text-primary-700">
+                <i className="ti ti-circle text-primary-400 flex-shrink-0 mt-0.5 text-xs" aria-hidden="true" />
+                {lang === 'sw' ? b.sw : b.en}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Agreement text */}
+        <div className="px-4 py-4 max-w-lg mx-auto w-full">
+          <div className="space-y-1">
+            {content.split('\n').map((line, i) => {
+              if (!line.trim()) return <div key={i} className="h-2" />
+              if (line.startsWith('**') && line.endsWith('**')) {
+                return (
+                  <p key={i} className="font-bold text-gray-900 text-sm mt-3">
+                    {line.replace(/\*\*/g, '')}
+                  </p>
+                )
+              }
+              if (line.startsWith('━')) {
+                return <hr key={i} className="border-gray-200 my-3" />
+              }
               return (
-                <p key={i} className="font-bold text-gray-900 text-sm mt-3">
-                  {line.replace(/\*\*/g, '')}
+                <p key={i} className="text-gray-700 text-xs leading-relaxed">
+                  {line}
                 </p>
               )
-            }
-            if (line.startsWith('━')) {
-              return <hr key={i} className="border-gray-200 my-3" />
-            }
-            return (
-              <p key={i} className="text-gray-700 text-xs leading-relaxed">
-                {line}
-              </p>
-            )
-          })}
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Acceptance form */}
-      <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-4 space-y-3 max-w-lg mx-auto w-full">
+        {/* Acceptance form */}
+        <div className="bg-white border-t border-gray-100 px-4 py-4 space-y-3 max-w-lg mx-auto w-full">
 
-        {/* Checkboxes */}
-        <div className="space-y-2.5">
-          {boxes.map(box => (
-            <label
-              key={box.id}
-              className="flex items-start gap-3 cursor-pointer"
-            >
-              <div
-                className={`w-5 h-5 rounded border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
-                  checkboxes[box.id]
-                    ? 'bg-primary-500 border-primary-500'
-                    : 'border-gray-300 bg-white'
-                }`}
-                onClick={() => toggleCheckbox(box.id)}
+          {/* Checkboxes */}
+          <div className="space-y-2.5">
+            {boxes.map(box => (
+              <label
+                key={box.id}
+                className="flex items-start gap-3 cursor-pointer"
               >
-                {checkboxes[box.id] && (
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-xs text-gray-700 leading-relaxed">
-                {lang === 'sw' ? box.sw : box.en}
-              </span>
-            </label>
-          ))}
-        </div>
-
-        {/* Signature fields */}
-        {allChecked && (
-          <div className="space-y-3 pt-1">
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs font-semibold text-gray-700 mb-2">
-                <i className="ti ti-signature" aria-hidden="true" /> {lang === 'sw' ? 'Sahihi ya Kidijitali' : 'Digital Signature'}
-              </p>
-              <div className="space-y-2">
-                <div>
-                  <label className="text-[10px] text-gray-500 block mb-1">
-                    {lang === 'sw' ? 'Jina lako kamili (kama ilivyo kwenye NIDA)' : 'Your full name (as on NIDA/ID)'}
-                    <span className="text-red-400 ml-0.5">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={e => setFullName(e.target.value)}
-                    placeholder={lang === 'sw' ? 'Andika jina lako kamili hapa...' : 'Type your full name here...'}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm
-                               focus:outline-none focus:ring-2 focus:ring-primary-300"
-                  />
+                <div
+                  className={`w-5 h-5 rounded border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                    checkboxes[box.id]
+                      ? 'bg-primary-500 border-primary-500'
+                      : 'border-gray-300 bg-white'
+                  }`}
+                  onClick={() => toggleCheckbox(box.id)}
+                >
+                  {checkboxes[box.id] && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 </div>
-                <div>
-                  <label className="text-[10px] text-gray-500 block mb-1">
-                    {lang === 'sw' ? 'Nambari ya simu (WhatsApp)' : 'Phone number (WhatsApp)'}
-                    <span className="text-red-400 ml-0.5">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    placeholder="+255 7XX XXX XXX"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm
-                               focus:outline-none focus:ring-2 focus:ring-primary-300"
-                  />
+                <span className="text-xs text-gray-700 leading-relaxed">
+                  {lang === 'sw' ? box.sw : box.en}
+                </span>
+              </label>
+            ))}
+          </div>
+
+          {/* Signature fields */}
+          {allChecked && (
+            <div className="space-y-3 pt-1">
+              <div className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs font-semibold text-gray-700 mb-2">
+                  <i className="ti ti-signature" aria-hidden="true" /> {lang === 'sw' ? 'Sahihi ya Kidijitali' : 'Digital Signature'}
+                </p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[10px] text-gray-500 block mb-1">
+                      {lang === 'sw' ? 'Jina lako kamili (kama ilivyo kwenye NIDA)' : 'Your full name (as on NIDA/ID)'}
+                      <span className="text-red-400 ml-0.5">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={e => setFullName(e.target.value)}
+                      placeholder={lang === 'sw' ? 'Andika jina lako kamili hapa...' : 'Type your full name here...'}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500 block mb-1">
+                      {lang === 'sw' ? 'Nambari ya simu (WhatsApp)' : 'Phone number (WhatsApp)'}
+                      <span className="text-red-400 ml-0.5">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      placeholder="+255 7XX XXX XXX"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Error */}
-        {error && (
-          <p className="text-red-500 text-xs text-center">{error}</p>
-        )}
+          {/* Error */}
+          {error && (
+            <p className="text-red-500 text-xs text-center">{error}</p>
+          )}
 
-        {/* Why disabled */}
-        {!canAccept && (
-          <div className="text-xs text-gray-400 space-y-0.5">
-            {!allChecked && (
-              <p><i className="ti ti-checkbox" aria-hidden="true" /> {lang === 'sw' ? 'Tia alama kwenye visanduku vyote' : 'Check all checkboxes above'}</p>
-            )}
-            {allChecked && fullName.trim().length < 3 && (
-              <p><i className="ti ti-signature" aria-hidden="true" /> {lang === 'sw' ? 'Andika jina lako kamili' : 'Enter your full name'}</p>
-            )}
-            {allChecked && fullName.trim().length >= 3 && phone.trim().length < 9 && (
-              <p><i className="ti ti-device-mobile" aria-hidden="true" /> {lang === 'sw' ? 'Weka nambari ya simu sahihi' : 'Enter a valid phone number'}</p>
-            )}
-          </div>
-        )}
+          {/* Why disabled */}
+          {!canAccept && (
+            <div className="text-xs text-gray-400 space-y-0.5">
+              {!allChecked && (
+                <p><i className="ti ti-checkbox" aria-hidden="true" /> {lang === 'sw' ? 'Tia alama kwenye visanduku vyote' : 'Check all checkboxes above'}</p>
+              )}
+              {allChecked && fullName.trim().length < 3 && (
+                <p><i className="ti ti-signature" aria-hidden="true" /> {lang === 'sw' ? 'Andika jina lako kamili' : 'Enter your full name'}</p>
+              )}
+              {allChecked && fullName.trim().length >= 3 && phone.trim().length < 9 && (
+                <p><i className="ti ti-device-mobile" aria-hidden="true" /> {lang === 'sw' ? 'Weka nambari ya simu sahihi' : 'Enter a valid phone number'}</p>
+              )}
+            </div>
+          )}
 
-        {/* Accept button */}
-        <button
-          onClick={handleAccept}
-          disabled={!canAccept || submitting}
-          className={`w-full py-3.5 min-h-[48px] rounded-xl text-sm font-bold transition-all ${
-            canAccept && !submitting
-              ? 'bg-primary-500 text-white hover:bg-[#158a63] active:scale-[0.98]'
-              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          {submitting
-            ? (lang === 'sw' ? 'Inakubali...' : 'Accepting...')
-            : canAccept
-              ? (lang === 'sw' ? 'Nakubaliana na Masharti Yote' : 'I Agree to All Terms')
-              : (lang === 'sw' ? 'Nakubaliana / I Agree' : 'Nakubaliana / I Agree')
-          }
-        </button>
+          {/* Accept button */}
+          <button
+            onClick={handleAccept}
+            disabled={!canAccept || submitting}
+            className={`w-full py-3.5 min-h-[48px] rounded-xl text-sm font-bold transition-all ${
+              canAccept && !submitting
+                ? 'bg-primary-500 text-white hover:bg-[#158a63] active:scale-[0.98]'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {submitting
+              ? (lang === 'sw' ? 'Inakubali...' : 'Accepting...')
+              : canAccept
+                ? (lang === 'sw' ? 'Nakubaliana na Masharti Yote' : 'I Agree to All Terms')
+                : (lang === 'sw' ? 'Nakubaliana / I Agree' : 'Nakubaliana / I Agree')
+            }
+          </button>
 
-        <p className="text-[10px] text-gray-400 text-center">
-          {lang === 'sw'
-            ? 'Makubaliano haya yanabakisha kisheria. IP na wakati wa kukubaliana vitahifadhiwa.'
-            : 'This agreement is legally binding. Your IP address and acceptance time will be recorded.'
-          }
-        </p>
+          <p className="text-[10px] text-gray-400 text-center">
+            {lang === 'sw'
+              ? 'Makubaliano haya yanabakisha kisheria. IP na wakati wa kukubaliana vitahifadhiwa.'
+              : 'This agreement is legally binding. Your IP address and acceptance time will be recorded.'
+            }
+          </p>
+        </div>
       </div>
     </div>
   )
