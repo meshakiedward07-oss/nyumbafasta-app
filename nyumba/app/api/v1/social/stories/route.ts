@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import type { Listing } from '@/lib/types/database'
 import { requireAdminUser } from '@/lib/security/adminAuth'
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 // GET /api/v1/social/stories — list recent stories
 export async function GET() {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
       const { data: listing, error } = await supabaseAdmin
         .from('listings')
-        .select('id, title, type, price_monthly, region, district, images, description, status, dalali_id')
+        .select('id, title, type, price_monthly, region, district, images, description, status, dalali_id, video_url')
         .eq('id', listingId)
         .single()
 

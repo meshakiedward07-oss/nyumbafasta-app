@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/agent/supabaseAdmin'
 import { isCloudinaryUrl } from '@/lib/media/watermark'
+import { watermarkVideo } from '@/lib/media/videoWatermark'
 import type { Listing } from '@/lib/types/database'
 
 const GRAPH      = 'https://graph.facebook.com/v21.0'
@@ -358,7 +359,10 @@ export async function postListingStoryAllPlatforms(
   const storyImageUrl = buildStoryImageUrl(rawImageUrl)
   const appUrl        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.nyumbafasta.co'
   const listingUrl    = `${appUrl}/listings/${listing.id}`
-  const videoUrl      = (listing as Listing & { video_url?: string | null }).video_url ?? undefined
+  // Watermark real listing videos before they go to FB Story / TikTok — every
+  // other outbound video path (Reels, Feed) watermarks first; this one didn't.
+  const rawVideoUrl   = listing.video_url ?? undefined
+  const videoUrl      = rawVideoUrl ? (watermarkVideo(rawVideoUrl) ?? rawVideoUrl) : undefined
 
   // Pre-warm Cloudinary lazy transformation so Meta can fetch the image immediately
   try {

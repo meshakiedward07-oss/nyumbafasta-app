@@ -63,7 +63,7 @@
     "app/api/v1/social/post/route.ts":                { "maxDuration": 60 },
     "app/api/v1/social/post-all/route.ts":            { "maxDuration": 120 },
     "app/api/v1/social/carousel/route.ts":            { "maxDuration": 60 },
-    "app/api/v1/social/stories/route.ts":             { "maxDuration": 60 },
+    "app/api/v1/social/stories/route.ts":             { "maxDuration": 120 },
     "app/api/v1/social/video/route.ts":               { "maxDuration": 60 },
     "app/api/v1/social/tiktok/post/route.ts":         { "maxDuration": 120 },
     "app/api/v1/social/best-time/route.ts":           { "maxDuration": 60 },
