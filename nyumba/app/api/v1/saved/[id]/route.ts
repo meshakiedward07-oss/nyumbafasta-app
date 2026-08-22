@@ -10,7 +10,7 @@ export async function POST(
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    if (authError || !user || user.is_anonymous) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
 
@@ -35,7 +35,7 @@ export async function DELETE(
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    if (authError || !user || user.is_anonymous) {
       return NextResponse.json({ error: 'Hujaidhibitishwa' }, { status: 401 })
     }
 

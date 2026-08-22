@@ -86,9 +86,13 @@ export async function middleware(request: NextRequest) {
   const isFundiRoute = FUNDI_PROTECTED_ROUTES.some(r => path.startsWith(r))
 
   // Redirect kwenda login kama hana session.
+  // An anonymous Supabase session (minted by guest checkout — see
+  // UnlockModal.tsx signInAnonymously) counts as "no real account" here:
+  // guests can browse listings and unlock contacts, but account-only routes
+  // (saved, account, dashboard, etc.) still require a real login/signup.
   // Admin paths → /staff-login (staff bookmarks land in the right portal).
   // All other protected paths → regular /login.
-  if (!user && isProtected) {
+  if ((!user || user.is_anonymous) && isProtected) {
     const url = request.nextUrl.clone()
     const isAdminPath       = ADMIN_ONLY_ROUTES.some(r => path.startsWith(r))
     const isAdvertisingPath = ADVERTISING_PROTECTED_ROUTES.some(r => path.startsWith(r))

@@ -5,7 +5,7 @@ import AccountClient from '@/components/client/AccountClient'
 export default async function AccountPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login?redirect=/account')
+  if (!user || user.is_anonymous) redirect('/login?redirect=/account')
 
   const admin = createAdminClient()
   const { data: profile } = await admin

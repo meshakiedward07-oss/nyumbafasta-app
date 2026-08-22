@@ -42,7 +42,7 @@ export default function SaveButton({ listingId, className = '', size = 'md' }: P
     if (loading) return
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login?redirect=/'); return }
+    if (!user || user.is_anonymous) { router.push('/login?redirect=/'); return }
 
     // Optimistic update
     const next = !saved

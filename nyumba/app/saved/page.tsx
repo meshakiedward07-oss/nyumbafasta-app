@@ -6,7 +6,7 @@ import type { ListingWithDalali } from '@/lib/types/database'
 export default async function SavedPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login?redirect=/saved')
+  if (!user || user.is_anonymous) redirect('/login?redirect=/saved')
 
   const [{ data, error }, { data: userRow }] = await Promise.all([
     supabase
