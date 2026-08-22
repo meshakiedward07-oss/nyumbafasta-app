@@ -162,12 +162,23 @@ export async function POST(req: NextRequest) {
         const { error: trialErr } = await admin.rpc('start_dalali_trial', { dalali_user_id: user.id })
         if (trialErr) console.error('[Register] start_dalali_trial failed (non-fatal):', trialErr.message)
 
-        // Step 5: Welcome notification
+        // Step 5: Welcome notification — read back the actual plan so we never promise
+        // the Enterprise trial if activation silently fell back to Free (or failed).
+        const { data: newSub } = await admin
+          .from('subscriptions')
+          .select('plan')
+          .eq('dalali_id', user.id)
+          .in('status', ['active', 'grace_period'])
+          .maybeSingle()
+        const gotEnterpriseTrial = newSub?.plan === 'enterprise'
+
         await admin.from('notifications').insert({
           user_id: user.id,
           type:    'trial_started',
-          title:   '🎉 Growth Plan ya BURE — Siku 30!',
-          body:    'Hongera! Umepata Growth Plan (Enterprise) ya BURE kwa siku 30. Unaweza kuongeza listings hadi 50, picha 20 kwa kila listing, boost, verified badge, analytics kamili, na zaidi. Baada ya siku 30 chagua plan inayokufaa ili uendelee.',
+          title:   gotEnterpriseTrial ? '🎉 Growth Plan ya BURE — Siku 30!' : '👋 Karibu NyumbaFasta!',
+          body:    gotEnterpriseTrial
+            ? 'Hongera! Umepata Growth Plan (Enterprise) ya BURE kwa siku 30. Unaweza kuongeza listings hadi 50, picha 20 kwa kila listing, boost, verified badge, analytics kamili, na zaidi. Baada ya siku 30 chagua plan inayokufaa ili uendelee.'
+            : 'Karibu NyumbaFasta! Akaunti yako iko tayari kwenye Free Plan (listings 2). Chagua Basic, Premium au Enterprise wakati wowote ili kuongeza uwezo wako.',
           is_read: false,
         })
 

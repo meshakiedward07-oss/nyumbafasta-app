@@ -142,9 +142,10 @@ export async function POST(req: NextRequest) {
       getPricing(),
     ])
 
-    // 0 when no active subscription; add purchased extra slots on top of plan base
+    // Fall back to the free-tier limit when there's no active subscription row
+    // (e.g. trial activation failed at signup) — every dalali gets at least Free.
     const planLimits = pricing.listingLimits
-    const baseLimit  = subscription ? (planLimits[subscription.plan as keyof typeof planLimits] ?? 0) : 0
+    const baseLimit  = subscription ? (planLimits[subscription.plan as keyof typeof planLimits] ?? planLimits.free) : planLimits.free
     const extraSlots = subscription?.extra_listings ?? 0
     const limit      = baseLimit + extraSlots
 
