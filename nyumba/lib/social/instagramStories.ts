@@ -166,6 +166,47 @@ function buildFBStoryVideoUrl(imageUrl: string): string | null {
   return `${base}/video/upload/du_3/${withMp4}`
 }
 
+// Facebook's /{page-id}/video_stories edge does NOT accept a one-shot
+// { video: { file_url } } POST like the regular /videos edge does — it uses
+// the Resumable Upload protocol with three explicit phases. Confirmed live
+// 2026-08-22: the one-shot POST returned "(#100) The parameter upload_phase
+// is required."
+async function startFBVideoUpload(): Promise<{ videoId: string; uploadUrl: string }> {
+  const res  = await fetch(`${GRAPH}/${fbPageId()}/video_stories`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ upload_phase: 'start', access_token: fbToken() }),
+  })
+  const data = await res.json() as { video_id?: string; upload_url?: string; error?: { message: string } }
+  if (data.error) throw new Error(`start: ${data.error.message}`)
+  if (!data.video_id || !data.upload_url) throw new Error('start: Facebook haikurudisha video_id/upload_url')
+  return { videoId: data.video_id, uploadUrl: data.upload_url }
+}
+
+async function transferFBVideoFromUrl(uploadUrl: string, videoUrl: string): Promise<void> {
+  const res  = await fetch(uploadUrl, {
+    method:  'POST',
+    headers: {
+      'Authorization': `OAuth ${fbToken()}`,
+      'file_url':      videoUrl,
+    },
+  })
+  const data = await res.json().catch(() => ({})) as { success?: boolean; error?: { message: string } }
+  if (data.error) throw new Error(`transfer: ${data.error.message}`)
+  if (data.success === false) throw new Error('transfer: Facebook video upload haikufaulu')
+}
+
+async function finishFBVideoUpload(videoId: string): Promise<string> {
+  const res  = await fetch(`${GRAPH}/${fbPageId()}/video_stories`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ upload_phase: 'finish', video_id: videoId, access_token: fbToken() }),
+  })
+  const data = await res.json() as { success?: boolean; post_id?: string; error?: { message: string } }
+  if (data.error) throw new Error(`finish: ${data.error.message}`)
+  return data.post_id ?? videoId
+}
+
 export async function postFacebookStory(params: {
   imageUrl:  string
   videoUrl?: string
@@ -190,18 +231,17 @@ export async function postFacebookStory(params: {
       console.warn('[FB Story] Pre-warm failed, attempting anyway:', e)
     }
 
-    const res  = await fetch(`${GRAPH}/${fbPageId()}/video_stories`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        video:        { file_url: storyVideoUrl },
-        access_token: fbToken(),
-      }),
-    })
-    const data = await res.json() as { post_id?: string; error?: { message: string } }
-    if (data.error) throw new Error(data.error.message)
-    console.log('[FB Story] Video story posted:', data.post_id)
-    return { success: true, storyId: data.post_id }
+    console.log('[FB Story] Starting resumable upload...')
+    const { videoId, uploadUrl } = await startFBVideoUpload()
+
+    console.log('[FB Story] Transferring video from URL...')
+    await transferFBVideoFromUrl(uploadUrl, storyVideoUrl)
+
+    console.log('[FB Story] Finishing upload / publishing...')
+    const postId = await finishFBVideoUpload(videoId)
+
+    console.log('[FB Story] Video story posted:', postId)
+    return { success: true, storyId: postId }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[FB Story] Exception:', msg)
