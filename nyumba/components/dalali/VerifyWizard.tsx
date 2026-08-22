@@ -282,6 +282,12 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
         {/* STEP: NIDA number */}
         {currentContent === 'nida' && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-3">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5">
+              <p className="text-xs text-blue-700 font-medium flex items-center gap-1">
+                <i className="ti ti-clipboard-list" aria-hidden="true" /> {t('verify_id_intro')}
+              </p>
+              <p className="text-xs text-blue-600 mt-0.5">{t('verify_id_intro_sub')}</p>
+            </div>
             <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-xs text-primary-700">
               <i className="ti ti-lock" aria-hidden="true" /> {t('verify_nida_privacy')}
             </div>
