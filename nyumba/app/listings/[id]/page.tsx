@@ -106,14 +106,24 @@ export default async function ListingDetailPage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+  const admin    = createAdminClient()
 
-  // Run auth + main listing fetch in parallel — saves ~150ms vs sequential
+  // Run auth + main listing fetch in parallel — saves ~150ms vs sequential.
+  // The listing (+ embedded dalali/dalali_profiles) fetch uses the admin
+  // (service-role) client on purpose: this is public marketplace data by
+  // design (same as the homepage), and the embedded dalali_id -> users join
+  // would otherwise depend on the `users`/`dalali_profiles` tables' RLS
+  // staying anon-readable — which a security-hardening pass can (and did)
+  // lock down independently of the `listings` table's own policy, breaking
+  // this page for logged-out visitors even when `listings` itself is
+  // publicly readable. The select list below never includes email/phone/
+  // whatsapp_number, so this stays safe regardless of RLS state.
   const [{ data: { user } }, { data, error }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase
+    admin
       .from('listings')
       .select(`
-        id, title, type, status, price_monthly,
+        id, title, type, status, price_monthly, is_sub_suspended,
         district, region, street, ward, mtaa, address_full, location_display,
         furnished, amenities,
         images, video_url, description, bedrooms,
@@ -134,7 +144,13 @@ export default async function ListingDetailPage({
       .single(),
   ])
 
-  if (error || !data) notFound()
+  // Replicates the old RLS policies now that this query bypasses RLS via
+  // the admin client: public visitors only see active, non-suspended
+  // listings; a dalali can always preview their own listing regardless of
+  // status (dashboard "view" links rely on this).
+  const isPublicListing = data?.status === 'active' && !data?.is_sub_suspended
+  const isOwner = !!user && !!data && user.id === data.dalali_id
+  if (error || !data || !(isPublicListing || isOwner)) notFound()
 
   // Fire-and-forget side effects — don't block page render
   // PostgrestBuilder is PromiseLike (not Promise), so wrap in Promise.resolve for .catch()
