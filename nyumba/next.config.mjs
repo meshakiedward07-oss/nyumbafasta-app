@@ -64,6 +64,9 @@ const nextConfig = {
               // Geoapify geocoding/autocomplete API
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.resend.com https://api.cloudinary.com https://api.geoapify.com",
               "worker-src 'self' blob:",
+              // Admin panel embeds dalali business-license PDFs (raw Cloudinary
+              // uploads) inline via <iframe> instead of linking out to them.
+              "frame-src 'self' https://res.cloudinary.com https://*.cloudinary.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

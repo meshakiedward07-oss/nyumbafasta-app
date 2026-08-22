@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import type { PermissionKey } from '@/lib/staff/permissions'
 import InfluencerDashboardClient from './InfluencerDashboardClient'
+import PdfViewerModal from '@/components/admin/PdfViewerModal'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -230,6 +231,7 @@ export default function StaffDashboardClient() {
   const [rejectId,    setRejectId]    = useState<string | null>(null)
   const [rejectReason,setRejectReason]= useState('')
   const [rejectFor,   setRejectFor]   = useState<'listing' | 'verification' | 'ad'>('listing')
+  const [licenseModal, setLicenseModal] = useState<{ url: string; name: string } | null>(null)
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok })
@@ -337,6 +339,15 @@ export default function StaffDashboardClient() {
         <div className={`fixed top-4 right-4 z-[200] px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white max-w-xs animate-in slide-in-from-top-2 ${toast.ok ? 'bg-primary-600' : 'bg-red-500'}`}>
           {toast.ok ? '✅' : '❌'} {toast.msg}
         </div>
+      )}
+
+      {/* Business license PDF viewer */}
+      {licenseModal && (
+        <PdfViewerModal
+          url={licenseModal.url}
+          title={`Leseni ya Biashara — ${licenseModal.name}`}
+          onClose={() => setLicenseModal(null)}
+        />
       )}
 
       {/* Reject modal */}
@@ -929,10 +940,12 @@ export default function StaffDashboardClient() {
                         <div className="bg-blue-50 rounded-xl px-3 py-2 mb-3">
                           <p className="text-[11px] text-blue-600 font-semibold">NIDA: {prof.nida_number}</p>
                           {prof.business_license_url && (
-                            <a href={prof.business_license_url} target="_blank" rel="noopener noreferrer"
-                              className="text-[11px] text-blue-700 underline font-medium mt-0.5 block">
+                            <button
+                              onClick={() => setLicenseModal({ url: prof.business_license_url!, name: v.full_name ?? 'Dalali' })}
+                              className="text-[11px] text-blue-700 underline font-medium mt-0.5 block"
+                            >
                               📄 Angalia Leseni ya Biashara
-                            </a>
+                            </button>
                           )}
                         </div>
                       )}
