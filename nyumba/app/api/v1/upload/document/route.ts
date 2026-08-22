@@ -47,9 +47,13 @@ export async function POST(req: NextRequest) {
     fd.append('timestamp', String(timestamp))
     fd.append('signature', signature)
     fd.append('folder', folder)
-    fd.append('resource_type', 'raw')
 
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/raw/upload`, {
+    // Uploaded as resource_type=image (not raw): Cloudinary blocks public
+    // delivery of raw PDF/ZIP files by default (security setting, account-
+    // wide), which made every license URL 401 with "deny or ACL failure".
+    // PDFs uploaded as image are fully supported and not subject to that
+    // restriction, while still serving the original, unmodified PDF bytes.
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`, {
       method: 'POST',
       body: fd,
     })
