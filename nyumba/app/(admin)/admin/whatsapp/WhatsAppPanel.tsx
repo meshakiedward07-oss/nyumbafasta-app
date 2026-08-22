@@ -177,7 +177,17 @@ export default function WhatsAppPanel() {
     setMessages(data.messages ?? [])
     if (data.session) {
       setSessions(prev => prev.map(s => s.phone_number === phone ? { ...s, ...data.session } : s))
-      setSelected(prev => prev?.phone_number === phone ? { ...prev, ...data.session } : prev)
+      setSelected(prev => {
+        if (!prev || prev.phone_number !== phone) return prev
+        // Only create a new object when something actually changed. Always
+        // spreading a new object here — even when the session data was
+        // identical — used to change `selected`'s identity on every poll/
+        // realtime tick, which re-fired the "load conversation" effect below
+        // (dep: selected) and formed a self-sustaining fetch loop that kept
+        // forcibly resetting scroll to the bottom while admins were reading.
+        const merged = { ...prev, ...data.session }
+        return JSON.stringify(merged) === JSON.stringify(prev) ? prev : merged
+      })
     }
   }, [])
 
@@ -197,7 +207,12 @@ export default function WhatsAppPanel() {
     if (controlsRef.current) controlsRef.current.scrollTop = 0
     fetchMessages(selected.phone_number)
     fetchInstructions(selected.phone_number)
-  }, [selected, fetchMessages, fetchInstructions])
+    // Only re-run when switching to a genuinely different conversation, not
+    // on every identity change of `selected` (fetchMessages used to replace
+    // it with a new object on every call, re-firing this effect in a loop —
+    // see the guard added in fetchMessages above).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.phone_number, fetchMessages, fetchInstructions])
 
   // Auto-scroll messages container only (never scrollIntoView which can escape the container)
   useEffect(() => {
