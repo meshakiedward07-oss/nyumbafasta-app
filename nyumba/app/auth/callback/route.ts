@@ -146,6 +146,35 @@ export async function GET(request: NextRequest) {
                 : 'Karibu NyumbaFasta! Akaunti yako iko tayari kwenye Free Plan (listings 2). Chagua Basic, Premium au Enterprise wakati wowote ili kuongeza uwezo wako.',
               is_read: false,
             })
+
+            // Influencer referral attribution — mirrors Step 8 in
+            // app/api/v1/auth/register/route.ts. This is the path that
+            // actually fires for most real signups (email confirmation link
+            // click goes straight here, server-side, not through
+            // /register/complete), so referral_code must come from
+            // user_metadata (embedded at signUp() time) rather than
+            // localStorage, which this server route can never read.
+            const referralCode = meta?.referral_code?.trim().toUpperCase()
+            if (referralCode) {
+              try {
+                const { data: influencerProfile } = await admin
+                  .from('influencer_profiles')
+                  .select('id')
+                  .eq('referral_code', referralCode)
+                  .eq('is_active', true)
+                  .maybeSingle()
+                if (influencerProfile) {
+                  await admin.from('referral_attributions').insert({
+                    influencer_id:    influencerProfile.id,
+                    referred_user_id: data.user.id,
+                    referral_code:    referralCode,
+                    signed_up_at:     new Date().toISOString(),
+                  })
+                }
+              } catch (refErr) {
+                console.error('[AuthCallback] Referral attribution failed (non-fatal):', refErr)
+              }
+            }
           }
         } catch (err) {
           // User can still log in; profile setup retried on next visit — but log it,

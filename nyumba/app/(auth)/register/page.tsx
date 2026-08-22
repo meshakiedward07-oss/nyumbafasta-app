@@ -128,11 +128,16 @@ function RegisterForm() {
     // Best-effort: ensure public.users row has agreement_accepted=true.
     // auth/callback also does this, but calling here handles the case where
     // the user was already in check_email when they confirmed in another tab.
+    let pendingReferral: string | null = null
+    try { pendingReferral = localStorage.getItem('pending_referral_code') } catch { /* ignore */ }
     try {
       await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: fullName, role, whatsapp_number: normalized }),
+        body: JSON.stringify({
+          full_name: fullName, role, whatsapp_number: normalized,
+          referral_code: pendingReferral || refCode || undefined,
+        }),
       })
     } catch { /* non-fatal — auth/callback is the safety net */ }
     router.replace(role === 'dalali' ? '/dashboard?welcome=true' : '/?welcome=true')
@@ -199,6 +204,10 @@ function RegisterForm() {
             agr_v:           agreementData.version,
             agr_name:        agreementData.full_name_signed,
             agr_phone:       agreementData.phone_signed,
+            // Embedded here (not just localStorage) so auth/callback can attribute
+            // the influencer referral server-side, regardless of which device/
+            // browser the user clicks the email confirmation link from.
+            referral_code:   refCode || undefined,
           },
           // No ?redirect= param — auth/callback finalises everything server-side
           emailRedirectTo: `${window.location.origin}/auth/callback`,
