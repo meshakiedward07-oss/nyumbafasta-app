@@ -185,11 +185,13 @@ export async function createIGCarouselContainer(
 // ── Instagram Interactions ─────────────────────────────────────────────────
 
 export async function replyToIGComment(commentId: string, message: string): Promise<void> {
-  await fetch(`${GRAPH}/${commentId}/replies`, {
+  const res  = await fetch(`${GRAPH}/${commentId}/replies`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, access_token: igToken() }),
   })
+  const data = await res.json() as { id?: string; error?: { message: string } }
+  if (data.error) throw new Error(`IG comment reply: ${data.error.message}`)
 }
 
 export async function sendIGDM(igScopedUserId: string, message: string): Promise<void> {
@@ -210,7 +212,6 @@ type IGMetrics = {
   likes: number
   comments: number
   reach: number
-  impressions: number
   saved: number
 }
 
@@ -225,25 +226,35 @@ export async function getIGPostMetrics(igMediaId: string): Promise<IGMetrics> {
       comments_count?: number
       error?: { message: string }
     }
-    if (data.error) return { likes: 0, comments: 0, reach: 0, impressions: 0, saved: 0 }
+    if (data.error) return { likes: 0, comments: 0, reach: 0, saved: 0 }
 
-    // Insights endpoint for reach/impressions/saved
+    // Insights endpoint for reach/saved. Note: 'impressions' is intentionally
+    // NOT requested — Meta deprecated it for organic IG media; requesting it
+    // would fail the whole call. This endpoint also requires the
+    // instagram_manage_insights permission (separate from
+    // instagram_content_publish used for posting) — if that scope is
+    // missing, Meta returns an error here and reach/saved silently read as 0.
     const insRes = await fetch(
       `${GRAPH}/${igMediaId}/insights?metric=reach,saved&period=lifetime&access_token=${igToken()}`,
     )
-    const insData = await insRes.json() as { data?: { name: string; values: { value: number }[] }[] }
+    const insData = await insRes.json() as {
+      data?: { name: string; values: { value: number }[] }[]
+      error?: { message: string }
+    }
+    if (insData.error) {
+      console.warn(`[IG Insights] ${igMediaId}: ${insData.error.message} — likely missing instagram_manage_insights permission`)
+    }
     const ins: Record<string, number> = {}
     for (const m of insData.data ?? []) ins[m.name] = m.values?.[0]?.value ?? 0
 
     return {
-      likes:       data.like_count     ?? 0,
-      comments:    data.comments_count ?? 0,
-      reach:       ins['reach']        ?? 0,
-      impressions: ins['impressions']  ?? 0,
-      saved:       ins['saved']        ?? 0,
+      likes:    data.like_count     ?? 0,
+      comments: data.comments_count ?? 0,
+      reach:    ins['reach']        ?? 0,
+      saved:    ins['saved']        ?? 0,
     }
   } catch {
-    return { likes: 0, comments: 0, reach: 0, impressions: 0, saved: 0 }
+    return { likes: 0, comments: 0, reach: 0, saved: 0 }
   }
 }
 
@@ -297,11 +308,13 @@ export async function uploadFacebookVideoUrl(
 // ── Facebook Interactions ──────────────────────────────────────────────────
 
 export async function replyToFBComment(commentId: string, message: string): Promise<void> {
-  await fetch(`${GRAPH}/${commentId}/comments`, {
+  const res  = await fetch(`${GRAPH}/${commentId}/comments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, access_token: fbToken() }),
   })
+  const data = await res.json() as { id?: string; error?: { message: string } }
+  if (data.error) throw new Error(`FB comment reply: ${data.error.message}`)
 }
 
 export async function sendFBMessage(recipientId: string, message: string): Promise<void> {
@@ -322,7 +335,6 @@ type FBMetrics = {
   likes: number
   comments: number
   shares: number
-  impressions: number
 }
 
 export async function getFBPostMetrics(postId: string): Promise<FBMetrics> {
@@ -336,15 +348,17 @@ export async function getFBPostMetrics(postId: string): Promise<FBMetrics> {
       shares?:   { count: number }
       error?:    { message: string }
     }
-    if (data.error) return { likes: 0, comments: 0, shares: 0, impressions: 0 }
+    if (data.error) {
+      console.warn(`[FB Metrics] ${postId}: ${data.error.message}`)
+      return { likes: 0, comments: 0, shares: 0 }
+    }
 
     return {
-      likes:       data.likes?.summary?.total_count    ?? 0,
-      comments:    data.comments?.summary?.total_count ?? 0,
-      shares:      data.shares?.count                  ?? 0,
-      impressions: 0,
+      likes:    data.likes?.summary?.total_count    ?? 0,
+      comments: data.comments?.summary?.total_count ?? 0,
+      shares:   data.shares?.count                  ?? 0,
     }
   } catch {
-    return { likes: 0, comments: 0, shares: 0, impressions: 0 }
+    return { likes: 0, comments: 0, shares: 0 }
   }
 }

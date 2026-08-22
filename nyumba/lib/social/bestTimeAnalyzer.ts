@@ -37,8 +37,9 @@ export async function collectPostPerformance(
 
       if (platform === 'instagram') {
         const m = await getIGPostMetrics(platformPostId)
-        likes = m.likes; comments = m.comments; reach = m.reach
-        impressions = m.impressions; saves = m.saved
+        // impressions is not fetched — Meta deprecated it for organic IG
+        // media; stays 0 (matches the post_performance column's prior value).
+        likes = m.likes; comments = m.comments; reach = m.reach; saves = m.saved
       }
       // FB metrics via page insights would go here — skipping for now,
       // engagement_rate stays 0 until FB insights API is integrated

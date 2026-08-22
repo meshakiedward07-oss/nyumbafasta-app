@@ -23,21 +23,19 @@ export async function updateAllPostMetrics(): Promise<{ updated: number; failed:
       if (post.instagram_post_id) {
         const igMetrics = await getIGPostMetrics(post.instagram_post_id)
         Object.assign(metrics, {
-          ig_likes:       igMetrics.likes,
-          ig_comments:    igMetrics.comments,
-          ig_reach:       igMetrics.reach,
-          ig_impressions: igMetrics.impressions,
-          ig_saved:       igMetrics.saved,
+          ig_likes:    igMetrics.likes,
+          ig_comments: igMetrics.comments,
+          ig_reach:    igMetrics.reach,
+          ig_saved:    igMetrics.saved,
         })
       }
 
       if (post.facebook_post_id) {
         const fbMetrics = await getFBPostMetrics(post.facebook_post_id)
         Object.assign(metrics, {
-          fb_likes:       fbMetrics.likes,
-          fb_comments:    fbMetrics.comments,
-          fb_shares:      fbMetrics.shares,
-          fb_impressions: fbMetrics.impressions,
+          fb_likes:    fbMetrics.likes,
+          fb_comments: fbMetrics.comments,
+          fb_shares:   fbMetrics.shares,
         })
       }
 
