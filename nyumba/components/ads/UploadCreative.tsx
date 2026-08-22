@@ -165,7 +165,16 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
 
     } catch (e) {
       const isAbort = e instanceof Error && e.name === 'AbortError'
-      setError(isAbort ? t('adv_timeout_hint') : t('adv_network_check'))
+      // Surface the real reason (sign failed, file rejected by storage, size
+      // limit, etc. — all thrown above with specific Swahili messages)
+      // instead of always blaming "the network," which was hiding the
+      // actual cause from both users and us when debugging.
+      const message = isAbort
+        ? t('adv_timeout_hint')
+        : e instanceof Error && e.message
+          ? e.message
+          : t('adv_network_check')
+      setError(message)
       setPhase('failed')
     } finally {
       clearTimeout(timeoutId)

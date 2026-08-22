@@ -7,12 +7,12 @@ VALUES (
   'listings',
   'listings',
   true,
-  52428800,  -- 50 MB per file
+  104857600,  -- 100 MB per file — matches MAX_VIDEO_BYTES in the ad-creative upload route
   ARRAY['image/jpeg','image/jpg','image/png','image/webp','image/gif','video/mp4','video/quicktime','video/webm']
 )
 ON CONFLICT (id) DO UPDATE SET
   public            = true,
-  file_size_limit   = 52428800,
+  file_size_limit   = 104857600,
   allowed_mime_types = ARRAY['image/jpeg','image/jpg','image/png','image/webp','image/gif','video/mp4','video/quicktime','video/webm'];
 
 -- Public read (CDN delivery for all listing images and ad creatives)
