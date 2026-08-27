@@ -68,3 +68,10 @@ FROM (
 ) sub
 GROUP BY tablename, indexdef_normalized
 HAVING count(*) > 1;
+
+-- ── Follow-up: the one pair the exception handler above correctly
+-- couldn't resolve automatically (alphabetical-first happened to be the
+-- non-constraint one for this specific pair). subscriptions_payment_ref_key
+-- is the UNIQUE-constraint-backed index (keep); idx_subscriptions_payment_ref
+-- is the redundant plain duplicate (drop).
+DROP INDEX IF EXISTS public.idx_subscriptions_payment_ref;
