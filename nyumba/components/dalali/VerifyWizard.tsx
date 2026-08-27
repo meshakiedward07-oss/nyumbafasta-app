@@ -48,6 +48,39 @@ type Props = {
   hasWhatsapp: boolean
 }
 
+// Downscale camera photos client-side before upload. Modern phone cameras
+// capture at 4000x3000px+ (several MB, sometimes 15-30MB raw) — decoding
+// that at full resolution is exactly what triggers "unable to complete
+// operation due to low memory" on RAM-constrained Android devices and
+// in-app browsers (WhatsApp/Facebook/Instagram webviews have much tighter
+// memory caps than a full browser tab). createImageBitmap() decodes more
+// memory-efficiently than the old new Image()+canvas approach. Any failure
+// here (unsupported format, or the device running out of memory on the
+// resize itself) silently falls back to the original file — never worse
+// than before this existed.
+async function resizeImageFile(file: File, maxDim = 1600, quality = 0.82): Promise<File> {
+  if (file.size < 800 * 1024) return file // already small enough
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height))
+    if (scale >= 1) { bitmap.close?.(); return file }
+    const w = Math.round(bitmap.width * scale)
+    const h = Math.round(bitmap.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) { bitmap.close?.(); return file }
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    bitmap.close?.()
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', quality))
+    if (!blob) return file
+    return new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}
+
 // 60s timeout so a slow/dropped mobile connection surfaces a clear error
 // instead of leaving the upload button spinning indefinitely.
 async function uploadDoc(file: File): Promise<string> {
@@ -184,7 +217,8 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
     setUploading(key)
     setError('')
     try {
-      const url = await uploadDoc(file)
+      const resized = await resizeImageFile(file)
+      const url = await uploadDoc(resized)
       setter(url)
     } catch (err: unknown) {
       const isTimeout = err instanceof Error && err.name === 'TimeoutError'
