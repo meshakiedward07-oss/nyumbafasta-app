@@ -1,8 +1,46 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useLanguage } from '@/lib/i18n/context'
+
+// Verification is a 3-5 step wizard that requires taking photos with the
+// phone camera (capture="environment"/"user" file inputs). Each photo step
+// backgrounds the browser tab while the native camera app is open — on
+// memory-constrained Android phones (the norm for this user base) the OS
+// can reclaim the tab mid-flow, silently reloading the page. Without this,
+// all wizard progress (already-uploaded photo URLs included) was lost and
+// the dalali had to start over from the NIDA-number step, which presented
+// as "the app just quits" partway through. Persisting to localStorage lets
+// the wizard resume exactly where it left off after such a reload.
+const DRAFT_KEY = 'nf_verify_draft'
+
+type VerifyDraft = {
+  step: number
+  nida: string
+  whatsapp: string
+  front: string | null
+  back: string | null
+  selfie: string | null
+  licenseUrl: string | null
+  licenseName: string | null
+}
+
+function loadDraft(skip = false): VerifyDraft | null {
+  if (typeof window === 'undefined' || skip) return null
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    return raw ? JSON.parse(raw) as VerifyDraft : null
+  } catch { return null }
+}
+
+function saveDraft(draft: VerifyDraft) {
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)) } catch { /* ignore */ }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
+}
 
 type Props = {
   currentStatus: string
@@ -10,10 +48,12 @@ type Props = {
   hasWhatsapp: boolean
 }
 
+// 60s timeout so a slow/dropped mobile connection surfaces a clear error
+// instead of leaving the upload button spinning indefinitely.
 async function uploadDoc(file: File): Promise<string> {
   const fd = new FormData()
   fd.append('file', file)
-  const res = await fetch('/api/v1/upload/listing', { method: 'POST', body: fd })
+  const res = await fetch('/api/v1/upload/listing', { method: 'POST', body: fd, signal: AbortSignal.timeout(60_000) })
   const data = await res.json()
   if (!data.url) throw new Error(data.error ?? 'Upload ilishindwa')
   return data.url as string
@@ -22,7 +62,7 @@ async function uploadDoc(file: File): Promise<string> {
 async function uploadPdf(file: File): Promise<string> {
   const fd = new FormData()
   fd.append('file', file)
-  const res = await fetch('/api/v1/upload/document', { method: 'POST', body: fd })
+  const res = await fetch('/api/v1/upload/document', { method: 'POST', body: fd, signal: AbortSignal.timeout(60_000) })
   const data = await res.json()
   if (!data.url) throw new Error(data.error ?? 'Upload ilishindwa')
   return data.url as string
@@ -92,18 +132,28 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
   const { t } = useLanguage()
   const router = useRouter()
 
-  const [step, setStep]               = useState(0)
-  const [nida, setNida]               = useState('')
-  const [whatsapp, setWhatsapp]       = useState('')
-  const [front, setFront]             = useState<string | null>(null)
-  const [back, setBack]               = useState<string | null>(null)
-  const [selfie, setSelfie]           = useState<string | null>(null)
-  const [licenseUrl, setLicenseUrl]   = useState<string | null>(null)
-  const [licenseName, setLicenseName] = useState<string | null>(null)
+  // Don't resume a draft across a rejection — the old (rejected) photos
+  // shouldn't be silently resubmitted; a rejected dalali should start clean.
+  const skipDraft = currentStatus === 'rejected'
+  const [step, setStep]               = useState(() => loadDraft(skipDraft)?.step ?? 0)
+  const [nida, setNida]               = useState(() => loadDraft(skipDraft)?.nida ?? '')
+  const [whatsapp, setWhatsapp]       = useState(() => loadDraft(skipDraft)?.whatsapp ?? '')
+  const [front, setFront]             = useState<string | null>(() => loadDraft(skipDraft)?.front ?? null)
+  const [back, setBack]               = useState<string | null>(() => loadDraft(skipDraft)?.back ?? null)
+  const [selfie, setSelfie]           = useState<string | null>(() => loadDraft(skipDraft)?.selfie ?? null)
+  const [licenseUrl, setLicenseUrl]   = useState<string | null>(() => loadDraft(skipDraft)?.licenseUrl ?? null)
+  const [licenseName, setLicenseName] = useState<string | null>(() => loadDraft(skipDraft)?.licenseName ?? null)
   const [uploading, setUploading]     = useState<string | null>(null)
   const [submitting, setSubmitting]   = useState(false)
   const [error, setError]             = useState('')
   const [done, setDone]               = useState(false)
+
+  // Persist progress after every change — including already-uploaded photo
+  // URLs — so a tab reload triggered by the camera app resumes instead of
+  // discarding everything back to step 0.
+  useEffect(() => {
+    saveDraft({ step, nida, whatsapp, front, back, selfie, licenseUrl, licenseName })
+  }, [step, nida, whatsapp, front, back, selfie, licenseUrl, licenseName])
 
   // Steps: 0=NIDA, [1=WhatsApp if needed], last-2=front, last-1=back, last=selfie+license
   const steps = hasWhatsapp
@@ -130,14 +180,15 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
   ) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) { setError(t('verify_photo_large')); return }
+    if (file.size > 10 * 1024 * 1024) { setError(t('verify_photo_large')); return }
     setUploading(key)
     setError('')
     try {
       const url = await uploadDoc(file)
       setter(url)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Upload ilishindwa')
+      const isTimeout = err instanceof Error && err.name === 'TimeoutError'
+      setError(isTimeout ? t('boost_timeout') : err instanceof Error ? err.message : 'Upload ilishindwa')
     } finally {
       setUploading(null)
       e.target.value = ''
@@ -155,7 +206,8 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
       setLicenseUrl(url)
       setLicenseName(file.name)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('verify_license_fail'))
+      const isTimeout = err instanceof Error && err.name === 'TimeoutError'
+      setError(isTimeout ? t('boost_timeout') : err instanceof Error ? err.message : t('verify_license_fail'))
     } finally {
       setUploading(null)
       e.target.value = ''
@@ -179,6 +231,7 @@ export default function VerifyWizard({ currentStatus, rejectionReason, hasWhatsa
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
+      clearDraft()
       setDone(true)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Imeshindwa kutuma')

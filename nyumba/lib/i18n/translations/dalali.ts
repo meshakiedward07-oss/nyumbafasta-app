@@ -94,7 +94,7 @@ const T_dalali = {
   verify_step_front:    { sw: 'Kitambulisho (Mbele)',    en: 'ID (Front)'                       },
   verify_step_back:     { sw: 'Kitambulisho (Nyuma)',    en: 'ID (Back)'                        },
   verify_step_selfie:   { sw: 'Selfie + Leseni',         en: 'Selfie + License'                 },
-  verify_photo_large:   { sw: 'Picha ni kubwa sana (max 5MB)', en: 'Photo is too large (max 5MB)' },
+  verify_photo_large:   { sw: 'Picha ni kubwa sana (max 10MB)', en: 'Photo is too large (max 10MB)' },
   verify_pdf_large:     { sw: 'PDF ni kubwa sana (max 10MB)', en: 'PDF is too large (max 10MB)'  },
   verify_license_fail:  { sw: 'Upload ya leseni ilishindwa', en: 'License upload failed'         },
   verify_reviewing:     { sw: 'Inakaguliwa',             en: 'Under Review'                     },
