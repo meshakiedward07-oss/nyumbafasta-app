@@ -103,6 +103,30 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!region?.trim()) return NextResponse.json({ error: 'Mkoa unahitajika' }, { status: 400 })
     if (!price_monthly || price_monthly <= 0) return NextResponse.json({ error: 'Bei ya kodi inahitajika' }, { status: 400 })
 
+    // Defensive: guarantee a public.users row exists for this caller before
+    // the listings insert below depends on it via its NOT NULL dalali_id FK.
+    // Same fix applied to unlock/initiate — this project's handle_new_user
+    // trigger has had multiple inconsistent versions over time, and a gap
+    // here throws an FK violation that used to be indistinguishable from any
+    // other error behind the generic "Hitilafu ya seva" catch-all below.
+    const { data: existingUserRow } = await admin
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!existingUserRow) {
+      const { error: userUpsertError } = await admin.from('users').upsert({
+        id:        user.id,
+        email:     user.email ?? null,
+        phone:     user.phone ?? null,
+        full_name: (user.user_metadata?.full_name as string | undefined) ?? 'Mtumiaji',
+        role:      'client',
+      }, { onConflict: 'id' })
+      if (userUpsertError) {
+        console.error('[POST /organizations/:id/mali] users upsert fallback failed:', userUpsertError.message)
+      }
+    }
+
     const { data: listing, error } = await admin
       .from('listings')
       .insert({
@@ -128,7 +152,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (error) throw error
     return NextResponse.json({ listing }, { status: 201 })
   } catch (err) {
-    console.error('[POST /organizations/:id/mali]', err)
+    const pgErr = err as { message?: string; code?: string; details?: string; hint?: string }
+    console.error('[POST /organizations/:id/mali]', JSON.stringify({
+      message: pgErr?.message, code: pgErr?.code, details: pgErr?.details, hint: pgErr?.hint,
+    }))
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
 }
