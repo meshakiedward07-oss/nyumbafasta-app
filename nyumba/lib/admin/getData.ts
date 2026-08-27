@@ -14,6 +14,9 @@ export type AdminPageData = {
   stats: {
     pendingCount: number
     activeCount: number
+    takenCount: number
+    rejectedCount: number
+    expiredCount: number
     totalListings: number
     totalUsers: number
     clientCount: number
@@ -28,10 +31,25 @@ export type AdminPageData = {
 export async function getAdminData(): Promise<AdminPageData> {
   const admin = createAdminClient()
 
+  const listingSelectCols = `
+        id, title, type, status, price_monthly,
+        district, region, furnished, amenities,
+        images, description, bedrooms, created_at,
+        dalali:dalali_id (
+          id, full_name, phone,
+          dalali_profiles ( whatsapp_number, is_premium_verified )
+        )
+      `
+
   const [
     allListingsRes,
+    pendingListingsRes,
     totalListingsCountRes,
     activeListingsCountRes,
+    pendingListingsCountRes,
+    takenListingsCountRes,
+    rejectedListingsCountRes,
+    expiredListingsCountRes,
     clientCountRes,
     dalaliCountRes,
     totalUsersCountRes,
@@ -40,26 +58,39 @@ export async function getAdminData(): Promise<AdminPageData> {
     trialSubsRes,
     reportsRes,
   ] = await Promise.all([
-    // Full listing rows (for admin display + region stats) — capped at 100
-    // Exclude hard-deleted listings so they don't reappear on refresh
+    // Full listing rows across all statuses (for the "Zote/Zinapatikana/
+    // Zimepangishwa/..." browse tabs + region stats) — capped at 300 most
+    // recent. The exact per-status COUNTS below do NOT depend on this cap,
+    // since pending/rejected/expired listings (often older, untouched since
+    // submission) can otherwise silently fall outside the cap once the
+    // platform accumulates more rows than the limit, making the admin
+    // panel under-report — or show zero for — statuses that actually have
+    // listings waiting. Exclude hard-deleted listings so they don't
+    // reappear on refresh.
     admin
       .from('listings')
-      .select(`
-        id, title, type, status, price_monthly,
-        district, region, furnished, amenities,
-        images, description, bedrooms, created_at,
-        dalali:dalali_id (
-          id, full_name, phone,
-          dalali_profiles ( whatsapp_number, is_premium_verified )
-        )
-      `)
+      .select(listingSelectCols)
       .neq('status', 'deleted')
       .order('created_at', { ascending: false })
-      .limit(100),
+      .limit(300),
 
-    // Count queries — no rows transferred, pure metadata
+    // Pending-approval queue: fetched on its own (oldest-first, so nothing
+    // waits forever unreviewed), independent of the mixed-status cap above.
+    admin
+      .from('listings')
+      .select(listingSelectCols)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .limit(200),
+
+    // Count queries — no rows transferred, pure metadata, always exact
+    // regardless of how many listings exist.
     admin.from('listings').select('id', { count: 'exact', head: true }).neq('status', 'deleted'),
     admin.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    admin.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    admin.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'taken'),
+    admin.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'rejected'),
+    admin.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'expired'),
 
     admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'client'),
     admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'dalali'),
@@ -108,7 +139,7 @@ export async function getAdminData(): Promise<AdminPageData> {
   ])
 
   const allAdminListings     = (allListingsRes.data ?? []) as unknown as AdminListing[]
-  const pendingListings      = allAdminListings.filter(l => l.status === 'pending')
+  const pendingListings      = (pendingListingsRes.data ?? []) as unknown as AdminListing[]
   const pendingVerifications = (verificationRes.data ?? []) as unknown as AdminVerification[]
   const verifiedDalalis      = (verifiedDalalisRes.data ?? []) as unknown as AdminVerification[]
   const trialSubs            = (trialSubsRes?.data ?? []) as { id: string; status: string; trial_converted_at: string | null }[]
@@ -135,8 +166,11 @@ export async function getAdminData(): Promise<AdminPageData> {
     reports,
     regionStats,
     stats: {
-      pendingCount:    pendingListings.length,
+      pendingCount:    pendingListingsCountRes.count ?? 0,
       activeCount:     activeListingsCountRes.count ?? 0,
+      takenCount:      takenListingsCountRes.count ?? 0,
+      rejectedCount:   rejectedListingsCountRes.count ?? 0,
+      expiredCount:    expiredListingsCountRes.count ?? 0,
       totalListings:   totalListingsCountRes.count ?? 0,
       totalUsers,
       clientCount,

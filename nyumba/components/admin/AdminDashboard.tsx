@@ -17,6 +17,9 @@ type Tab = 'overview' | 'listings' | 'verify' | 'reports'
 type Stats = {
   pendingCount: number
   activeCount: number
+  takenCount?: number
+  rejectedCount?: number
+  expiredCount?: number
   totalListings: number
   totalUsers: number
   clientCount: number
@@ -78,7 +81,18 @@ export default function AdminDashboard({
   // ── Main tabs ─────────────────────────────────────────
   const [tab, setTab]   = useState<Tab>(initialTab)
   const [listings, setListings] = useState(pendingListings)
-  const [allListingsState, setAllListingsState] = useState(allListings)
+  // allListings is a recency-capped mixed-status fetch — on a platform with
+  // more than a few hundred listings, older pending ones (often untouched
+  // for days, exactly the ones needing review most) can fall outside that
+  // cap and silently vanish from the "Zinasubiri" tab/count. pendingListings
+  // is fetched separately with no such cap, so merge it in to guarantee
+  // every pending listing is always represented here regardless of overall
+  // listing volume.
+  const [allListingsState, setAllListingsState] = useState(() => {
+    const merged = new Map(allListings.map(l => [l.id, l]))
+    for (const l of pendingListings) merged.set(l.id, l)
+    return Array.from(merged.values())
+  })
   const [listingStatusFilter, setListingStatusFilter] = useState<string>('pending')
   const [loadingId, setLoadingId]   = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
@@ -511,12 +525,16 @@ export default function AdminDashboard({
           <>
             <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
               {[
-                { key: 'all',      label: `Zote (${allListingsState.length})` },
-                { key: 'pending',  label: `Zinasubiri (${allListingsState.filter(l=>l.status==='pending').length})` },
-                { key: 'active',   label: `Zinapatikana (${allListingsState.filter(l=>l.status==='active').length})` },
-                { key: 'taken',    label: `Zimepangishwa (${allListingsState.filter(l=>l.status==='taken').length})` },
-                { key: 'rejected', label: `Zilikataliwa (${allListingsState.filter(l=>l.status==='rejected').length})` },
-                { key: 'expired',  label: `Zimeisha (${allListingsState.filter(l=>l.status==='expired').length})` },
+                // Counts prefer the exact server-side totals (stats.*) —
+                // computed via head-count queries with no row cap — falling
+                // back to the in-memory list only if a count wasn't
+                // provided (e.g. an older cached prop shape).
+                { key: 'all',      label: `Zote (${stats.totalListings ?? allListingsState.length})` },
+                { key: 'pending',  label: `Zinasubiri (${listings.length})` },
+                { key: 'active',   label: `Zinapatikana (${stats.activeCount ?? allListingsState.filter(l=>l.status==='active').length})` },
+                { key: 'taken',    label: `Zimepangishwa (${stats.takenCount ?? allListingsState.filter(l=>l.status==='taken').length})` },
+                { key: 'rejected', label: `Zilikataliwa (${stats.rejectedCount ?? allListingsState.filter(l=>l.status==='rejected').length})` },
+                { key: 'expired',  label: `Zimeisha (${stats.expiredCount ?? allListingsState.filter(l=>l.status==='expired').length})` },
               ].map(f => (
                 <button key={f.key} onClick={() => setListingStatusFilter(f.key)}
                   className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full transition-colors ${
