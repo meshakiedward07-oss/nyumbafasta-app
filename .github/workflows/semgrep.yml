@@ -1,0 +1,46 @@
+name: Semgrep Security Scan
+
+# Static-analysis security gate for the app. Runs the same rulesets as
+# `npm run security:scan` (nyumba/package.json) so local and CI results
+# always match. Blocks the PR/push on any finding — findings should be
+# fixed or explicitly suppressed with a `// nosemgrep: <rule-id>` comment
+# and a one-line reason, not silently ignored.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  semgrep:
+    name: semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        working-directory: nyumba
+        run: |
+          semgrep ci \
+            --config p/security-audit \
+            --config p/owasp-top-ten \
+            --config p/nextjs \
+            --config p/typescript \
+            --config p/javascript \
+            --config p/secrets \
+            --config p/sql-injection \
+            --config p/jwt \
+            --config p/react \
+            --config p/command-injection \
+            --metrics=off
+        env:
+          # Set this repo secret to a token from semgrep.dev (Settings →
+          # Deployments) to unlock Semgrep Registry Pro rules, diff-aware
+          # scanning on PRs, and the semgrep.dev findings dashboard. The
+          # scan above runs fully and correctly without it too — the free
+          # registry rulesets listed explicitly don't require a token.
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}

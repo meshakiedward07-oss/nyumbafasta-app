@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "security:scan": "semgrep scan --config p/security-audit --config p/owasp-top-ten --config p/nextjs --config p/typescript --config p/javascript --config p/secrets --config p/sql-injection --config p/jwt --config p/react --config p/command-injection --metrics=off"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
