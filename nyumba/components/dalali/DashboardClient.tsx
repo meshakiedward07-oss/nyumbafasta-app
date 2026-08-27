@@ -69,6 +69,13 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
 
   const [welcomeDismissed, setWelcomeDismissed] = useState(false)
   const showWelcome = searchParams.get('welcome') === 'true' && !welcomeDismissed
+  // This modal used to show "you got Enterprise, 30 days free" to EVERY new
+  // dalali unconditionally, regardless of whether trial activation actually
+  // succeeded — some signups ended up with no subscription row at all (a
+  // separate backend issue) while still seeing this exact promise. Gate the
+  // content on the real subscription so it never claims something that
+  // wasn't actually granted.
+  const gotEnterpriseTrial = subscription?.plan === 'enterprise' && subscription?.is_trial === true
 
   function dismissWelcome() {
     setWelcomeDismissed(true)
@@ -639,63 +646,95 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
           onClick={dismissWelcome}
         >
           <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="bg-gradient-to-br from-primary-500 to-primary-700 px-6 pt-6 pb-5 text-center relative">
-              <button onClick={dismissWelcome} aria-label="Funga"
-                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white text-sm">
-                <i className="ti ti-x" aria-hidden="true" />
-              </button>
-              {/* Badge */}
-              <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                <i className="ti ti-crown text-yellow-300" aria-hidden="true" /> ENTERPRISE PLAN
-              </div>
-              <h2 className="font-bold text-2xl text-white leading-tight">{t('dash_welcome_modal_title')}</h2>
-              <p className="text-primary-100 text-sm mt-1">{t('dash_welcome_modal_sub')}</p>
-              {/* Days countdown */}
-              <div className="mt-4 inline-flex items-center gap-3 bg-white/10 rounded-2xl px-5 py-3">
-                <div className="text-center">
-                  <div className="text-4xl font-black text-white">30</div>
-                  <div className="text-primary-200 text-[10px] uppercase tracking-wider">Siku Bure</div>
-                </div>
-                <div className="w-px h-10 bg-white/20" />
-                <div className="text-left">
-                  <div className="text-white text-xs font-semibold">Inaanza leo</div>
-                  <div className="text-primary-200 text-[10px] mt-0.5">Bila kadi ya benki</div>
-                  <div className="text-primary-200 text-[10px]">Bila malipo yoyote</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Features */}
-            <div className="px-5 pt-4 pb-2">
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Unachopata sasa hivi</p>
-              <div className="space-y-2">
-                {[
-                  { icon: 'ti-home-2',      text: 'Listings hadi 50 active' },
-                  { icon: 'ti-photo',       text: 'Picha 20 kwa kila listing' },
-                  { icon: 'ti-video',       text: 'Video za listings' },
-                  { icon: 'ti-rocket',      text: 'Boost listing — ionekane juu zaidi' },
-                  { icon: 'ti-rosette-discount-check', text: 'Verified badge — wateja wanakuamini' },
-                  { icon: 'ti-chart-bar',   text: 'Analytics kamili + export data' },
-                  { icon: 'ti-brand-whatsapp', text: 'WhatsApp yako inaonekana kwa wateja' },
-                  { icon: 'ti-headset',     text: 'Priority support 24/7' },
-                ].map(f => (
-                  <div key={f.icon} className="flex items-center gap-2.5">
-                    <div className="w-6 h-6 bg-primary-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <i className={`ti ${f.icon} text-primary-600 text-xs`} aria-hidden="true" />
-                    </div>
-                    <span className="text-sm text-gray-700">{f.text}</span>
-                    <i className="ti ti-check text-green-500 text-sm ml-auto" aria-hidden="true" />
+            {gotEnterpriseTrial ? (
+              <>
+                {/* Header */}
+                <div className="bg-gradient-to-br from-primary-500 to-primary-700 px-6 pt-6 pb-5 text-center relative">
+                  <button onClick={dismissWelcome} aria-label="Funga"
+                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white text-sm">
+                    <i className="ti ti-x" aria-hidden="true" />
+                  </button>
+                  {/* Badge */}
+                  <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">
+                    <i className="ti ti-crown text-yellow-300" aria-hidden="true" /> ENTERPRISE PLAN
                   </div>
-                ))}
-              </div>
-            </div>
+                  <h2 className="font-bold text-2xl text-white leading-tight">{t('dash_welcome_modal_title')}</h2>
+                  <p className="text-primary-100 text-sm mt-1">{t('dash_welcome_modal_sub')}</p>
+                  {/* Days countdown */}
+                  <div className="mt-4 inline-flex items-center gap-3 bg-white/10 rounded-2xl px-5 py-3">
+                    <div className="text-center">
+                      <div className="text-4xl font-black text-white">30</div>
+                      <div className="text-primary-200 text-[10px] uppercase tracking-wider">Siku Bure</div>
+                    </div>
+                    <div className="w-px h-10 bg-white/20" />
+                    <div className="text-left">
+                      <div className="text-white text-xs font-semibold">Inaanza leo</div>
+                      <div className="text-primary-200 text-[10px] mt-0.5">Bila kadi ya benki</div>
+                      <div className="text-primary-200 text-[10px]">Bila malipo yoyote</div>
+                    </div>
+                  </div>
+                </div>
 
-            {/* After trial info */}
-            <div className="mx-5 mt-3 mb-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
-              <i className="ti ti-info-circle text-amber-500 text-base flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <p className="text-xs text-amber-700 leading-snug">{t('dash_welcome_modal_after')}</p>
-            </div>
+                {/* Features */}
+                <div className="px-5 pt-4 pb-2">
+                  <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Unachopata sasa hivi</p>
+                  <div className="space-y-2">
+                    {[
+                      { icon: 'ti-home-2',      text: 'Listings hadi 50 active' },
+                      { icon: 'ti-photo',       text: 'Picha 20 kwa kila listing' },
+                      { icon: 'ti-video',       text: 'Video za listings' },
+                      { icon: 'ti-rocket',      text: 'Boost listing — ionekane juu zaidi' },
+                      { icon: 'ti-rosette-discount-check', text: 'Verified badge — wateja wanakuamini' },
+                      { icon: 'ti-chart-bar',   text: 'Analytics kamili + export data' },
+                      { icon: 'ti-brand-whatsapp', text: 'WhatsApp yako inaonekana kwa wateja' },
+                      { icon: 'ti-headset',     text: 'Priority support 24/7' },
+                    ].map(f => (
+                      <div key={f.icon} className="flex items-center gap-2.5">
+                        <div className="w-6 h-6 bg-primary-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <i className={`ti ${f.icon} text-primary-600 text-xs`} aria-hidden="true" />
+                        </div>
+                        <span className="text-sm text-gray-700">{f.text}</span>
+                        <i className="ti ti-check text-green-500 text-sm ml-auto" aria-hidden="true" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* After trial info */}
+                <div className="mx-5 mt-3 mb-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
+                  <i className="ti ti-info-circle text-amber-500 text-base flex-shrink-0 mt-0.5" aria-hidden="true" />
+                  <p className="text-xs text-amber-700 leading-snug">{t('dash_welcome_modal_after')}</p>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Honest fallback — trial activation didn't grant Enterprise
+                    (or failed outright); never promise a plan that wasn't
+                    actually applied to this account. */}
+                <div className="bg-gradient-to-br from-primary-500 to-primary-700 px-6 pt-6 pb-5 text-center relative">
+                  <button onClick={dismissWelcome} aria-label="Funga"
+                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white text-sm">
+                    <i className="ti ti-x" aria-hidden="true" />
+                  </button>
+                  <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">
+                    <i className="ti ti-home" aria-hidden="true" /> FREE PLAN
+                  </div>
+                  <h2 className="font-bold text-2xl text-white leading-tight">Karibu NyumbaFasta! 👋</h2>
+                  <p className="text-primary-100 text-sm mt-1">Akaunti yako iko tayari kwenye Free Plan</p>
+                </div>
+                <div className="px-5 pt-4 pb-2">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <div className="w-6 h-6 bg-primary-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <i className="ti ti-home-2 text-primary-600 text-xs" aria-hidden="true" />
+                    </div>
+                    <span className="text-sm text-gray-700">Listings 2 active</span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-snug mt-3">
+                    Chagua Basic, Premium au Enterprise wakati wowote ili kuongeza uwezo wako — listings zaidi, boost, verified badge, na analytics kamili.
+                  </p>
+                </div>
+              </>
+            )}
 
             {/* CTA */}
             <div className="px-5 pb-5 flex flex-col gap-2">
@@ -703,7 +742,7 @@ export default function DashboardClient({ dalaliName, profile, subscription, lis
                 onClick={dismissWelcome}
                 className="w-full bg-primary-500 text-white py-3.5 rounded-2xl font-bold text-sm active:scale-95 transition-transform"
               >
-                {t('dash_welcome_modal_btn')}
+                {gotEnterpriseTrial ? t('dash_welcome_modal_btn') : 'Sawa, Nimeelewa'}
               </button>
               <Link
                 href="/dashboard/subscription"
