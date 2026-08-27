@@ -49,6 +49,35 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient()
 
+    // Defensive: guarantee a public.users row exists for this auth user
+    // before the contact_unlocks FK insert below depends on it. The
+    // handle_new_user trigger is supposed to create this row automatically
+    // on signup (including guest signInAnonymously() sessions), but this
+    // project has accumulated several inconsistent versions of that trigger
+    // over time, and one that silently fails leaves an auth user with no
+    // matching public.users row — the contact_unlocks insert then fails an
+    // FK constraint, which used to surface only as a generic "Imeshindwa
+    // kuanzisha malipo" with the real cause buried in server logs. This
+    // makes unlock-initiation immune to that trigger drift for both guests
+    // and real accounts.
+    const { data: existingUserRow } = await admin
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!existingUserRow) {
+      const { error: userUpsertError } = await admin.from('users').upsert({
+        id:        user.id,
+        email:     user.email ?? null,
+        phone:     user.phone ?? null,
+        full_name: (user.user_metadata?.full_name as string | undefined) ?? 'Mtumiaji',
+        role:      'client',
+      }, { onConflict: 'id' })
+      if (userUpsertError) {
+        console.error('[Unlock/initiate] users upsert fallback failed:', userUpsertError.message)
+      }
+    }
+
     const { data: listing, error: listingError } = await admin
       .from('listings')
       .select('id, dalali_id, status, type, district, dalali:dalali_id(full_name)')
