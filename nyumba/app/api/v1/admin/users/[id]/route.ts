@@ -142,6 +142,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     })
 
     if (rpcError) {
+      console.error('[DELETE /admin/users/:id] delete_user_account RPC failed, using JS fallback:', rpcError.message)
       // Fallback: manually cascade-delete FK-constrained rows, then delete user.
       // Order matters — delete child tables before parent (users).
 
@@ -191,12 +192,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         // Legal violations
         adminClient.from('agreement_violations').delete().eq('reporter_id', id),
         adminClient.from('agreement_violations').delete().eq('reported_user_id', id),
-        // Agent leads
+        // Agent leads — agent_leads has no created_by column (only
+        // assigned_to); that used to be here as a copy/paste mixup with the
+        // unrelated lead_communications table, which does have created_by.
         adminClient.from('agent_leads').delete().eq('assigned_to', id),
-        adminClient.from('agent_leads').delete().eq('created_by', id),
+        adminClient.from('lead_communications').delete().eq('created_by', id),
         // Staff-specific tables
         adminClient.from('staff_permissions').delete().eq('staff_id', id),
         adminClient.from('staff_activity_log').delete().eq('staff_id', id),
+        // Communication Hub messages — sender_id used to have no ON DELETE
+        // action, so any message this user sent (even in a conversation they
+        // didn't create) blocked the final users delete below.
+        adminClient.from('messages').delete().eq('sender_id', id),
       ])
       await adminClient.from('contact_unlocks').delete().or(`dalali_id.eq.${id},client_id.eq.${id}`)
       await adminClient.from('reviews').delete().or(`dalali_id.eq.${id},reviewer_id.eq.${id}`)
