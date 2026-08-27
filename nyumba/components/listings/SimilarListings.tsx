@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useLanguage } from '@/lib/i18n/context'
 
 type SimilarListingsProps = {
@@ -143,11 +144,12 @@ export default function SimilarListings({
               {/* Image */}
               <div className="relative h-28 bg-gray-100">
                 {listing.images?.[0] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
+                    fill
                     src={listing.images[0]}
                     alt={listing.title}
-                    className="w-full h-full object-cover"
+                    className="object-cover"
+                    sizes="176px"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">

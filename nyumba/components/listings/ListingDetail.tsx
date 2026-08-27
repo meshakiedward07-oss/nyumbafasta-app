@@ -8,7 +8,6 @@ import type { Listing } from '@/lib/types/database'
 import SaveButton from '@/components/shared/SaveButton'
 import ShareButton from '@/components/shared/ShareButton'
 import Avatar from '@/components/shared/Avatar'
-import UnlockModal from '@/components/payments/UnlockModal'
 import ReviewList from '@/components/listings/ReviewList'
 import ReviewForm from '@/components/listings/ReviewForm'
 import ReportDalaliModal from '@/components/listings/ReportDalaliModal'
@@ -33,6 +32,15 @@ const SingleListingMap = dynamic(
 
 const RankedAdSlot = dynamic(
   () => import('@/components/ads/RankedAdSlot'),
+  { ssr: false }
+)
+
+// UnlockModal (payment/STK-push flow, 600+ lines) is only ever rendered
+// after the visitor clicks "unlock" — loading it eagerly meant every listing
+// detail page view (the core conversion page) paid for it whether or not
+// the visitor ever unlocks.
+const UnlockModal = dynamic(
+  () => import('@/components/payments/UnlockModal'),
   { ssr: false }
 )
 

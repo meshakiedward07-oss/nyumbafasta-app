@@ -38,6 +38,27 @@ function redirectWithCookies(url: URL | string, supabaseResponse: NextResponse):
 }
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname
+
+  // Non-admin API routes: every check below (PROTECTED_ROUTES, AUTH_ROUTES,
+  // MFA, email-verification, agreement, role gating) only matches page paths
+  // — none of them start with /api/, so `user` from the getUser() call was
+  // being fetched (a real network round-trip to Supabase Auth) and then
+  // never actually used for these requests. Every route handler already
+  // does its own auth via its own createClient().auth.getUser() call, so
+  // this was pure duplicated latency on every single API request app-wide.
+  // /api/v1/admin/* is the one exception — it needs `user.id` for the
+  // rate-limit check further down — so it still goes through the full path.
+  if (path.startsWith('/api/') && !path.startsWith('/api/v1/admin/')) {
+    const res = NextResponse.next({ request })
+    res.headers.set('X-Frame-Options', 'DENY')
+    res.headers.set('X-Content-Type-Options', 'nosniff')
+    res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+    return res
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -62,7 +83,6 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-  const path = request.nextUrl.pathname
 
   // Detect portal type from user_metadata (no extra DB query needed).
   // org_owner and tenant have their own consent flow inside the property portal

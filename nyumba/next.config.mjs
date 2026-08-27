@@ -24,8 +24,11 @@ const nextConfig = {
   serverExternalPackages: ['sharp'],
 
   experimental: {
-    // Tree-shake these packages so only used icons/functions are bundled
-    optimizePackageImports: ['lucide-react', '@tabler/icons-react', '@supabase/supabase-js'],
+    // Tree-shake this package so only used functions are bundled.
+    // (lucide-react and @tabler/icons-react were listed here previously but
+    // aren't installed dependencies — this app uses @tabler/icons-webfont,
+    // a CSS webfont, which optimizePackageImports doesn't apply to anyway.)
+    optimizePackageImports: ['@supabase/supabase-js'],
   },
 
   async headers() {

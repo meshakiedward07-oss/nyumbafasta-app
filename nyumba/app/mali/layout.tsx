@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 // Lightweight server-rendered layout for SEO landing pages.
 // Keeps a branded header + footer so these pages are fully usable and
@@ -8,12 +9,14 @@ export default function MaliLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-primary-500 sticky top-0 z-20 shadow-sm">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-2">
-          <Link href="/" className="h-11 w-[180px] block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <Link href="/" className="h-11 w-[180px] block relative">
+            <Image
+              fill
+              priority
               src="/transparent_logo_nyumbafasta.png"
               alt="NyumbaFasta"
-              className="h-full w-full object-contain object-left"
+              className="object-contain object-left"
+              sizes="180px"
             />
           </Link>
           <Link

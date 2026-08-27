@@ -224,12 +224,14 @@ export default function AgentProfileClient({ dalali, listings, reviews, primaryR
       {/* ── Header / brand bar ─────────────────────────────── */}
       <header className="bg-primary-500 sticky top-0 z-30 shadow-sm">
         <div className="max-w-2xl mx-auto flex items-center justify-between px-4 py-2">
-          <Link href="/" className="h-10 w-[160px] block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <Link href="/" className="h-10 w-[160px] block relative">
+            <Image
+              fill
+              priority
               src="/transparent_logo_nyumbafasta.png"
               alt="NyumbaFasta"
-              className="h-full w-full object-contain object-left"
+              className="object-contain object-left"
+              sizes="160px"
             />
           </Link>
           <Link href="/" className="text-white/80 text-xs font-medium hover:text-white transition-colors">

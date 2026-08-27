@@ -15,11 +15,17 @@ export const metadata: Metadata = {
   },
 }
 
+// Ad plans change rarely — mirror the revalidate pattern used by every
+// other public/SEO page that reads via createAdminClient() (directory,
+// mali/[region], dalali/[id], agent/[username]) instead of staying fully
+// dynamic on every request.
+export const revalidate = 3600
+
 async function getPlans() {
   const admin = createAdminClient()
   const { data } = await admin
     .from('ad_subscription_plans')
-    .select('*')
+    .select('id, name, description, features, price_tzs, duration_days, ad_type')
     .eq('is_active', true)
     .order('display_order', { ascending: true })
   return data ?? []

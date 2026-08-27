@@ -32,7 +32,7 @@ export async function requireAdvertiserAuth(): Promise<AdvertiserAuthResult> {
   const admin = createAdminClient()
   const { data: advertiser } = await admin
     .from('advertisers')
-    .select('*')
+    .select('id, user_id, business_name, business_category, contact_phone, whatsapp_number, email, city, district, description, logo_url, website_url, status')
     .eq('user_id', user.id)
     .maybeSingle()
 
