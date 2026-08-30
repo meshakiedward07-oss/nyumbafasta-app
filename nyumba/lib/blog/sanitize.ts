@@ -7,7 +7,12 @@ import DOMPurify from 'isomorphic-dompurify'
 // script into a public page. Allowlist covers exactly what RichTextEditor
 // (components/admin/RichTextEditor.tsx) can actually produce.
 const ALLOWED_TAGS = [
-  'p', 'br', 'strong', 'em', 'u', 's',
+  // 'b'/'i' included alongside 'strong'/'em': document.execCommand('bold'/
+  // 'italic') outputs <b>/<i> tags by default in every browser (not
+  // <strong>/<em>) since RichTextEditor never enables styleWithCSS — without
+  // these, every bold/italic a blogger applies was being silently stripped
+  // on save, with no error shown anywhere.
+  'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's',
   'h2', 'h3', 'h4',
   'ul', 'ol', 'li',
   'a', 'img',

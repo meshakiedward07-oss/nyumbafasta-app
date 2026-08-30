@@ -61,6 +61,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       meta_description?: string
     }
 
+    if (body.title !== undefined && !body.title.trim()) {
+      return NextResponse.json({ error: 'Kichwa cha habari hakiwezi kuwa tupu' }, { status: 400 })
+    }
+
     const { data: existing, error: fetchErr } = await supabaseAdmin
       .from('blog_posts')
       .select('id, status, published_at')

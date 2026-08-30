@@ -20,21 +20,31 @@ const BTN = 'w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 h
 export default function RichTextEditor({ value, onChange, placeholder }: Props) {
   const editorRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const lastValueRef = useRef(value)
 
-  // Only sync from props → DOM when the value changed elsewhere (e.g.
-  // loading an existing post into the editor) — never on every keystroke,
-  // which would fight the browser's own cursor position.
+  // Sync from props → DOM only when it actually differs from what's live in
+  // the editor right now (comparing against the DOM itself, not a shadow
+  // ref) — this both (a) correctly paints the initial content on mount when
+  // editing an existing post, which the previous ref-based guard skipped
+  // entirely (a useRef(value) initializer already equals `value` at mount,
+  // so "value !== lastValueRef.current" was always false the first time —
+  // the editor rendered blank for every existing post, and typing so much
+  // as one character would overwrite the whole saved post with just that
+  // keystroke on next save), and (b) still never fights the cursor while
+  // typing, since after emit() updates the DOM directly there's nothing
+  // left to resync.
   useEffect(() => {
-    if (editorRef.current && value !== lastValueRef.current) {
+    if (editorRef.current && editorRef.current.innerHTML !== (value || '')) {
       editorRef.current.innerHTML = value || ''
-      lastValueRef.current = value
     }
   }, [value])
 
   const emit = useCallback(() => {
+    // Browsers often leave a lone <br> behind when every character is
+    // deleted, so the div is no longer truly :empty and the CSS placeholder
+    // (empty:before:content-…) stops showing even though the post looks
+    // blank to the author. Normalize that one case back to real emptiness.
+    if (editorRef.current?.innerHTML === '<br>') editorRef.current.innerHTML = ''
     const html = editorRef.current?.innerHTML ?? ''
-    lastValueRef.current = html
     onChange(html)
   }, [onChange])
 

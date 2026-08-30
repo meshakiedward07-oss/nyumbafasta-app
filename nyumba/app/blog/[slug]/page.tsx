@@ -80,7 +80,11 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-// Fire-and-forget view counter — best-effort, never blocks or fails the page.
+// Best-effort view counter — awaited (not truly fire-and-forget): on Vercel's
+// serverless runtime an un-awaited promise left running after the page
+// component returns has no guarantee of finishing before the function
+// instance is frozen/torn down, so views would go uncounted unpredictably.
+// The added latency is one small UPDATE query; failures never block the page.
 async function bumpViewCount(id: string) {
   try {
     const admin = createAdminClient()
@@ -99,7 +103,7 @@ export default async function BlogPostPage({
   const post = await getPost(slug)
   if (!post) notFound()
 
-  bumpViewCount(post.id)
+  await bumpViewCount(post.id)
 
   const schema = {
     '@context': 'https://schema.org',
