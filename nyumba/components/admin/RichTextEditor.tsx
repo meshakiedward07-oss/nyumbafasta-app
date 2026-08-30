@@ -55,8 +55,40 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
   }
 
   function handleLink() {
-    const url = window.prompt('Weka link (URL):', 'https://')
-    if (url) exec('createLink', url)
+    const raw = window.prompt('Weka link (URL):', 'https://')
+    if (!raw) return
+    const trimmed = raw.trim()
+    if (!trimmed || trimmed === 'https://') return
+    // Bare domains/paths (e.g. "nyumbafasta.co/blog") would otherwise become
+    // a broken relative link — default to https:// when no scheme is given.
+    const url = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`
+    exec('createLink', url)
+  }
+
+  // Inserted manually via the Range API (not execCommand('insertImage'),
+  // which has no way to set alt text) so every content image can carry real
+  // alt text — both for accessibility and because Google Images indexing is
+  // part of why this feature exists at all.
+  function insertImageAtCursor(url: string, alt: string) {
+    const editor = editorRef.current
+    if (!editor) return
+    editor.focus()
+    const img = document.createElement('img')
+    img.src = url
+    img.alt = alt
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
+      const range = sel.getRangeAt(0)
+      range.deleteContents()
+      range.insertNode(img)
+      range.setStartAfter(img)
+      range.setEndAfter(img)
+      sel.removeAllRanges()
+      sel.addRange(range)
+    } else {
+      editor.appendChild(img)
+    }
+    emit()
   }
 
   async function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -69,7 +101,8 @@ export default function RichTextEditor({ value, onChange, placeholder }: Props) 
       const res = await fetch('/api/v1/upload/listing', { method: 'POST', body: fd })
       const data = await res.json() as { url?: string; error?: string }
       if (!data.url) throw new Error(data.error ?? 'Upload imeshindwa')
-      exec('insertImage', data.url)
+      const alt = window.prompt('Maelezo mafupi ya picha (alt text — kwa SEO na watu wenye ulemavu wa macho):', '') ?? ''
+      insertImageAtCursor(data.url, alt.trim())
     } catch (err) {
       window.alert(err instanceof Error ? err.message : 'Imeshindwa kupakia picha')
     }
