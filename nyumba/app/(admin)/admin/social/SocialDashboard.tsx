@@ -10,10 +10,11 @@ import BestTimeTab from './BestTimeTab'
 import MarketplaceTab from './MarketplaceTab'
 import TikTokTab from './TikTokTab'
 import ListingsTab from './ListingsTab'
+import BlogTab from './BlogTab'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = 'yote' | 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'marketplace' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule' | 'tiktok' | 'listings'
+type Tab = 'yote' | 'overview' | 'posts' | 'upload' | 'groups' | 'stories' | 'carousel' | 'marketplace' | 'spam' | 'besttime' | 'comments' | 'dms' | 'postnow' | 'schedule' | 'tiktok' | 'listings' | 'blog'
 
 type UnifiedPlatformStat = {
   platform: string; label?: string; totalPosts: number; successPosts: number; failedPosts: number
@@ -117,6 +118,7 @@ const SIDEBAR_GROUPS: { title: string; items: { id: Tab; label: string; icon: st
       { id: 'upload',   label: 'Pakia Video',      icon: 'video' },
       { id: 'stories',  label: 'Stories',          icon: 'circle-dot' },
       { id: 'carousel', label: 'Carousel',         icon: 'slideshow' },
+      { id: 'blog',     label: 'Blog (SEO)',       icon: 'notes' },
     ],
   },
   {
@@ -877,6 +879,8 @@ export default function SocialDashboard() {
 
           {/* ── CAROUSEL ── */}
           {activeTab === 'carousel' && <CarouselTab />}
+
+          {activeTab === 'blog' && <BlogTab />}
 
           {/* ── MARKETPLACE ── */}
           {activeTab === 'marketplace' && <MarketplaceTab />}

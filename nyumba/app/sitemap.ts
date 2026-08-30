@@ -17,10 +17,11 @@ export const dynamic = 'force-dynamic'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let listings: { id: string; updated_at: string | null }[] = []
   let dalalis: { username: string }[] = []
+  let blogPosts: { slug: string; updated_at: string | null }[] = []
 
   try {
     const admin = createAdminClient()
-    const [listingsRes, dalaliRes] = await Promise.all([
+    const [listingsRes, dalaliRes, blogRes] = await Promise.all([
       admin
         .from('listings')
         .select('id, updated_at')
@@ -37,11 +38,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .eq('dalali_profiles.is_premium_verified', true)
         .not('username', 'is', null)
         .limit(1000),
+      admin
+        .from('blog_posts')
+        .select('slug, updated_at')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .limit(1000),
     ])
     listings = listingsRes.data ?? []
     dalalis = (dalaliRes.data ?? [])
       .filter(d => !!d.username)
       .map(d => ({ username: d.username as string }))
+    blogPosts = blogRes.data ?? []
   } catch {
     // DB unavailable at build time — return static URLs only
   }
@@ -82,12 +90,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.75,
   }))
 
+  // ── Blog posts ──────────────────────────────────────────────
+  const blogUrls: MetadataRoute.Sitemap = blogPosts.map(post => ({
+    url: `${APP_URL}/blog/${post.slug}`,
+    lastModified: post.updated_at ?? now,
+    changeFrequency: 'monthly',
+    priority: 0.6,
+  }))
+
   // ── Static pages ──────────────────────────────────────────
   const staticUrls: MetadataRoute.Sitemap = [
     { url: APP_URL,                              lastModified: now, changeFrequency: 'hourly',  priority: 1.0 },
     { url: `${APP_URL}/register`,                lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${APP_URL}/directory`,               lastModified: now, changeFrequency: 'daily',   priority: 0.8 },
     { url: `${APP_URL}/advertising`,             lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${APP_URL}/blog`,                    lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${APP_URL}/terms`,                   lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${APP_URL}/privacy`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${APP_URL}/data-deletion`,           lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
@@ -100,5 +117,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...regionTypeUrls,
     ...listingUrls,
     ...dalaliUrls,
+    ...blogUrls,
   ]
 }

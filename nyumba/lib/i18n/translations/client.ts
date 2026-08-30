@@ -361,6 +361,7 @@ const T_client = {
   cl_footer_links:          { sw: 'Viungo',                      en: 'Links'              },
   cl_footer_search_home:    { sw: 'Tafuta Nyumba',               en: 'Find a Home'        },
   cl_footer_register_agent: { sw: 'Jiandikishe kama Dalali',     en: 'Register as Agent'  },
+  cl_footer_blog:           { sw: 'Blog',                        en: 'Blog'               },
   cl_footer_advertise:      { sw: 'Tangaza Biashara Yako',       en: 'Advertise Your Business' },
   cl_footer_advertise_mob:  { sw: 'Tangaza Biashara',            en: 'Advertise'          },
   cl_footer_help:           { sw: 'Msaada',                      en: 'Help'               },

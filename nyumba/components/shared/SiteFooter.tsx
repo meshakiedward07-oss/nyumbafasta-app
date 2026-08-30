@@ -22,6 +22,7 @@ export default function SiteFooter() {
             <div className="space-y-2">
               <Link href="/" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">{t('cl_footer_search_home')}</Link>
               <Link href="/directory" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">{t('nav_directory')}</Link>
+              <Link href="/blog" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">{t('cl_footer_blog')}</Link>
               <Link href="/register" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">{t('cl_footer_register_agent')}</Link>
               <Link href="/advertising" className="block text-xs text-gray-500 hover:text-primary-600 hover:underline">{t('cl_footer_advertise')}</Link>
             </div>
@@ -40,6 +41,7 @@ export default function SiteFooter() {
         {/* Mobile: centered links */}
         <div className="lg:hidden flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-gray-500 mb-3">
           <Link href="/advertising" className="hover:text-primary-600 hover:underline font-medium">{t('cl_footer_advertise_mob')}</Link>
+          <Link href="/blog" className="hover:text-primary-600 hover:underline">{t('cl_footer_blog')}</Link>
           <Link href="/terms" className="hover:text-primary-600 hover:underline">{t('cl_footer_terms')}</Link>
           <Link href="/privacy" className="hover:text-primary-600 hover:underline">{t('cl_footer_privacy')}</Link>
           <Link href="/data-deletion" className="hover:text-primary-600 hover:underline">{t('cl_footer_data_deletion')}</Link>
