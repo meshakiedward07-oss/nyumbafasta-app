@@ -1,7 +1,17 @@
-// Rate limiter with Upstash Redis REST API support.
-// Set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN in Vercel env vars
-// to enable a shared, cross-instance rate limiter (required for serverless).
-// Falls back to in-memory Map (per-instance only) when env vars are absent.
+// Rate limiter with three tiers, tried in order:
+//   1. Upstash Redis REST API — if UPSTASH_REDIS_REST_URL/TOKEN are set.
+//   2. Postgres RPC (nf_rate_limit_check) — always available, no extra
+//      account/env var needed, since it just reuses the Supabase project
+//      this app already runs on. This is the tier that actually matters:
+//      Vercel runs many independent instances of the same function with NO
+//      shared memory between them, so the in-memory fallback below was
+//      silently letting up to (limit × live-instance-count) requests
+//      through instead of `limit` — a security control that gets WEAKER as
+//      traffic grows, exactly backwards. The DB tier makes correctness the
+//      default without requiring anyone to provision Redis first.
+//   3. In-memory Map (per-instance only) — last-resort fallback if the
+//      database itself is unreachable; degrades to per-instance limits
+//      rather than blocking real users entirely (fail open on total outage).
 //
 // Redis implementation uses a single atomic pipeline (INCR + EXPIRE in one
 // HTTP round-trip) so the TTL is always set even if the function crashes.
@@ -89,6 +99,38 @@ async function redisRateLimit(
   return { allowed: true, remaining: Math.max(0, limit - count), resetIn }
 }
 
+// ── Postgres RPC — atomic, shared across every serverless instance ────────────
+// Reuses nf_rate_limit_check (already proven correct in production for
+// WhatsApp/social message throttling — see lib/knowledge/rateLimiter.ts) with
+// a 'security' platform namespace so both usages share the same table
+// without colliding on identifier collisions across concerns.
+async function dbRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
+  const { supabaseAdmin } = await import('@/lib/agent/supabaseAdmin')
+  const windowSec = Math.max(1, Math.ceil(windowMs / 1000))
+
+  const { data, error } = await supabaseAdmin.rpc('nf_rate_limit_check', {
+    p_identifier: key,
+    p_platform:   'security',
+    p_window_sec: windowSec,
+    p_max_count:  limit,
+  })
+
+  if (error || !data || data.length === 0) throw error ?? new Error('nf_rate_limit_check returned no rows')
+
+  const row = data[0] as { allowed: boolean; current_count: string | number }
+  const count = Number(row.current_count)
+  // nf_rate_limit_check is a sliding window (counts rows newer than
+  // now()-window), so there's no single fixed "reset" instant — windowMs is
+  // a safe conservative estimate (a full window with zero further hits
+  // guarantees the count has aged out by then), matching how callers already
+  // use resetIn (e.g. a Retry-After header) as an upper bound, not an exact time.
+  return { allowed: row.allowed, remaining: Math.max(0, limit - count), resetIn: windowMs }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 export async function rateLimit(
   key: string,     // e.g. IP + endpoint
@@ -99,8 +141,14 @@ export async function rateLimit(
     try {
       return await redisRateLimit(key, limit, windowMs)
     } catch {
-      // Redis unavailable — fall through to in-memory (logged silently)
+      // Redis unavailable — fall through to the DB tier below
     }
+  }
+  try {
+    return await dbRateLimit(key, limit, windowMs)
+  } catch {
+    // Database unreachable — last-resort per-instance fallback rather than
+    // blocking real users during an outage.
   }
   return localRateLimit(key, limit, windowMs)
 }

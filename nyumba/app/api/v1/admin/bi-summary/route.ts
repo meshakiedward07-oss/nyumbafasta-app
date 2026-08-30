@@ -52,8 +52,17 @@ export async function GET() {
       // Vendors
       vendorsRes,
 
-      // Alerts – open events
+      // Alerts – recent items to display (capped preview, NOT used for counts below)
       alertsRes,
+      // Alerts – exact counts, independent of the capped preview above so
+      // they stay correct once open+acknowledged alerts exceed the preview
+      // cap (the same "capped array used as a total" bug already found and
+      // fixed once in lib/admin/getData.ts on 2026-08-27 — same fix here).
+      alertsOpenCountRes,
+      alertsAckCountRes,
+      alertsCriticalCountRes,
+      alertsWarningCountRes,
+      alertsInfoCountRes,
     ] = await Promise.all([
       // Users (count queries — efficient at scale)
       admin.from('users').select('*', { count: 'exact', head: true }).neq('role', 'admin').neq('role', 'staff'),
@@ -107,6 +116,11 @@ export async function GET() {
         .in('status', ['open', 'acknowledged'])
         .order('created_at', { ascending: false })
         .limit(20),
+      admin.from('alert_events').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+      admin.from('alert_events').select('*', { count: 'exact', head: true }).eq('status', 'acknowledged'),
+      admin.from('alert_events').select('*', { count: 'exact', head: true }).in('status', ['open', 'acknowledged']).eq('severity', 'critical'),
+      admin.from('alert_events').select('*', { count: 'exact', head: true }).in('status', ['open', 'acknowledged']).eq('severity', 'warning'),
+      admin.from('alert_events').select('*', { count: 'exact', head: true }).in('status', ['open', 'acknowledged']).eq('severity', 'info'),
     ])
 
     // ── Platform stats ─────────────────────────────────────────────────────────
@@ -223,11 +237,11 @@ export async function GET() {
         rejected: vendors_rejected,
       },
       alerts: {
-        total_open:         alerts_open_items.length,
-        total_acknowledged: alertRows.filter(a => a.status === 'acknowledged').length,
-        critical: alertRows.filter(a => a.severity === 'critical').length,
-        warning:  alertRows.filter(a => a.severity === 'warning').length,
-        info:     alertRows.filter(a => a.severity === 'info').length,
+        total_open:         alertsOpenCountRes.count ?? 0,
+        total_acknowledged: alertsAckCountRes.count ?? 0,
+        critical: alertsCriticalCountRes.count ?? 0,
+        warning:  alertsWarningCountRes.count ?? 0,
+        info:     alertsInfoCountRes.count ?? 0,
         items:    alerts_open_items.slice(0, 10),
       },
     }

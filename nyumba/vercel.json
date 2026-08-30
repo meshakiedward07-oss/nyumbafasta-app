@@ -93,6 +93,17 @@
     "app/api/v1/dalali/payments/route.ts":            { "maxDuration": 15 },
     "app/api/v1/dalali/leads/route.ts":               { "maxDuration": 30 },
     "app/api/v1/dalali/referral/route.ts":            { "maxDuration": 30 },
-    "app/api/v1/listings/[id]/duplicate/route.ts":    { "maxDuration": 30 }
+    "app/api/v1/listings/[id]/duplicate/route.ts":    { "maxDuration": 30 },
+
+    "app/api/v1/admin/bi-summary/route.ts":             { "maxDuration": 60 },
+    "app/api/v1/admin/analytics/route.ts":              { "maxDuration": 60 },
+    "app/api/v1/admin/brokerage-commissions/route.ts":  { "maxDuration": 60 },
+    "app/api/v1/admin/subscription-metrics/route.ts":   { "maxDuration": 60 },
+    "app/api/v1/admin/rent-collection/route.ts":        { "maxDuration": 60 },
+    "app/api/v1/admin/maintenance-summary/route.ts":    { "maxDuration": 60 },
+    "app/api/v1/admin/executive/metrics/route.ts":      { "maxDuration": 60 },
+    "app/api/v1/admin/scorecards/route.ts":             { "maxDuration": 60 },
+    "app/api/v1/admin/period-report/route.ts":          { "maxDuration": 60 },
+    "app/api/v1/admin/brokerage-summary/route.ts":      { "maxDuration": 60 }
   }
 }

@@ -48,20 +48,22 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Summary totals (all records, no filter)
-    const { data: allRows } = await admin
-      .from('brokerage_commissions')
-      .select('calculated_amount, collection_status, collected_at')
-
-    const now       = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    // Summary totals — computed in SQL (get_brokerage_commission_summary
+    // RPC) instead of fetching the entire table on every request and
+    // reducing in JS, which used to re-scan brokerage_commissions in full
+    // on every single page load/refresh with no caching in between.
+    const { data: summaryRows } = await admin.rpc('get_brokerage_commission_summary')
+    const summaryRow = (summaryRows?.[0] ?? {}) as {
+      total_pending?: number; total_invoiced?: number; total_collected_month?: number
+      overdue_count?: number; pending_count?: number; invoiced_count?: number
+    }
     const summary = {
-      total_pending:         (allRows ?? []).filter(r => r.collection_status === 'pending').reduce((s, r) => s + (r.calculated_amount ?? 0), 0),
-      total_invoiced:        (allRows ?? []).filter(r => r.collection_status === 'invoiced').reduce((s, r) => s + (r.calculated_amount ?? 0), 0),
-      total_collected_month: (allRows ?? []).filter(r => r.collection_status === 'collected' && r.collected_at && r.collected_at >= monthStart).reduce((s, r) => s + (r.calculated_amount ?? 0), 0),
-      overdue_count:         (allRows ?? []).filter(r => r.collection_status === 'overdue').length,
-      pending_count:         (allRows ?? []).filter(r => r.collection_status === 'pending').length,
-      invoiced_count:        (allRows ?? []).filter(r => r.collection_status === 'invoiced').length,
+      total_pending:         Number(summaryRow.total_pending ?? 0),
+      total_invoiced:        Number(summaryRow.total_invoiced ?? 0),
+      total_collected_month: Number(summaryRow.total_collected_month ?? 0),
+      overdue_count:         Number(summaryRow.overdue_count ?? 0),
+      pending_count:         Number(summaryRow.pending_count ?? 0),
+      invoiced_count:        Number(summaryRow.invoiced_count ?? 0),
     }
 
     return NextResponse.json({ commissions: rows, total: count ?? 0, page, summary })

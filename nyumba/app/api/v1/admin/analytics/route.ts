@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       { data: allSubs },
       { data: unlocks },
       { count: totalUnlocks },
-      { data: unlocksFull },
+      { data: regionRevenue },
       { data: expensesData },
       { data: recurringData },
     ] = await Promise.all([
@@ -67,7 +67,11 @@ export async function GET(req: NextRequest) {
       admin.from('subscriptions').select('id, plan, status, created_at, expires_at, dalali_id').neq('plan', 'free').limit(10000),
       admin.from('contact_unlocks').select('id, listing_id, created_at, status').eq('status', 'completed').gte('created_at', thirteenMonthsAgo.toISOString()).limit(50000),
       admin.from('contact_unlocks').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
-      admin.from('contact_unlocks').select('listing_id, amount_paid, status, listings(district, region)').eq('status', 'completed').limit(500),
+      // Real SQL aggregate (SUM/GROUP BY in Postgres) instead of fetching a
+      // capped, unordered row window and reducing in JS — the old
+      // `.limit(500)` fetch silently became a partial/unstable sample once
+      // completed unlocks passed 500 (see scalability_fixes_2026_08_30.sql).
+      admin.rpc('get_unlock_revenue_by_region'),
       admin.from('expense_records').select('amount_tzs, category').eq('month', thisMonth).eq('year', thisYear),
       admin.from('recurring_expenses').select('amount_tzs, category').eq('is_active', true),
     ])
@@ -183,19 +187,14 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 6. District performance (revenue per region from unlocks) ──
+    // Computed in SQL (get_unlock_revenue_by_region RPC) — already the
+    // correct top-8-by-revenue shape, no further reduction needed.
 
-    const regionMap: Record<string, { revenue: number; count: number }> = {}
-    for (const u of unlocksFull ?? []) {
-      const listing = u.listings as { district?: string; region?: string } | null
-      const region = listing?.region ?? listing?.district ?? 'Nyingine'
-      if (!regionMap[region]) regionMap[region] = { revenue: 0, count: 0 }
-      regionMap[region].revenue += Number(u.amount_paid ?? 0)
-      regionMap[region].count++
-    }
-    const topRegions = Object.entries(regionMap)
-      .map(([region, d]) => ({ region, ...d }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 8)
+    const topRegions = ((regionRevenue ?? []) as { region: string; revenue: number; unlock_count: number }[]).map(r => ({
+      region: r.region,
+      revenue: Number(r.revenue),
+      count: Number(r.unlock_count),
+    }))
 
     // ── 7. Expenses this month ─────────────────────────────────────
 

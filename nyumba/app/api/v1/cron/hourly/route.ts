@@ -19,7 +19,17 @@ function verify(req: NextRequest): boolean {
   return req.headers.get('authorization') === `Bearer ${secret}`
 }
 
-// GET — called by Vercel Cron every hour
+// GET — despite the route name and this comment's original claim, this
+// currently runs once a day, not hourly: vercel.json's cron schedule for
+// this path was deliberately downgraded to daily to fit the Vercel Hobby
+// plan's "at most once/day" cron limit (see commits adcf036/db57c0c). The
+// 10-min payment-timeout sweep below (section 1) and the alert-check
+// fallback (section 2) both therefore run with up to ~24h of latency
+// instead of the ~10min/15min this code's own logic was written for — this
+// gets worse (a growing backlog of stuck "pending" unlocks/subscriptions,
+// slower fraud/health alerting) as transaction volume grows. Once Vercel
+// Pro is restored, tighten vercel.json's schedule for this path back to
+// "0 * * * *" (hourly) to restore the originally-intended behavior.
 export async function GET(req: NextRequest) {
   if (!verify(req)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -56,7 +66,10 @@ async function runHourlyTasks() {
     errors.push(`❌ Payment cleanup: ${String(e)}`)
   }
 
-  // ── 2. Alert check (fallback — primary is /cron/alert-check every 15 min) ──
+  // ── 2. Alert check (fallback — /cron/alert-check is meant to be the
+  //      primary, every 15 min, but it's ALSO currently downgraded to once
+  //      daily on vercel.json for the same Hobby-plan reason as this route —
+  //      so right now both this "fallback" and the "primary" run once a day) ──
   try {
     const alertResult = await runAlertCheck()
     await notifyAdminOfCriticalAlerts(alertResult)

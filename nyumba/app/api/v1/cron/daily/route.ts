@@ -1457,37 +1457,54 @@ async function runDailyTasks() {
 
   // ── 26. Auto-generate monthly rent invoices ──────────────────────────────────
   // For every active lease, ensure a payment record exists for the current month.
+  // NOTE: this computes each lease's due date on ITS OWN start-day anniversary
+  // (clamped to end of month) — that's genuinely different from
+  // cron/lease-payments (which runs once, on the 1st of the month, always
+  // due on the 1st) rather than a duplicate of it, so both stay. Only the
+  // per-lease existence check was rewritten here — it used to run one
+  // `count` query per active lease every single day (a scan that grows
+  // linearly with total lease count, 365x/year, almost always to find
+  // nothing to do); now it's one bulk query for the whole batch, matching
+  // the pattern cron/lease-payments already uses.
   try {
     const { data: activeLeases } = await admin
       .from('leases')
       .select('id, org_id, monthly_rent, start_date')
       .eq('status', 'active')
 
+    const leases = activeLeases ?? []
     const thisMonth = now.slice(0, 7) // "YYYY-MM"
     let generated = 0
-    for (const lease of activeLeases ?? []) {
-      // Check if a payment record already exists for this month
-      const { count } = await admin
+
+    if (leases.length > 0) {
+      const leaseIds = leases.map(l => l.id)
+      const { data: existingPayments } = await admin
         .from('lease_payments')
-        .select('id', { count: 'exact', head: true })
-        .eq('lease_id', lease.id)
+        .select('lease_id')
+        .in('lease_id', leaseIds)
         .gte('due_date', `${thisMonth}-01`)
         .lte('due_date', `${thisMonth}-31`)
+      const hasPaymentThisMonth = new Set((existingPayments ?? []).map(p => p.lease_id))
 
-      if ((count ?? 0) > 0) continue
+      const toInsert = leases
+        .filter(lease => !hasPaymentThisMonth.has(lease.id))
+        .map(lease => {
+          // Due on same day-of-month as lease start (clamped to end of month)
+          const startDay = new Date(lease.start_date).getDate()
+          const dueDate  = new Date(`${thisMonth}-01`)
+          dueDate.setDate(Math.min(startDay, new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0).getDate()))
+          return {
+            lease_id:   lease.id,
+            amount_due: lease.monthly_rent,
+            due_date:   dueDate.toISOString().split('T')[0],
+            status:     'pending' as const,
+          }
+        })
 
-      // Due on same day-of-month as lease start (clamped to end of month)
-      const startDay = new Date(lease.start_date).getDate()
-      const dueDate  = new Date(`${thisMonth}-01`)
-      dueDate.setDate(Math.min(startDay, new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0).getDate()))
-
-      await admin.from('lease_payments').insert({
-        lease_id:  lease.id,
-        amount_due: lease.monthly_rent,
-        due_date:  dueDate.toISOString().split('T')[0],
-        status:    'pending',
-      })
-      generated++
+      if (toInsert.length > 0) {
+        await admin.from('lease_payments').insert(toInsert)
+        generated = toInsert.length
+      }
     }
     results.push(`✅ Monthly rent invoices generated: ${generated}`)
   } catch (e) {
@@ -1804,6 +1821,20 @@ async function runDailyTasks() {
     results.push(`✅ Per-org rent reminders sent: ${remindersSent}`)
   } catch (e) {
     errors.push(`❌ Per-org rent reminders: ${String(e)}`)
+  }
+
+  // ── 32. Clean up old rate-limit tracking rows ─────────────────────────────
+  // cascade_rate_limits gets one row per rate-limit check (see
+  // nf_rate_limit_check, now also used by lib/security/rateLimit.ts's DB
+  // tier for auth/payment/report throttling, not just WhatsApp — added
+  // 2026-08-30 as part of a scalability fix). No cron ever purged it
+  // before, so it would otherwise grow forever. 24h is comfortably longer
+  // than any rate-limit window used anywhere in this app today.
+  try {
+    await admin.rpc('nf_rate_limit_cleanup', { p_older_than_sec: 86400 })
+    results.push('✅ Rate-limit tracking rows cleaned up')
+  } catch (e) {
+    errors.push(`❌ Rate-limit cleanup: ${String(e)}`)
   }
 
   // ── Final - 1. Save department scorecard snapshot ─────────────────────────
