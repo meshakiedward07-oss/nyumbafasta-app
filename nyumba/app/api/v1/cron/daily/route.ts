@@ -73,6 +73,22 @@ async function runDailyTasks() {
   const errors: string[]  = []
   const now = new Date().toISOString()
 
+  // ── 0. Keep-alive ping ─────────────────────────────────────────────────────
+  // Runs first, before anything that could throw — Supabase's free tier
+  // auto-pauses a project after ~7 days with no API activity, which would
+  // take the whole app down for every visitor until someone manually
+  // resumes it in the dashboard. A trivial daily query is enough to count
+  // as activity and prevent that. This is a stopgap, not a fix: the real
+  // fix is upgrading the Supabase project off the free tier (also removes
+  // its low connection/compute ceiling, unrelated to this pause risk) —
+  // see project_scalability_audit_2026_08_30 memory notes.
+  try {
+    await admin.from('users').select('id').limit(1)
+    results.push('✅ Keep-alive ping (anti auto-pause)')
+  } catch (e) {
+    errors.push(`❌ Keep-alive ping: ${String(e)}`)
+  }
+
   // ── 1. Trial reminders + expire trials ────────────────
   try {
     await admin.rpc('send_trial_reminders')
