@@ -120,7 +120,7 @@ function MFAForm() {
 
         <p className="text-xs text-gray-400 text-center mt-5">
           {t('auth_mfa_lost_access')}{' '}
-          <a href="mailto:support@nyumbafasta.co.tz" className="text-primary-600 hover:underline">
+          <a href="mailto:support@nyumbafasta.co" className="text-primary-600 hover:underline">
             {t('auth_mfa_contact_support')}
           </a>
         </p>
