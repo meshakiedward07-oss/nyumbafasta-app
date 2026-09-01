@@ -2236,6 +2236,21 @@ type PayoutStageAdmin = {
   adminNote: string | null
 }
 
+type ReferralRow = {
+  id: string
+  referredUserId: string
+  fullName: string | null
+  referralCode: string
+  signedUpAt: string
+}
+
+type PayoutConfigRow = {
+  stage: number
+  amountTzs: number
+  label: string
+  updatedAt: string
+}
+
 const STATUS_PILL: Record<string, string> = {
   hold:   'bg-amber-50 text-amber-700 border-amber-200',
   earned: 'bg-green-50 text-green-700 border-green-200',
@@ -2244,13 +2259,103 @@ const STATUS_PILL: Record<string, string> = {
 
 function fmtTzs(n: number) { return `Tsh ${n.toLocaleString('sw-TZ')}` }
 
+// ── Payout config panel — admin sets the reward amount for each stage ────────
+function PayoutConfigPanel({ showToast }: { showToast: (msg: string, ok?: boolean) => void }) {
+  const [config,  setConfig]  = useState<PayoutConfigRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [drafts,  setDrafts]  = useState<Record<number, string>>({})
+  const [saving,  setSaving]  = useState<number | null>(null)
+  const [open,    setOpen]    = useState(false)
+
+  useEffect(() => {
+    fetch('/api/v1/admin/influencers/config')
+      .then(r => r.json())
+      .then(j => {
+        const rows: PayoutConfigRow[] = (j.config ?? []).map((c: { stage: number; amount_tzs: number; label: string; updated_at: string }) => ({
+          stage: c.stage, amountTzs: c.amount_tzs, label: c.label, updatedAt: c.updated_at,
+        }))
+        setConfig(rows)
+        setDrafts(Object.fromEntries(rows.map(r => [r.stage, String(r.amountTzs)])))
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function save(stage: number) {
+    const amountTzs = parseInt(drafts[stage] ?? '', 10)
+    if (!Number.isFinite(amountTzs) || amountTzs < 0) {
+      showToast('Bei si sahihi', false); return
+    }
+    setSaving(stage)
+    try {
+      const res = await fetch('/api/v1/admin/influencers/config', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage, amountTzs }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error)
+      setConfig(prev => prev.map(c => c.stage === stage ? { ...c, amountTzs } : c))
+      showToast(`Bei ya Stage ${stage} imesasishwa: ${fmtTzs(amountTzs)}`)
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Imeshindwa', false)
+    } finally { setSaving(null) }
+  }
+
+  return (
+    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3"
+      >
+        <div className="text-left">
+          <p className="text-sm font-semibold text-gray-700">Mipangilio ya Zawadi</p>
+          <p className="text-xs text-gray-400">Panga bei ya kila stage — inatumika kwa zawadi zote mpya</p>
+        </div>
+        <i className={`ti ti-chevron-${open ? 'up' : 'down'} text-gray-400`} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-2 border-t border-gray-50 pt-3">
+          {loading && <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-pink-400 border-t-transparent rounded-full animate-spin" /></div>}
+          {!loading && config.map(c => (
+            <div key={c.stage} className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-700">Stage {c.stage}</p>
+                <p className="text-[11px] text-gray-400 truncate">{c.label}</p>
+              </div>
+              <div className="relative w-32 flex-shrink-0">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">Tsh</span>
+                <input
+                  type="number" min="0" inputMode="numeric"
+                  value={drafts[c.stage] ?? ''}
+                  onChange={e => setDrafts(prev => ({ ...prev, [c.stage]: e.target.value }))}
+                  className="w-full pl-8 pr-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-pink-300"
+                />
+              </div>
+              <button
+                onClick={() => save(c.stage)}
+                disabled={saving === c.stage || drafts[c.stage] === String(c.amountTzs)}
+                className="text-xs bg-pink-500 text-white px-2.5 py-1.5 rounded-lg font-medium disabled:opacity-40 flex-shrink-0"
+              >
+                {saving === c.stage ? '...' : 'Hifadhi'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function InfluencerAdminView() {
   const [influencers, setInfluencers] = useState<InfluencerRow[]>([])
   const [loading,     setLoading]     = useState(true)
   const [selected,    setSelected]    = useState<InfluencerRow | null>(null)
   const [stages,      setStages]      = useState<PayoutStageAdmin[]>([])
+  const [referrals,   setReferrals]   = useState<ReferralRow[]>([])
   const [stageLoading, setStageLoading] = useState(false)
   const [paying,      setPaying]      = useState<string | null>(null)
+  const [granting,    setGranting]    = useState<string | null>(null)  // `${referredUserId}:${stage}` while in-flight
+  const [grantNote,   setGrantNote]   = useState<Record<string, string>>({})
   const [toast,       setToast]       = useState<{ msg: string; ok: boolean } | null>(null)
 
   function showToast(msg: string, ok = true) {
@@ -2266,12 +2371,45 @@ function InfluencerAdminView() {
   }, [])
 
   async function openDetail(inf: InfluencerRow) {
-    setSelected(inf); setStageLoading(true); setStages([])
+    setSelected(inf); setStageLoading(true); setStages([]); setReferrals([])
     try {
       const j = await fetch(`/api/v1/admin/influencers/${inf.id}`).then(r => r.json())
       setStages(j.stages ?? [])
+      setReferrals(j.referrals ?? [])
     } catch { /* silent */ }
     finally { setStageLoading(false) }
+  }
+
+  async function grantStage(referredUserId: string, stage: number) {
+    if (!selected) return
+    const key  = `${referredUserId}:${stage}`
+    const note = (grantNote[referredUserId] ?? '').trim()
+    if (!note) { showToast('Andika sababu kabla ya kutoa zawadi mwenyewe', false); return }
+
+    setGranting(key)
+    try {
+      const res = await fetch('/api/v1/admin/influencers', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'grant_stage', influencerId: selected.id,
+          referredUserId, stage, adminNote: note,
+        }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error)
+
+      // Refresh this influencer's stages + running totals
+      const fresh = await fetch(`/api/v1/admin/influencers/${selected.id}`).then(r => r.json())
+      setStages(fresh.stages ?? [])
+      const newEarned = (fresh.stages ?? []).reduce((s: number, x: PayoutStageAdmin) => x.status !== 'hold' ? s + x.amountTzs : s, 0)
+      const newPaid   = (fresh.stages ?? []).reduce((s: number, x: PayoutStageAdmin) => x.status === 'paid' ? s + x.amountTzs : s, 0)
+      setSelected(prev => prev ? { ...prev, totalEarned: newEarned, totalPaid: newPaid, balance: newEarned - newPaid } : prev)
+      setInfluencers(prev => prev.map(i => i.id === selected.id ? { ...i, totalEarned: newEarned, totalPaid: newPaid, balance: newEarned - newPaid } : i))
+      setGrantNote(prev => ({ ...prev, [referredUserId]: '' }))
+      showToast('Zawadi imetolewa')
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Imeshindwa', false)
+    } finally { setGranting(null) }
   }
 
   async function markPaid(stageId: string) {
@@ -2391,6 +2529,49 @@ function InfluencerAdminView() {
                 </div>
               ))}
             </div>
+
+            {/* Manual grant — for a referral whose auto-trigger never fired,
+                or a one-off bonus. Only offers stages this referral doesn't
+                already have a 'paid' record for. */}
+            {!stageLoading && referrals.length > 0 && (
+              <div className="p-4 border-t border-gray-50">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Toa Zawadi Mwenyewe</p>
+                <p className="text-[11px] text-gray-400 mb-3">Kwa msajiliwa ambaye stage yake haikuwashwa kiotomatiki, au zawadi ya ziada</p>
+                {referrals.map(r => {
+                  const paidStages = new Set(stages.filter(s => s.referredUserId === r.referredUserId && s.status === 'paid').map(s => s.stage))
+                  const grantableStages = [1, 2, 3].filter(st => !paidStages.has(st))
+                  if (grantableStages.length === 0) return null
+                  return (
+                    <div key={r.id} className="bg-gray-50 rounded-xl p-3 mb-2">
+                      <p className="text-xs font-medium text-gray-700">{r.fullName ?? r.referredUserId.slice(0, 8)}</p>
+                      <p className="text-[10px] text-gray-400 mb-2">Alijiunga: {new Date(r.signedUpAt).toLocaleDateString('sw-TZ')}</p>
+                      <textarea
+                        value={grantNote[r.referredUserId] ?? ''}
+                        onChange={e => setGrantNote(prev => ({ ...prev, [r.referredUserId]: e.target.value }))}
+                        placeholder="Sababu ya kutoa zawadi mwenyewe (lazima)"
+                        rows={2}
+                        className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 mb-2 resize-none focus:outline-none focus:ring-2 focus:ring-pink-300"
+                      />
+                      <div className="flex gap-1.5">
+                        {grantableStages.map(st => {
+                          const key = `${r.referredUserId}:${st}`
+                          return (
+                            <button
+                              key={st}
+                              onClick={() => grantStage(r.referredUserId, st)}
+                              disabled={granting === key}
+                              className="flex-1 text-[11px] bg-white border border-pink-200 text-pink-700 py-1.5 rounded-lg font-medium disabled:opacity-40"
+                            >
+                              {granting === key ? '...' : `Stage ${st}`}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2402,6 +2583,8 @@ function InfluencerAdminView() {
           <p className="text-xs text-gray-400">Thibitisha malipo ya influencer kutoka hapa</p>
         </div>
       </div>
+
+      <PayoutConfigPanel showToast={showToast} />
 
       {influencers.length === 0 && (
         <div className="text-center py-12 text-gray-400 text-sm">

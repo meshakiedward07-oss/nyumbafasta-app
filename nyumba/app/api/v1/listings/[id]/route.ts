@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { validateListing, checkListingQuality } from '@/lib/security/validate'
 import { getPlan } from '@/lib/config/subscription-plans'
+import { triggerListingStage } from '@/lib/influencer/payoutTriggers'
 
 // ── Shared: verify ownership ───────────────────────────────────
 async function getOwned(id: string, userId: string) {
@@ -164,6 +165,16 @@ export async function PATCH(
 
     const { error } = await admin.from('listings').update(updatePayload).eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Influencer payout Stage 1 check (non-blocking) — same reasoning as
+    // the creation route: an edit that re-passes the quality gate can also
+    // bring a listing to 'active' without ever going through staff manual
+    // approval. Found in the 2026-09-01 influencer-system audit.
+    if (newStatus === 'active') {
+      triggerListingStage(user.id, admin).catch(e =>
+        console.error('[Payout] triggerListingStage failed (non-fatal):', e)
+      )
+    }
 
     return NextResponse.json({ success: true })
   } catch {

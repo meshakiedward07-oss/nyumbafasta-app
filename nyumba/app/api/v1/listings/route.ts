@@ -5,6 +5,7 @@ import { validateListing, checkListingQuality } from '@/lib/security/validate'
 import { cached, TTL } from '@/lib/cache/memoryCache'
 import { getPricing } from '@/lib/config/pricing'
 import { getPlan } from '@/lib/config/subscription-plans'
+import { triggerListingStage } from '@/lib/influencer/payoutTriggers'
 
 // Public listing fields — NEVER include whatsapp_number here
 const PUBLIC_LISTING_FIELDS = `
@@ -250,6 +251,17 @@ export async function POST(req: NextRequest) {
 
     if (insertError || !listing) {
       return NextResponse.json({ error: insertError?.message ?? 'Imeshindwa kuunda listing' }, { status: 500 })
+    }
+
+    // Influencer payout Stage 1 check (non-blocking) — this auto-approve
+    // path (quality gate passes immediately, no staff review) is the common
+    // case for new listings, and used to be the ONE place that never
+    // triggered Stage 1 at all (only staff's manual "approve_listing"
+    // action did). Found in the 2026-09-01 influencer-system audit.
+    if (initialStatus === 'active') {
+      triggerListingStage(user.id, admin).catch(e =>
+        console.error('[Payout] triggerListingStage failed (non-fatal):', e)
+      )
     }
 
     return NextResponse.json({ id: listing.id, status: initialStatus, auto_approved: quality.passed }, { status: 201 })

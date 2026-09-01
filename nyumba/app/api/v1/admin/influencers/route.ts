@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminAuth } from '@/lib/security/adminAuth'
 import { createAdminClient } from '@/lib/supabase/server'
+import { getConfiguredAmount } from '@/lib/influencer/payoutTriggers'
+import { auditLog } from '@/lib/security/auditLog'
 
 export const dynamic = 'force-dynamic'
 
@@ -90,9 +92,77 @@ export async function PATCH(req: NextRequest) {
 
   const admin = createAdminClient()
 
-  let body: { action: string; stageId?: string; influencerId?: string; adminNote?: string; isActive?: boolean }
+  let body: {
+    action: string; stageId?: string; influencerId?: string; adminNote?: string; isActive?: boolean
+    referredUserId?: string; stage?: number; amountTzs?: number
+  }
   try { body = await req.json() }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
+
+  // ── Manually grant a payout stage ─────────────────────────────────────────
+  // For a referral whose automatic trigger never fired (e.g. the
+  // auto-approve gap found in the 2026-09-01 audit — now fixed, but past
+  // referrals aren't retroactively recomputed) or for a one-off bonus.
+  // Requires an admin_note: this bypasses the normal earning rules, so
+  // there must always be a reason on record. Sets status='earned' directly
+  // (no fraud hold) — a manual decision means someone already vetted it.
+  if (body.action === 'grant_stage') {
+    if (!body.influencerId || !body.referredUserId || ![1, 2, 3].includes(body.stage as number)) {
+      return NextResponse.json({ error: 'influencerId, referredUserId, na stage (1-3) vinahitajika' }, { status: 400 })
+    }
+    if (!body.adminNote || !body.adminNote.trim()) {
+      return NextResponse.json({ error: 'Eleza sababu ya kutoa zawadi hii mwenyewe (admin_note)' }, { status: 400 })
+    }
+
+    const stage  = body.stage as 1 | 2 | 3
+    const amount = typeof body.amountTzs === 'number' && body.amountTzs >= 0
+      ? Math.round(body.amountTzs)
+      : await getConfiguredAmount(stage, admin)
+
+    // Never silently clobber an already-paid stage back to 'earned' via
+    // upsert — check first rather than blindly overwriting status.
+    const { data: existing } = await admin
+      .from('influencer_payout_stages')
+      .select('id, status')
+      .eq('influencer_id', body.influencerId)
+      .eq('referred_user_id', body.referredUserId)
+      .eq('stage', stage)
+      .maybeSingle()
+
+    if (existing?.status === 'paid') {
+      return NextResponse.json({ error: 'Stage hii tayari imelipwa — haiwezi kubadilishwa kwa njia hii' }, { status: 409 })
+    }
+
+    const { data, error } = await admin
+      .from('influencer_payout_stages')
+      .upsert(
+        {
+          influencer_id:    body.influencerId,
+          referred_user_id: body.referredUserId,
+          stage,
+          amount_tzs:       amount,
+          status:           'earned',
+          hold_until:       null,
+          admin_note:       `[Mwenyewe] ${body.adminNote.trim()}`,
+        },
+        { onConflict: 'influencer_id,referred_user_id,stage' },
+      )
+      .select('id, influencer_id, referred_user_id, stage, amount_tzs, status')
+      .single()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    auditLog({
+      action:      'admin_action',
+      user_id:     auth.userId,
+      target_id:   data.id,
+      target_type: 'influencer_payout_stage',
+      metadata:    { event: 'stage_granted_manually', influencer_id: body.influencerId, referred_user_id: body.referredUserId, stage, amount_tzs: amount, note: body.adminNote },
+      severity:    'info',
+    }).catch(() => {})
+
+    return NextResponse.json({ ok: true, stage: data })
+  }
 
   // ── Mark payout stage as paid ─────────────────────────────────────────────
   if (body.action === 'mark_paid') {
