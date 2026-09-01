@@ -440,7 +440,7 @@ const T_dalali = {
   sub_loyalty_applied:  { sw: 'Punguzo {{n}}% ya uaminifu limetumika', en: '{{n}}% loyalty discount applied' },
   sub_trial_title:      { sw: 'Trial ya Bure',                en: 'Free Trial'                               },
   sub_active_badge:     { sw: 'Inafanya Kazi',                en: 'Active'                                   },
-  sub_trial_plan_desc:  { sw: 'Basic plan — listings 5 · Bila malipo', en: 'Basic plan — 5 listings · No charge' },
+  sub_trial_plan_desc:  { sw: 'Enterprise plan — listings 50 · Bila malipo', en: 'Enterprise plan — 50 listings · No charge' },
   sub_days_left:        { sw: 'siku zimebaki',                en: 'days left'                                },
   sub_trial_expires:    { sw: 'Trial inaisha: {{date}}',      en: 'Trial ends: {{date}}'                     },
   sub_trial_free_after: { sw: 'Baada ya trial utabaki kwenye Free Plan (listings 2) bila kukatizwa.', en: 'After trial you\'ll stay on Free Plan (2 listings) without interruption.' },
