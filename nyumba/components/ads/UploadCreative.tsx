@@ -79,21 +79,23 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
       const firstFile = files[0]
       const isVideo   = firstFile.type.startsWith('video/')
 
-      // ── Step 1: ratio pre-check for images (cheap, no upload yet) ──────────
-      if (!isVideo && !force) {
-        setProgress(5)
-        const checkForm = new FormData()
-        checkForm.append('file', firstFile)
-        checkForm.append('checkOnly', 'true')
-        const checkRes  = await fetch(
-          `/api/v1/advertising/campaigns/${campaignId}/creative`,
-          { method: 'POST', body: checkForm, signal: controller.signal },
-        )
-        if (checkRes.status === 422) {
-          const d = await checkRes.json()
-          if (d.warning) { setWarning(d.message); setPhase('idle'); setProgress(0); clearTimeout(timeoutId); return }
-        }
-      }
+      // NOTE: there used to be a "Step 1" here that sent the raw image
+      // directly to this Vercel API route (multipart, labelled checkOnly)
+      // purely to get an early ratio-mismatch warning before the real
+      // upload. It was mislabelled "cheap, no upload yet" — it actually
+      // sent the full file over the network to Vercel, which has a hard
+      // 4.5MB request-body ceiling at the platform level (no maxDuration
+      // setting can raise it). Any phone-camera photo between 4.5-10MB
+      // (very common — this app's own limit is 10MB) would hang or fail
+      // against that ceiling well before our code ever ran, surfacing as
+      // exactly the "imechukua muda mrefu sana" timeout a real advertiser
+      // hit in production. It was also fully redundant: handlePresigned()
+      // below already performs this identical ratio check (checkImageRatio)
+      // server-side, after the file reaches Supabase Storage via the
+      // presigned-URL path that was specifically built to avoid Vercel's
+      // body-size limit — so removing this step loses no functionality,
+      // it just means a bad-ratio warning now arrives after the (fast,
+      // direct-to-Storage) upload instead of before it.
 
       // ── Step 2: get signed upload URL from server ────────────────────────
       setProgress(10)
