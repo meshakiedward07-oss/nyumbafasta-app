@@ -37,12 +37,12 @@ CREATE INDEX IF NOT EXISTS idx_ad_campaigns_target_wards ON ad_campaigns USING G
 --    District tier keeps the same slot_limit as the matching region plan.
 --    These are starting prices — adjust anytime in Admin → Adverts → Mipango.
 
--- features/placements/bundle_types are text[] columns (not jsonb) — the
--- VALUES below carry them as JSON-array strings for readability, converted
--- to text[] via jsonb_array_elements_text (preserves element order).
+-- features is jsonb; placements/bundle_types are text[] (mixed types on
+-- this table) — the VALUES below carry all three as JSON-array strings for
+-- readability, cast/converted to whatever each real column type is.
 INSERT INTO ad_subscription_plans (name, ad_type, description, duration_days, price_tzs, slot_limit, features, is_active, display_order, placements, bundle_types, visibility, geo_scope)
 SELECT v.name, v.ad_type, v.description, v.duration_days, v.price_tzs, v.slot_limit,
-       ARRAY(SELECT jsonb_array_elements_text(v.features::jsonb)),
+       v.features::jsonb,
        true, v.display_order,
        ARRAY(SELECT jsonb_array_elements_text(v.placements::jsonb)),
        ARRAY(SELECT jsonb_array_elements_text(v.bundle_types::jsonb)),
