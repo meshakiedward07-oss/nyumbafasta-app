@@ -166,6 +166,16 @@ async function handlePresigned({
   } catch (err) {
     console.error('[CreativeUpload] presigned processing failed:', err)
     await admin.from('ad_creatives').update({ processing_status: 'failed', error_message: String(err) }).eq('id', creativeId)
+    // Clean up the temp upload here too — this was the main direct source
+    // of orphaned Storage files (found 2026-09-01): the success path
+    // already removed `paths`, but ANY processing failure (a bad video,
+    // Cloudinary rejecting the upload, a transient Storage error on a
+    // variant) left the original ad-uploads/ file behind forever, since
+    // nothing else ever revisits it. The daily cron's age-based sweep
+    // (app/api/v1/cron/daily/route.ts) is the backstop for the other
+    // source — an abandoned browser tab that never reaches this handler
+    // at all — but most orphans came from here, not that.
+    await admin.storage.from('listings').remove(paths).catch(() => {})
     return NextResponse.json({ error: 'Haikuweza kushughulikia faili. Jaribu tena.', detail: String(err) }, { status: 500 })
   }
 }

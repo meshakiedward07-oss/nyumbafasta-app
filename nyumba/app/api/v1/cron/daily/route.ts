@@ -1257,6 +1257,29 @@ async function runDailyTasks() {
     errors.push(`❌ Ad creatives stale cleanup: ${String(e)}`)
   }
 
+  // ── 21c. Orphaned ad-uploads/ Storage sweep ──
+  // Files land under ad-uploads/{advertiserId}/{campaignId}/ from a
+  // presigned upload URL (.../creative/sign) and are ALWAYS meant to be
+  // deleted immediately by the follow-up processing step (either on
+  // success, or on failure — see .../creative/route.ts). Anything still
+  // there after 24h was abandoned (closed tab, dropped connection) before
+  // that step ever ran. Found in the 2026-09-01 ads-creative audit; see
+  // lib/ads/storageCleanup.ts for the actual (capped, bounded-depth) sweep.
+  try {
+    const { sweepOrphanedAdUploads } = await import('@/lib/ads/storageCleanup')
+    const uploadsCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { deleted, errors: sweepErrors } = await sweepOrphanedAdUploads(admin, uploadsCutoff)
+
+    if (deleted.length) {
+      results.push(`✅ Ad-uploads yaliyoachwa yamefutwa: ${deleted.length}`)
+    }
+    for (const e of sweepErrors) {
+      errors.push(`❌ Ad-uploads sweep: ${e}`)
+    }
+  } catch (e) {
+    errors.push(`❌ Ad-uploads sweep: ${String(e)}`)
+  }
+
   // ── 22. Purge stale ad impressions (older than 24h) ──
   try {
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
