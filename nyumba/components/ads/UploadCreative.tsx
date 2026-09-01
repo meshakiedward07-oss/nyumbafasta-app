@@ -29,6 +29,15 @@ const PREVIEW_VARIANTS = [
   { key: 'featured_url', label: 'Featured (800×450)',  w: 160, h: 90  },
 ] as const
 
+// Match the bucket's own limits (supabase/ensure_listings_bucket.sql) and
+// what's advertised in adv_file_size_hint. Checked client-side, before any
+// network call — previously a file of any size was attempted regardless,
+// so a grossly-oversized video would run for a while and then die with a
+// bare, unhelpful browser "Failed to fetch" instead of an immediate, clear
+// reason. Found 2026-09-01.
+const MAX_IMAGE_BYTES = 10  * 1024 * 1024
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024
+
 export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
   const { t } = useLanguage()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -48,6 +57,19 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
   const handleFiles = useCallback((selected: FileList | null) => {
     if (!selected || selected.length === 0) return
     const arr = Array.from(selected)
+
+    const isVid    = arr[0].type.startsWith('video/')
+    const maxBytes = isVid ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES
+    const oversized = arr.find(f => f.size > maxBytes)
+    if (oversized) {
+      const mb = (oversized.size / (1024 * 1024)).toFixed(1)
+      setError((isVid ? t('adv_video_too_large') : t('adv_image_too_large')).replace('{{mb}}', mb))
+      setWarning(null)
+      setCreative(null)
+      setPhase('idle')
+      return
+    }
+
     setFiles(arr)
     setWarning(null)
     setError(null)
@@ -57,7 +79,7 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
     // Preview: first file
     const url = URL.createObjectURL(arr[0])
     setPreview(url)
-  }, [])
+  }, [t])
 
   // ── Upload ────────────────────────────────────────────────────────────────
   // Uses a two-step signed-URL flow to bypass Vercel's 4.5 MB request body limit:
@@ -194,15 +216,29 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
 
     } catch (e) {
       const isAbort = e instanceof Error && e.name === 'AbortError'
-      // Surface the real reason (sign failed, file rejected by storage, size
-      // limit, etc. — all thrown above with specific Swahili messages)
-      // instead of always blaming "the network," which was hiding the
-      // actual cause from both users and us when debugging.
+      // A bare browser network error (fetch() itself rejecting, not any of
+      // the specific Swahili errors thrown above) shows as one of these
+      // opaque, browser-specific strings with zero diagnostic value —
+      // "Failed to fetch" (Chrome/Edge), "NetworkError when attempting to
+      // fetch resource." (Firefox), "Load failed" (Safari). Most commonly
+      // hit mid-PUT on a large video: either the connection genuinely died,
+      // or — just as likely given this app's own size limits have needed
+      // fixing more than once — the file exceeded what Supabase Storage's
+      // project-wide upload cap actually allows right now, which can kill
+      // the connection outright instead of returning a clean 400 for a
+      // sufficiently large file. Found 2026-09-01.
+      const isOpaqueNetworkError = e instanceof Error && (
+        e.message === 'Failed to fetch' ||
+        e.message.startsWith('NetworkError') ||
+        e.message === 'Load failed'
+      )
       const message = isAbort
         ? t('adv_timeout_hint')
-        : e instanceof Error && e.message
-          ? e.message
-          : t('adv_network_check')
+        : isOpaqueNetworkError
+          ? t('adv_failed_to_fetch_hint')
+          : e instanceof Error && e.message
+            ? e.message
+            : t('adv_network_check')
       setError(message)
       setPhase('failed')
     } finally {
