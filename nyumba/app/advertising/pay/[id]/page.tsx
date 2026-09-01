@@ -7,6 +7,7 @@ import PaymentMethodSelector, { PAYMENT_METHODS } from '@/components/payments/Pa
 import { detectProvider } from '@/lib/payments/azampay'
 import type { PaymentMethod as PaymentProvider } from '@/components/payments/PaymentMethodSelector'
 import { useLanguage } from '@/lib/i18n/context'
+import { getCampaignTotalPrice } from '@/lib/ads/campaignPrice'
 
 const PROVIDERS = Object.fromEntries(
   PAYMENT_METHODS.map(m => [m.id, {
@@ -25,7 +26,8 @@ const PROVIDERS = Object.fromEntries(
 
 type Campaign = {
   id: string; title: string; ad_type: string; status: string; payment_status: string
-  plan: { name: string; price_tzs: number; duration_days: number } | null
+  target_wards: string[] | null
+  plan: { name: string; price_tzs: number; duration_days: number; geo_scope?: string } | null
 }
 
 type Step = 'select' | 'phone' | 'waiting' | 'success' | 'failed'
@@ -261,7 +263,10 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
   }
 
   const plan         = campaign!.plan
-  const amount       = plan?.price_tzs ?? 0
+  // Ward-scope plans are priced PER WARD — use the shared calculation so
+  // what's shown here always matches what pay/initiate actually charges.
+  const amount       = getCampaignTotalPrice(plan?.price_tzs ?? 0, plan?.geo_scope, campaign!.target_wards)
+  const wardCount    = plan?.geo_scope === 'ward' ? (campaign!.target_wards?.length ?? 0) : 0
   const pInfo        = PROVIDERS[provider]
   const progressPct  = ((TIMEOUT_SECS - secondsLeft) / TIMEOUT_SECS) * 100
   const displayPhone = phone.replace(/^(255|0)/, '').replace(/^/, '0')
@@ -291,9 +296,14 @@ export default function PayCampaignPage({ params }: { params: Promise<{ id: stri
                 <div>
                   <p className="text-xs font-semibold text-gray-700">{plan.name}</p>
                   <p className="text-[11px] text-gray-400">{t('adv_days_label')} {plan.duration_days}</p>
+                  {wardCount > 1 && (
+                    <p className="text-[11px] text-gray-400">
+                      Tsh {plan.price_tzs.toLocaleString()} × {wardCount} {t('adv_wards_label')}
+                    </p>
+                  )}
                 </div>
                 <p className="text-primary-600 font-bold text-base">
-                  Tsh {plan.price_tzs.toLocaleString()}
+                  Tsh {amount.toLocaleString()}
                 </p>
               </div>
             )}

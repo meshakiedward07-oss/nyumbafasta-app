@@ -1,14 +1,16 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { getCampaignTotalPrice } from '@/lib/ads/campaignPrice'
 
 type DiagResult = { error?: string; [key: string]: unknown } | null
 
 type Campaign = {
   id: string; title: string; ad_type: string; status: string
   payment_status: string; target_region: string; created_at: string; admin_note: string | null
+  target_wards: string[] | null
   advertiser: { id: string; business_name: string; contact_phone: string; city: string; status: string } | null
-  plan: { name: string; price_tzs: number } | null
+  plan: { name: string; price_tzs: number; geo_scope?: string } | null
 }
 type StaffMember = { id: string; full_name: string; staff_title: string | null }
 
@@ -412,7 +414,12 @@ export default function AdminAdvertsPage() {
                       <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-2 text-xs text-gray-400">
                         <span>📍 {c.target_region}</span>
                         {c.advertiser && <span>🏪 {c.advertiser.business_name}{c.advertiser.city ? `, ${c.advertiser.city}` : ''}</span>}
-                        {c.plan && <span>💰 Tsh {c.plan.price_tzs.toLocaleString()}</span>}
+                        {c.plan && (
+                          <span>
+                            💰 Tsh {getCampaignTotalPrice(c.plan.price_tzs, c.plan.geo_scope, c.target_wards).toLocaleString()}
+                            {c.plan.geo_scope === 'ward' && c.target_wards?.length ? ` (kata ${c.target_wards.length})` : ''}
+                          </span>
+                        )}
                         <span>🗓 {new Date(c.created_at).toLocaleDateString('sw-TZ')}</span>
                       </div>
 

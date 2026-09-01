@@ -3,6 +3,7 @@ import { requireAdvertiserAuth } from '@/lib/security/advertiserAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { checkSlotAvailability } from '@/lib/ads/fetcher'
 import { validateCtaValue } from '@/lib/ads/ctaValidation'
+import { getCampaignTotalPrice } from '@/lib/ads/campaignPrice'
 import { getDistricts, getWards } from '@/lib/data/tanzania-locations'
 import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 import { auditLog } from '@/lib/security/auditLog'
@@ -126,10 +127,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Ward-scope pricing is PER WARD — total = plan.price_tzs × number of
-    // wards selected (a 2-kata campaign costs double a 1-kata one). Computed
-    // here (not trusted from the client) and reused identically at payment
-    // time in pay/initiate/route.ts.
-    const totalPrice = geoScope === 'ward' ? plan.price_tzs * (finalWards?.length ?? 1) : plan.price_tzs
+    // wards selected (a 2-kata campaign costs double a 1-kata one).
+    // getCampaignTotalPrice() is the one shared implementation of this
+    // calculation, used everywhere a campaign's price is shown or charged
+    // (see lib/ads/campaignPrice.ts for why — several display locations
+    // had each independently forgotten this multiplication).
+    const totalPrice = getCampaignTotalPrice(plan.price_tzs, geoScope, finalWards)
 
     // Check slot availability — scoped to the exact geo pool being bought
     // (region-wide / this one district / each of these specific wards), so
@@ -206,6 +209,7 @@ export async function POST(req: NextRequest) {
       user_id: auth.userId,
       target_id: campaign?.id,
       target_type: 'ad_campaign',
+      metadata: { geo_scope: geoScope, wards: finalWards?.length ?? 0, total_price_tzs: totalPrice },
       ip_address: getClientIp(req),
       severity: 'info',
     }).catch(() => {})

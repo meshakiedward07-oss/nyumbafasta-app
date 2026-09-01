@@ -353,6 +353,7 @@ const T_advert = {
   adv_hours_ago:                 { sw: 'Saa {n} zilizopita',                   en: '{n} hours ago'                                },
   adv_days_ago:                  { sw: 'Siku {n} zilizopita',                  en: '{n} days ago'                                 },
   adv_days_label:                { sw: 'Siku',                                 en: 'Days'                                         },
+  adv_wards_label:               { sw: 'kata',                                 en: 'wards'                                        },
 
   // ── Register form extra ───────────────────────────────────────────────────
   adv_biz_name_placeholder:     { sw: 'Mfano: Salon ya Amina, Duka la Nguruwe...', en: 'E.g.: Amina Salon, My Shop...'              },

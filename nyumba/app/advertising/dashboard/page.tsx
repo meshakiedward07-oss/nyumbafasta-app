@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Image from 'next/image'
+import { getCampaignTotalPrice } from '@/lib/ads/campaignPrice'
 
 const STATUS_LABELS: Record<string, { label: string; cls: string; dot: string }> = {
   pending_review: { label: 'Inasubiri Ukaguzi', cls: 'bg-amber-100 text-amber-700 border-amber-200',  dot: 'bg-amber-400' },
@@ -40,7 +41,7 @@ export default async function AdvertiserDashboard({
     .from('ad_campaigns')
     .select(`
       *,
-      plan:plan_id (name, price_tzs, duration_days),
+      plan:plan_id (name, price_tzs, duration_days, geo_scope),
       creative:creative_id (banner_url, video_thumb_url, processing_status, error_message)
     `)
     .eq('advertiser_id', advertiser.id)
@@ -214,7 +215,8 @@ export default async function AdvertiserDashboard({
           <div className="space-y-3">
             {(campaigns ?? []).map(c => {
               const st        = STATUS_LABELS[c.status] ?? { label: c.status, cls: 'bg-gray-100 text-gray-500 border-gray-200', dot: 'bg-gray-400' }
-              const plan      = c.plan as { name: string; price_tzs: number; duration_days: number } | null
+              const plan      = c.plan as { name: string; price_tzs: number; duration_days: number; geo_scope?: string } | null
+              const totalPrice = getCampaignTotalPrice(plan?.price_tzs ?? 0, plan?.geo_scope, c.target_wards)
               const creative  = c.creative as { banner_url: string | null; video_thumb_url: string | null; processing_status: string; error_message: string | null } | null
               const needsPay  = c.status === 'approved' && c.payment_status !== 'completed'
               const needsArt  = (!creative || creative.processing_status === 'failed') && !['rejected', 'expired', 'suspended'].includes(c.status)
@@ -253,7 +255,9 @@ export default async function AdvertiserDashboard({
                         </div>
                         {plan && (
                           <p className="text-[11px] text-gray-400 mt-1">
-                            {plan.name} · TZS {plan.price_tzs.toLocaleString()} · Siku {plan.duration_days}
+                            {plan.name} · TZS {totalPrice.toLocaleString()}
+                            {plan.geo_scope === 'ward' && c.target_wards?.length ? ` (kata ${c.target_wards.length})` : ''}
+                            {' '}· Siku {plan.duration_days}
                           </p>
                         )}
                       </div>

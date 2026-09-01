@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       .select(`
         *,
         advertiser:advertiser_id (id, business_name, contact_phone, whatsapp_number, email, city, status),
-        plan:plan_id (name, ad_type, price_tzs, duration_days)
+        plan:plan_id (name, ad_type, price_tzs, duration_days, geo_scope)
       `, { count: 'exact' })
       .eq('status', status)
       .order('created_at', { ascending: false })

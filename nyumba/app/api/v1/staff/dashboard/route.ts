@@ -113,7 +113,7 @@ export async function GET() {
       // Pending ad campaigns for review
       permissions.includes('review_ads') || profile?.role === 'admin'
         ? admin.from('ad_campaigns')
-            .select('id, title, ad_type, status, target_region, created_at, admin_note, advertiser:advertiser_id(business_name, contact_phone, city), plan:plan_id(name, price_tzs)', { count: 'exact' })
+            .select('id, title, ad_type, status, target_region, target_wards, image_url, video_url, created_at, admin_note, advertiser:advertiser_id(business_name, contact_phone, city), plan:plan_id(name, price_tzs, geo_scope)', { count: 'exact' })
             .eq('status', 'pending_review')
             .order('created_at', { ascending: true })
             .limit(20)

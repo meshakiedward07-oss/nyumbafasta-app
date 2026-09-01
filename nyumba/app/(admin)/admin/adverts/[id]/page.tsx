@@ -2,16 +2,18 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getCampaignTotalPrice } from '@/lib/ads/campaignPrice'
 
 type Payment = { id: string; amount: number; status: string; paid_at: string | null; provider: string; phone_number: string | null }
 type Campaign = {
   id: string; title: string; ad_type: string; status: string; payment_status: string
   target_region: string; target_category: string | null; created_at: string
   starts_at: string | null; expires_at: string | null; admin_note: string | null
-  image_url: string | null; link_url: string | null; creative_id: string | null
+  image_url: string | null; video_url: string | null; link_url: string | null; creative_id: string | null
+  target_wards: string[] | null
   body_text: string | null; cta_type: string | null; cta_value: string | null
   advertiser: { id: string; business_name: string; contact_phone: string; email: string; city: string; status: string; whatsapp_number?: string } | null
-  plan: { name: string; ad_type: string; price_tzs: number; duration_days: number } | null
+  plan: { name: string; ad_type: string; price_tzs: number; duration_days: number; geo_scope?: string } | null
   payments: Payment[]
 }
 
@@ -131,6 +133,9 @@ export default function CampaignDetailPage() {
                 <InfoRow label="Kichwa" value={campaign.title} />
                 <InfoRow label="Aina" value={campaign.ad_type.toUpperCase()} badge />
                 <InfoRow label="Mkoa" value={campaign.target_region} />
+                {campaign.target_wards && campaign.target_wards.length > 0 && (
+                  <InfoRow label="Kata" value={campaign.target_wards.join(', ')} />
+                )}
                 {campaign.target_category && <InfoRow label="Kategoria" value={campaign.target_category} />}
                 {campaign.body_text && (
                   <div>
@@ -160,13 +165,21 @@ export default function CampaignDetailPage() {
                 )}
               </div>
               <div className="p-5">
-                {campaign.image_url ? (
+                {campaign.video_url ? (
+                  <video
+                    src={campaign.video_url}
+                    poster={campaign.image_url ?? undefined}
+                    controls
+                    playsInline
+                    className="w-full rounded-xl max-h-80 border border-gray-100 bg-black"
+                  />
+                ) : campaign.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={campaign.image_url} alt="Ad creative"
                     className="w-full rounded-xl object-contain max-h-56 border border-gray-100 bg-gray-50" />
                 ) : (
                   <div className="h-28 bg-gray-50 rounded-xl border border-dashed border-gray-200 flex items-center justify-center">
-                    <p className="text-xs text-gray-400">Picha haijapakuliwa bado</p>
+                    <p className="text-xs text-gray-400">Picha/video ya tangazo haijapakuliwa bado</p>
                   </div>
                 )}
               </div>
@@ -273,7 +286,10 @@ export default function CampaignDetailPage() {
                 </div>
                 <div className="p-5 space-y-3">
                   <InfoRow label="Jina" value={plan.name} />
-                  <InfoRow label="Bei" value={`Tsh ${plan.price_tzs.toLocaleString()}`} />
+                  {plan.geo_scope === 'ward' && (campaign.target_wards?.length ?? 0) > 0 && (
+                    <InfoRow label="Bei ya Kata" value={`Tsh ${plan.price_tzs.toLocaleString()} × ${campaign.target_wards!.length} kata`} />
+                  )}
+                  <InfoRow label="Bei Jumla" value={`Tsh ${getCampaignTotalPrice(plan.price_tzs, plan.geo_scope, campaign.target_wards).toLocaleString()}`} />
                   <InfoRow label="Muda" value={`Siku ${plan.duration_days}`} />
                 </div>
               </div>
@@ -491,7 +507,7 @@ function runDiagnostics(campaign: Campaign): DiagItem[] {
       id: 'payment_failed', severity: 'critical',
       title: `Malipo Yameshindwa — Majaribio ${failedPmts.length}`,
       explanation: `Mfanyabiashara amejaribu kulipa mara ${failedPmts.length} kupitia ${failedPmts[0].provider} lakini majaribio yote yameshindwa. Mfanyabiashara hawezi kuendelea na kampeni yake hadi tatizo la malipo litatuliwe. Kila siku inayopita ni msongo wa mawazo kwa mfanyabiashara.`,
-      solution: 'Wasiliana na mfanyabiashara haraka sana. Waambie: (1) Hakikisha pesa ya kutosha ipo kwenye akaunti ya simu — kiasi kinachohitajika ni Tsh ' + (campaign.plan?.price_tzs ?? 0).toLocaleString() + ', (2) Jaribu nambari nyingine ya simu ya mtandao tofauti, (3) Ikiwa tatizo linaendelea, wasiliana na timu ya usaidizi wa ' + failedPmts[0].provider + ' moja kwa moja.',
+      solution: 'Wasiliana na mfanyabiashara haraka sana. Waambie: (1) Hakikisha pesa ya kutosha ipo kwenye akaunti ya simu — kiasi kinachohitajika ni Tsh ' + getCampaignTotalPrice(campaign.plan?.price_tzs ?? 0, campaign.plan?.geo_scope, campaign.target_wards).toLocaleString() + ', (2) Jaribu nambari nyingine ya simu ya mtandao tofauti, (3) Ikiwa tatizo linaendelea, wasiliana na timu ya usaidizi wa ' + failedPmts[0].provider + ' moja kwa moja.',
     })
   }
 

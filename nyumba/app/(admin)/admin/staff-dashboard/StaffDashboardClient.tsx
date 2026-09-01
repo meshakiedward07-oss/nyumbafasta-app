@@ -5,6 +5,7 @@ import Image from 'next/image'
 import type { PermissionKey } from '@/lib/staff/permissions'
 import InfluencerDashboardClient from './InfluencerDashboardClient'
 import PdfViewerModal from '@/components/admin/PdfViewerModal'
+import { getCampaignTotalPrice } from '@/lib/ads/campaignPrice'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -34,9 +35,11 @@ type Stats = {
 
 type AdCampaign = {
   id: string; title: string; ad_type: string; status: string
-  target_region: string; created_at: string; admin_note: string | null
+  target_region: string; target_wards: string[] | null
+  image_url: string | null; video_url: string | null
+  created_at: string; admin_note: string | null
   advertiser: { business_name: string; contact_phone: string | null; city: string } | null
-  plan: { name: string; price_tzs: number } | null
+  plan: { name: string; price_tzs: number; geo_scope?: string } | null
 }
 
 type PendingListing = {
@@ -690,7 +693,8 @@ export default function StaffDashboardClient() {
                           <p className="text-xs font-semibold text-gray-800 truncate">{c.title}</p>
                           <p className="text-[11px] text-gray-400">
                             {c.advertiser?.business_name ?? '—'} · {c.target_region}
-                            {c.plan ? ` · TZS ${c.plan.price_tzs.toLocaleString()}` : ''}
+                            {c.plan ? ` · TZS ${getCampaignTotalPrice(c.plan.price_tzs, c.plan.geo_scope, c.target_wards).toLocaleString()}` : ''}
+                            {c.plan?.geo_scope === 'ward' && c.target_wards?.length ? ` (kata ${c.target_wards.length})` : ''}
                           </p>
                         </div>
                         <div className="flex gap-1.5 flex-shrink-0">
@@ -1034,6 +1038,23 @@ export default function StaffDashboardClient() {
               <div className="space-y-3">
                 {adCampaigns.map(c => (
                   <div key={c.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+                    {(c.video_url || c.image_url) && (
+                      <div className="mb-3">
+                        {c.video_url ? (
+                          <video
+                            src={c.video_url}
+                            poster={c.image_url ?? undefined}
+                            controls
+                            playsInline
+                            className="w-full rounded-xl max-h-64 border border-gray-100 bg-black"
+                          />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={c.image_url!} alt="Ad creative"
+                            className="w-full rounded-xl object-contain max-h-48 border border-gray-100 bg-gray-50" />
+                        )}
+                      </div>
+                    )}
                     <div className="flex items-start gap-3 mb-3">
                       <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-xl flex-shrink-0">
                         {AD_TYPE_ICONS[c.ad_type] ?? '📢'}
@@ -1045,8 +1066,10 @@ export default function StaffDashboardClient() {
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
                           {c.advertiser && <span>🏪 {c.advertiser.business_name} ({c.advertiser.city})</span>}
-                          <span>📍 {c.target_region}</span>
-                          {c.plan && <span>💰 TZS {c.plan.price_tzs.toLocaleString()} — {c.plan.name}</span>}
+                          <span>📍 {c.target_region}{c.plan?.geo_scope === 'ward' && c.target_wards?.length ? ` (kata ${c.target_wards.length}: ${c.target_wards.join(', ')})` : ''}</span>
+                          {c.plan && (
+                            <span>💰 TZS {getCampaignTotalPrice(c.plan.price_tzs, c.plan.geo_scope, c.target_wards).toLocaleString()} — {c.plan.name}</span>
+                          )}
                           <span>🗓 {timeAgo(c.created_at)}</span>
                         </div>
                         {c.admin_note && (

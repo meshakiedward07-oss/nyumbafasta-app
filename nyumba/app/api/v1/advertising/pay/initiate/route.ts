@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import {
   mobileCheckout, detectProvider, normalizePhone, generateExternalId, webhookUrl,
 } from '@/lib/payments/azampay'
+import { getCampaignTotalPrice } from '@/lib/ads/campaignPrice'
 import { rateLimit } from '@/lib/security/rateLimit'
 import { auditLog } from '@/lib/security/auditLog'
 
@@ -60,11 +61,10 @@ export async function POST(req: NextRequest) {
       mpesa: 'Mpesa', airtel: 'Airtel', tigo: 'Tigo', tigopesa: 'Tigo', halopesa: 'Halopesa', azampesa: 'Azampesa',
       Mpesa: 'Mpesa', Airtel: 'Airtel', Tigo: 'Tigo', Halopesa: 'Halopesa', Azampesa: 'Azampesa',
     }
-    // Ward-scope plans are priced PER WARD — total = price_tzs × number of
-    // wards this campaign targets (never trust a client-sent amount; this
-    // must match the calculation in POST /campaigns exactly).
-    const wardCount = Array.isArray(campaign.target_wards) ? campaign.target_wards.length : 0
-    const amount    = plan.geo_scope === 'ward' ? plan.price_tzs * Math.max(1, wardCount) : plan.price_tzs
+    // Ward-scope plans are priced PER WARD — never trust a client-sent
+    // amount. getCampaignTotalPrice() is the one shared implementation of
+    // this calculation (see lib/ads/campaignPrice.ts).
+    const amount = getCampaignTotalPrice(plan.price_tzs, plan.geo_scope, campaign.target_wards)
     const externalId         = generateExternalId('AD')
     const normalizedProvider = bodyProvider
       ? (PROVIDER_MAP[bodyProvider] ?? detectProvider(normalizePhone(phone)))
