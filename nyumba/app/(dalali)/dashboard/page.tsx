@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import DashboardClient from '@/components/dalali/DashboardClient'
 import type { Listing } from '@/lib/types/database'
+import { isSoftDeletedListing } from '@/lib/listings/isSoftDeleted'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +33,7 @@ export default async function DalaliDashboardPage() {
       .maybeSingle(),
 
     admin.from('listings')
-      .select('id, title, type, status, price_monthly, district, region, images, view_count, lead_count, created_at, is_boosted')
+      .select('id, title, type, status, price_monthly, district, region, images, view_count, lead_count, created_at, is_boosted, expires_at')
       .eq('dalali_id', user!.id)
       .order('created_at', { ascending: false }),
 
@@ -55,7 +56,10 @@ export default async function DalaliDashboardPage() {
   const dalaliUser = userRes.data
   const dalaliProfile = profileRes.data
   const subscription = subscriptionRes.data
-  const listings = (listingsRes.data as Listing[]) ?? []
+  // Soft-deleted listings (status='expired' + epoch expires_at sentinel —
+  // see lib/listings/isSoftDeleted.ts) must not show on the home dashboard
+  // either — found 2026-09-01 alongside the same bug on dashboard/listings.
+  const listings = ((listingsRes.data as Listing[]) ?? []).filter(l => !isSoftDeletedListing(l.status, l.expires_at))
   const totalLeads = leadsRes.count ?? 0
 
   // Compute stats from listings

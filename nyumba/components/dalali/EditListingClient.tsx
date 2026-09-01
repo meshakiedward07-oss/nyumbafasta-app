@@ -430,8 +430,14 @@ export default function EditListingClient({ listing }: { listing: ListingData })
         )}
       </div>
 
-      {/* Fixed CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+      {/* Fixed CTA — z-50 (not z-20): DalaliBottomNav (rendered on every
+          dalali page by app/(dalali)/layout.tsx) is fixed bottom-0 at
+          z-40 with an opaque white/blur background, so a lower z-index
+          here was completely hidden underneath it — the "Endelea" button
+          existed and worked, it just couldn't be seen or reached. Matches
+          AddListingWizard's own bottom CTA bar, which already uses z-50
+          for the exact same reason. */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 px-4 pt-4 shadow-lg" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
         {step < 3 ? (
           <button onClick={() => setStep(s => s + 1)} disabled={!canProceed}
             className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-40 active:scale-95 transition-all">

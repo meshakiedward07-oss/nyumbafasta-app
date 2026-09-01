@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { isSoftDeletedListing } from '@/lib/listings/isSoftDeleted'
 
 export async function GET() {
   try {
@@ -29,10 +30,19 @@ export async function GET() {
       if (fallbackErr) {
         return NextResponse.json({ error: fallbackErr.message }, { status: 500 })
       }
-      return NextResponse.json(fallback ?? [])
+      // No expires_at in this fallback select, so isSoftDeletedListing can
+      // never match here — acceptable, this branch only runs if the main
+      // query's column list itself is broken (a schema mismatch), a rarer
+      // failure mode than the deleted-listing bug this filter exists for.
+      return NextResponse.json((fallback ?? []).filter(l => !isSoftDeletedListing(l.status, null)))
     }
 
-    return NextResponse.json(data ?? [])
+    // Found 2026-09-01: this route had NO filter at all — a dalali
+    // "deleting" a listing (soft delete, status='expired' + epoch
+    // expires_at sentinel) kept reappearing here, since MyListingsClient
+    // re-fetches this exact endpoint on every mount and after every
+    // action, overwriting its own optimistic client-side removal.
+    return NextResponse.json((data ?? []).filter(l => !isSoftDeletedListing(l.status, l.expires_at)))
   } catch {
     return NextResponse.json({ error: 'Hitilafu ya seva' }, { status: 500 })
   }
