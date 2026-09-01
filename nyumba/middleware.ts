@@ -345,7 +345,14 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.headers.set('X-Frame-Options', 'DENY')
   supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff')
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  // geolocation=(self) — the dalali add/edit-listing map (ListingLocationPicker)
+  // calls navigator.geolocation.getCurrentPosition() from same-origin pages
+  // under /dashboard. This used to be geolocation=() (fully blocked) here,
+  // which overrode the geolocation=(self) already declared in
+  // next.config.mjs's headers() for every protected page — the browser
+  // never even got to prompt/use GPS, so "Ruhusu GPS" showed no matter what
+  // permission the user actually granted on their device.
+  supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)')
   supabaseResponse.headers.set(
     'Strict-Transport-Security',
     'max-age=31536000; includeSubDomains; preload',
