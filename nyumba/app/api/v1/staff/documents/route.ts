@@ -55,6 +55,35 @@ export async function POST(req: NextRequest) {
     if (influencerCheck) return NextResponse.json({ error: 'influencer_account' }, { status: 403 })
   }
 
+  // ── Presigned mode: file already uploaded direct-to-Cloudinary via
+  // GET /staff/documents/sign — this request just carries the resulting
+  // URL + metadata to record, so it stays a tiny JSON body regardless of
+  // how large the original file was. See that route's comment for why
+  // this exists (Vercel's 4.5MB body ceiling on the old FormData path
+  // below, which is kept only for backward compatibility).
+  const contentType = req.headers.get('content-type') ?? ''
+  if (contentType.includes('application/json')) {
+    let body: { secure_url?: string; document_type?: string; document_name?: string; file_type?: string; file_size?: number }
+    try { body = await req.json() } catch { return NextResponse.json({ error: 'JSON si sahihi' }, { status: 400 }) }
+
+    if (!body.secure_url || !body.document_type) {
+      return NextResponse.json({ error: 'Faili na aina ya hati vinahitajika' }, { status: 400 })
+    }
+    const isPdf = body.file_type === 'application/pdf'
+    const { data, error } = await admin.from('staff_documents').insert({
+      staff_id:      user.id,
+      document_type: body.document_type,
+      document_name: body.document_name || 'Hati',
+      document_url:  body.secure_url,
+      file_type:     isPdf ? 'pdf' : (body.file_type ?? '').split('/')[1] ?? 'unknown',
+      file_size_kb:  Math.round((body.file_size ?? 0) / 1024),
+    }).select().single()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, document: data })
+  }
+
+  // ── Legacy mode: raw file relayed through this Vercel function ──────────
   let form: FormData
   try { form = await req.formData() }
   catch { return NextResponse.json({ error: 'Imeshindwa kusoma faili' }, { status: 400 }) }

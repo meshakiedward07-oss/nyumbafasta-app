@@ -1361,11 +1361,39 @@ function ProfileTab({
   async function uploadDoc(docType: string, file: File) {
     setUploadingDoc(docType)
     try {
+      // Direct-to-Cloudinary signed upload — the file never passes through
+      // this app's own Vercel functions, which enforce a hard 4.5MB
+      // request-body ceiling no server-side timeout setting can raise.
+      // Any document above that (a scanned ID photo commonly runs 5-9MB)
+      // used to hang/fail against that platform limit before our code
+      // even ran.
+      const signRes = await fetch(`/api/v1/staff/documents/sign?mimeType=${encodeURIComponent(file.type)}`)
+      const sign = await signRes.json()
+      if (!signRes.ok) throw new Error(sign.error ?? 'Imeshindwa kuandaa upakiaji')
+
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('document_type', docType)
-      fd.append('document_name', DOC_TYPES.find(d => d.v === docType)?.l ?? docType)
-      const res  = await fetch('/api/v1/staff/documents', { method: 'POST', body: fd })
+      fd.append('api_key', sign.apiKey)
+      fd.append('timestamp', String(sign.timestamp))
+      fd.append('signature', sign.signature)
+      fd.append('folder', sign.folder)
+      fd.append('resource_type', sign.resourceType)
+
+      const cloudRes  = await fetch(sign.uploadUrl, { method: 'POST', body: fd })
+      const cloudData = await cloudRes.json()
+      if (!cloudRes.ok || !cloudData.secure_url) throw new Error(cloudData.error?.message ?? 'Imeshindwa kupakia faili')
+
+      const res  = await fetch('/api/v1/staff/documents', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secure_url:    cloudData.secure_url,
+          document_type: docType,
+          document_name: DOC_TYPES.find(d => d.v === docType)?.l ?? docType,
+          file_type:     file.type,
+          file_size:     file.size,
+        }),
+      })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Imeshindwa kupakia')
       setDocuments(prev => [json.document, ...prev])

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useLanguage } from '@/lib/i18n/context'
+import { optimizeCloudinaryImageUrl } from '@/lib/media/cloudinaryUrl'
 
 export interface PendingAttachment {
   url: string
@@ -52,16 +53,39 @@ export default function AttachmentCompose({ onAttach, onRemove, attachment }: Pr
         })
       }
 
-      const fd = new FormData()
-      fd.append('file', file)
-      const res  = await fetch('/api/v1/upload/message-attachment', { method: 'POST', body: fd })
-      const json = await res.json()
-
-      if (!res.ok || !json.url) {
-        setError(json.error ?? t('pr_attach_err_upload'))
+      // Direct-to-Cloudinary signed upload — the file never passes through
+      // this app's own Vercel functions, which enforce a hard 4.5MB
+      // request-body ceiling that no server-side timeout setting can raise.
+      // Any attachment above that (a common phone photo, or any video) used
+      // to hang/fail against that platform limit before our code even ran.
+      const signRes = await fetch(`/api/v1/upload/message-attachment/sign?mimeType=${encodeURIComponent(file.type)}`)
+      const sign = await signRes.json()
+      if (!signRes.ok) {
+        setError(sign.error ?? t('pr_attach_err_upload'))
         return
       }
-      onAttach({ ...json, preview })
+
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('api_key', sign.apiKey)
+      fd.append('timestamp', String(sign.timestamp))
+      fd.append('signature', sign.signature)
+      fd.append('folder', sign.folder)
+      fd.append('resource_type', sign.resourceType)
+
+      const res  = await fetch(sign.uploadUrl, { method: 'POST', body: fd })
+      const json = await res.json()
+
+      if (!res.ok || !json.secure_url) {
+        setError(json.error?.message ?? t('pr_attach_err_upload'))
+        return
+      }
+
+      const url = file.type.startsWith('image/')
+        ? optimizeCloudinaryImageUrl(json.secure_url, { maxWidth: 1200 })
+        : json.secure_url as string
+
+      onAttach({ url, file_name: file.name, file_type: file.type, file_size: file.size, preview })
     } catch {
       setError(t('pr_attach_err_network'))
     } finally {
