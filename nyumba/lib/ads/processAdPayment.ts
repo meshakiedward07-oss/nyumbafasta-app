@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { isWebhookSuccess, WebhookPayload } from '@/lib/payments/azampay'
-import { notifyAdvertiserPaymentSuccess } from './adNotifications'
+import { notifyAdvertiserPaymentSuccess, notifyAdvertiserQueued } from './adNotifications'
+import { activateOrQueueCampaign } from './slotManager'
 import { recordIncomeFromAdCampaign } from '@/lib/accounting/incomeTracker'
 import { auditLog } from '@/lib/security/auditLog'
 
@@ -55,25 +56,34 @@ export async function tryProcessAdPayment(
 
   if (!success) return true
 
-  // Activate the campaign
+  // Mark paid. Content-review status is left as-is here if the advertiser
+  // paid before admin ever reviewed the creative (still 'pending_review') —
+  // the admin approve routes' own alreadyPaid branch handles going live in
+  // that case. Only an already-'approved' campaign (content vetted, just
+  // waiting on payment) transitions here.
   const { data: campaign } = await admin
     .from('ad_campaigns')
-    .select('id, title, ad_type, status, plan:plan_id (duration_days)')
+    .select('id, title, ad_type, status, target_region, plan:plan_id (duration_days, slot_limit)')
     .eq('id', payment.campaign_id)
     .single()
 
   if (!campaign) return true
 
-  const durationDays = (campaign.plan as unknown as { duration_days: number })?.duration_days ?? 30
-  const expiresAt    = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
-  const newStatus    = campaign.status === 'approved' ? 'active' : campaign.status
+  const plan = campaign.plan as unknown as { duration_days: number; slot_limit: number } | null
+  const durationDays = plan?.duration_days ?? 30
 
-  await admin.from('ad_campaigns').update({
-    payment_status: 'completed',
-    status:         newStatus,
-    starts_at:      new Date().toISOString(),
-    expires_at:     expiresAt,
-  }).eq('id', payment.campaign_id)
+  await admin.from('ad_campaigns').update({ payment_status: 'completed' }).eq('id', payment.campaign_id)
+
+  let activated = false
+  if (campaign.status === 'approved') {
+    const result = await activateOrQueueCampaign(
+      admin,
+      { id: campaign.id, ad_type: campaign.ad_type, target_region: campaign.target_region },
+      plan?.slot_limit ?? 1,
+      durationDays,
+    )
+    activated = result.activated
+  }
 
   // Load advertiser for notifications
   const { data: advertiser } = await admin
@@ -82,27 +92,49 @@ export async function tryProcessAdPayment(
     .eq('id', payment.advertiser_id)
     .single()
 
-  if (advertiser) {
+  if (advertiser && campaign.status === 'approved') {
+    const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
+
     // WhatsApp notification (non-blocking)
     if (advertiser.whatsapp_number) {
-      notifyAdvertiserPaymentSuccess(
-        advertiser.whatsapp_number,
-        advertiser.business_name,
-        campaign.ad_type,
-        expiresAt,
-      ).catch(() => {})
+      if (activated) {
+        notifyAdvertiserPaymentSuccess(
+          advertiser.whatsapp_number, advertiser.business_name, campaign.ad_type, expiresAt,
+        ).catch(() => {})
+      } else {
+        notifyAdvertiserQueued(
+          advertiser.whatsapp_number, advertiser.business_name, campaign.ad_type, campaign.target_region,
+        ).catch(() => {})
+      }
     }
 
     // In-app notification
     if (advertiser.user_id) {
       admin.from('notifications').insert({
         user_id: advertiser.user_id,
-        title:   '💳 Malipo Yamekamilika!',
-        body:    `Kampeni yako "${campaign.title}" inaonekana sasa kwa wateja. Angalia dashibodi yako.`,
-        type:    'ad_payment_success',
+        title:   activated ? '💳 Malipo Yamekamilika!' : '⏳ Malipo Yamepokelewa — Foleni',
+        body:    activated
+          ? `Kampeni yako "${campaign.title}" inaonekana sasa kwa wateja. Angalia dashibodi yako.`
+          : `Kampeni yako "${campaign.title}" imelipwa lakini nafasi zimejaa. Itaanza kiotomatiki mara nafasi itakapopatikana.`,
+        type:    activated ? 'ad_payment_success' : 'ad_campaign_queued',
         is_read: false,
       }).then(() => {}, () => {})
     }
+  } else if (advertiser?.user_id && campaign.status !== 'approved') {
+    // Advertiser paid before admin ever reviewed the content (still
+    // 'pending_review') — this used to send the "your campaign is showing
+    // to customers now" WhatsApp message unconditionally here, which was
+    // simply false in this case (nothing goes live until admin approves
+    // the content). Send an honest "payment received, awaiting review"
+    // notice instead; the admin approve routes' alreadyPaid branch is what
+    // actually activates/queues it once content is approved.
+    admin.from('notifications').insert({
+      user_id: advertiser.user_id,
+      title:   '💳 Malipo Yamepokelewa',
+      body:    `Malipo ya kampeni yako "${campaign.title}" yamepokelewa. Inasubiri ukaguzi wa admin kabla ya kuonekana.`,
+      type:    'ad_payment_pending_review',
+      is_read: false,
+    }).then(() => {}, () => {})
   }
 
   // Revenue accounting — fire and forget, never block webhook response

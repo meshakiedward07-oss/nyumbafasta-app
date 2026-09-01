@@ -15,6 +15,7 @@ type StaffMember = { id: string; full_name: string; staff_title: string | null }
 const STATUS_TABS = [
   { value: 'pending_review', label: 'Zinasubiri',      dot: 'bg-amber-400' },
   { value: 'approved',       label: 'Zimeidhinishwa',  dot: 'bg-blue-400' },
+  { value: 'queued',         label: 'Foleni ya Nafasi', dot: 'bg-purple-400' },
   { value: 'active',         label: 'Zinafanya Kazi',  dot: 'bg-green-400' },
   { value: 'rejected',       label: 'Zimekataliwa',    dot: 'bg-red-400' },
   { value: 'expired',        label: 'Zimekwisha',      dot: 'bg-gray-300' },

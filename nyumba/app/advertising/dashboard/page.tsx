@@ -6,6 +6,7 @@ import Image from 'next/image'
 const STATUS_LABELS: Record<string, { label: string; cls: string; dot: string }> = {
   pending_review: { label: 'Inasubiri Ukaguzi', cls: 'bg-amber-100 text-amber-700 border-amber-200',  dot: 'bg-amber-400' },
   approved:       { label: 'Imeidhinishwa',     cls: 'bg-blue-100 text-blue-700 border-blue-200',     dot: 'bg-blue-400'  },
+  queued:         { label: 'Foleni ya Nafasi',   cls: 'bg-purple-100 text-purple-700 border-purple-200', dot: 'bg-purple-400' },
   active:         { label: 'Inafanya Kazi',      cls: 'bg-green-100 text-green-700 border-green-200', dot: 'bg-green-400' },
   rejected:       { label: 'Imekataliwa',        cls: 'bg-red-100 text-red-700 border-red-200',       dot: 'bg-red-400'   },
   expired:        { label: 'Imekwisha',          cls: 'bg-gray-100 text-gray-500 border-gray-200',    dot: 'bg-gray-400'  },
@@ -46,7 +47,7 @@ export default async function AdvertiserDashboard({
     .order('created_at', { ascending: false })
 
   const active  = campaigns?.filter(c => c.status === 'active').length ?? 0
-  const pending = campaigns?.filter(c => ['pending_review','approved'].includes(c.status)).length ?? 0
+  const pending = campaigns?.filter(c => ['pending_review','approved','queued'].includes(c.status)).length ?? 0
   const expired = campaigns?.filter(c => c.status === 'expired').length ?? 0
   const total   = campaigns?.length ?? 0
 

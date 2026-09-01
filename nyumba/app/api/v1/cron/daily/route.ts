@@ -1148,18 +1148,47 @@ async function runDailyTasks() {
       results.push(`✅ Ad renewal reminders: ${expiringSoon.length} zimetumwa`)
     }
 
-    // Notify waiting list when slots opened up from expirations — scoped to
-    // the exact (ad_type, region) pair that actually freed up. This used to
+    // A freed slot goes first to anyone already paid + admin-approved and
+    // sitting in the auto-queue (status='queued') — they claimed it before
+    // anyone on the waiting list even submitted a campaign — and only THEN,
+    // if nothing was queued for that (ad_type, region), do we ping the
+    // waiting list (people who haven't created/paid a campaign yet). Scoped
+    // to the exact pair that actually freed up in both cases — this used to
     // key only on ad_type (expiredAds never even selected target_region),
     // so an advertiser waiting for a Dodoma banner slot could get pinged
-    // when an Arusha banner slot expired, and vice versa — a false "slot
-    // available" notification for a region nothing actually opened up in.
-    // Found in the 2026-09-01 ads-system audit.
+    // when an Arusha banner slot expired, and vice versa. Found in the
+    // 2026-09-01 ads-system audit; see slotManager.ts.
     if (expiredAds?.length) {
-      const { notifyWaitingListSlotOpen } = await import('@/lib/ads/adNotifications')
+      const { promoteQueuedCampaigns } = await import('@/lib/ads/slotManager')
+      const { notifyAdvertiserPaymentSuccess, notifyWaitingListSlotOpen } = await import('@/lib/ads/adNotifications')
       const freedSlots = new Set(expiredAds.map(a => `${a.ad_type}::${a.target_region}`))
+      let totalPromoted = 0
+
       for (const key of freedSlots) {
         const [adType, region] = key.split('::')
+
+        const promoted = await promoteQueuedCampaigns(admin, adType, region)
+        totalPromoted += promoted.length
+
+        for (const p of promoted) {
+          const { data: full } = await admin
+            .from('ad_campaigns')
+            .select('ad_type, expires_at, advertiser:advertiser_id (business_name, whatsapp_number)')
+            .eq('id', p.id)
+            .single()
+          const adv = full?.advertiser as unknown as { business_name: string; whatsapp_number: string | null } | undefined
+          if (adv?.whatsapp_number && full) {
+            await notifyAdvertiserPaymentSuccess(
+              adv.whatsapp_number, adv.business_name, full.ad_type, full.expires_at as string,
+            ).catch(() => {})
+          }
+        }
+
+        // Only the waiting list (no paid campaign yet) if the queue didn't
+        // already claim this freed slot — otherwise "nafasi imepatikana!"
+        // would be false, the slot is already taken.
+        if (promoted.length > 0) continue
+
         const { data: waiting } = await admin
           .from('ad_waiting_list')
           .select('id, advertiser:advertiser_id (business_name, whatsapp_number), region')
@@ -1176,6 +1205,10 @@ async function runDailyTasks() {
             admin.from('ad_waiting_list').update({ status: 'notified' }).eq('id', w.id).then(() => {}, () => {})
           }
         }
+      }
+
+      if (totalPromoted > 0) {
+        results.push(`✅ Ad queue promoted: ${totalPromoted}`)
       }
     }
   } catch (e) {

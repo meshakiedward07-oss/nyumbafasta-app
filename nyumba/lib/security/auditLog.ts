@@ -25,6 +25,7 @@ export type AuditAction =
   | 'ad_campaign_created'
   | 'ad_campaign_approved'
   | 'ad_campaign_rejected'
+  | 'ad_campaign_queued'
   | 'ad_payment_initiated'
   | 'ad_payment_completed'
   | 'ad_payment_failed'

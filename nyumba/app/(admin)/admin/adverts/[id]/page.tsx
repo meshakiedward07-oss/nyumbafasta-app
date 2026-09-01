@@ -18,6 +18,7 @@ type Campaign = {
 const STATUS_CONFIG: Record<string, { label: string; cls: string; dot: string }> = {
   pending_review: { label: 'Inasubiri Ukaguzi', cls: 'bg-amber-50 text-amber-700 border-amber-200',   dot: 'bg-amber-400' },
   approved:       { label: 'Imeidhinishwa',      cls: 'bg-blue-50 text-blue-700 border-blue-200',      dot: 'bg-blue-400' },
+  queued:         { label: 'Foleni ya Nafasi',    cls: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-400' },
   active:         { label: 'Inafanya Kazi',       cls: 'bg-green-50 text-green-700 border-green-200',   dot: 'bg-green-400' },
   rejected:       { label: 'Imekataliwa',         cls: 'bg-red-50 text-red-700 border-red-200',         dot: 'bg-red-400' },
   suspended:      { label: 'Imesimamishwa',       cls: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-400' },

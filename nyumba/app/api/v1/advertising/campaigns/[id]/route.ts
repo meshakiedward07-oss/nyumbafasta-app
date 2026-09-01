@@ -46,8 +46,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       .single()
 
     if (!existing) return NextResponse.json({ error: 'Kampeni haikupatikana' }, { status: 404 })
-    if (existing.status === 'active') {
-      return NextResponse.json({ error: 'Kampeni inayoendelea haiwezi kubadilishwa' }, { status: 403 })
+    // 'queued' = already paid + content-approved, just waiting on
+    // slotManager.ts to auto-activate it — same as 'active', it must not
+    // be silently editable with no re-review (would reopen the
+    // content-moderation-bypass class of bug fixed in the 2026-09-01
+    // ads-system audit).
+    if (existing.status === 'active' || existing.status === 'queued') {
+      return NextResponse.json({ error: 'Kampeni inayoendelea au iliyo foleni haiwezi kubadilishwa' }, { status: 403 })
     }
 
     const body = await req.json()

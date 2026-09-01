@@ -62,6 +62,28 @@ export async function notifyAdvertiserPaymentSuccess(
   } catch { /* non-fatal */ }
 }
 
+export async function notifyAdvertiserQueued(
+  whatsapp: string,
+  businessName: string,
+  adType: string,
+  region: string,
+): Promise<void> {
+  const typeLabel: Record<string, string> = {
+    banner: 'Banner', search: 'Search Ad', nearby: 'Nearby Ad',
+    video: 'Video Ad', featured: 'Featured Business',
+  }
+  const msg =
+    `⏳ *Malipo Yamepokelewa — Umewekwa Foleni*\n\n` +
+    `Habari ${businessName}!\n\n` +
+    `Tangazo lako la *${typeLabel[adType] ?? adType}* kwa *${region}* limeidhinishwa na malipo yamepokelewa, ` +
+    `lakini nafasi zote zimejaa kwa sasa.\n\n` +
+    `Tangazo lako litaanza kuonekana *kiotomatiki* mara nafasi itakapopatikana — hutahitaji kufanya lolote.\n\n` +
+    `👉 ${APP_URL}/advertising/dashboard`
+  try {
+    await sendTextMessage(formatPhoneNumber(whatsapp), msg)
+  } catch { /* non-fatal */ }
+}
+
 export async function notifyAdvertiserRenewalReminder(
   whatsapp: string,
   businessName: string,

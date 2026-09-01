@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   // immediately pulls it from ad rotation (fetcher/rankingEngine only serve
   // status='active'); the existing "already paid → reactivate on approval"
   // logic in the admin approve routes brings it straight back once reviewed.
-  const needsReReview = campaign.status === 'approved' || campaign.status === 'active'
+  const needsReReview = campaign.status === 'approved' || campaign.status === 'active' || campaign.status === 'queued'
 
   const contentType = req.headers.get('content-type') ?? ''
   const isJson      = contentType.includes('application/json')
