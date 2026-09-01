@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { getNeighborhoodInfo } from '@/lib/listings/neighborhoodInfo'
 import { rateLimit } from '@/lib/security/rateLimit'
 
@@ -17,15 +17,23 @@ export async function GET(
     const rl = await rateLimit(`neighborhood:${ip}`, 30, 60_000)
     if (!rl.allowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
-    const supabase = await createClient()
+    // Admin client — this is a public, read-only lookup (region/district/ward/
+    // lat/lng are already shown on the public listing detail page itself), and
+    // the RLS client silently returned zero rows here regardless of the
+    // listings table's public-read policy, making every listing 404 with
+    // "Listing haikupatikana" and the neighbourhood section render empty.
+    const admin = createAdminClient()
 
-    const { data: listing, error } = await supabase
+    const { data: listing, error } = await admin
       .from('listings')
       .select('region, district, ward, latitude, longitude')
       .eq('id', id)
       .eq('status', 'active')
       .maybeSingle()
 
+    if (error) {
+      console.error('[Neighborhood API] listing lookup failed:', error.message)
+    }
     if (error || !listing) {
       return NextResponse.json({ error: 'Listing haikupatikana' }, { status: 404 })
     }
