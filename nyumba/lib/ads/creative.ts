@@ -210,8 +210,23 @@ export async function uploadVideo(
     `https://res.cloudinary.com/${CLOUD}/video/upload` +
     `/w_640,h_360,c_fill,so_2/${data.public_id}.jpg`
 
+  // Delivery URL uses Cloudinary's smart/perceptual compression — q_auto:good
+  // picks the highest compression that doesn't introduce visible artifacts
+  // (content-aware, not a blanket bitrate cut), f_auto + vc_auto pick the
+  // smallest format/codec the requesting browser actually supports (e.g.
+  // WebM/VP9 or H.265 instead of always serving raw H.264 MP4). On-the-fly,
+  // same technique already proven for social video posts
+  // (app/api/v1/social/video/upload-sign/route.ts's eager transform) — no
+  // extra upload step, Cloudinary transforms + CDN-caches on first request.
+  // Deliberately NOT the aggressive resolution/bitrate cap
+  // lib/video/compress.ts uses for listing preview clips — an advertiser is
+  // paying to show a polished ad, not a quick phone-video preview.
+  const videoUrl =
+    `https://res.cloudinary.com/${CLOUD}/video/upload` +
+    `/q_auto:good,f_auto,vc_auto/${data.public_id}.mp4`
+
   return {
-    video_url:       data.secure_url,
+    video_url:       videoUrl,
     video_thumb_url: thumbUrl,
     original_url:    data.secure_url,
   }
