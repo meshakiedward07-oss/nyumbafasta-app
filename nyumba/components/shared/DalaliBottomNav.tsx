@@ -18,22 +18,23 @@ const ITEMS: { href: string; icon: string; iconActive: string; labelKey: TKey; i
 export default function DalaliBottomNav() {
   const pathname = usePathname()
   const { t } = useLanguage()
-  const [unread, setUnread] = useState(0)
   const [msgUnread, setMsgUnread] = useState(0)
 
+  // Notification count used to also show on the "Akaunti" tab here — but
+  // that tab links to /dashboard/profile, not /notifications, and
+  // DashboardClient.tsx's own header already renders a proper
+  // <NotificationBell> (correctly linked to /notifications) on the
+  // dashboard home page. The two badges showed the exact same count in
+  // the exact same place at once whenever a dalali was on that page.
+  // Found 2026-09-01. Keeping exactly one — the bell, since it's the one
+  // that actually navigates somewhere meaningful.
   useEffect(() => {
     let cancelled = false
     const poll = async () => {
       try {
-        const [notifRes, convRes] = await Promise.all([
-          fetch('/api/v1/notifications?count=true'),
-          fetch('/api/v1/conversations?unread=1'),
-        ])
-        const [notifJson, convJson] = await Promise.all([notifRes.json(), convRes.json()])
-        if (!cancelled) {
-          setUnread(notifJson.unread_count ?? 0)
-          setMsgUnread(convJson.unread_count ?? 0)
-        }
+        const convRes  = await fetch('/api/v1/conversations?unread=1')
+        const convJson = await convRes.json()
+        if (!cancelled) setMsgUnread(convJson.unread_count ?? 0)
       } catch { /* non-fatal */ }
     }
     poll()
@@ -79,10 +80,7 @@ export default function DalaliBottomNav() {
             )
           }
 
-          const badgeCount =
-            href === '/dashboard/profile'  ? unread    :
-            href === '/dashboard/messages' ? msgUnread :
-            0
+          const badgeCount = href === '/dashboard/messages' ? msgUnread : 0
           const showBadge = badgeCount > 0
 
           return (
