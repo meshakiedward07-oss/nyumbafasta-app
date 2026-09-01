@@ -1231,6 +1231,32 @@ async function runDailyTasks() {
     errors.push(`❌ Ad expiry/reminders: ${String(e)}`)
   }
 
+  // ── 21b. Stale ad_creatives cleanup ──
+  // A creative row is created with processing_status='processing' right
+  // before the (synchronous, in-request) upload/transcode work starts. If
+  // the serverless function is killed mid-way for any reason the route's
+  // own try/catch doesn't cover (platform OOM, a mid-processing deploy,
+  // hitting the 300s maxDuration ceiling itself), the row is left stuck at
+  // 'processing' forever with no error_message and the advertiser just sees
+  // a failed request — nothing ever marks it failed so it can be retried
+  // cleanly. Found in the 2026-09-01 ads-creative audit. 20 minutes is
+  // generous headroom above the route's own 300s maxDuration.
+  try {
+    const staleCutoff = new Date(Date.now() - 20 * 60 * 1000).toISOString()
+    const { data: stale } = await admin
+      .from('ad_creatives')
+      .update({ processing_status: 'failed', error_message: 'Muda uliisha wakati wa kusindika (stale cleanup)' })
+      .eq('processing_status', 'processing')
+      .lt('created_at', staleCutoff)
+      .select('id')
+
+    if (stale?.length) {
+      results.push(`✅ Ad creatives zilizokwama zimewekwa 'failed': ${stale.length}`)
+    }
+  } catch (e) {
+    errors.push(`❌ Ad creatives stale cleanup: ${String(e)}`)
+  }
+
   // ── 22. Purge stale ad impressions (older than 24h) ──
   try {
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
