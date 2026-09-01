@@ -130,7 +130,18 @@ async function fetchOverpass(query: string): Promise<OsmElement[]> {
       const timer = setTimeout(() => ctrl.abort(), 8000)
       const res   = await fetch(endpoint, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        // overpass-api.de's Apache front-end rejects requests with no
+        // User-Agent header with a bare 406 before the query ever reaches
+        // Overpass itself — Node's fetch() sends none by default (unlike
+        // curl, which sends one automatically), so every call here was
+        // silently failing on every endpoint and every listing's
+        // neighbourhood card rendered all 5 categories empty regardless of
+        // real nearby data. Nominatim (geocodeLocation, above) already sent
+        // one for the same reason; this brings fetchOverpass in line.
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent':   'NyumbaFasta/1.0 (info@nyumbafasta.co)',
+        },
         body,
         signal:  ctrl.signal,
       })
