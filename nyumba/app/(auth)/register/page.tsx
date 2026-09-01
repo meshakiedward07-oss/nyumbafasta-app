@@ -140,7 +140,18 @@ function RegisterForm() {
         }),
       })
     } catch { /* non-fatal — auth/callback is the safety net */ }
-    router.replace(role === 'dalali' ? '/dashboard?welcome=true' : '/?welcome=true')
+    // Hard navigation (not router.replace) — this is the one moment the
+    // freshly-created subscription/plan MUST be read live from the server,
+    // never from Next.js's client-side router cache for a route this same
+    // tab may have visited moments earlier (e.g. re-testing signup flows,
+    // or navigating here from a page that already rendered /dashboard once
+    // this session). A soft client-side transition can serve a cached RSC
+    // payload from that earlier visit — showing the Free Plan welcome
+    // instead of the real Enterprise trial that was just granted, even
+    // though both the database and the fetch logic are correct. A full
+    // page load guarantees the dashboard's server component re-runs its
+    // subscription query against the real, current state.
+    window.location.href = role === 'dalali' ? '/dashboard?welcome=true' : '/?welcome=true'
   }
 
   // ── Error mapper ─────────────────────────────────────────────────────────
