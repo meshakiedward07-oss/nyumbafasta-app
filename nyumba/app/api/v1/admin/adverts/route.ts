@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest) {
 
     const { data: campaigns } = await admin
       .from('ad_campaigns')
-      .select('id, ad_type, target_region, payment_status, plan:plan_id (duration_days, slot_limit), advertiser:advertiser_id (id, business_name, whatsapp_number, user_id, email)')
+      .select('id, ad_type, target_region, target_district, target_wards, payment_status, plan:plan_id (duration_days, slot_limit), advertiser:advertiser_id (id, business_name, whatsapp_number, user_id, email)')
       .in('id', ids)
 
     // Tracks, per campaign id, whether an alreadyPaid approve activated it
@@ -95,7 +95,10 @@ export async function PATCH(req: NextRequest) {
           }).eq('id', c.id)
           const result = await activateOrQueueCampaign(
             admin,
-            { id: c.id, ad_type: c.ad_type, target_region: c.target_region },
+            {
+              id: c.id, ad_type: c.ad_type, target_region: c.target_region,
+              target_district: c.target_district, target_wards: c.target_wards,
+            },
             plan?.slot_limit ?? 1,
             plan?.duration_days ?? 30,
           )

@@ -33,6 +33,11 @@ async function getFeaturedForCity(city: string) {
     .eq('payment_status', 'completed')
     .eq('ad_type', 'featured')
     .eq('target_region', city)
+    // This page is region/city-wide — district/kata-scoped Featured campaigns
+    // are excluded so they never show to a broader audience than paid for
+    // (there is no district-level directory page for them to appear on yet).
+    .is('target_district', null)
+    .is('target_wards', null)
     .or(`expires_at.is.null,expires_at.gt.${now}`)
     .order('created_at', { ascending: false })
 

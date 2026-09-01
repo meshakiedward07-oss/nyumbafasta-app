@@ -10,7 +10,7 @@ export async function GET() {
     const admin = createAdminClient()
     const { data, error } = await admin
       .from('ad_subscription_plans')
-      .select('id, name, ad_type, price_tzs, duration_days, slot_limit, display_order, is_active, visibility, description')
+      .select('id, name, ad_type, price_tzs, duration_days, slot_limit, display_order, is_active, visibility, description, geo_scope')
       .order('display_order', { ascending: true })
       .limit(100)
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const {
       name, ad_type, bundle_types, description,
       price_tzs, duration_days, slot_limit,
-      features, display_order, is_active, placements, visibility,
+      features, display_order, is_active, placements, visibility, geo_scope,
     } = body
 
     if (!name || !ad_type || !price_tzs || !duration_days || !slot_limit) {
@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
         visibility:    visibility ?? 'new_campaign',
         display_order: display_order ?? 99,
         is_active:     is_active ?? true,
+        geo_scope:     ['region', 'district', 'ward'].includes(geo_scope) ? geo_scope : 'region',
       })
       .select()
       .single()

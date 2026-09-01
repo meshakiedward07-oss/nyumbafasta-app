@@ -56,7 +56,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     // Load campaign for notification data and payment status
     const { data: campaign } = await admin
       .from('ad_campaigns')
-      .select('id, ad_type, target_region, payment_status, title, plan:plan_id (duration_days, slot_limit), advertiser:advertiser_id (id, business_name, whatsapp_number, user_id, email)')
+      .select('id, ad_type, target_region, target_district, target_wards, payment_status, title, plan:plan_id (duration_days, slot_limit), advertiser:advertiser_id (id, business_name, whatsapp_number, user_id, email)')
       .eq('id', id)
       .single()
 
@@ -82,7 +82,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
       const result = await activateOrQueueCampaign(
         admin,
-        { id: campaign.id, ad_type: campaign.ad_type, target_region: campaign.target_region },
+        {
+          id: campaign.id, ad_type: campaign.ad_type, target_region: campaign.target_region,
+          target_district: campaign.target_district, target_wards: campaign.target_wards,
+        },
         plan?.slot_limit ?? 1,
         plan?.duration_days ?? 30,
       )

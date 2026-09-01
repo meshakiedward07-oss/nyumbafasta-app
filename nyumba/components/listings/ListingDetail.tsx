@@ -920,6 +920,8 @@ export default function ListingDetail({ listing, hasUnlocked, isLoggedIn, unlock
             {/* Ads */}
             <RankedAdSlot
               region={listing.region}
+              district={listing.district ?? undefined}
+              ward={listing.ward ?? undefined}
               placement="listing_detail"
               limit={3}
               title={t('cl_nearby_biz')}

@@ -1,13 +1,14 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { REGION_NAMES } from '@/lib/data/tanzania-locations'
+import { REGION_NAMES, getDistricts, getWards } from '@/lib/data/tanzania-locations'
 import UploadCreative from '@/components/ads/UploadCreative'
 import { useLanguage } from '@/lib/i18n/context'
 
 type Plan = {
   id: string; name: string; ad_type: string; price_tzs: number
   duration_days: number; slot_limit: number; description: string | null; features: string[]
+  geo_scope: 'region' | 'district' | 'ward'
 }
 
 function NewCampaignForm() {
@@ -44,8 +45,13 @@ function NewCampaignForm() {
     cta_type: 'whatsapp', cta_value: '',
     target_region: '', target_district: '', target_category: '',
   })
+  const [targetWards, setTargetWards] = useState<string[]>([])
 
   function set(k: string, v: string) { setForm(p => ({ ...p, [k]: v })) }
+
+  function toggleWard(w: string) {
+    setTargetWards(prev => prev.includes(w) ? prev.filter(x => x !== w) : [...prev, w])
+  }
 
   useEffect(() => {
     fetch('/api/v1/advertising/plans')
@@ -68,27 +74,52 @@ function NewCampaignForm() {
   useEffect(() => {
     if (form.plan_id && plans.length > 0) {
       const p = plans.find(pl => pl.id === form.plan_id)
-      if (p) { setSelectedPlan(p); set('ad_type', p.ad_type) }
+      if (p) {
+        setSelectedPlan(prev => {
+          // Reset district/wards whenever switching to a different geo_scope
+          // (e.g. Wilaya → Kata) — a district/ward chosen under one scope
+          // isn't necessarily meaningful under another.
+          if (!prev || prev.geo_scope !== p.geo_scope) {
+            set('target_district', '')
+            setTargetWards([])
+          }
+          return p
+        })
+        set('ad_type', p.ad_type)
+      }
     }
   }, [form.plan_id, plans])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!selectedPlan) { setError(t('adv_select_plan_error')); return }
+    if (selectedPlan.geo_scope === 'district' && !form.target_district) {
+      setError(t('adv_select_district_error')); return
+    }
+    if (selectedPlan.geo_scope === 'ward' && (!form.target_district || targetWards.length === 0)) {
+      setError(targetWards.length === 0 ? t('adv_select_ward_error') : t('adv_select_district_error'))
+      return
+    }
     setLoading(true); setError('')
     try {
+      const body = {
+        ...form,
+        target_district: selectedPlan.geo_scope === 'region' ? '' : form.target_district,
+        target_wards:    selectedPlan.geo_scope === 'ward' ? targetWards : [],
+      }
       const res = await fetch('/api/v1/advertising/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) {
         setError(data.error ?? t('common_error'))
         return
       }
-      if (data.waiting_list) { router.push('/advertising/dashboard?waiting=1'); return }
-      // Show creative upload step before going to dashboard
+      // Campaign is always created now (never blocked by a full slot — see
+      // slotManager.ts's auto-queue system, which handles that at the
+      // actual go-live moment instead). Show creative upload step next.
       setCreatedCampaignId(data.campaign.id)
     } catch { setError(t('adv_connection_error')) }
     finally { setLoading(false) }
@@ -265,12 +296,20 @@ function NewCampaignForm() {
             <div className="bg-white rounded-2xl border border-gray-200 p-4">
               <h2 className="font-bold text-gray-700 mb-3">{t('adv_step4_targeting')}</h2>
 
+              {/* geo_scope badge — which granularity the chosen plan is priced for */}
+              <div className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-100">
+                📍 {t('adv_geo_scope_label')}:{' '}
+                {selectedPlan.geo_scope === 'ward'     ? t('adv_geo_scope_ward')
+                  : selectedPlan.geo_scope === 'district' ? t('adv_geo_scope_district')
+                  : t('adv_geo_scope_region')}
+              </div>
+
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_target_region')} *</label>
                   <select
                     required value={form.target_region}
-                    onChange={e => set('target_region', e.target.value)}
+                    onChange={e => { set('target_region', e.target.value); set('target_district', ''); setTargetWards([]) }}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                   >
                     <option value="">{t('adv_select_region')}</option>
@@ -280,15 +319,66 @@ function NewCampaignForm() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('adv_target_district')}</label>
-                  <input
-                    value={form.target_district}
-                    onChange={e => set('target_district', e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    placeholder={t('adv_district_placeholder')}
-                  />
-                </div>
+                {(selectedPlan.geo_scope === 'district' || selectedPlan.geo_scope === 'ward') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('adv_target_district')} *
+                    </label>
+                    <select
+                      required
+                      disabled={!form.target_region}
+                      value={form.target_district}
+                      onChange={e => { set('target_district', e.target.value); setTargetWards([]) }}
+                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:bg-gray-50 disabled:text-gray-400"
+                    >
+                      <option value="">{t('adv_select_district')}</option>
+                      {form.target_region && getDistricts(form.target_region).map((d: string) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {selectedPlan.geo_scope === 'ward' && form.target_district && (() => {
+                  const wards = getWards(form.target_region, form.target_district)
+                  if (wards.length === 0) {
+                    return (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-800">
+                        ⚠️ {t('adv_no_wards_data')}
+                      </div>
+                    )
+                  }
+                  return (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('adv_select_wards')} *
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {wards.map(w => (
+                          <button
+                            key={w} type="button"
+                            onClick={() => toggleWard(w)}
+                            className={`text-xs font-medium px-3 py-1.5 rounded-full border transition ${
+                              targetWards.includes(w)
+                                ? 'border-primary-400 bg-primary-50 text-primary-700'
+                                : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            {targetWards.includes(w) ? '✓ ' : ''}{w}
+                          </button>
+                        ))}
+                      </div>
+                      {targetWards.length > 0 && (
+                        <p className="text-xs text-primary-700 font-semibold mt-2">
+                          💰 {t('adv_ward_price_total')
+                            .replace('{{n}}', String(targetWards.length))
+                            .replace('{{unit}}', selectedPlan.price_tzs.toLocaleString())}
+                          {' '}= TZS {(selectedPlan.price_tzs * targetWards.length).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             </div>
 

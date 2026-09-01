@@ -43,7 +43,10 @@ type Plan = {
   description: string | null; price_tzs: number; duration_days: number
   slot_limit: number; features: string[]; placements: string[]
   visibility: string; display_order: number; is_active: boolean; updated_at: string
+  geo_scope?: 'region' | 'district' | 'ward'
 }
+
+const GEO_SCOPE_LABEL: Record<string, string> = { region: 'Mkoa', district: 'Wilaya', ward: 'Kata' }
 
 const EMPTY_FORM = {
   name: '', is_bundle: false, ad_type: 'directory',
@@ -456,6 +459,11 @@ export default function AdminAdvertPlansPage() {
                                   {t}
                                 </span>
                               ))}
+                              {p.geo_scope && p.geo_scope !== 'region' && (
+                                <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded font-semibold">
+                                  📍 {GEO_SCOPE_LABEL[p.geo_scope]}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-3.5 hidden md:table-cell">

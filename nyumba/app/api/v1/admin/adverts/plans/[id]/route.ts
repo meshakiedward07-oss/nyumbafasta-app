@@ -39,6 +39,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const allowed = [
       'name', 'ad_type', 'bundle_types', 'description', 'price_tzs', 'duration_days',
       'slot_limit', 'features', 'display_order', 'is_active', 'placements', 'visibility',
+      'geo_scope',
     ]
     const updates: Record<string, unknown> = {}
     for (const key of allowed) {

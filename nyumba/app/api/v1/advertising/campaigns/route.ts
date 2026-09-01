@@ -3,6 +3,7 @@ import { requireAdvertiserAuth } from '@/lib/security/advertiserAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { checkSlotAvailability } from '@/lib/ads/fetcher'
 import { validateCtaValue } from '@/lib/ads/ctaValidation'
+import { getDistricts, getWards } from '@/lib/data/tanzania-locations'
 import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 import { auditLog } from '@/lib/security/auditLog'
 
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
     const {
       plan_id, ad_type, title, body_text,
       image_url, video_url, cta_type, cta_value,
-      target_region, target_district, target_category,
+      target_region, target_district, target_wards, target_category,
     } = body
 
     // For WhatsApp CTA, fall back to the advertiser's registered WhatsApp number
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
     // Verify plan exists and matches ad_type
     const { data: plan, error: planErr } = await admin
       .from('ad_subscription_plans')
-      .select('id, ad_type, price_tzs, duration_days, slot_limit, placements')
+      .select('id, ad_type, price_tzs, duration_days, slot_limit, placements, geo_scope')
       .eq('id', plan_id)
       .eq('is_active', true)
       .single()
@@ -92,15 +93,66 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Mpango huu ni wa ${plan.ad_type}, siyo ${ad_type}` }, { status: 400 })
     }
 
-    // Check slot availability
+    // ── Geo targeting validation (kata/wilaya, added 2026-09-01) ─────────────
+    // The chosen plan's geo_scope dictates what's required/allowed here —
+    // trust the plan, not the client, for which scope is being purchased.
+    const geoScope: 'region' | 'district' | 'ward' = (plan as { geo_scope?: string }).geo_scope as 'region' | 'district' | 'ward' ?? 'region'
+    let finalDistrict: string | null = null
+    let finalWards: string[] | null = null
+
+    if (geoScope === 'district' || geoScope === 'ward') {
+      if (!target_district || typeof target_district !== 'string') {
+        return NextResponse.json({ error: 'Wilaya inahitajika kwa mpango huu' }, { status: 400 })
+      }
+      const validDistricts = getDistricts(target_region)
+      if (!validDistricts.includes(target_district)) {
+        return NextResponse.json({ error: 'Wilaya siyo sahihi kwa mkoa huu' }, { status: 400 })
+      }
+      finalDistrict = target_district
+    }
+
+    if (geoScope === 'ward') {
+      const wardsInput: unknown = target_wards
+      if (!Array.isArray(wardsInput) || wardsInput.length === 0) {
+        return NextResponse.json({ error: 'Chagua angalau kata moja' }, { status: 400 })
+      }
+      const validWards = getWards(target_region, finalDistrict!)
+      const cleanWards = [...new Set(wardsInput.filter((w): w is string => typeof w === 'string'))]
+      const invalid = cleanWards.filter(w => !validWards.includes(w))
+      if (invalid.length > 0) {
+        return NextResponse.json({ error: `Kata zisizo sahihi: ${invalid.join(', ')}` }, { status: 400 })
+      }
+      finalWards = cleanWards
+    }
+
+    // Ward-scope pricing is PER WARD — total = plan.price_tzs × number of
+    // wards selected (a 2-kata campaign costs double a 1-kata one). Computed
+    // here (not trusted from the client) and reused identically at payment
+    // time in pay/initiate/route.ts.
+    const totalPrice = geoScope === 'ward' ? plan.price_tzs * (finalWards?.length ?? 1) : plan.price_tzs
+
+    // Check slot availability — scoped to the exact geo pool being bought
+    // (region-wide / this one district / each of these specific wards), so
+    // a kata-scoped campaign never competes with the region-wide pool. This
+    // is informational only now, NOT a hard block: since the auto-queue
+    // system (lib/ads/slotManager.ts, "Option C" chosen 2026-09-01) handles
+    // a full slot gracefully at the actual go-live moment (queues it,
+    // auto-activates FIFO once a slot frees), rejecting campaign creation
+    // itself here would just be redundant friction working against that —
+    // an advertiser can always start the review+payment process; if the
+    // slot is still full once approved+paid, they queue instead of going
+    // live immediately. Still register a courtesy ad_waiting_list entry
+    // (region+ad_type granularity) so the existing "slot opened" WhatsApp
+    // ping still fires for people who haven't gone through payment yet.
     const slot = await checkSlotAvailability({
       ad_type,
       region: target_region,
       plan_slot_limit: plan.slot_limit,
+      district: finalDistrict,
+      wards: finalWards,
     })
 
     if (!slot.available) {
-      // Add to waiting list
       const { data: existing } = await admin
         .from('ad_waiting_list')
         .select('id')
@@ -118,15 +170,6 @@ export async function POST(req: NextRequest) {
           status: 'waiting',
         })
       }
-
-      return NextResponse.json(
-        {
-          error: `Nafasi zimejaa kwa ${ad_type} katika ${target_region} (${slot.active}/${slot.limit}). Umewekwa kwenye orodha ya kusubiri.`,
-          waiting_list: true,
-          slot,
-        },
-        { status: 409 }
-      )
     }
 
     // Copy placements from plan at creation time (denormalized so existing campaigns
@@ -146,7 +189,8 @@ export async function POST(req: NextRequest) {
         cta_type,
         cta_value:         ctaCheck.value,
         target_region,
-        target_district:   target_district || null,
+        target_district:   finalDistrict,
+        target_wards:      finalWards,
         target_category:   target_category || null,
         allowed_placements: allowed,
         status:            'pending_review',

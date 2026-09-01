@@ -1117,7 +1117,7 @@ async function runDailyTasks() {
       .update({ status: 'expired', updated_at: nowIso })
       .eq('status', 'active')
       .lt('expires_at', nowIso)
-      .select('id, ad_type, advertiser_id, target_region')
+      .select('id, ad_type, advertiser_id, target_region, target_district, target_wards')
 
     if (expiredAds?.length) {
       results.push(`✅ Ad campaigns: ${expiredAds.length} zimeisha`)
@@ -1151,23 +1151,36 @@ async function runDailyTasks() {
     // A freed slot goes first to anyone already paid + admin-approved and
     // sitting in the auto-queue (status='queued') — they claimed it before
     // anyone on the waiting list even submitted a campaign — and only THEN,
-    // if nothing was queued for that (ad_type, region), do we ping the
-    // waiting list (people who haven't created/paid a campaign yet). Scoped
-    // to the exact pair that actually freed up in both cases — this used to
-    // key only on ad_type (expiredAds never even selected target_region),
-    // so an advertiser waiting for a Dodoma banner slot could get pinged
-    // when an Arusha banner slot expired, and vice versa. Found in the
-    // 2026-09-01 ads-system audit; see slotManager.ts.
+    // if nothing was queued for that exact geo-targeting tuple, do we ping
+    // the waiting list (people who haven't created/paid a campaign yet).
+    // Keyed by the FULL tuple (ad_type, region, district, wards) so e.g. a
+    // Dodoma banner freeing never pings someone waiting on Arusha, and a
+    // Kariakoo-kata Nearby freeing never pings someone waiting on the
+    // Dar es Salaam region-wide pool. Found in the 2026-09-01 ads-system
+    // audit; see slotManager.ts for the exact-tuple-match promotion logic.
     if (expiredAds?.length) {
       const { promoteQueuedCampaigns } = await import('@/lib/ads/slotManager')
       const { notifyAdvertiserPaymentSuccess, notifyWaitingListSlotOpen } = await import('@/lib/ads/adNotifications')
-      const freedSlots = new Set(expiredAds.map(a => `${a.ad_type}::${a.target_region}`))
+
+      type Freed = { ad_type: string; region: string; district: string | null; wards: string[] | null }
+      const seenTuples = new Map<string, Freed>()
+      for (const a of expiredAds) {
+        const wards = (a.target_wards as string[] | null) ?? null
+        const wardsKey = wards && wards.length > 0 ? [...wards].sort().join(',') : ''
+        const key = `${a.ad_type}::${a.target_region}::${a.target_district ?? ''}::${wardsKey}`
+        if (!seenTuples.has(key)) {
+          seenTuples.set(key, {
+            ad_type: a.ad_type as string, region: a.target_region as string,
+            district: (a.target_district as string | null) ?? null, wards,
+          })
+        }
+      }
+
       let totalPromoted = 0
+      const notifiedWaitingRegions = new Set<string>() // avoid re-querying the same (ad_type,region) waitlist twice in one run
 
-      for (const key of freedSlots) {
-        const [adType, region] = key.split('::')
-
-        const promoted = await promoteQueuedCampaigns(admin, adType, region)
+      for (const freed of seenTuples.values()) {
+        const promoted = await promoteQueuedCampaigns(admin, freed)
         totalPromoted += promoted.length
 
         for (const p of promoted) {
@@ -1184,16 +1197,19 @@ async function runDailyTasks() {
           }
         }
 
-        // Only the waiting list (no paid campaign yet) if the queue didn't
-        // already claim this freed slot — otherwise "nafasi imepatikana!"
-        // would be false, the slot is already taken.
-        if (promoted.length > 0) continue
+        // Only the waiting list (no paid campaign yet, tracked at plain
+        // ad_type+region granularity — it predates kata/wilaya targeting)
+        // if the queue didn't already claim this freed slot, and only once
+        // per (ad_type,region) per run.
+        const regionKey = `${freed.ad_type}::${freed.region}`
+        if (promoted.length > 0 || notifiedWaitingRegions.has(regionKey)) continue
+        notifiedWaitingRegions.add(regionKey)
 
         const { data: waiting } = await admin
           .from('ad_waiting_list')
           .select('id, advertiser:advertiser_id (business_name, whatsapp_number), region')
-          .eq('ad_type', adType)
-          .eq('region', region)
+          .eq('ad_type', freed.ad_type)
+          .eq('region', freed.region)
           .eq('status', 'waiting')
           .order('created_at', { ascending: true })
           .limit(3)
@@ -1201,7 +1217,7 @@ async function runDailyTasks() {
         for (const w of waiting ?? []) {
           const adv = w.advertiser as unknown as { business_name: string; whatsapp_number: string | null }
           if (adv?.whatsapp_number) {
-            await notifyWaitingListSlotOpen(adv.whatsapp_number, adv.business_name, adType, w.region).catch(() => {})
+            await notifyWaitingListSlotOpen(adv.whatsapp_number, adv.business_name, freed.ad_type, w.region).catch(() => {})
             admin.from('ad_waiting_list').update({ status: 'notified' }).eq('id', w.id).then(() => {}, () => {})
           }
         }

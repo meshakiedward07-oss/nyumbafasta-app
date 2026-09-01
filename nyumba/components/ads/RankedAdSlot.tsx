@@ -132,6 +132,8 @@ function Skeleton({ count }: { count: number }) {
 
 type Props = {
   region:     string
+  district?:  string   // viewer's district, when known — matches district/kata-scoped ads too
+  ward?:      string   // viewer's kata, when known — matches kata-scoped ads too
   category?:  string
   adType?:    string
   placement?: string   // filters by allowed_placements (plan entitlement)
@@ -143,6 +145,8 @@ type Props = {
 
 export default function RankedAdSlot({
   region,
+  district,
+  ward,
   category,
   adType,
   placement,
@@ -162,6 +166,8 @@ export default function RankedAdSlot({
 
     const sid = getOrCreateSessionId()
     const p   = new URLSearchParams({ region, sid, limit: String(limit) })
+    if (district)  p.set('district', district)
+    if (ward)      p.set('ward', ward)
     if (adType)    p.set('type', adType)
     if (category)  p.set('category', category)
     if (placement) p.set('placement', placement)
@@ -175,7 +181,7 @@ export default function RankedAdSlot({
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [region, category, adType, limit, placement])
+  }, [region, district, ward, category, adType, limit, placement])
 
   useEffect(() => { load() }, [load])
 

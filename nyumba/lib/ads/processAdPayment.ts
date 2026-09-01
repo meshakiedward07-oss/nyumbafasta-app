@@ -63,7 +63,7 @@ export async function tryProcessAdPayment(
   // waiting on payment) transitions here.
   const { data: campaign } = await admin
     .from('ad_campaigns')
-    .select('id, title, ad_type, status, target_region, plan:plan_id (duration_days, slot_limit)')
+    .select('id, title, ad_type, status, target_region, target_district, target_wards, plan:plan_id (duration_days, slot_limit)')
     .eq('id', payment.campaign_id)
     .single()
 
@@ -78,7 +78,10 @@ export async function tryProcessAdPayment(
   if (campaign.status === 'approved') {
     const result = await activateOrQueueCampaign(
       admin,
-      { id: campaign.id, ad_type: campaign.ad_type, target_region: campaign.target_region },
+      {
+        id: campaign.id, ad_type: campaign.ad_type, target_region: campaign.target_region,
+        target_district: campaign.target_district, target_wards: campaign.target_wards,
+      },
       plan?.slot_limit ?? 1,
       durationDays,
     )

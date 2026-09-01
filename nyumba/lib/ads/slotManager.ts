@@ -23,7 +23,7 @@ type AnyClient = SupabaseClient<any>
 
 export async function activateOrQueueCampaign(
   admin: AnyClient,
-  campaign: { id: string; ad_type: string; target_region: string },
+  campaign: { id: string; ad_type: string; target_region: string; target_district?: string | null; target_wards?: string[] | null },
   planSlotLimit: number,
   durationDays: number,
 ): Promise<{ activated: boolean }> {
@@ -31,6 +31,8 @@ export async function activateOrQueueCampaign(
     ad_type:         campaign.ad_type,
     region:          campaign.target_region,
     plan_slot_limit: planSlotLimit,
+    district:        campaign.target_district,
+    wards:           campaign.target_wards,
   })
 
   if (slot.available) {
@@ -60,35 +62,61 @@ export async function activateOrQueueCampaign(
 }
 
 /**
- * Called from the daily cron right after expiring campaigns for a given
- * (ad_type, region) pair. Activates queued campaigns for that pair, oldest
- * first (FIFO — first paid, first served), stopping as soon as
- * checkSlotAvailability reports no more room (handles the case where more
- * than one slot freed up, or an ad_slot_config override changed the limit
- * since these were queued). Returns the promoted rows so the caller can
- * send "your ad is live now" notifications.
+ * Called from the daily cron right after expiring campaigns, once per
+ * exact geo-targeting tuple that actually freed up (ad_type + region +
+ * district + wards — see fetcher.ts's checkSlotAvailability for why the
+ * pool identity must be this exact). Activates queued campaigns matching
+ * that SAME exact tuple, oldest first (FIFO — first paid, first served),
+ * stopping as soon as checkSlotAvailability reports no more room. Returns
+ * the promoted rows so the caller can send "your ad is live now"
+ * notifications.
+ *
+ * Deliberate simplification: a queued campaign is only promoted when a
+ * campaign with the IDENTICAL targeting tuple expires — e.g. a campaign
+ * targeting wards [A,B] queued waiting for that exact pair does NOT get
+ * promoted just because a campaign targeting ward [A] alone expired (A's
+ * pool freeing doesn't mean B's pool did too). Solving the general
+ * "any overlapping ward combination" case would need real per-ward
+ * capacity bookkeeping; exact-tuple matching is correct and simple, at the
+ * cost of occasionally leaving a multi-ward queued campaign waiting a
+ * cycle longer than the tightest theoretical bound.
  */
 export async function promoteQueuedCampaigns(
   admin: AnyClient,
-  adType: string,
-  region: string,
+  freed: { ad_type: string; region: string; district: string | null; wards: string[] | null },
 ): Promise<Array<{ id: string; advertiser_id: string }>> {
-  const { data: queued } = await admin
+  let q = admin
     .from('ad_campaigns')
-    .select('id, advertiser_id, plan:plan_id (slot_limit, duration_days)')
-    .eq('ad_type', adType)
-    .eq('target_region', region)
+    .select('id, advertiser_id, target_wards, plan:plan_id (slot_limit, duration_days)')
+    .eq('ad_type', freed.ad_type)
+    .eq('target_region', freed.region)
     .eq('status', 'queued')
     .order('created_at', { ascending: true })
 
+  q = freed.district ? q.eq('target_district', freed.district) : q.is('target_district', null)
+
+  const { data: candidates } = await q
+
+  const freedWardsSorted = freed.wards && freed.wards.length > 0 ? [...freed.wards].sort() : null
+
+  const matching = (candidates ?? []).filter(c => {
+    const cWards = c.target_wards as string[] | null
+    if (!freedWardsSorted) return !cWards || cWards.length === 0
+    if (!cWards || cWards.length === 0) return false
+    const sorted = [...cWards].sort()
+    return sorted.length === freedWardsSorted.length && sorted.every((w, i) => w === freedWardsSorted[i])
+  })
+
   const promoted: Array<{ id: string; advertiser_id: string }> = []
 
-  for (const c of queued ?? []) {
+  for (const c of matching) {
     const plan = c.plan as unknown as { slot_limit: number; duration_days: number } | null
     const slot = await checkSlotAvailability({
-      ad_type:         adType,
-      region,
+      ad_type:         freed.ad_type,
+      region:          freed.region,
       plan_slot_limit: plan?.slot_limit ?? 1,
+      district:        freed.district,
+      wards:           freed.wards,
     })
     if (!slot.available) break // full again — remaining queue waits for next opening
 

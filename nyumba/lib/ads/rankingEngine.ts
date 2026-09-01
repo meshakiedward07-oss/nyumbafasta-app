@@ -32,6 +32,8 @@ export type RankedAd = {
 export type RankAdsParams = {
   ad_type?:   AdType | AdType[]
   region:     string
+  district?:  string   // viewer's district, when known — matches district- and ward-scoped campaigns too
+  ward?:      string   // viewer's ward (kata), when known — matches ward-scoped campaigns targeting it
   category?:  string
   sessionId:  string
   limit?:     number
@@ -152,7 +154,7 @@ function sortScored(rows: ScoredRow[]): ScoredRow[] {
 // ── Main export ────────────────────────────────────────────────────────────────
 
 export async function rankAds(params: RankAdsParams): Promise<RankAdsResult> {
-  const { ad_type, region, category, sessionId, limit = 5, placement } = params
+  const { ad_type, region, district, ward, category, sessionId, limit = 5, placement } = params
   const admin = createAdminClient()
   const now   = new Date().toISOString()
   const capAt = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
@@ -192,6 +194,18 @@ export async function rankAds(params: RankAdsParams): Promise<RankAdsResult> {
     if (category) {
       q = q.or(`target_category.is.null,target_category.eq.${category}`)
     }
+
+    // Geo layer (kata/wilaya targeting, added 2026-09-01): a region-wide
+    // campaign (no target_district, no target_wards) is always eligible.
+    // A district-wide campaign is eligible only when the viewer's district
+    // is known and matches. A ward-scoped campaign is eligible only when
+    // the viewer's ward is known and is in its target_wards. When district/
+    // ward aren't supplied (most placements today only resolve a region),
+    // only region-wide campaigns match — unchanged pre-feature behavior.
+    const geoClauses = ['and(target_district.is.null,target_wards.is.null)']
+    if (district) geoClauses.push(`and(target_district.eq.${district},target_wards.is.null)`)
+    if (ward)     geoClauses.push(`target_wards.cs.{"${ward}"}`)
+    q = q.or(geoClauses.join(','))
 
     // Placement entitlement: campaigns whose plan includes this placement.
     // Uses GIN index idx_ad_campaigns_placements for O(1) array-contains lookup.

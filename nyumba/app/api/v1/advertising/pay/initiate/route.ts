@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     const { data: campaign, error: campErr } = await admin
       .from('ad_campaigns')
-      .select('*, plan:plan_id (id, name, price_tzs, duration_days)')
+      .select('*, plan:plan_id (id, name, price_tzs, duration_days, geo_scope)')
       .eq('id', campaign_id)
       .eq('advertiser_id', auth.advertiser.id)
       .single()
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Kampeni hii imelipwa tayari' }, { status: 409 })
     }
 
-    const plan = campaign.plan as { id: string; name: string; price_tzs: number; duration_days: number } | null
+    const plan = campaign.plan as { id: string; name: string; price_tzs: number; duration_days: number; geo_scope?: string } | null
     if (!plan) {
       return NextResponse.json({ error: 'Kampeni haina mpango wa malipo. Wasiliana na msaada.' }, { status: 400 })
     }
@@ -60,7 +60,11 @@ export async function POST(req: NextRequest) {
       mpesa: 'Mpesa', airtel: 'Airtel', tigo: 'Tigo', tigopesa: 'Tigo', halopesa: 'Halopesa', azampesa: 'Azampesa',
       Mpesa: 'Mpesa', Airtel: 'Airtel', Tigo: 'Tigo', Halopesa: 'Halopesa', Azampesa: 'Azampesa',
     }
-    const amount             = plan.price_tzs
+    // Ward-scope plans are priced PER WARD — total = price_tzs × number of
+    // wards this campaign targets (never trust a client-sent amount; this
+    // must match the calculation in POST /campaigns exactly).
+    const wardCount = Array.isArray(campaign.target_wards) ? campaign.target_wards.length : 0
+    const amount    = plan.geo_scope === 'ward' ? plan.price_tzs * Math.max(1, wardCount) : plan.price_tzs
     const externalId         = generateExternalId('AD')
     const normalizedProvider = bodyProvider
       ? (PROVIDER_MAP[bodyProvider] ?? detectProvider(normalizePhone(phone)))
