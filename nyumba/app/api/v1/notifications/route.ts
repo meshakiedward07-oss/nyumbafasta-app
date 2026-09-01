@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { guardUserRateLimit } from '@/lib/utils/apiGuard'
 
 // GET /api/v1/notifications — fetch notifications for current user
@@ -14,10 +14,17 @@ export async function GET(req: NextRequest) {
     const rl = await guardUserRateLimit(req, user.id, 120, 60_000)
     if (rl) return rl
 
+    // admin client, not the RLS-governed one — this is what powers the
+    // notification bell, including the "Growth Plan" trial-welcome message
+    // (see app/api/v1/auth/register/route.ts), so it shouldn't depend on
+    // RLS being correctly configured on `notifications` to show a user
+    // their own alerts. Every query below is already scoped to the
+    // signed-in user's own id.
+    const admin = createAdminClient()
     const countOnly = req.nextUrl.searchParams.get('count') === 'true'
 
     if (countOnly) {
-      const { count } = await supabase
+      const { count } = await admin
         .from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
@@ -28,7 +35,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const { data: notifications, error } = await supabase
+    const { data: notifications, error } = await admin
       .from('notifications')
       .select('id, title, body, type, is_read, ref_id, created_at')
       .eq('user_id', user.id)
@@ -63,7 +70,8 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json().catch(() => ({}))
     const ids: string[] | undefined = body.ids
 
-    let query = supabase
+    const admin = createAdminClient()
+    let query = admin
       .from('notifications')
       .update({ is_read: true })
       .eq('user_id', user.id)
