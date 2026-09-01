@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
+import { requirePermission } from '@/lib/staff/checkPermission'
 import { createAdminClient } from '@/lib/supabase/server'
 
 export async function GET(req: NextRequest) {
   try {
     const auth = await requireStaffAuth()
     if (!auth.ok) return auth.response
+
+    // 'communications' permission gate — see email/send/route.ts's comment.
+    // This route lets any caller read the FULL email history of every
+    // client/dalali/advertiser, so it needs the same gate as sending does.
+    const perm = await requirePermission(auth.userId, 'communications')
+    if (!perm.allowed) return NextResponse.json({ error: perm.error }, { status: 403 })
 
     const { searchParams } = new URL(req.url)
     const direction = searchParams.get('direction') ?? 'outbound' // 'outbound' | 'inbound'

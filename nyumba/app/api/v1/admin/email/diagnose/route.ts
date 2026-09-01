@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
+import { requirePermission } from '@/lib/staff/checkPermission'
 
 // Checks Resend API key + domain verification status
 // GET /api/v1/admin/email/diagnose
 export async function GET() {
   const auth = await requireStaffAuth()
   if (!auth.ok) return auth.response
+
+  // 'communications' permission gate — see email/send/route.ts's comment.
+  const perm = await requirePermission(auth.userId, 'communications')
+  if (!perm.allowed) return NextResponse.json({ error: perm.error }, { status: 403 })
 
   const key = process.env.RESEND_API_KEY
 

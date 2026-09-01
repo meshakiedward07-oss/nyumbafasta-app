@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
+import { requirePermission } from '@/lib/staff/checkPermission'
 import { createAdminClient } from '@/lib/supabase/server'
 
 export type ContactResult = {
@@ -14,6 +15,10 @@ export async function GET(req: NextRequest) {
   try {
     const auth = await requireStaffAuth()
     if (!auth.ok) return auth.response
+
+    // 'communications' permission gate — see email/send/route.ts's comment.
+    const perm = await requirePermission(auth.userId, 'communications')
+    if (!perm.allowed) return NextResponse.json({ error: perm.error }, { status: 403 })
 
     const { searchParams } = new URL(req.url)
     const qRaw = (searchParams.get('q') ?? '').trim()

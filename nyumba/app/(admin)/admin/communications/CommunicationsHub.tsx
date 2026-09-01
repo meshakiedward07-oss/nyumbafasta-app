@@ -20,11 +20,15 @@ interface Props {
   userName:   string
   userAvatar: string | null
   senderName: string
+  canEmail:   boolean
 }
 
 // ── Sidebar groups ────────────────────────────────────────────────────────────
+// Base groups; the 'email' item is appended conditionally below (permission-
+// gated, 2026-09-01 compose-email audit — everything else here stays open
+// to any staff, only Barua Pepe needs the explicit grant).
 
-const GROUPS: { title: string; items: { id: Tab; label: string; icon: string }[] }[] = [
+const BASE_GROUPS: { title: string; items: { id: Tab; label: string; icon: string }[] }[] = [
   {
     title: 'WhatsApp',
     items: [
@@ -37,13 +41,6 @@ const GROUPS: { title: string; items: { id: Tab; label: string; icon: string }[]
     items: [
       { id: 'messages', label: 'Mazungumzo ya Ndani', icon: 'message-2' },
       { id: 'notifs',   label: 'Taarifa za App',      icon: 'bell'      },
-    ],
-  },
-  {
-    title: 'Mengine',
-    items: [
-      { id: 'email',     label: 'Barua Pepe',       icon: 'mail'  },
-      { id: 'knowledge', label: 'Maarifa ya Amina', icon: 'brain' },
     ],
   },
 ]
@@ -70,9 +67,23 @@ function ScrollPane({ children }: { children: React.ReactNode }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function CommunicationsHub({ userId, userName, userAvatar, senderName }: Props) {
+export default function CommunicationsHub({ userId, userName, userAvatar, senderName, canEmail }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('whatsapp')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  // 'email' only shows up in nav (and is only reachable) when the caller
+  // holds the 'communications' permission — see page.tsx. The underlying
+  // API routes enforce this too, so this is UI-tidiness, not the real
+  // security boundary; someone flipping activeTab via devtools would just
+  // hit 403s from every /api/v1/email/* call.
+  const GROUPS = canEmail
+    ? [...BASE_GROUPS, { title: 'Mengine', items: [
+        { id: 'email' as const,     label: 'Barua Pepe',       icon: 'mail'  },
+        { id: 'knowledge' as const, label: 'Maarifa ya Amina', icon: 'brain' },
+      ] }]
+    : [...BASE_GROUPS, { title: 'Mengine', items: [
+        { id: 'knowledge' as const, label: 'Maarifa ya Amina', icon: 'brain' },
+      ] }]
 
   const allItems = GROUPS.flatMap(g => g.items)
 
@@ -234,7 +245,17 @@ export default function CommunicationsHub({ userId, userName, userAvatar, sender
           )}
 
           {activeTab === 'email' && (
-            <ScrollPane><EmailClient senderName={senderName} /></ScrollPane>
+            canEmail ? (
+              <ScrollPane><EmailClient senderName={senderName} /></ScrollPane>
+            ) : (
+              <ScrollPane>
+                <div className="flex flex-col items-center justify-center h-full py-24 text-center px-6">
+                  <i className="ti ti-lock text-4xl text-gray-300 mb-3" aria-hidden="true" />
+                  <p className="font-semibold text-gray-600 mb-1">Huna ruhusa ya Barua Pepe</p>
+                  <p className="text-sm text-gray-400">Wasiliana na admin akupe ruhusa ya &quot;Barua Pepe&quot;.</p>
+                </div>
+              </ScrollPane>
+            )
           )}
 
           {activeTab === 'knowledge' && (

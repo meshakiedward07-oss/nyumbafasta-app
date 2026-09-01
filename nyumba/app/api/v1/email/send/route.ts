@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffAuth } from '@/lib/security/adminAuth'
+import { requirePermission } from '@/lib/staff/checkPermission'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendMail, buildEmailHtml, REPLY_DOMAIN } from '@/lib/email/resend'
 import { rateLimit } from '@/lib/security/rateLimit'
@@ -11,6 +12,16 @@ export async function POST(req: NextRequest) {
     if (!auth.ok) return auth.response
 
     const userId = auth.userId
+
+    // 'communications' permission gate (2026-09-01 compose-email audit):
+    // requireStaffAuth() alone only checks "is this an active staff/admin
+    // account" — every staff member passed regardless of assigned
+    // permissions, so anyone with a staff login could send email as
+    // "Timu ya NyumbaFasta" to any client/dalali/advertiser. Admins always
+    // have every permission implicitly (see getStaffPermissions).
+    const perm = await requirePermission(userId, 'communications')
+    if (!perm.allowed) return NextResponse.json({ error: perm.error }, { status: 403 })
+
     const admin  = createAdminClient()
 
     const { data: profile } = await admin

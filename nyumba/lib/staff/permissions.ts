@@ -143,6 +143,14 @@ export const STAFF_PERMISSIONS = {
     icon: 'speakerphone',
     category: 'admin' as const,
   },
+  communications: {
+    key: 'communications',
+    label: 'Barua Pepe (Email)',
+    description: 'Soma na tuma barua pepe kama NyumbaFasta kwa wateja, madalali, na wafanyabiashara',
+    adminPath: '/admin/communications',
+    icon: 'mail',
+    category: 'admin' as const,
+  },
   // ── Influencer-only ─────────────────────────────────────────────────────────
   // This is the ONLY permission influencer accounts may ever hold.
   // It grants no access to any staff data — only the influencer's own page.
@@ -161,7 +169,7 @@ export type PermissionKey = keyof typeof STAFF_PERMISSIONS
 // ── Permission categories for UI grouping ──────────────────────────────────
 export const ADMIN_TASK_PERMISSIONS: PermissionKey[] = [
   'approve_listings', 'manage_users', 'handle_reports',
-  'manage_subscriptions', 'manage_verifications', 'review_ads',
+  'manage_subscriptions', 'manage_verifications', 'review_ads', 'communications',
 ]
 
 // Pre-built templates — admin can still customise per-person
@@ -225,7 +233,7 @@ export const STAFF_ROLE_TEMPLATES = {
       'leads', 'whatsapp_support', 'social_media', 'legal_violations',
       'spam_moderation',
       'approve_listings', 'manage_users', 'handle_reports',
-      'manage_subscriptions', 'manage_verifications', 'review_ads',
+      'manage_subscriptions', 'manage_verifications', 'review_ads', 'communications',
     ] as PermissionKey[],
   },
 } as const
@@ -240,4 +248,5 @@ export const ROUTE_PERMISSION_MAP: Record<string, PermissionKey> = {
   '/admin/legal':                  'legal_violations',
   '/admin/adverts':                'review_ads',
   '/admin/property-management':    'org_management',
+  '/admin/communications':         'communications',
 }
