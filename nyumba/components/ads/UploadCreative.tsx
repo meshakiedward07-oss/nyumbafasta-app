@@ -141,7 +141,21 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
           signal: controller.signal,
         },
       )
-      const data = await processRes.json()
+      // Server processing (Storage download → Cloudinary upload → transcode
+      // for videos) can be genuinely slow for large files; if it ever
+      // outruns Vercel's own function time limit, the platform kills the
+      // function mid-response and the browser gets a body-less response —
+      // calling .json() on that throws a cryptic "Unexpected end of JSON
+      // input" instead of a message anyone could act on. Parse defensively
+      // so that failure mode gets the same clear Swahili message as an
+      // actual timeout, regardless of which one it technically was.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let data: any
+      try {
+        data = await processRes.json()
+      } catch {
+        throw new Error(t('adv_timeout_hint'))
+      }
       setProgress(95)
 
       if (!processRes.ok) {
