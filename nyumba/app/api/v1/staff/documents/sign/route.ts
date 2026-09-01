@@ -9,7 +9,11 @@ const ALLOWED    = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 
 function sign(params: Record<string, string | number>): string {
   const str = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&')
-  return createHash('sha256').update(str + API_SECRET).digest('hex')
+  // Cloudinary's upload API signs with SHA-1 by default (this account was
+  // never configured for SHA-256) — using sha256 here made every signed
+  // upload through this route fail with "Invalid Signature". Matches the
+  // sha1 already used successfully in lib/ads/creative.ts's uploadVideo().
+  return createHash('sha1').update(str + API_SECRET).digest('hex')
 }
 
 // GET /api/v1/staff/documents/sign?mimeType=...

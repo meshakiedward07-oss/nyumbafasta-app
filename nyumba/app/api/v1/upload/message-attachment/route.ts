@@ -47,7 +47,10 @@ export async function POST(req: NextRequest) {
     const paramsToSign: Record<string, string | number> = { folder, resource_type: resourceType, timestamp }
     const paramString = Object.keys(paramsToSign).sort()
       .map((k) => `${k}=${paramsToSign[k]}`).join('&')
-    const signature = createHash('sha256').update(paramString + API_SECRET).digest('hex')
+    // Cloudinary signs with SHA-1 by default — kept consistent with the
+    // active .../message-attachment/sign/route.ts fix even though this
+    // legacy relay route is unused by the current UI.
+    const signature = createHash('sha1').update(paramString + API_SECRET).digest('hex')
 
     const fd = new FormData()
     fd.append('file', new Blob([fileBuffer], { type: file.type }), file.name)

@@ -43,7 +43,11 @@ export async function GET(req: NextRequest) {
     const paramsToSign: Record<string, string | number> = { folder, resource_type: resourceType, timestamp }
     const paramString = Object.keys(paramsToSign).sort()
       .map((k) => `${k}=${paramsToSign[k]}`).join('&')
-    const signature = createHash('sha256').update(paramString + API_SECRET).digest('hex')
+    // Cloudinary's upload API signs with SHA-1 by default (this account was
+    // never configured for SHA-256) — using sha256 here made every signed
+    // upload through this route fail with "Invalid Signature". Matches the
+    // sha1 already used successfully in lib/ads/creative.ts's uploadVideo().
+    const signature = createHash('sha1').update(paramString + API_SECRET).digest('hex')
 
     return NextResponse.json({
       uploadUrl: `https://api.cloudinary.com/v1_1/${CLOUD}/${resourceType}/upload`,

@@ -39,7 +39,10 @@ export async function POST(req: NextRequest) {
     const paramsToSign: Record<string, string | number> = { folder, timestamp }
     const paramString = Object.keys(paramsToSign).sort()
       .map(k => `${k}=${paramsToSign[k]}`).join('&')
-    const signature = createHash('sha256').update(paramString + API_SECRET).digest('hex')
+    // Cloudinary's upload API signs with SHA-1 by default (this account was
+    // never configured for SHA-256) — sha256 here made every upload through
+    // this route fail with "Invalid Signature".
+    const signature = createHash('sha1').update(paramString + API_SECRET).digest('hex')
 
     const fd = new FormData()
     fd.append('file', new Blob([fileBuffer], { type: 'application/pdf' }), file.name)

@@ -12,7 +12,10 @@ const ALLOWED    = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 
 function sign(params: Record<string, string | number>): string {
   const str = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&')
-  return createHash('sha256').update(str + API_SECRET).digest('hex')
+  // Cloudinary signs with SHA-1 by default — kept consistent with the
+  // active .../staff/documents/sign/route.ts fix even though this legacy
+  // multipart fallback path is unused by the current UI.
+  return createHash('sha1').update(str + API_SECRET).digest('hex')
 }
 
 export async function GET() {
