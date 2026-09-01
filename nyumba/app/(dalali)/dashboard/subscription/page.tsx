@@ -8,9 +8,14 @@ export default async function DashboardSubscriptionPage() {
   if (!user) redirect('/login?redirect=/dashboard/subscription')
   const admin = createAdminClient()
 
+  // admin client for both subscription reads below, not the RLS-governed
+  // one — same reasoning as dashboard/page.tsx: this is the plan-gating
+  // data for the whole dalali experience and shouldn't depend on RLS
+  // staying perfectly configured on `subscriptions` to render correctly.
+  // Both queries are already scoped to the signed-in dalali's own id.
   const [subscriptionRes, historyRes, profileRes] = await Promise.all([
     // Subscription ya sasa (active, grace_period, au trial_expired)
-    supabase
+    admin
       .from('subscriptions')
       .select('id, plan, status, expires_at, grace_period_until, starts_at, amount_paid, is_trial, trial_ends_at')
       .eq('dalali_id', user.id)
@@ -19,7 +24,7 @@ export default async function DashboardSubscriptionPage() {
       .maybeSingle(),
 
     // Historia ya malipo (zote zilizokamilika)
-    supabase
+    admin
       .from('subscriptions')
       .select('id, plan, status, expires_at, starts_at, amount_paid, created_at')
       .eq('dalali_id', user.id)

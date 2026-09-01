@@ -18,7 +18,13 @@ export default async function DalaliDashboardPage() {
       .eq('user_id', user!.id)
       .maybeSingle(),
 
-    supabase.from('subscriptions')
+    // admin client, not the RLS-governed one — this row gates the entire
+    // dashboard's plan display (including the welcome-modal Enterprise-vs-
+    // Free branching), so it shouldn't depend on RLS staying perfectly
+    // configured on `subscriptions` to render correctly. The query is
+    // already scoped to the signed-in dalali's own id, so this changes
+    // nothing about who can see what.
+    admin.from('subscriptions')
       .select('plan, status, expires_at, grace_period_until, is_trial, trial_ends_at')
       .eq('dalali_id', user!.id)
       .in('status', ['active', 'grace_period', 'trial_expired'])
