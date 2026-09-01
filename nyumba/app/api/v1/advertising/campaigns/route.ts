@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdvertiserAuth } from '@/lib/security/advertiserAuth'
 import { createAdminClient } from '@/lib/supabase/server'
 import { checkSlotAvailability } from '@/lib/ads/fetcher'
-import { normalizePhone } from '@/lib/utils/phone'
+import { validateCtaValue } from '@/lib/ads/ctaValidation'
 import { rateLimit, getClientIp } from '@/lib/security/rateLimit'
 import { auditLog } from '@/lib/security/auditLog'
 
@@ -68,6 +68,11 @@ export async function POST(req: NextRequest) {
 
     if (!plan_id || !ad_type || !title || !cta_type || !resolvedCtaValue || !target_region) {
       return NextResponse.json({ error: 'Tafadhali jaza sehemu zote zinazohitajika' }, { status: 400 })
+    }
+
+    const ctaCheck = validateCtaValue(cta_type, resolvedCtaValue)
+    if (!ctaCheck.ok) {
+      return NextResponse.json({ error: ctaCheck.error }, { status: 400 })
     }
 
     const admin = createAdminClient()
@@ -139,9 +144,7 @@ export async function POST(req: NextRequest) {
         image_url:         image_url || null,
         video_url:         video_url || null,
         cta_type,
-        cta_value: ['whatsapp', 'call'].includes(cta_type)
-          ? normalizePhone(resolvedCtaValue)
-          : resolvedCtaValue,
+        cta_value:         ctaCheck.value,
         target_region,
         target_district:   target_district || null,
         target_category:   target_category || null,

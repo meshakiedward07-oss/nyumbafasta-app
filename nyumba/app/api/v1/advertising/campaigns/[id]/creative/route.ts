@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   // Verify campaign belongs to this advertiser
   const { data: campaign, error: campErr } = await admin
     .from('ad_campaigns')
-    .select('id, advertiser_id, ad_type')
+    .select('id, advertiser_id, ad_type, status')
     .eq('id', campaignId)
     .eq('advertiser_id', auth.advertiser.id)
     .single()
@@ -33,6 +33,17 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (campErr || !campaign) {
     return NextResponse.json({ error: 'Kampeni haikupatikana' }, { status: 404 })
   }
+
+  // Any already-reviewed campaign (approved-and-awaiting-payment, or already
+  // live) that gets a NEW creative attached must go back through admin
+  // review — this used to be unconditional, so an advertiser could swap the
+  // image/video on a currently-LIVE campaign at any time with zero re-review,
+  // fully bypassing content moderation for real site visitors. Found in the
+  // 2026-09-01 ads-system audit. Re-queuing to 'pending_review' also
+  // immediately pulls it from ad rotation (fetcher/rankingEngine only serve
+  // status='active'); the existing "already paid → reactivate on approval"
+  // logic in the admin approve routes brings it straight back once reviewed.
+  const needsReReview = campaign.status === 'approved' || campaign.status === 'active'
 
   const contentType = req.headers.get('content-type') ?? ''
   const isJson      = contentType.includes('application/json')
@@ -45,7 +56,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     try { body = await req.json() } catch { return NextResponse.json({ error: 'JSON si sahihi' }, { status: 400 }) }
 
     if (body.mode === 'presigned' && body.paths?.length) {
-      return handlePresigned({ admin, campaignId, advertiserId: auth.advertiser.id, paths: body.paths, mimeType: body.mimeType ?? 'image/jpeg', force: body.force ?? false })
+      return handlePresigned({ admin, campaignId, advertiserId: auth.advertiser.id, paths: body.paths, mimeType: body.mimeType ?? 'image/jpeg', force: body.force ?? false, needsReReview })
     }
     return NextResponse.json({ error: 'mode si sahihi' }, { status: 400 })
   }
@@ -123,6 +134,10 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const creativeId = creative.id
   const basePath   = `ad-creatives/${advertiserId}/${creativeId}`
+  // Applied to every ad_campaigns update below — see needsReReview comment above.
+  const reReview: Record<string, unknown> = needsReReview
+    ? { status: 'pending_review', admin_note: null }
+    : {}
 
   try {
     if (isVideo) {
@@ -141,6 +156,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         creative_id: creativeId,
         video_url:   result.video_url,
         image_url:   result.video_thumb_url,
+        ...reReview,
       }).eq('id', campaignId)
 
     } else if (isCarousel) {
@@ -168,6 +184,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       await admin.from('ad_campaigns').update({
         creative_id: creativeId,
         image_url:   first.banner_url,
+        ...reReview,
       }).eq('id', campaignId)
 
     } else {
@@ -184,6 +201,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       await admin.from('ad_campaigns').update({
         creative_id: creativeId,
         image_url:   variants.banner_url,
+        ...reReview,
       }).eq('id', campaignId)
     }
 
@@ -212,7 +230,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 // ── Presigned handler — files already in Supabase Storage, just process them ──
 async function handlePresigned({
-  admin, campaignId, advertiserId, paths, mimeType, force,
+  admin, campaignId, advertiserId, paths, mimeType, force, needsReReview,
 }: {
   admin: ReturnType<typeof import('@/lib/supabase/server').createAdminClient>
   campaignId: string
@@ -220,6 +238,7 @@ async function handlePresigned({
   paths: string[]
   mimeType: string
   force: boolean
+  needsReReview: boolean
 }): Promise<NextResponse> {
   const isVideo    = mimeType.startsWith('video/')
   const isCarousel = !isVideo && paths.length > 1
@@ -261,22 +280,27 @@ async function handlePresigned({
 
   const creativeId = creative.id
   const basePath   = `ad-creatives/${advertiserId}/${creativeId}`
+  // Applied to every ad_campaigns update below — see needsReReview comment
+  // in the POST handler above (content-moderation-bypass fix).
+  const reReview: Record<string, unknown> = needsReReview
+    ? { status: 'pending_review', admin_note: null }
+    : {}
 
   try {
     if (isVideo) {
       const result = await uploadVideo(buffers[0], mimeType, advertiserId)
       await admin.from('ad_creatives').update({ media_type: 'video', original_url: result.original_url, video_url: result.video_url, video_thumb_url: result.video_thumb_url, processing_status: 'done' }).eq('id', creativeId)
-      await admin.from('ad_campaigns').update({ creative_id: creativeId, video_url: result.video_url, image_url: result.video_thumb_url }).eq('id', campaignId)
+      await admin.from('ad_campaigns').update({ creative_id: creativeId, video_url: result.video_url, image_url: result.video_thumb_url, ...reReview }).eq('id', campaignId)
     } else if (isCarousel) {
       const originalUrls = await Promise.all(buffers.map((buf, i) => uploadOriginal(buf, mimeType, `${basePath}/original-${i}`)))
       const { carousel_urls, first } = await processCarousel(buffers, basePath, originalUrls)
       await admin.from('ad_creatives').update({ media_type: 'carousel', ...first, original_url: originalUrls[0], carousel_urls, processing_status: 'done' }).eq('id', creativeId)
-      await admin.from('ad_campaigns').update({ creative_id: creativeId, image_url: first.banner_url }).eq('id', campaignId)
+      await admin.from('ad_campaigns').update({ creative_id: creativeId, image_url: first.banner_url, ...reReview }).eq('id', campaignId)
     } else {
       const originalUrl = await uploadOriginal(buffers[0], mimeType, `${basePath}/original`)
       const variants    = await processImage(buffers[0], basePath, originalUrl)
       await admin.from('ad_creatives').update({ media_type: 'image', ...variants, processing_status: 'done' }).eq('id', creativeId)
-      await admin.from('ad_campaigns').update({ creative_id: creativeId, image_url: variants.banner_url }).eq('id', campaignId)
+      await admin.from('ad_campaigns').update({ creative_id: creativeId, image_url: variants.banner_url, ...reReview }).eq('id', campaignId)
     }
 
     // Clean up the temporary upload files

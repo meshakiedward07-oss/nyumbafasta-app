@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdvertiserAuth } from '@/lib/security/advertiserAuth'
 import { createAdminClient } from '@/lib/supabase/server'
+import { validateCtaValue } from '@/lib/ads/ctaValidation'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -39,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const { data: existing } = await admin
       .from('ad_campaigns')
-      .select('id, status')
+      .select('id, status, cta_type, cta_value')
       .eq('id', id)
       .eq('advertiser_id', auth.advertiser.id)
       .single()
@@ -60,8 +61,29 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Hakuna mabadiliko' }, { status: 400 })
     }
 
-    // Re-queue rejected campaigns for review when the owner edits them
-    if (existing.status === 'rejected') {
+    // Validate cta_value against the FINAL cta_type (either may be edited
+    // independently) — this route used to blind-copy cta_value straight from
+    // the request body with no check at all, so an approved campaign's
+    // 'website' CTA could be swapped to a javascript: URI post-approval and
+    // rendered as a raw <a href> to every site visitor (stored XSS, found in
+    // the 2026-09-01 ads-system audit; see lib/ads/ctaValidation.ts).
+    if ('cta_type' in updates || 'cta_value' in updates) {
+      const finalType  = (updates.cta_type  as string | undefined) ?? existing.cta_type
+      const finalValue = (updates.cta_value as string | undefined) ?? existing.cta_value
+      const ctaCheck   = validateCtaValue(finalType, finalValue)
+      if (!ctaCheck.ok) {
+        return NextResponse.json({ error: ctaCheck.error }, { status: 400 })
+      }
+      updates.cta_value = ctaCheck.value
+    }
+
+    // Re-queue for review when the owner edits an already-reviewed campaign.
+    // Previously only 'rejected' campaigns were re-queued — an 'approved'
+    // (paid-pending) campaign could have its creative, CTA, or *target_region*
+    // changed after admin sign-off with no re-review at all, and once paid it
+    // activates immediately (see lib/ads/processAdPayment.ts) — including
+    // into a region/slot admin never actually vetted it for.
+    if (existing.status === 'rejected' || existing.status === 'approved') {
       updates.status    = 'pending_review'
       updates.admin_note = null
     }

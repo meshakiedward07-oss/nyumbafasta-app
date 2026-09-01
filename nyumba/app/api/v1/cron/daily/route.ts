@@ -1117,7 +1117,7 @@ async function runDailyTasks() {
       .update({ status: 'expired', updated_at: nowIso })
       .eq('status', 'active')
       .lt('expires_at', nowIso)
-      .select('id, ad_type, advertiser_id')
+      .select('id, ad_type, advertiser_id, target_region')
 
     if (expiredAds?.length) {
       results.push(`✅ Ad campaigns: ${expiredAds.length} zimeisha`)
@@ -1148,15 +1148,23 @@ async function runDailyTasks() {
       results.push(`✅ Ad renewal reminders: ${expiringSoon.length} zimetumwa`)
     }
 
-    // Notify waiting list when slots opened up from expirations
+    // Notify waiting list when slots opened up from expirations — scoped to
+    // the exact (ad_type, region) pair that actually freed up. This used to
+    // key only on ad_type (expiredAds never even selected target_region),
+    // so an advertiser waiting for a Dodoma banner slot could get pinged
+    // when an Arusha banner slot expired, and vice versa — a false "slot
+    // available" notification for a region nothing actually opened up in.
+    // Found in the 2026-09-01 ads-system audit.
     if (expiredAds?.length) {
       const { notifyWaitingListSlotOpen } = await import('@/lib/ads/adNotifications')
-      const freedSlots = new Set(expiredAds.map(a => `${a.ad_type}`))
-      for (const adType of freedSlots) {
+      const freedSlots = new Set(expiredAds.map(a => `${a.ad_type}::${a.target_region}`))
+      for (const key of freedSlots) {
+        const [adType, region] = key.split('::')
         const { data: waiting } = await admin
           .from('ad_waiting_list')
           .select('id, advertiser:advertiser_id (business_name, whatsapp_number), region')
           .eq('ad_type', adType)
+          .eq('region', region)
           .eq('status', 'waiting')
           .order('created_at', { ascending: true })
           .limit(3)
