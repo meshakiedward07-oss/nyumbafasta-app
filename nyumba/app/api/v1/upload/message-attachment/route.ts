@@ -44,7 +44,9 @@ export async function POST(req: NextRequest) {
     const folder      = 'nyumba/message-attachments'
     const resourceType = isImage(file.type) ? 'image' : isVideo(file.type) ? 'video' : 'raw'
 
-    const paramsToSign: Record<string, string | number> = { folder, resource_type: resourceType, timestamp }
+    // resource_type is excluded from Cloudinary's signature (still sent as
+    // a normal param below) — see .../message-attachment/sign/route.ts.
+    const paramsToSign: Record<string, string | number> = { folder, timestamp }
     const paramString = Object.keys(paramsToSign).sort()
       .map((k) => `${k}=${paramsToSign[k]}`).join('&')
     // Cloudinary signs with SHA-1 by default — kept consistent with the

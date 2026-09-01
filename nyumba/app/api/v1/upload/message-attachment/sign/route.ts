@@ -40,13 +40,19 @@ export async function GET(req: NextRequest) {
     const folder        = 'nyumba/message-attachments'
     const resourceType  = isImage(mimeType) ? 'image' : isVideo(mimeType) ? 'video' : 'raw'
 
-    const paramsToSign: Record<string, string | number> = { folder, resource_type: resourceType, timestamp }
+    // Cloudinary EXCLUDES file, cloud_name, resource_type, api_key, and
+    // signature from the signed string (per their own signing spec) — it's
+    // still sent as a normal request parameter (in the response below and
+    // in the client's FormData), just never part of what gets hashed.
+    // Including it here was a second cause of "Invalid Signature", on top
+    // of the sha256-vs-sha1 mismatch fixed earlier — this one still applied
+    // after that fix, since a wrong extra param produces a different string
+    // to hash regardless of which algorithm hashes it. Matches
+    // lib/ads/creative.ts's working uploadVideo(), which never signed
+    // resource_type either.
+    const paramsToSign: Record<string, string | number> = { folder, timestamp }
     const paramString = Object.keys(paramsToSign).sort()
       .map((k) => `${k}=${paramsToSign[k]}`).join('&')
-    // Cloudinary's upload API signs with SHA-1 by default (this account was
-    // never configured for SHA-256) — using sha256 here made every signed
-    // upload through this route fail with "Invalid Signature". Matches the
-    // sha1 already used successfully in lib/ads/creative.ts's uploadVideo().
     const signature = createHash('sha1').update(paramString + API_SECRET).digest('hex')
 
     return NextResponse.json({

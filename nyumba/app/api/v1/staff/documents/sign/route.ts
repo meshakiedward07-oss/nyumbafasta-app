@@ -51,7 +51,13 @@ export async function GET(req: NextRequest) {
   const resType   = isPdf ? 'raw' : 'image'
   const folder    = `nyumbafasta/staff-docs/${user.id}`
   const timestamp = Math.round(Date.now() / 1000)
-  const signature = sign({ folder, resource_type: resType, timestamp })
+  // Cloudinary EXCLUDES resource_type (along with file/cloud_name/api_key/
+  // signature) from the signed string — still sent as a normal request
+  // parameter (below, and in the client's FormData), just never hashed.
+  // Including it here was a second cause of "Invalid Signature", on top of
+  // the sha256-vs-sha1 mismatch fixed earlier. Matches lib/ads/creative.ts's
+  // working uploadVideo(), which never signed resource_type either.
+  const signature = sign({ folder, timestamp })
 
   return NextResponse.json({
     uploadUrl:    `https://api.cloudinary.com/v1_1/${CLOUD}/${resType}/upload`,

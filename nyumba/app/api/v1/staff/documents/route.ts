@@ -103,7 +103,9 @@ export async function POST(req: NextRequest) {
   const resType   = isPdf ? 'raw' : 'image'
   const folder    = `nyumbafasta/staff-docs/${user.id}`
   const timestamp = Math.round(Date.now() / 1000)
-  const signature = sign({ folder, resource_type: resType, timestamp })
+  // resource_type is excluded from Cloudinary's signature (still sent as a
+  // normal param below) — see .../staff/documents/sign/route.ts.
+  const signature = sign({ folder, timestamp })
 
   const fd = new FormData()
   fd.append('file', new Blob([await file.arrayBuffer()], { type: file.type }), file.name)
