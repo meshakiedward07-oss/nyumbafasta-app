@@ -351,6 +351,23 @@ export async function middleware(request: NextRequest) {
     'max-age=31536000; includeSubDomains; preload',
   )
 
+  // Explicitly forbid caching account-specific pages (dashboard, admin,
+  // account, subscription, etc.) at every layer — browser HTTP cache and
+  // this app's PWA service worker (public/sw.js) both alike. Found via a
+  // real production bug: a dalali's dashboard showed a stale "Free Plan"
+  // welcome for several minutes after a fresh signup that had genuinely
+  // already been granted an Enterprise trial in the database — the
+  // service worker's networkFirstNav strategy does call fetch() fresh on
+  // every navigation, but that inner fetch() was still being satisfied by
+  // the ordinary browser HTTP cache for the exact URL instead of reaching
+  // the network, since nothing told the browser this response must never
+  // be cached. `dynamic = 'force-dynamic'` on these pages controls
+  // Next.js's own server-side rendering/caching, not the HTTP response
+  // header a browser or service worker actually looks at.
+  if (isProtected) {
+    supabaseResponse.headers.set('Cache-Control', 'private, no-cache, no-store, max-age=0, must-revalidate')
+  }
+
   return supabaseResponse
 }
 

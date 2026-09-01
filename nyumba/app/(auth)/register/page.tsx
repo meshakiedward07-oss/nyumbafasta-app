@@ -145,13 +145,24 @@ function RegisterForm() {
     // never from Next.js's client-side router cache for a route this same
     // tab may have visited moments earlier (e.g. re-testing signup flows,
     // or navigating here from a page that already rendered /dashboard once
-    // this session). A soft client-side transition can serve a cached RSC
-    // payload from that earlier visit — showing the Free Plan welcome
-    // instead of the real Enterprise trial that was just granted, even
-    // though both the database and the fetch logic are correct. A full
-    // page load guarantees the dashboard's server component re-runs its
-    // subscription query against the real, current state.
-    window.location.href = role === 'dalali' ? '/dashboard?welcome=true' : '/?welcome=true'
+    // this session).
+    //
+    // A hard navigation alone still wasn't enough in testing: this app
+    // installs public/sw.js, a PWA service worker whose fetch handler
+    // intercepts every navigation (networkFirstNav) — it does call
+    // fetch(req) fresh rather than serving from its own Cache Storage, but
+    // that inner fetch() is still subject to the ordinary browser HTTP
+    // cache for the exact URL, which can satisfy it from a previous visit
+    // to this same path without ever reaching the network at all. A unique
+    // query param per redirect makes the URL itself never-before-requested,
+    // which defeats any URL-keyed cache layer regardless of which one
+    // (browser HTTP cache or the service worker) was actually responsible —
+    // confirmed necessary after the hard-navigation-only fix still showed
+    // the Free Plan welcome for a real Enterprise trial in production.
+    const cacheBust = `_t=${Date.now()}`
+    window.location.href = role === 'dalali'
+      ? `/dashboard?welcome=true&${cacheBust}`
+      : `/?welcome=true&${cacheBust}`
   }
 
   // ── Error mapper ─────────────────────────────────────────────────────────

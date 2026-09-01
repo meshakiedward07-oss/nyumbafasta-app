@@ -302,8 +302,17 @@ export async function GET(request: NextRequest) {
         }
         return NextResponse.redirect(`${origin}/admin/staff-dashboard`)
       }
-      if (role === 'dalali') return NextResponse.redirect(`${origin}/dashboard?welcome=true`)
-      return NextResponse.redirect(`${origin}/?welcome=true`)
+      // Cache-busting query param: this app's service worker (public/sw.js)
+      // intercepts every navigation and does its own fetch(), which is
+      // still subject to the browser's ordinary HTTP cache for the exact
+      // URL — a repeat visitor to this same path could get served a stale
+      // response without a fresh network request ever happening. A unique
+      // param per redirect guarantees this exact URL was never requested
+      // before. See the matching fix + longer explanation in
+      // app/(auth)/register/page.tsx's finaliseAndRedirect().
+      const cacheBust = `_t=${Date.now()}`
+      if (role === 'dalali') return NextResponse.redirect(`${origin}/dashboard?welcome=true&${cacheBust}`)
+      return NextResponse.redirect(`${origin}/?welcome=true&${cacheBust}`)
     }
   }
 
