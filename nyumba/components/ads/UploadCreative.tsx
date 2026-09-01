@@ -29,14 +29,42 @@ const PREVIEW_VARIANTS = [
   { key: 'featured_url', label: 'Featured (800×450)',  w: 160, h: 90  },
 ] as const
 
-// Match the bucket's own limits (supabase/ensure_listings_bucket.sql) and
-// what's advertised in adv_file_size_hint. Checked client-side, before any
-// network call — previously a file of any size was attempted regardless,
-// so a grossly-oversized video would run for a while and then die with a
-// bare, unhelpful browser "Failed to fetch" instead of an immediate, clear
-// reason. Found 2026-09-01.
-const MAX_IMAGE_BYTES = 10  * 1024 * 1024
-const MAX_VIDEO_BYTES = 100 * 1024 * 1024
+// Matches what's advertised in adv_file_size_hint. Checked client-side,
+// before any network call — previously a file of any size was attempted
+// regardless, so a grossly-oversized video would run for a while and then
+// die with a bare, unhelpful browser "Failed to fetch" instead of an
+// immediate, clear reason. Found 2026-09-01.
+//
+// 50MB / 30s (not the earlier 100MB) — deliberately tight limits to
+// protect the system: unbounded ad-video size/length costs real Cloudinary
+// storage+bandwidth and page-load weight for every visitor who sees the
+// ad. Requested 2026-09-01. Also enforced server-side in
+// lib/ads/creative.ts (this client check is just fast feedback — a direct
+// API call can't bypass the real limit).
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024
+const MAX_VIDEO_DURATION_SECONDS = 30
+
+// Reads a video file's duration client-side via a throwaway <video> element
+// — no upload needed, just enough of the file for the browser to parse
+// metadata. Rejects if the browser can't read it (corrupt/unsupported file)
+// so the caller can decide whether to block or let the server have the
+// final say.
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src)
+      resolve(video.duration)
+    }
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src)
+      reject(new Error('duration read failed'))
+    }
+    video.src = URL.createObjectURL(file)
+  })
+}
 
 export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
   const { t } = useLanguage()
@@ -54,7 +82,7 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
 
   // ── File selection ────────────────────────────────────────────────────────
 
-  const handleFiles = useCallback((selected: FileList | null) => {
+  const handleFiles = useCallback(async (selected: FileList | null) => {
     if (!selected || selected.length === 0) return
     const arr = Array.from(selected)
 
@@ -68,6 +96,25 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
       setCreative(null)
       setPhase('idle')
       return
+    }
+
+    // Duration check — video only, hard rejection (no continue-anyway):
+    // there's no legitimate reason for an ad video to exceed 30s, and this
+    // protects the system from Cloudinary storage/bandwidth cost and heavy
+    // page-load weight for every visitor who later sees the ad. If the
+    // browser can't read the duration at all, don't block here — the
+    // server-side check in lib/ads/creative.ts has the final say.
+    if (isVid) {
+      try {
+        const duration = await getVideoDuration(arr[0])
+        if (duration > MAX_VIDEO_DURATION_SECONDS) {
+          setError(t('adv_video_too_long').replace('{{sec}}', String(Math.round(duration))))
+          setWarning(null)
+          setCreative(null)
+          setPhase('idle')
+          return
+        }
+      } catch { /* unreadable client-side — let the server validate it */ }
     }
 
     setFiles(arr)

@@ -7,6 +7,7 @@ import {
   processCarousel,
   uploadOriginal,
   uploadVideo,
+  VideoValidationError,
 } from '@/lib/ads/creative'
 
 type Params = { params: Promise<{ id: string }> }
@@ -191,6 +192,14 @@ async function handlePresigned({
     // source — an abandoned browser tab that never reaches this handler
     // at all — but most orphans came from here, not that.
     await admin.storage.from('listings').remove(paths).catch(() => {})
+    // A video that failed size/duration validation — surface the real,
+    // actionable Swahili message directly (no `warning` flag, so the client
+    // shows a plain rejection with no "continue anyway" bypass button,
+    // unlike the portrait-ratio warning: there's no legitimate reason to
+    // force an oversized/overlong ad video through).
+    if (err instanceof VideoValidationError) {
+      return NextResponse.json({ error: err.message }, { status: 422 })
+    }
     return NextResponse.json({ error: 'Haikuweza kushughulikia faili. Jaribu tena.', detail: String(err) }, { status: 500 })
   }
 }

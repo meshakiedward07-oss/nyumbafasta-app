@@ -32,6 +32,23 @@ type VariantKey = keyof typeof VARIANTS
 // Portrait warning: height > 1.3× width is too portrait for landscape crops
 export const PORTRAIT_THRESHOLD = 1.3
 
+// Ad video limits — enforced here too (not just client-side in
+// UploadCreative.tsx) since this API can be called directly with an
+// already-uploaded Storage path, bypassing any browser-side check.
+// Found/added 2026-09-01: unbounded video length/size is a real system
+// risk (Cloudinary storage+bandwidth cost, transcode time, page-load
+// weight for every visitor who sees the ad) — rejected outright, not just
+// warned, since (unlike the portrait-ratio check) there's no legitimate
+// reason to force an oversized/overlong ad video through.
+export const MAX_VIDEO_BYTES_SERVER    = 50 * 1024 * 1024
+export const MAX_VIDEO_DURATION_SECONDS = 30
+
+// Thrown for a video that fails validation (too big / too long) — kept
+// distinct from a generic processing failure so the API route can surface
+// the real, actionable Swahili message instead of the generic
+// "Haikuweza kushughulikia faili" catch-all.
+export class VideoValidationError extends Error {}
+
 // ── Brand stripe overlay ──────────────────────────────────────────────────────
 
 // Builds a solid #1D9E75 stripe as raw PNG — no librsvg required on Vercel Lambda.
@@ -182,6 +199,18 @@ export async function uploadVideo(
       'CLOUDINARY_API_KEY, na CLOUDINARY_API_SECRET kwenye Vercel environment variables.',
     )
   }
+
+  // Size check BEFORE spending a Cloudinary upload call on a file we're
+  // going to reject anyway — buffer.length is already the real file size
+  // at this point (downloaded from Storage), no need to wait for
+  // Cloudinary's own response to know this.
+  if (buffer.length > MAX_VIDEO_BYTES_SERVER) {
+    const mb = (buffer.length / (1024 * 1024)).toFixed(1)
+    throw new VideoValidationError(
+      `Video ni kubwa mno (${mb}MB). Kiwango cha juu ni 50MB ili kulinda mfumo — punguza ubora wa video au rekodi fupi zaidi.`,
+    )
+  }
+
   const folder    = `ad-creatives/${advertiserId}`
   const timestamp = Math.floor(Date.now() / 1000)
   const paramStr  = `folder=${folder}&timestamp=${timestamp}`
@@ -202,7 +231,20 @@ export async function uploadVideo(
     const err = await res.text()
     throw new Error(`Cloudinary upload failed: ${err}`)
   }
-  const data = await res.json() as { public_id: string; secure_url: string }
+  const data = await res.json() as { public_id: string; secure_url: string; duration?: number }
+
+  // Duration check AFTER upload — Cloudinary is the only place that can
+  // actually tell us the real duration of an arbitrary video container, and
+  // it reports it in the same response as the upload itself, so this is
+  // the earliest point it's knowable. Reject and clean up rather than warn:
+  // an ad video has no legitimate reason to exceed 30s, unlike the
+  // portrait-ratio case which can be a deliberate creative choice.
+  if (typeof data.duration === 'number' && data.duration > MAX_VIDEO_DURATION_SECONDS) {
+    await destroyCloudinaryVideo(data.public_id).catch(() => {})
+    throw new VideoValidationError(
+      `Video ni ndefu mno (sekunde ${Math.round(data.duration)}). Kiwango cha juu ni sekunde 30 ili kulinda mfumo — punguza urefu wa video kabla ya kupakia tena.`,
+    )
+  }
 
   // Thumbnail: Cloudinary on-the-fly transformation (no extra upload)
   // so_2 = screenshot at 2 seconds; c_fill = cover crop
@@ -230,6 +272,30 @@ export async function uploadVideo(
     video_thumb_url: thumbUrl,
     original_url:    data.secure_url,
   }
+}
+
+// Removes a video that failed post-upload validation (too long) — Cloudinary
+// has no "reject before storing" option for duration, so a too-long clip is
+// briefly stored then deleted rather than left billing/counting against the
+// account forever. Best-effort: called with .catch(() => {}) at the call
+// site, since a failed cleanup shouldn't block surfacing the real
+// validation error to the advertiser.
+async function destroyCloudinaryVideo(publicId: string): Promise<void> {
+  const timestamp = Math.floor(Date.now() / 1000)
+  const paramStr  = `public_id=${publicId}&timestamp=${timestamp}`
+  const signature = createHash('sha1').update(paramStr + API_SEC).digest('hex')
+
+  const form = new FormData()
+  form.append('public_id', publicId)
+  form.append('api_key',   API_KEY)
+  form.append('timestamp', String(timestamp))
+  form.append('signature', signature)
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/video/destroy`, {
+    method: 'POST',
+    body:   form,
+  })
+  if (!res.ok) throw new Error(`Cloudinary destroy failed: ${await res.text()}`)
 }
 
 // ── Original image → Supabase Storage ────────────────────────────────────────
