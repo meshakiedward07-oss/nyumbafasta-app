@@ -113,12 +113,27 @@ async function handlePresigned({
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 
-  // Ratio check BEFORE creating the DB record — no orphaned records on failure
+  // Ratio check BEFORE creating the DB record — no orphaned records on failure.
+  // This was the one call in handlePresigned with no try/catch of its own —
+  // sharp() throwing here (a malformed/undecodable "image", or a genuine
+  // native-binary failure) fell through to the outer POST catch and showed
+  // only the generic "Hitilafu ya seva", with no detail to diagnose from.
+  // Found 2026-09-01 — reported as the image-upload failure mode.
   if (!isVideo && !force) {
-    const check = await checkImageRatio(buffers[0])
-    if (!check.ok) {
+    try {
+      const check = await checkImageRatio(buffers[0])
+      if (!check.ok) {
+        await admin.storage.from('listings').remove(paths).catch(() => {})
+        return NextResponse.json({ warning: true, error: check.message, message: check.message, ratio: check.ratio }, { status: 422 })
+      }
+    } catch (err) {
+      console.error('[CreativeUpload] checkImageRatio threw:', err)
       await admin.storage.from('listings').remove(paths).catch(() => {})
-      return NextResponse.json({ warning: true, error: check.message, message: check.message, ratio: check.ratio }, { status: 422 })
+      const detail = err instanceof Error ? err.message : String(err)
+      return NextResponse.json({
+        error: 'Haikuweza kusoma picha hii. Hakikisha ni faili halisi la picha (JPG/PNG/WebP), au jaribu picha nyingine.',
+        detail,
+      }, { status: 422 })
     }
   }
 

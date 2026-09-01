@@ -123,7 +123,20 @@ export default function UploadCreative({ campaignId, onDone, onSkip }: Props) {
           body:    files[i],
           signal:  controller.signal,
         })
-        if (!putRes.ok) throw new Error(t('adv_upload_file_error').replace('{n}', String(i + 1)).replace('{s}', String(putRes.status)))
+        if (!putRes.ok) {
+          // Supabase Storage's error responses carry the real reason
+          // (mime type rejected, file too large, expired token, etc.) in
+          // the JSON body — only the numeric status was ever surfaced
+          // before, which wasn't enough to diagnose a real 400. Read it,
+          // best-effort, without letting a non-JSON body break the flow.
+          let detail = ''
+          try {
+            const body = await putRes.json()
+            detail = body?.message || body?.error || ''
+          } catch { /* body wasn't JSON — status code is all we have */ }
+          const base = t('adv_upload_file_error').replace('{n}', String(i + 1)).replace('{s}', String(putRes.status))
+          throw new Error(detail ? `${base} — ${detail}` : base)
+        }
         paths.push(path)
       }
 

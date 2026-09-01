@@ -30,7 +30,15 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     const count    = Math.min(parseInt(req.nextUrl.searchParams.get('count') ?? '1', 10), 10)
     const mimeType = req.nextUrl.searchParams.get('mimeType') ?? 'image/jpeg'
-    const ext      = mimeType.startsWith('video/') ? 'mp4'
+    // Every video used to get a hardcoded .mp4 filename regardless of its
+    // real container (a .mov/video/quicktime upload was stored as
+    // "xxx.mp4") — harmless to Storage itself (Content-Type on the PUT is
+    // what actually governs the mime-type check, not the extension), but
+    // misleading for anyone inspecting the bucket. Match it to the real
+    // uploaded type instead.
+    const ext      = mimeType === 'video/quicktime' ? 'mov'
+      : mimeType === 'video/webm' ? 'webm'
+      : mimeType.startsWith('video/') ? 'mp4'
       : mimeType === 'image/png' ? 'png'
       : mimeType === 'image/webp' ? 'webp'
       : mimeType === 'image/gif' ? 'gif'
