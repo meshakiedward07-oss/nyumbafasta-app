@@ -1,0 +1,45 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- fix_sub_status_enum_2026_09_01.sql
+-- Run in Supabase SQL Editor. Safe to re-run (IF NOT EXISTS on the ADD VALUE).
+--
+-- ROOT CAUSE of a long-running, widely-reported bug ("dalali doesn't get
+-- shown their Growth Plan trial on the dashboard even though the database
+-- is correct") that survived three separate earlier fix attempts (DB
+-- trigger guarantee, RLS-vs-admin-client query fix, hard navigation,
+-- service-worker cache-busting) because none of those addressed the real
+-- cause: `subscriptions.status` is a Postgres ENUM type (`sub_status`)
+-- that is MISSING the value 'trial_expired' — even though this project's
+-- own schema.sql shows the column's ORIGINAL design (a plain TEXT column
+-- with a CHECK constraint) explicitly included 'trial_expired' in its
+-- allowed values. Some later migration converted the column to an enum
+-- without carrying over that value — a real regression, not intentional.
+--
+-- Confirmed live via: `SELECT ... WHERE status IN ('active','grace_period',
+-- 'trial_expired')` failing with `ERROR 22P02: invalid input value for enum
+-- sub_status: "trial_expired"`.
+--
+-- Impact — every one of these silently failed on EVERY dalali dashboard
+-- load / every daily cron run, not intermittently:
+--   • app/(dalali)/dashboard/page.tsx — the subscription query includes
+--     'trial_expired' in its status filter, so it throws on every single
+--     request. Since the code never checked/logged the query's error, this
+--     was indistinguishable from "no subscription" — exactly the reported
+--     symptom, for every trial dalali, 100% of the time, on this one page
+--     specifically (app/(dalali)/dashboard/subscription/page.tsx never hit
+--     this because its own filter never included 'trial_expired', which is
+--     why THAT page always correctly showed Enterprise).
+--   • app/api/v1/cron/daily/route.ts section 1b — the query that finds
+--     dalali whose trial just expired (to suspend their listings back down
+--     to the Free-plan limit of 2) has been failing every single day since
+--     it was written, meaning this enforcement has never actually run in
+--     production.
+--   • lib/admin/getData.ts's `expiredTrials` admin stat has always silently
+--     reported 0 (it filters already-fetched rows in JS, so it didn't
+--     error — it just could never find a match, since no row could ever
+--     legally hold this status value in the database to begin with).
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- Must run as its own statement/transaction before the value can be used
+-- (Postgres rule: a new enum value cannot be referenced in the same
+-- transaction that added it).
+ALTER TYPE sub_status ADD VALUE IF NOT EXISTS 'trial_expired';

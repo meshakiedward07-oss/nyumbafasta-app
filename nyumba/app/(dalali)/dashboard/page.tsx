@@ -42,6 +42,16 @@ export default async function DalaliDashboardPage() {
       .eq('status', 'completed'),
   ])
 
+  // Log (never throw) — a query error here used to be indistinguishable
+  // from "genuinely no subscription", which is exactly how a real bug
+  // (the 'trial_expired' status filter erroring against a Postgres enum
+  // missing that value — see fix_sub_status_enum_2026_09_01.sql) went
+  // unnoticed through several rounds of investigation. Any future error
+  // on this specific query should now actually be visible in logs.
+  if (subscriptionRes.error) {
+    console.error('[DalaliDashboard] subscription query failed:', subscriptionRes.error.message)
+  }
+
   const dalaliUser = userRes.data
   const dalaliProfile = profileRes.data
   const subscription = subscriptionRes.data
