@@ -9,7 +9,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
 
   const { data: listing } = await supabase
     .from('listings')
-    .select('id, type, status, price_monthly, bedrooms, furnished, description, region, district, amenities, images, latitude, longitude, address_full, place_id, commission_type, commission_value, commission_notes, listing_unit_type, total_capacity, auto_deactivate_on_full')
+    .select('id, type, status, price_monthly, bedrooms, furnished, description, region, district, amenities, images, video_url, latitude, longitude, address_full, place_id, commission_type, commission_value, commission_notes, listing_unit_type, total_capacity, auto_deactivate_on_full')
     .eq('id', id)
     .eq('dalali_id', user!.id)
     .single()

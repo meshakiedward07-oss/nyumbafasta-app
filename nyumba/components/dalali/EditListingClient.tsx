@@ -3,11 +3,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n/context'
 import dynamic from 'next/dynamic'
+import { createClient } from '@/lib/supabase/client'
 import { BulkPhotoUpload } from '@/components/listings/BulkPhotoUpload'
+import { VideoUpload } from '@/components/listings/VideoUpload'
 import type { LocationData } from '@/components/maps/ListingLocationPicker'
 import { TANZANIA_REGIONS } from '@/lib/data/tanzania-locations'
 import CommissionField, { type CommissionState } from '@/components/listings/CommissionField'
 import { formatCommission } from '@/lib/listings/commission'
+import { canUseFeature } from '@/lib/config/subscription-plans'
 
 const ListingLocationPicker = dynamic(
   () => import('@/components/maps/ListingLocationPicker'),
@@ -29,6 +32,7 @@ type ListingData = {
   district: string
   amenities: string[]
   images: string[]
+  video_url: string | null
   latitude: number | null
   longitude: number | null
   address_full: string | null
@@ -86,6 +90,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [photosUploading, setPhotosUploading] = useState(false)
+  const [videoUploading, setVideoUploading] = useState(false)
   const [error, setError] = useState('')
 
   const [type, setType] = useState<ListingType>(listing.type)
@@ -97,6 +102,8 @@ export default function EditListingClient({ listing }: { listing: ListingData })
   const [district, setDistrict] = useState(listing.district)
   const [amenities, setAmenities] = useState<string[]>(listing.amenities ?? [])
   const [images, setImages] = useState<string[]>(listing.images ?? [])
+  const [videoUrl, setVideoUrl] = useState<string | null>(listing.video_url ?? null)
+  const [plan, setPlan] = useState<string | null>(null)
   const [latitude, setLatitude] = useState<number | null>(listing.latitude ?? null)
   const [longitude, setLongitude] = useState<number | null>(listing.longitude ?? null)
   const [addressFull, setAddressFull] = useState(listing.address_full ?? '')
@@ -144,6 +151,27 @@ export default function EditListingClient({ listing }: { listing: ListingData })
     return () => clearTimeout(t)
   }, [type, price, bedrooms, furnished, description, region, district, amenities, commission, unitType, totalCapacity, autoDeactivate, draftKey])
 
+  // Fetch the dalali's plan — gates the video upload step the same way
+  // AddListingWizard does (canUseFeature(plan, 'videos')). Editing had no
+  // video section at all before this: the field existed and was already
+  // fully supported server-side (PATCH /api/v1/listings/[id] already wrote
+  // video_url), it just had no UI here to change or add it.
+  useEffect(() => {
+    let cancelled = false
+    const supabase = createClient()
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('plan')
+        .eq('dalali_id', user.id)
+        .in('status', ['active', 'grace_period'])
+        .maybeSingle()
+      if (!cancelled) setPlan(sub?.plan ?? null)
+    })
+    return () => { cancelled = true }
+  }, [])
+
   function handleLocationChange(loc: LocationData) {
     setLatitude(loc.latitude)
     setLongitude(loc.longitude)
@@ -166,6 +194,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
           type, price_monthly: parseInt(price),
           bedrooms: bedrooms ? parseInt(bedrooms) : null,
           furnished, description, region, district, amenities, images,
+          video_url: videoUrl,
           latitude, longitude,
           address_full: addressFull || null,
           place_id: placeId || null,
@@ -403,6 +432,29 @@ export default function EditListingClient({ listing }: { listing: ListingData })
               />
             </div>
 
+            {/* Video — this section didn't exist at all before; the field
+                was already fully supported server-side, just no UI here to
+                add/change/remove it once a listing existed. */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                <i className="ti ti-video" aria-hidden="true" /> {t('wiz_video_label')}
+              </label>
+              {canUseFeature(plan, 'videos') ? (
+                <VideoUpload
+                  existingVideoUrl={videoUrl}
+                  onUploadComplete={url => setVideoUrl(url)}
+                  onRemove={() => setVideoUrl(null)}
+                  onUploadStateChange={setVideoUploading}
+                />
+              ) : (
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <i className="ti ti-lock text-2xl text-gray-300" aria-hidden="true" />
+                  <p className="text-sm font-medium text-gray-600">{t('wiz_video_no_free')}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{t('wiz_video_upgrade_hint')}</p>
+                </div>
+              )}
+            </div>
+
             {/* Summary */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-2 text-sm">
               <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-1"><i className="ti ti-clipboard-list" aria-hidden="true" />{t('edit_summary')}</h3>
@@ -412,6 +464,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
                 [t('edit_sum_location'), `${district}, ${region}`],
                 [t('edit_sum_amenities'), `${amenities.length} ${t('edit_selected')}`],
                 [t('edit_sum_photos'), `${images.length} ${t('edit_photos_count')}`],
+                ...(videoUrl ? [[t('wiz_sum_video'), t('wiz_sum_video_uploaded')]] : []),
                 ...(commission.enabled && commission.type
                   ? [[t('edit_sum_commission'), formatCommission(commission.type, parseFloat(commission.value) || null)]]
                   : []),
@@ -444,7 +497,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
             {t('edit_continue_to')} {stepTitles[step + 1]}
           </button>
         ) : (
-          <button onClick={handleSubmit} disabled={submitting || photosUploading}
+          <button onClick={handleSubmit} disabled={submitting || photosUploading || videoUploading}
             className="w-full bg-primary-500 text-white py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-50 active:scale-95 transition-all">
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
@@ -455,6 +508,11 @@ export default function EditListingClient({ listing }: { listing: ListingData })
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 {t('edit_wait_photos')}
+              </span>
+            ) : videoUploading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                {t('wiz_cta_wait_video')}
               </span>
             ) : t('qe_save_btn')}
           </button>
