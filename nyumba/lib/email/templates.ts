@@ -1,6 +1,30 @@
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.nyumbafasta.co'
 const LOGO_URL = 'https://nyumbafasta.co/logo_nyumbafasta.png'
 
+// Every template below interpolates values straight into raw HTML strings
+// (no JSX, no React — these are the literal bytes Resend sends as the email
+// body), and several of those values are attacker-reachable free text with
+// no account/approval needed first: a user's own full_name/business_name
+// (self-editable at signup), a listing title, an org/tenant name, or —
+// worst case — the free-text `description` on a legal/violation report,
+// which triggers adminLegalReportEmail() straight to an admin's inbox the
+// moment ANY user files a report. None of it was ever escaped before this
+// fix (found 2026-09-01 compose-email audit) — a crafted name like
+// `<img src=x onerror=...>` landed in outbound HTML verbatim. `esc()` is
+// applied to every such value at the top of each template function (not
+// inline at each use site, since several appear multiple times) — safe to
+// call on values that also happen to be trusted, so applied uniformly
+// rather than trying to track which ones "really" need it.
+export function esc(input: string | null | undefined): string {
+  if (input == null) return ''
+  return String(input)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 // All styles are fully inline — <style> blocks are stripped by Gmail and Outlook.
 export function emailBase(content: string, previewText = '') {
   return `<!DOCTYPE html>
@@ -100,6 +124,7 @@ const styles = {
 // ── Verification email ─────────────────────────────────────────────────────
 
 export function verificationEmail(name: string, verificationUrl: string) {
+  name = esc(name)
   return {
     subject: '✅ Thibitisha Akaunti Yako — NyumbaFasta',
     html: emailBase(`
@@ -131,8 +156,14 @@ export function verificationEmail(name: string, verificationUrl: string) {
 
 export function welcomeEmail(name: string, role: string) {
   const isDalali = role === 'dalali'
+  // Subject line is plain text, not HTML — build it from the raw name
+  // BEFORE escaping (esc() below is for the HTML body only; applying it to
+  // the subject too would show literal "&amp;" etc. instead of the actual
+  // character in the recipient's inbox subject line).
+  const subject = `🎉 Karibu NyumbaFasta — ${name}!`
+  name = esc(name)
   return {
-    subject: `🎉 Karibu NyumbaFasta — ${name}!`,
+    subject,
     html: emailBase(`
       <span style="${styles.greeting}">Hongera ${name}! 🎉</span>
       <span style="${styles.text}">Akaunti yako imethibitishwa vizuri. Karibu kwenye familia ya NyumbaFasta Tanzania!</span>
@@ -170,6 +201,8 @@ export function welcomeEmail(name: string, role: string) {
 // ── Tenant welcome email (sent after email verified) ──────────────────────
 
 export function tenantWelcomeEmail(tenantName: string, orgName?: string) {
+  tenantName = esc(tenantName)
+  orgName = orgName ? esc(orgName) : orgName
   const orgLine = orgName
     ? `<span style="${styles.text}">Umealikwa na <strong>${orgName}</strong>. Mmiliki wako amepata taarifa ya usajili wako — hivi karibuni atakusajilishe kwenye mfumo wa mkataba wako.</span>`
     : `<span style="${styles.text}">Mwambie mmiliki wako barua pepe yako ili akusajilishe kwenye mfumo wa mkataba wako.</span>`
@@ -202,11 +235,18 @@ export function tenantRegisteredEmail(
   tenantEmail: string,
   orgName: string,
 ) {
+  // Subject is plain text — built from the raw name before escaping (see
+  // welcomeEmail's comment for why the two must not share one variable).
+  const subject = `🔔 Mpangaji Mpya Amesajili — ${tenantName}`
+  tenantName  = esc(tenantName)
+  tenantPhone = tenantPhone ? esc(tenantPhone) : tenantPhone
+  tenantEmail = esc(tenantEmail)
+  orgName     = esc(orgName)
   const phoneRow = tenantPhone
     ? `<p style="${styles.infoText}">📱 Simu: <strong>${tenantPhone}</strong></p>`
     : ''
   return {
-    subject: `🔔 Mpangaji Mpya Amesajili — ${tenantName}`,
+    subject,
     html: emailBase(`
       <span style="${styles.greeting}">Habari! 👋</span>
       <span style="${styles.text}">Mpangaji uliyemwalika kwenye <strong>${orgName}</strong> amesajili akaunti yake na kuthibitisha barua pepe yake kwenye NyumbaFasta.</span>
@@ -234,6 +274,7 @@ export function tenantRegisteredEmail(
 // ── Password reset email ───────────────────────────────────────────────────
 
 export function passwordResetEmail(name: string, resetUrl: string) {
+  name = esc(name)
   return {
     subject: '🔑 Reset Password — NyumbaFasta',
     html: emailBase(`
@@ -263,6 +304,7 @@ export function passwordResetEmail(name: string, resetUrl: string) {
 // ── Password changed confirmation ─────────────────────────────────────────
 
 export function passwordChangedEmail(name: string) {
+  name = esc(name)
   const supportUrl = 'https://wa.me/255665831694'
   return {
     subject: '🔒 Nenosiri Lako Limebadilishwa — NyumbaFasta',
@@ -296,6 +338,8 @@ export function passwordChangedEmail(name: string) {
 // ── Listing approved email ─────────────────────────────────────────────────
 
 export function listingApprovedEmail(dalaliName: string, listingTitle: string, listingUrl: string) {
+  dalaliName   = esc(dalaliName)
+  listingTitle = esc(listingTitle)
   return {
     subject: '🏠 Listing Yako Imeidhinishwa!',
     html: emailBase(`
@@ -322,6 +366,8 @@ export function listingApprovedEmail(dalaliName: string, listingTitle: string, l
 // ── Staff welcome / credentials email ─────────────────────────────────────
 
 export function staffWelcomeEmail(name: string, email: string, tempPassword: string) {
+  name  = esc(name)
+  email = esc(email)
   const loginUrl = `${APP_URL}/login`
   const changeUrl = `${APP_URL}/account/change-password`
   return {
@@ -365,8 +411,19 @@ export function newUserAlertEmail(
   const roleLabel = role === 'dalali' ? 'Dalali (Broker)' : role === 'client' ? 'Mteja (Client)' : role
   const roleColor = role === 'dalali' ? '#1D9E75' : '#3b82f6'
   const dashUrl   = `${APP_URL}/admin/leads`
+  // Subject built from the raw name before escaping — see welcomeEmail's
+  // comment. newUserName is the single most attacker-reachable value in
+  // this whole file: it's the signup form's own full_name field, fully
+  // user-controlled with no approval step, and this email fires
+  // automatically straight to admin/staff on every registration.
+  const subject = `🆕 ${roleLabel} Mpya Amesajili — ${newUserName}`
+  newUserName = esc(newUserName)
+  email       = esc(email)
+  phone       = phone  ? esc(phone)  : phone
+  region      = region ? esc(region) : region
+  source      = source ? esc(source) : source
   return {
-    subject: `🆕 ${roleLabel} Mpya Amesajili — ${newUserName}`,
+    subject,
     html: emailBase(`
       <span style="${styles.greeting}">Mtumiaji Mpya! 🆕</span>
       <span style="${styles.text}">Mtumiaji mpya amesajili kwenye NyumbaFasta. Hapa chini ni maelezo kamili:</span>
@@ -441,6 +498,9 @@ export function newUserAlertEmail(
 // ── Contact unlock notification email ─────────────────────────────────────
 
 export function contactUnlockEmail(dalaliName: string, clientName: string, listingTitle: string) {
+  dalaliName   = esc(dalaliName)
+  clientName   = esc(clientName)
+  listingTitle = esc(listingTitle)
   return {
     subject: '🔓 Mteja Amefungua Contact Yako!',
     html: emailBase(`
@@ -467,6 +527,8 @@ export function contactUnlockEmail(dalaliName: string, clientName: string, listi
 // ── Listing expired email (cron step 12) ──────────────────────────────────
 
 export function listingExpiredEmail(dalaliName: string, listingTitle: string) {
+  dalaliName   = esc(dalaliName)
+  listingTitle = esc(listingTitle)
   return {
     subject: '⏰ Listing Yako Imeisha — Renew Sasa',
     html: emailBase(`
@@ -494,6 +556,8 @@ export function listingExpiredEmail(dalaliName: string, listingTitle: string) {
 // ── Listing rejected email ────────────────────────────────────────────────
 
 export function listingRejectedEmail(dalaliName: string, listingTitle: string) {
+  dalaliName   = esc(dalaliName)
+  listingTitle = esc(listingTitle)
   return {
     subject: '❌ Listing Yako Ilikataliwa — NyumbaFasta',
     html: emailBase(`
@@ -520,6 +584,11 @@ export function listingRejectedEmail(dalaliName: string, listingTitle: string) {
 // ── Subscription activated email ──────────────────────────────────────────
 
 export function subscriptionActivatedEmail(dalaliName: string, planName: string, expiresAt: string) {
+  // planName is from our own admin-managed plan catalog, not free user
+  // input, and appears in the subject line too — left unescaped
+  // deliberately (see welcomeEmail's comment on why subject/HTML can't
+  // safely share one escaped variable).
+  dalaliName = esc(dalaliName)
   return {
     subject: `✅ Subscription ya ${planName} Imewashwa — NyumbaFasta`,
     html: emailBase(`
@@ -544,6 +613,7 @@ export function subscriptionActivatedEmail(dalaliName: string, planName: string,
 // ── Boost activated email ─────────────────────────────────────────────────
 
 export function boostActivatedEmail(dalaliName: string, weeks: number, boostedUntil: string) {
+  dalaliName = esc(dalaliName)
   return {
     subject: '⚡ Listing Yako Imeboostwa — NyumbaFasta',
     html: emailBase(`
@@ -568,6 +638,7 @@ export function boostActivatedEmail(dalaliName: string, weeks: number, boostedUn
 // ── Extra listings added email ────────────────────────────────────────────
 
 export function extraListingsAddedEmail(dalaliName: string, count: number) {
+  dalaliName = esc(dalaliName)
   return {
     subject: `✅ Listings ${count} za Ziada Zimeongezwa — NyumbaFasta`,
     html: emailBase(`
@@ -591,6 +662,7 @@ export function extraListingsAddedEmail(dalaliName: string, count: number) {
 // ── Ad campaign approved email ────────────────────────────────────────────
 
 export function adCampaignApprovedEmail(businessName: string, adType: string) {
+  businessName = esc(businessName)
   const typeLabel: Record<string, string> = {
     banner: 'Banner', search: 'Search Ad', nearby: 'Nearby Ad',
     video: 'Video Ad', featured: 'Featured Business', directory: 'Directory',
@@ -618,6 +690,8 @@ export function adCampaignApprovedEmail(businessName: string, adType: string) {
 // ── Ad campaign rejected email ────────────────────────────────────────────
 
 export function adCampaignRejectedEmail(businessName: string, reason?: string) {
+  businessName = esc(businessName)
+  reason       = reason ? esc(reason) : reason
   return {
     subject: '❌ Tangazo Lako Limekataliwa — NyumbaFasta Ads',
     html: emailBase(`
@@ -648,6 +722,8 @@ export function adCampaignRejectedEmail(businessName: string, reason?: string) {
 // ── Advertiser welcome email (sent on successful registration) ────────────
 
 export function advertiserWelcomeEmail(businessName: string, city: string) {
+  businessName = esc(businessName)
+  city         = esc(city)
   const dashUrl = `${APP_URL}/advertising/dashboard`
   return {
     subject: '🎉 Karibu NyumbaFasta Ads — Biashara Yako Imesajiliwa!',
@@ -683,6 +759,7 @@ export function advertiserWelcomeEmail(businessName: string, city: string) {
 // ── Advertiser account approved email ─────────────────────────────────────
 
 export function advertiserApprovedEmail(businessName: string) {
+  businessName = esc(businessName)
   const dashUrl = `${APP_URL}/advertising/new`
   return {
     subject: '✅ Akaunti Yako Imeidhinishwa — Anza Kutangaza Sasa!',
@@ -712,6 +789,8 @@ export function advertiserApprovedEmail(businessName: string) {
 // ── Advertiser account rejected email ─────────────────────────────────────
 
 export function advertiserRejectedEmail(businessName: string, reason?: string) {
+  businessName = esc(businessName)
+  reason       = reason ? esc(reason) : reason
   return {
     subject: '❌ Maombi ya Akaunti Yako — NyumbaFasta Ads',
     html: emailBase(`
@@ -741,6 +820,9 @@ export function subscriptionExpiryEmail(
   expiryDate: string,
   daysLeft: number,
 ) {
+  // planName is our own admin-managed catalog string and also appears in
+  // the subject — left unescaped (see welcomeEmail's comment).
+  dalaliName = esc(dalaliName)
   const isUrgent = daysLeft <= 3
   const btnStyle = isUrgent
     ? styles.btn.replace('#1D9E75', '#dc2626')
@@ -785,6 +867,8 @@ export function staffPasswordResetEmail(
   email: string,
   tempPassword: string,
 ): { subject: string; html: string } {
+  staffName = esc(staffName)
+  email     = esc(email)
   return {
     subject: 'Password Mpya — NyumbaFasta Staff',
     html: emailBase(`
@@ -822,15 +906,25 @@ export function adminLegalReportEmail(opts: {
   description: string
   adminUrl: string
 }): { subject: string; html: string } {
+  // description is free text ANY user can submit when filing a report, and
+  // this email fires straight to an admin's inbox with no approval step in
+  // between — the single highest-value injection target in this file.
+  // reportedName/reporterName are similarly self-set account names.
+  // violationLabel/reportedRole are internal enum labels, not free text —
+  // and violationLabel also appears in the subject, so left unescaped
+  // (see welcomeEmail's comment on why subject/HTML can't share one var).
+  const reportedName = esc(opts.reportedName)
+  const reporterName = esc(opts.reporterName)
+  const description  = esc(opts.description)
   return {
     subject: `🚨 Ripoti Mpya: ${opts.violationLabel}`,
     html: emailBase(`
       <span style="${styles.greeting}">Ripoti ya Ukiukaji Mpya</span>
       <div style="${styles.infoBox}">
         <p style="${styles.infoText}">⚠️ <strong>Aina:</strong> ${opts.violationLabel}</p>
-        <p style="${styles.infoText}">👤 <strong>Aliyeripotiwa:</strong> ${opts.reportedName} (${opts.reportedRole})</p>
-        <p style="${styles.infoText}">📝 <strong>Aliyeripoti:</strong> ${opts.reporterName}</p>
-        <p style="${styles.infoText}">💬 <strong>Maelezo:</strong> ${opts.description}</p>
+        <p style="${styles.infoText}">👤 <strong>Aliyeripotiwa:</strong> ${reportedName} (${opts.reportedRole})</p>
+        <p style="${styles.infoText}">📝 <strong>Aliyeripoti:</strong> ${reporterName}</p>
+        <p style="${styles.infoText}">💬 <strong>Maelezo:</strong> ${description}</p>
       </div>
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0">
         <tr><td align="center">
@@ -848,14 +942,18 @@ export function adminLegalActionEmail(opts: {
   reportedName: string
   adminUrl: string
 }): { subject: string; html: string } {
+  // reportedName appears in the subject (built here, from the raw value)
+  // AND the body (escaped separately below) — see welcomeEmail's comment.
+  const subject      = `Hatua Imechukuliwa: ${opts.actionTaken} kwa ${opts.reportedName}`
+  const reportedName = esc(opts.reportedName)
   return {
-    subject: `Hatua Imechukuliwa: ${opts.actionTaken} kwa ${opts.reportedName}`,
+    subject,
     html: emailBase(`
       <span style="${styles.greeting}">Hatua ya Kisheria Imechukuliwa</span>
       <div style="${styles.infoBox}">
         <p style="${styles.infoText}">👨‍💼 <strong>Admin:</strong> ${opts.adminEmail}</p>
         <p style="${styles.infoText}">⚖️ <strong>Hatua:</strong> ${opts.actionTaken}</p>
-        <p style="${styles.infoText}">👤 <strong>Dhidi ya:</strong> ${opts.reportedName}</p>
+        <p style="${styles.infoText}">👤 <strong>Dhidi ya:</strong> ${reportedName}</p>
       </div>
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0">
         <tr><td align="center">
@@ -871,10 +969,11 @@ export function advertiserInviteEmail(opts: {
   businessName: string
   magicLink: string
 }): { subject: string; html: string } {
+  const businessName = esc(opts.businessName)
   return {
     subject: 'Karibu NyumbaFasta — Akaunti yako ya Mfanyabiashara Imeundwa',
     html: emailBase(`
-      <span style="${styles.greeting}">Karibu ${opts.businessName}! 🏪</span>
+      <span style="${styles.greeting}">Karibu ${businessName}! 🏪</span>
       <span style="${styles.text}">
         Akaunti yako ya mfanyabiashara imeundwa na msimamizi wa NyumbaFasta.
         Bonyeza kitufe hapa chini kuingia kwenye akaunti yako mara ya kwanza.

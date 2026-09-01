@@ -1,5 +1,5 @@
 import { Resend } from 'resend'
-import { emailBase } from './templates'
+import { emailBase, esc } from './templates'
 
 export function getResend() {
   const key = process.env.RESEND_API_KEY
@@ -48,22 +48,37 @@ export function buildEmailHtml(opts: {
   bodyText: string
   senderName: string
 }): string {
+  // Every value here is attacker-reachable free text with no escaping
+  // upstream: recipientName is sourced from the contact search (an
+  // advertiser's self-set business_name, or a user's self-set full_name),
+  // bodyText is staff-typed but often pastes in a user's own message
+  // verbatim, and senderName is the sending staff member's own account
+  // name. Found 2026-09-01 compose-email audit — none of it was escaped
+  // before reaching this raw HTML string. previewText (opts.subject, the
+  // 2nd arg to emailBase) also lands in a hidden HTML div, so it needs the
+  // same treatment.
+  const recipientName = esc(opts.recipientName)
+  const senderName     = esc(opts.senderName)
+
   const paragraphs = opts.bodyText
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean)
-    .map(line => `<p style="margin:0 0 14px;color:#374151;font-size:15px;line-height:1.6">${line}</p>`)
+    .map(line => `<p style="margin:0 0 14px;color:#374151;font-size:15px;line-height:1.6">${esc(line)}</p>`)
     .join('')
 
   const content = `
     <p style="margin:0 0 20px;color:#111827;font-size:18px;font-weight:700">
-      Habari ${opts.recipientName.split(' ')[0]},
+      Habari ${recipientName.split(' ')[0]},
     </p>
     ${paragraphs}
     <p style="margin:24px 0 0;color:#6B7280;font-size:13px;border-top:1px solid #E5E7EB;padding-top:16px">
-      Ujumbe huu umetumwa na <strong>${opts.senderName}</strong> kutoka timu ya NyumbaFasta.
+      Ujumbe huu umetumwa na <strong>${senderName}</strong> kutoka timu ya NyumbaFasta.
       Ukihitaji msaada, tupigie simu au tuandikie WhatsApp.
     </p>
   `
-  return emailBase(content, opts.subject)
+  // opts.subject is the real email Subject header too (set by the caller,
+  // email/send/route.ts, via Resend's `subject` field) — NOT escaped here,
+  // same reasoning as every other template's subject line.
+  return emailBase(content, esc(opts.subject))
 }

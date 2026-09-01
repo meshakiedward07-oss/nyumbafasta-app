@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const { to_email, to_name, subject, body_text, recipient_type, recipient_id, thread_id } = body
 
-    if (!to_email || !to_name || !subject?.trim() || !body_text?.trim()) {
+    if (!to_email || !to_name?.trim() || !subject?.trim() || !body_text?.trim()) {
       return NextResponse.json({ error: 'Tafadhali jaza sehemu zote zinazohitajika' }, { status: 400 })
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to_email)) {

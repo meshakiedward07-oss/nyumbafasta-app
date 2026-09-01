@@ -28,8 +28,13 @@ export async function GET(req: NextRequest) {
     if (type !== 'all') {
       query = query.eq('recipient_type', type)
     }
-    if (q.trim()) {
-      query = query.or(`subject.ilike.%${q}%,to_email.ilike.%${q}%,to_name.ilike.%${q}%,from_email.ilike.%${q}%,from_name.ilike.%${q}%`)
+    // See email/contacts/route.ts for why `,()` are stripped: PostgREST's
+    // .or() treats them as filter syntax (OR-separator / grouping), so an
+    // unescaped q can inject extra clauses instead of just being matched
+    // as search text. Found 2026-09-01 compose-email audit.
+    const safeQ = q.trim().replace(/[,()]/g, '')
+    if (safeQ) {
+      query = query.or(`subject.ilike.%${safeQ}%,to_email.ilike.%${safeQ}%,to_name.ilike.%${safeQ}%,from_email.ilike.%${safeQ}%,from_name.ilike.%${safeQ}%`)
     }
 
     const { data: emails, count, error } = await query

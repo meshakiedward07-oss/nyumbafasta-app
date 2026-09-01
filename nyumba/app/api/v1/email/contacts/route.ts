@@ -16,12 +16,22 @@ export async function GET(req: NextRequest) {
     if (!auth.ok) return auth.response
 
     const { searchParams } = new URL(req.url)
-    const q    = (searchParams.get('q') ?? '').trim()
+    const qRaw = (searchParams.get('q') ?? '').trim()
     const type = searchParams.get('type') ?? 'all' // 'all' | 'client' | 'dalali' | 'advertiser'
 
-    if (!q || q.length < 2) {
+    if (!qRaw || qRaw.length < 2) {
       return NextResponse.json({ contacts: [] })
     }
+
+    // PostgREST's .or() takes a raw filter-syntax string — `,` separates
+    // OR clauses and `()` groups them, so passing the search query straight
+    // into it (as this route used to) lets a crafted q inject additional
+    // filter clauses instead of just being matched as ILIKE text. Staff-only
+    // route, so low severity, but still a real input-validation gap (found
+    // 2026-09-01 compose-email audit) — strip the syntax-significant
+    // characters before building the filter string.
+    const q = qRaw.replace(/[,()]/g, '')
+    if (!q) return NextResponse.json({ contacts: [] })
 
     const admin = createAdminClient()
     const contacts: ContactResult[] = []
