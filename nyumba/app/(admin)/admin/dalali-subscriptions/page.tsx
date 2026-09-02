@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import ExtendSubscriptionModal from '@/components/admin/ExtendSubscriptionModal'
 
 const PLAN_LABEL: Record<string, string>   = { free: 'Bure', basic: 'Basic', premium: 'Premium', enterprise: 'Enterprise' }
 const PLAN_COLOR: Record<string, string>   = { free: 'bg-gray-100 text-gray-600', basic: 'bg-blue-100 text-blue-700', premium: 'bg-amber-100 text-amber-700', enterprise: 'bg-purple-100 text-purple-700' }
@@ -27,8 +28,8 @@ export default function DalaliSubscriptionsPage() {
   const [q, setQ]             = useState('')
   const [status, setStatus]   = useState('all')
   const [plan, setPlan]       = useState('all')
-  const [extending, setExtending] = useState<string | null>(null)
   const [toast, setToast]     = useState<{ msg: string; ok: boolean } | null>(null)
+  const [extendTarget, setExtendTarget] = useState<Sub | null>(null)
 
   const showToast = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3500) }
 
@@ -44,20 +45,6 @@ export default function DalaliSubscriptionsPage() {
   }, [status, plan, q, page])
 
   useEffect(() => { load() }, [load])
-
-  async function extendSub(dalaliId: string, days = 30) {
-    setExtending(dalaliId)
-    const res = await fetch(`/api/v1/admin/dalali/${dalaliId}/extend`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ days }),
-    })
-    const data = await res.json() as { error?: string; message?: string }
-    setExtending(null)
-    if (!res.ok) { showToast(data.error ?? 'Imeshindwa', false); return }
-    showToast('Imepanuliwa kwa siku 30')
-    load()
-  }
 
   const STATUS_TABS = [
     { key: 'all',          label: 'Zote' },
@@ -169,11 +156,10 @@ export default function DalaliSubscriptionsPage() {
                       <td className="px-4 py-3">
                         {d && (
                           <button
-                            onClick={() => extendSub(d.id)}
-                            disabled={extending === d.id}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100 disabled:opacity-50 font-medium transition-colors"
+                            onClick={() => setExtendTarget(s)}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100 font-medium transition-colors"
                           >
-                            {extending === d.id ? '...' : '+30 Siku'}
+                            Panua
                           </button>
                         )}
                       </td>
@@ -199,6 +185,16 @@ export default function DalaliSubscriptionsPage() {
           </div>
         )}
       </div>
+
+      {extendTarget?.dalali && (
+        <ExtendSubscriptionModal
+          dalaliId={extendTarget.dalali.id}
+          dalaliName={extendTarget.dalali.full_name}
+          currentPlan={extendTarget.plan}
+          onClose={() => setExtendTarget(null)}
+          onDone={msg => { showToast(msg); load() }}
+        />
+      )}
     </div>
   )
 }
