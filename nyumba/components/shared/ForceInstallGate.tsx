@@ -46,6 +46,27 @@ export default function ForceInstallGate() {
   useEffect(() => {
     mountedRef.current = true
 
+    // Two ways this gate gets armed: (1) the `nyumba_install_gate`
+    // localStorage flag, set client-side by register/complete,
+    // portal/complete, or register/page.tsx's finaliseAndRedirect(); or
+    // (2) an `install_gate=1` URL param — needed because the dominant real
+    // signup-completion path (clicking the email confirmation link) lands
+    // on auth/callback/route.ts, a SERVER redirect that can't write
+    // localStorage at all. Without this second path the gate was
+    // effectively dead for every client/dalali signup completed that way
+    // (found 2026-09-02, reported as a referral-link dalali not getting
+    // the same language/install screens other users get — Google sign-in
+    // being hidden means the email-confirmation-link path is the only real
+    // one right now). Read from window.location directly, not
+    // next/navigation's useSearchParams — this component is already
+    // ssr:false-only (see ClientProviders.tsx), and adding
+    // useSearchParams to something mounted in the root layout on every
+    // page would force the whole app out of static rendering.
+    const fromUrl = new URLSearchParams(window.location.search).get('install_gate')
+    if (fromUrl) {
+      try { localStorage.setItem(GATE_KEY, fromUrl) } catch { /* ignore */ }
+    }
+
     // Only show if: gate flag set, not already installed as PWA, not already dismissed
     if (!localStorage.getItem(GATE_KEY)) return
     if (isAlreadyInstalled()) { clearGate(); return }

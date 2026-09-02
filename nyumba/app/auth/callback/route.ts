@@ -311,8 +311,25 @@ export async function GET(request: NextRequest) {
       // before. See the matching fix + longer explanation in
       // app/(auth)/register/page.tsx's finaliseAndRedirect().
       const cacheBust = `_t=${Date.now()}`
-      if (role === 'dalali') return NextResponse.redirect(`${origin}/dashboard?welcome=true&${cacheBust}`)
-      return NextResponse.redirect(`${origin}/?welcome=true&${cacheBust}`)
+      // install_gate=1 — found 2026-09-02: org_owner/tenant portal signups
+      // round-trip through a client page (/portal/complete) which sets the
+      // `nyumba_install_gate` localStorage flag ForceInstallGate.tsx reads,
+      // so those users get the post-signup "install the app" screen. Client/
+      // dalali marketplace signups deliberately do NOT round-trip through a
+      // client page here (see emailRedirectTo's comment in register/page.tsx
+      // — a past cross-device localStorage fragility fix) — this whole
+      // finalisation happens server-side in THIS route, so that flag was
+      // never set for them. Reported as "dalali who joined via a referral
+      // link don't get the language/install screens other users get" — the
+      // real cause is broader than referral links specifically: it's every
+      // client/dalali signup completed via the email-confirmation-link path
+      // (the only path in practice, since Google sign-in is currently
+      // hidden — see register/page.tsx). Fixed by passing the same signal
+      // as a URL param instead, which ForceInstallGate now also checks for
+      // (a server redirect can't write localStorage directly).
+      const installGate = isNewUser ? '&install_gate=1' : ''
+      if (role === 'dalali') return NextResponse.redirect(`${origin}/dashboard?welcome=true&${cacheBust}${installGate}`)
+      return NextResponse.redirect(`${origin}/?welcome=true&${cacheBust}${installGate}`)
     }
   }
 

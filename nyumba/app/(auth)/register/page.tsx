@@ -140,6 +140,14 @@ function RegisterForm() {
         }),
       })
     } catch { /* non-fatal — auth/callback is the safety net */ }
+
+    // Post-signup install gate — this function runs client-side (unlike
+    // auth/callback/route.ts's server redirect, which can't write
+    // localStorage and needed a separate URL-param fix instead), so we can
+    // just set the flag directly, matching register/complete/page.tsx and
+    // portal/complete/page.tsx's exact pattern. Found missing 2026-09-02.
+    try { localStorage.setItem('nyumba_install_gate', role) } catch { /* ignore */ }
+
     // Hard navigation (not router.replace) — this is the one moment the
     // freshly-created subscription/plan MUST be read live from the server,
     // never from Next.js's client-side router cache for a route this same
