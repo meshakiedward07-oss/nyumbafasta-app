@@ -51,20 +51,16 @@ export default async function AdvertisingLayout({ children }: { children: ReactN
               <LogoutButton />
             </>
           ) : (
-            <>
-              <Link
-                href="/advertising/login"
-                className="text-sm text-gray-600 hover:text-primary-700 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
-              >
-                Ingia
-              </Link>
-              <Link
-                href="/advertising/register"
-                className="bg-primary-500 text-white text-sm px-3 py-1.5 rounded-xl hover:bg-primary-600 transition font-bold"
-              >
-                Jisajili Bure
-              </Link>
-            </>
+            // Login/register consolidated into /portal 2026-09-02, alongside
+            // organization, tenant, and fundi account access — this header
+            // (shown on the ads directory page too) no longer duplicates
+            // /advertising/login and /advertising/register directly.
+            <Link
+              href="/portal"
+              className="bg-primary-500 text-white text-sm px-3 py-1.5 rounded-xl hover:bg-primary-600 transition font-bold"
+            >
+              Ingia / Jisajili
+            </Link>
           )}
         </div>
       </header>

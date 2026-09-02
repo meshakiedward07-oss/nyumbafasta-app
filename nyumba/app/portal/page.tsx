@@ -52,6 +52,23 @@ export default function PortalPage() {
       registerHref: '/fundi/register',
       features:     [t('portal_fundi_f1'), t('portal_fundi_f2'), t('portal_fundi_f3')],
     },
+    {
+      // Consolidated here 2026-09-02 — the advertiser login/register used
+      // to live directly on the ads directory page (app/advertising/
+      // page.tsx), duplicated in two places (hero + final CTA), cluttering
+      // what's meant to be a marketing/plans page. Every other "portal"
+      // role (org, tenant, fundi) already funnels through this one hub —
+      // advertiser now does too, for the same reason.
+      key:          'advertiser',
+      icon:         'speakerphone',
+      label:        t('portal_advertiser_label'),
+      sub:          t('portal_advertiser_sub'),
+      color:        '#2563EB',
+      bg:           '#EFF6FF',
+      loginHref:    '/advertising/login',
+      registerHref: '/advertising/register',
+      features:     [t('portal_advertiser_f1'), t('portal_advertiser_f2'), t('portal_advertiser_f3')],
+    },
   ]
 
   return (

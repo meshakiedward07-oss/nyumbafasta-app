@@ -154,18 +154,15 @@ export default async function AdvertisingLandingPage() {
             Tangaza biashara yako kwenye NyumbaFasta — jukwaa kubwa la nyumba na huduma Tanzania.
             Wateja wanakutafuta. Wataki wakuone.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {/* Login/register moved to /portal 2026-09-02 — consolidated with
+              organization, tenant, and fundi account access into one hub,
+              instead of duplicating auth CTAs on this marketing/plans page. */}
+          <div className="flex justify-center">
             <Link
-              href="/advertising/register"
+              href="/portal"
               className="bg-white text-primary-700 font-bold px-7 py-3.5 rounded-2xl hover:bg-primary-50 transition text-sm shadow-lg"
             >
               Anza Bure — Dakika 2 tu
-            </Link>
-            <Link
-              href="/advertising/login"
-              className="border border-white/30 text-white font-medium px-7 py-3.5 rounded-2xl hover:bg-white/10 transition text-sm"
-            >
-              Nina Akaunti → Ingia
             </Link>
           </div>
         </div>
@@ -321,14 +318,14 @@ export default async function AdvertisingLandingPage() {
             Jiandikishe bure na anza kuweka tangazo lako ndani ya dakika 5.
           </p>
           <Link
-            href="/advertising/register"
+            href="/portal"
             className="inline-block bg-white text-primary-700 font-bold px-8 py-3 rounded-2xl hover:bg-primary-50 transition shadow-md"
           >
             Anza Bure Sasa
           </Link>
           <p className="text-xs text-primary-200 mt-4">
             Tayari una akaunti?{' '}
-            <Link href="/advertising/login" className="underline">Ingia hapa</Link>
+            <Link href="/portal" className="underline">Ingia hapa</Link>
           </p>
         </div>
       </section>
