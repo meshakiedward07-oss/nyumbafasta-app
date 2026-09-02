@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Avatar from '@/components/shared/Avatar'
 import DeleteAccountModal from '@/components/dalali/DeleteAccountModal'
 import { useLanguage } from '@/lib/i18n/context'
@@ -379,6 +380,23 @@ export default function DalaliProfileClient({
           {saving ? t('qe_saving') : t('qe_save_btn')}
         </button>
       </form>
+
+      {/* ── Rufaa ya Marafiki teaser — the referral page (app/(dalali)/dashboard/
+          referral) had no navigation link pointing to it anywhere in the app;
+          it was only reachable by typing the URL directly. Found 2026-09-02. ── */}
+      <Link
+        href="/dashboard/referral"
+        className="mx-4 flex items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mt-4 active:scale-[0.98] transition-all"
+      >
+        <div className="w-11 h-11 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0">
+          <i className="ti ti-users-plus text-primary-600 text-xl" aria-hidden="true" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-gray-900">{t('ref_title')}</p>
+          <p className="text-xs text-gray-400">{t('ref_subtitle')}</p>
+        </div>
+        <i className="ti ti-chevron-right text-gray-300 flex-shrink-0" aria-hidden="true" />
+      </Link>
 
       {/* ── Danger Zone ── */}
       <div className="mx-4 bg-white rounded-2xl border border-red-100 shadow-sm p-4 mt-4 mb-6">

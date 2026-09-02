@@ -9,6 +9,7 @@ import { getPricing } from '@/lib/config/pricing'
 import { sendMail } from '@/lib/email/resend'
 import { subscriptionActivatedEmail } from '@/lib/email/templates'
 import { triggerSubscriptionStage } from '@/lib/influencer/payoutTriggers'
+import { creditReferralIfAny } from '@/lib/referral/creditReferral'
 
 export async function POST(req: NextRequest) {
   if (!verifyWebhookSecret(req)) {
@@ -136,6 +137,13 @@ export async function POST(req: NextRequest) {
     // Influencer payout: real paid subscription triggers Stage 2 or Stage 3 (non-blocking)
     triggerSubscriptionStage(subscription.dalali_id, admin).catch(e =>
       console.error('[Payout] triggerSubscriptionStage failed (non-fatal):', e)
+    )
+
+    // Dalali-to-dalali referral reward — this is the first REAL paid
+    // activation, so credit whoever referred this dalali, if anyone did
+    // (non-blocking, no-op if no pending referral exists).
+    creditReferralIfAny(subscription.dalali_id, admin).catch(e =>
+      console.error('[Referral] creditReferralIfAny failed (non-fatal):', e)
     )
 
     const planName = subscription.plan === 'premium' ? 'Premium ⭐'
