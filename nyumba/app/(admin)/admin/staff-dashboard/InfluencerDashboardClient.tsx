@@ -96,7 +96,12 @@ export default function InfluencerDashboardClient() {
 
   function copyLink() {
     if (!profile) return
-    const link = `${APP_URL}/register?ref=${profile.referralCode}`
+    // role=dalali — this program refers dalali specifically (every payout
+    // stage is tied to a dalali action: signup, listing approval, etc. —
+    // see lib/influencer/payoutTriggers.ts). Without it the link defaulted
+    // to role=client (register/page.tsx's fallback), so a referred dalali
+    // had to manually re-select "Dalali" on step 1. Found 2026-09-02.
+    const link = `${APP_URL}/register?role=dalali&ref=${profile.referralCode}`
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
@@ -111,7 +116,7 @@ export default function InfluencerDashboardClient() {
     )
   }
 
-  const referralLink = profile ? `${APP_URL}/register?ref=${profile.referralCode}` : ''
+  const referralLink = profile ? `${APP_URL}/register?role=dalali&ref=${profile.referralCode}` : ''
 
   // Build a map of referredUserId → their earned payout stages
   const payoutMap: Record<string, PayoutStage[]> = {}

@@ -66,7 +66,13 @@ export async function GET(): Promise<Response> {
   const total_days     = list.filter(r => r.status === 'credited').reduce((s, r) => s + (r.reward_days ?? 7), 0)
 
   const referral_code = profile?.referral_code ?? ''
-  const referral_link = `${APP_URL}/register?ref=${referral_code}`
+  // role=dalali — this is a dalali-to-dalali referral program (see the
+  // "Jiunge na NyumbaFasta — jukwaa bora la madalali" share text in
+  // app/(dalali)/dashboard/referral/page.tsx). Without it the link
+  // defaulted to role=client (register/page.tsx's fallback), so a
+  // referred dalali had to manually re-select "Dalali" on step 1.
+  // Found 2026-09-02.
+  const referral_link = `${APP_URL}/register?role=dalali&ref=${referral_code}`
 
   return Response.json({
     referral_code,
