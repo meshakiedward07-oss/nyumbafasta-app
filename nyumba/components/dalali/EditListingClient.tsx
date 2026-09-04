@@ -312,7 +312,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
 
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                Aina ya Upatikanaji
+                Idadi ya Wapangaji
               </label>
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <button onClick={() => setUnitType('single')}
@@ -320,7 +320,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
                     unitType === 'single' ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'
                   }`}>
                   <i className="ti ti-home text-xl" aria-hidden="true" />
-                  <span className={`text-sm font-medium ${unitType === 'single' ? 'text-primary-700' : 'text-gray-700'}`}>Moja tu</span>
+                  <span className={`text-sm font-medium ${unitType === 'single' ? 'text-primary-700' : 'text-gray-700'}`}>Mpangaji mmoja</span>
                   {unitType === 'single' && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
                 </button>
                 <button onClick={() => setUnitType('multi')}
@@ -328,7 +328,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
                     unitType === 'multi' ? 'border-primary-500 bg-primary-50' : 'border-gray-100 bg-gray-50'
                   }`}>
                   <i className="ti ti-building text-xl" aria-hidden="true" />
-                  <span className={`text-sm font-medium ${unitType === 'multi' ? 'text-primary-700' : 'text-gray-700'}`}>Nyingi</span>
+                  <span className={`text-sm font-medium ${unitType === 'multi' ? 'text-primary-700' : 'text-gray-700'}`}>Wapangaji wengi</span>
                   {unitType === 'multi' && <i className="ti ti-check ml-auto text-primary-500 text-sm" aria-hidden="true" />}
                 </button>
               </div>
@@ -336,7 +336,7 @@ export default function EditListingClient({ listing }: { listing: ListingData })
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                      Idadi ya Vyumba/Vitengo
+                      Idadi ya Wapangaji Wanaohitajika
                     </label>
                     <input type="number" inputMode="numeric" min="1" max="500"
                       value={totalCapacity} onChange={e => setTotalCapacity(e.target.value)}
